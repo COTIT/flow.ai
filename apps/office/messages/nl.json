@@ -719,7 +719,8 @@
       "saved": "Gegevens opgeslagen."
     },
     "stockAdded": "{qty} bijgeboekt in {place}: nu {now}.",
-    "stockTaken": "{qty} afgeboekt uit {place}: nu {now}."
+    "stockTaken": "{qty} afgeboekt uit {place}: nu {now}.",
+    "stockUnmoved": "Er is niets verplaatst: de wijziging was 0, of dit product houdt geen voorraad bij."
   },
   "images": {
     "title": "Afbeeldingen",

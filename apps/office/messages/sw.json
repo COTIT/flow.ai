@@ -719,7 +719,8 @@
       "saved": "Maelezo yamehifadhiwa."
     },
     "stockAdded": "Umeongeza {qty} {place}: sasa {now}.",
-    "stockTaken": "Umetoa {qty} {place}: sasa {now}."
+    "stockTaken": "Umetoa {qty} {place}: sasa {now}.",
+    "stockUnmoved": "Hakuna kilichobadilika: mabadiliko yalikuwa 0, au bidhaa hii haihifadhi akiba."
   },
   "images": {
     "title": "Picha",

@@ -719,7 +719,8 @@
       "saved": "Details saved."
     },
     "stockAdded": "Added {qty} at {place}: now {now}.",
-    "stockTaken": "Took {qty} from {place}: now {now}."
+    "stockTaken": "Took {qty} from {place}: now {now}.",
+    "stockUnmoved": "Nothing moved: the change was 0, or this product doesn't keep stock."
   },
   "images": {
     "title": "Images",

@@ -73,8 +73,10 @@ function placesApi(api: FakeApi) {
     .on("POST", "/workspace/:ws/products/:id/stocks", ({ body }) => {
       const b = body as { warehouse_id: string; mutation_value: string }
       const r = rows.find((r) => r.warehouse.id === b.warehouse_id && !r.lot)!
+      const before = r.stock_lvl
       r.stock_lvl = (Number(r.stock_lvl) + Number(b.mutation_value)).toFixed(2)
-      return { message: "ok" }
+      // Like the API: the row's level around the change and where it went.
+      return { message: "ok", before, after: r.stock_lvl, warehouse: r.warehouse }
     })
   return rows
 }
@@ -159,6 +161,22 @@ test("change stock: Correct it opens the dialog at that place; it says what is t
     page.getByRole("status").filter({ hasText: "Took 3 from Market stall: now -4." })
   ).toBeVisible()
   await expectNoRawValues(page, { allow: ["AFM-001", "WF-2026-07"] })
+})
+
+test("change stock that moved nothing (a zero change) says nothing moved", async ({
+  page,
+  api,
+}) => {
+  placesApi(api)
+  api.on("POST", "/workspace/:ws/products/:id/stocks", () => ({ message: "ok" }))
+  await page.goto("/products/prod-wf?change=wh-store")
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("Change (e.g. 10 or -3)").fill("0")
+  await dialog.getByRole("button", { name: "Save" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Nothing moved: the change was 0" })
+  ).toBeVisible()
+  await expect(page.getByRole("status").filter({ hasText: "Added" })).toHaveCount(0)
 })
 
 test("/products/[id]?change= opens Change stock at that place", async ({ page, api }) => {

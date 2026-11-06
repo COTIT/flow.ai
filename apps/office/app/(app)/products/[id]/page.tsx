@@ -349,6 +349,7 @@ export default function ProductPage({
                 onDone={(message) => {
                   done.show(message)
                   for (const queryKey of [
+                    getStockWithBinsQueryKey(workspaceId, id),
                     getStockMovementsQueryKey(workspaceId, id),
                     getProductsGetQueryKey(workspaceId, id),
                   ])
@@ -562,7 +563,6 @@ function MutateStock({
   const locale = useLocale()
   const qty = (v: string) => formatQty(v, locale)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
-  const queryClient = useQueryClient()
   const open = at !== null
   const warehouses = useWarehousesList(
     workspaceId,
@@ -575,26 +575,18 @@ function MutateStock({
   const batches = place?.rows.filter((r) => lotOf(r.lot)) ?? []
   const mutate = useStockMutate({
     mutation: {
-      onSuccess: async (_, { data }) => {
-        // The new level is the API's, read back after the change; nothing is added up here.
-        const key = getStockWithBinsQueryKey(workspaceId, productId)
-        await queryClient.refetchQueries({ queryKey: key })
-        const now = byPlace(
-          queryClient.getQueryData<{ data: StockWithBins[] }>(key)?.data ?? []
-        ).find((p) => p.id === data.warehouse_id)?.base?.stock_lvl
+      onSuccess: (answer, { data }) => {
+        // Place and levels as the API answers them, from the change's own transaction.
         const value = data.mutation_value.trim()
         const taken = value.startsWith("-")
-        const name = warehouses.data?.data.find(
-          (w) => w.id === data.warehouse_id
-        )?.name
         onDone(
-          now && name
+          answer.after && answer.warehouse
             ? t(taken ? "done.stockTaken" : "done.stockAdded", {
                 qty: qty(value.replace(/^[-+]/, "")),
-                place: name,
-                now: qty(now),
+                place: answer.warehouse.name,
+                now: qty(answer.after),
               })
-            : t("done.stockChanged")
+            : t("done.stockUnmoved")
         )
         onAt(null)
       },

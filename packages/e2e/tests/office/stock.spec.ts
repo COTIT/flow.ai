@@ -78,7 +78,7 @@ function stockApi(api: FakeApi) {
         reason: b.reason,
         created_at: "2026-10-31T10:00:00Z",
       })
-      return { data: rows[0] }
+      return { message: "ok", before: "120.00", after: "130.00", warehouse }
     })
 }
 
