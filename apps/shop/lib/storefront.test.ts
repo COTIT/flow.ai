@@ -9,6 +9,11 @@ const api = vi.hoisted(() => ({
   storefrontOrdersPayment: vi.fn(),
 }))
 vi.mock("@genesy/api-client/endpoints/storefront", () => api)
+const mutator = vi.hoisted(() => ({ apiRequest: vi.fn() }))
+vi.mock("@genesy/api-client/mutator", async (real) => ({
+  ...(await real<object>()),
+  ...mutator,
+}))
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND")
@@ -20,6 +25,7 @@ const {
   getLot,
   getOrder,
   getProduct,
+  listCategories,
   listProducts,
   startPayment,
   StorefrontUnavailable,
@@ -34,6 +40,47 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.spyOn(console, "error").mockImplementation(() => {})
   vi.stubEnv("STOREFRONT_APP_KEY", "gsk_test_key")
+})
+
+describe("categories", () => {
+  const coffee = "c1000000-0000-4000-8000-000000000002"
+
+  it("lists the API's categories", async () => {
+    const data = [
+      { id: coffee, name: "Coffee", description: null, product_count: 3 },
+    ]
+    mutator.apiRequest.mockResolvedValue({ data })
+    await expect(listCategories()).resolves.toEqual(data)
+    expect(mutator.apiRequest.mock.calls[0]![0]).toMatchObject({
+      url: "/storefront/categories",
+      method: "GET",
+    })
+  })
+
+  it("read as none while the API has no categories endpoint (404), so the shop still opens", async () => {
+    mutator.apiRequest.mockRejectedValue(httpError(404))
+    await expect(listCategories()).resolves.toEqual([])
+  })
+
+  it("hide other failures behind StorefrontUnavailable", async () => {
+    mutator.apiRequest.mockRejectedValue(httpError(503))
+    await expect(listCategories()).rejects.toBeInstanceOf(StorefrontUnavailable)
+  })
+
+  it("filter products by a category id, and drop anything that isn't one", async () => {
+    api.storefrontProductsList.mockResolvedValue({ data: [], meta: {} })
+    await listProducts(1, coffee)
+    await listProducts(1, "../orders")
+    expect(api.storefrontProductsList.mock.calls[0]![0]).toEqual({
+      page: 1,
+      page_size: 24,
+      category: coffee,
+    })
+    expect(api.storefrontProductsList.mock.calls[1]![0]).toEqual({
+      page: 1,
+      page_size: 24,
+    })
+  })
 })
 
 describe("storefront calls", () => {

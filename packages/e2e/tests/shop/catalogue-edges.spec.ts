@@ -13,14 +13,14 @@ const meta = (page: Page, selector: string) =>
   page.locator(`head ${selector}`).first()
 
 test("the pager walks the catalogue page by page", async ({ page }) => {
-  await page.goto("/")
+  await page.goto("/shop")
   const pager = page.getByRole("navigation", { name: "Catalog pages" })
   await expect(pager).toContainText("Page 1 of 2")
   await expect(pager.getByRole("button", { name: "Previous" })).toBeDisabled()
-  await expect(page.getByText("3 of 4", { exact: true })).toBeVisible()
+  await expect(page.getByText("18 of 19", { exact: true })).toBeVisible()
 
   await pager.getByRole("link", { name: "Next" }).click()
-  await expect(page).toHaveURL("/?page=2", { timeout: 15_000 })
+  await expect(page).toHaveURL("/shop?page=2", { timeout: 15_000 })
   await expect(pager).toContainText("Page 2 of 2")
   await expect(pager.getByRole("button", { name: "Next" })).toBeDisabled()
   await expect(page.getByRole("link", { name: LONG_NAME })).toBeVisible()
@@ -29,16 +29,24 @@ test("the pager walks the catalogue page by page", async ({ page }) => {
   ).toHaveCount(0)
 
   await pager.getByRole("link", { name: "Previous" }).click()
-  await expect(page).toHaveURL("/?page=1", { timeout: 15_000 })
+  await expect(page).toHaveURL("/shop?page=1", { timeout: 15_000 })
   await expect(
     page.getByRole("link", { name: /Ilundo Wild Forest Honey/ })
   ).toBeVisible()
 })
 
-test("a very long product name wraps instead of pushing the page wide", async ({
+test("an old catalogue page link lands on the same page of the shop", async ({
   page,
 }) => {
   await page.goto("/?page=2")
+  await expect(page).toHaveURL("/shop?page=2")
+  await expect(page.getByRole("link", { name: LONG_NAME })).toBeVisible()
+})
+
+test("a very long product name wraps instead of pushing the page wide", async ({
+  page,
+}) => {
+  await page.goto("/shop?page=2")
   const card = page.getByRole("link", { name: LONG_NAME })
   await expect(card).toContainText("$32.00")
   await expect(card).toContainText("In stock")
@@ -90,11 +98,13 @@ test.describe("search engines", () => {
     page,
   }) => {
     await page.goto("/")
-    await expect(page).toHaveTitle("Genesy Shop")
+    await expect(page).toHaveTitle("African Farmers Market")
     await expect(meta(page, 'meta[name="description"]')).toHaveAttribute(
       "content",
-      "Honey and beeswax from the Ilundo beekeepers of Tanzania, traced jar by jar."
+      /^Rooted in African soil\. Shared with the world\./
     )
+    await page.goto("/shop")
+    await expect(page).toHaveTitle("Shop · African Farmers Market")
   })
 
   test("a product has its description, canonical link and share card", async ({
@@ -133,7 +143,7 @@ test.describe("search engines", () => {
   }) => {
     await page.goto(`/b/${LOT.released}`)
     await expect(page).toHaveTitle(
-      "Wild forest honey, harvest July 2026 · Genesy Shop"
+      "Wild forest honey, harvest July 2026 · African Farmers Market"
     )
     await expect(meta(page, 'meta[name="description"]')).toHaveAttribute(
       "content",
@@ -171,7 +181,7 @@ test.describe("addresses that are not ids", () => {
 })
 
 test.describe("catalogue API down", () => {
-  const path = `/?page=${FAILING_PAGE}`
+  const path = `/shop?page=${FAILING_PAGE}`
   test.use({
     allow: {
       responses: [{ url: path, status: 500 }],

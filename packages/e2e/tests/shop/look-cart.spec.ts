@@ -26,7 +26,7 @@ test("the cart is a list tile beside a summary tile", async ({
   expect(await css(h1, "font-size")).toBe("22px")
   await expect(
     page.getByRole("link", { name: "Keep shopping" })
-  ).toHaveAttribute("href", "/")
+  ).toHaveAttribute("href", "/shop")
 
   const lines = page.getByRole("list", { name: "Your cart" })
   const line = lines.getByRole("listitem")

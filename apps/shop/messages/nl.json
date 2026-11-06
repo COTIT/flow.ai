@@ -1,15 +1,29 @@
 {
   "app": {
-    "title": "Genesy Shop",
-    "tagline": "Honing en bijenwas van de imkers van Ilundo in Tanzania, per pot traceerbaar."
+    "title": "African Farmers Market",
+    "tagline": "Geworteld in Afrikaanse grond. Gedeeld met de wereld. Honing, koffie, ambachten en kunst van Oost-Afrikaanse boeren en makers, per partij te herleiden."
   },
   "nav": {
     "shop": "Winkel",
-    "home": "Genesy Shop startpagina"
+    "home": "African Farmers Market, startpagina",
+    "stories": "Verhalen",
+    "about": "Over ons",
+    "faq": "Vragen",
+    "contact": "Contact",
+    "main": "Hoofdmenu",
+    "menu": "Menu",
+    "openMenu": "Open het menu"
   },
   "footer": {
-    "title": "Te volgen van korf tot keuken",
-    "shipping": "Verzending naar de Verenigde Staten. Prijzen inclusief btw."
+    "title": "Geworteld in Afrikaanse grond. Gedeeld met de wereld.",
+    "shipping": "We verzenden binnen de Verenigde Staten vanuit Colorado. Prijzen inclusief btw.",
+    "explore": "Ontdek",
+    "help": "Hulp",
+    "supplier": "Word leverancier",
+    "newsletterTitle": "Blijf op de hoogte",
+    "newsletterBody": "Verhalen van boeren, nieuwe oogsten en marktdata. Mail ons en we zetten je op de lijst.",
+    "newsletterCta": "Aanmelden per e-mail",
+    "newsletterSubject": "Zet me op jullie lijst"
   },
   "catalog": {
     "title": "Winkel",
@@ -27,7 +41,14 @@
     "scanBody": "Maak kennis met de boeren erachter.",
     "all": "Alle producten",
     "count": "{shown} van {total}",
-    "pages": "Cataloguspagina's"
+    "pages": "Cataloguspagina's",
+    "categories": "Categorieën",
+    "allCategories": "Alles",
+    "unknownCategory": "We vinden deze categorie niet",
+    "unknownCategoryWhy": "Ze is misschien hernoemd of leeg. Alles wat we hebben is één klik verder.",
+    "seeAll": "Bekijk alle producten",
+    "emptyCategory": "Niets in deze categorie op dit moment",
+    "emptyCategoryWhy": "Er komen regelmatig nieuwe oogsten en stukken bij. Kom snel terug."
   },
   "product": {
     "inStock": "Op voorraad",
@@ -174,5 +195,184 @@
       "quarantine": "Geblokkeerd"
     },
     "inTheirWords": "In hun woorden"
+  },
+  "content": {
+    "email": "support@africanfarmersmarketonline.com",
+    "emailUs": "Mail ons",
+    "shopCta": "Bekijk de collectie"
+  },
+  "about": {
+    "tag": "Over ons",
+    "title": "Eerlijke, herleidbare wegen van Afrikaanse boerderijen naar je tafel",
+    "lead": "African Farmers Market verbindt Oost-Afrikaanse boeren, ambachtslieden en kunstenaars met kopers wereldwijd, zodat elke aankoop zichtbaar steunt wie het teelde of maakte.",
+    "missionTitle": "Onze missie",
+    "missionBody": "Ethische, open en herleidbare wegen naar de markt bouwen voor Afrikaanse boeren: een eerlijke prijs, zorg voor het land en impact die de gemeenschap zelf leidt.",
+    "visionTitle": "Onze visie",
+    "visionBody": "Boeren gewaardeerd als hoeders van hun land en cultuur, en handel die bestaan en natuur sterker maakt.",
+    "problemTitle": "Waarom het ertoe doet",
+    "problemBody": "Veel boeren op het platteland missen gereedschap om hun oogst te verwerken en te bewaren, en hebben geen toegang tot financiering, certificering, vervoer en kopers. Goede oogsten blijven onzichtbaar.",
+    "villageTitle": "Het Global Village Farm to Plate Project",
+    "villageBody": "Ons project om Afrikaanse boeren rechtstreeks te verbinden met wie hun voedsel eet. Eerlijke inkoop gaat samen met open verhalen, zodat je ziet welke families en dorpen je aankoop steunt.",
+    "traceTitle": "Elke partij heeft een paspoort",
+    "traceBody": "Scan de QR-code op een pot of zak en je ziet waar het vandaan komt, welke dorpen het oogstten en wanneer. Wordt een partij ooit teruggeroepen of geblokkeerd, dan staat dat als eerste in het paspoort.",
+    "soulTitle": "Soil to Soul",
+    "soulBody": "Onze naam voor de band tussen het land, de mensen die het bewerken, wat zij maken en jij, die het mee naar huis neemt.",
+    "teamTitle": "Wie we zijn",
+    "teamBody": "Een klein team op twee continenten: Amerikaanse activiteiten in Colorado en een boerderij in het Rungwe-district in Tanzania.",
+    "eventsTitle": "Kom langs op de markt",
+    "eventsLead": "Ontmoet ons, proef de honing en hoor de verhalen.",
+    "eventsNone": "Er staan nu geen markten gepland",
+    "eventsNoneWhy": "Nieuwe data delen we eerst in onze nieuwsbrief.",
+    "supplierTitle": "Ben je boer of maker in Oost-Afrika?",
+    "supplierBody": "We zoeken altijd nieuwe partners.",
+    "supplierCta": "Word leverancier"
+  },
+  "stories": {
+    "tag": "Verhalen",
+    "title": "De mensen achter elke pot, mand en schilderij",
+    "lead": "We kopen rechtstreeks bij boeren, coöperaties en kunstenaars die we kennen. Hier zijn er een paar.",
+    "illundo": {
+      "name": "De imkers van Illundo",
+      "place": "Illundo, Tanzania",
+      "body": "Imkers in de miombobossen oogsten rauwe wilde bloemenhoning uit hun kasten. We werken rechtstreeks met hen samen, en die samenwerking geeft vrouwen in de landbouw nieuw betaald werk. Elke pot honing van Mary is herleidbaar tot hun oogst."
+    },
+    "mary": {
+      "name": "Mary",
+      "place": "Oost-Afrika",
+      "body": "Mary is niet één persoon. Ze staat voor de vele boerinnen, leraressen en ondernemers die hun gemeenschap bijeenhouden. Onze honing, onze thee en ons prentenboek dragen haar naam."
+    },
+    "benard": {
+      "name": "Benard Omondi, \"Art Benny\"",
+      "place": "Kibera, Nairobi, Kenia",
+      "body": "Geboren en getogen in Kibera, studeerde Benard beeldende kunst aan de Mwangaza Art School in Kisumu. Hij schildert identiteit, veerkracht, het dagelijks leven en mentale gezondheid, en hij illustreerde The Mary."
+    },
+    "nafasi": {
+      "name": "Nafasi Art Space",
+      "place": "Dar es Salaam, Tanzania",
+      "body": "Een centrum voor hedendaagse kunst met ateliers, galerieën en workshops, open sinds 2008. Via Nafasi tonen we werk van Pascal Masegesse, die herinnering en natuur schildert, en de surrealistische portretten van Wilson Fantson Mpango."
+    },
+    "rachel": {
+      "name": "Rachel Bosire",
+      "place": "Nairobi, Kenia",
+      "body": "Een maker die samenwerkt met Keniaanse vrouwen die manden vlechten. Geen twee manden zijn gelijk: de kleine verschillen zijn het teken van de hand die ze maakte."
+    },
+    "artTitle": "De Art Nook",
+    "artBody": "Kunst die een groter verhaal vertelt. We tonen Oost-Afrikaanse kunstenaars om verbinding te maken, niet alleen om te verkopen.",
+    "artCta": "Bekijk de kunst"
+  },
+  "suppliers": {
+    "tag": "Word leverancier",
+    "title": "Werk samen met African Farmers Market",
+    "lead": "We werken met Oost-Afrikaanse boeren, coöperaties, ambachtslieden, kunstenaars en kleine makers die kopers in de Verenigde Staten willen bereiken.",
+    "whoTitle": "Met wie we werken",
+    "who": [
+      "Boeren en coöperaties: honing, koffie, thee, specerijen",
+      "Ambachtslieden: manden, houtsnijwerk, spellen",
+      "Kunstenaars: origineel werk en prints",
+      "Kleine makers met een verhaal"
+    ],
+    "howTitle": "Hoe het werkt",
+    "how": [
+      "Mail ons over jezelf en wat je maakt of teelt.",
+      "We lezen elk bericht zelf en antwoorden.",
+      "Samen spreken we een eerlijke prijs en een herleidbare weg naar de markt af."
+    ],
+    "swTitle": "Kwa Kiswahili",
+    "swBody": "Wakulima, vikundi vya ushirika, mafundi na wasanii wa Afrika Mashariki: tuandikie barua pepe kuhusu wewe na unachozalisha. Tunasoma kila ujumbe sisi wenyewe.",
+    "ctaTitle": "Vertel ons over je werk",
+    "ctaBody": "Er is nog geen online formulier. Stuur ons een e-mail en we antwoorden.",
+    "subject": "Aanmelding leverancier"
+  },
+  "faq": {
+    "tag": "Vragen",
+    "title": "Vragen en antwoorden",
+    "lead": "Staat je antwoord er niet bij? Mail ons.",
+    "items": [
+      {
+        "q": "Wat is African Farmers Market?",
+        "a": "Een brug tussen Afrikaanse boeren, ambachtslieden en hun gemeenschappen en kopers over de hele wereld."
+      },
+      {
+        "q": "Waar zitten jullie?",
+        "a": "Onze Amerikaanse activiteiten zitten in Colorado. Onze boerderij ligt in het Rungwe-district in Tanzania."
+      },
+      {
+        "q": "Waar komen jullie producten vandaan?",
+        "a": "Dat verschilt per product: elke productpagina en elk paspoort toont de herkomst."
+      },
+      {
+        "q": "Wordt alles in Afrika gemaakt?",
+        "a": "Het meeste. Enkele artikelen, zoals shirts en stickers, worden gemaakt om de missie te steunen."
+      },
+      {
+        "q": "Hoe helpt mijn aankoop?",
+        "a": "Ze bouwt rechtstreekse, blijvende wegen naar de markt, betaalt gereedschap en versterkt de economie van dorpen."
+      },
+      {
+        "q": "Wat is een paspoort van een partij?",
+        "a": "Elke partij heeft een QR-code. Scan die om te zien waar ze vandaan komt, welke dorpen oogstten en wanneer, en of ze is teruggeroepen of geblokkeerd."
+      },
+      {
+        "q": "Hoe lang duurt de levering?",
+        "a": "Meestal 7 tot 10 werkdagen binnen de Verenigde Staten. Kunst en bijzondere artikelen kunnen langer duren."
+      },
+      {
+        "q": "Kan ik iets terugsturen?",
+        "a": "Bedenktijd voor smaak of stijl hebben we niet. Komt iets beschadigd, kapot of verkeerd aan, mail ons dan binnen 14 dagen met je ordernummer en een foto."
+      },
+      {
+        "q": "Kan ik voedsel terugsturen?",
+        "a": "Om gezondheidsredenen kan voedsel niet terug, tenzij het bedorven of beschadigd aankwam. Voor smaak alleen kunnen we niet terugbetalen."
+      },
+      {
+        "q": "Mijn mand ziet er anders uit dan op de foto.",
+        "a": "Elk handgemaakt stuk verschilt een beetje. Dat hoort bij het ambacht en is geen gebrek."
+      },
+      {
+        "q": "Werken jullie met kunstenaars?",
+        "a": "Ja, met Keniaanse en Tanzaniaanse kunstenaars, via onze Art Nook."
+      }
+    ]
+  },
+  "contact": {
+    "tag": "Contact",
+    "title": "Neem contact op",
+    "lead": "Vragen over een bestelling, een product of een partij? We beantwoorden elke e-mail zelf.",
+    "emailTitle": "E-mail",
+    "emailBody": "Zet bij een bestelling je ordernummer erbij.",
+    "whereTitle": "Waar we zijn",
+    "us": "Activiteiten in de VS: Colorado, Verenigde Staten",
+    "farm": "Onze boerderij: Rungwe-district, Tanzania",
+    "supplierTitle": "Boeren en makers",
+    "supplierBody": "Wil je via ons verkopen? Lees hoe je leverancier wordt.",
+    "formNote": "Er is nog geen contactformulier: gebruik e-mail."
+  },
+  "home": {
+    "tag": "Van boerderij naar wereldtafel",
+    "title": "Geworteld in Afrikaanse grond. Gedeeld met de wereld.",
+    "lead": "Honing, koffie, thee, specerijen, ambachten en kunst van Oost-Afrikaanse boeren en makers, via eerlijke en herleidbare wegen, partij voor partij.",
+    "stories": "Ontmoet de boeren",
+    "promisesTitle": "Wat je zelf kunt nagaan",
+    "passportTitle": "Een paspoort voor elke partij",
+    "passportBody": "Waar het groeide, welke dorpen het oogstten en wanneer. Een terugroeping of blokkade staat altijd bovenaan.",
+    "stockTitle": "Actuele voorraad",
+    "stockBody": "Wat je ziet ligt nu op de plank, en wordt bij je bestelling opnieuw gecontroleerd.",
+    "farmersTitle": "Boeren per partij genoemd",
+    "farmersBody": "Elke partij noemt de dorpen en boerengroepen die haar teelden.",
+    "categoriesTitle": "Winkel per categorie",
+    "categoryCount": "{count, plural, one {# product} other {# producten}}",
+    "featuredTitle": "Nu op voorraad",
+    "featuredAll": "Bekijk alles",
+    "storiesTitle": "De mensen erachter",
+    "storiesAll": "Lees alle verhalen",
+    "missionCta": "Over onze missie"
+  },
+  "trace": {
+    "title": "Volg je partij",
+    "body": "Typ de code van 10 tekens onder de QR op je pot of zak.",
+    "label": "Partijcode",
+    "go": "Toon het paspoort",
+    "invalidTitle": "Dat lijkt geen partijcode",
+    "invalidBody": "Codes hebben 10 letters en cijfers, zoals 7K3M 9QX2 WD. Kijk op het etiket en probeer opnieuw."
   }
 }

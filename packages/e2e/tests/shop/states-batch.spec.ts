@@ -19,6 +19,6 @@ test.describe("a batch code that opens no passport", () => {
     ).toBeVisible()
     await expectNoHorizontalScroll(page)
     await page.getByRole("link", { name: "Browse the shop" }).click()
-    await expect(page).toHaveURL("/")
+    await expect(page).toHaveURL("/shop")
   })
 })

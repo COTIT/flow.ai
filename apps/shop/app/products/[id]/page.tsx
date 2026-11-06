@@ -65,7 +65,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       <Link
-        href="/"
+        href="/shop"
         className="flex min-h-11 w-fit items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground md:min-h-0"
       >
         <ArrowLeftIcon className="size-4" aria-hidden />

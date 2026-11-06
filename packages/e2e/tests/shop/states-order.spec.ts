@@ -58,7 +58,7 @@ test("an expired order is a warning with a way back to the shop", async ({
   await expect(warning).toContainText("The items went back on the shelf.")
   await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toHaveCount(0)
   await warning.getByRole("link", { name: "Shop again" }).click()
-  await expect(page).toHaveURL("/")
+  await expect(page).toHaveURL("/shop")
 })
 
 test("a paid order the shop refunded and cancelled says so, not that it expired", async ({
@@ -76,7 +76,7 @@ test("a paid order the shop refunded and cancelled says so, not that it expired"
   await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toHaveCount(0)
   await expectNoHorizontalScroll(page)
   await notice.getByRole("link", { name: "Shop again" }).click()
-  await expect(page).toHaveURL("/")
+  await expect(page).toHaveURL("/shop")
 })
 
 test("a failed payment start is an error, and the button offers to try again", async ({

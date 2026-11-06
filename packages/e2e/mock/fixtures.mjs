@@ -25,6 +25,22 @@ export const PRODUCT = {
   accountsKeyNoScope: "acc00403-0000-4000-8000-000000000403",
 }
 
+/** AFM's shop categories, as `GET /storefront/categories` names them. */
+export const CATEGORY = {
+  honey: "c1000000-0000-4000-8000-000000000001",
+  coffee: "c1000000-0000-4000-8000-000000000002",
+  tea: "c1000000-0000-4000-8000-000000000003",
+  spices: "c1000000-0000-4000-8000-000000000004",
+  baskets: "c1000000-0000-4000-8000-000000000005",
+  toys: "c1000000-0000-4000-8000-000000000006",
+  art: "c1000000-0000-4000-8000-000000000007",
+  books: "c1000000-0000-4000-8000-000000000008",
+  apparel: "c1000000-0000-4000-8000-000000000009",
+  stickers: "c1000000-0000-4000-8000-00000000000a",
+  /** Valid shape, no such category: the API's empty list. */
+  unknown: "c1000000-0000-4000-8000-0000000000ff",
+}
+
 /** The long product's name, as the API sends it. */
 export const LONG_NAME =
   "Ilundo Village Cooperative Extra Rare Single-Origin Wild Miombo Forest Blossom Raw Unfiltered Honey Gift Box"

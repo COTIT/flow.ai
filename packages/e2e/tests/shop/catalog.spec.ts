@@ -4,10 +4,8 @@ import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 test("catalog lists products with prices and stock, and opens a product", async ({
   page,
 }) => {
-  await page.goto("/")
-  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
-    "Honey and coffee you can trace to the farmer"
-  )
+  await page.goto("/shop")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shop")
 
   const honey = page.getByRole("link", { name: /Ilundo Wild Forest Honey/ })
   await expect(honey).toContainText("$14.99")
@@ -29,18 +27,20 @@ test("catalog lists products with prices and stock, and opens a product", async 
   await expect(
     sizes.getByRole("button", { name: "500 g $24.99" })
   ).toBeVisible()
-  await expect(page).toHaveTitle("Ilundo Wild Forest Honey · Genesy Shop")
+  await expect(page).toHaveTitle(
+    "Ilundo Wild Forest Honey · African Farmers Market"
+  )
   await expectNoHorizontalScroll(page)
 
   await page.getByRole("link", { name: "Back to the shop" }).click()
-  await expect(page).toHaveURL("/")
+  await expect(page).toHaveURL("/shop")
 })
 
 test("a product sold by size shows its default size's price, never $0.00", async ({
   page,
 }) => {
   // Product-level price_gross is 0; the default variant (250 g) is $12.00.
-  await page.goto("/")
+  await page.goto("/shop")
   const coffee = page.getByRole("link", { name: /Ruaha Coffee/ })
   await expect(coffee).toContainText("$12.00")
   await expect(coffee).not.toContainText("$0.00")

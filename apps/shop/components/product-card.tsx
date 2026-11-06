@@ -1,23 +1,23 @@
 import Link from "next/link"
 
-import type { StorefrontProduct } from "@genesy/api-client/model"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { card, tag } from "@/lib/look"
 import { shownPrice } from "@/lib/price"
+import type { CategorisedProduct } from "@/lib/storefront"
 
 import { Glare } from "./motion"
 import { ProductImage } from "./product-image"
 import { StockBadge } from "./stock-badge"
 
-/** Mock `ShopCatalogue` .pcard: photo 4:3 on top, then brand, name, line, price and stock. */
+/** Product tile: photo 4:3 on top, then category (else brand), name, line, price and stock. */
 export function ProductCard({
   product,
   locale,
   labels,
 }: {
-  product: StorefrontProduct
+  product: CategorisedProduct
   locale: string
   labels: { inStock: string; low: string; soldOut: string; imageSoon: string }
 }) {
@@ -39,9 +39,10 @@ export function ProductCard({
         />
       </Glare>
       <span className="flex flex-col gap-1.5 p-3 md:px-[18px] md:pt-4 md:pb-[18px]">
-        {product.brand ? (
+        {/* The category says more than a brand that is the shop's own name. */}
+        {(product.category?.name ?? product.brand) ? (
           <span className={cn(tag, "text-muted-foreground")}>
-            {product.brand}
+            {product.category?.name ?? product.brand}
           </span>
         ) : null}
         <span className="text-base font-semibold group-hover:underline">

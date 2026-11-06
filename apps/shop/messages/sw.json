@@ -1,15 +1,29 @@
 {
   "app": {
-    "title": "Genesy Shop",
-    "tagline": "Asali na nta kutoka kwa wafugaji nyuki wa Ilundo, Tanzania, inayofuatiliwa chupa kwa chupa."
+    "title": "African Farmers Market",
+    "tagline": "Imechipuka katika ardhi ya Afrika. Inashirikiwa na dunia. Asali, kahawa, kazi za mikono na sanaa kutoka kwa wakulima na mafundi wa Afrika Mashariki, inayofuatiliwa kundi kwa kundi."
   },
   "nav": {
     "shop": "Duka",
-    "home": "Ukurasa wa mwanzo wa Genesy Shop"
+    "home": "Ukurasa wa mwanzo wa African Farmers Market",
+    "stories": "Hadithi",
+    "about": "Kuhusu sisi",
+    "faq": "Maswali",
+    "contact": "Wasiliana",
+    "main": "Menyu kuu",
+    "menu": "Menyu",
+    "openMenu": "Fungua menyu"
   },
   "footer": {
-    "title": "Inafuatilika kutoka mzinga hadi jikoni",
-    "shipping": "Tunasafirisha hadi Marekani. Bei zinajumuisha VAT."
+    "title": "Imechipuka katika ardhi ya Afrika. Inashirikiwa na dunia.",
+    "shipping": "Tunasafirisha ndani ya Marekani kutoka Colorado. Bei zinajumuisha VAT.",
+    "explore": "Gundua",
+    "help": "Msaada",
+    "supplier": "Kuwa msambazaji",
+    "newsletterTitle": "Tuendelee kuwasiliana",
+    "newsletterBody": "Hadithi za wakulima, mavuno mapya na tarehe za masoko. Tuandikie barua pepe tukuongeze kwenye orodha.",
+    "newsletterCta": "Jiunge kwa barua pepe",
+    "newsletterSubject": "Tafadhali niongeze kwenye orodha yenu"
   },
   "catalog": {
     "title": "Duka",
@@ -27,7 +41,14 @@
     "scanBody": "Wafahamu wakulima walio nyuma yake.",
     "all": "Bidhaa zote",
     "count": "{shown} kati ya {total}",
-    "pages": "Kurasa za orodha"
+    "pages": "Kurasa za orodha",
+    "categories": "Aina",
+    "allCategories": "Zote",
+    "unknownCategory": "Hatuipati aina hii",
+    "unknownCategoryWhy": "Huenda imebadilishwa jina au haina bidhaa. Kila tulicho nacho kiko mbofyo mmoja tu.",
+    "seeAll": "Tazama bidhaa zote",
+    "emptyCategory": "Hakuna kitu katika aina hii kwa sasa",
+    "emptyCategoryWhy": "Mavuno na kazi mpya huongezwa mara kwa mara. Tafadhali rudi hivi karibuni."
   },
   "product": {
     "inStock": "Ipo stoo",
@@ -174,5 +195,184 @@
       "quarantine": "Limesimamishwa"
     },
     "inTheirWords": "Kwa maneno yao"
+  },
+  "content": {
+    "email": "support@africanfarmersmarketonline.com",
+    "emailUs": "Tuandikie",
+    "shopCta": "Tazama bidhaa"
+  },
+  "about": {
+    "tag": "Kuhusu sisi",
+    "title": "Njia za haki zinazofuatilika kutoka mashamba ya Afrika hadi mezani kwako",
+    "lead": "African Farmers Market inaunganisha wakulima, mafundi na wasanii wa Afrika Mashariki na wanunuzi duniani, ili kila ununuzi uonekane ukiwasaidia waliolima au kutengeneza bidhaa.",
+    "missionTitle": "Dhamira yetu",
+    "missionBody": "Kujenga njia za soko zenye maadili, uwazi na ufuatiliaji kwa wakulima wa Afrika: malipo ya haki, kutunza ardhi, na matokeo yanayoongozwa na jamii yenyewe.",
+    "visionTitle": "Maono yetu",
+    "visionBody": "Wakulima wanaothaminiwa kama walinzi wa ardhi na utamaduni wao, na biashara inayoimarisha maisha na mazingira.",
+    "problemTitle": "Kwa nini ni muhimu",
+    "problemBody": "Wakulima wengi vijijini hawana zana za kusindika na kuhifadhi mazao yao, na hawafikii mikopo, vyeti, usafiri wala wanunuzi. Mavuno mazuri hayaonekani.",
+    "villageTitle": "Mradi wa Global Village Farm to Plate",
+    "villageBody": "Mradi wetu wa kuwaunganisha wakulima wa Afrika moja kwa moja na wanaokula chakula chao. Ununuzi wa maadili unaenda pamoja na hadithi za wazi, ili uone familia na vijiji ambavyo ununuzi wako unasaidia.",
+    "traceTitle": "Kila kundi lina pasipoti",
+    "traceBody": "Changanua msimbo wa QR kwenye chupa au mfuko uone ilikotoka, vijiji vilivyovuna na lini. Kundi likirudishwa au kusimamishwa, pasipoti yake inasema hivyo kwanza.",
+    "soulTitle": "Soil to Soul",
+    "soulBody": "Jina letu la uhusiano kati ya ardhi, watu wanaoilima, wanachotengeneza na wewe unayevipeleka nyumbani.",
+    "teamTitle": "Sisi ni nani",
+    "teamBody": "Timu ndogo inayofanya kazi katika mabara mawili: shughuli za Marekani huko Colorado, na shamba katika Wilaya ya Rungwe, Tanzania.",
+    "eventsTitle": "Tukutane sokoni",
+    "eventsLead": "Tuonane ana kwa ana, onja asali na usikie hadithi.",
+    "eventsNone": "Hakuna masoko yaliyopangwa kwa sasa",
+    "eventsNoneWhy": "Tarehe mpya hutangazwa kwanza kwenye jarida letu.",
+    "supplierTitle": "Wewe ni mkulima au fundi Afrika Mashariki?",
+    "supplierBody": "Tunatafuta washirika wapya kila wakati.",
+    "supplierCta": "Kuwa msambazaji"
+  },
+  "stories": {
+    "tag": "Hadithi",
+    "title": "Watu walio nyuma ya kila chupa, kikapu na mchoro",
+    "lead": "Tunanunua moja kwa moja kutoka kwa wakulima, vyama vya ushirika na wasanii tunaowafahamu. Hawa ni baadhi yao.",
+    "illundo": {
+      "name": "Wafugaji nyuki wa Illundo",
+      "place": "Illundo, Tanzania",
+      "body": "Wafugaji nyuki katika misitu ya miombo huvuna asali mbichi ya maua pori kutoka mizinga yao. Tunafanya kazi nao moja kwa moja, na ushirikiano huu unafungua kazi mpya za malipo kwa wanawake katika kilimo. Kila chupa ya asali ya Mary inafuatiliwa hadi mavuno yao."
+    },
+    "mary": {
+      "name": "Mary",
+      "place": "Afrika Mashariki",
+      "body": "Mary si mtu mmoja. Anawakilisha wanawake wengi wakulima, walimu na wajasiriamali wanaoshikilia jamii zao. Asali yetu, chai yetu na kitabu chetu cha picha vinabeba jina lake."
+    },
+    "benard": {
+      "name": "Benard Omondi, \"Art Benny\"",
+      "place": "Kibera, Nairobi, Kenya",
+      "body": "Alizaliwa na kukulia Kibera, Benard alisomea sanaa katika Mwangaza Art School, Kisumu. Anachora utambulisho, ustahimilivu, maisha ya kila siku na afya ya akili, na alichora picha za kitabu The Mary."
+    },
+    "nafasi": {
+      "name": "Nafasi Art Space",
+      "place": "Dar es Salaam, Tanzania",
+      "body": "Kituo cha sanaa ya kisasa chenye studio, maonyesho na warsha, tangu 2008. Kupitia Nafasi tunaonyesha kazi za Pascal Masegesse, anayechora kumbukumbu na asili, na picha za kufikirika za Wilson Fantson Mpango."
+    },
+    "rachel": {
+      "name": "Rachel Bosire",
+      "place": "Nairobi, Kenya",
+      "body": "Fundi anayefanya kazi na wanawake wa Kenya wanaosuka vikapu. Hakuna vikapu viwili vinavyofanana: tofauti ndogo ni alama ya mkono uliovitengeneza."
+    },
+    "artTitle": "Art Nook",
+    "artBody": "Sanaa inayosimulia hadithi kubwa zaidi. Tunaonyesha wasanii wa Afrika Mashariki ili kujenga uhusiano, si mauzo tu.",
+    "artCta": "Tazama sanaa"
+  },
+  "suppliers": {
+    "tag": "Kuwa msambazaji",
+    "title": "Shirikiana na African Farmers Market",
+    "lead": "Tunafanya kazi na wakulima, vyama vya ushirika, mafundi, wasanii na watengenezaji wadogo wa Afrika Mashariki wanaotaka kufikia wanunuzi nchini Marekani.",
+    "whoTitle": "Tunafanya kazi na nani",
+    "who": [
+      "Wakulima na vyama vya ushirika: asali, kahawa, chai, viungo",
+      "Mafundi: vikapu, vinyago, michezo",
+      "Wasanii: kazi halisi na nakala",
+      "Watengenezaji wadogo wenye hadithi"
+    ],
+    "howTitle": "Inavyofanya kazi",
+    "how": [
+      "Tuandikie kuhusu wewe na unachotengeneza au kulima.",
+      "Tunasoma kila ujumbe sisi wenyewe na kujibu.",
+      "Kwa pamoja tunakubaliana bei ya haki na njia ya soko inayofuatilika."
+    ],
+    "swTitle": "Kwa Kiswahili",
+    "swBody": "Wakulima, vikundi vya ushirika, mafundi na wasanii wa Afrika Mashariki: tuandikie barua pepe kuhusu wewe na unachozalisha. Tunasoma kila ujumbe sisi wenyewe.",
+    "ctaTitle": "Tueleze kuhusu kazi yako",
+    "ctaBody": "Bado hakuna fomu ya mtandaoni. Tutumie barua pepe nasi tutakujibu.",
+    "subject": "Maombi ya msambazaji"
+  },
+  "faq": {
+    "tag": "Maswali",
+    "title": "Maswali na majibu",
+    "lead": "Hujapata jibu lako? Tuandikie.",
+    "items": [
+      {
+        "q": "African Farmers Market ni nini?",
+        "a": "Daraja kati ya wakulima, mafundi na jamii zao barani Afrika na wanunuzi duniani kote."
+      },
+      {
+        "q": "Mko wapi?",
+        "a": "Shughuli zetu za Marekani ziko Colorado. Shamba letu liko Wilaya ya Rungwe, Tanzania."
+      },
+      {
+        "q": "Bidhaa zenu zinatoka wapi?",
+        "a": "Inategemea bidhaa: kila ukurasa wa bidhaa na pasipoti ya kundi inaonyesha asili yake."
+      },
+      {
+        "q": "Je, kila kitu kimetengenezwa Afrika?",
+        "a": "Vingi. Vichache, kama fulana na stika, vinatengenezwa kusaidia dhamira yetu."
+      },
+      {
+        "q": "Ununuzi wangu unasaidiaje?",
+        "a": "Unajenga njia za soko za moja kwa moja na za kudumu, unalipia zana na kuimarisha uchumi wa vijiji."
+      },
+      {
+        "q": "Pasipoti ya kundi ni nini?",
+        "a": "Kila kundi lina msimbo wa QR. Uchanganue uone lilikotoka, vijiji vilivyovuna na lini, na kama limerudishwa au kusimamishwa."
+      },
+      {
+        "q": "Usafirishaji huchukua muda gani?",
+        "a": "Kwa kawaida siku 7 hadi 10 za kazi ndani ya Marekani. Sanaa na bidhaa maalum zinaweza kuchukua muda zaidi."
+      },
+      {
+        "q": "Naweza kurudisha bidhaa?",
+        "a": "Hatupokei marejesho kwa kubadili nia. Bidhaa ikifika imeharibika, ina kasoro au si sahihi, tuandikie ndani ya siku 14 ukiweka namba ya oda na picha."
+      },
+      {
+        "q": "Naweza kurudisha chakula?",
+        "a": "Kwa sababu za afya chakula hakirudishwi, isipokuwa kimefika kimeharibika. Hatuwezi kurudisha pesa kwa sababu ya ladha pekee."
+      },
+      {
+        "q": "Kikapu changu kinatofautiana na picha.",
+        "a": "Kila kazi ya mkono hutofautiana kidogo. Hiyo ni sehemu ya ufundi, si kasoro."
+      },
+      {
+        "q": "Mnafanya kazi na wasanii?",
+        "a": "Ndiyo, na wasanii wa Kenya na Tanzania, kupitia Art Nook yetu."
+      }
+    ]
+  },
+  "contact": {
+    "tag": "Wasiliana",
+    "title": "Zungumza nasi",
+    "lead": "Una swali kuhusu oda, bidhaa au kundi? Tunajibu kila barua pepe sisi wenyewe.",
+    "emailTitle": "Barua pepe",
+    "emailBody": "Kwa oda, weka namba ya oda yako.",
+    "whereTitle": "Tulipo",
+    "us": "Shughuli za Marekani: Colorado, Marekani",
+    "farm": "Shamba letu: Wilaya ya Rungwe, Tanzania",
+    "supplierTitle": "Wakulima na mafundi",
+    "supplierBody": "Unataka kuuza kupitia kwetu? Soma jinsi ya kuwa msambazaji.",
+    "formNote": "Bado hakuna fomu ya mawasiliano: tafadhali tumia barua pepe."
+  },
+  "home": {
+    "tag": "Kutoka shambani hadi mezani duniani",
+    "title": "Imechipuka katika ardhi ya Afrika. Inashirikiwa na dunia.",
+    "lead": "Asali, kahawa, chai, viungo, kazi za mikono na sanaa kutoka kwa wakulima na mafundi wa Afrika Mashariki, kwa njia za haki zinazofuatilika, kundi kwa kundi.",
+    "stories": "Wafahamu wakulima",
+    "promisesTitle": "Unachoweza kujihakikishia",
+    "passportTitle": "Pasipoti kwa kila kundi",
+    "passportBody": "Ilikoota, vijiji vilivyovuna na lini. Kurudishwa au kusimamishwa huonyeshwa kwanza kila wakati.",
+    "stockTitle": "Akiba ya sasa",
+    "stockBody": "Unachoona ndicho kilichopo rafuni sasa, na kinahakikishwa tena unapoagiza.",
+    "farmersTitle": "Wakulima wanatajwa kwa kila kundi",
+    "farmersBody": "Kila kundi linaorodhesha vijiji na vikundi vya wakulima waliolilima.",
+    "categoriesTitle": "Nunua kwa aina",
+    "categoryCount": "{count, plural, one {bidhaa #} other {bidhaa #}}",
+    "featuredTitle": "Zilizopo sasa",
+    "featuredAll": "Tazama zote",
+    "storiesTitle": "Watu walio nyuma yake",
+    "storiesAll": "Soma hadithi zote",
+    "missionCta": "Kuhusu dhamira yetu"
+  },
+  "trace": {
+    "title": "Fuatilia kundi lako",
+    "body": "Andika msimbo wa herufi 10 ulio chini ya QR kwenye chupa au mfuko wako.",
+    "label": "Msimbo wa kundi",
+    "go": "Onyesha pasipoti yake",
+    "invalidTitle": "Huo hauonekani kama msimbo wa kundi",
+    "invalidBody": "Misimbo ina herufi na namba 10, kama 7K3M 9QX2 WD. Angalia lebo ujaribu tena."
   }
 }

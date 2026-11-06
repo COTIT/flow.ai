@@ -1,15 +1,29 @@
 {
   "app": {
-    "title": "Genesy Shop",
-    "tagline": "Honey and beeswax from the Ilundo beekeepers of Tanzania, traced jar by jar."
+    "title": "African Farmers Market",
+    "tagline": "Rooted in African soil. Shared with the world. Honey, coffee, crafts and art from East African farmers and makers, traced batch by batch."
   },
   "nav": {
     "shop": "Shop",
-    "home": "Genesy Shop home"
+    "home": "African Farmers Market home",
+    "stories": "Stories",
+    "about": "About",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "main": "Main",
+    "menu": "Menu",
+    "openMenu": "Open the menu"
   },
   "footer": {
-    "title": "Traceable from hive to kitchen",
-    "shipping": "Shipping to the United States. Prices include VAT."
+    "title": "Rooted in African soil. Shared with the world.",
+    "shipping": "We ship within the United States from Colorado. Prices include VAT.",
+    "explore": "Explore",
+    "help": "Help",
+    "supplier": "Become a supplier",
+    "newsletterTitle": "Let's stay in touch",
+    "newsletterBody": "Farmer stories, new harvests and market dates. Email us and we'll add you to the list.",
+    "newsletterCta": "Join our list by email",
+    "newsletterSubject": "Please add me to your list"
   },
   "catalog": {
     "title": "Shop",
@@ -27,7 +41,14 @@
     "scanBody": "Meet the farmers behind it.",
     "all": "All products",
     "count": "{shown} of {total}",
-    "pages": "Catalog pages"
+    "pages": "Catalog pages",
+    "categories": "Categories",
+    "allCategories": "All",
+    "unknownCategory": "We can't find this category",
+    "unknownCategoryWhy": "It may have been renamed or emptied. Everything we have is one click away.",
+    "seeAll": "See all products",
+    "emptyCategory": "Nothing in this category right now",
+    "emptyCategoryWhy": "New harvests and pieces arrive regularly. Please check back soon."
   },
   "product": {
     "inStock": "In stock",
@@ -174,5 +195,184 @@
       "quarantine": "On hold"
     },
     "inTheirWords": "In their words"
+  },
+  "content": {
+    "email": "support@africanfarmersmarketonline.com",
+    "emailUs": "Email us",
+    "shopCta": "Shop the collection"
+  },
+  "about": {
+    "tag": "About us",
+    "title": "Fair, traceable pathways from African farms to your table",
+    "lead": "African Farmers Market connects East African farmers, artisans and artists with buyers around the world, so that every purchase visibly supports the people who grew or made it.",
+    "missionTitle": "Our mission",
+    "missionBody": "Build ethical, transparent and traceable routes to market for African farmers: fair pay, care for the land, and impact that the community itself leads.",
+    "visionTitle": "Our vision",
+    "visionBody": "Farmers valued as stewards of their land and culture, and trade that makes livelihoods and ecosystems stronger.",
+    "problemTitle": "Why it matters",
+    "problemBody": "Many rural farmers lack the tools to process and store what they grow, and are cut off from funding, certification, transport and buyers. Good harvests go unseen.",
+    "villageTitle": "The Global Village Farm to Plate Project",
+    "villageBody": "Our project to link African farmers directly with the people who eat their food. Ethical sourcing goes together with open storytelling, so you can see which families and villages your purchase supports.",
+    "traceTitle": "Every batch has a passport",
+    "traceBody": "Scan the QR code on a jar or bag and you see where it came from, which villages harvested it and when. If a batch is ever recalled or put on hold, its passport says so first.",
+    "soulTitle": "Soil to Soul",
+    "soulBody": "Our name for the bond between the land, the people who work it, the things they make and you, the person who takes them home.",
+    "teamTitle": "Who we are",
+    "teamBody": "A small team working across two continents: US operations in Colorado, and a farm in the Rungwe District of Tanzania.",
+    "eventsTitle": "Find us at markets",
+    "eventsLead": "Meet us in person, taste the honey and hear the stories.",
+    "eventsNone": "No markets planned right now",
+    "eventsNoneWhy": "New dates are shared in our newsletter first.",
+    "supplierTitle": "Are you a farmer or maker in East Africa?",
+    "supplierBody": "We are always looking for new partners.",
+    "supplierCta": "Become a supplier"
+  },
+  "stories": {
+    "tag": "Stories",
+    "title": "The people behind every jar, basket and painting",
+    "lead": "We buy directly from farmers, co-operatives and artists we know. These are a few of them.",
+    "illundo": {
+      "name": "The Illundo bee farmers",
+      "place": "Illundo, Tanzania",
+      "body": "Beekeepers in the miombo woodlands harvest raw wildflower honey from their hives. We work with them directly, and the partnership opens new paid work for women in farming. Every jar of Mary's honey is traced to their harvest."
+    },
+    "mary": {
+      "name": "Mary",
+      "place": "East Africa",
+      "body": "Mary is not one person. She stands for the many women farmers, teachers and entrepreneurs who hold their communities together. Our honey, our tea and our picture book carry her name."
+    },
+    "benard": {
+      "name": "Benard Omondi, \"Art Benny\"",
+      "place": "Kibera, Nairobi, Kenya",
+      "body": "Born and raised in Kibera, Benard studied fine art at Mwangaza Art School in Kisumu. He paints identity, resilience, daily life and mental health, and he illustrated The Mary."
+    },
+    "nafasi": {
+      "name": "Nafasi Art Space",
+      "place": "Dar es Salaam, Tanzania",
+      "body": "A contemporary art centre with studios, galleries and workshops, open since 2008. Through Nafasi we show work by Pascal Masegesse, who paints memory and nature, and the surrealist portraits of Wilson Fantson Mpango."
+    },
+    "rachel": {
+      "name": "Rachel Bosire",
+      "place": "Nairobi, Kenya",
+      "body": "A maker who works with Kenyan women basket weavers. No two baskets are the same: the small differences are the mark of the hand that made them."
+    },
+    "artTitle": "The Art Nook",
+    "artBody": "Art that tells a bigger story. We show East African artists to make a connection, not only a sale.",
+    "artCta": "See the art"
+  },
+  "suppliers": {
+    "tag": "Become a supplier",
+    "title": "Partner with African Farmers Market",
+    "lead": "We work with East African farmers, co-operatives, artisans, artists and small makers who want to reach buyers in the United States.",
+    "whoTitle": "Who we work with",
+    "who": [
+      "Farmers and co-operatives: honey, coffee, tea, spices",
+      "Artisans: baskets, carvings, games",
+      "Artists: original work and prints",
+      "Small makers with a story to tell"
+    ],
+    "howTitle": "How it works",
+    "how": [
+      "Email us about you and what you make or grow.",
+      "We read every message ourselves and reply.",
+      "Together we agree on a fair price and a traceable route to market."
+    ],
+    "swTitle": "Kwa Kiswahili",
+    "swBody": "Wakulima, vikundi vya ushirika, mafundi na wasanii wa Afrika Mashariki: tuandikie barua pepe kuhusu wewe na unachozalisha. Tunasoma kila ujumbe sisi wenyewe.",
+    "ctaTitle": "Tell us about your work",
+    "ctaBody": "There is no online form yet. Send us an email and we will reply.",
+    "subject": "Supplier application"
+  },
+  "faq": {
+    "tag": "FAQ",
+    "title": "Questions and answers",
+    "lead": "Can't find your answer? Email us.",
+    "items": [
+      {
+        "q": "What is African Farmers Market?",
+        "a": "A bridge between African farmers, artisans and their communities and buyers around the world."
+      },
+      {
+        "q": "Where are you based?",
+        "a": "Our US operations are in Colorado. Our farm is in the Rungwe District of Tanzania."
+      },
+      {
+        "q": "Where do your products come from?",
+        "a": "It depends on the product: each product page and batch passport shows its origin."
+      },
+      {
+        "q": "Is everything made in Africa?",
+        "a": "Most of it. A few items, such as shirts and stickers, are made to support the mission."
+      },
+      {
+        "q": "How does buying help?",
+        "a": "It builds direct, lasting routes to market, pays for tools and strengthens village economies."
+      },
+      {
+        "q": "What is a batch passport?",
+        "a": "Each batch has a QR code. Scan it to see where it came from, which villages harvested it and when, and whether it has been recalled or put on hold."
+      },
+      {
+        "q": "How long does delivery take?",
+        "a": "Usually 7 to 10 business days within the United States. Art and special items can take longer."
+      },
+      {
+        "q": "Can I return an item?",
+        "a": "We don't take returns for a change of mind. If something arrives damaged, faulty or wrong, email us within 14 days with your order number and a photo."
+      },
+      {
+        "q": "Can I return food?",
+        "a": "For health reasons food can't be returned, unless it arrived spoiled or damaged. We can't refund for taste alone."
+      },
+      {
+        "q": "My basket looks different from the photo.",
+        "a": "Every handmade piece varies a little. That is part of the craft, not a fault."
+      },
+      {
+        "q": "Do you work with artists?",
+        "a": "Yes, with Kenyan and Tanzanian artists, through our Art Nook."
+      }
+    ]
+  },
+  "contact": {
+    "tag": "Contact",
+    "title": "Talk to us",
+    "lead": "Questions about an order, a product or a batch? We answer every email ourselves.",
+    "emailTitle": "Email",
+    "emailBody": "For orders, include your order number.",
+    "whereTitle": "Where we are",
+    "us": "US operations: Colorado, United States",
+    "farm": "Our farm: Rungwe District, Tanzania",
+    "supplierTitle": "Farmers and makers",
+    "supplierBody": "Want to sell through us? Read how to become a supplier.",
+    "formNote": "There is no contact form yet: please use email."
+  },
+  "home": {
+    "tag": "Farm to global table",
+    "title": "Rooted in African soil. Shared with the world.",
+    "lead": "Honey, coffee, tea, spices, crafts and art from East African farmers and makers, on fair and traceable pathways, batch by batch.",
+    "stories": "Meet the farmers",
+    "promisesTitle": "What you can check yourself",
+    "passportTitle": "A passport for every batch",
+    "passportBody": "Where it grew, which villages harvested it and when. A recall or hold always shows first.",
+    "stockTitle": "Live stock",
+    "stockBody": "What you see is what is on the shelf right now, checked again when you order.",
+    "farmersTitle": "Farmers named per batch",
+    "farmersBody": "Each batch lists the villages and farmer groups who grew it.",
+    "categoriesTitle": "Shop by category",
+    "categoryCount": "{count, plural, one {# product} other {# products}}",
+    "featuredTitle": "In stock now",
+    "featuredAll": "See everything",
+    "storiesTitle": "The people behind it",
+    "storiesAll": "Read all stories",
+    "missionCta": "About our mission"
+  },
+  "trace": {
+    "title": "Trace your batch",
+    "body": "Type the 10-character code printed under the QR on your jar or bag.",
+    "label": "Batch code",
+    "go": "Show its passport",
+    "invalidTitle": "That doesn't look like a batch code",
+    "invalidBody": "Codes have 10 letters and numbers, like 7K3M 9QX2 WD. Check the label and try again."
   }
 }

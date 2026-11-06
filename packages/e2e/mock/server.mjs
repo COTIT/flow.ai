@@ -11,6 +11,7 @@ import {
   MOCK_ORIGIN,
   MOCK_PORT,
   BUSY_EMAIL,
+  CATEGORY,
   CANCEL_PAYMENT_EMAIL,
   CHECKOUT_DOWN_EMAIL,
   EXPIRED_EMAIL,
@@ -31,6 +32,27 @@ const link = (name) => ({
   url: `${MOCK_ORIGIN}/files/${name}.svg`,
   expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
 })
+
+const categories = [
+  [
+    CATEGORY.honey,
+    "Honey",
+    "Raw honey and beeswax from the Ilundo beekeepers.",
+  ],
+  [CATEGORY.coffee, "Coffee", "Arabica from smallholder farms in Tanzania."],
+  [CATEGORY.tea, "Tea", "Roselle and black teas from Tanzania and Kenya."],
+  [CATEGORY.spices, "Spices", "Whole and ground spices grown in Tanzania."],
+  [CATEGORY.baskets, "Baskets", "Handwoven baskets from East African makers."],
+  [CATEGORY.toys, "Figurines & Games", "Hand-carved animals and bao boards."],
+  [CATEGORY.art, "Art", "Originals and prints from East African artists."],
+  [CATEGORY.books, "Books", "Stories from the farm and the village."],
+  [CATEGORY.apparel, "Apparel", "Cotton shirts that carry the story."],
+  [CATEGORY.stickers, "Stickers", "Small things that start a conversation."],
+].map(([id, name, description]) => ({ id, name, description }))
+const ref = (id) => {
+  const { name } = categories.find((c) => c.id === id)
+  return { id, name }
+}
 
 const variant = (id, sku, gross, size, isDefault) => ({
   id,
@@ -62,6 +84,7 @@ const products = [
     currency_decimals: 2,
     available_stock: "4.000",
     stock_status: "low",
+    category: ref(CATEGORY.honey),
     labels: ["Raw", "Unheated", "500 g glass jar"],
     passport: { public_code: LOT.farmed },
     images: [link("honey-1"), link("honey-2")],
@@ -85,6 +108,7 @@ const products = [
     currency_decimals: 2,
     available_stock: "0.000",
     stock_status: "sold_out",
+    category: ref(CATEGORY.honey),
     labels: [],
     // Points at an unpublished code: the API's 404, so the product page shows no passport card.
     passport: { public_code: LOT.unknown },
@@ -108,6 +132,7 @@ const products = [
     currency_decimals: 2,
     available_stock: null,
     stock_status: null,
+    category: ref(CATEGORY.coffee),
     labels: [],
     passport: null,
     images: [],
@@ -118,11 +143,158 @@ const products = [
   },
 ]
 
+// AFM's own catalogue: names and prices from africanfarmersmarketonline.com.
+let afmId = 0
+const afm = (category, name, cents, stock, short, extra = {}) => {
+  const n = String(++afmId).padStart(2, "0")
+  const id = `afa000${n}-0000-4000-8000-0000000000${n}`
+  return {
+    id,
+    name,
+    brand: "African Farmers Market",
+    type: "physical",
+    short_description: short,
+    description: null,
+    ean13: null,
+    barcode: null,
+    price_gross: cents,
+    price_net: cents,
+    currency: "USD",
+    currency_decimals: 2,
+    available_stock: stock,
+    stock_status:
+      stock === null
+        ? null
+        : Number(stock) === 0
+          ? "sold_out"
+          : Number(stock) < 5
+            ? "low"
+            : "in_stock",
+    category: ref(category),
+    labels: [],
+    passport: null,
+    images: [link(`afm-${n}`)],
+    variants: [
+      variant(
+        `afb000${n}-0000-4000-8000-0000000000${n}`,
+        `AFM-${n}`,
+        cents,
+        "One size",
+        true
+      ),
+    ],
+    ...extra,
+  }
+}
+products.push(
+  afm(
+    CATEGORY.honey,
+    "Mary's Tanzanian Wildflower Honey",
+    2799,
+    "18.000",
+    "Raw, unfiltered wildflower honey from the Illundo beekeepers.",
+    { labels: ["Raw", "Unfiltered", "13 oz"] }
+  ),
+  afm(
+    CATEGORY.coffee,
+    "Rift Valley Ground Coffee",
+    2999,
+    "22.000",
+    "100% Arabica from Utengule Farm, ground for the pot."
+  ),
+  afm(
+    CATEGORY.coffee,
+    "Africa's Wildest Whole Bean",
+    2499,
+    "0.000",
+    "A peaberry-rich whole bean blend."
+  ),
+  afm(
+    CATEGORY.tea,
+    "Mary's Pantry Roselle Tea",
+    1999,
+    "14.000",
+    "Caffeine-free roselle from Tanzania."
+  ),
+  afm(CATEGORY.tea, "Kizazi Tea", 2999, "9.000", "Kenyan black tea, 18 oz."),
+  afm(
+    CATEGORY.spices,
+    "Whole Cloves",
+    1299,
+    "30.000",
+    "Tanzanian cloves, 4 oz."
+  ),
+  afm(
+    CATEGORY.spices,
+    "Green Cardamom",
+    1599,
+    "3.000",
+    "Tanzanian cardamom pods, 4 oz."
+  ),
+  afm(
+    CATEGORY.baskets,
+    "Swahili Saffron Orange Basket",
+    3800,
+    "4.000",
+    "Handwoven; each one a little different."
+  ),
+  afm(
+    CATEGORY.baskets,
+    "Ruaha Grasslands Natural Basket",
+    2000,
+    "7.000",
+    "Natural grass weave from Tanzania."
+  ),
+  afm(
+    CATEGORY.toys,
+    "Handcrafted Tanzanian Elephant",
+    1200,
+    "11.000",
+    "A hand-carved elephant figurine."
+  ),
+  afm(
+    CATEGORY.toys,
+    "East African Bao Board",
+    2999,
+    "5.000",
+    "The classic count-and-capture board game."
+  ),
+  afm(
+    CATEGORY.art,
+    "Daisies, original by Benard Omondi",
+    45000,
+    "1.000",
+    "Acrylic on canvas, painted in Nairobi."
+  ),
+  afm(
+    CATEGORY.books,
+    "The Mary",
+    2200,
+    "40.000",
+    "A picture book about the women who feed East Africa."
+  ),
+  afm(
+    CATEGORY.apparel,
+    "Got Asali? T-Shirt",
+    2499,
+    "12.000",
+    "100% cotton, natural colour."
+  ),
+  afm(
+    CATEGORY.stickers,
+    "AFM Stickers",
+    50,
+    "200.000",
+    "Four designs: Illundo Farmers, The Mary, Asali, AFM."
+  )
+)
+
 // Catalogue page 2: one in-stock product with a very long name (24 per page in the API;
 // page 1 here is short so the shop's pager can be tried with few fixtures).
 const pageTwo = [
   {
     ...products[1],
+    category: ref(CATEGORY.honey),
     id: PRODUCT.long,
     name: LONG_NAME,
     short_description: null,
@@ -328,8 +500,10 @@ const send = (res, status, body, type = "application/json") => {
   res.end(type === "application/json" ? JSON.stringify(body) : body)
 }
 
+// Warm earth tones, picked by name, so AFM's photos read as different products.
+const tones = ["#8b8171", "#b98336", "#7a4b2a", "#5f6b3a", "#a4552d", "#3d5a5b"]
 const image = (label) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect width="1200" height="600" fill="#8b8171"/><text x="600" y="300" fill="#fff" font-size="64" text-anchor="middle">${label}</text></svg>`
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect width="1200" height="600" fill="${tones[[...label].reduce((n, c) => n + c.charCodeAt(0), 0) % tones.length]}"/><text x="600" y="300" fill="#fff" font-size="64" text-anchor="middle">${label}</text></svg>`
 
 createServer(async (req, res) => {
   const path = new URL(req.url, MOCK_ORIGIN).pathname
@@ -394,7 +568,31 @@ createServer(async (req, res) => {
       },
     })
   }
+  if (path === "/v1/storefront/categories")
+    return send(res, 200, {
+      data: categories.map((c) => ({
+        ...c,
+        product_count: allProducts.filter((p) => p.category?.id === c.id)
+          .length,
+      })),
+    })
   if (path === "/v1/storefront/products") {
+    const category = new URL(req.url, MOCK_ORIGIN).searchParams.get("category")
+    if (category) {
+      // One page per category here; the API pages it like the full list.
+      const data = allProducts.filter((p) => p.category?.id === category)
+      return send(res, 200, {
+        data,
+        meta: {
+          current_page: 1,
+          from: data.length ? 1 : null,
+          to: data.length || null,
+          last_page: 1,
+          per_page: 24,
+          total: data.length,
+        },
+      })
+    }
     // Two pages of products; a later page is empty, as the API answers past the end.
     const page = Number(
       new URL(req.url, MOCK_ORIGIN).searchParams.get("page") ?? 1
