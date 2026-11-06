@@ -6,6 +6,12 @@ import process from "node:process"
 export const PORT_OFFSET = Number(process.env.E2E_PORT_OFFSET ?? 0)
 export const MOCK_PORT = 8199 + PORT_OFFSET
 export const MOCK_ORIGIN = `http://127.0.0.1:${MOCK_PORT}`
+/**
+ * File host for signed image links: its own origin, as Backblaze B2 is in production
+ * (https://s3.eu-central-003.backblazeb2.com), so the shop's CSP img-src is really exercised.
+ */
+export const FILES_PORT = 8198 + PORT_OFFSET
+export const FILES_ORIGIN = `http://127.0.0.1:${FILES_PORT}`
 /** Test-only app key; the mock refuses any other. Not a secret. */
 export const APP_KEY = "gsk_e2e_only_not_a_secret"
 /** The upstream body the mock sends with errors; it must never reach a page. */

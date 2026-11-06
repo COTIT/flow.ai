@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test"
 
-import { APP_KEY, MOCK_ORIGIN, PORT_OFFSET } from "./mock/fixtures.mjs"
+import { APP_KEY, FILES_ORIGIN, MOCK_ORIGIN, PORT_OFFSET } from "./mock/fixtures.mjs"
 import { projectsFor, viewports } from "./src/projects"
 
 const ci = Boolean(process.env.CI)
@@ -51,7 +51,7 @@ export default defineConfig({
       env: {
         API_URL: `${MOCK_ORIGIN}/v1`,
         STOREFRONT_APP_KEY: APP_KEY,
-        FILES_ORIGIN: MOCK_ORIGIN,
+        FILES_ORIGIN,
         SITE_URL: shop,
       },
     },

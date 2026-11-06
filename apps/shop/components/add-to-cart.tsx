@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { ShoppingBagIcon } from "lucide-react"
@@ -44,6 +45,21 @@ export function AddToCart({
   )
   const [quantity, setQuantity] = React.useState(1)
   const [added, setAdded] = React.useState(false)
+  // Phones: once the Add button scrolls up out of view, a bar at the bottom keeps it at hand.
+  const addRow = React.useRef<HTMLDivElement>(null)
+  const formId = React.useId()
+  const [scrolledPast, setScrolledPast] = React.useState(false)
+  React.useEffect(() => {
+    const row = addRow.current
+    if (!row) return
+    const watch = new IntersectionObserver(([entry]) =>
+      setScrolledPast(
+        !entry!.isIntersecting && entry!.boundingClientRect.bottom < 0
+      )
+    )
+    watch.observe(row)
+    return () => watch.disconnect()
+  }, [])
   const variant = product.variants.find((v) => v.id === variantId)
   const money = (minor: number) =>
     formatMoney(minor, product.currency_decimals, product.currency, locale)
@@ -55,6 +71,7 @@ export function AddToCart({
 
   return (
     <form
+      id={formId}
       className="flex flex-col gap-[18px]"
       onSubmit={(e) => {
         e.preventDefault()
@@ -63,10 +80,7 @@ export function AddToCart({
           variantId,
           quantity,
           name: product.name,
-          variantLabel:
-            variant && choose
-              ? variantLabel(variant)
-              : null,
+          variantLabel: variant && choose ? variantLabel(variant) : null,
           priceGross: variant?.price_gross ?? product.price_gross,
           currency: product.currency,
           decimals: product.currency_decimals,
@@ -133,7 +147,7 @@ export function AddToCart({
         </Notice>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div ref={addRow} className="flex items-center gap-3">
         <Stepper
           value={quantity}
           onChange={setQuantity}
@@ -175,6 +189,48 @@ export function AddToCart({
         ) : null}
         <p className="text-xs text-muted-foreground">{t("product.shipping")}</p>
       </div>
+
+      {/* In <body>: a glass card's backdrop-filter would pin a fixed bar to the card. */}
+      {ready && !soldOut && scrolledPast
+        ? createPortal(
+            <div
+              data-sticky-buy
+              role="region"
+              aria-label={t("product.quickBuy")}
+              className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-(--hair) glass-strong px-4 pt-2.5 pb-[max(env(safe-area-inset-bottom),10px)] md:hidden"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold">
+                  {product.name}
+                </p>
+                <p className="text-[13px] text-muted-foreground tabular-nums">
+                  {[
+                    variant && choose ? variantValue(variant) : null,
+                    quantity > 1 ? `× ${quantity}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                </p>
+              </div>
+              {added ? (
+                <Link
+                  href="/cart"
+                  data-slot="button"
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  {t("cart.view")}
+                </Link>
+              ) : null}
+              <Button type="submit" form={formId} size="lg">
+                <ShoppingBagIcon aria-hidden className="size-[18px]" />
+                {t("product.quickAdd", {
+                  price: money(variant?.price_gross ?? product.price_gross),
+                })}
+              </Button>
+            </div>,
+            document.body
+          )
+        : null}
     </form>
   )
 }

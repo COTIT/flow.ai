@@ -69,7 +69,9 @@
     "openPassport": "Fungua pasipoti",
     "breadcrumb": "Njia ya ukurasa",
     "grownBy": "Kimelimwa na kuvunwa na",
-    "people": "Wafahamu watu walio nyuma yake"
+    "people": "Wafahamu watu walio nyuma yake",
+    "quickBuy": "Ongeza haraka",
+    "quickAdd": "Ongeza · {price}"
   },
   "errors": {
     "unavailableTitle": "Duka limepumzika kidogo",

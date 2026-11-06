@@ -69,7 +69,9 @@
     "openPassport": "Open the passport",
     "breadcrumb": "Breadcrumb",
     "grownBy": "Grown and harvested by",
-    "people": "Meet the people behind it"
+    "people": "Meet the people behind it",
+    "quickBuy": "Quick add",
+    "quickAdd": "Add · {price}"
   },
   "errors": {
     "unavailableTitle": "The shop is taking a break",

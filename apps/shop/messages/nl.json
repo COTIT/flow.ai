@@ -69,7 +69,9 @@
     "openPassport": "Open het paspoort",
     "breadcrumb": "Kruimelpad",
     "grownBy": "Geteeld en geoogst door",
-    "people": "Ontmoet de mensen erachter"
+    "people": "Ontmoet de mensen erachter",
+    "quickBuy": "Snel toevoegen",
+    "quickAdd": "Toevoegen · {price}"
   },
   "errors": {
     "unavailableTitle": "De winkel neemt even pauze",

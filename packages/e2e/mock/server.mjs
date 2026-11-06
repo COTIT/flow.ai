@@ -12,6 +12,8 @@ import {
   MOCK_PORT,
   BUSY_EMAIL,
   CATEGORY,
+  FILES_ORIGIN,
+  FILES_PORT,
   CANCEL_PAYMENT_EMAIL,
   CHECKOUT_DOWN_EMAIL,
   EXPIRED_EMAIL,
@@ -29,7 +31,8 @@ import {
 } from "./fixtures.mjs"
 
 const link = (name) => ({
-  url: `${MOCK_ORIGIN}/files/${name}.svg`,
+  // Signed-link shape: a query string, like a B2 presigned URL.
+  url: `${FILES_ORIGIN}/files/${name}.svg?X-Amz-Expires=600&X-Amz-Signature=e2e`,
   expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
 })
 
@@ -510,7 +513,7 @@ const tones = ["#8b8171", "#b98336", "#7a4b2a", "#5f6b3a", "#a4552d", "#3d5a5b"]
 const image = (label) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect width="1200" height="600" fill="${tones[[...label].reduce((n, c) => n + c.charCodeAt(0), 0) % tones.length]}"/><text x="600" y="300" fill="#fff" font-size="64" text-anchor="middle">${label}</text></svg>`
 
-createServer(async (req, res) => {
+const handler = async (req, res) => {
   const path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
   // Stand-in for the provider's hosted page: pays at once (or, for a cancelling buyer,
@@ -633,6 +636,14 @@ createServer(async (req, res) => {
   if (code === LOT.failing) return send(res, 503, failing)
   if (code && lots[code]) return send(res, 200, { data: lots[code]() })
   send(res, 404, { message: "Not found." })
-}).listen(MOCK_PORT, "127.0.0.1", () =>
+}
+
+createServer(handler).listen(MOCK_PORT, "127.0.0.1", () =>
   console.log(`e2e mock storefront on ${MOCK_ORIGIN}`)
 )
+// The file host: images only, like the bucket behind signed links.
+createServer((req, res) =>
+  new URL(req.url, FILES_ORIGIN).pathname.startsWith("/files/")
+    ? handler(req, res)
+    : send(res, 404, { message: "Not found." })
+).listen(FILES_PORT, "127.0.0.1")
