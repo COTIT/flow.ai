@@ -57,6 +57,13 @@ export const officeApi = (
   "GET /me/workspaces": {
     body: { data: [{ id: "w1", workspace_name: "ilundo-honey", display_name: "Ilundo Honey Co." }] },
   },
+  // The products list names each product's category.
+  "GET /workspace/w1/erp/product-categories": {
+    body: {
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 100, total: 0, from: null, to: null },
+    },
+  },
   "GET /workspace/w1/products": {
     body: {
       data: products,
