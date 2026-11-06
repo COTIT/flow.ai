@@ -37,13 +37,16 @@ if printf 're_x/y\n' | run production resend; then fail "resend key with odd cha
 # Staging mail stays on Mailpit.
 if printf 're_x\n' | run staging resend; then fail "staging took resend"; fi
 
-# B2 uploads key: production only, written as is, never echoed.
+# B2 uploads key: each environment's own, written as is, never echoed.
 printf 'K005AbCdEfGh+IjKlMnOpQrStUvWx/yz12\n' | run production b2-uploads || fail "b2-uploads refused: $(cat "$tmp/out")"
 [[ "$(cat "$tmp/b2_uploads_key")" == "K005AbCdEfGh+IjKlMnOpQrStUvWx/yz12" ]] || fail "b2 key not written"
 [[ "$(mode "$tmp/b2_uploads_key")" == "444" ]] || fail "b2 key mode"
 if grep -q "AbCdEfGh" "$tmp/out"; then fail "b2 key echoed"; fi
 if printf 'not a key!\n' | run production b2-uploads; then fail "bad b2 key taken"; fi
-if printf 'K005AbCdEfGhIjKlMnOpQrStUvWxyz12\n' | run staging b2-uploads; then fail "staging took b2-uploads"; fi
+printf 'K005AbCdEfGhIjKlMnOpQrStUvWxyz12\n' | run staging b2-uploads || fail "staging b2-uploads refused: $(cat "$tmp/out")"
+[[ "$(cat "$tmp/b2_uploads_key")" == "K005AbCdEfGhIjKlMnOpQrStUvWxyz12" ]] || fail "staging b2 key not written"
+grep -q ".env.staging" "$tmp/out" || fail "staging hint names the wrong env file"
+! grep -q "K005" "$tmp/out" || fail "staging b2 key echoed"
 
 # Usage errors.
 if run nowhere stripe < /dev/null; then fail "unknown environment taken"; fi

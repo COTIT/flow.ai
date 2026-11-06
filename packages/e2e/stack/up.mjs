@@ -10,7 +10,7 @@ import process from "node:process"
 import { down } from "./down.mjs"
 import { parseSeed } from "./seed.mjs"
 import {
-  API_DIR, CONTAINER, DATABASE_URL, DB, DIR, FILES_BUCKET, FILES_CONTAINER, FILES_IMAGE, FILES_ORIGIN,
+  API_DIR, CONTAINER, DATABASE_URL, DB, DIR, E2E, FILES_BUCKET, FILES_CONTAINER, FILES_IMAGE, FILES_ORIGIN,
   LOGS, PORTS, ROOT, SEED, SEED_DB, URLS,
   alive, apiBin, apiEnv, exec, psql, readState, run, start, startApi, startMail, stop, waitFor, workspaceIds, writeState,
 } from "./stack.mjs"
@@ -90,11 +90,11 @@ export async function up() {
   }
   lap("postgres up")
 
-  // Garage in RAM with staging's settings; throwaway secrets (a local test stack only).
+  // Garage in RAM: a local S3 store so uploads never leave the machine; throwaway secrets.
   run("docker", [
     "run", "-d", "--rm", "--name", FILES_CONTAINER, "--label", "genesy-e2e-stack=1",
     "-p", `127.0.0.1:${PORTS.files}:3900`, "--tmpfs", "/var/lib/garage:rw,size=256m",
-    "-v", `${join(ROOT, "deploy/staging/garage.toml")}:/etc/garage.toml:ro`,
+    "-v", `${join(E2E, "stack/garage.toml")}:/etc/garage.toml:ro`,
     "-e", `GARAGE_RPC_SECRET=${randomBytes(32).toString("hex")}`,
     "-e", `GARAGE_DEFAULT_ACCESS_KEY=${state.files.keyId}`,
     "-e", `GARAGE_DEFAULT_SECRET_KEY=${state.files.secret}`,

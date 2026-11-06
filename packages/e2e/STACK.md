@@ -22,8 +22,9 @@ Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/t
   4301, field 4302, till 4303, landing 4304, mail sink 2525, file store 55410. Pick another offset per checkout running at once,
   e.g. `E2E_STACK_OFFSET=20`. The fake-API suite uses 3200-3204/8199 + `E2E_PORT_OFFSET`.
 - **Containers:** `genesy-e2e-stack-<offset>`, Postgres in RAM (tmpfs), and `genesy-e2e-files-<offset>`,
-  the file store: staging's Garage image (same digest, `stack/files.test.mjs` checks it), in RAM, with
-  a random key per stack. The API stores uploads there and signs links for it; the shop's and office's
+  a local S3 store (Garage, pinned by digest in `stack/stack.mjs`, settings in `stack/garage.toml`) in
+  RAM, with a random key per stack. Staging and production use Backblaze B2; the stack never reaches
+  B2 or AFM. The API stores uploads there and signs links for it; the shop's and office's
   `FILES_ORIGIN` is that one origin. The seed runs without `--images`, so it never fetches AFM's
   photos. The harness never touches any other container (not the dev Postgres on 54320).
   `stack:down` and any failed `stack:up` remove both.

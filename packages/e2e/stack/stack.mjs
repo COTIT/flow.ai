@@ -42,7 +42,7 @@ export const DB = "genesy"
 export const SEED_DB = "genesy_seed"
 export const DATABASE_URL = `postgres://postgres@127.0.0.1:${PORTS.postgres}/${DB}`
 
-/** The file store: staging's Garage image (same digest as deploy/staging/docker-compose.files.yml). */
+/** The stack's local S3 store (Garage v2.4.1, 2026-09-08): stack only; staging and production use B2. */
 export const FILES_CONTAINER = `genesy-e2e-files-${OFFSET}`
 export const FILES_IMAGE =
   "dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020"

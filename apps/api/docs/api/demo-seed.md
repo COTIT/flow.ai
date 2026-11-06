@@ -47,7 +47,7 @@
 
 ## Not seeded (no route or no service on staging)
 
-- Product images only with `seed-demo --images` and file storage (staging's image store, `deploy/staging/README.md` "Image store"). Passport banners, certificate files, farm plot documents and bug reports: never.
+- Product images only with `seed-demo --images` and file storage (staging's own B2 bucket, `deploy/staging/README.md` "Turning on file uploads"). Passport banners, certificate files, farm plot documents and bug reports: never.
 - The invoice PDF: staging has no renderer.
 - A till pairing code: it is one-time and lasts 10 minutes. Make one from the office.
 - Demand that is matched, closed or cancelled, an inactive buyer, a disputed record: no route sets these.
