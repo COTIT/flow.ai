@@ -23,12 +23,15 @@ export function StoryCard({
   place,
   body,
   wide,
+  compact,
   as: Tag = "li",
 }: {
   name: string
   place: string
   body: string
   wide?: boolean
+  /** A small round badge instead of the 4:3 tile (home page teaser). */
+  compact?: boolean
   as?: "li" | "article"
 }) {
   return (
@@ -36,8 +39,11 @@ export function StoryCard({
       <span
         aria-hidden
         className={cn(
-          "flex aspect-[4/3] w-full shrink-0 items-center justify-center rounded-[16px] text-[40px] font-semibold text-white",
+          "flex shrink-0 items-center justify-center font-semibold text-white",
           "bg-[radial-gradient(120%_90%_at_30%_20%,#e9bf6b_0%,#b98336_45%,#7a4b2a_100%)]",
+          compact
+            ? "size-14 rounded-full text-[18px]"
+            : "aspect-[4/3] w-full rounded-[16px] text-[40px]",
           wide && "md:w-[42%]"
         )}
       >

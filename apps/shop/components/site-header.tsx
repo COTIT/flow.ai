@@ -2,7 +2,6 @@ import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
-import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 
 import { NAV } from "@/lib/nav"
@@ -24,7 +23,13 @@ export async function SiteHeader() {
         aria-label={t("nav.home")}
         className="inline-flex min-h-11 items-center rounded-sm md:min-h-0"
       >
-        <Logo aria-hidden className="h-auto w-[108px] min-w-0 md:w-[132px]" />
+        {/* The shop is AFM's; Genesy is credited in the footer. */}
+        <span
+          aria-hidden
+          className="max-w-[9.5rem] text-[15px] leading-[1.15] font-semibold tracking-[0.01em] md:max-w-none md:text-[17px]"
+        >
+          {t("app.title")}
+        </span>
       </Link>
       <nav aria-label={t("nav.main")} className="hidden gap-1 md:flex">
         <NavLinks labels={labels} />

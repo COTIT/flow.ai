@@ -23,7 +23,8 @@
     "newsletterTitle": "Let's stay in touch",
     "newsletterBody": "Farmer stories, new harvests and market dates. Email us and we'll add you to the list.",
     "newsletterCta": "Join our list by email",
-    "newsletterSubject": "Please add me to your list"
+    "newsletterSubject": "Please add me to your list",
+    "tracedWith": "Batches traced with Genesy"
   },
   "catalog": {
     "title": "Shop",

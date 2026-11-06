@@ -17,11 +17,15 @@ export async function SiteFooter() {
   return (
     <footer className="grid gap-8 rounded-[24px] bg-primary p-7 text-primary-foreground md:grid-cols-[1.4fr_1fr_1.4fr] md:p-10 dark:border dark:border-(--hair) dark:bg-white/4 dark:text-foreground">
       <div className="flex flex-col gap-4">
-        <LogoIcon aria-hidden className="h-auto w-[42px]" />
+        <p className="text-[20px] font-semibold">{t("app.title")}</p>
         <p className="text-[18px] leading-snug font-medium">
           {t("footer.title")}
         </p>
         <p className="text-[13px] opacity-80">{t("footer.shipping")}</p>
+        <p className="flex items-center gap-2 text-[12px] opacity-70">
+          <LogoIcon aria-hidden className="h-auto w-5" />
+          {t("footer.tracedWith")}
+        </p>
       </div>
       <nav aria-label={t("footer.explore")} className="flex flex-col">
         <p className="mb-1 text-[11px] font-extrabold tracking-[0.08em] uppercase opacity-70">

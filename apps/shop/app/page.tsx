@@ -179,6 +179,7 @@ export default async function HomePage({
               name={t(`stories.${k}.name`)}
               place={t(`stories.${k}.place`)}
               body={t(`stories.${k}.body`)}
+              compact
             />
           ))}
         </ul>
