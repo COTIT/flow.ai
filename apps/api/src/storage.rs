@@ -26,6 +26,9 @@ pub struct S3Config {
     pub bucket: String,
     pub key_id: String,
     pub secret: String,
+    /// Where browsers fetch signed links, when not `endpoint` (staging: the API writes to the
+    /// store inside Docker, browsers read it through Traefik). None = `endpoint`.
+    pub public_endpoint: Option<String>,
 }
 
 /// Tests' bucket: key -> (bytes, content type).
@@ -41,6 +44,8 @@ pub enum Store {
 /// A bucket plus its credentials.
 pub struct S3 {
     bucket: Bucket,
+    /// The same bucket on the public host: download links only.
+    public: Bucket,
     credentials: Credentials,
     http: Outbound,
 }
@@ -57,14 +62,15 @@ impl fmt::Debug for Store {
 impl Store {
     /// An S3 store; `http` must trust the endpoint's host when it is a local one (MinIO).
     pub fn s3(c: S3Config, http: Outbound) -> Result<Self, String> {
-        let endpoint = c
-            .endpoint
-            .parse()
-            .map_err(|e| format!("S3 endpoint: {e}"))?;
-        let bucket = Bucket::new(endpoint, UrlStyle::Path, c.bucket, c.region)
-            .map_err(|e| format!("S3 bucket: {e}"))?;
+        let bucket = |url: &str| {
+            let endpoint = url.parse().map_err(|e| format!("S3 endpoint: {e}"))?;
+            Bucket::new(endpoint, UrlStyle::Path, c.bucket.clone(), c.region.clone())
+                .map_err(|e| format!("S3 bucket: {e}"))
+        };
+        let public = bucket(c.public_endpoint.as_deref().unwrap_or(&c.endpoint))?;
         Ok(Self::S3(Arc::new(S3 {
-            bucket,
+            bucket: bucket(&c.endpoint)?,
+            public,
             credentials: Credentials::new(c.key_id, c.secret),
             http,
         })))
@@ -155,7 +161,7 @@ impl Store {
                 })
                 .ok_or_else(|| AppError::Internal(format!("no object {key}"))),
             Self::S3(s) => {
-                let mut action = s.bucket.get_object(Some(&s.credentials), key);
+                let mut action = s.public.get_object(Some(&s.credentials), key);
                 let query = action.query_mut();
                 query.insert("response-content-type", content_type.to_owned());
                 query.insert(
@@ -268,6 +274,39 @@ mod tests {
     }
 
     #[test]
+    fn links_are_signed_on_the_public_host_and_writes_stay_internal() {
+        let store = Store::s3(
+            S3Config {
+                endpoint: "http://files:3900".into(),
+                region: "garage".into(),
+                bucket: "genesy-staging".into(),
+                key_id: "kid".into(),
+                secret: "secret".into(),
+                public_endpoint: Some("https://staging-files.genesy.app".into()),
+            },
+            Outbound::new(&[]).unwrap(),
+        )
+        .unwrap();
+        let link = store
+            .download_url("k", "a.png", "image/png", true, Duration::from_secs(60))
+            .unwrap();
+        assert!(
+            link.starts_with("https://staging-files.genesy.app/genesy-staging/k?"),
+            "{link}"
+        );
+        let Store::S3(s) = &store else { panic!() };
+        let put = s
+            .bucket
+            .put_object(Some(&s.credentials), "k")
+            .sign(SIGN_TTL);
+        assert!(
+            put.as_str()
+                .starts_with("http://files:3900/genesy-staging/k?"),
+            "{put}"
+        );
+    }
+
+    #[test]
     fn signed_urls_stay_on_the_bucket() {
         let store = Store::s3(
             S3Config {
@@ -276,6 +315,7 @@ mod tests {
                 bucket: "genesy-test".into(),
                 key_id: "kid".into(),
                 secret: "secret".into(),
+                public_endpoint: None,
             },
             Outbound::new(&[]).unwrap(),
         )

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Config `B2_UPLOADS_PUBLIC_URL` (optional): when set, signed download links point at it while uploads, reads and deletes keep `B2_UPLOADS_ENDPOINT`. Staging writes to its store inside Docker and browsers read it through Traefik. Unset (production) signs on the endpoint as before; a config test pins that.
 - Product categories reach the shop (`docs/api/products.md`, `storefront.md`; migration `product_category_link`): products gain `category_id`, the main category, same workspace only (composite FK, `ON DELETE SET NULL (category_id)`; the category soft delete clears it in the same statement). Create and update validate it like the other ids (422 for an unknown, deleted or foreign id). The storefront product gains `category: {id, name} | null`, `GET /storefront/products` takes `?category=<id>` (unknown or foreign = empty list) and lists by name, not id, and new `GET /storefront/categories` lists the categories holding sellable products with `product_count`.
 - Lot guards (`docs/api/lots.md`, `stock.md`, `supply-chain.md`, `warehouses.md`, `webhooks.md`; no migration):
   - Status rules: released ↔ quarantine, either → recalled; recalled is final (`409 lot_status_final`), and POST can't start a lot recalled. Lots gain `next_statuses`. Each change emits `lot.status_changed`.

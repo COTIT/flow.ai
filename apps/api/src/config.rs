@@ -333,6 +333,7 @@ fn storage(get: &impl Fn(&str) -> Option<String>) -> Result<Option<S3Config>, St
         bucket: bucket.clone(),
         key_id: key_id.clone(),
         secret: secret.clone(),
+        public_endpoint: optional_url(get, "B2_UPLOADS_PUBLIC_URL")?,
     }))
 }
 
@@ -1061,7 +1062,33 @@ mod tests {
                 "uploads"
             )
         );
+        // Unset (production): links are signed on the endpoint itself.
+        assert_eq!(s.public_endpoint, None);
         assert_eq!(full.gotenberg_url.as_deref(), Some("http://gotenberg:3000"));
+        let split = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("B2_UPLOADS_BUCKET", "uploads"),
+            ("B2_UPLOADS_KEY_ID", "kid"),
+            ("B2_UPLOADS_APPLICATION_KEY", "s3cret"),
+            ("B2_UPLOADS_ENDPOINT", "http://files:3900"),
+            ("B2_UPLOADS_PUBLIC_URL", "https://staging-files.genesy.app/"),
+        ]))
+        .unwrap();
+        let s = split.storage.as_ref().unwrap();
+        assert_eq!(s.endpoint, "http://files:3900");
+        assert_eq!(
+            s.public_endpoint.as_deref(),
+            Some("https://staging-files.genesy.app")
+        );
+        let junk = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("B2_UPLOADS_BUCKET", "uploads"),
+            ("B2_UPLOADS_KEY_ID", "kid"),
+            ("B2_UPLOADS_APPLICATION_KEY", "s3cret"),
+            ("B2_UPLOADS_PUBLIC_URL", "staging-files.genesy.app"),
+        ]))
+        .unwrap_err();
+        assert!(junk.contains("B2_UPLOADS_PUBLIC_URL"), "{junk}");
         assert!(!format!("{full:?}").contains("s3cret"));
         let half = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
