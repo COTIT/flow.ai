@@ -355,7 +355,7 @@ pub async fn run(state: AppState, allowed: bool) -> Result<Seeded, AppError> {
         catalog::seed(&shop, &store_id),
         farm::seed(&api, base.workspace_id, &state.db)
     )?;
-    let supplied = supply::seed(&shop, &ruaha, &store_id, &catalog.depot).await?;
+    let supplied = supply::seed(&shop, &ruaha, &store_id, &catalog).await?;
     let mut samples: Vec<(&'static str, String)> = catalog
         .passports
         .iter()

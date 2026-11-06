@@ -237,7 +237,7 @@ After the first deploy, and after each reset:
 deploy/deploy.sh staging compose --profile seed run --rm seed
 ```
 
-This runs `genesy-360-api seed-demo`, which fills every app with demo data: about 70 products, 300 orders, 40 invoices, a week of till shifts, and 60 farmers over four seasons (full list: `apps/api/docs/api/demo-seed.md`). It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that.
+This runs `genesy-360-api seed-demo`, which fills every app with demo data: AFM's real catalogue (75 products in 10 categories, with photos once the image store is on), 300 orders, 40 invoices, a week of till shifts, and 60 farmers over four seasons (full list: `apps/api/docs/api/demo-seed.md`). It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that.
 
 It prints a logins table (`app | role | login | secret | path`), then the storefront app key, sample paths (passports, shop orders) and `seeded in N.N s`. The passwords, PINs and keys are new on every run and are printed only this once, so save them somewhere safe before sharing them.
 

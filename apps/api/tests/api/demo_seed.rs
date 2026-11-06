@@ -680,6 +680,31 @@ async fn the_seed_fills_every_module(pool: PgPool) {
     }
     assert!(short.is_empty(), "short:\n{}", short.join("\n"));
 
+    // AFM's real catalogue: its 75 products, each in one of the ten shop categories, its
+    // prices, and the farm's coffee lots on AFM's own whole-bean coffee.
+    let exact: &[(i64, &str)] = &[
+        (75, "SELECT count(*) FROM products WHERE workspace_id = $1 AND deleted_at IS NULL"),
+        (75, "SELECT count(*) FROM products WHERE workspace_id = $1 AND category_id IS NOT NULL"),
+        (10, "SELECT count(*) FROM product_categories WHERE workspace_id = $1"),
+        (1, "SELECT count(*) FROM products WHERE workspace_id = $1 \
+             AND name = 'Mary''s Tanzanian Wildflower Honey 13oz' AND price = 27.99"),
+        (0, "SELECT count(*) FROM products WHERE workspace_id = $1 AND name LIKE 'Ruaha coffee%'"),
+        (16, "SELECT count(*) FROM products p JOIN product_categories c ON c.id = p.category_id \
+              WHERE p.workspace_id = $1 AND c.name = 'Baskets'"),
+    ];
+    for (n, q) in exact {
+        assert_eq!(count_in(&pool, afm, q).await, *n, "{q}");
+    }
+    let coffee_lots: i64 = count_in(
+        &pool,
+        afm,
+        "SELECT count(*) FROM lots l JOIN products p ON p.id = l.product_id \
+         WHERE l.workspace_id = $1 AND l.code LIKE 'AFM-CF-%' \
+           AND p.name = 'Africa’s Wildest Whole Bean Coffee'",
+    )
+    .await;
+    assert!(coffee_lots >= 1, "farm coffee lots on AFM's coffee: {coffee_lots}");
+
     // Every row of the big tables belongs to one of the two demo workspaces, and no order or
     // invoice of one points at the other's relation, product or warehouse.
     let (a, r) = (
@@ -809,7 +834,7 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         "SELECT f->>'value' FROM lots l
            CROSS JOIN LATERAL jsonb_array_elements(l.passport_draft->'story') s
            CROSS JOIN LATERAL jsonb_array_elements(s->'items') f
-         WHERE s->>'kind' = 'facts' AND f->>'label' = 'Extracted'",
+         WHERE s->>'kind' = 'facts' AND f->>'label' = 'Packed'",
     )
     .fetch_all(&pool)
     .await
