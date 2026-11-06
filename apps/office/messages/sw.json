@@ -39,7 +39,12 @@
     "standardSize": "Kawaida",
     "defaultSize": "Chaguo-msingi",
     "noSizes": "Bado hakuna saizi.",
-    "sizesShopNote": "Bidhaa ikishakuwa na saizi, duka huuza saizi hizo tu; bidhaa yenyewe haionekani tena humo."
+    "sizesShopNote": "Bidhaa ikishakuwa na saizi, duka huuza saizi hizo tu; bidhaa yenyewe haionekani tena humo.",
+    "category": "Kundi",
+    "noCategory": "Hakuna kundi",
+    "allCategories": "Makundi yote",
+    "categoriesFailed": "Makundi hayakuweza kupakiwa, kwa hiyo kundi linabaki lilivyo.",
+    "categoriesNone": "Bado hakuna makundi. Yaongeze chini ya Makundi."
   },
   "nav": {
     "label": "Menyu kuu",
@@ -53,7 +58,8 @@
     "till": "Kaunta",
     "supply": "Ugavi",
     "overview": "Muhtasari",
-    "invites": "Mialiko"
+    "invites": "Mialiko",
+    "categories": "Makundi"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -720,7 +726,10 @@
     },
     "stockAdded": "Umeongeza {qty} {place}: sasa {now}.",
     "stockTaken": "Umetoa {qty} {place}: sasa {now}.",
-    "stockUnmoved": "Hakuna kilichobadilika: mabadiliko yalikuwa 0, au bidhaa hii haihifadhi akiba."
+    "stockUnmoved": "Hakuna kilichobadilika: mabadiliko yalikuwa 0, au bidhaa hii haihifadhi akiba.",
+    "categoryCreated": "Kundi limeundwa.",
+    "categorySaved": "Kundi limehifadhiwa.",
+    "categoryRemoved": "{name} limeondolewa."
   },
   "images": {
     "title": "Picha",
@@ -904,5 +913,21 @@
     "title": "Maagizo yanayosubiri bechi hii",
     "hint": "Hakuna bechi nyingine katika ghala hilo iliyoweza kuchukua maagizo haya. Ghairi agizo, au iruhusu bechi hii.",
     "held": "{quantity} imehifadhiwa"
+  },
+  "categories": {
+    "title": "Makundi",
+    "new": "Kundi jipya",
+    "name": "Jina",
+    "description": "Maelezo",
+    "products": "Bidhaa",
+    "count": "{total, plural, one {Kundi #} other {Makundi #}}",
+    "empty": "Bado hakuna makundi.",
+    "edit": "Hariri",
+    "editTitle": "Hariri {name}",
+    "remove": "Ondoa",
+    "removeTitle": "Ondoa {name}?",
+    "removeUsed": "{count, plural, one {Bidhaa # itabaki} other {Bidhaa # zitabaki}} bila kundi. Bidhaa zenyewe hazifutwi.",
+    "removeUnused": "Hakuna bidhaa inayotumia kundi hili.",
+    "actions": "Vitendo"
   }
 }

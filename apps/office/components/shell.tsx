@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Tags,
   Search,
   ShoppingBag,
   Truck,
@@ -71,6 +72,7 @@ type Item = {
 const items: Item[] = [
   { href: "/", match: "/", label: "nav.overview", icon: LayoutGrid },
   { href: "/products", match: "/products", label: "nav.products", icon: Package, group: "shell.sell" },
+  { href: "/products/categories", match: "/products/categories", label: "nav.categories", icon: Tags },
   { href: "/stock", match: "/stock", label: "nav.stock", icon: Archive },
   { href: "/orders", match: "/orders", label: "nav.orders", icon: ShoppingBag, count: "orders" },
   { href: "/invoices", match: "/invoices", label: "nav.invoices", icon: FileText },
@@ -88,8 +90,9 @@ const sectioned = items.map((item, i) => ({
   group: items.slice(0, i + 1).reverse().find((x) => x.group)?.group,
 }))
 
+// Last match wins: /products/categories is Categories, not Products.
 const current = (pathname: string) =>
-  items.find(
+  [...items].reverse().find(
     (i) =>
       pathname === i.match ||
       (i.match !== "/" && pathname.startsWith(`${i.match}/`))

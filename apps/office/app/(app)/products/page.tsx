@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { Package, Search } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
+import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
 import { useProductsList } from "@genesy/api-client/endpoints/products"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
@@ -26,6 +27,7 @@ import {
   PageHead,
   PillLinks,
 } from "@/components/list"
+import { selectClass } from "@/components/field"
 import { Empty, LoadError } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
 import { useCan } from "@/lib/can"
@@ -42,13 +44,14 @@ export default function ProductsPage({
     q?: string
     page?: string
     status?: string
+    category?: string
     /** `?new=1` opens the create dialog. */
     new?: string
   }>
 }) {
   const t = useTranslations()
   const router = useRouter()
-  const { q, page, status, new: startNew } = React.use(searchParams)
+  const { q, page, status, category, new: startNew } = React.use(searchParams)
   const canCreate = useCan("product.create")
   const workspaceId = useSession((s) => s.workspaceId)
   const products = useProductsList(
@@ -56,16 +59,33 @@ export default function ProductsPage({
     {
       q: q || undefined,
       status: status || undefined,
+      category_id: category || undefined,
       page: Number(page) || undefined,
     },
     { query: { enabled: Boolean(workspaceId) } }
   )
-  const href = (next: { q?: string; page?: number; status?: string }) => {
+  // shortcut: first 100 categories for names and the filter; add `category {id,name}` to the
+  // product resource when a workspace has more.
+  const categories = useProductCategoriesList(
+    workspaceId ?? "",
+    { page_size: 100 },
+    { query: { enabled: Boolean(workspaceId) } }
+  )
+  const categoryName = (id: string | null) =>
+    categories.data?.data.find((c) => c.id === id)?.name
+  const href = (next: {
+    q?: string
+    page?: number
+    status?: string
+    category?: string
+  }) => {
     const params = new URLSearchParams()
     const query = next.q ?? q
     const st = next.status ?? status
+    const cat = next.category ?? category
     if (query) params.set("q", query)
     if (st && st !== "active") params.set("status", st)
+    if (cat) params.set("category", cat)
     if (next.page && next.page > 1) params.set("page", String(next.page))
     return `?${params}`
   }
@@ -73,6 +93,7 @@ export default function ProductsPage({
     { label: t("products.name") },
     { label: t("products.number") },
     { label: t("products.reference") },
+    { label: t("products.category") },
     { label: t("products.status") },
     { label: t("products.price"), right: true },
   ]
@@ -128,6 +149,23 @@ export default function ProductsPage({
                 className="pl-10"
               />
             </form>
+            {categories.data?.data.length ? (
+              <select
+                aria-label={t("products.category")}
+                value={category ?? ""}
+                onChange={(e) =>
+                  router.push(href({ category: e.target.value, page: 1 }))
+                }
+                className={`${selectClass} w-auto max-md:w-full`}
+              >
+                <option value="">{t("products.allCategories")}</option>
+                {categories.data.data.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <div className="max-md:hidden">
               <PillLinks
                 label={t("products.status")}
@@ -167,7 +205,7 @@ export default function ProductsPage({
           <CardState>
             <Empty
               title={t("products.empty")}
-              onClear={q || status ? () => router.push("?") : undefined}
+              onClear={q || status || category ? () => router.push("?") : undefined}
             />
           </CardState>
         ) : (
@@ -220,6 +258,9 @@ export default function ProductsPage({
                   </TableCell>
                   <TableCell data-m="hide" className="text-muted-foreground">
                     {p.reference}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {categoryName(p.category_id)}
                   </TableCell>
                   <TableCell data-m="badge">
                     <StatusBadge

@@ -39,7 +39,12 @@
     "standardSize": "Standaard",
     "defaultSize": "Standaard",
     "noSizes": "Nog geen maten.",
-    "sizesShopNote": "Zodra een product maten heeft, verkoopt de winkel alleen die maten; het product zelf staat er dan niet meer."
+    "sizesShopNote": "Zodra een product maten heeft, verkoopt de winkel alleen die maten; het product zelf staat er dan niet meer.",
+    "category": "Categorie",
+    "noCategory": "Geen categorie",
+    "allCategories": "Alle categorieën",
+    "categoriesFailed": "Categorieën konden niet worden geladen, dus de categorie blijft zoals ze is.",
+    "categoriesNone": "Nog geen categorieën. Voeg ze toe onder Categorieën."
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -53,7 +58,8 @@
     "till": "Kassa",
     "supply": "Aanvoer",
     "overview": "Overzicht",
-    "invites": "Uitnodigingen"
+    "invites": "Uitnodigingen",
+    "categories": "Categorieën"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -720,7 +726,10 @@
     },
     "stockAdded": "{qty} bijgeboekt in {place}: nu {now}.",
     "stockTaken": "{qty} afgeboekt uit {place}: nu {now}.",
-    "stockUnmoved": "Er is niets verplaatst: de wijziging was 0, of dit product houdt geen voorraad bij."
+    "stockUnmoved": "Er is niets verplaatst: de wijziging was 0, of dit product houdt geen voorraad bij.",
+    "categoryCreated": "Categorie aangemaakt.",
+    "categorySaved": "Categorie opgeslagen.",
+    "categoryRemoved": "{name} verwijderd."
   },
   "images": {
     "title": "Afbeeldingen",
@@ -904,5 +913,21 @@
     "title": "Bestellingen die op deze batch wachten",
     "hint": "Geen andere batch in dat magazijn kon deze bestellingen overnemen. Annuleer de bestelling of geef deze batch vrij.",
     "held": "{quantity} gereserveerd"
+  },
+  "categories": {
+    "title": "Categorieën",
+    "new": "Nieuwe categorie",
+    "name": "Naam",
+    "description": "Omschrijving",
+    "products": "Producten",
+    "count": "{total, plural, one {# categorie} other {# categorieën}}",
+    "empty": "Nog geen categorieën.",
+    "edit": "Bewerken",
+    "editTitle": "{name} bewerken",
+    "remove": "Verwijderen",
+    "removeTitle": "{name} verwijderen?",
+    "removeUsed": "{count, plural, one {# product krijgt} other {# producten krijgen}} geen categorie meer. De producten zelf blijven bestaan.",
+    "removeUnused": "Geen enkel product gebruikt deze categorie.",
+    "actions": "Acties"
   }
 }

@@ -39,7 +39,12 @@
     "standardSize": "Standard",
     "defaultSize": "Default",
     "noSizes": "No sizes yet.",
-    "sizesShopNote": "Once a product has sizes, the shop sells only the sizes; the product on its own no longer shows there."
+    "sizesShopNote": "Once a product has sizes, the shop sells only the sizes; the product on its own no longer shows there.",
+    "category": "Category",
+    "noCategory": "No category",
+    "allCategories": "All categories",
+    "categoriesFailed": "Categories could not be loaded, so the category stays as it is.",
+    "categoriesNone": "No categories yet. Add them under Categories."
   },
   "nav": {
     "label": "Main menu",
@@ -53,7 +58,8 @@
     "till": "Till",
     "supply": "Supply",
     "overview": "Overview",
-    "invites": "Invites"
+    "invites": "Invites",
+    "categories": "Categories"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -720,7 +726,10 @@
     },
     "stockAdded": "Added {qty} at {place}: now {now}.",
     "stockTaken": "Took {qty} from {place}: now {now}.",
-    "stockUnmoved": "Nothing moved: the change was 0, or this product doesn't keep stock."
+    "stockUnmoved": "Nothing moved: the change was 0, or this product doesn't keep stock.",
+    "categoryCreated": "Category created.",
+    "categorySaved": "Category saved.",
+    "categoryRemoved": "{name} removed."
   },
   "images": {
     "title": "Images",
@@ -904,5 +913,21 @@
     "title": "Orders waiting on this batch",
     "hint": "No other batch at that warehouse could take these orders over. Cancel the order, or release this batch.",
     "held": "{quantity} held"
+  },
+  "categories": {
+    "title": "Categories",
+    "new": "New category",
+    "name": "Name",
+    "description": "Description",
+    "products": "Products",
+    "count": "{total, plural, one {# category} other {# categories}}",
+    "empty": "No categories yet.",
+    "edit": "Edit",
+    "editTitle": "Edit {name}",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}?",
+    "removeUsed": "{count, plural, one {# product} other {# products}} will become uncategorised. The products themselves stay.",
+    "removeUnused": "No products use this category.",
+    "actions": "Actions"
   }
 }

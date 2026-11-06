@@ -9,6 +9,7 @@ import {
   getProductsListQueryKey,
   useProductsCreate,
 } from "@genesy/api-client/endpoints/products"
+import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
 import { useVatGroupsList } from "@genesy/api-client/endpoints/vat-groups"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
@@ -51,6 +52,11 @@ export function CreateProduct({
     { page_size: 100 },
     { query: { enabled: open && Boolean(workspaceId) } }
   )
+  const categories = useProductCategoriesList(
+    workspaceId,
+    { page_size: 100 },
+    { query: { enabled: open && Boolean(workspaceId) } }
+  )
   const create = useProductsCreate({
     mutation: {
       onSuccess: ({ data }) => {
@@ -82,6 +88,7 @@ export function CreateProduct({
             e.preventDefault()
             const f = new FormData(e.currentTarget)
             const vat = String(f.get("vat_group_id") ?? "")
+            const category = String(f.get("category_id") ?? "")
             create.mutate({
               workspace: workspaceId,
               data: {
@@ -90,6 +97,7 @@ export function CreateProduct({
                 price: String(f.get("price") ?? ""),
                 // Left out, the API takes the workspace's default group.
                 ...(vat ? { vat_group_id: vat } : {}),
+                ...(category ? { category_id: category } : {}),
               },
             })
           }}
@@ -128,6 +136,22 @@ export function CreateProduct({
           ) : (
             <Capped meta={vatGroups.data?.meta} />
           )}
+          {categories.data?.data.length ? (
+            <Field
+              id="np-category"
+              label={t("products.category")}
+              errors={errors.category_id}
+            >
+              <select name="category_id" className={selectClass}>
+                <option value="">{t("products.noCategory")}</option>
+                {categories.data.data.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
           <ApiError error={create.error} fallback={t("common.error")} />
           <DialogFooter>
             <Button type="submit" disabled={create.isPending}>
