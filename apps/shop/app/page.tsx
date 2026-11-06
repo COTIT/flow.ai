@@ -18,6 +18,7 @@ import { isSoldOut } from "@/components/stock-badge"
 import { StoryCard } from "@/components/story-card"
 import { TraceForm } from "@/components/trace-form"
 import { card, goldChip, h2, prose, tag, warm } from "@/lib/look"
+import { photo, PHOTOS } from "@/lib/photos"
 import { listCategories, listProducts } from "@/lib/storefront"
 
 /** Category tiles take turns through AFM's earth tones (white text passes AA on each). */
@@ -65,6 +66,14 @@ export default async function HomePage({
           "gap-6 p-6 md:grid md:grid-cols-[1.35fr_1fr] md:items-center md:gap-10 md:p-12"
         )}
       >
+        <img
+          src={PHOTOS.landscape.src}
+          alt={t("photos.landscape")}
+          width={PHOTOS.landscape.width}
+          height={PHOTOS.landscape.height}
+          fetchPriority="high"
+          className="aspect-[16/9] w-full rounded-[16px] object-cover md:col-span-2 md:aspect-[3/1]"
+        />
         <div className="flex min-w-0 flex-col gap-4">
           <p className={cn(tag, "text-(--tone-warning)")}>{t("home.tag")}</p>
           <h1 className="text-[32px] leading-[1.1] font-medium md:text-[52px]">
@@ -179,6 +188,7 @@ export default async function HomePage({
               name={t(`stories.${k}.name`)}
               place={t(`stories.${k}.place`)}
               body={t(`stories.${k}.body`)}
+              photo={photo(k, t(`photos.${k}`))}
               compact
             />
           ))}

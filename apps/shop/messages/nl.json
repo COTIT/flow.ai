@@ -380,5 +380,13 @@
     "go": "Toon het paspoort",
     "invalidTitle": "Dat lijkt geen partijcode",
     "invalidBody": "Codes hebben 10 letters en cijfers, zoals 7K3M 9QX2 WD. Kijk op het etiket en probeer opnieuw."
+  },
+  "photos": {
+    "landscape": "Schilderij van een groene riviervallei met boerderijen en dorpen in Oost-Afrika",
+    "illundo": "Twee imkers uit Illundo naast hun houten bijenkasten in het bos",
+    "farmers": "Schilderij van een groep boeren samen op groene heuvels",
+    "mary": "Omslag van het prentenboek The Mary: een boerin met een schoffel, geschilderd door Benard Omondi",
+    "benard": "Getekend portret van kunstenaar Benard Omondi, lachend, voor savanneheuvels",
+    "nafasi": "Nostalgic Memories van Pascal Masegesse: een oude platenspeler op een stoel tegen rode en blauwe patronen"
   }
 }

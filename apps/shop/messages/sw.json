@@ -380,5 +380,13 @@
     "go": "Onyesha pasipoti yake",
     "invalidTitle": "Huo hauonekani kama msimbo wa kundi",
     "invalidBody": "Misimbo ina herufi na namba 10, kama 7K3M 9QX2 WD. Angalia lebo ujaribu tena."
+  },
+  "photos": {
+    "landscape": "Mchoro wa bonde la mto lenye mashamba na vijiji vya Afrika Mashariki",
+    "illundo": "Wafugaji nyuki wawili wa Illundo wamesimama kando ya mizinga yao ya mbao msituni",
+    "farmers": "Mchoro wa kikundi cha wakulima wamesimama pamoja kwenye vilima vya kijani",
+    "mary": "Jalada la kitabu cha picha The Mary: mkulima mwanamke amebeba jembe, kimechorwa na Benard Omondi",
+    "benard": "Picha iliyochorwa ya msanii Benard Omondi akitabasamu, mbele ya vilima vya savana",
+    "nafasi": "Nostalgic Memories ya Pascal Masegesse: santuri ya zamani juu ya kiti mbele ya michoro nyekundu na buluu"
   }
 }

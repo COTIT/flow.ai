@@ -14,6 +14,7 @@ import { cn } from "@genesy/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
 import { upcoming } from "@/lib/events"
+import { PHOTOS } from "@/lib/photos"
 import { card, goldChip, h2, prose, tile } from "@/lib/look"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,6 +48,15 @@ export default async function AboutPage() {
 
       <section className={cn(card, "gap-6 md:flex-row md:gap-8 md:p-10")}>
         <div className="flex flex-1 flex-col gap-3">
+          <img
+            src={PHOTOS.farmers.src}
+            alt={(await getTranslations("photos"))("farmers")}
+            width={PHOTOS.farmers.width}
+            height={PHOTOS.farmers.height}
+            loading="lazy"
+            decoding="async"
+            className="aspect-[3/2] w-full rounded-[16px] object-cover"
+          />
           <span className={cn(goldChip, "size-12 rounded-[14px]")}>
             <SproutIcon aria-hidden className="size-6" />
           </span>

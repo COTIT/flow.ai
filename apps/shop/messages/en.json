@@ -380,5 +380,13 @@
     "go": "Show its passport",
     "invalidTitle": "That doesn't look like a batch code",
     "invalidBody": "Codes have 10 letters and numbers, like 7K3M 9QX2 WD. Check the label and try again."
+  },
+  "photos": {
+    "landscape": "Painting of a green river valley with farms and villages in East Africa",
+    "illundo": "Two Illundo beekeepers standing beside their wooden hives in the forest",
+    "farmers": "Painting of a group of farmers standing together on green hills",
+    "mary": "Cover of the picture book The Mary: a woman farmer carrying a hoe, painted by Benard Omondi",
+    "benard": "Illustrated portrait of the artist Benard Omondi, smiling, in front of savanna hills",
+    "nafasi": "Nostalgic Memories by Pascal Masegesse: an old record player on a chair against red and blue patterns"
   }
 }

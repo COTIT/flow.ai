@@ -8,6 +8,7 @@ import { cn } from "@genesy/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
 import { StoryCard } from "@/components/story-card"
+import { photo, type PhotoKey } from "@/lib/photos"
 import { card, goldChip, h2, warm } from "@/lib/look"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,8 +17,19 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const PEOPLE = ["illundo", "mary", "benard", "nafasi", "rachel"] as const
 
+/** Whose photo AFM has; Rachel has none yet: her card keeps the initials. */
+const PHOTO: Partial<Record<(typeof PEOPLE)[number], PhotoKey>> = {
+  illundo: "illundo",
+  mary: "mary",
+  benard: "benard",
+  nafasi: "nafasi",
+}
+
 export default async function StoriesPage() {
-  const t = await getTranslations("stories")
+  const [t, tp] = await Promise.all([
+    getTranslations("stories"),
+    getTranslations("photos"),
+  ])
   return (
     <>
       <PageIntro label={t("tag")} title={t("title")} lead={t("lead")} />
@@ -30,6 +42,7 @@ export default async function StoriesPage() {
             place={t(`${k}.place`)}
             body={t(`${k}.body`)}
             wide={i === 0}
+            photo={PHOTO[k] && photo(PHOTO[k], tp(PHOTO[k]))}
           />
         ))}
       </ul>
