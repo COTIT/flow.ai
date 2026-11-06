@@ -197,7 +197,7 @@ Product images (the demo's AFM photos too) go to staging's own private B2 bucket
 3. **Restart:** `deploy/deploy.sh staging compose up -d --wait api shop office`. `deploy.sh` now adds `docker-compose.uploads.yml`. It gives the API and the `seed` service the bucket and key, runs the seed as `seed-demo --images`, and sets `FILES_ORIGIN` (the shop's and office's image CSP) to the bucket's endpoint.
 4. **Check it:** upload a product image in the office and see it in the shop.
 
-**AFM's photos.** `seed-demo --images` fetches them one at a time from AFM's image CDN and keeps a copy in the bucket under `demo-cache/afm/` (a sha256 of the URL). Later reseeds read the copy and never need AFM. If AFM can't be reached and no copy exists, those products are seeded without a photo and one stderr line gives the count. The rest of the seed is unchanged. `down -v` doesn't touch the bucket, so the copies survive a reset. A reset leaves the old workspaces' files in the bucket; delete `genesy/` there now and then if it grows.
+**AFM's photos.** `seed-demo --images` fetches them one at a time from AFM's image CDN and keeps a copy in the bucket under `genesy/demo-cache/afm/` (a sha256 of the URL). Later reseeds read the copy and never need AFM. If AFM can't be reached and no copy exists, those products are seeded without a photo and one stderr line gives the count. The rest of the seed is unchanged. `down -v` doesn't touch the bucket, so the copies survive a reset. A reset leaves the old workspaces' files in the bucket; delete `genesy/` there now and then if it grows.
 
 To turn uploads off, move `secrets/b2_uploads_key` out of `secrets/` and restart the same way.
 

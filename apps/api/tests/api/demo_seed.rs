@@ -964,8 +964,10 @@ async fn with_images_every_product_gets_its_photos_fetched_once(pool: PgPool) {
         .await,
         0
     );
-    // A reseed reads the cached copy: AFM is never asked twice.
+    // A reseed reads the cached copy: AFM is never asked twice. The copy sits under `genesy/`,
+    // the only prefix staging's and production's uploads keys may write.
     let url = demo::photos::CDN.to_owned() + "/content/v1/x/y.PNG?format=1000w";
+    assert!(demo::photos::cache_key(&url).starts_with("genesy/demo-cache/afm/"));
     let (again, _) = cdn(StatusCode::SERVICE_UNAVAILABLE).await;
     store
         .put(

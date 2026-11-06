@@ -1,5 +1,5 @@
 //! AFM's product photos for `seed-demo --images`: fetched one at a time from AFM's image CDN,
-//! kept in the bucket under `demo-cache/afm/<sha256 of the URL>` so later reseeds never need AFM,
+//! kept in the bucket under `genesy/demo-cache/afm/<sha256 of the URL>` so later reseeds never need AFM,
 //! then stored as workspace files and set as each product's images. A photo that can't be had
 //! is counted and skipped; the seed goes on.
 
@@ -46,10 +46,10 @@ impl Photos {
     }
 }
 
-/// Bucket key of the cached copy of `url`.
+/// Bucket key of the cached copy of `url`: under `genesy/`, the only prefix the uploads keys may write.
 pub fn cache_key(url: &str) -> String {
     format!(
-        "demo-cache/afm/{}",
+        "genesy/demo-cache/afm/{}",
         hex::encode(Sha256::digest(url.as_bytes()))
     )
 }
