@@ -82,6 +82,7 @@ test("pack into jars: cancel sends nothing; body exact; result as the API gives 
   )
 
   await page.getByRole("button", { name: "Pack into jars" }).click()
+  await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
   await dialog.getByLabel("New batch code").fill("ILU-J-2026-01")
   await dialog.getByLabel("Jars made").fill("10")
   await dialog.getByLabel("Kg used").fill("7.50")
@@ -130,6 +131,8 @@ test.describe(() => {
     await page.goto("/lots/lot-raw")
     await page.getByRole("button", { name: "Pack into jars" }).click()
     const dialog = page.getByRole("dialog")
+    // The form packs into a warehouse: wait until they are read.
+    await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
     await dialog.getByLabel("New batch code").fill("X")
     await dialog.getByLabel("Jars made").fill("1")
     await dialog.getByLabel("Kg used").fill("1")
@@ -150,6 +153,8 @@ test.describe(() => {
     await page.goto("/lots/lot-raw")
     await page.getByRole("button", { name: "Pack into jars" }).click()
     const dialog = page.getByRole("dialog")
+    // The form packs into a warehouse: wait until they are read.
+    await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
     await dialog.getByLabel("New batch code").fill("ILU-J-2026-02")
     await dialog.getByLabel("Jars made").fill("10")
     await dialog.getByLabel("Kg used").fill("999")
