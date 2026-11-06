@@ -19,7 +19,7 @@ use crate::{
         },
         users::{self, dto::UserEmailResource},
     },
-    storage::Store,
+    storage::{Store, UPLOADS_ROOT},
 };
 
 /// 503 text without a bucket.
@@ -79,7 +79,7 @@ pub async fn create(
     let (extension, content_type) = kind.ok_or_else(|| AppError::field("upload", TYPES))?;
     let document_name = display_name(f.document_name);
     let id = Uuid::now_v7();
-    let key = format!("genesy/{workspace_id}/{id}");
+    let key = format!("{UPLOADS_ROOT}/{workspace_id}/{id}");
     let size = i64::try_from(bytes.len()).map_err(|_| AppError::Internal("file size".into()))?;
     repo::insert_pending(
         &state.db,

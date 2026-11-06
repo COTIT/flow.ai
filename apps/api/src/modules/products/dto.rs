@@ -61,6 +61,7 @@ pub struct Fields {
     pub currency_id: Option<Uuid>,
     pub vat_group_id: Option<Option<Uuid>>,
     pub sales_group_id: Option<Option<Uuid>>,
+    pub category_id: Option<Option<Uuid>>,
     pub default_warehouse_id: Option<Option<Uuid>>,
     pub price: Option<Decimal>,
     pub gross_price: Option<Decimal>,
@@ -372,6 +373,12 @@ fn fields(r: &mut Rules, m: &Map<String, Value>, create: bool) -> Fields {
             "sales_group_id",
             &bad_id("sales_group_id", "sales_group"),
         ),
+        category_id: id(
+            r,
+            m,
+            "category_id",
+            &bad_id("category_id", "product_category"),
+        ),
         default_warehouse_id: id(
             r,
             m,
@@ -609,6 +616,8 @@ pub struct ProductRequestDoc {
     currency_id: Option<Uuid>,
     vat_group_id: Option<Uuid>,
     sales_group_id: Option<Uuid>,
+    /// Main category (`/erp/product-categories`), same workspace; null = none.
+    category_id: Option<Uuid>,
     default_warehouse_id: Option<Uuid>,
     /// Net consumer price; required on create.
     price: Option<String>,

@@ -62,6 +62,8 @@ pub struct ProductRow {
     pub store_only: bool,
     /// Short public labels ("Raw", "Unheated"), in order.
     pub labels: Vec<String>,
+    /// Main category (same workspace).
+    pub category_id: Option<Uuid>,
     pub export_price_sync: bool,
     pub export_product_data: bool,
     pub export_data: Option<Value>,
@@ -159,11 +161,11 @@ pub async fn insert(
              sale_unit, weight, unit, dimensions, country_of_origin, url_vendor,
              url_vendor_override, exclude_price_corrections, import_id, import_source,
              export_enabled, export_price_sync, export_product_data, export_data, meta,
-             store_only, labels)
+             store_only, labels, category_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
                  $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34,
                  $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-                 $51, $52, $53, $54)
+                 $51, $52, $53, $54, $55)
          RETURNING id",
         workspace_id,
         p.product_number,
@@ -219,6 +221,7 @@ pub async fn insert(
         p.meta,
         p.store_only,
         &p.labels,
+        p.category_id,
     )
     .fetch_one(&mut *conn)
     .await
@@ -245,7 +248,7 @@ pub async fn update(
              url_vendor_override = $42, exclude_price_corrections = $43, import_id = $44,
              import_source = $45, export_enabled = $46, export_price_sync = $47,
              export_product_data = $48, export_data = $49, meta = $50, store_only = $51,
-             labels = $52, updated_at = now()
+             labels = $52, category_id = $53, updated_at = now()
          WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
         p.id,
         workspace_id,
@@ -299,6 +302,7 @@ pub async fn update(
         p.meta,
         p.store_only,
         &p.labels,
+        p.category_id,
     )
     .execute(&mut *conn)
     .await
@@ -322,7 +326,7 @@ pub async fn find(
            impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,
            dimensions, country_of_origin, url_vendor, url_vendor_override,
            exclude_price_corrections, archived, import_id, import_source, export_enabled,
-           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at"# + " FROM products
+           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at"# + " FROM products
          WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
         id,
         workspace_id,
@@ -348,7 +352,7 @@ pub async fn find_locked(
            impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,
            dimensions, country_of_origin, url_vendor, url_vendor_override,
            exclude_price_corrections, archived, import_id, import_source, export_enabled,
-           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at"# + " FROM products
+           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at"# + " FROM products
          WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
         id,
         workspace_id,
@@ -374,7 +378,7 @@ pub async fn find_many(
            impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,
            dimensions, country_of_origin, url_vendor, url_vendor_override,
            exclude_price_corrections, archived, import_id, import_source, export_enabled,
-           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at"# + " FROM products
+           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at"# + " FROM products
          WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
         ids,
         workspace_id,
@@ -402,7 +406,7 @@ pub async fn by_code(
            impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,
            dimensions, country_of_origin, url_vendor, url_vendor_override,
            exclude_price_corrections, archived, import_id, import_source, export_enabled,
-           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at"# + " FROM products
+           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at"# + " FROM products
          WHERE workspace_id = $1 AND deleted_at IS NULL
            AND (lower(barcode) = lower($2) OR lower(ean13) = lower($2)
                 OR lower(barcode_vendor) = lower($2) OR id = $3)
@@ -433,7 +437,7 @@ pub async fn list(
            impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,
            dimensions, country_of_origin, url_vendor, url_vendor_override,
            exclude_price_corrections, archived, import_id, import_source, export_enabled,
-           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at"# + r#", count(*) OVER () AS "total!" FROM products
+           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at"# + r#", count(*) OVER () AS "total!" FROM products
          WHERE workspace_id = $1 AND deleted_at IS NULL AND status = $2
            AND ($3::text IS NULL OR name ILIKE $3 OR reference ILIKE $3
                 OR reference_vendor ILIKE $3 OR ean13 ILIKE $3 OR barcode ILIKE $3
@@ -508,6 +512,7 @@ pub async fn list(
             export_enabled: r.export_enabled,
             store_only: r.store_only,
             labels: r.labels,
+            category_id: r.category_id,
             export_price_sync: r.export_price_sync,
             export_product_data: r.export_product_data,
             export_data: r.export_data,
@@ -797,9 +802,9 @@ pub async fn set_children_of(
 pub async fn refs_ok(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    ids: [Option<Uuid>; 5],
-) -> Result<[bool; 5], sqlx::Error> {
-    let [supplier, vat, sales, warehouse, currency] = ids;
+    ids: [Option<Uuid>; 6],
+) -> Result<[bool; 6], sqlx::Error> {
+    let [supplier, vat, sales, warehouse, currency, category] = ids;
     let r = sqlx::query!(
         r#"SELECT
              ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM relations
@@ -811,17 +816,27 @@ pub async fn refs_ok(
              ($5::uuid IS NULL OR EXISTS (SELECT 1 FROM warehouses
                  WHERE id = $5 AND workspace_id = $1 AND deleted_at IS NULL)) AS "warehouse!",
              ($6::uuid IS NULL OR EXISTS (SELECT 1 FROM currencies
-                 WHERE id = $6 AND workspace_id = $1 AND deleted_at IS NULL)) AS "currency!""#,
+                 WHERE id = $6 AND workspace_id = $1 AND deleted_at IS NULL)) AS "currency!",
+             ($7::uuid IS NULL OR EXISTS (SELECT 1 FROM product_categories
+                 WHERE id = $7 AND workspace_id = $1 AND deleted_at IS NULL)) AS "category!""#,
         workspace_id,
         supplier,
         vat,
         sales,
         warehouse,
         currency,
+        category,
     )
     .fetch_one(db)
     .await?;
-    Ok([r.supplier, r.vat, r.sales, r.warehouse, r.currency])
+    Ok([
+        r.supplier,
+        r.vat,
+        r.sales,
+        r.warehouse,
+        r.currency,
+        r.category,
+    ])
 }
 
 /// The workspace's default currency, else its oldest live one (Laravel "main currency").

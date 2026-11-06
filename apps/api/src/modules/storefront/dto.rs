@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::modules::{
     lots::public::Link,
     orders::service::unit_gross,
-    storefront::repo::{OptionRow, ProductRow, VariantRow},
+    storefront::repo::{CategoryRow, OptionRow, ProductRow, VariantRow},
 };
 
 /// A sellable product.
@@ -57,6 +57,9 @@ pub struct StorefrontProduct {
     /// Short public labels to show as chips, in order.
     #[schema(example = json!(["Raw", "Unheated"]))]
     labels: Vec<String>,
+    /// The product's main category; null when it has none.
+    #[schema(required = true)]
+    category: Option<CategoryRef>,
     /// The lot passport of the jar the shop sells next: the published, released, unexpired lot
     /// with free stock and the earliest expiry or best-before (undated last). Read it at
     /// `GET /storefront/lots/{public_code}`. Null when no such lot.
@@ -66,6 +69,36 @@ pub struct StorefrontProduct {
     images: Vec<Link>,
     /// Default variant first.
     variants: Vec<StorefrontVariant>,
+}
+
+/// A product's category, as the shop links it (`?category=<id>`).
+#[derive(Serialize, ToSchema)]
+pub struct CategoryRef {
+    id: Uuid,
+    name: String,
+}
+
+/// A category the shop can browse: only ones holding sellable products.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontCategory {
+    id: Uuid,
+    name: String,
+    #[schema(required = true)]
+    description: Option<String>,
+    /// Sellable web products in it (never 0).
+    #[schema(example = 12)]
+    product_count: i64,
+}
+
+impl From<CategoryRow> for StorefrontCategory {
+    fn from(c: CategoryRow) -> Self {
+        Self {
+            id: c.id,
+            name: c.name,
+            description: c.description,
+            product_count: c.product_count,
+        }
+    }
 }
 
 /// Where a product's lot passport lives.
@@ -164,6 +197,10 @@ impl StorefrontProduct {
         Self {
             stock_status: stock_status(p.available_stock.as_deref(), low_stock),
             labels: p.labels,
+            category: p
+                .category_id
+                .zip(p.category_name)
+                .map(|(id, name)| CategoryRef { id, name }),
             passport: p
                 .passport_code
                 .map(|public_code| PassportRef { public_code }),
@@ -201,4 +238,8 @@ pub struct ListQuery {
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only products of this category (`GET /storefront/categories`); an unknown or foreign id
+    /// gives an empty list.
+    #[param(value_type = Option<Uuid>)]
+    pub category: Option<String>,
 }

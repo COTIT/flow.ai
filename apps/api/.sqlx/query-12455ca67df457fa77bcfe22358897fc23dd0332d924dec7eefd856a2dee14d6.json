@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at FROM products\n         WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at FROM products\n         WHERE workspace_id = $1 AND deleted_at IS NULL\n           AND (lower(barcode) = lower($2) OR lower(ean13) = lower($2)\n                OR lower(barcode_vendor) = lower($2) OR id = $3)\n         ORDER BY status = 'active' DESC, id\n         LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -599,6 +599,17 @@
       },
       {
         "ordinal": 54,
+        "name": "category_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "category_id"
+          }
+        }
+      },
+      {
+        "ordinal": 55,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -609,7 +620,7 @@
         }
       },
       {
-        "ordinal": 55,
+        "ordinal": 56,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -622,7 +633,8 @@
     ],
     "parameters": {
       "Left": [
-        "UuidArray",
+        "Uuid",
+        "Text",
         "Uuid"
       ]
     },
@@ -681,9 +693,10 @@
       true,
       false,
       false,
+      true,
       false,
       false
     ]
   },
-  "hash": "6b122db122a0983cd0b1fcb9c12b0d2a1a35efba52f2b07ec71d2e52c4ec6177"
+  "hash": "12455ca67df457fa77bcfe22358897fc23dd0332d924dec7eefd856a2dee14d6"
 }

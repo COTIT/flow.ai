@@ -74,6 +74,7 @@ mod price_corrections;
 mod pricing;
 mod private_limits;
 mod product_brands;
+mod product_category_link;
 mod product_images;
 mod product_variants;
 mod products;

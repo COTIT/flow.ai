@@ -1,16 +1,24 @@
-//! AFM catalog: sales tax, a stall and a warehouse with bins, honey, candles and the rest with
-//! variants, stock levels (some low, some sold out), and honey lots with passports in every state.
+//! AFM catalog: AFM's real store (`afm_catalogue.json`, made by `scripts/afm-catalogue.mjs`, used
+//! with AFM's consent), its ten categories, sales tax, a stall and a warehouse with bins, stock
+//! levels (some low, some sold out, two one-offs oversold) and lots with passports in every state.
+
+use std::collections::HashMap;
 
 use axum::http::Method;
+use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::{Shop, days_ago, days_ago_read, dollars, ean13, names};
+use super::{Shop, days_ago, days_ago_read, dollars, ean13};
 use crate::{error::AppError, farm_demo::text};
 
 /// One sellable product, with its variants as (id, price in cents).
 pub struct Product {
     pub id: String,
+    /// AFM's store slug: the seed finds products by it (two AFM teas share a title).
+    pub slug: String,
     pub name: String,
+    /// AFM's photo URLs, in order (`seed-demo --images` stores them).
+    pub images: Vec<String>,
     pub cents: i64,
     pub variants: Vec<(String, i64)>,
     pub store_only: bool,
@@ -46,18 +54,82 @@ impl Catalog {
             .filter(|p| !p.store_only && p.store_qty >= 8)
             .collect()
     }
+
+    /// The product with AFM slug `slug`.
+    pub fn by_slug(&self, slug: &str) -> Result<&Product, AppError> {
+        self.products
+            .iter()
+            .find(|p| p.slug == slug)
+            .ok_or_else(|| AppError::Internal(format!("demo seed: no product {slug}")))
+    }
 }
 
-/// A product to create: (name, brand, cents, store only, description, variant option and
-/// its (value, cents)).
-type Row = (
-    String,
-    &'static str,
-    i64,
-    bool,
-    String,
-    Option<(&'static str, Vec<(String, i64)>)>,
-);
+/// `afm_catalogue.json` as the seed reads it.
+#[derive(Deserialize)]
+struct AfmFile {
+    products: Vec<AfmProduct>,
+}
+
+/// One AFM product.
+#[derive(Deserialize)]
+pub struct AfmProduct {
+    pub slug: String,
+    pub title: String,
+    pub category: String,
+    pub short_description: String,
+    pub description: String,
+    pub option: Option<String>,
+    pub variants: Vec<AfmVariant>,
+    pub images: Vec<String>,
+}
+
+/// One AFM variant: its option value (None without options) and price in cents.
+#[derive(Deserialize)]
+pub struct AfmVariant {
+    pub value: Option<String>,
+    pub cents: i64,
+}
+
+/// AFM's catalogue, compiled in.
+pub fn afm() -> Result<Vec<AfmProduct>, AppError> {
+    serde_json::from_str::<AfmFile>(include_str!("afm_catalogue.json"))
+        .map(|f| f.products)
+        .map_err(|e| AppError::Internal(format!("demo seed: afm_catalogue.json: {e}")))
+}
+
+/// The shop's categories, grouped as AFM's category pages group them: (name, description).
+const CATEGORIES: &[(&str, &str)] = &[
+    (
+        "Honey",
+        "Raw wildflower honey from the beekeepers of Illundo, Tanzania.",
+    ),
+    ("Coffee", "Tanzanian Arabica, whole bean and ground."),
+    ("Tea", "Kenyan black tea and Tanzanian roselle."),
+    ("Spices", "Whole and ground spices for everyday cooking."),
+    (
+        "Baskets",
+        "Handwoven and beaded baskets and bags from Kenya and Tanzania.",
+    ),
+    ("Toys & games", "Hand-carved animals and traditional games."),
+    (
+        "Art",
+        "Original paintings and prints by East African artists.",
+    ),
+    ("Books", "Stories of the farmers behind the market."),
+    ("Apparel", "T-shirts from African Farmers Market."),
+    ("Stickers", "Stickers from African Farmers Market."),
+];
+
+/// Sold at the market stall and the store only (the till's store-only goods).
+const STORE_ONLY: &[&str] = &[
+    "nairobi-night-kenyan-woven-makeup-bag",
+    "ruaha-grasslands-natural-basket",
+    "ground-pumpkin-seed",
+    "whole-red-pepper",
+];
+
+/// Original paintings: one in the store, so till sales take them below zero.
+const ONE_OFFS: &[&str] = &["chaotic-mind-pascal-masegesse", "daisies-benard-omondi"];
 
 /// Every 14th product has no stock anywhere (the shop's sold-out badge).
 fn sold_out(i: usize) -> bool {
@@ -88,7 +160,7 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
         )
         .await?;
     let depot = text(&depot, "warehouse_id")?;
-    for (code, name) in [("A", "Honey and food"), ("B", "Candles and care")] {
+    for (code, name) in [("A", "Honey and food"), ("B", "Crafts and art")] {
         api.post(
             &shop.at(&format!("/warehouses/{depot}/sections")),
             json!({ "section_name": name, "section_code": code, "rows": 2,
@@ -110,73 +182,32 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
         .map(|b| b.iter().map(|b| b["id"].clone()).collect())
         .unwrap_or_default();
 
-    let mut rows: Vec<Row> = Vec::new();
-    for (v, brand, cents) in names::VARIETALS {
-        let sizes = names::JAR_SIZES
-            .iter()
-            .map(|(s, pct)| ((*s).to_owned(), cents * pct / 100))
-            .collect();
-        rows.push((
-            format!("{v} honey"),
-            brand,
-            *cents,
-            false,
-            format!(
-                "Raw {} honey, extracted and strained, never heated.",
-                v.to_lowercase()
-            ),
-            Some(("Size", sizes)),
-        ));
-        rows.push((
-            format!("{v} creamed honey 12 oz"),
-            brand,
-            cents * 130 / 100,
-            false,
-            "Whipped smooth and spreadable.".into(),
-            None,
-        ));
-        rows.push((
-            format!("{v} comb honey 12 oz"),
-            brand,
-            cents * 190 / 100,
-            false,
-            "Cut comb straight from the frame.".into(),
-            None,
-        ));
-    }
-    for (name, brand, cents) in names::CANDLES {
-        let scents = names::SCENTS
-            .iter()
-            .map(|s| ((*s).to_owned(), *cents))
-            .collect();
-        rows.push((
-            (*name).into(),
-            brand,
-            *cents,
-            false,
-            "Poured from our own filtered beeswax.".into(),
-            Some(("Scent", scents)),
-        ));
-    }
-    for (name, brand, cents, store_only, desc) in names::OTHERS {
-        rows.push((
-            (*name).into(),
-            brand,
-            *cents,
-            *store_only,
-            (*desc).into(),
-            None,
-        ));
+    let afm = afm()?;
+    let mut categories = HashMap::new();
+    for (name, description) in CATEGORIES {
+        let made = api
+            .post(
+                &shop.at("/erp/product-categories"),
+                json!({ "name": name, "description": description }),
+                &shop.owner,
+            )
+            .await?;
+        categories.insert(*name, text(&made, "product_category_id")?);
     }
 
     let mut products = Vec::new();
     let mut oversell = Vec::new();
-    for (i, (name, brand, cents, store_only, desc, options)) in rows.into_iter().enumerate() {
+    for (i, p) in afm.into_iter().enumerate() {
+        let category = categories
+            .get(p.category.as_str())
+            .ok_or_else(|| AppError::Internal(format!("demo seed: no category {}", p.category)))?;
+        let cents = p.variants.iter().map(|v| v.cents).min().unwrap_or(0);
+        let store_only = STORE_ONLY.contains(&p.slug.as_str());
         let created = api
             .post(
                 &shop.at("/products"),
-                json!({ "name": name, "price": dollars(cents), "brand": brand,
-                        "description": desc, "short_description": desc,
+                json!({ "name": p.title, "price": dollars(cents), "category_id": category,
+                        "description": p.description, "short_description": p.short_description,
                         "ean13": ean13(i as u64 + 1), "store_only": store_only,
                         "reference": format!("AFM-{:03}", i + 1) }),
                 &shop.owner,
@@ -184,12 +215,13 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
             .await?;
         let id = text(&created, "product_id")?;
         let mut variants = Vec::new();
-        if let Some((option, values)) = options {
-            let combos: Vec<Value> = values
+        if let Some(option) = &p.option {
+            let combos: Vec<Value> = p
+                .variants
                 .iter()
                 .enumerate()
-                .map(|(n, (value, c))| {
-                    json!({ "option_value_ids": [value], "price": dollars(*c),
+                .map(|(n, v)| {
+                    json!({ "option_value_ids": [v.value], "price": dollars(v.cents),
                             "sku": format!("AFM-{:03}-{}", i + 1, n + 1) })
                 })
                 .collect();
@@ -197,24 +229,26 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
                 .post(
                     &shop.at(&format!("/products/{id}/variants/generate")),
                     json!({ "option_types": [{ "name": option,
-                                "values": values.iter().map(|(v, _)| json!({ "value": v })).collect::<Vec<_>>() }],
+                                "values": p.variants.iter().map(|v| json!({ "value": v.value })).collect::<Vec<_>>() }],
                             "combinations": combos }),
                     &shop.owner,
                 )
                 .await?;
-            for (v, (_, c)) in made.as_array().into_iter().flatten().zip(&values) {
-                variants.push((text(v, "id")?, *c));
+            for (v, afm) in made.as_array().into_iter().flatten().zip(&p.variants) {
+                variants.push((text(v, "id")?, afm.cents));
             }
         }
 
         // Stock: warehouse bins, the store and sometimes the stall. Low, zero and oversold on purpose.
         let low = i % 12 == 5;
-        let tiny = name.starts_with("Clover honey") || name.starts_with("Honey stix");
-        let stocked = !sold_out(i) && name != "Mead tasting glass";
+        let tiny = ONE_OFFS.contains(&p.slug.as_str());
+        // Its stock comes only from the farm's lots (`supply`), so its sales credit farmers.
+        let farm = p.slug == super::supply::COFFEE;
+        let stocked = !farm && (tiny || !sold_out(i));
         let store_qty = match (stocked, low, tiny) {
             (false, ..) => 0,
-            (_, true, _) => 3,
             (_, _, true) => 1,
+            (_, true, _) => 3,
             _ => 8 + (i as i64 * 3) % 25,
         };
         if stocked {
@@ -249,7 +283,9 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
         }
         products.push(Product {
             id,
-            name,
+            slug: p.slug,
+            name: p.title,
+            images: p.images,
             cents,
             variants,
             store_only,
@@ -268,60 +304,114 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
     })
 }
 
-/// Honey lots: released and published, drafts, quarantine and recalled (both published, so the
-/// public page shows the banner), and one past its expiry.
+/// (country, region, place, as read).
+type Origin<'a> = (&'a str, &'a str, &'a str, &'a str);
+/// (product slug, code, produced days ago, passport: none / draft / published, status after, origin).
+type LotPlan<'a> = (&'a str, &'a str, i64, &'a str, &'a str, Origin<'a>);
+
+/// Lots of AFM's food: released and published, drafts, quarantine and recalled (both
+/// published, so the public page shows the banner), and one past its expiry.
 async fn lots(
     shop: &Shop<'_>,
     products: &[Product],
     depot: &str,
 ) -> Result<Vec<(&'static str, String)>, AppError> {
     let api = shop.api;
-    let lot_of = |name: &str| {
+    let lot_of = |slug: &str| {
         products
             .iter()
-            .find(|p| p.name == name)
-            .map(|p| p.id.clone())
-            .ok_or_else(|| AppError::Internal(format!("demo seed: no product {name}")))
+            .find(|p| p.slug == slug)
+            .ok_or_else(|| AppError::Internal(format!("demo seed: no product {slug}")))
     };
-    // (product, code, produced days ago, passport: none / draft / published, status after)
-    let plan: &[(&str, &str, i64, &str, &str)] = &[
+    // (product slug, code, produced days ago, passport: none / draft / published, status after,
+    // origin: (country, region, place, as read))
+    let ilundo = ("TZ", "Iringa", "Illundo", "Illundo, Iringa, Tanzania");
+    let tanzania = ("TZ", "Tanzania", "Tanzania", "Tanzania");
+    let kenya = ("KE", "Kenya", "Kenya", "Kenya");
+    let plan: &[LotPlan] = &[
         (
-            "Wildflower honey",
-            "WF-2026-07",
+            "tanzanian-wildflower-honey-13oz",
+            "MH13-2026-07",
             110,
             "published",
             "released",
+            ilundo,
         ),
-        ("Sourwood honey", "SW-2026-08", 80, "published", "released"),
-        ("Tupelo honey", "TU-2026-05", 150, "published", "released"),
         (
-            "Orange Blossom honey",
-            "OB-2026-04",
+            "tanzanian-wildflower-honey-7oz",
+            "MH7-2026-08",
+            80,
+            "published",
+            "released",
+            ilundo,
+        ),
+        (
+            "roselle-tea-tanzania",
+            "RT-2026-05",
+            150,
+            "published",
+            "released",
+            tanzania,
+        ),
+        (
+            "kizazi-tea",
+            "KZ-2026-04",
             170,
             "published",
             "released",
+            kenya,
         ),
-        ("Buckwheat honey", "BW-2026-09", 40, "draft", "released"),
-        ("Sage honey", "SG-2026-09", 35, "draft", "released"),
         (
-            "Blueberry honey",
-            "BB-2026-06",
+            "kizazi-kenyan-black-tea-small",
+            "KZS-2026-09",
+            40,
+            "draft",
+            "released",
+            kenya,
+        ),
+        (
+            "rift-valley-tanzanian-ground-coffee",
+            "RV-2026-09",
+            35,
+            "draft",
+            "released",
+            tanzania,
+        ),
+        (
+            "tanzanian-wildflower-honey-7oz",
+            "MH7-2026-06",
             120,
             "published",
             "quarantine",
+            ilundo,
         ),
-        ("Basswood honey", "BS-2026-06", 125, "published", "recalled"),
-        ("Alfalfa honey", "AL-2024-07", 480, "none", "released"),
+        (
+            "tanzanian-wildflower-honey-13oz",
+            "MH13-2026-06",
+            125,
+            "published",
+            "recalled",
+            ilundo,
+        ),
+        (
+            "cardamom",
+            "CD-2024-07",
+            480,
+            "none",
+            "released",
+            ("", "", "", "East Africa"),
+        ),
     ];
     let mut out = Vec::new();
-    for (product, code, produced, passport, status) in plan {
+    for (slug, code, produced, passport, status, (country, region, place, origin)) in plan {
+        let product = lot_of(slug)?;
         let expires = if *produced > 400 { 30 } else { -700 };
         let lot = api
             .post(
                 &shop.at("/lots"),
-                json!({ "product_id": lot_of(product)?, "code": code,
+                json!({ "product_id": product.id, "code": code,
                         "produced_on": days_ago(*produced), "best_before": days_ago(*produced - 540),
-                        "expires_on": days_ago(expires), "origin": "Buncombe County, NC" }),
+                        "expires_on": days_ago(expires), "origin": origin }),
                 &shop.owner,
             )
             .await?;
@@ -333,23 +423,36 @@ async fn lots(
         )
         .await?;
         if *passport != "none" {
-            let varietal = product.trim_end_matches(" honey");
+            let honey = slug.contains("honey");
+            let story = if honey {
+                "Mary's Tanzanian Wildflower Honey is raw, unfiltered, and traced directly to the \
+                 beekeepers of Illundo, Tanzania. African Farmers Market creates direct \
+                 partnerships with rural farming communities across Africa and champions \
+                 opportunity for women in agriculture."
+            } else {
+                "Packed for African Farmers Market, which buys directly from farming communities \
+                 across East Africa."
+            };
+            let mut blocks = vec![
+                json!({ "kind": "text", "title": "Where it comes from", "body": story }),
+                json!({ "kind": "facts", "items": [
+                    { "label": "Origin", "value": origin },
+                    { "label": "Packed", "value": days_ago_read(*produced) }] }),
+            ];
+            if honey {
+                blocks.push(json!({ "kind": "quote",
+                    "text": "Buy a jar. Know your source. Taste the difference.",
+                    "by": "African Farmers Market" }));
+            }
             api.call(
                 Method::PUT,
                 &shop.at(&format!("/lots/{id}/passport")),
                 Some(json!({
-                    "title": format!("{varietal} honey, lot {code}"),
-                    "intro": format!("DEMO: {} honey from hives in the Blue Ridge foothills.", varietal.to_lowercase()),
-                    "origin": { "country": "US", "region": "North Carolina", "place": "Buncombe County" },
-                    "materials": [{ "name": "Raw honey", "origin": "Buncombe County, NC", "share_bp": 10000 }],
-                    "story": [
-                        { "kind": "text", "title": "From the hive",
-                          "body": "Supers pulled at the end of the flow, extracted cold and strained once." },
-                        { "kind": "facts", "items": [
-                            { "label": "Hives", "value": "40" },
-                            { "label": "Extracted", "value": days_ago_read(*produced) }] },
-                        { "kind": "quote", "text": "The bees did the hard part.", "by": "DEMO beekeeper" }
-                    ] })),
+                    "title": format!("{}, lot {code}", product.name),
+                    "intro": format!("{} from {origin}.", product.name),
+                    "origin": { "country": country, "region": region, "place": place },
+                    "materials": [{ "name": product.name, "origin": origin, "share_bp": 10000 }],
+                    "story": blocks })),
                 Some(&shop.owner),
             )
             .await?;

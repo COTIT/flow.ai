@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.name, c.description, count(*) AS \"product_count!\"\n           FROM product_categories c\n           JOIN products p ON p.workspace_id = $1 AND p.category_id = c.id\n                          AND p.deleted_at IS NULL AND p.status = 'active' AND NOT p.archived\n                          AND NOT p.store_only\n           WHERE c.workspace_id = $1 AND c.deleted_at IS NULL\n           GROUP BY c.id\n           ORDER BY c.name, c.id\n           LIMIT 500",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_categories",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_categories",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_categories",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "product_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "972b767116adb7b48f68ced9d26d99193ecfecbebe0d8021d3262fc02e3aaf97"
+}

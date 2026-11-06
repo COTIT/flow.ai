@@ -198,7 +198,11 @@ async fn main() {
     // `genesy-360-api seed-demo`: every part of the staging demo, then exit. Refuses unless
     // GENESY_ALLOW_DEMO_SEED is set (staging compose only). Secrets go to stdout once.
     if std::env::args().nth(1).as_deref() == Some("seed-demo") {
-        match genesy_360_api::demo::run(state, config.allow_demo_seed).await {
+        // `--images` (staging's seed service): AFM's photos into the file store too.
+        let photos = std::env::args()
+            .any(|a| a == "--images")
+            .then(|| genesy_360_api::demo::photos::Photos::afm().expect("outbound http client"));
+        match genesy_360_api::demo::run_with_photos(state, config.allow_demo_seed, photos).await {
             Ok(s) if s.created => {
                 println!(
                     "{:<16} | {:<14} | {:<32} | {:<40} | path",
@@ -225,6 +229,12 @@ async fn main() {
                     "note: web payments went through the seed's in-process Fake provider; \
                      their payment rows say `fake`."
                 );
+                if let Some((missing, total)) = s.photos.filter(|(m, _)| *m > 0) {
+                    eprintln!(
+                        "seed-demo: {missing} of {total} product photos unavailable (AFM's image \
+                         CDN unreachable or no file storage); those products have no photo"
+                    );
+                }
                 println!("seeded in {:.1} s", s.elapsed.as_secs_f64());
             }
             Ok(_) => println!("staging demo already seeded: nothing to do"),

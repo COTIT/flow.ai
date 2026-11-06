@@ -17,12 +17,17 @@ pnpm --filter @genesy/e2e stack:test     # up → specs → down in one go (what
 
 Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/till-sale.spec.ts --project=stack-desktop`.
 
-- **Needs:** Docker (for Postgres only), Rust 1.99, the repo's `pnpm install`, Playwright's Chromium.
+- **Needs:** Docker (Postgres and the file store), Rust 1.99, the repo's `pnpm install`, Playwright's Chromium.
 - **Ports** (all + `E2E_STACK_OFFSET`, default 0): Postgres 55400, API 8400, shop 4300, office
-  4301, field 4302, till 4303, landing 4304, mail sink 2525. Pick another offset per checkout running at once,
+  4301, field 4302, till 4303, landing 4304, mail sink 2525, file store 55410. Pick another offset per checkout running at once,
   e.g. `E2E_STACK_OFFSET=20`. The fake-API suite uses 3200-3204/8199 + `E2E_PORT_OFFSET`.
-- **Container:** `genesy-e2e-stack-<offset>`, Postgres in RAM (tmpfs). The harness never touches
-  any other container (not the dev Postgres on 54320). `stack:down` and any failed `stack:up` remove it.
+- **Containers:** `genesy-e2e-stack-<offset>`, Postgres in RAM (tmpfs), and `genesy-e2e-files-<offset>`,
+  a local S3 store (Garage, pinned by digest in `stack/stack.mjs`, settings in `stack/garage.toml`) in
+  RAM, with a random key per stack. Staging and production use Backblaze B2; the stack never reaches
+  B2 or AFM. The API stores uploads there and signs links for it; the shop's and office's
+  `FILES_ORIGIN` is that one origin. The seed runs without `--images`, so it never fetches AFM's
+  photos. The harness never touches any other container (not the dev Postgres on 54320).
+  `stack:down` and any failed `stack:up` remove both.
 - **API:** the **debug** build (`cargo build`, `SQLX_OFFLINE=true`). Release refuses
   `PAYMENTS_PROVIDER=fake`, which shop checkout needs, and compiles 2-3x slower. Target dir is
   `apps/api/target` (or `CARGO_TARGET_DIR`); `cargo clean` there when you need the disk back.
@@ -54,9 +59,9 @@ test("…", async ({ page, request }) => {
 
 - `test` / `expect`: the shared guard: any console error, page error, failed request or
   response >= 400 fails the test. Expected ones go in `test.use({ allow: … })` with **absolute**
-  URLs (there is no baseURL; apps differ per URL). The default, `stackAllow`, allows the office's
-  `GET …/files?page_size=100` 503 ("File storage isn't configured.": the stack has no bucket);
-  spread it into your own `allow`.
+  URLs (there is no baseURL; apps differ per URL). The default, `stackAllow`, allows nothing
+  today (it allowed the office's file-list 503 before the stack had a file store); keep spreading
+  it into your own `allow`.
 - API lists page with `page_size` (not `per_page`) and come newest first.
 - `urls.{api,office,shop,till,field,landing}`: where each one answers.
 - `cred(app, role)`: a seeded login, as `seed-demo` printed it. Apps: `office (AFM)` (owner),

@@ -209,6 +209,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "export_enabled": p.export_enabled,
         "store_only": p.store_only,
         "labels": p.labels,
+        "category_id": p.category_id,
         "export_price_sync": p.export_price_sync,
         "export_product_data": p.export_product_data,
         "export_data": p.export_data.clone().unwrap_or_else(|| json!({
@@ -483,6 +484,9 @@ pub struct ProductDoc {
     store_only: bool,
     /// Short public labels ("Raw", "Unheated"), in order.
     labels: Vec<String>,
+    /// Main category (`/erp/product-categories`), same workspace; null = none (Genesy addition).
+    #[schema(required = true)]
+    category_id: Option<Uuid>,
     export_price_sync: bool,
     export_product_data: bool,
     /// `title`, `description_short`, `description`, `meta_title`, `meta_description`,

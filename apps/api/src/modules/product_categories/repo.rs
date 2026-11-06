@@ -221,13 +221,21 @@ pub async fn soft_delete(
     workspace_id: Uuid,
     id: Uuid,
 ) -> Result<bool, sqlx::Error> {
+    // One statement: products lose the link in the same snapshot the category goes.
     sqlx::query!(
-        "UPDATE product_categories SET deleted_at = now(), updated_at = now()
-         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        "WITH gone AS (
+             UPDATE product_categories SET deleted_at = now(), updated_at = now()
+             WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+             RETURNING id
+         ), cleared AS (
+             UPDATE products SET category_id = NULL, updated_at = now()
+             WHERE workspace_id = $2 AND category_id IN (SELECT id FROM gone)
+         )
+         SELECT id FROM gone",
         id,
         workspace_id,
     )
-    .execute(db)
+    .fetch_optional(db)
     .await
-    .map(|done| done.rows_affected() == 1)
+    .map(|row| row.is_some())
 }

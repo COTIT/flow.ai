@@ -14,6 +14,10 @@ use rusty_s3::{Bucket, Credentials, S3Action, UrlStyle};
 
 use crate::{error::AppError, outbound::Outbound};
 
+/// The bucket prefix every object lives under: the uploads keys (production and staging B2) are
+/// limited to it, so a write anywhere else is refused.
+pub const UPLOADS_ROOT: &str = "genesy";
+
 /// How long a signed PUT/DELETE stays valid (the request is sent at once).
 const SIGN_TTL: Duration = Duration::from_secs(60);
 /// Whole request time for one object (10 MB at a slow uplink).

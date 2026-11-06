@@ -680,6 +680,52 @@ async fn the_seed_fills_every_module(pool: PgPool) {
     }
     assert!(short.is_empty(), "short:\n{}", short.join("\n"));
 
+    // AFM's real catalogue: its 75 products, each in one of the ten shop categories, its
+    // prices, and the farm's coffee lots on AFM's own whole-bean coffee.
+    let exact: &[(i64, &str)] = &[
+        (
+            75,
+            "SELECT count(*) FROM products WHERE workspace_id = $1 AND deleted_at IS NULL",
+        ),
+        (
+            75,
+            "SELECT count(*) FROM products WHERE workspace_id = $1 AND category_id IS NOT NULL",
+        ),
+        (
+            10,
+            "SELECT count(*) FROM product_categories WHERE workspace_id = $1",
+        ),
+        (
+            1,
+            "SELECT count(*) FROM products WHERE workspace_id = $1 \
+             AND name = 'Mary''s Tanzanian Wildflower Honey 13oz' AND price = 27.99",
+        ),
+        (
+            0,
+            "SELECT count(*) FROM products WHERE workspace_id = $1 AND name LIKE 'Ruaha coffee%'",
+        ),
+        (
+            16,
+            "SELECT count(*) FROM products p JOIN product_categories c ON c.id = p.category_id \
+              WHERE p.workspace_id = $1 AND c.name = 'Baskets'",
+        ),
+    ];
+    for (n, q) in exact {
+        assert_eq!(count_in(&pool, afm, q).await, *n, "{q}");
+    }
+    let coffee_lots: i64 = count_in(
+        &pool,
+        afm,
+        "SELECT count(*) FROM lots l JOIN products p ON p.id = l.product_id \
+         WHERE l.workspace_id = $1 AND l.code LIKE 'AFM-CF-%' \
+           AND p.name = 'Africa’s Wildest Whole Bean Coffee'",
+    )
+    .await;
+    assert!(
+        coffee_lots >= 1,
+        "farm coffee lots on AFM's coffee: {coffee_lots}"
+    );
+
     // Every row of the big tables belongs to one of the two demo workspaces, and no order or
     // invoice of one points at the other's relation, product or warehouse.
     let (a, r) = (
@@ -809,7 +855,7 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         "SELECT f->>'value' FROM lots l
            CROSS JOIN LATERAL jsonb_array_elements(l.passport_draft->'story') s
            CROSS JOIN LATERAL jsonb_array_elements(s->'items') f
-         WHERE s->>'kind' = 'facts' AND f->>'label' = 'Extracted'",
+         WHERE s->>'kind' = 'facts' AND f->>'label' = 'Packed'",
     )
     .fetch_all(&pool)
     .await
@@ -843,4 +889,120 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         let (_, res) = send(&app, Method::GET, "/v1/me/workspaces", None, Some(token)).await;
         assert_eq!(res["data"][0]["display_name"], name, "{res}");
     }
+}
+
+/// A 1×1 PNG.
+const PNG: &[u8] = &[
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+    0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
+    0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+    0x42, 0x60, 0x82,
+];
+
+/// A fake image CDN on loopback answering every path with `status` (a PNG when 200); the
+/// number of requests it got.
+async fn cdn(status: StatusCode) -> (demo::photos::Photos, Arc<Mutex<usize>>) {
+    let hits = Arc::new(Mutex::new(0usize));
+    let seen = hits.clone();
+    let app = axum::Router::new().fallback(move || {
+        let seen = seen.clone();
+        async move {
+            *seen.lock().unwrap() += 1;
+            (status, [("content-type", "image/png")], PNG)
+        }
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    let photos = demo::photos::Photos {
+        http: genesy_360_api::outbound::Outbound::new(&["127.0.0.1".into()]).unwrap(),
+        origin: format!("http://{addr}"),
+        pause: std::time::Duration::ZERO,
+    };
+    (photos, hits)
+}
+
+#[sqlx::test]
+async fn with_images_every_product_gets_its_photos_fetched_once(pool: PgPool) {
+    let (photos, hits) = cdn(StatusCode::OK).await;
+    let state = common::state(pool.clone(), Mailer::capture().0);
+    let store = state.files.clone().unwrap();
+
+    let seeded = demo::run_with_photos(state, true, Some(photos))
+        .await
+        .unwrap();
+
+    let (missing, total) = seeded.photos.unwrap();
+    assert_eq!((missing, total), (0, 187));
+    assert_eq!(*hits.lock().unwrap(), 187);
+    let afm = "afm-demo";
+    let bare = count_in(
+        &pool,
+        afm,
+        "SELECT count(*) FROM products p WHERE p.workspace_id = $1 AND NOT EXISTS
+           (SELECT 1 FROM product_images i WHERE i.workspace_id = $1 AND i.product_id = p.id)",
+    )
+    .await;
+    assert_eq!(bare, 0, "every AFM product has a photo");
+    assert_eq!(
+        count_in(
+            &pool,
+            afm,
+            "SELECT count(*) FROM files WHERE workspace_id = $1"
+        )
+        .await,
+        187
+    );
+    // RUAHA's workspace sees none of AFM's photos.
+    assert_eq!(
+        count_in(
+            &pool,
+            "ruaha-demo",
+            "SELECT count(*) FROM files WHERE workspace_id = $1"
+        )
+        .await,
+        0
+    );
+    // A reseed reads the cached copy: AFM is never asked twice. The copy sits under `genesy/`,
+    // the only prefix staging's and production's uploads keys may write.
+    let url = demo::photos::CDN.to_owned() + "/content/v1/x/y.PNG?format=1000w";
+    let root = format!("{}/", genesy_360_api::storage::UPLOADS_ROOT);
+    assert!(demo::photos::cache_key(&url).starts_with(&root));
+    assert!(demo::photos::cache_key(&url).starts_with("genesy/demo-cache/afm/"));
+    let (again, _) = cdn(StatusCode::SERVICE_UNAVAILABLE).await;
+    store
+        .put(
+            &demo::photos::cache_key(&url),
+            PNG.to_vec(),
+            "image/png",
+            "p",
+            false,
+        )
+        .await
+        .unwrap();
+    let cached = demo::photos::fetch(&store, &again, &url).await.unwrap();
+    assert_eq!(cached.as_deref(), Some(PNG));
+}
+
+#[sqlx::test]
+async fn with_images_and_afm_down_the_seed_still_finishes(pool: PgPool) {
+    let (photos, _) = cdn(StatusCode::SERVICE_UNAVAILABLE).await;
+    let state = common::state(pool.clone(), Mailer::capture().0);
+
+    let seeded = demo::run_with_photos(state, true, Some(photos))
+        .await
+        .unwrap();
+
+    assert!(seeded.created);
+    assert_eq!(seeded.photos, Some((187, 187)));
+    assert_eq!(
+        count_in(
+            &pool,
+            "afm-demo",
+            "SELECT count(*) FROM product_images WHERE workspace_id = $1"
+        )
+        .await,
+        0
+    );
 }

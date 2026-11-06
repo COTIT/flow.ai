@@ -24,6 +24,9 @@ pub struct ProductRow {
     pub currency_decimals: i16,
     pub available_stock: Option<String>,
     pub labels: Vec<String>,
+    /// Main category, when it is live.
+    pub category_id: Option<Uuid>,
+    pub category_name: Option<String>,
     /// Public code of the published lot FEFO sells next, if any.
     pub passport_code: Option<String>,
     pub variants: Json<Vec<VariantRow>>,
@@ -50,11 +53,13 @@ pub struct OptionRow {
 }
 
 /// Sellable web products of the workspace (active, not archived, not deleted, not store-only),
-/// by id; `only` narrows to one. `total` on each row counts every match.
+/// by name; `only` narrows to one, `category` to one category. `total` on each row counts every
+/// match.
 pub async fn products(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     only: Option<Uuid>,
+    category: Option<Uuid>,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<ProductRow>, sqlx::Error> {
@@ -63,13 +68,14 @@ pub async fn products(
         r#"WITH page AS (
                SELECT p.id, p.name, p.brand, p.type, p.short_description, p.description,
                       p.ean13, p.barcode, p.price, p.vat_group_id, p.has_stock, p.currency_id,
-                      p.labels,
+                      p.labels, p.category_id,
                       count(*) OVER () AS total
                FROM products p
                WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
                  AND p.status = 'active' AND NOT p.archived AND NOT p.store_only
                  AND ($2::uuid IS NULL OR p.id = $2)
-               ORDER BY p.id
+                 AND ($5::uuid IS NULL OR p.category_id = $5)
+               ORDER BY p.name, p.id
                LIMIT $3 OFFSET $4
            )
            SELECT pg.id, pg.name, pg.brand, pg.type, pg.short_description, pg.description,
@@ -87,7 +93,7 @@ pub async fn products(
                         AND (s.lot_id IS NULL OR (l.status = 'released'
                              AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
                   ) END AS available_stock,
-                  pg.labels,
+                  pg.labels, pc.id AS "category_id?", pc.name AS "category_name?",
                   (SELECT l.public_code FROM lots l
                    WHERE l.workspace_id = $1 AND l.product_id = pg.id
                      AND l.published_at IS NOT NULL AND l.status = 'released'
@@ -127,24 +133,63 @@ pub async fn products(
                   pg.total AS "total!"
            FROM page pg
            JOIN currencies c ON c.workspace_id = $1 AND c.id = pg.currency_id
-           ORDER BY pg.id"#,
+           LEFT JOIN product_categories pc ON pc.workspace_id = $1 AND pc.id = pg.category_id
+                                          AND pc.deleted_at IS NULL
+           ORDER BY pg.name, pg.id"#,
         workspace_id,
         only,
         limit,
         offset,
+        category,
     )
     .fetch_all(db)
     .await
 }
 
-/// Sellable products of the workspace (page past the end).
-pub async fn count(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
+/// Sellable products of the workspace, in `category` when set (page past the end).
+pub async fn count(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    category: Option<Uuid>,
+) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM products
            WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'active' AND NOT archived
-             AND NOT store_only"#,
+             AND NOT store_only AND ($2::uuid IS NULL OR category_id = $2)"#,
         workspace_id,
+        category,
     )
     .fetch_one(db)
+    .await
+}
+
+/// A live category with how many sellable web products it holds.
+pub struct CategoryRow {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub product_count: i64,
+}
+
+/// Live categories of the workspace holding at least one sellable web product, by name.
+pub async fn categories(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<CategoryRow>, sqlx::Error> {
+    // shortcut: capped at 500 rows, no paging; add paging when a shop has that many categories.
+    sqlx::query_as!(
+        CategoryRow,
+        r#"SELECT c.id, c.name, c.description, count(*) AS "product_count!"
+           FROM product_categories c
+           JOIN products p ON p.workspace_id = $1 AND p.category_id = c.id
+                          AND p.deleted_at IS NULL AND p.status = 'active' AND NOT p.archived
+                          AND NOT p.store_only
+           WHERE c.workspace_id = $1 AND c.deleted_at IS NULL
+           GROUP BY c.id
+           ORDER BY c.name, c.id
+           LIMIT 500"#,
+        workspace_id,
+    )
+    .fetch_all(db)
     .await
 }

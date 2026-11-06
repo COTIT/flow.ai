@@ -1,0 +1,1648 @@
+{
+  "source": "https://www.africanfarmersmarketonline.com",
+  "note": "AFM's public store, used on staging with AFM's consent. Regular prices in USD cents. Regenerate: node apps/api/scripts/afm-catalogue.mjs",
+  "products": [
+    {
+      "slug": "14-x-11-mary-artwork-prints",
+      "title": "14 X 11 Mary Artwork Prints",
+      "category": "Art",
+      "short_description": "Hand-painted as part of The Mary, this 11 x 14 artwork print captures the warmth, resilience, and beauty woven throughout the communities that inspired African Farmers Market.",
+      "description": "Hand-painted as part of The Mary, this 11 x 14 artwork print captures the warmth, resilience, and beauty woven throughout the communities that inspired African Farmers Market.\n\nCreated by Kenyan artist Benard Omondi, each piece reflects storytelling through color, culture, and connection — celebrating the spirit of East Africa and the people at the heart of the mission.\n\nPrinted on high-quality art paper and perfect for framing, this piece was made to bring meaning, conversation, and purpose into your space.\n\nSize: 11 x 14\nHand-painted artwork by Benard Omondi\nInspired by The Mary and African Farmers Market\n\nPrints:\n\n“Kuwawezesha Wanawake Wakulima”\n\n“When Women Rise”\n\n“Dreams of Tomorrow”\n\n“Light”",
+      "option": "Print",
+      "variants": [
+        {
+          "value": "Kuwawezesha Wanawake Wakulima",
+          "sku": "SQ6129505",
+          "cents": 2099
+        },
+        {
+          "value": "When Women Rise",
+          "sku": "SQ8175919",
+          "cents": 2099
+        },
+        {
+          "value": "Dreams of Tomorrow",
+          "sku": "SQ1438485",
+          "cents": 2099
+        },
+        {
+          "value": "Light",
+          "sku": "SQ4712302",
+          "cents": 2099
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c9b1b446-9c46-4e98-a2f7-b36736f4bae0/8_11_x_14.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/301dfea7-33f8-48f5-98b3-26fb22bd6885/2_11_x_14.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/782a6a55-2e5b-4e93-922d-610d54fe15e2/3_11_x_14.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/0540581a-35cb-4e47-a74c-5cfa7adcb351/4_11_x_14.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/14-x-11-mary-artwork-prints"
+    },
+    {
+      "slug": "8-x-11-the-mary-artwork-prints",
+      "title": "8 X 10 The Mary Artwork Prints",
+      "category": "Art",
+      "short_description": "Hand-painted by Kenyan artist Benard Omondi, these 8 x 10 artwork prints are part of The Mary collection created for African Farmers Market.",
+      "description": "Hand-painted by Kenyan artist Benard Omondi, these 8 x 10 artwork prints are part of The Mary collection created for African Farmers Market.\n\nEach piece tells a story of resilience, agriculture, community, hope, and opportunity across East Africa through rich color and meaningful storytelling.\n\nPerfect for framing, gifting, or adding warmth and purpose to your space, these prints were created to inspire conversation and connection through art.\n\nSize: 8 x 10\nHand-painted artwork by Benard Omondi\nInspired by The Mary and African Farmers Market\n\nPrints:\n\n“When Women Rise”\n\n“The Mary”\n\n“Kuwawezesha Wanawake Wakulima”\n\n“Dreams of Tomorrow”\n\n“Light”\n\n“Mary’s Farm”\n\n“The Power to Plan”\n\n“Light, Land, Possibility”",
+      "option": "Print",
+      "variants": [
+        {
+          "value": "When Women Rise",
+          "sku": "SQ9274047",
+          "cents": 1499
+        },
+        {
+          "value": "The Mary",
+          "sku": "SQ0893438",
+          "cents": 1499
+        },
+        {
+          "value": "Kuwawezesha Wanawake Wakulima",
+          "sku": "SQ8742445",
+          "cents": 1499
+        },
+        {
+          "value": "Dreams of Tomorrow",
+          "sku": "SQ9785108",
+          "cents": 1499
+        },
+        {
+          "value": "Light",
+          "sku": "SQ3213605",
+          "cents": 1499
+        },
+        {
+          "value": "Mary's Farm",
+          "sku": "SQ8949620",
+          "cents": 1499
+        },
+        {
+          "value": "The Power to Plan",
+          "sku": "SQ3037969",
+          "cents": 1499
+        },
+        {
+          "value": "Light Land Possibility",
+          "sku": "SQ0254989",
+          "cents": 1499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/05d9c97f-7f1d-44d4-9f72-94ae0a053dae/2_8_x_12.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5b0a6da3-2085-415e-8faf-394070f8c0d1/1_8_x_12.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/384c8367-ddbf-47d9-9dea-b83431b079d3/8_11_x_14.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/fab171ae-a3ff-480b-a392-d331ce7820cc/3_8_x_12.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/0731ec06-f341-4629-83ca-947820a3189e/4_8_x_12.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/69438b3b-bf36-4784-8621-9285533a3299/5_8_x_12.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1dc832de-7887-4993-873a-608b24b93d05/6_8_x_12.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9ee4fd30-0795-43e3-ada2-e7578adbef96/7_8_x_12.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/8-x-11-the-mary-artwork-prints"
+    },
+    {
+      "slug": "acacia-bronze-sand-beaded-basket",
+      "title": "Acacia Bronze Sand Basket",
+      "category": "Baskets",
+      "short_description": "Warm, grounded, and beautifully natural, our Acacia Bronze Basket draws its character from the sandy, sun-washed tones of the East African landscape.",
+      "description": "Warm, grounded, and beautifully natural, our Acacia Bronze Basket draws its character from the sandy, sun-washed tones of the East African landscape. Its soft neutral coloring highlights the intricate beadwork and woven texture, creating a piece that adds warmth without overwhelming a space.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket is part of a partnership built around craftsmanship and opportunity. Rachel and African Farmers Market help connect these artisans with customers around the world, creating additional income-generating opportunities while celebrating the skill behind their work.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Sand\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-AB-SND",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/4dc4cdb0-5cbf-4428-9a2c-b5025ede1701/Acacia+Bronze+Sand.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/3bcb61d4-a855-4ffa-afe0-d48cd5ea3b7d/Acacia+Bronze+Sand+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1b99c10f-3ae7-466c-8371-3072c8245984/Acacia+Bronze+Sand+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b9aaf53d-9991-45db-b006-9f731660f64b/Acacia+Bronze+Sand+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/acacia-bronze-sand-beaded-basket"
+    },
+    {
+      "slug": "afm-stickers",
+      "title": "AFM Stickers",
+      "category": "Stickers",
+      "short_description": "These African Farmers Market stickers were created to celebrate storytelling, culture, community, and connection through art and design inspired by East Africa.",
+      "description": "These African Farmers Market stickers were created to celebrate storytelling, culture, community, and connection through art and design inspired by East Africa.\n\nFeaturing original AFM artwork, Swahili phrases, community partnerships, and mission-driven designs, each sticker represents something bigger than a product — it represents people, purpose, and the stories behind the movement.\n\nPerfect for water bottles, laptops, journals, coolers, notebooks, market totes, and more.\n\nDurable vinyl sticker\nGloss finish\nWeather resistant\nOriginal African Farmers Market artwork\n\nSticker:\n\n“Illundo Farmers”\n\n“The Mary”\n\n“Asali”\n\n“AFM Logo”",
+      "option": "Sticker",
+      "variants": [
+        {
+          "value": "Illundo Farmers",
+          "sku": "SQ1971930",
+          "cents": 50
+        },
+        {
+          "value": "The Mary",
+          "sku": "SQ1453615",
+          "cents": 50
+        },
+        {
+          "value": "Asali",
+          "sku": "SQ8801739",
+          "cents": 50
+        },
+        {
+          "value": "AFM Logo",
+          "sku": "SQ2921401",
+          "cents": 50
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/33c35bc7-5ffe-4841-91ba-63a46a889bc7/Illundo_Farmers_sticker.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/cad2b3fe-36fe-44d1-bf74-00e0b9b4a1db/Female_Empower_sticker.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9f32671d-be2a-49ef-b790-9545672cb44e/Asali_sticker.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/8fe67050-8f02-4fdf-878d-0c20a1835b78/Logo_sticker.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/afm-stickers"
+    },
+    {
+      "slug": "african-mums-benard-omondi",
+      "title": "African Mums",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring three women walking together through reflective turquoise water, surrounded by lush vegetation and expressive layers of cream, pink, green, blue, and gold.",
+      "description": "Original artwork by Benard Omondi featuring three women walking together through reflective turquoise water, surrounded by lush vegetation and expressive layers of cream, pink, green, blue, and gold.\n\nDimensions: 4.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-002",
+          "cents": 115000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a74a1b34-b84e-424f-a349-cce846dd4f96/BO_works_2.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/african-mums-benard-omondi"
+    },
+    {
+      "slug": "africas-wildest-tanzanian-whole-bean-coffee",
+      "title": "Africa’s Wildest Whole Bean Coffee",
+      "category": "Coffee",
+      "short_description": "Rare, distinctive, and beautifully bold, Africa’s Wildest is crafted with prized peaberry coffee beans, also known as “pearls.” Unlike typical coffee beans, peaberries develop as a single round bean inside the coffee cherry, creating their unique shape…",
+      "description": "Rare, distinctive, and beautifully bold, Africa’s Wildest is crafted with prized peaberry coffee beans, also known as “pearls.” Unlike typical coffee beans, peaberries develop as a single round bean inside the coffee cherry, creating their unique shape and sought-after roasting qualities.\n\nOnly about 8 to 10% of the coffee harvest produces these rare pearls, making every tin something special. The blend combines 80% Peaberry Arabica with 20% Robusta for an excellent cup with rich character and depth.\n\nBlend: 80% Peaberry Arabica, 20% Robusta\nForm: Whole bean\nSize: 350 g tin\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-COF-AFW-WB-350",
+          "cents": 2499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a1065d06-acbc-4c02-b31a-66bccd6eed41/whole+bean+coffee+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/7cf285b6-b9c9-4fe0-9269-d154f57a101a/whole+bean+coffee+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/africas-wildest-tanzanian-whole-bean-coffee"
+    },
+    {
+      "slug": "bao-board-african-strategy-game",
+      "title": "East African Bao Board",
+      "category": "Toys & games",
+      "short_description": "Gather around a game that has brought people together across East Africa for generations. Bao is one of the region’s oldest and most respected strategy games, traditionally played throughout Tanzania, Kenya, Zanzibar, and neighboring areas.",
+      "description": "Gather around a game that has brought people together across East Africa for generations. Bao is one of the region’s oldest and most respected strategy games, traditionally played throughout Tanzania, Kenya, Zanzibar, and neighboring areas. The Swahili word bao means “board,” and the game has long encouraged planning, patience, observation, and critical thinking.\n\nOur board uses Bao 6×2, a recognized modern adaptation that brings the spirit and strategy of traditional Bao to a smaller, family-friendly format. Each set includes a 6×2 Bao board and 36 handcrafted East African bone beads, making the game as beautiful to display as it is engaging to play.\n\nDesigned for two players, the goal is to strategically sow and capture beads while thinking several moves ahead. It is easy to begin learning, but the possibilities grow as your strategy develops.\n\nMore than a board game, Bao is a connection to a tradition passed from one generation to the next. We hope this board finds its way into your own family game nights, friendly competitions, and traditions for years to come.\n\nIncludes: 1 Bao 6×2 board + 36 handcrafted East African bone beads\nPlayers: 2",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-GAME-BAO-01",
+          "cents": 2999
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/191f6555-7dd5-4680-a743-84ae8e43136f/Bao_Board.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/bao-board-african-strategy-game"
+    },
+    {
+      "slug": "be-calm-benard-omondi",
+      "title": "Be Calm",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a reclining woman in a white dress with a white bird in flight, set against an expressive background layered with turquoise, blue, purple, gold, and warm earth tones.",
+      "description": "Original artwork by Benard Omondi featuring a reclining woman in a white dress with a white bird in flight, set against an expressive background layered with turquoise, blue, purple, gold, and warm earth tones.\n\nDimensions: 4.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-009",
+          "cents": 115000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f040596b-9368-4d78-922b-336665a81a57/BO_works_9.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/be-calm-benard-omondi"
+    },
+    {
+      "slug": "black-peppercorn",
+      "title": "Black Peppercorn",
+      "category": "Spices",
+      "short_description": "Bold, aromatic, and full of rich peppery flavor, our black peppercorns are a versatile kitchen essential. Grind them fresh over finished dishes or use them whole to add depth to soups, stews, sauces, marinades, meats, vegetables, and spice blends.",
+      "description": "Bold, aromatic, and full of rich peppery flavor, our black peppercorns are a versatile kitchen essential. Grind them fresh over finished dishes or use them whole to add depth to soups, stews, sauces, marinades, meats, vegetables, and spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-BPC-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5fe7746c-f49f-4b09-af6c-406cd156976a/black+peppercorn+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5bd3df34-ec83-4dcd-8c5c-64b3096dbf52/black+peppercorn+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/black-peppercorn"
+    },
+    {
+      "slug": "cardamom",
+      "title": "Cardamom",
+      "category": "Spices",
+      "short_description": "Fragrant, warm, and slightly sweet, our cardamom brings a beautifully complex flavor to both sweet and savory dishes. Perfect for curries, rice dishes, baked goods, chai, tea, coffee, and spice blends.",
+      "description": "Fragrant, warm, and slightly sweet, our cardamom brings a beautifully complex flavor to both sweet and savory dishes. Perfect for curries, rice dishes, baked goods, chai, tea, coffee, and spice blends. Its distinctive aroma makes it a wonderful addition to both everyday cooking and special recipes.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-CAR-04",
+          "cents": 1599
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c8e4008d-7dee-412a-9c2e-ea3a8dd593d0/cardamom+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d8d41b34-58d3-45f6-8879-44b1c7d1b490/cardamom+back.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/cardamom"
+    },
+    {
+      "slug": "chaotic-mind-pascal-masegesse",
+      "title": "Chaotic Mind",
+      "category": "Art",
+      "short_description": "Original artwork by Tanzanian artist Pascal Masegesse. Chaotic Mind reflects Pascal's multidisciplinary practice and distinctive approach of deconstructing subjects into shapes and intricate details to communicate layered ideas and emotion.",
+      "description": "Original artwork by Tanzanian artist Pascal Masegesse. Chaotic Mind reflects Pascal's multidisciplinary practice and distinctive approach of deconstructing subjects into shapes and intricate details to communicate layered ideas and emotion.\n\nArtist: Pascal Masegesse\nMedium: Acrylic on Canvas\nYear: 2025\nDimensions: 120 × 75 cm (47.2 × 29.5 in)",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "NM-004",
+          "cents": 47500
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/19ed3537-663a-4ed6-a12f-fccaefc8292e/NAS_Pascal_Masegesse_Chaotic+Mind_375.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/chaotic-mind-pascal-masegesse"
+    },
+    {
+      "slug": "daisies-benard-omondi",
+      "title": "Daisies",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a cluster of white daisies with warm golden centers against a richly textured olive-green background.",
+      "description": "Original artwork by Benard Omondi featuring a cluster of white daisies with warm golden centers against a richly textured olive-green background.\n\nDimensions: 5.9\" × 7.8\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-007",
+          "cents": 45000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b1bf4636-b3d7-437f-9125-f55d6fdcd047/BO_works_7.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/daisies-benard-omondi"
+    },
+    {
+      "slug": "east-african-amber-tan-beaded-basket",
+      "title": "East African Amber Tan Basket",
+      "category": "Baskets",
+      "short_description": "Warm, golden, and beautifully earthy, our East African Amber Basket brings together rich tan tones and intricate handwoven texture.",
+      "description": "Warm, golden, and beautifully earthy, our East African Amber Basket brings together rich tan tones and intricate handwoven texture. Its natural coloring has the warmth of sun-baked earth and amber, giving it an understated beauty that works effortlessly with both neutral spaces and more colorful surroundings.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket carries the individual character of the woman who created it. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating additional income-generating opportunities for Kenyan women.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Tan\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-EAA-TAN",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a5957528-807d-4fb9-85af-61b1d7c315e7/East+African+Amber+Tan.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/aac4b5ca-a36a-41fa-a6b0-c7676bafac8e/East+African+Amber+Tan+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d55fe9f9-292c-460b-999f-307657f88739/East+African+Amber+Tan+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/09eab850-3b43-41cf-920c-b03080c0cfe1/East+African+Amber+Tan+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/east-african-amber-tan-beaded-basket"
+    },
+    {
+      "slug": "electric-safari-crocodile",
+      "title": "Electric Safari Crocodile",
+      "category": "Toys & games",
+      "short_description": "Bright, fearless, and bursting with color, our Electric Safari Crocodile puts a playful spin on one of Africa’s most formidable animals.",
+      "description": "Bright, fearless, and bursting with color, our Electric Safari Crocodile puts a playful spin on one of Africa’s most formidable animals. Its lively mix of vivid colors gives this handcrafted crocodile an energetic personality that instantly stands out, whether it’s displayed on its own or alongside other pieces from our African animal collection.\n\nHandcrafted in Tanzania, each crocodile carries the individual touches of its maker. Eye color, color placement, and detailing may vary slightly from the photos, making every Electric Safari Crocodile a truly one-of-a-kind piece.\n\nColors: Colorful",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-CROC-ES",
+          "cents": 2000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/071c3f48-f3b1-46ce-a532-4df87e0136c9/Electric+Safari+Croc+Colorful+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/0faa5836-a1af-4067-b340-ba7416e5477f/Electric+Safari+Croc+Colorful+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a22d2098-f9bd-418a-b4f0-41af19ecf763/Electric+Safari+Croc+Colorful+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/electric-safari-crocodile"
+    },
+    {
+      "slug": "electric-safari-monitor-lizard",
+      "title": "Electric Safari Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Bright, bold, and impossible to miss, our Electric Safari Monitor Lizard brings a burst of color to Tanzania’s wild side. Its energetic mix of vivid hues turns this handcrafted animal into a playful statement piece that feels just as much like art as it…",
+      "description": "Bright, bold, and impossible to miss, our Electric Safari Monitor Lizard brings a burst of color to Tanzania’s wild side. Its energetic mix of vivid hues turns this handcrafted animal into a playful statement piece that feels just as much like art as it does decor.\n\nHandcrafted in Tanzania, its long silhouette is perfect for stretching across a bookshelf, console, or table where all those brilliant colors can stand out. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, giving every Electric Safari Monitor its own personality.\n\nColors: Colorful\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-ESM",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d26a5543-cfbc-4713-b8d9-326110dabf78/Electric+Safari+Colorful+blue%3Agreen+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/8cbf7d5e-c1e2-484b-8eb3-db6c04be1eac/Electric+Safari+Colorful+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/dcd33e8b-751f-4aff-92f5-caa8794c65c8/Electric+Safari+Colorful+pink%3Apurple+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/ff1cfe03-9319-4c73-a66a-5a348e28297a/Electric+Safari+Colorful+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/electric-safari-monitor-lizard"
+    },
+    {
+      "slug": "erengeti-lime-green-monitor-lizard",
+      "title": "Serengeti Lime Green Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Vibrant, playful, and wonderfully wild, our Serengeti Lime Green Monitor Lizard takes its inspiration from the bright, living landscape of Tanzania’s Serengeti.",
+      "description": "Vibrant, playful, and wonderfully wild, our Serengeti Lime Green Monitor Lizard takes its inspiration from the bright, living landscape of Tanzania’s Serengeti. Its electric lime green coloring gives this handcrafted piece an unmistakable personality and makes it an instant pop of color wherever it lands.\n\nHandcrafted in Tanzania, its long silhouette looks right at home stretched across a bookshelf, console, or table. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, giving every monitor its own one-of-a-kind character.\n\nColor: Lime green\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-SLG",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b51e4196-e585-48ef-9756-530345d39df8/Serengeti+Lime+Green+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1505cf7d-1d7d-4e32-96be-09df6b0e0701/Serengeti+Lime+Green+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/09055a22-c96c-4662-853c-1f9d970f6dd0/Serengeti+Lime+Green+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/erengeti-lime-green-monitor-lizard"
+    },
+    {
+      "slug": "got-asali-t-shirt",
+      "title": "Got Asali? T-shirt",
+      "category": "Apparel",
+      "short_description": "got asali?",
+      "description": "got asali?\n\nAsali is the Swahili word for honey, and this shirt is a conversation starter. Featuring our signature \"Africa in Every Drop\" graphic, this tee represents something bigger than a jar of honey. It represents real partnerships with rural farming communities across Africa and a commitment to creating opportunity where it matters most.\n\nSoft, relaxed fit with the AFM logo on the front chest and the full \"got asali?\" graphic on the back. Wear it proud. Wear it with purpose.\n\nSizes: S · M · L · XL · XXL | Color: Natural 100% cotton",
+      "option": "Size",
+      "variants": [
+        {
+          "value": "Small",
+          "sku": "SQ7075488",
+          "cents": 2499
+        },
+        {
+          "value": "Medium",
+          "sku": "SQ9407807",
+          "cents": 2499
+        },
+        {
+          "value": "Large",
+          "sku": "SQ0174979",
+          "cents": 2499
+        },
+        {
+          "value": "X-Large",
+          "sku": "SQ2889049",
+          "cents": 2499
+        },
+        {
+          "value": "XX-Large",
+          "sku": "SQ8267915",
+          "cents": 2499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/12aa79d1-160a-4a20-b28a-d4b727ff36f7/IMG_1308.JPEG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d6ee5926-3008-4f25-9026-42e914cad229/Screenshot+2026-04-23+at+1.46.49%E2%80%AFPM.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/3cf71fca-50fd-4b8f-995f-86fbb754f43c/Screenshot+2026-04-23+at+1.47.07%E2%80%AFPM.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/ce805c19-4c1d-4e63-a7b4-efc4800b1f39/got_asali.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/got-asali-t-shirt"
+    },
+    {
+      "slug": "ground-black-pepper",
+      "title": "Ground Black Pepper",
+      "category": "Spices",
+      "short_description": "Bold, aromatic, and wonderfully versatile, our ground black pepper adds rich, peppery flavor and a gentle bite to everyday cooking. Sprinkle it over finished dishes or use it to season meats, vegetables, soups, stews, sauces, marinades, and spice blends.",
+      "description": "Bold, aromatic, and wonderfully versatile, our ground black pepper adds rich, peppery flavor and a gentle bite to everyday cooking. Sprinkle it over finished dishes or use it to season meats, vegetables, soups, stews, sauces, marinades, and spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-GBP-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/724dd599-69d5-40ab-977c-901ef43b2538/ground+black+pepper+front.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6508902f-53aa-4384-8f4a-12b13cf80c20/ground+black+pepper+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-black-pepper"
+    },
+    {
+      "slug": "ground-cloves",
+      "title": "Ground Cloves",
+      "category": "Spices",
+      "short_description": "Bold, warm, and beautifully aromatic, our ground cloves bring a rich depth of flavor to both sweet and savory dishes. Perfect for baking, spice blends, marinades, teas, sauces, curries, and warming recipes.",
+      "description": "Bold, warm, and beautifully aromatic, our ground cloves bring a rich depth of flavor to both sweet and savory dishes. Perfect for baking, spice blends, marinades, teas, sauces, curries, and warming recipes. A little goes a long way with this fragrant pantry staple.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-GCL-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/3b95521c-0907-499b-8a94-f334ccc0e88f/ground+cloves+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/4651907d-5704-4ef0-9c3a-edc6fc1fa5ae/ground+cloves+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-cloves"
+    },
+    {
+      "slug": "ground-cumin",
+      "title": "Ground Cumin",
+      "category": "Spices",
+      "short_description": "Earthy, warm, and deeply aromatic, our ground cumin adds rich, savory flavor to everyday cooking. Its convenient ground form makes it easy to blend into curries, soups, stews, marinades, vegetables, rice dishes, sauces, and homemade spice blends.",
+      "description": "Earthy, warm, and deeply aromatic, our ground cumin adds rich, savory flavor to everyday cooking. Its convenient ground form makes it easy to blend into curries, soups, stews, marinades, vegetables, rice dishes, sauces, and homemade spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-GCU-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b21811aa-f5b3-4b1c-8a7d-18342e087b8d/ground+cumin+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/7c817fb1-6763-44f0-8cab-212ebfc76a2e/ground+cumin+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-cumin"
+    },
+    {
+      "slug": "ground-pumpkin-seed",
+      "title": "Ground Pumpkin Seed",
+      "category": "Spices",
+      "short_description": "Rich, nutty, and versatile, our ground pumpkin seed adds a delicious earthy flavor and satisfying depth to everyday cooking. Use it to enrich sauces, soups, stews, vegetable dishes, and traditional recipes, or sprinkle it into meals for an easy boost of…",
+      "description": "Rich, nutty, and versatile, our ground pumpkin seed adds a delicious earthy flavor and satisfying depth to everyday cooking. Use it to enrich sauces, soups, stews, vegetable dishes, and traditional recipes, or sprinkle it into meals for an easy boost of pumpkin seed flavor.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-GPS-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b9319179-58f8-44af-90cb-927917816b6a/ground+pumpkin+seed+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/28cd251b-6e50-4a88-b172-91251b779b2e/ground+pumpkin+seed+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-pumpkin-seed"
+    },
+    {
+      "slug": "ground-red-pepper",
+      "title": "Ground Red Pepper",
+      "category": "Spices",
+      "short_description": "Bold, vibrant, and full of heat, our ground red pepper adds a lively kick and rich pepper flavor to your favorite dishes. Its ground form makes it easy to season soups, stews, sauces, curries, marinades, vegetables, meats, and spice blends.",
+      "description": "Bold, vibrant, and full of heat, our ground red pepper adds a lively kick and rich pepper flavor to your favorite dishes. Its ground form makes it easy to season soups, stews, sauces, curries, marinades, vegetables, meats, and spice blends. Perfect for adding as much or as little heat as you like.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-GRP-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/8236cd42-3efa-41c7-a734-0bab38771fe0/ground+red+pepper+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/fd27bb9f-cf24-4819-a309-e1ea911d4961/ground+red+pepper+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-red-pepper"
+    },
+    {
+      "slug": "handcrafted-tanzanian-elephant",
+      "title": "Handcrafted Tanzanian Elephant",
+      "category": "Toys & games",
+      "short_description": "Strong, charming, and unmistakably African, our handcrafted elephant celebrates one of Tanzania’s most beloved animals. Each piece is made by hand in Tanzania, giving it an individual character that makes it feel less like ordinary decor and more like a…",
+      "description": "Strong, charming, and unmistakably African, our handcrafted elephant celebrates one of Tanzania’s most beloved animals. Each piece is made by hand in Tanzania, giving it an individual character that makes it feel less like ordinary decor and more like a small piece of artistry brought home.\n\nDisplay it on a bookshelf, desk, side table, or alongside other pieces from our African animal collection for a warm reminder of Tanzania’s extraordinary wildlife and craftsmanship.\n\nBecause each elephant is individually handcrafted, color, eye details, and other small features may vary slightly from the photos, making every piece uniquely its own.",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-ELE-TUSK",
+          "cents": 1200
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/3bc25817-2e4e-4156-819d-aeeb16bd161c/Elephant+Tusk+group.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/95abac6a-c59e-44f6-b169-50cb61503867/Elephant+Tusk+one.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/handcrafted-tanzanian-elephant"
+    },
+    {
+      "slug": "handcrafted-tanzanian-hyena",
+      "title": "Handcrafted Tanzanian Hyena",
+      "category": "Toys & games",
+      "short_description": "Wild, curious, and packed with personality, our handcrafted hyena celebrates one of Africa’s most recognizable animals. Its natural coloring gives this piece an earthy, safari-inspired feel, while the handmade details bring out the wonderfully quirky…",
+      "description": "Wild, curious, and packed with personality, our handcrafted hyena celebrates one of Africa’s most recognizable animals. Its natural coloring gives this piece an earthy, safari-inspired feel, while the handmade details bring out the wonderfully quirky character hyenas are known for.\n\nHandcrafted in Tanzania, it makes a fun addition to a bookshelf, desk, wildlife collection, or a grouping of our African animal pieces.\n\nBecause each hyena is individually handcrafted, color, eye details, and other small features may vary slightly from the photos, making every piece uniquely its own.\n\nStyle: Natural",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-HYE-NAT",
+          "cents": 1600
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a5d4d632-3a1f-430c-9001-516486e939e8/Hyena+group.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6af346ef-2cfb-4371-99e9-e369fdfbb7f1/Hyena+silly.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/45c63b68-be39-472c-86ba-6ab281a6419f/Hyena+front.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/handcrafted-tanzanian-hyena"
+    },
+    {
+      "slug": "holding-on-benard-omondi",
+      "title": "Holding On - 1",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a woman holding closely to a tree, surrounded by vivid blue and golden circular patterns and expressive layered brushwork.",
+      "description": "Original artwork by Benard Omondi featuring a woman holding closely to a tree, surrounded by vivid blue and golden circular patterns and expressive layered brushwork.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-001",
+          "cents": 57500
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6e992836-d1c8-4e7a-b6d4-1236b90217d5/BO_works_1.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/holding-on-benard-omondi"
+    },
+    {
+      "slug": "holding-on-benard-omondi-003",
+      "title": "Holding On - 2",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a resting figure tightly embracing a white pillow, surrounded by expressive mask-like faces and richly layered strokes of blue, gold, orange, cream, and black.",
+      "description": "Original artwork by Benard Omondi featuring a resting figure tightly embracing a white pillow, surrounded by expressive mask-like faces and richly layered strokes of blue, gold, orange, cream, and black.\n\nDimensions: 6.5 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-003",
+          "cents": 215000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/26bdf33c-3283-48d0-a2ca-bbed327f8589/BO_works_3.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/holding-on-benard-omondi-003"
+    },
+    {
+      "slug": "holding-on-benard-omondi-004",
+      "title": "Holding On - 3",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a man in a wide-brimmed hat holding a large earthen vessel containing a small tree, surrounded by swirling patterns of blue, orange, yellow, white, and black.",
+      "description": "Original artwork by Benard Omondi featuring a man in a wide-brimmed hat holding a large earthen vessel containing a small tree, surrounded by swirling patterns of blue, orange, yellow, white, and black.\n\nDimensions: 6.5 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-004",
+          "cents": 215000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/81a4204d-e4bf-4bb8-942e-d9a8daf6d5ea/BO_works_4.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/holding-on-benard-omondi-004"
+    },
+    {
+      "slug": "kilimanjaro-flame-magenta-beaded-basket",
+      "title": "Kilimanjaro Flame Magenta Basket",
+      "category": "Baskets",
+      "short_description": "Vibrant, fiery, and made to stand out, our Kilimanjaro Flame Basket glows in a rich magenta that brings instant energy to a room.",
+      "description": "Vibrant, fiery, and made to stand out, our Kilimanjaro Flame Basket glows in a rich magenta that brings instant energy to a room. Its saturated color draws attention to the intricate beadwork and handwoven texture, turning a functional basket into a bold piece of Kenyan art.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket represents both creativity and opportunity. Through this partnership, Rachel and African Farmers Market help connect the women’s craftsmanship with customers around the world while supporting additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Magenta\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-KF-MAG",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9829bd90-b2de-4a7b-a9d4-59d86bb92e2e/Kilimanjaro+Flame+Magenta.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/79b414c4-a363-40ef-b110-a43099e78299/Kilimanjaro+Flame+Magenta+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/152284ac-19c6-47cb-9ae4-a5910ead1ba9/Kilimanjaro+Flame+Magenta+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d5d4756c-68d2-48e3-a049-2f8d97a8ed58/Kilimanjaro+Flame+Magenta+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-flame-magenta-beaded-basket"
+    },
+    {
+      "slug": "kilimanjaro-night-monitor-lizard",
+      "title": "Kilimanjaro Night Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Dark, dramatic, and a little mysterious, our Kilimanjaro Night Monitor Lizard pairs deep black with rich purple tones inspired by Mount Kilimanjaro after the sun disappears.",
+      "description": "Dark, dramatic, and a little mysterious, our Kilimanjaro Night Monitor Lizard pairs deep black with rich purple tones inspired by Mount Kilimanjaro after the sun disappears. The darker palette gives this handcrafted piece a bold, striking presence while its playful shape keeps it full of character.\n\nHandcrafted in Tanzania, its long silhouette makes an unexpected statement stretched across a bookshelf, console, or table. Each one reflects the individual hand of its maker, so eye color, color placement, and detailing may vary slightly from the photos, making every monitor uniquely its own.\n\nColors: Black & purple\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-KNM",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f2b147bd-fb7d-4da7-817b-e0f07252c465/Killimanjaro+Night+Black%3APurple+black+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/64402a88-3265-4ba6-8493-39cd4c5e6ac8/Killimanjaro%2BNight%2BBlack%253APurple%2Btop.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/89bb45b4-6846-4fe9-bf0f-b48d21b1be99/Killimanjaro+Night+Black%3APurple+purple+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6d5505fc-7eeb-4ab9-b823-b4a2ec23d146/Killimanjaro+Night+Black%3APurple+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-night-monitor-lizard"
+    },
+    {
+      "slug": "kilimanjaro-sunset-crocodile",
+      "title": "Kilimanjaro Sunset Crocodile",
+      "category": "Toys & games",
+      "short_description": "Deep purple and vivid blue give our Kilimanjaro Sunset Crocodile a bold, twilight-inspired look. Handcrafted in Tanzania, this colorful little croc captures the dramatic feeling of evening settling over Kilimanjaro while adding a fun, artistic accent to…",
+      "description": "Deep purple and vivid blue give our Kilimanjaro Sunset Crocodile a bold, twilight-inspired look. Handcrafted in Tanzania, this colorful little croc captures the dramatic feeling of evening settling over Kilimanjaro while adding a fun, artistic accent to a shelf, desk, or collection.\n\nBecause each crocodile is individually handcrafted, eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Purple & blue",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-CROC-KS",
+          "cents": 2000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/af1f95b2-ea54-4b7f-b53c-a9f2cb3950aa/Killimanjaro+Sunset+Croc+Purple%3ABlue+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/72644a57-19e2-4179-b47c-52c42195b0fa/Killimanjaro+Sunset+Croc+Purple%3ABlue+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5d8e8543-00cd-4b60-8e2e-4b3e1ce9f9e3/Killimanjaro+Sunset+Croc+Purple%3ABlue+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-sunset-crocodile"
+    },
+    {
+      "slug": "kilimanjaro-sunset-monitor-lizard",
+      "title": "Kilimanjaro Sunset Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Rich purple and brilliant blue come together in our Kilimanjaro Sunset Monitor Lizard, inspired by the shifting colors that sweep across the sky as daylight fades around Tanzania’s iconic mountain.",
+      "description": "Rich purple and brilliant blue come together in our Kilimanjaro Sunset Monitor Lizard, inspired by the shifting colors that sweep across the sky as daylight fades around Tanzania’s iconic mountain. The combination gives this handcrafted piece a dreamy, dramatic look that feels both playful and striking.\n\nHandcrafted in Tanzania, its long silhouette makes a beautiful statement stretched across a bookshelf, console, or table. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, giving every monitor its own unique character.\n\nColors: Purple & blue\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-KSM",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/2f98afa4-0487-41fc-835c-6d0d1834e2aa/Killimanjaro%2BSunset%2BPurple%253ABlue%2Btop.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/0cc2c625-2397-482a-a3c9-2075a1544f33/Killimanjaro+Sunset+Purple%3ABlue+purple+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/4f9af561-e8f2-4f59-8243-673e3ab8107b/Killimanjaro+Sunset+Purple%3ABlue+blue+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a4330843-0ee0-4f9b-aaae-b8f3b54a9c38/Killimanjaro+Sunset+Purple%3ABlue+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-sunset-monitor-lizard"
+    },
+    {
+      "slug": "kinjani-emerald-green-beaded-basket",
+      "title": "Kinjani Emerald Green Basket",
+      "category": "Baskets",
+      "short_description": "Rich, earthy, and beautifully bold, our Kinjani Emerald Basket is woven in a deep green that brings the lush colors of Kenya into your home.",
+      "description": "Rich, earthy, and beautifully bold, our Kinjani Emerald Basket is woven in a deep green that brings the lush colors of Kenya into your home. The intricate beadwork and saturated emerald tone give it a grounded, natural beauty that works just as beautifully as a decorative statement as it does for everyday storage.\n\nEach basket is handmade in Kenya by skilled women artisans who work closely with Rachel Bosire. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating meaningful income-generating opportunities for Kenyan women.\n\nBecause every basket is made by hand, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Emerald green\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-KEG-GRN",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b5373d03-f448-4185-b91e-c449738aaf8c/Kinjani+Emerald+Green+3.JPEG.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/af8154db-f74e-4c5b-aed4-aa2fbaf681ed/Kinjani+Emerald+Green+2.JPEG.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/3f1dda03-59d6-4114-b543-75067ed15ae3/Kinjani+Emerald+Green+1.JPEG.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/48097d02-d46b-4ea0-bfe8-a19a08b55417/Kinjani+Emerald+Green.JPEG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kinjani-emerald-green-beaded-basket"
+    },
+    {
+      "slug": "kizazi-kenyan-black-tea-small",
+      "title": "Kizazi Tea",
+      "category": "Tea",
+      "short_description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar.",
+      "description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar. Enjoy it simply brewed as black tea or prepare it with milk for a warm, creamy cup inspired by East African tea traditions. “Kizazi” means “the next generation,” a fitting name for a tea rooted in tradition and meant to be shared forward.\n\nSize: 4 oz jar, Net Wt. 1.59 (45g)\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-TEA-KIZ-04",
+          "cents": 1499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1c397fbc-80ad-4bb2-8612-6e0dde5303e2/kizazi+tea+4oz+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/239e415b-9cad-43aa-a83f-138f28b2ec78/kizazi+tea+4oz+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kizazi-kenyan-black-tea-small"
+    },
+    {
+      "slug": "kizazi-tea",
+      "title": "Kizazi Tea",
+      "category": "Tea",
+      "short_description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar.",
+      "description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar. Enjoy it simply brewed as black tea or prepare it with milk for a warm, creamy cup inspired by East African tea traditions. “Kizazi” means “the next generation,” a fitting name for a tea rooted in tradition and meant to be shared forward.\n\nSize: 18 oz jar, Net Wt. 8.47 oz (240 g)\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-TEA-KIZ-16",
+          "cents": 2999
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/0e27582b-1e42-4a3b-8a74-517db5576538/zizazi+tea+16oz+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/e3b5be22-8ba6-4409-bca9-838578b0c76f/kizazi+tea+16oz+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/kizazi-tea"
+    },
+    {
+      "slug": "lamu-indigo-dark-blue-beaded-basket",
+      "title": "Lamu Indigo Dark Blue Basket",
+      "category": "Baskets",
+      "short_description": "Deep, sophisticated, and beautifully textured, our Lamu Indigo Basket is woven in a rich dark blue that gives this handcrafted piece a timeless feel.",
+      "description": "Deep, sophisticated, and beautifully textured, our Lamu Indigo Basket is woven in a rich dark blue that gives this handcrafted piece a timeless feel. Its saturated indigo coloring and intricate beadwork make it an easy statement piece, bringing depth and handcrafted character to shelves, tables, or everyday storage.\n\nEach basket is handmade in Kenya by skilled women artisans who work closely with Rachel Bosire. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating meaningful income-generating opportunities for Kenyan women.\n\nBecause every basket is made by hand, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Dark blue\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-LAI-DBL",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/fe0e0881-78a7-47d1-b31f-f9ecfd16a315/Dark+Blue+Lamu+Indigo.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1863b067-c777-4190-a155-ba1fb6890b4a/Dark+Blue+Lamu+Indigo+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/e8832331-5cee-485a-aa8d-505247e71d2c/Dark+Blue+Lamu+Indigo+3.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c5c023ed-86cc-4009-874c-d51046685757/Dark+Blue+Lamu+Indigo+2.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/lamu-indigo-dark-blue-beaded-basket"
+    },
+    {
+      "slug": "landscape-1-benard-omondi",
+      "title": "Landscape - 1",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a golden landscape with a row of green trees, textured fields, and a sweeping yellow, cream, and gray sky.",
+      "description": "Original artwork by Benard Omondi featuring a golden landscape with a row of green trees, textured fields, and a sweeping yellow, cream, and gray sky.\n\nDimensions: 3.2 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-005",
+          "cents": 115000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/be3431d2-5b0f-418a-b3b3-e200deb492b7/BO_works_5.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/landscape-1-benard-omondi"
+    },
+    {
+      "slug": "landscape-2-benard-omondi",
+      "title": "Landscape 2",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a sweeping landscape with distant dark mountains, richly layered fields, and an expressive sky in blue, gray, gold, and cream.",
+      "description": "Original artwork by Benard Omondi featuring a sweeping landscape with distant dark mountains, richly layered fields, and an expressive sky in blue, gray, gold, and cream.\n\nDimensions: 31.4\" × 35.4\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-008",
+          "cents": 65000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1b27aae9-5766-4d2f-a1ab-3f45186782ac/BO_works_8.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/landscape-2-benard-omondi"
+    },
+    {
+      "slug": "maombi-ya-baba-benard-omondi",
+      "title": "Maombi ya Baba",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring an older man in a woven hat surrounded by colorful fish, with a glowing candle at the center of the richly layered composition.",
+      "description": "Original artwork by Benard Omondi featuring an older man in a woven hat surrounded by colorful fish, with a glowing candle at the center of the richly layered composition.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-015",
+          "cents": 95000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/68c60345-e548-4088-ac19-e351bdc14a0f/BO_works_15.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/maombi-ya-baba-benard-omondi"
+    },
+    {
+      "slug": "maombi-ya-mama-benard-omondi",
+      "title": "Maombi ya Mama",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a woman holding a glowing candle, with two figures standing behind her, rendered in layered shades of blue, rust, cream, and warm earth tones.",
+      "description": "Original artwork by Benard Omondi featuring a woman holding a glowing candle, with two figures standing behind her, rendered in layered shades of blue, rust, cream, and warm earth tones.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-014",
+          "cents": 95000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/dc83762b-19c0-43bd-8bb4-02f57acbdb1d/BO_works_14.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/maombi-ya-mama-benard-omondi"
+    },
+    {
+      "slug": "nairobi-night-kenyan-woven-makeup-bag",
+      "title": "Nairobi Night Makeup Bag",
+      "category": "Baskets",
+      "short_description": "Bold, practical, and beautifully made, our Nairobi Night Makeup Bag pairs rich black tones with the texture and character of Kenyan design.",
+      "description": "Bold, practical, and beautifully made, our Nairobi Night Makeup Bag pairs rich black tones with the texture and character of Kenyan design. Its versatile size makes it perfect for makeup and everyday essentials, but it works just as well for travel toiletries, small accessories, or all those little things that tend to disappear inside a larger bag.\n\nUnlike our baskets, these bags are personally handmade in Nairobi by Rachel Bosire. Rachel works closely with African Farmers Market to support our shared mission of expanding income-generating opportunities for women in Kenya while bringing beautiful Kenyan craftsmanship to customers around the world.\n\nBecause each bag is handmade, slight variations in pattern, color, shape, and detailing are part of its character, making every piece uniquely its own.\n\nColor: Black\nHandmade by: Rachel Bosire\nSourced from: Nairobi, Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ACC-NN-BLK",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1cc15a6e-0b29-4b30-836e-d7be7f1e94fd/Nairobi+Night+Makeup+Bag+black.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/08d7eb2e-0237-4264-be9d-c62d23a47fb2/Nairobi+Night+Makeup+Bag+black+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6d3698bc-9976-4917-b371-713c1e1cce9a/Nairobi+Night+Makeup+Bag+black+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f386238f-b223-4204-8952-954ebbcf1058/Nairobi+Night+Makeup+Bag+black+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/nairobi-night-kenyan-woven-makeup-bag"
+    },
+    {
+      "slug": "nairobi-slate-grey-beaded-basket",
+      "title": "Nairobi Slate Grey Basket",
+      "category": "Baskets",
+      "short_description": "Cool, sophisticated, and beautifully understated, our Nairobi Slate Basket pairs soft grey tones with the rich texture of traditional Kenyan beadwork.",
+      "description": "Cool, sophisticated, and beautifully understated, our Nairobi Slate Basket pairs soft grey tones with the rich texture of traditional Kenyan beadwork. Its neutral palette gives it a modern feel while allowing the intricate handmade details to take center stage, making it an easy piece to style in nearly any room.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the artistry and individuality of the women who create them. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Grey\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-NS-GRY",
+          "cents": 3500
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5d5fa930-9186-4b36-92a9-221542d0753f/Nairobi+Slate+Grey.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/68d037bb-02ad-4a9c-8e50-2c393737e75d/Nairobi+Slate+Grey+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/17751fd2-68a3-4562-b9c8-b29528427101/Nairobi+Slate+Grey+3.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c312e9f1-8911-4702-8c1b-84d7063a931b/Nairobi+Slate+Grey+2.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/nairobi-slate-grey-beaded-basket"
+    },
+    {
+      "slug": "nakuru-sun-yellow-beaded-basket",
+      "title": "Nakuru Sun Yellow Basket",
+      "category": "Baskets",
+      "short_description": "Sunny, joyful, and full of warmth, our Nakuru Sun Basket brings a brilliant splash of yellow to traditional Kenyan craftsmanship.",
+      "description": "Sunny, joyful, and full of warmth, our Nakuru Sun Basket brings a brilliant splash of yellow to traditional Kenyan craftsmanship. Its cheerful color catches the light beautifully, while the intricate beadwork and woven texture give it the unmistakable character of something created entirely by hand.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the talent and creativity of the women who make them. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Yellow\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-NS-YEL",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/68277b7f-d664-4259-8799-8e025f05709f/Nakuru+Sun+Yellow+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/228dda6b-43b9-40e0-b094-813364a1cfa0/Nakuru+Sun+Yellow.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/bcfce289-00fe-4fc8-8c75-4dd1ffd7398a/Nakuru+Sun+Yellow+3.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/8d15dd25-d9ca-491d-bd53-387e5e611542/Nakuru+Sun+Yellow+1.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/nakuru-sun-yellow-beaded-basket"
+    },
+    {
+      "slug": "ndani-ya-mbuyu-benard-omondi",
+      "title": "Ndani ya Mbuyu",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a figure nestled within a pod-like form beneath a sweeping baobab tree, surrounded by warm golden-orange landscape tones and richly textured natural details.",
+      "description": "Original artwork by Benard Omondi featuring a figure nestled within a pod-like form beneath a sweeping baobab tree, surrounded by warm golden-orange landscape tones and richly textured natural details.\n\nDimensions: 5.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-010",
+          "cents": 215000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/2f5d96ec-b202-4e22-a236-f540d4a92c82/BO_works_10.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ndani-ya-mbuyu-benard-omondi"
+    },
+    {
+      "slug": "ngorongoro-monitor-lizard",
+      "title": "Ngorongoro Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Deep black and vibrant green give our Ngorongoro Forest Monitor Lizard a bold, earthy look inspired by the lush landscapes surrounding Tanzania’s Ngorongoro region.",
+      "description": "Deep black and vibrant green give our Ngorongoro Forest Monitor Lizard a bold, earthy look inspired by the lush landscapes surrounding Tanzania’s Ngorongoro region. The contrast between its dark base and bright green detailing makes this handcrafted piece especially striking, with a wild, almost camouflaged feel that suits its name perfectly.\n\nHandcrafted in Tanzania, its long silhouette brings an unexpected bit of African wildlife and artistry to a bookshelf, console, or table. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, making every monitor uniquely its own.\n\nColors: Black & green\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-NGO",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6b18a85c-61a5-4f60-9cf6-d1888cdef573/Ngorongoro%2BForest%2BGreen%253ABlack%2Btop.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a7f360fc-4df6-4973-b632-de927e9fe1f3/Ngorongoro+Forest+Green%3ABlack+green+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b3beddee-23cc-40ea-bc48-37356f0e6f81/Ngorongoro+Forest+Green%3ABlack+black+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f236fc91-4049-4afa-9f37-54a45d9f0cf7/Ngorongoro+Forest+Green%3ABlack+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ngorongoro-monitor-lizard"
+    },
+    {
+      "slug": "nostalgic-memories-pascal-masegesse",
+      "title": "Nostalgic Memories",
+      "category": "Art",
+      "short_description": "Original artwork by Tanzanian artist Pascal Masegesse. Nostalgic Memories reflects Pascal's practice of drawing from memory and nature, using shapes and layered details to evoke nostalgic scenes and create space for reflection and connection.",
+      "description": "Original artwork by Tanzanian artist Pascal Masegesse. Nostalgic Memories reflects Pascal's practice of drawing from memory and nature, using shapes and layered details to evoke nostalgic scenes and create space for reflection and connection.\n\nArtist: Pascal Masegesse\nMedium: Acrylic on Canvas\nYear: 2024\nDimensions: 76.5 × 76.5 cm (30.1 × 30.1 in)",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "NM-001",
+          "cents": 53800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/881835b6-1f91-49c2-ae1b-c0d37f4a82b9/NAS_Pascal_Masegesse_Nostalgic+Memories_438.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/nostalgic-memories-pascal-masegesse"
+    },
+    {
+      "slug": "nyawawa-benard-omondi",
+      "title": "Nyawawa",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a striking portrait with bold white and red facial markings, surrounded by a moody blue-gray landscape and richly layered red, black, and golden tones.",
+      "description": "Original artwork by Benard Omondi featuring a striking portrait with bold white and red facial markings, surrounded by a moody blue-gray landscape and richly layered red, black, and golden tones.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-017",
+          "cents": 95000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5ad71f11-b36c-4ba7-9dbb-762be9d260af/BO_works_17.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/nyawawa-benard-omondi"
+    },
+    {
+      "slug": "ray-of-hope-benard-omondi",
+      "title": "Ray of Hope",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a woman with closed eyes framed by beautiful hair, alongside a branching tree, glowing circular forms, and small green shoots against a richly layered teal, blue, gold, and earth-toned background.",
+      "description": "Original artwork by Benard Omondi featuring a woman with closed eyes framed by beautiful hair, alongside a branching tree, glowing circular forms, and small green shoots against a richly layered teal, blue, gold, and earth-toned background.\n\nDimensions: 4.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-006",
+          "cents": 165000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/8315d1a4-5288-4ec7-9297-53e7cde9096e/BO_works_6.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ray-of-hope-benard-omondi"
+    },
+    {
+      "slug": "rift-valley-mist-monitor-lizard",
+      "title": "Rift Valley Mist Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Inspired by the cool, misty tones of Tanzania’s Rift Valley, this handcrafted monitor lizard blends soft blue, grey, and silver into a piece that feels both playful and striking.",
+      "description": "Inspired by the cool, misty tones of Tanzania’s Rift Valley, this handcrafted monitor lizard blends soft blue, grey, and silver into a piece that feels both playful and striking. Its elongated shape and hand-finished details give it plenty of personality, whether it’s stretched across a bookshelf, displayed on a table, or paired with other pieces from our African animal collection.\n\nHandcrafted in Tanzania, each monitor carries the small variations that come with something made by hand. Eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Blue, grey & silver\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-RVM",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d0ad3928-8d32-4c88-8d8d-6c006b692010/Rift+Valley+Mist+-+Blue%3AGrey%3ASilver+head+grey+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1d65eee0-4dfa-422e-afcc-96f3a738f26e/Rift+Valley+Mist+-+Blue%3AGrey%3ASilver+above.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/7a3fa472-7278-4d8c-9634-c8d96bd8049e/Rift+Valley+Mist+-+Blue%3AGrey%3ASilver+blue+side.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/rift-valley-mist-monitor-lizard"
+    },
+    {
+      "slug": "rift-valley-tanzanian-ground-coffee",
+      "title": "Rift Valley Ground Coffee",
+      "category": "Coffee",
+      "short_description": "Rich, full-bodied, and beautifully balanced, our Rift Valley Ground Coffee is 100% pure Arabica grown at Utengule Farm in Tanzania.",
+      "description": "Rich, full-bodied, and beautifully balanced, our Rift Valley Ground Coffee is 100% pure Arabica grown at Utengule Farm in Tanzania. Made from Grade A beans, this exceptional coffee offers fine citrus acidity with subtle blackberry undertones and the satisfying full body characteristic of high-grown East African coffee.\n\nUtengule Farm has cultivated coffee for more than a century, growing traditional Arabica varieties of Bourbon origin under mixed shade. Sustainable growing practices help preserve the fertile soil while producing coffee recognized for its exceptional quality around the world.\n\nArabica: 100%\nForm: Ground coffee\nSourced from: Utengule Farm, Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-COF-RVG-GR",
+          "cents": 2999
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d878fe1a-77cb-4d01-b0fb-b5d0efa3c58d/ground+coffee+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/429e93c0-19ea-4a94-93ab-ea0725f82057/ground+coffee+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/rift-valley-tanzanian-ground-coffee"
+    },
+    {
+      "slug": "roselle-tea-tanzania",
+      "title": "Mary's Pantry Roselle Tea",
+      "category": "Tea",
+      "short_description": "Bright, refreshing, and naturally vibrant, our Roselle Tea is made from roselle grown in Tanzania. When steeped, roselle creates a beautiful deep red herbal tea with a pleasantly tart, fruity flavor.",
+      "description": "Bright, refreshing, and naturally vibrant, our Roselle Tea is made from roselle grown in Tanzania. When steeped, roselle creates a beautiful deep red herbal tea with a pleasantly tart, fruity flavor. Enjoy it warm for a comforting cup or chilled for a crisp, refreshing drink. Naturally caffeine-free.\n\nSize: 16 oz jar, Net Wt. 2.82 oz (80g)\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-TEA-ROS-18",
+          "cents": 1999
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c0d33f75-dfdf-466c-b724-a10c55b0192b/roselle+tea+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/371aa4f2-6d49-4eef-9d5d-9b06622145ac/roselle+tea+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/roselle-tea-tanzania"
+    },
+    {
+      "slug": "ruaha-bloom-crocodile",
+      "title": "Ruaha Bloom Crocodile",
+      "category": "Toys & games",
+      "short_description": "Playful and unexpected, our Ruaha Bloom Crocodile pairs rich purple with lively green for a color combination that feels almost as vibrant as the Tanzanian landscape that inspired its name.",
+      "description": "Playful and unexpected, our Ruaha Bloom Crocodile pairs rich purple with lively green for a color combination that feels almost as vibrant as the Tanzanian landscape that inspired its name. Handcrafted in Tanzania, this whimsical crocodile is an easy way to bring bold color, African artistry, and a little personality into your space.\n\nBecause each crocodile is individually handcrafted, eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Purple & green",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-CROC-RB",
+          "cents": 2000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/4394fe4c-1dfe-4ea1-99d6-53ce2a8282a7/Ruaha+Bloom+Croc+Purple%3AGreen+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/eda6a779-19dc-49bd-92f0-609e4294104e/Ruaha+Bloom+Croc+Purple%3AGreen+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/57d49686-bf07-420f-b8f9-6518f949b12a/Ruaha+Bloom+Croc+Purple%3AGreen+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ruaha-bloom-crocodile"
+    },
+    {
+      "slug": "ruaha-grasslands-natural-basket",
+      "title": "Ruaha Grasslands Basket",
+      "category": "Baskets",
+      "short_description": "Natural, warm, and beautifully understated, our Ruaha Grasslands Basket celebrates the earthy tones and organic textures found across East Africa’s open landscapes.",
+      "description": "Natural, warm, and beautifully understated, our Ruaha Grasslands Basket celebrates the earthy tones and organic textures found across East Africa’s open landscapes. Its neutral coloring lets the handwoven texture take center stage, creating a versatile piece that feels at home in nearly any space.\n\nHandmade by skilled women artisans, each basket carries the character of traditional craftsmanship into the home. Its natural palette makes it beautiful for displaying on its own, pairing with other woven pieces, or adding texture and functional storage to a room.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each piece one of a kind.\n\nColor: Natural\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-RG-NAT",
+          "cents": 2000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/2267f042-47c4-408f-a614-9f0883ff6a1a/Ruaha+Grasslands+natural.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/ccf0217e-4137-4921-9016-792495c9d1ee/Ruaha+Grasslands+natural+1.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/ruaha-grasslands-natural-basket"
+    },
+    {
+      "slug": "savanna-gold-white-sand-beaded-basket",
+      "title": "Savanna Gold White Sand Basket",
+      "category": "Baskets",
+      "short_description": "Soft, natural, and effortlessly beautiful, our Savanna Gold Basket brings the warm neutral tones of sunlit sand into a piece of traditional Kenyan craftsmanship.",
+      "description": "Soft, natural, and effortlessly beautiful, our Savanna Gold Basket brings the warm neutral tones of sunlit sand into a piece of traditional Kenyan craftsmanship. Its creamy white-sand coloring lets the intricate beadwork and handwoven texture shine, making it an easy addition to both colorful and neutral spaces.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket helps carry their craftsmanship beyond their local communities. Through this partnership, Rachel and African Farmers Market are working to create greater income-generating opportunities for Kenyan women while celebrating the artistry behind every piece.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: White Sand\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-SG-WS",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b70428e3-9afe-4d2a-bb75-dd4b712a6da9/Savanna+Gold+White+Sand.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1226f55f-ff5a-4962-9489-2bcaf6d504b8/Savanna+Gold+White+Sand+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/90c7b121-1868-47e4-b199-f7856554e6ee/Savanna+Gold+White+Sand+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/45943016-83c9-400e-9aa7-5cc340636974/Savanna+Gold+White+Sand+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/savanna-gold-white-sand-beaded-basket"
+    },
+    {
+      "slug": "savannah-copper-crocodile",
+      "title": "Savannah Copper Crocodile",
+      "category": "Toys & games",
+      "short_description": "Dark, earthy, and full of character, our Savannah Copper Crocodile combines rich maroon and black tones for a striking look inspired by the warmth and depth of the African savanna.",
+      "description": "Dark, earthy, and full of character, our Savannah Copper Crocodile combines rich maroon and black tones for a striking look inspired by the warmth and depth of the African savanna. Handcrafted in Tanzania, this little croc has a moodier palette than its colorful companions, making it a distinctive piece of African art for shelves, desks, and collected spaces.\n\nBecause each crocodile is individually handcrafted, eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Maroon & black",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-CROC-SC",
+          "cents": 2000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a8d8a7c3-80fb-42bc-a699-914b35e73467/Savannah+Copper+Croc+Maroon%3ABlack+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/18500d51-f3df-4ae2-b919-45982a15992f/Savannah+Copper+Croc+Maroon%3ABlack+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/063785a4-1aee-478a-af11-fef44b3a40d8/Savannah+Copper+Croc+Maroon%3ABlack+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/savannah-copper-crocodile"
+    },
+    {
+      "slug": "smile-wilson-fantson-mpango",
+      "title": "Smile",
+      "category": "Art",
+      "short_description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. Smile reflects Wilson's surrealist painting practice, which moves beyond traditional portraiture through dreamlike imagery, detailed observation, and imaginative visual storytelling.",
+      "description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. Smile reflects Wilson's surrealist painting practice, which moves beyond traditional portraiture through dreamlike imagery, detailed observation, and imaginative visual storytelling.\n\nArtist: Wilson Fantson Mpango\nMedium: Acrylic on Canvas\nYear: 2026\nDimensions: 142 × 92 cm (55.9 × 36.2 in)",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "NM-003",
+          "cents": 103700
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6be3a83e-1bce-4fe9-b934-17e312d48457/NAS_Wilson_Mpango_Smile_937.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/smile-wilson-fantson-mpango"
+    },
+    {
+      "slug": "swahili-saffron-orange-beaded-basket",
+      "title": "Swahili Saffron Orange Basket",
+      "category": "Baskets",
+      "short_description": "Warm, vibrant, and full of texture, our Swahili Saffron Basket brings a beautiful wash of rich orange into the home. Its glowing color inspired the name, while the intricate beadwork turns an everyday basket into a piece of functional art.",
+      "description": "Warm, vibrant, and full of texture, our Swahili Saffron Basket brings a beautiful wash of rich orange into the home. Its glowing color inspired the name, while the intricate beadwork turns an everyday basket into a piece of functional art.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the craftsmanship and creativity of the women who create it. Through this partnership, Rachel and African Farmers Market are helping connect Kenyan women with income-generating opportunities and customers around the world.\n\nUse it as a statement piece on its own or for stylish storage throughout your home. Because every basket is handmade, variations in color, pattern, shape, and size are part of its character, ensuring no two are exactly alike.\n\nColor: Orange\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-SSO-ORG",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c31cf02c-9dec-4532-99d8-487c27f0ca4d/Swahili+Saffron+Orange+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/7669045f-5bd1-48cd-aae0-5633dce9395d/Swahili+Saffron+Orange+3.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/fd58175b-f0ad-42cb-b0be-6e222bae4821/Swahili+Saffron+Orange.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f313ba0c-93b9-4a18-a021-7e0f7a1209f6/Swahili+Saffron+Orange+2.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/swahili-saffron-orange-beaded-basket"
+    },
+    {
+      "slug": "tanzania-rice-winnowing-basket-handwoven",
+      "title": "Tanzania Rice Winnowing Basket – Handwoven",
+      "category": "Baskets",
+      "short_description": "Rooted in everyday Tanzanian tradition, this extra-large handwoven basket is inspired by the winnowing baskets traditionally used to separate rice and grain after harvest.",
+      "description": "Rooted in everyday Tanzanian tradition, this extra-large handwoven basket is inspired by the winnowing baskets traditionally used to separate rice and grain after harvest. Its broad, shallow shape and natural woven texture reflect a practical craft that has been part of daily life and food preparation for generations.\n\nToday, it makes a beautiful piece of functional art for the home. Display it as a statement piece, use it to bring natural texture to a table or wall, or incorporate it into everyday storage and styling. Its simplicity allows the craftsmanship of the weaving itself to take center stage.\n\nBecause each basket is woven by hand, variations in color, weave, shape, and size are part of its character, making every piece uniquely its own.\n\nSize: X-Large\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-TRW-XL",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/1b01f598-3759-4b96-ba5d-fd234420f20a/Tanzania+Rice+Winnowing+Basket+%E2%80%93+Handwoven.JPEG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/tanzania-rice-winnowing-basket-handwoven"
+    },
+    {
+      "slug": "tanzanian-wildflower-honey-13oz",
+      "title": "Mary's Tanzanian Wildflower Honey 13oz",
+      "category": "Honey",
+      "short_description": "This isn't grocery store honey. Mary's Tanzanian Wildflower Honey is raw, unfiltered, and traced directly to the beekeepers of Illundo, Tanzania.",
+      "description": "This isn't grocery store honey. Mary's Tanzanian Wildflower Honey is raw, unfiltered, and traced directly to the beekeepers of Illundo, Tanzania. African Farmers Market creates direct partnerships with rural farming communities across Africa and champions opportunity for women in agriculture. Buy a jar. Know your source. Taste the difference.\n\n13 oz · Cork Top · Product of Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-HON-TZ-13",
+          "cents": 2799
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/72da8e2c-ce6c-45c7-8883-0c7f9ef29cf5/13_oz_Honey_Bottle_Label.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/7781c25a-5884-4e00-8135-21c742f121fd/13_oz_Back_Honey_Bottle_Label.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/tanzanian-wildflower-honey-13oz"
+    },
+    {
+      "slug": "tanzanian-wildflower-honey-7oz",
+      "title": "Mary's Tanzanian Wildflower Honey 7oz.",
+      "category": "Honey",
+      "short_description": "Small jar. Big story. Tucked inside this 7 oz bottle is raw, unfiltered wildflower honey straight from the hives of Illundo, Tanzania.",
+      "description": "Small jar. Big story. Tucked inside this 7 oz bottle is raw, unfiltered wildflower honey straight from the hives of Illundo, Tanzania. African Farmers Market builds direct partnerships with rural farming communities across Africa and creates real opportunity for women in agriculture. A perfect introduction to honey that actually means something.\n\n7 oz · Cork Top · Product of Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-HON-TZ-7",
+          "cents": 1999
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/474d0724-2be7-43b5-9a8c-b6339eb7e56b/7_oz_Honey_Bottle_Label+%281%29.jpg?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9a5fe902-6359-48a8-8228-304f1fd52f4b/7_oz_Back_Honey_Bottle_Label.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/tanzanian-wildflower-honey-7oz"
+    },
+    {
+      "slug": "thats-the-light-benard-omondi",
+      "title": "That's the Light",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring two figures walking together through an expressive, textured field of bright yellow, turquoise, blue, white, green, and red.",
+      "description": "Original artwork by Benard Omondi featuring two figures walking together through an expressive, textured field of bright yellow, turquoise, blue, white, green, and red.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-012",
+          "cents": 47500
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/e4ce0b24-27fd-458a-b08a-1afe32dd6741/BO_works_12.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/thats-the-light-benard-omondi"
+    },
+    {
+      "slug": "the-burden-benard-omondi",
+      "title": "The Burden",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a bold portrait with expansive natural hair, geometric yellow glasses, layered denim elements, and a swirling blue, white, and yellow background.",
+      "description": "Original artwork by Benard Omondi featuring a bold portrait with expansive natural hair, geometric yellow glasses, layered denim elements, and a swirling blue, white, and yellow background.\n\nDimensions: 35.4\" × 43.4\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-016",
+          "cents": 67500
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/91dcc0a1-575a-4e8c-b37e-c7ea0cfbfdab/BO_works_16.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/the-burden-benard-omondi"
+    },
+    {
+      "slug": "the-mary-a-story-of-light-land-and-the-women-of-east-africa",
+      "title": "The Mary: A Story of Light, Land, and the Women of East Africa",
+      "category": "Books",
+      "short_description": "A beautifully illustrated children's book inspired by the women, farmers, and communities of East Africa. Through Mary's journey, young readers discover resilience, hope, and how small changes can create lasting impact.",
+      "description": "A beautifully illustrated children's book inspired by the women, farmers, and communities of East Africa. Through Mary's journey, young readers discover resilience, hope, and how small changes can create lasting impact.\n\nMary is not just one girl.\n\nShe is many women.\n\nSet in a small village in East Africa, The Mary: A Story of Light, Land, and the Women of East Africa follows a woman whose world begins to change as new opportunities bring light, education, and hope to her community.\n\nBeautifully illustrated by Kenyan artist Benard Omondi, this inspiring children's book introduces readers to resilience, community, and the power of possibility. Inspired by real-world efforts supporting women farmers and rural communities across East Africa, The Mary connects farm to table and soil to soul through a story that encourages empathy, curiosity, and understanding.\n\nRecommended for ages 5–9.\nWritten by Darci Dillin • Illustrated by Benard Omondi",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "SQ4367042",
+          "cents": 2200
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9b67f5f0-47b8-4621-8267-144d34f72020/The+Mary+Cover.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/e0a88bf4-00ee-4aa3-921e-dbd178dd2fab/Book_Mock_Up.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/the-mary-a-story-of-light-land-and-the-women-of-east-africa"
+    },
+    {
+      "slug": "the-mary-t-shirt-1",
+      "title": "The Mary T-Shirt",
+      "category": "Apparel",
+      "short_description": "The Mary",
+      "description": "The Mary\n\nKuwawezesha Wanawake Wakulima means “Empowering Female Farmers” — a message rooted in the mission behind African Farmers Market and the communities we work alongside across East Africa.\n\nThis minimalist design pairs clean front lettering with our signature female farmer emblem on the back, representing strength, agriculture, resilience, and opportunity.\n\nSoft, relaxed fit made for everyday wear with purpose behind every thread.\n\nSizes: S · M · L · XL · XXL | Color: White | 100% cotton",
+      "option": "Size",
+      "variants": [
+        {
+          "value": "Small",
+          "sku": "SQ1130440",
+          "cents": 2499
+        },
+        {
+          "value": "Medium",
+          "sku": "SQ1469927",
+          "cents": 2499
+        },
+        {
+          "value": "Large",
+          "sku": "SQ8640393",
+          "cents": 2499
+        },
+        {
+          "value": "X-Large",
+          "sku": "SQ0745209",
+          "cents": 2499
+        },
+        {
+          "value": "XX-Large",
+          "sku": "SQ8075607",
+          "cents": 2499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/a875581e-28a3-4498-97b4-c069c1e73685/IMG_1307.JPEG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/54747f9c-114c-4036-b3e4-bea9dae32b00/Screenshot+2026-04-23+at+1.42.43%E2%80%AFPM.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/0c960f1d-587f-44f3-a045-9fb3c5dbf493/Screenshot+2026-04-23+at+1.41.56%E2%80%AFPM.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f963a7c9-3bea-42eb-b071-8ee534e463c5/Mary_Sticker.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/the-mary-t-shirt-1"
+    },
+    {
+      "slug": "tsavo-ochre-pumpkin-orange-beaded-basket",
+      "title": "Tsavo Ochre Pumpkin Orange Basket",
+      "category": "Baskets",
+      "short_description": "Warm and sun-soaked, our Tsavo Ochre Basket pairs a rich pumpkin orange with the beautiful texture of traditional Kenyan beadwork.",
+      "description": "Warm and sun-soaked, our Tsavo Ochre Basket pairs a rich pumpkin orange with the beautiful texture of traditional Kenyan beadwork. Its earthy, glowing color was inspired by the ochre tones of the East African landscape, creating a piece that feels bold without losing its natural warmth.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket represents both artistry and opportunity. Through this partnership, Rachel and African Farmers Market help connect Kenyan women with customers around the world while supporting income-generating opportunities through their craft.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Pumpkin orange\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-TO-POR",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/89cce726-5ba3-4faa-9864-3787a3339464/Tsavo+Ochre+Pumpkin+Orange.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/656b9433-68f9-4dc2-a229-e787c21505f7/Tsavo+Ochre+Pumpkin+Orange+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/63825e84-e613-45cc-83d2-5e6b19ec00ae/Tsavo+Ochre+Pumpkin+Orange+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/964ac113-9b6e-46fd-ae1f-f64fb946342a/Tsavo+Ochre+Pumpkin+Orange+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/tsavo-ochre-pumpkin-orange-beaded-basket"
+    },
+    {
+      "slug": "tsavo-olive-grinch-green-beaded-basket",
+      "title": "Tsavo Olive Grinch Green Basket",
+      "category": "Baskets",
+      "short_description": "Bright, earthy, and full of personality, our Tsavo Olive Basket takes a traditional Kenyan craft and gives it an unexpected burst of Grinch green.",
+      "description": "Bright, earthy, and full of personality, our Tsavo Olive Basket takes a traditional Kenyan craft and gives it an unexpected burst of Grinch green. The vivid shade brings out the texture of the intricate beadwork, creating a basket that feels playful, energetic, and completely at home as a statement piece.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the creativity and craftsmanship of the women who make them. Through this partnership, Rachel and African Farmers Market help connect their work with customers around the world while creating additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Grinch Green\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-TO-GRG",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d506f0c1-9f5a-4762-81e8-47996aa68486/Tsavo+Olive+Grinch+Green+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/75fbd503-ca04-47ad-958a-fba612d201b6/Tsavo+Olive+Grinch+Green+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/57bdf482-2de5-4546-8de1-d125c716f72a/Tsavo+Olive+Grinch+Green.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/7c59943e-4d7f-4742-8bd7-8029fd219134/Tsavo+Olive+Grinch+Green+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/tsavo-olive-grinch-green-beaded-basket"
+    },
+    {
+      "slug": "untitled-wilson-fantson-mpango",
+      "title": "Untitled",
+      "category": "Art",
+      "short_description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. This acrylic-on-canvas work reflects Wilson's surrealist approach to painting and his interest in creating imaginative, expressive interpretations of the human experience.",
+      "description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. This acrylic-on-canvas work reflects Wilson's surrealist approach to painting and his interest in creating imaginative, expressive interpretations of the human experience.\n\nArtist: Wilson Fantson Mpango\nMedium: Acrylic on Canvas\nYear: 2025\nDimensions: 42 × 44.5 cm (16.5 × 17.5 in)",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "NM-002",
+          "cents": 41000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9d703bd9-3e1e-425e-b878-4d5648d24e5c/NAS_Wilson_Mpango_Untitled_310.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/untitled-wilson-fantson-mpango"
+    },
+    {
+      "slug": "uvuvi-benard-omondi",
+      "title": "Uvuvi",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring a vibrant fishing scene with figures near the water, a large green fish in the foreground, and a glowing golden circle above the richly layered composition.",
+      "description": "Original artwork by Benard Omondi featuring a vibrant fishing scene with figures near the water, a large green fish in the foreground, and a glowing golden circle above the richly layered composition.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-013",
+          "cents": 55000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/370470e6-b0c8-46b1-a4f1-4ea8e4f8848d/BO_works_13.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/uvuvi-benard-omondi"
+    },
+    {
+      "slug": "vigango-benard-omondi",
+      "title": "Vigango",
+      "category": "Art",
+      "short_description": "Original artwork by Benard Omondi featuring two tall, stylized carved figures set against a richly layered landscape of water, trees, vegetation, and warm earth-toned color.",
+      "description": "Original artwork by Benard Omondi featuring two tall, stylized carved figures set against a richly layered landscape of water, trees, vegetation, and warm earth-toned color.\n\nDimensions: 35.4\" × 39.3\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "BO-011",
+          "cents": 65000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6b545e64-57ca-4266-bb14-8e1649a0b570/BO_works_11.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/vigango-benard-omondi"
+    },
+    {
+      "slug": "watamu-tide-blue-beaded-basket",
+      "title": "Watamu Tide Blue Basket",
+      "category": "Baskets",
+      "short_description": "Cool, calming, and rich with color, our Watamu Tide Basket takes its inspiration from the brilliant blue waters along Kenya’s Indian Ocean coast.",
+      "description": "Cool, calming, and rich with color, our Watamu Tide Basket takes its inspiration from the brilliant blue waters along Kenya’s Indian Ocean coast. Its vivid blue beadwork and handwoven texture bring a refreshing coastal feel to the home while still carrying the warmth and character of something made entirely by hand.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the artistry behind traditional basket weaving. Through this partnership, Rachel and African Farmers Market help connect these women with customers around the world while creating additional income-generating opportunities through their craft.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Blue\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-WT-BLU",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9d4e07a1-547c-4333-90fd-c2feec437c86/Watamu+Tide+Blue.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/e24fbfdf-2518-4250-b4ad-7267a315c0b4/Watamu+Tide+Blue+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/eb9102e3-5230-42eb-8e33-6aed3695d479/Watamu+Tide+Blue+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/adb8925d-616d-48ed-adba-2624bb303d22/Watamu+Tide+Blue+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/watamu-tide-blue-beaded-basket"
+    },
+    {
+      "slug": "whole-cloves",
+      "title": "Whole Cloves",
+      "category": "Spices",
+      "short_description": "Bold, fragrant, and intensely aromatic, our whole cloves bring deep warmth and complexity to both sweet and savory recipes. Perfect for steeping in teas, simmering in sauces and curries, seasoning meats, infusing beverages, and adding rich spice to baked…",
+      "description": "Bold, fragrant, and intensely aromatic, our whole cloves bring deep warmth and complexity to both sweet and savory recipes. Perfect for steeping in teas, simmering in sauces and curries, seasoning meats, infusing beverages, and adding rich spice to baked goods and holiday recipes.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-WCL-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/ee261edb-050d-4f61-a98c-e7caa4194b92/whole+cloves+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/385ad9c1-8c47-4ed8-8d53-68c3fc07f926/whole+cloves+back.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/whole-cloves"
+    },
+    {
+      "slug": "whole-cumin",
+      "title": "Whole Cumin",
+      "category": "Spices",
+      "short_description": "Earthy, warm, and wonderfully aromatic, our whole cumin seeds bring a deep, savory flavor to a wide variety of dishes. Toast them to release their rich aroma or add them whole to curries, rice dishes, soups, stews, vegetables, marinades, and spice blends.",
+      "description": "Earthy, warm, and wonderfully aromatic, our whole cumin seeds bring a deep, savory flavor to a wide variety of dishes. Toast them to release their rich aroma or add them whole to curries, rice dishes, soups, stews, vegetables, marinades, and spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-WCU-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d78c95eb-cd08-4fac-a12e-e1492f4d6b8c/whole+cumin+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/cf3ca78a-6132-4508-b0a5-a2e17a003e23/whole+cumin+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/whole-cumin"
+    },
+    {
+      "slug": "whole-red-pepper",
+      "title": "Whole Red Pepper",
+      "category": "Spices",
+      "short_description": "Bold, vibrant, and full of flavor, our whole red peppers bring a warm, spicy kick to your cooking. Use them whole to infuse soups, stews, sauces, and curries, or crush and grind them to add heat and depth to marinades, spice blends, vegetables, and your…",
+      "description": "Bold, vibrant, and full of flavor, our whole red peppers bring a warm, spicy kick to your cooking. Use them whole to infuse soups, stews, sauces, and curries, or crush and grind them to add heat and depth to marinades, spice blends, vegetables, and your favorite savory dishes.\n\nSize: 4 oz\nSourced from: Tanzania",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-SP-WRP-04",
+          "cents": 1299
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5b7b3024-5408-440f-9ec7-2a14f88ef713/whole+red+pepper+front.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f2260623-f09a-4afb-ae54-a01724c3362c/whole+red+pepper+back.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/whole-red-pepper"
+    },
+    {
+      "slug": "zanzibar-dawn-pastel-monitor-lizard",
+      "title": "Zanzibar Dawn Pastel Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Soft, colorful, and full of personality, our Zanzibar Dawn Monitor Lizard takes its name from the dreamy colors of daybreak along the Tanzanian coast.",
+      "description": "Soft, colorful, and full of personality, our Zanzibar Dawn Monitor Lizard takes its name from the dreamy colors of daybreak along the Tanzanian coast. Its mix of gentle pastel tones gives this handcrafted piece a lighter, more whimsical feel while still making a beautiful statement.\n\nHandcrafted in Tanzania, its long silhouette looks especially fun stretched across a bookshelf, console, or table. Each one carries the individual touches of the artisan who made it, so eye color, color placement, and detailing may vary slightly from the photos, making every monitor truly one of a kind.\n\nColors: Pastel & multicolor\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-ZDP",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/6d196fc8-bcc9-4f29-ab84-fe77d6924d3f/Zanzibar+Dawn+Pastel+Colorful+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9b3b56d8-63c9-4e14-ab25-09977f56aab3/Zanzibar%2BDawn%2BPastel%2BColorful%2Btop.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d390405e-a548-4a71-987b-3f4b845d6342/Zanzibar+Dawn+Pastel+Colorful+head.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/zanzibar-dawn-pastel-monitor-lizard"
+    },
+    {
+      "slug": "zanzibar-hibiscus-pink-beaded-basket",
+      "title": "Zanzibar Hibiscus Pink Basket",
+      "category": "Baskets",
+      "short_description": "Bright, joyful, and blooming with color, our Zanzibar Hibiscus Basket takes its name from the vivid tropical flowers found along the East African coast.",
+      "description": "Bright, joyful, and blooming with color, our Zanzibar Hibiscus Basket takes its name from the vivid tropical flowers found along the East African coast. Its rich pink beadwork brings warmth and personality into a room, creating a piece that feels cheerful, artistic, and unmistakably handmade.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket represents generations of craftsmanship while creating meaningful income-generating opportunities for the women who make them. Through Rachel’s partnership with African Farmers Market, their artistry can reach homes far beyond Kenya.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Pink\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-BAS-ZH-PNK",
+          "cents": 3800
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/b8a7b8ba-feec-4b23-8ba0-755374ad5003/Zanzibar+Hibiscus+Pink.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/5a0cc185-7367-42c9-baa1-ec5c6f62cddd/Zanzibar+Hibiscus+Pink+1.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/83311ce6-084f-4915-926a-eded7629dc2a/Zanzibar+Hibiscus+Pink+2.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/d4c42cbb-3847-4571-b36f-2577c52c4408/Zanzibar+Hibiscus+Pink+3.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/zanzibar-hibiscus-pink-beaded-basket"
+    },
+    {
+      "slug": "zanzibar-water-monitor-lizard",
+      "title": "Zanzibar Water Monitor Lizard",
+      "category": "Toys & games",
+      "short_description": "Cool blues and vivid greens give our Zanzibar Water Monitor Lizard a refreshing, tropical feel inspired by the waters and lush landscape of Zanzibar.",
+      "description": "Cool blues and vivid greens give our Zanzibar Water Monitor Lizard a refreshing, tropical feel inspired by the waters and lush landscape of Zanzibar. Handcrafted in Tanzania, its striking color combination and wonderfully quirky shape make it an eye-catching piece for a shelf, desk, or collection of African art.\n\nBecause each monitor is individually handcrafted, eye color and detailing may vary slightly from the photos, giving every piece its own unique personality.\n\nColors: Blue & green\nLength: 21.46 inches",
+      "option": null,
+      "variants": [
+        {
+          "value": null,
+          "sku": "AFM-ANI-MON-ZWM",
+          "cents": 3000
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/dfe604e4-2293-415d-a1cc-489ab3f52da8/Zanzibar+Water+Blue%3AGreen+blue+side.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/42013af8-0ad7-4b66-ad7f-46ee3da209d3/Zanzibar+Water+Blue%3AGreen+top.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/f9a22d66-02cd-436a-bf45-576d225790de/Zanzibar+Water+Blue%3AGreen+head.PNG?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/e8a6d9b6-7c02-472e-a4a7-517a7b3c0e45/Zanzibar+Water+Blue%3AGreen+green+side.PNG?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/zanzibar-water-monitor-lizard"
+    }
+  ]
+}

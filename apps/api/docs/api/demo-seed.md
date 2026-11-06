@@ -20,12 +20,12 @@
 
 | Part | Contents |
 |---|---|
-| AFM catalog | 72 products, 48 size and scent variants (jars, candles), brands, in-store EAN-13s, 4 till-only products. Sales tax 7 % as the default VAT group. Three warehouses: "AFM store" (default store), "Market stall" (store), and "Asheville warehouse" with 2 sections and 48 bins. Stock levels with minimum and maximum. 6 products are below their minimum in the store, 5 are sold out, and 2 go below zero through till sales. |
+| AFM catalog | AFM's real store (africanfarmersmarketonline.com, with AFM's consent): 75 products and 96 variants (print, sticker and T-shirt options) from `src/demo/afm_catalogue.json`, made by `scripts/afm-catalogue.mjs` with AFM's titles, descriptions and USD prices. Every product sits in one of 10 categories (Honey, Coffee, Tea, Spices, Baskets, Toys & games, Art, Books, Apparel, Stickers), grouped as AFM's category pages group them. In-store EAN-13s, 4 till-only products (two baskets, two spices). With `--images` (staging), AFM's photos too. AFM's whole-bean coffee gets stock only from the farm's lots. Sales tax 7 % as the default VAT group. Three warehouses: "AFM store" (default store), "Market stall" (store), and "Asheville warehouse" with 2 sections and 48 bins. Stock levels with minimum and maximum. Some products are below their minimum in the store, 5 are sold out, and 2 original paintings go below zero through till sales. |
 | AFM customers | 15 businesses (two contacts each) and 25 households (one contact each), all with US addresses and `.test` emails. |
-| AFM orders | Office orders in every status: draft, open, completed, cancelled, partially returned and returned. Web orders that are paid and shipped, still waiting for payment, failed, refunded and cancelled, or partly refunded. About 120 till orders. Honey orders spread over 90 days; orders with farm coffee stay in the last week. |
+| AFM orders | Office orders in every status: draft, open, completed, cancelled, partially returned and returned. Web orders that are paid and shipped, still waiting for payment, failed, refunded and cancelled, or partly refunded. About 120 till orders. Catalogue orders spread over 90 days; orders with farm coffee stay in the last week. |
 | AFM invoices | From completed orders: drafts, sent, partly paid, overdue (due 30 days after sending) and paid. Three paid invoices are credited by a credit note. Plus three direct invoices: one draft and two cancelled. |
 | AFM pricing | A purchase discount group with two discounts. Three special offers: one running, one starting in three weeks, and one always on. |
-| AFM lots | Honey lots in every passport state: 4 published, 2 with a draft passport, 1 in quarantine and 1 recalled (both published, so the public page shows the banner), and 1 expired. Plus two received coffee lots, published. |
+| AFM lots | Lots of AFM's food in every passport state: Mary's Tanzanian Wildflower Honey (13 oz and 7 oz, from the Illundo beekeepers), Roselle and Kizazi tea, Rift Valley coffee, cardamom. 4 published, 2 with a draft passport, 1 honey lot in quarantine and 1 recalled (both published, so the public page shows the banner), and 1 expired. Passport text comes from AFM's own descriptions. Plus the farm's received coffee lots (`AFM-CF-…`) on AFM's Africa's Wildest Whole Bean Coffee, published. |
 | AFM tills | "AFM counter" and "Market stall", four cashiers (Riley is inactive), a back-office safe. Shifts over the last 7 days: 8 closed, two short and one over, plus one open on the counter now. The stall has no open shift. Cash and card sales, three of them at an old price (price mismatch). |
 | AFM settings | US notes and coins for drawer counts. A revoked app key. Two webhook endpoints on `example.com`, one inactive, made last so the seed fires no delivery. |
 | RUAHA farm | The farm demo (`farm_demo.md`), plus three villages (Kitowo, Lugoda, Mwangeza), an officer for each, a second Mgama officer, and Hamisi, who holds two roles (ops and Ilundo officer). 60 people in 47 households with farms and plots, about 110 crop cycles over four seasons in every status, expected and actual harvests with revisions. About 70 % are verified by ops. |
@@ -47,7 +47,7 @@
 
 ## Not seeded (no route or no service on staging)
 
-- Product images, passport banners and certificate files, farm plot documents and bug reports: staging has no file storage.
+- Product images only with `seed-demo --images` and file storage (staging's own B2 bucket, `deploy/staging/README.md` "Turning on file uploads"). Passport banners, certificate files, farm plot documents and bug reports: never.
 - The invoice PDF: staging has no renderer.
 - A till pairing code: it is one-time and lasts 10 minutes. Make one from the office.
 - Demand that is matched, closed or cancelled, an inactive buyer, a disputed record: no route sets these.

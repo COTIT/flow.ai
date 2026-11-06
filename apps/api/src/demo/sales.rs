@@ -545,20 +545,13 @@ async fn pricing(
         )
         .await?;
     }
-    let pick = |name: &str| {
-        catalog
-            .products
-            .iter()
-            .find(|p| p.name == name)
-            .map(|p| p.id.clone())
-            .unwrap_or_default()
-    };
+    let pick = |slug: &str| catalog.by_slug(slug).map(|p| p.id.clone());
     for body in [
-        json!({ "product_id": pick("Hot honey 12 oz"), "type": "percentage", "value": 15,
+        json!({ "product_id": pick("tanzanian-wildflower-honey-7oz")?, "type": "percentage", "value": 15,
                 "from_date": days_ago(0), "to_date": days_ago(-14) }),
-        json!({ "product_id": pick("Gift box: breakfast"), "type": "percentage", "value": 20,
+        json!({ "product_id": pick("kizazi-tea")?, "type": "percentage", "value": 20,
                 "from_date": days_ago(-21), "to_date": days_ago(-35) }),
-        json!({ "product_id": pick("Honey stix, 20 pack"), "type": "percentage", "value": 10,
+        json!({ "product_id": pick("ground-black-pepper")?, "type": "percentage", "value": 10,
                 "always_active": true }),
     ] {
         api.post(&shop.at("/erp/special-offers"), body, &shop.owner)

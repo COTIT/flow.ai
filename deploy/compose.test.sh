@@ -18,7 +18,7 @@ value() {
   local env_file="$1" args=()
   shift
   while [[ "$1" != -- ]]; do args+=(-f "$1"); shift; done
-  docker compose "${args[@]}" --env-file "$env_file" --profile cli config --format json \
+  docker compose "${args[@]}" --env-file "$env_file" --profile cli --profile seed config --format json \
     | python3 -c "import json,sys; print(json.load(sys.stdin)['services']['$2'].get('environment',{}).get('$3') or '')"
 }
 
@@ -57,5 +57,35 @@ done
 docker compose -f "${on[0]}" -f "${on[1]}" -f "${on[2]}" --env-file "$t/prod.env" config --format json \
   | python3 -c "import json,sys; s=json.load(sys.stdin)['services']['api']['secrets']; n={x['source'] for x in s}; sys.exit(0 if {'b2_uploads_key','stripe_secret_key','database_url'} <= n else 1)" \
   || fail "api secrets lost in the merge"
+
+# Staging uploads: its own bucket through the same kind of overlay. Off without it; with it the
+# API and the seed get the bucket and key file, the seed fetches photos, and the shop and office
+# CSP allow the endpoint. Production's files never name the staging bucket.
+[[ -z "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- api B2_UPLOADS_BUCKET)" ]] || fail "staging uploads on by default"
+[[ -z "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop FILES_ORIGIN)" ]] || fail "staging FILES_ORIGIN set by default"
+if docker compose -f "$s/docker-compose.staging.yml" -f "$s/docker-compose.uploads.yml" \
+  --env-file "$t/staging.env" config -q 2> "$t/err"; then fail "staging uploads without a bucket parsed"; fi
+grep -qE "set B2_UPLOADS_(BUCKET|KEY_ID) in .env.staging" "$t/err" || fail "unclear error: $(cat "$t/err")"
+printf 'B2_UPLOADS_BUCKET=genesy-staging-files\nB2_UPLOADS_KEY_ID=005stg\n' >> "$t/staging.env"
+son=("$s/docker-compose.staging.yml" "$s/docker-compose.stripe.yml" "$s/docker-compose.uploads.yml")
+sv() { value "$t/staging.env" "${son[@]}" -- "$@"; }
+[[ "$(sv api B2_UPLOADS_BUCKET)" == genesy-staging-files ]] || fail "staging bucket not passed"
+[[ "$(sv api B2_UPLOADS_APPLICATION_KEY_FILE)" == /run/secrets/b2_uploads_key ]] || fail "staging key file not passed"
+[[ "$(sv seed B2_UPLOADS_KEY_ID)" == 005stg ]] || fail "staging seed has no uploads"
+[[ "$(sv api PAYMENTS_PROVIDER)" == stripe ]] || fail "staging uploads overlay dropped stripe"
+for app in shop office; do
+  [[ "$(sv $app FILES_ORIGIN)" == https://s3.eu-central-003.backblazeb2.com ]] || fail "staging $app FILES_ORIGIN"
+done
+docker compose -f "${son[0]}" -f "${son[1]}" -f "${son[2]}" --env-file "$t/staging.env" --profile seed config --format json \
+  | python3 -c "import json,sys; s=json.load(sys.stdin)['services']; n={x['source'] for x in s['api']['secrets']}; sys.exit(0 if s['seed']['command']==['seed-demo','--images'] and {'b2_uploads_key','stripe_secret_key','database_url'} <= n else 1)" \
+  || fail "staging seed command or api secrets wrong"
+! grep -rq "genesy-staging" "$p" || fail "production names a staging bucket"
+# lib.sh chains the overlay for staging exactly when the key file and the overlay both exist.
+lib="$t/root/deploy" && mkdir -p "$lib/staging/secrets" && cp "$HERE/ops/lib.sh" "$lib/" \
+  && cp "$s/docker-compose.uploads.yml" "$lib/staging/" && touch "$lib/staging/.env.staging"
+chain() { GENESY_ROOT="$t/root" bash -c ". '$lib/lib.sh' && env_setup staging && printf '%s ' \"\${COMPOSE[@]}\""; }
+[[ "$(chain)" != *uploads* ]] || fail "staging uploads chained without a key"
+touch "$lib/staging/secrets/b2_uploads_key"
+[[ "$(chain)" == *"$lib/staging/docker-compose.uploads.yml"* ]] || fail "staging uploads not chained"
 
 echo "compose.test.sh: all passed"

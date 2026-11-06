@@ -239,7 +239,7 @@ No code: Resend takes SMTP, so `secrets/smtp_url` becomes `smtps://resend:<API k
 
 ## Turning on file uploads
 
-Product images, documents and farm photos go to the existing production B2 bucket, under `genesy/<workspace>/…`. Until this is done, file routes answer 503. Staging stays without uploads, so demo files never land in the production bucket.
+Product images, documents and farm photos go to the existing production B2 bucket, under `genesy/<workspace>/…`. Until this is done, file routes answer 503. Staging has its own bucket and key (`../staging/README.md`, "Turning on file uploads"), so demo files never land in the production bucket.
 
 The bucket gets **two keys that can't see each other's files**:
 

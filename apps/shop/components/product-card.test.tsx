@@ -29,6 +29,7 @@ const product: StorefrontProduct = {
   available_stock: "7.000",
   stock_status: "in_stock",
   labels: [],
+  category: null,
   passport: null,
   images: [],
   variants: [],

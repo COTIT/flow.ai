@@ -41,6 +41,11 @@ export interface ProductResource {
   brand: string | null;
   business_price: string;
   business_price_incl: string;
+  /**
+     * Main category (`/erp/product-categories`), same workspace; null = none (Genesy addition).
+     * @nullable
+     */
+  category_id: string | null;
   /** @nullable */
   country_of_origin: string | null;
   created_at: string;

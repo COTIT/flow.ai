@@ -6,7 +6,10 @@ use axum::http::Method;
 use serde_json::json;
 use uuid::Uuid;
 
-use super::{Shop, farm::Ruaha};
+use super::{Shop, catalog::Catalog, farm::Ruaha};
+
+/// AFM's whole-bean coffee: the product the farm's packed bags are received as.
+pub const COFFEE: &str = "africas-wildest-tanzanian-whole-bean-coffee";
 use crate::{error::AppError, farm_demo::text};
 
 /// Verified coffee harvests of Ilundo the seed leaves unbought.
@@ -23,8 +26,9 @@ pub async fn seed(
     shop: &Shop<'_>,
     r: &Ruaha,
     store: &str,
-    depot: &str,
+    catalog: &Catalog,
 ) -> Result<Supplied, AppError> {
+    let depot = catalog.depot.as_str();
     let api = shop.api;
     let ws_r = |tail: &str| format!("/workspace/{}{tail}", r.ws);
     let fields = json!(["village", "farmer_count", "harvest_window"]);
@@ -95,17 +99,9 @@ pub async fn seed(
         .await?;
     let r_store = text(&r_store, "warehouse_id")?;
 
-    let coffee_cents = 1450;
-    let coffee = api
-        .post(
-            &shop.at("/products"),
-            json!({ "name": "Ruaha coffee 250 g, whole bean", "price": super::dollars(coffee_cents),
-                    "brand": "Ruaha Coffee Co-op", "ean13": super::ean13(999),
-                    "description": "Arabica from smallholders in Ilundo, Kitowo and Lugoda, Tanzania. Every bag traces to its village lot." }),
-            &shop.owner,
-        )
-        .await?;
-    let coffee_id = text(&coffee, "product_id")?;
+    // The farm's bags are sold as AFM's own whole-bean coffee.
+    let coffee = catalog.by_slug(COFFEE)?;
+    let (coffee_id, coffee_cents) = (coffee.id.clone(), coffee.cents);
 
     let mut public_code = String::new();
     for (n, (village_id, code, harvests)) in r.coffee.iter().enumerate() {

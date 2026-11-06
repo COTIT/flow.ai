@@ -25,6 +25,11 @@ export interface ProductRequest {
      * @nullable
      */
   brand?: string | null;
+  /**
+     * Main category (`/erp/product-categories`), same workspace; null = none.
+     * @nullable
+     */
+  category_id?: string | null;
   /** @nullable */
   country_of_origin?: string | null;
   /** @nullable */

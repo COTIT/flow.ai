@@ -16,10 +16,11 @@ export const PORTS = {
   till: 4303 + OFFSET,
   landing: 4304 + OFFSET,
   mail: 2525 + OFFSET,
+  files: 55410 + OFFSET,
 }
 export const URLS = Object.fromEntries(
   Object.entries(PORTS)
-    .filter(([name]) => name !== "postgres" && name !== "mail")
+    .filter(([name]) => !["postgres", "mail", "files"].includes(name))
     .map(([name, port]) => [name, `http://127.0.0.1:${port}`])
 )
 
@@ -40,6 +41,14 @@ export const DB = "genesy"
 /** Copy of the freshly seeded database, for `stack:reset`. */
 export const SEED_DB = "genesy_seed"
 export const DATABASE_URL = `postgres://postgres@127.0.0.1:${PORTS.postgres}/${DB}`
+
+/** The stack's local S3 store (Garage v2.4.1, 2026-09-08): stack only; staging and production use B2. */
+export const FILES_CONTAINER = `genesy-e2e-files-${OFFSET}`
+export const FILES_IMAGE =
+  "dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020"
+export const FILES_BUCKET = "genesy-e2e"
+/** Where the API writes and browsers read signed links (one origin: the shop's CSP img-src). */
+export const FILES_ORIGIN = `http://127.0.0.1:${PORTS.files}`
 
 export const readState = () => (existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : null)
 export function writeState(state) {
@@ -128,6 +137,12 @@ export function apiEnv(state) {
     SIGNUP_ENABLED: "true",
     SKIP_BOOT_MIGRATIONS: "true",
     CREDENTIALS_KEY: state.credentialsKey,
+    // The stack's own Garage: product images and other uploads work as on staging.
+    B2_UPLOADS_ENDPOINT: FILES_ORIGIN,
+    B2_UPLOADS_REGION: "garage",
+    B2_UPLOADS_BUCKET: FILES_BUCKET,
+    B2_UPLOADS_KEY_ID: state.files.keyId,
+    B2_UPLOADS_APPLICATION_KEY: state.files.secret,
     // Every spec logs in from 127.0.0.1: the per-IP limits would lock the suite out.
     RATE_LIMIT_BURST: "10000",
     RATE_LIMIT_REPLENISH_SECS: "1",

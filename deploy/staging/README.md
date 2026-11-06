@@ -17,7 +17,8 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 
 - No real payment provider. `PAYMENTS_PROVIDER=fake`, so checkout links go to `pay.fake.test`.
 - No outgoing mail. Every mail lands in Mailpit.
-- No uploads bucket, no PDF renderer. Those routes answer 503, as designed.
+- No PDF renderer: those routes answer 503, as designed. File uploads answer 503 too until "Turning on file uploads" is done; staging then uses its own B2 bucket, never production's.
+- No database backups to B2: the nightly backup stays on the VPS (`../ops/README.md`).
 - Field is built with `VITE_FEATURE_RESOURCES=on` (equipment, loans, requests) and the demo banner.
 - No prod secret, ever.
 
@@ -28,6 +29,7 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | File                         | What                                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------------ |
 | `docker-compose.staging.yml` | The stack, with Traefik labels                                                       |
+| `docker-compose.uploads.yml` | File uploads: staging's own B2 bucket, added by `deploy.sh` once `secrets/b2_uploads_key` exists |
 | `docker-compose.local.yml`   | Local override: no Traefik, ports on `127.0.0.1:18080` and `18100`–`18103`           |
 | `.env.staging.example`       | Every variable, no secrets. Copy it to `.env.staging` on the VPS.                    |
 | `secrets/`                   | Secret files on the VPS only. Git ignores everything in it.                          |
@@ -182,6 +184,23 @@ Staging runs the in-process fake until this is done. The staging image keeps deb
 
 Mail on staging stays on Mailpit; Resend is production only.
 
+## Turning on file uploads
+
+Product images (the demo's AFM photos too) go to staging's own private B2 bucket, under `genesy/<workspace>/…`. It mirrors production (`../production/README.md`, "Turning on file uploads") with a bucket and key of its own:
+
+| Key name | Bucket | File name prefix | Capabilities |
+| --- | --- | --- | --- |
+| `genesy-staging-uploads` | the staging bucket (`genesy-staging-files-…`, region `eu-central-003`) | `genesy/` | `listBuckets, readFiles, writeFiles, deleteFiles` |
+
+1. **On the VPS:** write the application key (asked without echo): `cd /srv/genesy-staging && deploy/set-provider-keys.sh staging b2-uploads`.
+2. **In `.env.staging`:** set `B2_UPLOADS_BUCKET=<bucket>` and `B2_UPLOADS_KEY_ID=<key ID>`. The endpoint and region default to `eu-central-003`.
+3. **Restart:** `deploy/deploy.sh staging compose up -d --wait api shop office`. `deploy.sh` now adds `docker-compose.uploads.yml`. It gives the API and the `seed` service the bucket and key, runs the seed as `seed-demo --images`, and sets `FILES_ORIGIN` (the shop's and office's image CSP) to the bucket's endpoint.
+4. **Check it:** upload a product image in the office and see it in the shop.
+
+**AFM's photos.** `seed-demo --images` fetches them one at a time from AFM's image CDN and keeps a copy in the bucket under `genesy/demo-cache/afm/` (a sha256 of the URL). Later reseeds read the copy and never need AFM. If AFM can't be reached and no copy exists, those products are seeded without a photo and one stderr line gives the count. The rest of the seed is unchanged. `down -v` doesn't touch the bucket, so the copies survive a reset. A reset leaves the old workspaces' files in the bucket; delete `genesy/` there now and then if it grows.
+
+To turn uploads off, move `secrets/b2_uploads_key` out of `secrets/` and restart the same way.
+
 ## Reset
 
 This wipes the staging database and every caught mail, starts clean, then reseeds:
@@ -207,7 +226,7 @@ After the first deploy, and after each reset:
 deploy/deploy.sh staging compose --profile seed run --rm seed
 ```
 
-This runs `genesy-360-api seed-demo`, which fills every app with demo data: about 70 products, 300 orders, 40 invoices, a week of till shifts, and 60 farmers over four seasons (full list: `apps/api/docs/api/demo-seed.md`). It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that.
+This runs `genesy-360-api seed-demo`, which fills every app with demo data: AFM's real catalogue (75 products in 10 categories, with photos once file uploads are on), 300 orders, 40 invoices, a week of till shifts, and 60 farmers over four seasons (full list: `apps/api/docs/api/demo-seed.md`). It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that.
 
 It prints a logins table (`app | role | login | secret | path`), then the storefront app key, sample paths (passports, shop orders) and `seeded in N.N s`. The passwords, PINs and keys are new on every run and are printed only this once, so save them somewhere safe before sharing them.
 
