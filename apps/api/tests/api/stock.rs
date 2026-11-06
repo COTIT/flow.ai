@@ -174,11 +174,26 @@ async fn mutate_moves_the_level_and_writes_the_ledger(pool: PgPool) {
     let (status, res) = w
         .mutate(json!({ "warehouse_id": w.main, "mutation_value": 5, "reason": "count" }))
         .await;
-    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
-    let (status, _) = w
+    // The answer says where the change went and the row's level before and after it, read in
+    // the change's own transaction (a refetch could race a till sale).
+    let main = json!({ "id": w.main, "name": "Main" });
+    assert_eq!(
+        (status, res),
+        (
+            StatusCode::OK,
+            json!({ "message": "ok", "before": "0.00", "after": "5.00", "warehouse": main })
+        )
+    );
+    let (status, res) = w
         .mutate(json!({ "warehouse_id": w.main, "mutation_value": "-2.005", "reason": "sale" }))
         .await;
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        (status, res),
+        (
+            StatusCode::OK,
+            json!({ "message": "ok", "before": "5.00", "after": "2.99", "warehouse": main })
+        )
+    );
 
     assert_eq!(w.levels().await, [(w.main.clone(), None, s("2.99"))]);
     assert_eq!(
@@ -249,10 +264,13 @@ async fn http_mutate_never_takes_more_than_is_available(pool: PgPool) {
 #[sqlx::test]
 async fn zero_and_untracked_products_are_no_ops(pool: PgPool) {
     let w = world(pool).await;
-    let (status, _) = w
-        .mutate(json!({ "warehouse_id": w.main, "mutation_value": 0 }))
-        .await;
-    assert_eq!(status, StatusCode::OK);
+    // Nothing moves, so the answer carries no before/after: only `ok`.
+    for zero in [json!(0), json!("0.004")] {
+        let (status, res) = w
+            .mutate(json!({ "warehouse_id": w.main, "mutation_value": zero }))
+            .await;
+        assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    }
 
     let service = w
         .api
@@ -261,7 +279,7 @@ async fn zero_and_untracked_products_are_no_ops(pool: PgPool) {
             "product_id",
         )
         .await;
-    let (status, _) = w
+    let (status, res) = w
         .api
         .call(
             Method::POST,
@@ -270,7 +288,7 @@ async fn zero_and_untracked_products_are_no_ops(pool: PgPool) {
             &w.api.owner,
         )
         .await;
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
     let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM stock_movements")
         .fetch_one(&w.api.pool)
         .await
@@ -1421,10 +1439,16 @@ async fn a_retried_stock_change_moves_stock_once(pool: PgPool) {
         }
     };
     let body = json!({ "warehouse_id": w.main, "mutation_value": 3 });
+    let mut answers = Vec::new();
     for _ in 0..2 {
         let (status, res) = keyed(body.clone(), "k-stock-1").await;
         assert_eq!(status, StatusCode::OK, "{res:?}");
+        answers.push(res);
     }
+    assert_eq!(
+        answers[0], answers[1],
+        "the replay answers the first before/after"
+    );
     assert_eq!(w.movements().await.len(), 1, "moved once");
     let (status, _) = keyed(
         json!({ "warehouse_id": w.main, "mutation_value": 4 }),

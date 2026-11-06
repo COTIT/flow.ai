@@ -37,6 +37,7 @@ import type {
   StockDeleteParams,
   StockListParams,
   StockMovementsParams,
+  StockMutated,
   StockNegativeParams,
   ValidationErrorBody
 } from '../model';
@@ -855,7 +856,7 @@ export const stockMutate = (
 ) => {
 
 
-      return apiRequest<MessageBody>(
+      return apiRequest<StockMutated>(
       {url: `/workspace/${workspace}/products/${product}/stocks`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: mutateStockRequest, signal

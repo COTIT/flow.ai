@@ -501,6 +501,35 @@ pub struct MutateDoc {
     meta: Option<Value>,
 }
 
+/// Answer of `POST /products/{id}/stocks`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = StockMutated,
+    description = "`ok`; when stock moved, also the row's level before and after the change and \
+        its warehouse, read in the change's transaction. A zero change or an untracked product \
+        answers only `{\"message\":\"ok\"}`."
+)]
+pub struct MutatedDoc {
+    /// Always `ok`.
+    message: String,
+    /// Level before the change, 2 decimals.
+    before: Option<String>,
+    /// Level after the change, 2 decimals.
+    after: Option<String>,
+    /// The warehouse the change went to.
+    warehouse: Option<MutatedWarehouseDoc>,
+}
+
+/// `warehouse` of a stock change's answer.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = StockMutatedWarehouse)]
+struct MutatedWarehouseDoc {
+    id: Uuid,
+    name: String,
+}
+
 /// One entry of `warehouses` in set-stock-levels / set-stock-requirements.
 #[allow(dead_code)]
 #[derive(ToSchema)]

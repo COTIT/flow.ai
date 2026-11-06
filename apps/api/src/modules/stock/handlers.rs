@@ -20,7 +20,7 @@ use crate::{
     modules::stock::{
         dto::{
             DeleteQuery, ListQuery, MoveBody, MoveDoc, MovementQuery, MutateBody, MutateDoc,
-            SetLevelsBody, SetLevelsDoc, SetRequirementsBody, SetRequirementsDoc,
+            MutatedDoc, SetLevelsBody, SetLevelsDoc, SetRequirementsBody, SetRequirementsDoc,
         },
         repo::ListFilter,
         resource::{ConfiguredDoc, MovementDoc, StockDoc, WithBinsDoc},
@@ -38,14 +38,14 @@ permissions! {
 
 type ProductPath = Path<(String, String)>;
 
-/// POST /products/{product}/stocks -> `{"message":"ok"}`.
+/// POST /products/{product}/stocks -> `{"message":"ok", before, after, warehouse}`.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/products/{product}/stocks", tag = "stock",
     operation_id = "stock_mutate", summary = "Add to or take from stock",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Kept for a day."),),
     request_body = MutateDoc,
     responses(
-        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 200, body = MutatedDoc, description = "Done: `ok`, plus `before`/`after`/`warehouse` when stock moved"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.mutate`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input, or Idempotency-Key reused for another request"),

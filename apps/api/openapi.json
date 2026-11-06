@@ -22527,6 +22527,61 @@
         ],
         "type": "object"
       },
+      "StockMutated": {
+        "description": "`ok`; when stock moved, also the row's level before and after the change and its warehouse, read in the change's transaction. A zero change or an untracked product answers only `{\"message\":\"ok\"}`.",
+        "properties": {
+          "after": {
+            "description": "Level after the change, 2 decimals.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "before": {
+            "description": "Level before the change, 2 decimals.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "description": "Always `ok`.",
+            "type": "string"
+          },
+          "warehouse": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StockMutatedWarehouse",
+                "description": "The warehouse the change went to."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "StockMutatedWarehouse": {
+        "description": "`warehouse` of a stock change's answer.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "StockMutationRequest": {
         "description": "Stock in (positive) or out (negative) of this lot at a warehouse.",
         "properties": {
@@ -72285,11 +72340,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MessageBody"
+                  "$ref": "#/components/schemas/StockMutated"
                 }
               }
             },
-            "description": "Done (`ok`)"
+            "description": "Done: `ok`, plus `before`/`after`/`warehouse` when stock moved"
           },
           "401": {
             "content": {

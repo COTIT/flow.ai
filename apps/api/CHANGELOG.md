@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `POST /products/{product}/stocks` says what it did (`docs/api/stock.md`, no migration): the 200 adds `before`, `after` (the row's level, 2 decimals) and `warehouse` `{id, name}`, read in the change's own transaction. Additive: `message` stays `ok`. A zero change or an untracked product still answers only `{"message":"ok"}`. Office uses it for "Added 10 at AFM store: now 16".
 - Lot guards (`docs/api/lots.md`, `stock.md`, `supply-chain.md`, `warehouses.md`, `webhooks.md`; no migration):
   - Status rules: released ↔ quarantine, either → recalled; recalled is final (`409 lot_status_final`), and POST can't start a lot recalled. Lots gain `next_statuses`. Each change emits `lot.status_changed`.
   - Recalled or held lots don't move: no stock into a recalled lot (`409 lot_recalled`; write-off and returns stay allowed, quarantine still takes goods in), no packing or dispatch from a recalled or quarantined lot (`409 lot_recalled` / `lot_quarantined`), all under the lot's row lock.
