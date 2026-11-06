@@ -310,7 +310,14 @@
       "set_requirements": "Kiwango cha chini kimewekwa"
     },
     "held": "Imehifadhiwa",
-    "available": "Inapatikana"
+    "available": "Inapatikana",
+    "batch": "Kundi {code}",
+    "noBatch": "Bila kundi",
+    "belowZeroWhy": "Hapa kumeuzwa zaidi ya kilichorekodiwa. Hesabu na urekebishe.",
+    "correctIt": "Rekebisha",
+    "nowAt": "Sasa {place}: {qty}",
+    "noneAt": "Bado hakuna kitu {place}.",
+    "batchesApart": "Hii inabadilisha akiba isiyo na kundi. Makundi ya hapa yanabadilishwa kwenye ukurasa wa kundi lao:"
   },
   "invoices": {
     "title": "Ankara",
@@ -710,7 +717,10 @@
       "cancelled": "Rasimu imeghairiwa.",
       "marked": "Hati ya mkopo imewekwa kama imepunguzwa.",
       "saved": "Maelezo yamehifadhiwa."
-    }
+    },
+    "stockAdded": "Umeongeza {qty} {place}: sasa {now}.",
+    "stockTaken": "Umetoa {qty} {place}: sasa {now}.",
+    "stockUnmoved": "Hakuna kilichobadilika: mabadiliko yalikuwa 0, au bidhaa hii haihifadhi akiba."
   },
   "images": {
     "title": "Picha",

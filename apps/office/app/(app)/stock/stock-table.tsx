@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import type { PaginatedStockResource } from "@genesy/api-client/model"
 import { Badge } from "@genesy/ui/components/badge"
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatQty } from "@genesy/ui/lib/format"
 import {
   CardState,
   ListCard,
@@ -22,6 +23,7 @@ import {
   PillLinks,
 } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
+import { BatchLink, BelowZeroWhy, inlineLink, lotOf } from "@/components/stock"
 
 /** Stock rows from `stock_list` or `stock_negative`, with the "all / below zero" switch. */
 export function StockTable({
@@ -39,6 +41,8 @@ export function StockTable({
   onPage: (page: number) => void
 }) {
   const t = useTranslations()
+  const locale = useLocale()
+  const qty = (v: string) => formatQty(v, locale)
   const columns = [
     { label: t("products.name") },
     { label: t("stock.warehouse") },
@@ -111,6 +115,10 @@ export function StockTable({
             <TableBody>
               {query.data.data.map((s) => {
                 const product = s.relationships.product
+                const warehouse = s.relationships.warehouse
+                const lot = lotOf(s.lot)
+                // The sign is read from the API's string, never computed.
+                const below = s.stock_lvl.startsWith("-")
                 return (
                   <TableRow key={s.id}>
                     <TableCell>
@@ -124,32 +132,48 @@ export function StockTable({
                       ) : null}
                     </TableCell>
                     <TableCell data-m="sub" className="text-muted-foreground">
-                      {s.relationships.warehouse?.name}
+                      {warehouse?.name}
+                      {lot ? (
+                        <>
+                          {" · "}
+                          <BatchLink lot={lot} />
+                        </>
+                      ) : null}
+                      {below && product && warehouse ? (
+                        <BelowZeroWhy>
+                          <Link
+                            className={inlineLink}
+                            href={`/products/${product.id}?change=${warehouse.id}#product-stock`}
+                          >
+                            {t("stock.correctIt")}
+                          </Link>
+                        </BelowZeroWhy>
+                      ) : null}
                     </TableCell>
-                    {/* Levels as the API prints them; the sign is read, never computed. */}
+                    {/* Levels as the API sends them, whole ones without decimals. */}
                     <TableCell
                       data-m="right"
                       className="text-right font-semibold tabular-nums"
                     >
-                      {s.stock_lvl.startsWith("-") ? (
+                      {below ? (
                         <Badge variant="red" data-dot="false">
-                          {s.stock_lvl}
+                          {qty(s.stock_lvl)}
                         </Badge>
                       ) : (
-                        s.stock_lvl
+                        qty(s.stock_lvl)
                       )}
                     </TableCell>
                     <TableCell
                       data-m="hide"
                       className="text-right tabular-nums"
                     >
-                      {s.reserved}
+                      {qty(s.reserved)}
                     </TableCell>
                     <TableCell
                       data-m="hide"
                       className="text-right tabular-nums"
                     >
-                      {s.available}
+                      {qty(s.available)}
                     </TableCell>
                   </TableRow>
                 )

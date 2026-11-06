@@ -48,7 +48,8 @@ pub async fn mutate(
     key: Option<Key>,
 ) -> Result<Answer, AppError> {
     let product = product(state, workspace_id, product_id).await?;
-    let slot = slot(state, workspace_id, product.id, m.warehouse_id, m.bin_id).await?;
+    let warehouse_id = m.warehouse_id;
+    let slot = slot(state, workspace_id, product.id, warehouse_id, m.bin_id).await?;
     let mut tx = state.db.begin().await?;
     if let Some(a) =
         idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
@@ -81,10 +82,26 @@ pub async fn mutate(
     {
         Mutated::Short { .. } => Err(AppError::field("mutation_value", NOT_AVAILABLE)),
         Mutated::OutOfRange => Err(AppError::field("mutation_value", OUT_OF_RANGE)),
-        Mutated::Done { .. } => {
-            idempotency::finish(&mut tx, workspace_id, key.as_ref(), &ok).await?;
+        Mutated::Done { before, after, .. } => {
+            // Where the change went and the row's level around it, read in this transaction so
+            // a till sale right after can't make the answer wrong. A replay sends the same.
+            let warehouse = warehouses::compact(&mut *tx, workspace_id, warehouse_id)
+                .await?
+                .ok_or(AppError::NotFound)?;
+            let done = Answer {
+                status: 200,
+                body: serde_json::json!({
+                    "message": "ok",
+                    "before": resource::qty(before),
+                    "after": resource::qty(after),
+                    "warehouse": { "id": warehouse.id, "name": warehouse.name },
+                })
+                .to_string()
+                .into_bytes(),
+            };
+            idempotency::finish(&mut tx, workspace_id, key.as_ref(), &done).await?;
             tx.commit().await?;
-            Ok(ok)
+            Ok(done)
         }
     }
 }

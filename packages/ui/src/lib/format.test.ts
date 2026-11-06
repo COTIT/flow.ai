@@ -4,6 +4,7 @@ import {
   formatDate,
   formatDateTime,
   formatDay,
+  formatQty,
   formatShare,
   formatTime,
 } from "./format"
@@ -14,6 +15,19 @@ describe("formatShare", () => {
     expect(formatShare(2550, "en")).toBe("25.5%")
     expect(formatShare(5, "en")).toBe("0.05%")
     expect(formatShare(2550, "nl")).toBe("25,5%")
+  })
+})
+
+describe("formatQty", () => {
+  it("drops the decimals of a whole quantity and keeps them otherwise, exactly", () => {
+    expect(formatQty("16.00", "en")).toBe("16")
+    expect(formatQty("-1.00", "en")).toBe("-1")
+    expect(formatQty("0.00", "en")).toBe("0")
+    expect(formatQty("1.50", "en")).toBe("1.50")
+    expect(formatQty("-0.25", "en")).toBe("-0.25")
+    expect(formatQty("1.50", "nl")).toBe("1,50")
+    expect(formatQty("1234.00", "en")).toBe("1,234")
+    expect(formatQty("12345678901234.01", "en")).toBe("12,345,678,901,234.01")
   })
 })
 

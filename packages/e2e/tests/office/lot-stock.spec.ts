@@ -65,7 +65,7 @@ test("change stock shows the stock per warehouse", async ({ page, api }) => {
   await expect(tile).toContainText("248.50")
   await expect(tile).toContainText("In stock")
   await expect(tile).toContainText("10.00")
-  await expect(tile).toContainText("Reserved")
+  await expect(tile).toContainText("Held")
   await expect(tile).toContainText("238.50")
   await expect(tile).toContainText("Available")
   await expect(dialog.getByText("Positive adds, negative takes out")).toBeVisible()

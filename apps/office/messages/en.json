@@ -287,7 +287,7 @@
     "warehouse": "Warehouse",
     "bin": "Bin",
     "level": "In stock",
-    "reserved": "Reserved",
+    "reserved": "Held",
     "minimum": "Minimum",
     "movements": "Stock movements",
     "noMovements": "No movements yet.",
@@ -310,7 +310,14 @@
       "set_requirements": "Minimum set"
     },
     "held": "Held",
-    "available": "Available"
+    "available": "Available",
+    "batch": "Batch {code}",
+    "noBatch": "No batch",
+    "belowZeroWhy": "More was sold here than was recorded. Count it and correct it.",
+    "correctIt": "Correct it",
+    "nowAt": "Now at {place}: {qty}",
+    "noneAt": "Nothing at {place} yet.",
+    "batchesApart": "This changes the stock without a batch. Batches here are changed on their batch page:"
   },
   "invoices": {
     "title": "Invoices",
@@ -710,7 +717,10 @@
       "cancelled": "Draft cancelled.",
       "marked": "Credit note marked as credited.",
       "saved": "Details saved."
-    }
+    },
+    "stockAdded": "Added {qty} at {place}: now {now}.",
+    "stockTaken": "Took {qty} from {place}: now {now}.",
+    "stockUnmoved": "Nothing moved: the change was 0, or this product doesn't keep stock."
   },
   "images": {
     "title": "Images",

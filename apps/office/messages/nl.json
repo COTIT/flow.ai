@@ -310,7 +310,14 @@
       "set_requirements": "Minimum ingesteld"
     },
     "held": "Gereserveerd",
-    "available": "Beschikbaar"
+    "available": "Beschikbaar",
+    "batch": "Partij {code}",
+    "noBatch": "Zonder partij",
+    "belowZeroWhy": "Hier is meer verkocht dan er geboekt stond. Tel het en corrigeer het.",
+    "correctIt": "Corrigeren",
+    "nowAt": "Nu in {place}: {qty}",
+    "noneAt": "Nog niets in {place}.",
+    "batchesApart": "Dit wijzigt de voorraad zonder partij. Partijen hier wijzig je op hun partijpagina:"
   },
   "invoices": {
     "title": "Facturen",
@@ -710,7 +717,10 @@
       "cancelled": "Concept geannuleerd.",
       "marked": "Creditnota gemarkeerd als gecrediteerd.",
       "saved": "Gegevens opgeslagen."
-    }
+    },
+    "stockAdded": "{qty} bijgeboekt in {place}: nu {now}.",
+    "stockTaken": "{qty} afgeboekt uit {place}: nu {now}.",
+    "stockUnmoved": "Er is niets verplaatst: de wijziging was 0, of dit product houdt geen voorraad bij."
   },
   "images": {
     "title": "Afbeeldingen",

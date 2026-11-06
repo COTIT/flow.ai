@@ -933,6 +933,8 @@ export * from './stockMovement';
 export * from './stockMovementMeta';
 export * from './stockMovementRelationships';
 export * from './stockMovementsParams';
+export * from './stockMutated';
+export * from './stockMutatedWarehouse';
 export * from './stockMutationRequest';
 export * from './stockNegativeParams';
 export * from './stockResource';

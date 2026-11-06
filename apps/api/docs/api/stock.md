@@ -58,6 +58,7 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
   - A level past ±1e15 is 422 "The stock level would be out of range." (the column holds 17 digits; Laravel answered 500).
   - A product that doesn't track stock (not physical, or `has_stock` off), or a zero change, is a no-op.
   - `reserved` in the body is ignored: reservations come with orders. Laravel also required `stock.reserve` for every mutate; that check isn't copied.
+- **Answer (200):** `{"message":"ok","before":"36.00","after":"46.00","warehouse":{"id","name"}}`: the changed row's level before and after (2 decimals) and its warehouse, read in the change's transaction, so a till sale a moment later can't make it wrong. A zero change or an untracked product moves nothing and answers only `{"message":"ok"}`. An `Idempotency-Key` replay answers the first change's `before`/`after`.
 
 ### `POST /products/{id}/set-stock-levels`
 
