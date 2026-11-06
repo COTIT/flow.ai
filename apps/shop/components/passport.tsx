@@ -5,7 +5,11 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 
-import type { PublicBlock, PublicLot } from "@genesy/api-client/model"
+import type {
+  PublicBlock,
+  PublicFarmerGroup,
+  PublicLot,
+} from "@genesy/api-client/model"
 import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
@@ -37,6 +41,44 @@ export function lotPlace(
     origin.country
   )
   return [origin.place, origin.region, country].filter(Boolean).join(", ")
+}
+
+/** A recalled batch: the red banner; on hold: a warning; released: nothing. Goes first. */
+export function LotWarning({ status, t, tp }: { status: string; t: T; tp: T }) {
+  return (
+    <>
+      {status === "recalled" ? (
+        <div
+          role="alert"
+          className="flex items-start gap-3.5 rounded-[20px] bg-[#b42318] px-5 py-[18px] text-white dark:bg-[#7a1a12]"
+        >
+          <TriangleAlertIcon aria-hidden className="size-7 shrink-0" />
+          <div>
+            <p className="text-lg font-bold">{tp("recalledTitle")}</p>
+            <p className="opacity-92">{tp("recalledBody")}</p>
+          </div>
+        </div>
+      ) : status === "quarantine" ? (
+        <Notice variant="warning" title={t("quarantine")} />
+      ) : null}
+    </>
+  )
+}
+
+/** "12 farmers · Harvested 1 Jul – 20 Jul": the API's own count (null below 3) and window. */
+export function groupLine(g: PublicFarmerGroup, t: T, locale: string) {
+  const day = (d: string) => formatDay(d, locale)
+  return [
+    // null below 3 farmers, for privacy: then no count at all.
+    g.farmers !== null && t("farmerCount", { count: g.farmers }),
+    g.harvest_start && g.harvest_end
+      ? t("harvested", { start: day(g.harvest_start), end: day(g.harvest_end) })
+      : g.harvest_start || g.harvest_end
+        ? t("harvestedOn", { date: day((g.harvest_start ?? g.harvest_end)!) })
+        : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
 }
 
 /**
@@ -83,20 +125,7 @@ export function Passport({
 
   return (
     <>
-      {lot.status === "recalled" ? (
-        <div
-          role="alert"
-          className="flex items-start gap-3.5 rounded-[20px] bg-[#b42318] px-5 py-[18px] text-white dark:bg-[#7a1a12]"
-        >
-          <TriangleAlertIcon aria-hidden className="size-7 shrink-0" />
-          <div>
-            <p className="text-lg font-bold">{tp("recalledTitle")}</p>
-            <p className="opacity-92">{tp("recalledBody")}</p>
-          </div>
-        </div>
-      ) : lot.status === "quarantine" ? (
-        <Notice variant="warning" title={t("quarantine")} />
-      ) : null}
+      <LotWarning status={lot.status} t={t} tp={tp} />
 
       <div className="grid grid-cols-12 gap-3 md:gap-4">
         <header
@@ -240,23 +269,7 @@ export function Passport({
                   <div className="min-w-0">
                     <p className="font-semibold">{g.village}</p>
                     <p className="text-[13px] text-muted-foreground">
-                      {[
-                        // null below 3 farmers, for privacy: then no count at all.
-                        g.farmers !== null &&
-                          t("farmerCount", { count: g.farmers }),
-                        g.harvest_start && g.harvest_end
-                          ? t("harvested", {
-                              start: day(g.harvest_start),
-                              end: day(g.harvest_end),
-                            })
-                          : g.harvest_start || g.harvest_end
-                            ? t("harvestedOn", {
-                                date: day((g.harvest_start ?? g.harvest_end)!),
-                              })
-                            : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {groupLine(g, t, locale)}
                     </p>
                   </div>
                 </li>

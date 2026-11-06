@@ -71,7 +71,7 @@ export default async function OrderPage({ params }: Props) {
             title={t(order.paid_at ? "refunded" : "cancelled")}
             action={
               <Link
-                href="/"
+                href="/shop"
                 data-slot="button"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >

@@ -30,7 +30,7 @@ export function EmptyCart() {
         description={t("emptyWhy")}
         action={
           <Link
-            href="/"
+            href="/shop"
             data-slot="button"
             className={buttonVariants({ size: "sm" })}
           >

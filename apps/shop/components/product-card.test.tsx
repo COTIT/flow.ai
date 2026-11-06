@@ -45,6 +45,22 @@ describe("ProductCard", () => {
     expect(html).toContain("Ilundo honey")
   })
 
+  it("names the category over the brand, and falls back to the brand", () => {
+    const tagged = renderToStaticMarkup(
+      <ProductCard
+        product={{ ...product, category: { id: "c1", name: "Honey" } }}
+        locale="en"
+        labels={labels}
+      />
+    )
+    expect(tagged).toContain(">Honey<")
+    expect(tagged).not.toContain(">Ilundo<")
+    const plain = renderToStaticMarkup(
+      <ProductCard product={product} locale="en" labels={labels} />
+    )
+    expect(plain).toContain(">Ilundo<")
+  })
+
   it("sold by size: shows the default size's price, not the product's 0", () => {
     const size = (id: string, price_gross: number, is_default: boolean) => ({
       id,

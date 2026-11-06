@@ -6,6 +6,12 @@ import process from "node:process"
 export const PORT_OFFSET = Number(process.env.E2E_PORT_OFFSET ?? 0)
 export const MOCK_PORT = 8199 + PORT_OFFSET
 export const MOCK_ORIGIN = `http://127.0.0.1:${MOCK_PORT}`
+/**
+ * File host for signed image links: its own origin, as Backblaze B2 is in production
+ * (https://s3.eu-central-003.backblazeb2.com), so the shop's CSP img-src is really exercised.
+ */
+export const FILES_PORT = 8198 + PORT_OFFSET
+export const FILES_ORIGIN = `http://127.0.0.1:${FILES_PORT}`
 /** Test-only app key; the mock refuses any other. Not a secret. */
 export const APP_KEY = "gsk_e2e_only_not_a_secret"
 /** The upstream body the mock sends with errors; it must never reach a page. */
@@ -20,9 +26,29 @@ export const PRODUCT = {
   failing: "55555555-5555-4555-8555-555555555555",
   /** Alone on catalogue page 2, with a name far longer than a card is wide. */
   long: "77777777-7777-4777-8777-777777777777",
+  /** AFM honey whose linked batch was recalled after the product listed it. */
+  recalledHoney: "afa00001-0000-4000-8000-000000000001",
+  /** AFM tea whose linked batch is on hold. */
+  heldTea: "afa00005-0000-4000-8000-000000000005",
   /** Accounts specs: the API refuses the shop's key as revoked (401) or short of a scope (403). */
   accountsKeyRevoked: "acc00401-0000-4000-8000-000000000401",
   accountsKeyNoScope: "acc00403-0000-4000-8000-000000000403",
+}
+
+/** AFM's shop categories, as `GET /storefront/categories` names them. */
+export const CATEGORY = {
+  honey: "c1000000-0000-4000-8000-000000000001",
+  coffee: "c1000000-0000-4000-8000-000000000002",
+  tea: "c1000000-0000-4000-8000-000000000003",
+  spices: "c1000000-0000-4000-8000-000000000004",
+  baskets: "c1000000-0000-4000-8000-000000000005",
+  toys: "c1000000-0000-4000-8000-000000000006",
+  art: "c1000000-0000-4000-8000-000000000007",
+  books: "c1000000-0000-4000-8000-000000000008",
+  apparel: "c1000000-0000-4000-8000-000000000009",
+  stickers: "c1000000-0000-4000-8000-00000000000a",
+  /** Valid shape, no such category: the API's empty list. */
+  unknown: "c1000000-0000-4000-8000-0000000000ff",
 }
 
 /** The long product's name, as the API sends it. */

@@ -25,3 +25,10 @@ export const goldChip =
 /** `.ph-honey`: the warm photo placeholder. */
 export const honey =
   "bg-[radial-gradient(120%_90%_at_30%_20%,#fbe7b4_0%,#e9bf6b_45%,#b98336_100%)]"
+
+/** Content-page hero: the card with a warm honey glow in its corner. */
+export const warm =
+  "bg-[radial-gradient(110%_130%_at_0%_0%,rgb(208_165_95/24%),transparent_62%)]"
+
+/** Body copy on content pages: readable line length. */
+export const prose = "max-w-[68ch] text-[15px] leading-relaxed"

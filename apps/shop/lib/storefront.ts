@@ -11,7 +11,12 @@ import {
   storefrontProductsGet,
   storefrontProductsList,
 } from "@genesy/api-client/endpoints/storefront"
-import type { CheckoutRequest, StorefrontOrder } from "@genesy/api-client/model"
+import { apiRequest } from "@genesy/api-client/mutator"
+import type {
+  CheckoutRequest,
+  StorefrontOrder,
+  StorefrontProduct,
+} from "@genesy/api-client/model"
 
 import "./api"
 import { isUuid, isPublicCode } from "./passport"
@@ -55,7 +60,9 @@ function options(): RequestOptions {
  */
 async function call<T>(
   path: string,
-  request: (options: RequestOptions) => Promise<T>
+  request: (options: RequestOptions) => Promise<T>,
+  /** What a 404 means instead of not-found, when the page can do without it. */
+  missing?: () => T
 ): Promise<T> {
   const opts = options()
   try {
@@ -63,6 +70,7 @@ async function call<T>(
   } catch (error) {
     const status = (error as { response?: { status?: number } }).response
       ?.status
+    if (status === 404 && missing) return missing()
     if (status === 404) notFound()
     console.error(
       `storefront: GET ${path} failed:`,
@@ -72,10 +80,52 @@ async function call<T>(
   }
 }
 
-export const listProducts = (page: number) =>
-  call("/storefront/products", (o) =>
-    storefrontProductsList({ page, page_size: PAGE_SIZE }, o)
+/** One shop category, with how many sellable products it holds. */
+// shortcut: hand-typed until GET /storefront/categories is in the generated client; then use its types.
+export type StorefrontCategory = {
+  id: string
+  name: string
+  description: string | null
+  product_count: number
+}
+/** A product as the categories API sends it: with its category. */
+export type CategorisedProduct = StorefrontProduct & {
+  category?: { id: string; name: string } | null
+}
+
+/**
+ * The shop's categories that have products for sale, by name. An API without the endpoint
+ * (404) means none: the shop opens without category tiles rather than as not-found.
+ */
+export const listCategories = cache(
+  async () =>
+    (
+      await call(
+        "/storefront/categories",
+        (o) =>
+          apiRequest<{ data: StorefrontCategory[] }>(
+            { url: "/storefront/categories", method: "GET" },
+            o
+          ),
+        () => ({ data: [] })
+      )
+    ).data
+)
+
+export const listProducts = async (page: number, category?: string) => {
+  // The category id goes into the query: only a UUID may.
+  if (category && !isUuid(category)) category = undefined
+  const list = await call("/storefront/products", (o) =>
+    storefrontProductsList(
+      // shortcut: `category` is cast in until the generated params know it.
+      { page, page_size: PAGE_SIZE, ...(category && { category }) } as {
+        page: number
+      },
+      o
+    )
   )
+  return list as Omit<typeof list, "data"> & { data: CategorisedProduct[] }
+}
 
 /** Per-request memo: generateMetadata and the page share one call. */
 export const getProduct = cache(async (id: string) => {
@@ -85,7 +135,7 @@ export const getProduct = cache(async (id: string) => {
     await call(`/storefront/products/${id}`, (o) =>
       storefrontProductsGet(id, o)
     )
-  ).data
+  ).data as CategorisedProduct
 })
 
 /** Orders and batch recalls change by the second: never served from the data cache. */

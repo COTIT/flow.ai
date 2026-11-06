@@ -22,7 +22,7 @@ export default async function CartPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className={h2}>{t("title")}</h1>
         <Link
-          href="/"
+          href="/shop"
           data-slot="button"
           className={buttonVariants({ variant: "ghost", size: "sm" })}
         >

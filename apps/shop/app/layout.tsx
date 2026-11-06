@@ -36,7 +36,7 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans antialiased", fontSans.variable)}
     >
-      <body className="theme-glass">
+      <body className="theme-glass has-[[data-sticky-buy]]:max-md:pb-24">
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>

@@ -9,7 +9,7 @@ test("an empty cart says why and offers the shop", async ({ page }) => {
   ).toBeVisible()
   await expectNoHorizontalScroll(page)
   await page.getByRole("link", { name: "Browse the shop" }).click()
-  await expect(page).toHaveURL("/")
+  await expect(page).toHaveURL("/shop")
 })
 
 test("checkout with an empty cart sends you to the shop", async ({ page }) => {
@@ -23,7 +23,7 @@ test("checkout with an empty cart sends you to the shop", async ({ page }) => {
 test("a catalog page past the end is empty, with a way back", async ({
   page,
 }) => {
-  await page.goto("/?page=9")
+  await page.goto("/shop?page=9")
   await expect(page.getByText("Nothing on this page")).toBeVisible()
   await expectNoHorizontalScroll(page)
   await page.getByRole("link", { name: "Go to the first page" }).click()

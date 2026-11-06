@@ -38,7 +38,7 @@ test("every catalogue card on page 1 shows the API's price incl. VAT", async ({
   const products = await storefront(request)<Product[]>(
     "/products?page=1&page_size=24"
   )
-  await page.goto(urls.shop)
+  await page.goto(`${urls.shop}/shop`)
   for (const p of products) {
     const card = page
       .getByRole("listitem")
