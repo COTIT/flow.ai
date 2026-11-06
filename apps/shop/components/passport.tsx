@@ -5,7 +5,11 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 
-import type { PublicBlock, PublicLot } from "@genesy/api-client/model"
+import type {
+  PublicBlock,
+  PublicFarmerGroup,
+  PublicLot,
+} from "@genesy/api-client/model"
 import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
@@ -37,6 +41,22 @@ export function lotPlace(
     origin.country
   )
   return [origin.place, origin.region, country].filter(Boolean).join(", ")
+}
+
+/** "12 farmers · Harvested 1 Jul – 20 Jul": the API's own count (null below 3) and window. */
+export function groupLine(g: PublicFarmerGroup, t: T, locale: string) {
+  const day = (d: string) => formatDay(d, locale)
+  return [
+    // null below 3 farmers, for privacy: then no count at all.
+    g.farmers !== null && t("farmerCount", { count: g.farmers }),
+    g.harvest_start && g.harvest_end
+      ? t("harvested", { start: day(g.harvest_start), end: day(g.harvest_end) })
+      : g.harvest_start || g.harvest_end
+        ? t("harvestedOn", { date: day((g.harvest_start ?? g.harvest_end)!) })
+        : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
 }
 
 /**
@@ -240,23 +260,7 @@ export function Passport({
                   <div className="min-w-0">
                     <p className="font-semibold">{g.village}</p>
                     <p className="text-[13px] text-muted-foreground">
-                      {[
-                        // null below 3 farmers, for privacy: then no count at all.
-                        g.farmers !== null &&
-                          t("farmerCount", { count: g.farmers }),
-                        g.harvest_start && g.harvest_end
-                          ? t("harvested", {
-                              start: day(g.harvest_start),
-                              end: day(g.harvest_end),
-                            })
-                          : g.harvest_start || g.harvest_end
-                            ? t("harvestedOn", {
-                                date: day((g.harvest_start ?? g.harvest_end)!),
-                              })
-                            : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {groupLine(g, t, locale)}
                     </p>
                   </div>
                 </li>

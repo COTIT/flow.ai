@@ -1,14 +1,19 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getLocale, getTranslations } from "next-intl/server"
-import { ArrowLeftIcon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  ChevronRightIcon,
+  MapPinIcon,
+  UsersIcon,
+} from "lucide-react"
 
 import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { AddToCart } from "@/components/add-to-cart"
-import { lotPlace, lotStatus, MapArea } from "@/components/passport"
+import { groupLine, lotPlace, lotStatus, MapArea } from "@/components/passport"
 import { ProductGallery } from "@/components/product-gallery"
 import { isSoldOut } from "@/components/stock-badge"
 import { card, cardTitle, h2, tag } from "@/lib/look"
@@ -33,19 +38,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+const crumb =
+  "inline-flex min-h-11 min-w-11 items-center gap-1 hover:text-foreground md:min-h-8"
+
 const gold =
   "bg-[image:var(--gold-gradient)] font-semibold text-[#0a183a] hover:opacity-90"
 
 /**
- * Mock `ShopProduct` (bento): photo, buy tile, "This jar's passport" and About with the
- * product's labels as chips. The passport card reads the published batch the product links;
+ * Product page (bento): breadcrumb, photo, buy tile, "Where it came from" (the batch
+ * passport: place, villages and their farmer groups) and About with the labels as chips. The passport card reads the published batch the product links;
  * without one (or when that read fails) the card is left out and the photo spans one row.
  */
 export default async function ProductPage({ params }: Props) {
   const { id } = await params
-  const [t, tp, locale, product] = await Promise.all([
+  const [t, tp, tb, locale, product] = await Promise.all([
     getTranslations(),
     getTranslations("passport"),
+    getTranslations("batch"),
     getLocale(),
     getProduct(id),
   ])
@@ -54,23 +63,30 @@ export default async function ProductPage({ params }: Props) {
     ? await getLot(product.passport.public_code).catch(() => null)
     : null
   const groups = lot?.farmers ?? []
-  // The API's own counts only: one village's count, else how many villages.
-  const farmers =
-    groups.length === 1 && groups[0]!.farmers !== null
-      ? t("batch.farmerCount", { count: groups[0]!.farmers })
-      : groups.length > 1
-        ? t("product.villages", { count: groups.length })
-        : null
 
   return (
     <>
-      <Link
-        href="/shop"
-        className="flex min-h-11 w-fit items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground md:min-h-0"
-      >
-        <ArrowLeftIcon className="size-4" aria-hidden />
-        {t("product.back")}
-      </Link>
+      <nav aria-label={t("product.breadcrumb")}>
+        <ol className="flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
+          <li>
+            <Link href="/shop" className={crumb}>
+              <ArrowLeftIcon className="size-4" aria-hidden />
+              {t("product.back")}
+            </Link>
+          </li>
+          {product.category ? (
+            <li className="flex items-center gap-1">
+              <ChevronRightIcon aria-hidden className="size-4" />
+              <Link
+                href={`/shop?category=${product.category.id}`}
+                className={crumb}
+              >
+                {product.category.name}
+              </Link>
+            </li>
+          ) : null}
+        </ol>
+      </nav>
 
       <section className="grid grid-cols-12 gap-3 md:gap-4">
         <div
@@ -89,9 +105,9 @@ export default async function ProductPage({ params }: Props) {
           )}
         >
           <div>
-            {product.brand ? (
+            {(product.category?.name ?? product.brand) ? (
               <p className={cn(tag, "text-(--tone-warning)")}>
-                {product.brand}
+                {product.category?.name ?? product.brand}
               </p>
             ) : null}
             <h1 className="text-[28px] leading-[1.3] font-medium">
@@ -118,38 +134,54 @@ export default async function ProductPage({ params }: Props) {
                 {lotStatus(lot.status, tp).label}
               </Badge>
             </div>
+            {lot.passport.intro ? (
+              <p className="line-clamp-3 text-[13px] text-muted-foreground">
+                {lot.passport.intro}
+              </p>
+            ) : null}
             <div className="flex items-center gap-3">
               {lot.passport.map ? (
-                <MapArea className="min-h-24 w-[120px] flex-none" />
+                <MapArea className="min-h-20 w-[104px] flex-none" />
               ) : null}
               <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-[13px] font-semibold">
+                <p className="flex items-center gap-1.5 text-[13px] font-semibold">
+                  <MapPinIcon aria-hidden className="size-4 shrink-0" />
                   {lotPlace(lot, locale)}
                 </p>
                 <p className="font-mono text-xs tracking-[0.04em] text-muted-foreground">
                   {t("product.lot", { code: lot.code })}
                 </p>
-                {groups.length ? (
-                  <div className="flex flex-wrap items-center gap-1">
-                    {groups.slice(0, 3).map((g) => (
+              </div>
+            </div>
+            {groups.length ? (
+              <div className="flex flex-col gap-2">
+                <p className="flex items-center gap-1.5 text-[13px] font-semibold">
+                  <UsersIcon aria-hidden className="size-4" />
+                  {t("product.grownBy")}
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {groups.map((g) => (
+                    <li key={g.village} className="flex items-center gap-2.5">
                       <span
-                        key={g.village}
-                        title={g.village}
                         aria-hidden
-                        className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground"
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground"
                       >
                         {g.village.slice(0, 2).toUpperCase()}
                       </span>
-                    ))}
-                    {farmers ? (
-                      <span className="text-xs text-muted-foreground">
-                        {farmers}
+                      <span className="min-w-0 text-[13px]">
+                        <span className="font-semibold">{g.village}</span>
+                        {groupLine(g, tb, locale) ? (
+                          <span className="text-muted-foreground">
+                            {" · "}
+                            {groupLine(g, tb, locale)}
+                          </span>
+                        ) : null}
                       </span>
-                    ) : null}
-                  </div>
-                ) : null}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            ) : null}
             <Link
               href={`/b/${lot.public_code}`}
               data-slot="button"
@@ -165,6 +197,13 @@ export default async function ProductPage({ params }: Props) {
           <p className="max-w-[760px] whitespace-pre-line text-muted-foreground">
             {product.description ?? t("product.noDescription")}
           </p>
+          <Link
+            href="/stories"
+            className="inline-flex min-h-11 w-fit items-center gap-1.5 font-medium underline-offset-4 hover:underline md:min-h-8"
+          >
+            {t("product.people")}
+            <ChevronRightIcon aria-hidden className="size-4" />
+          </Link>
           {product.labels.length ? (
             <div className="flex flex-wrap gap-2">
               {product.labels.map((label) => (

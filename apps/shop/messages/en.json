@@ -62,10 +62,13 @@
     "shipping": "Shipping and VAT are worked out at checkout.",
     "about": "About this product",
     "low": "Few left",
-    "passport": "This jar's passport",
+    "passport": "Where it came from",
     "lot": "Lot {code}",
     "villages": "{count, plural, one {# village} other {# villages}}",
-    "openPassport": "Open the passport"
+    "openPassport": "Open the passport",
+    "breadcrumb": "Breadcrumb",
+    "grownBy": "Grown and harvested by",
+    "people": "Meet the people behind it"
   },
   "errors": {
     "unavailableTitle": "The shop is taking a break",

@@ -62,10 +62,13 @@
     "shipping": "Gharama za usafirishaji na VAT zinahesabiwa wakati wa kulipa.",
     "about": "Kuhusu bidhaa hii",
     "low": "Zimebaki chache",
-    "passport": "Pasipoti ya chupa hii",
+    "passport": "Kilikotoka",
     "lot": "Kundi {code}",
     "villages": "{count, plural, one {Kijiji #} other {Vijiji #}}",
-    "openPassport": "Fungua pasipoti"
+    "openPassport": "Fungua pasipoti",
+    "breadcrumb": "Njia ya ukurasa",
+    "grownBy": "Kimelimwa na kuvunwa na",
+    "people": "Wafahamu watu walio nyuma yake"
   },
   "errors": {
     "unavailableTitle": "Duka limepumzika kidogo",

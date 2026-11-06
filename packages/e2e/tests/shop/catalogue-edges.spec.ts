@@ -86,7 +86,7 @@ test("a product whose batch passport is unpublished shows no passport card", asy
     "Beeswax Block"
   )
   await expect(
-    page.getByRole("heading", { name: "This jar's passport" })
+    page.getByRole("heading", { name: "Where it came from" })
   ).toHaveCount(0)
   await expect(
     page.getByRole("link", { name: "Open the passport" })

@@ -62,10 +62,13 @@
     "shipping": "Verzendkosten en btw worden bij het afrekenen berekend.",
     "about": "Over dit product",
     "low": "Bijna op",
-    "passport": "Paspoort van deze pot",
+    "passport": "Waar het vandaan komt",
     "lot": "Partij {code}",
     "villages": "{count, plural, one {# dorp} other {# dorpen}}",
-    "openPassport": "Open het paspoort"
+    "openPassport": "Open het paspoort",
+    "breadcrumb": "Kruimelpad",
+    "grownBy": "Geteeld en geoogst door",
+    "people": "Ontmoet de mensen erachter"
   },
   "errors": {
     "unavailableTitle": "De winkel neemt even pauze",

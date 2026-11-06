@@ -21,9 +21,18 @@ test("the product page is the bento from the mockup", async ({
   isMobile,
 }) => {
   await page.goto(`/products/${PRODUCT.honey}`)
+  // Breadcrumb: back to the shop, or to this product's category.
+  const crumbs = page.getByRole("navigation", { name: "Breadcrumb" })
   await expect(
-    page.getByRole("link", { name: "Back to the shop" })
-  ).toBeVisible()
+    crumbs.getByRole("link", { name: "Back to the shop" })
+  ).toHaveAttribute("href", "/shop")
+  await expect(crumbs.getByRole("link", { name: "Honey" })).toHaveAttribute(
+    "href",
+    /^\/shop\?category=/
+  )
+  await expect(
+    page.getByRole("link", { name: "Meet the people behind it" })
+  ).toHaveAttribute("href", "/stories")
 
   const h1 = page.getByRole("heading", { level: 1, name: NAME })
   expect(await css(h1, "font-size")).toBe("28px")
@@ -105,7 +114,7 @@ test("the product's batch passport card, as drawn", async ({
   isMobile,
 }) => {
   await page.goto(`/products/${PRODUCT.honey}`)
-  const passport = page.getByRole("region", { name: "This jar's passport" })
+  const passport = page.getByRole("region", { name: "Where it came from" })
   await expect(passport).toBeVisible()
   await expect(passport.getByText("Released", { exact: true })).toHaveAttribute(
     "data-variant",
@@ -115,7 +124,14 @@ test("the product's batch passport card, as drawn", async ({
   const code = passport.getByText("Lot L-2026-014")
   expect(await css(code, "font-size")).toBe("12px")
   await expect(passport.getByText("IL", { exact: true })).toBeVisible()
-  await expect(passport.getByText("12 farmers")).toBeVisible()
+  // Who grew it: each village with the API's farmer count and harvest window.
+  await expect(passport.getByText("Grown and harvested by")).toBeVisible()
+  const ilundo = passport.getByRole("listitem").filter({ hasText: "Ilundo" })
+  await expect(ilundo).toContainText("12 farmers")
+  await expect(ilundo).toContainText("Harvested")
+  await expect(
+    passport.getByText(/^This jar was filled from one harvest/)
+  ).toBeVisible()
   const open = passport.getByRole("link", { name: "Open the passport" })
   await expect(open).toHaveAttribute("href", `/b/${LOT.farmed}`)
   if (!isMobile) expect(await css(open, "height")).toBe("40px")
@@ -150,7 +166,7 @@ test("a product without photos shows the honey placeholder", async ({
     page.locator('main [data-slot="badge"][data-variant="slate"]')
   ).toHaveText(["Sold out"])
   await expect(
-    page.getByRole("heading", { name: "This jar's passport" })
+    page.getByRole("heading", { name: "Where it came from" })
   ).toHaveCount(0)
   await expectNoHorizontalScroll(page)
   await expectNoLayoutShift(page)

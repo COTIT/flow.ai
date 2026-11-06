@@ -135,7 +135,7 @@ export const getProduct = cache(async (id: string) => {
     await call(`/storefront/products/${id}`, (o) =>
       storefrontProductsGet(id, o)
     )
-  ).data
+  ).data as CategorisedProduct
 })
 
 /** Orders and batch recalls change by the second: never served from the data cache. */
