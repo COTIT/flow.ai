@@ -207,15 +207,12 @@ export async function openShift(page: Page) {
 }
 
 /**
- * What every stack test allows: the stack runs without a file bucket (STACK.md), so the office's
- * file list answers 503 "File storage isn't configured." A test with its own `allow` spreads
- * this in: `test.use({ allow: { ...stackAllow, responses: [...stackAllow.responses, …] } })`.
+ * What every stack test allows: nothing today (the stack has its own file store since the AFM
+ * catalogue, so the office's file list no longer answers 503). A test with its own `allow`
+ * spreads this in: `test.use({ allow: { ...stackAllow, responses: [...stackAllow.responses, …] } })`.
  */
 export const stackAllow = {
-  responses: Object.values(seed.workspaces).map((ws) => ({
-    url: `${urls.office}/v1/workspace/${ws}/files?page_size=100`,
-    status: 503,
-  })),
+  responses: [] as { url: string; status: number }[],
 } satisfies Allow
 
 /**

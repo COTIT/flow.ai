@@ -10,7 +10,8 @@ import process from "node:process"
 import { down } from "./down.mjs"
 import { parseSeed } from "./seed.mjs"
 import {
-  API_DIR, CONTAINER, DATABASE_URL, DB, DIR, LOGS, PORTS, ROOT, SEED, SEED_DB, URLS,
+  API_DIR, CONTAINER, DATABASE_URL, DB, DIR, FILES_BUCKET, FILES_CONTAINER, FILES_IMAGE, FILES_ORIGIN,
+  LOGS, PORTS, ROOT, SEED, SEED_DB, URLS,
   alive, apiBin, apiEnv, exec, psql, readState, run, start, startApi, startMail, stop, waitFor, workspaceIds, writeState,
 } from "./stack.mjs"
 
@@ -35,14 +36,16 @@ export async function up() {
     container: CONTAINER,
     // Random per stack, kept for API restarts: the seed's encrypted credentials need the same key.
     credentialsKey: randomBytes(32).toString("hex"),
+    // The file store's key, random per stack (state.json is gitignored).
+    files: { keyId: `GK${randomBytes(12).toString("hex")}`, secret: randomBytes(32).toString("hex") },
     pids: {},
   }
   writeState(state)
 
   const api = `${URLS.api}/v1`
   const apps = {
-    office: { env: { API_URL: api } },
-    shop: { env: { API_URL: api, SITE_URL: URLS.shop } },
+    office: { env: { API_URL: api, FILES_ORIGIN } },
+    shop: { env: { API_URL: api, SITE_URL: URLS.shop, FILES_ORIGIN } },
     till: { env: { API_URL: api } },
     landing: { env: { SITE_URL: URLS.landing, NEXT_PUBLIC_SHOP_URL: URLS.shop } },
   }
@@ -86,6 +89,26 @@ export async function up() {
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
   lap("postgres up")
+
+  // Garage in RAM with staging's settings; throwaway secrets (a local test stack only).
+  run("docker", [
+    "run", "-d", "--rm", "--name", FILES_CONTAINER, "--label", "genesy-e2e-stack=1",
+    "-p", `127.0.0.1:${PORTS.files}:3900`, "--tmpfs", "/var/lib/garage:rw,size=256m",
+    "-v", `${join(ROOT, "deploy/staging/garage.toml")}:/etc/garage.toml:ro`,
+    "-e", `GARAGE_RPC_SECRET=${randomBytes(32).toString("hex")}`,
+    "-e", `GARAGE_DEFAULT_ACCESS_KEY=${state.files.keyId}`,
+    "-e", `GARAGE_DEFAULT_SECRET_KEY=${state.files.secret}`,
+    "-e", `GARAGE_DEFAULT_BUCKET=${FILES_BUCKET}`,
+    FILES_IMAGE, "/garage", "server", "--single-node", "--default-bucket",
+  ], { stdio: ["ignore", "ignore", "inherit"] })
+  // An unsigned GET answers 403 once the bucket and key exist.
+  for (let i = 0; ; i++) {
+    const status = await fetch(`${FILES_ORIGIN}/${FILES_BUCKET}/ready`).then((r) => r.status, () => 0)
+    if (status === 403) break
+    if (i > 60) throw new Error("Garage did not start")
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  lap("files up")
 
   // CI's settings (ci.yml env): no debug info, no incremental cache. Differing ones rebuild everything.
   await exec("cargo", ["build", "--bin", "genesy-360-api"], {

@@ -214,7 +214,8 @@ function WorkspacePicker({ className }: { className?: string }) {
   return (
     <Select
       items={options}
-      value={workspaceId ?? null}
+      // Until the list loads there's no name to show: no value, so the raw id never flashes.
+      value={options.length ? (workspaceId ?? null) : null}
       onValueChange={(v) => {
         if (v) sessionStore.getState().selectWorkspace(v)
       }}

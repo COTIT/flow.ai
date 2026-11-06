@@ -2,6 +2,10 @@ import { expect, test, urls } from "../../src/stack"
 import { expectNoRawValues } from "../../src/test"
 import { ownProduct, storefront } from "./shop"
 
+/** The option group's name, as the shop labels it: the option type (AFM: "Print", "Size", …). */
+const group = (p: Product) =>
+  p.variants.find((v) => v.options.length)!.options[0]!.type
+
 type Variant = {
   id: string
   is_default: boolean
@@ -70,7 +74,7 @@ test("a product sold by size: each size button shows its API price, and picking 
     (x) => x.variants.filter((v) => v.options.length).length > 1
   )!
   await page.goto(`${urls.shop}/products/${p.id}`)
-  const sizes = page.getByRole("group", { name: "Size" })
+  const sizes = page.getByRole("group", { name: group(p) })
   const named = p.variants.filter((v) => v.options.length)
   for (const v of named)
     await expect(
@@ -97,7 +101,9 @@ test("a product sold by size shows no nameless size", async ({
   )
   const p = products.find((x) => x.variants.length > 1)!
   await page.goto(`${urls.shop}/products/${p.id}`)
-  const buttons = page.getByRole("group", { name: "Size" }).getByRole("button")
+  const buttons = page
+    .getByRole("group", { name: group(p) })
+    .getByRole("button")
   await expect(buttons).toHaveCount(
     p.variants.filter((v) => v.options.length).length
   )

@@ -3,15 +3,15 @@ import console from "node:console"
 import { spawnSync } from "node:child_process"
 import process from "node:process"
 
-import { CONTAINER, clearState, readState, stop } from "./stack.mjs"
+import { CONTAINER, FILES_CONTAINER, clearState, readState, stop } from "./stack.mjs"
 
 export function down() {
   const state = readState()
   for (const pid of Object.values(state?.pids ?? {})) stop(pid)
   // Only the stack's own container, by its exact name; gone already is fine.
-  spawnSync("docker", ["rm", "-f", CONTAINER], { stdio: "ignore" })
+  for (const name of [CONTAINER, FILES_CONTAINER]) spawnSync("docker", ["rm", "-f", name], { stdio: "ignore" })
   clearState()
-  console.log(`stack: down (${CONTAINER} removed)`)
+  console.log(`stack: down (${CONTAINER} and ${FILES_CONTAINER} removed)`)
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) down()
