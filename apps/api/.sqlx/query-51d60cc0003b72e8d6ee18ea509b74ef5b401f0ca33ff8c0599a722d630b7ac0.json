@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, parent_id, name, description, meta, created_at, updated_at\n         FROM product_categories\n         WHERE workspace_id = $1 AND parent_id = $2 AND deleted_at IS NULL\n         ORDER BY id",
+  "query": "SELECT id, parent_id, name, description, meta, created_at, updated_at,\n                  count(*) OVER () AS \"total!\", (SELECT count(*) FROM products p\n              WHERE p.workspace_id = c.workspace_id AND p.category_id = c.id\n                AND p.deleted_at IS NULL) AS \"products_count!\" FROM product_categories c\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)\n             AND ($3::uuid IS NULL OR parent_id = $3)\n             AND ($3::uuid IS NOT NULL OR NOT $4 OR parent_id IS NULL)\n           ORDER BY id LIMIT $5 OFFSET $6",
   "describe": {
     "columns": [
       {
@@ -79,12 +79,28 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "products_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Text",
+        "Uuid",
+        "Bool",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -94,8 +110,10 @@
       true,
       true,
       false,
-      false
+      false,
+      null,
+      null
     ]
   },
-  "hash": "26a30337eb4e93cbc411d00603543700d68ad44e0c789c63515bdef7507df8eb"
+  "hash": "51d60cc0003b72e8d6ee18ea509b74ef5b401f0ca33ff8c0599a722d630b7ac0"
 }

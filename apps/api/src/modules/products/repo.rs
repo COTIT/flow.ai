@@ -95,6 +95,7 @@ pub struct ListFilter<'a> {
     pub status: &'a str,
     pub pattern: Option<&'a str>,
     pub supplier: Option<Uuid>,
+    pub category: Option<Uuid>,
     pub ean13: Option<&'a str>,
     pub exclude: &'a [Uuid],
     pub limit: i64,
@@ -445,6 +446,7 @@ pub async fn list(
            AND ($4::uuid IS NULL OR supplier_relation_id = $4)
            AND ($5::text IS NULL OR lower(ean13) = lower($5))
            AND NOT (id = ANY($6))
+           AND ($9::uuid IS NULL OR category_id = $9)
          ORDER BY id DESC
          LIMIT $7 OFFSET $8"#,
         workspace_id,
@@ -455,6 +457,7 @@ pub async fn list(
         f.exclude,
         f.limit,
         f.offset,
+        f.category,
     )
     .fetch_all(db)
     .await?;
@@ -538,13 +541,15 @@ pub async fn count(
                   OR product_nr_formatted ILIKE $3)
              AND ($4::uuid IS NULL OR supplier_relation_id = $4)
              AND ($5::text IS NULL OR lower(ean13) = lower($5))
-             AND NOT (id = ANY($6))"#,
+             AND NOT (id = ANY($6))
+             AND ($7::uuid IS NULL OR category_id = $7)"#,
         workspace_id,
         f.status,
         f.pattern,
         f.supplier,
         f.ean13,
         f.exclude,
+        f.category,
     )
     .fetch_one(db)
     .await

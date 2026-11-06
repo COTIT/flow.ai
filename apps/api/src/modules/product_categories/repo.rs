@@ -14,6 +14,8 @@ pub struct CategoryRow {
     pub name: String,
     pub description: Option<String>,
     pub meta: Option<Value>,
+    /// Live products of any status in this category (count subquery in each SELECT).
+    pub products_count: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -54,8 +56,12 @@ pub async fn find(
 ) -> Result<Option<CategoryRow>, sqlx::Error> {
     sqlx::query_as!(
         CategoryRow,
-        "SELECT id, parent_id, name, description, meta, created_at, updated_at
-         FROM product_categories WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        "SELECT id, parent_id, name, description, meta, created_at, updated_at"
+            + r#", (SELECT count(*) FROM products p
+              WHERE p.workspace_id = c.workspace_id AND p.category_id = c.id
+                AND p.deleted_at IS NULL) AS "products_count!""#
+            + " FROM product_categories c
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
         id,
         workspace_id,
     )
@@ -71,8 +77,11 @@ pub async fn children(
 ) -> Result<Vec<CategoryRow>, sqlx::Error> {
     sqlx::query_as!(
         CategoryRow,
-        "SELECT id, parent_id, name, description, meta, created_at, updated_at
-         FROM product_categories
+        "SELECT id, parent_id, name, description, meta, created_at, updated_at"
+            + r#", (SELECT count(*) FROM products p
+              WHERE p.workspace_id = c.workspace_id AND p.category_id = c.id
+                AND p.deleted_at IS NULL) AS "products_count!""#
+            + " FROM product_categories c
          WHERE workspace_id = $1 AND parent_id = $2 AND deleted_at IS NULL
          ORDER BY id",
         workspace_id,
@@ -132,8 +141,11 @@ pub async fn list(
 ) -> Result<(Vec<CategoryRow>, i64), sqlx::Error> {
     let rows = sqlx::query!(
         r#"SELECT id, parent_id, name, description, meta, created_at, updated_at,
-                  count(*) OVER () AS "total!"
-           FROM product_categories
+                  count(*) OVER () AS "total!""#
+            + r#", (SELECT count(*) FROM products p
+              WHERE p.workspace_id = c.workspace_id AND p.category_id = c.id
+                AND p.deleted_at IS NULL) AS "products_count!""#
+            + r#" FROM product_categories c
            WHERE workspace_id = $1 AND deleted_at IS NULL
              AND ($2::text IS NULL OR name ILIKE $2)
              AND ($3::uuid IS NULL OR parent_id = $3)
@@ -157,11 +169,35 @@ pub async fn list(
             name: r.name,
             description: r.description,
             meta: r.meta,
+            products_count: r.products_count,
             created_at: r.created_at,
             updated_at: r.updated_at,
         })
         .collect();
     Ok((rows, total))
+}
+
+/// True when another live category of the workspace (not `except`) has `name`, compared
+/// trimmed and case-insensitive.
+pub async fn name_taken(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    name: &str,
+    except: Option<Uuid>,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (
+               SELECT 1 FROM product_categories
+               WHERE workspace_id = $1 AND deleted_at IS NULL
+                 AND lower(btrim(name)) = lower(btrim($2))
+                 AND ($3::uuid IS NULL OR id <> $3)
+           ) AS "taken!""#,
+        workspace_id,
+        name,
+        except,
+    )
+    .fetch_one(db)
+    .await
 }
 
 /// Matching count, for a page past the end.

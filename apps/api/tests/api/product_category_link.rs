@@ -199,3 +199,108 @@ async fn products_filter_by_category_and_sort_by_name(pool: PgPool) {
         assert_eq!(res["meta"]["total"], 0, "{bad}");
     }
 }
+
+fn cats(api: &Api) -> Api {
+    api.with_base("/erp/product-categories")
+}
+
+#[sqlx::test]
+async fn a_category_counts_its_live_products_of_any_status(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let tea = category(&api, "Tea").await;
+    let empty = category(&api, "Empty").await;
+    product(&api, "Roselle tea", Some(&tea)).await;
+    let off = product(&api, "Old tea", Some(&tea)).await;
+    let (status, res) = api.update(&off, json!({ "status": "disabled" })).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let gone = product(&api, "Gone tea", Some(&tea)).await;
+    let (status, res) = api
+        .call(Method::DELETE, &format!("/{gone}"), None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let other = api.as_new_owner("eve@example.com", "evil").await;
+    let theirs = category(&other, "Theirs").await;
+    product(&other, "Their tea", Some(&theirs)).await;
+
+    let list = cats(&api).list("").await;
+    let count = |id: &str| {
+        list["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["id"] == id)
+            .unwrap()["products_count"]
+            .clone()
+    };
+    assert_eq!(count(&tea), json!(2));
+    assert_eq!(count(&empty), json!(0));
+    assert_eq!(cats(&api).get(&tea).await["products_count"], json!(2));
+    assert_eq!(cats(&other).get(&theirs).await["products_count"], json!(1));
+}
+
+#[sqlx::test]
+async fn the_products_list_filters_by_category(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let tea = category(&api, "Tea").await;
+    product(&api, "Roselle tea", Some(&tea)).await;
+    product(&api, "Cardamom", None).await;
+    let other = api.as_new_owner("eve@example.com", "evil").await;
+    let theirs = category(&other, "Theirs").await;
+    product(&other, "Their tea", Some(&theirs)).await;
+
+    let teas = api.list(&format!("?category_id={tea}")).await;
+    assert_eq!(names(&teas), ["Roselle tea"]);
+    assert_eq!(teas["meta"]["total"], 1);
+    assert_eq!(names(&api.list("?category_id=").await).len(), 2);
+
+    // Another workspace's category finds nothing here.
+    let foreign = api.list(&format!("?category_id={theirs}")).await;
+    assert_eq!(foreign["data"], json!([]));
+    assert_eq!(foreign["meta"]["total"], 0);
+
+    let (status, res) = api
+        .call(Method::GET, "?category_id=nope", None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["category_id"],
+        json!(["The category id must be a valid UUID."])
+    );
+}
+
+const TAKEN: &str = "The name has already been taken.";
+
+#[sqlx::test]
+async fn a_category_name_is_unique_in_its_workspace(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let tea = category(&api, "Tea").await;
+    let spices = category(&api, "Spices").await;
+    let c = cats(&api);
+
+    for name in ["Tea", " tea ", "TEA"] {
+        let (status, res) = c
+            .call(Method::POST, "", Some(json!({ "name": name })), &api.owner)
+            .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{name}: {res}");
+        assert_eq!(res["errors"]["name"], json!([TAKEN]), "{name}");
+    }
+    let (status, res) = c.update(&spices, json!({ "name": "tea" })).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res["errors"]["name"], json!([TAKEN]));
+
+    // Its own name, or a new case of it, is fine; so is a change that leaves the name out.
+    for name in ["Tea", "TEA"] {
+        let (status, res) = c.update(&tea, json!({ "name": name })).await;
+        assert_eq!(status, StatusCode::OK, "{name}: {res}");
+    }
+    let (status, res) = c.update(&spices, json!({ "description": "Hot" })).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+
+    // A removed category's name is free again.
+    c.delete(&spices).await;
+    category(&api, "Spices").await;
+
+    // The same name in another workspace is allowed.
+    let other = api.as_new_owner("eve@example.com", "evil").await;
+    category(&other, "Tea").await;
+}

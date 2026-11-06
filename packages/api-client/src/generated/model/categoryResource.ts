@@ -20,6 +20,8 @@ export interface CategoryResource {
   meta: CategoryResourceMeta;
   name: string;
   product_category_id: string;
+  /** Live products of any status in this category (Genesy addition). */
+  products_count: number;
   /** `[]` on lists, otherwise `{"parent": ..., "children": [...]}` */
   relationships: CategoryResourceRelationships;
   updated_at: string;

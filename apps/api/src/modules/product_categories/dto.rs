@@ -20,6 +20,8 @@ use crate::{
 
 /// Laravel `rules.ValidateId` for domain `product_category`.
 pub const BAD_PARENT: &str = "The parent id is an invalid id for the product_category domain.";
+/// Another live category of the workspace already has the name.
+pub const TAKEN: &str = "The name has already been taken.";
 
 // Laravel ProductCategoryResource.
 #[derive(Serialize, ToSchema)]
@@ -32,6 +34,8 @@ pub struct CategoryResource {
     description: Option<String>,
     #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    /// Live products of any status in this category (Genesy addition).
+    products_count: i64,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     #[schema(schema_with = relationships_schema)]
@@ -102,6 +106,7 @@ impl CategoryResource {
             name: c.name,
             description: c.description,
             meta: c.meta,
+            products_count: c.products_count,
             created_at: c.created_at,
             updated_at: c.updated_at,
             relationships,

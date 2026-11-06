@@ -1777,6 +1777,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "products_count": {
+            "description": "Live products of any status in this category (Genesy addition).",
+            "format": "int64",
+            "type": "integer"
+          },
           "relationships": {
             "description": "`[]` on lists, otherwise `{\"parent\": ..., \"children\": [...]}`",
             "oneOf": [
@@ -1823,6 +1828,7 @@
           "name",
           "description",
           "meta",
+          "products_count",
           "created_at",
           "updated_at",
           "relationships"
@@ -66796,6 +66802,16 @@
             }
           },
           {
+            "description": "Only products of this category (`/erp/product-categories`).",
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "Exact EAN-13.",
             "in": "query",
             "name": "ean13",
@@ -66873,7 +66889,7 @@
                 }
               }
             },
-            "description": "Search text too long, malformed `supplier_id`, or too many `exclude_ids`"
+            "description": "Search text too long, malformed `supplier_id` or `category_id`, or too many `exclude_ids`"
           },
           "429": {
             "content": {

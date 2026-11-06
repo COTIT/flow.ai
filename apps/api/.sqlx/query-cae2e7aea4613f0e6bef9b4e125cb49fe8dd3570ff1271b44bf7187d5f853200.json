@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM product_categories\n               WHERE workspace_id = $1 AND deleted_at IS NULL\n                 AND lower(btrim(name)) = lower(btrim($2))\n                 AND ($3::uuid IS NULL OR id <> $3)\n           ) AS \"taken!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "taken!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cae2e7aea4613f0e6bef9b4e125cb49fe8dd3570ff1271b44bf7187d5f853200"
+}
