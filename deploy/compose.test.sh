@@ -18,7 +18,7 @@ value() {
   local env_file="$1" args=()
   shift
   while [[ "$1" != -- ]]; do args+=(-f "$1"); shift; done
-  docker compose "${args[@]}" --env-file "$env_file" --profile cli --profile seed config --format json \
+  docker compose "${args[@]}" --env-file "$env_file" --profile cli config --format json \
     | python3 -c "import json,sys; print(json.load(sys.stdin)['services']['$2'].get('environment',{}).get('$3') or '')"
 }
 
@@ -57,29 +57,5 @@ done
 docker compose -f "${on[0]}" -f "${on[1]}" -f "${on[2]}" --env-file "$t/prod.env" config --format json \
   | python3 -c "import json,sys; s=json.load(sys.stdin)['services']['api']['secrets']; n={x['source'] for x in s}; sys.exit(0 if {'b2_uploads_key','stripe_secret_key','database_url'} <= n else 1)" \
   || fail "api secrets lost in the merge"
-
-# Staging image store: off without the overlay; with it, the API writes inside Docker, signs
-# links for the public host, the shop and office CSP allow exactly that origin, and the seed
-# fetches photos. Production's files never mention it.
-[[ -z "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- api B2_UPLOADS_BUCKET)" ]] || fail "staging files on by default"
-if docker compose -f "$s/docker-compose.staging.yml" -f "$s/docker-compose.files.yml" \
-  --env-file "$t/staging.env" config -q 2> "$t/err"; then fail "files overlay without a key id parsed"; fi
-grep -q "set FILES_KEY_ID in .env.staging" "$t/err" || fail "unclear error: $(cat "$t/err")"
-echo "FILES_KEY_ID=GK0123456789abcdef01234567" >> "$t/staging.env"
-# Compose reads env_file at parse time: an empty one in a throwaway secrets folder.
-mkdir "$t/secrets" && touch "$t/secrets/files.env" && echo "SECRETS_DIR=$t/secrets" >> "$t/staging.env"
-fon=("$s/docker-compose.staging.yml" "$s/docker-compose.stripe.yml" "$s/docker-compose.files.yml")
-fv() { value "$t/staging.env" "${fon[@]}" -- "$@"; }
-[[ "$(fv api B2_UPLOADS_ENDPOINT)" == http://files:3900 ]] || fail "staging endpoint"
-[[ "$(fv api B2_UPLOADS_PUBLIC_URL)" == https://staging-files.genesy.app ]] || fail "staging public url"
-[[ "$(fv seed B2_UPLOADS_KEY_ID)" == GK0123456789abcdef01234567 ]] || fail "seed has no store"
-[[ "$(fv api PAYMENTS_PROVIDER)" == stripe ]] || fail "files overlay dropped stripe"
-for app in shop office; do
-  [[ "$(fv $app FILES_ORIGIN)" == https://staging-files.genesy.app ]] || fail "staging $app FILES_ORIGIN"
-done
-docker compose -f "${fon[0]}" -f "${fon[1]}" -f "${fon[2]}" --env-file "$t/staging.env" --profile seed config --format json \
-  | python3 -c "import json,sys; s=json.load(sys.stdin)['services']; f=s['files']; sys.exit(0 if s['seed']['command']==['seed-demo','--images'] and 'Method(\`GET\`)' in f['labels']['traefik.http.routers.genesy-staging-files.rule'] and f['cap_drop']==['ALL'] else 1)" \
-  || fail "files service or seed command wrong"
-! grep -rq "staging-files\|garage" "$p" || fail "production mentions the staging store"
 
 echo "compose.test.sh: all passed"

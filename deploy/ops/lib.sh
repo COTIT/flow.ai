@@ -36,11 +36,9 @@ env_setup() {
   [[ -f "$DIR/docker-compose.nodns.yml" ]] && COMPOSE+=(-f "$DIR/docker-compose.nodns.yml") && ROUTES_OFF=1
   # Stripe is on exactly when its key file exists, so no command can forget the overlay.
   [[ -f "$DIR/secrets/stripe_secret_key" ]] && COMPOSE+=(-f "$DIR/docker-compose.stripe.yml")
-  # File uploads likewise: production's B2 bucket; staging's own Garage store (never B2).
+  # File uploads likewise, production only (staging has no overlay: demo files stay out of B2).
   [[ -f "$DIR/secrets/b2_uploads_key" && -f "$DIR/docker-compose.uploads.yml" ]] \
     && COMPOSE+=(-f "$DIR/docker-compose.uploads.yml")
-  [[ -f "$DIR/secrets/files.env" && -f "$DIR/docker-compose.files.yml" ]] \
-    && COMPOSE+=(-f "$DIR/docker-compose.files.yml")
   COMPOSE+=(--env-file "$ENV_FILE")
 }
 
