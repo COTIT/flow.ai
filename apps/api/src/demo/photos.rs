@@ -15,7 +15,7 @@ use crate::{
     error::AppError,
     modules::files::service::{self as files, NewFile},
     outbound::Outbound,
-    storage::Store,
+    storage::{Store, UPLOADS_ROOT},
 };
 
 /// AFM's image CDN: every photo URL in `afm_catalogue.json` starts with it.
@@ -46,10 +46,11 @@ impl Photos {
     }
 }
 
-/// Bucket key of the cached copy of `url`: under `genesy/`, the only prefix the uploads keys may write.
+/// Bucket key of the cached copy of `url`: under `UPLOADS_ROOT`, the only prefix the uploads keys
+/// may write.
 pub fn cache_key(url: &str) -> String {
     format!(
-        "genesy/demo-cache/afm/{}",
+        "{UPLOADS_ROOT}/demo-cache/afm/{}",
         hex::encode(Sha256::digest(url.as_bytes()))
     )
 }
