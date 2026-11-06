@@ -170,6 +170,11 @@ export async function fakeTill(page: Page) {
     .on("GET", "/workspace/:ws/till/me", () => ({
       data: { expires_at: session.expires_at, register, user: amina },
     }))
+    // The drawer asks the API for its count figures 300 ms after a tap; without a default a slow
+    // run fires it unanswered and fails on "page problems". Specs that check figures override it.
+    .on("POST", "/workspace/:ws/till/shift/count-quote", () => ({
+      data: { total: 0, lines: [], expected: null, difference: null },
+    }))
   serveCatalog(api, [honey])
   serveQuote(api, [honey])
   await page.route("**/v1/**", (route) => api.handle(route))
