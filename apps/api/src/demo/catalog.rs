@@ -99,13 +99,22 @@ pub fn afm() -> Result<Vec<AfmProduct>, AppError> {
 
 /// The shop's categories, grouped as AFM's category pages group them: (name, description).
 const CATEGORIES: &[(&str, &str)] = &[
-    ("Honey", "Raw wildflower honey from the beekeepers of Illundo, Tanzania."),
+    (
+        "Honey",
+        "Raw wildflower honey from the beekeepers of Illundo, Tanzania.",
+    ),
     ("Coffee", "Tanzanian Arabica, whole bean and ground."),
     ("Tea", "Kenyan black tea and Tanzanian roselle."),
     ("Spices", "Whole and ground spices for everyday cooking."),
-    ("Baskets", "Handwoven and beaded baskets and bags from Kenya and Tanzania."),
+    (
+        "Baskets",
+        "Handwoven and beaded baskets and bags from Kenya and Tanzania.",
+    ),
     ("Toys & games", "Hand-carved animals and traditional games."),
-    ("Art", "Original paintings and prints by East African artists."),
+    (
+        "Art",
+        "Original paintings and prints by East African artists.",
+    ),
     ("Books", "Stories of the farmers behind the market."),
     ("Apparel", "T-shirts from African Farmers Market."),
     ("Stickers", "Stickers from African Farmers Market."),
@@ -189,9 +198,9 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
     let mut products = Vec::new();
     let mut oversell = Vec::new();
     for (i, p) in afm.into_iter().enumerate() {
-        let category = categories.get(p.category.as_str()).ok_or_else(|| {
-            AppError::Internal(format!("demo seed: no category {}", p.category))
-        })?;
+        let category = categories
+            .get(p.category.as_str())
+            .ok_or_else(|| AppError::Internal(format!("demo seed: no category {}", p.category)))?;
         let cents = p.variants.iter().map(|v| v.cents).min().unwrap_or(0);
         let store_only = STORE_ONLY.contains(&p.slug.as_str());
         let created = api
@@ -295,6 +304,11 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
     })
 }
 
+/// (country, region, place, as read).
+type Origin<'a> = (&'a str, &'a str, &'a str, &'a str);
+/// (product slug, code, produced days ago, passport: none / draft / published, status after, origin).
+type LotPlan<'a> = (&'a str, &'a str, i64, &'a str, &'a str, Origin<'a>);
+
 /// Lots of AFM's food: released and published, drafts, quarantine and recalled (both
 /// published, so the public page shows the banner), and one past its expiry.
 async fn lots(
@@ -314,16 +328,79 @@ async fn lots(
     let ilundo = ("TZ", "Iringa", "Illundo", "Illundo, Iringa, Tanzania");
     let tanzania = ("TZ", "Tanzania", "Tanzania", "Tanzania");
     let kenya = ("KE", "Kenya", "Kenya", "Kenya");
-    let plan: &[(&str, &str, i64, &str, &str, (&str, &str, &str, &str))] = &[
-        ("tanzanian-wildflower-honey-13oz", "MH13-2026-07", 110, "published", "released", ilundo),
-        ("tanzanian-wildflower-honey-7oz", "MH7-2026-08", 80, "published", "released", ilundo),
-        ("roselle-tea-tanzania", "RT-2026-05", 150, "published", "released", tanzania),
-        ("kizazi-tea", "KZ-2026-04", 170, "published", "released", kenya),
-        ("kizazi-kenyan-black-tea-small", "KZS-2026-09", 40, "draft", "released", kenya),
-        ("rift-valley-tanzanian-ground-coffee", "RV-2026-09", 35, "draft", "released", tanzania),
-        ("tanzanian-wildflower-honey-7oz", "MH7-2026-06", 120, "published", "quarantine", ilundo),
-        ("tanzanian-wildflower-honey-13oz", "MH13-2026-06", 125, "published", "recalled", ilundo),
-        ("cardamom", "CD-2024-07", 480, "none", "released", ("", "", "", "East Africa")),
+    let plan: &[LotPlan] = &[
+        (
+            "tanzanian-wildflower-honey-13oz",
+            "MH13-2026-07",
+            110,
+            "published",
+            "released",
+            ilundo,
+        ),
+        (
+            "tanzanian-wildflower-honey-7oz",
+            "MH7-2026-08",
+            80,
+            "published",
+            "released",
+            ilundo,
+        ),
+        (
+            "roselle-tea-tanzania",
+            "RT-2026-05",
+            150,
+            "published",
+            "released",
+            tanzania,
+        ),
+        (
+            "kizazi-tea",
+            "KZ-2026-04",
+            170,
+            "published",
+            "released",
+            kenya,
+        ),
+        (
+            "kizazi-kenyan-black-tea-small",
+            "KZS-2026-09",
+            40,
+            "draft",
+            "released",
+            kenya,
+        ),
+        (
+            "rift-valley-tanzanian-ground-coffee",
+            "RV-2026-09",
+            35,
+            "draft",
+            "released",
+            tanzania,
+        ),
+        (
+            "tanzanian-wildflower-honey-7oz",
+            "MH7-2026-06",
+            120,
+            "published",
+            "quarantine",
+            ilundo,
+        ),
+        (
+            "tanzanian-wildflower-honey-13oz",
+            "MH13-2026-06",
+            125,
+            "published",
+            "recalled",
+            ilundo,
+        ),
+        (
+            "cardamom",
+            "CD-2024-07",
+            480,
+            "none",
+            "released",
+            ("", "", "", "East Africa"),
+        ),
     ];
     let mut out = Vec::new();
     for (slug, code, produced, passport, status, (country, region, place, origin)) in plan {

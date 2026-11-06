@@ -20,6 +20,7 @@ mod catalog;
 mod dates;
 mod farm;
 mod names;
+pub mod photos;
 mod sales;
 mod supply;
 mod till;
@@ -72,6 +73,8 @@ pub struct Seeded {
     pub passport_path: Option<String>,
     /// More paths worth opening: (label, path).
     pub samples: Vec<(&'static str, String)>,
+    /// With photos: (missing, total) AFM photos; missing ones left products without them.
+    pub photos: Option<(usize, usize)>,
     /// How long the run took.
     pub elapsed: Duration,
 }
@@ -207,6 +210,15 @@ async fn drain_payments(state: &AppState, fake: &Fake) -> Result<(), AppError> {
 
 /// Seed everything. `allowed` is `GENESY_ALLOW_DEMO_SEED`.
 pub async fn run(state: AppState, allowed: bool) -> Result<Seeded, AppError> {
+    run_with_photos(state, allowed, None).await
+}
+
+/// `run`, plus AFM's product photos when `photos` is set (`seed-demo --images`).
+pub async fn run_with_photos(
+    state: AppState,
+    allowed: bool,
+    photos: Option<photos::Photos>,
+) -> Result<Seeded, AppError> {
     let started = Instant::now();
     if !allowed {
         return Err(refuse(
@@ -224,6 +236,7 @@ pub async fn run(state: AppState, allowed: bool) -> Result<Seeded, AppError> {
                 storefront_key: None,
                 passport_path: None,
                 samples: Vec::new(),
+                photos: None,
                 elapsed: started.elapsed(),
             });
         }
@@ -356,6 +369,15 @@ pub async fn run(state: AppState, allowed: bool) -> Result<Seeded, AppError> {
         farm::seed(&api, base.workspace_id, &state.db)
     )?;
     let supplied = supply::seed(&shop, &ruaha, &store_id, &catalog).await?;
+    let photos = match &photos {
+        Some(p) => {
+            let owner = sqlx::query_scalar!("SELECT id FROM users WHERE email = $1", SHOP_OWNER)
+                .fetch_one(&state.db)
+                .await?;
+            Some(photos::attach(&shop, &catalog, owner, p).await?)
+        }
+        None => None,
+    };
     let mut samples: Vec<(&'static str, String)> = catalog
         .passports
         .iter()
@@ -473,6 +495,7 @@ pub async fn run(state: AppState, allowed: bool) -> Result<Seeded, AppError> {
         storefront_key: Some(storefront_key),
         passport_path: Some(format!("/b/{}", supplied.public_code)),
         samples,
+        photos,
         elapsed: started.elapsed(),
     })
 }
