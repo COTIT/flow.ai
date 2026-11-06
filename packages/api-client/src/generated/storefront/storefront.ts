@@ -30,6 +30,7 @@ import type {
   EnvelopePublicLot,
   EnvelopeStorefrontOrder,
   EnvelopeStorefrontProduct,
+  EnvelopeVecStorefrontCategory,
   MessageBody,
   PaginatedStorefrontProduct,
   PaymentRequest,
@@ -59,6 +60,98 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+/**
+ * @summary List categories with sellable products
+ */
+export const storefrontCategoriesList = (
+
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecStorefrontCategory>(
+      {url: `/storefront/categories`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontCategoriesListQueryKey = () => {
+    return [
+    `/storefront/categories`
+    ] as const;
+    }
+
+
+export const getStorefrontCategoriesListQueryOptions = <TData = Awaited<ReturnType<typeof storefrontCategoriesList>>, TError = ErrorType<MessageBody>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontCategoriesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontCategoriesListQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontCategoriesList>>> = ({ signal }) => storefrontCategoriesList(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontCategoriesList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontCategoriesListQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontCategoriesList>>>
+export type StorefrontCategoriesListQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontCategoriesList<TData = Awaited<ReturnType<typeof storefrontCategoriesList>>, TError = ErrorType<MessageBody>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontCategoriesList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontCategoriesList>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontCategoriesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontCategoriesList<TData = Awaited<ReturnType<typeof storefrontCategoriesList>>, TError = ErrorType<MessageBody>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontCategoriesList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontCategoriesList>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontCategoriesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontCategoriesList<TData = Awaited<ReturnType<typeof storefrontCategoriesList>>, TError = ErrorType<MessageBody>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontCategoriesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List categories with sellable products
+ */
+
+export function useStorefrontCategoriesList<TData = Awaited<ReturnType<typeof storefrontCategoriesList>>, TError = ErrorType<MessageBody>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontCategoriesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontCategoriesListQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 /**
  * @summary Public page of a lot

@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { CategoryRef } from './categoryRef';
 import type { Link } from './link';
 import type { PassportRef } from './passportRef';
 import type { StorefrontVariant } from './storefrontVariant';
@@ -23,6 +24,7 @@ export interface StorefrontProduct {
   barcode: string | null;
   /** @nullable */
   brand: string | null;
+  category: CategoryRef | null;
   /** ISO 4217 code. */
   currency: string;
   currency_decimals: number;

@@ -48,6 +48,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
 
 - **One shape for list and detail:** list rows also carry the detail-only keys.
 - **`labels`** (Genesy addition, migration `product_labels`; set on create/update): short public labels the shop shows as chips, e.g. `["Raw", "Unheated"]`. At most 8, each 1 to 32 characters after trimming, no repeats in any case (422 on `labels` or `labels.N`). Absent keeps them; `[]` or null clears them. Duplicating a product copies them.
+- **`category_id`** (Genesy addition, migration `product_category_link`; set on create/update, returned on show and list): the product's main category, a live `/erp/product-categories` id of the same workspace (422 `The category id is an invalid id for the product_category domain.` otherwise, including another workspace's id). Null or absent on create = none; null on update clears it. Deleting the category clears it on every product (the soft delete and the foreign key's `ON DELETE SET NULL (category_id)` both do). Duplicating a product copies it. The storefront shows it as `category` and filters by it (`storefront.md`).
 - **`store_only`** (Genesy addition, boolean, default false; set on create/update): sold at the till only. `/storefront` never lists it; the till catalog does (`till.md`).
 - **`default_warehouse`:** the full warehouse resource on GET one and search, the compact form in lists.
 - **Prices are strings, printed by `money::format_decimals` the way Laravel's `MoneyHelper` did:**

@@ -126,6 +126,7 @@ async fn product_and_variant_carry_exactly_the_public_fields(pool: PgPool) {
             "available_stock",
             "barcode",
             "brand",
+            "category",
             "currency",
             "currency_decimals",
             "description",

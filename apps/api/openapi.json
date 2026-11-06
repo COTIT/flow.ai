@@ -1730,6 +1730,23 @@
         ],
         "type": "object"
       },
+      "CategoryRef": {
+        "description": "A product's category, as the shop links it (`?category=<id>`).",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "CategoryResource": {
         "description": "A product category. `relationships` is filled on the single-category GET.",
         "properties": {
@@ -7132,6 +7149,21 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/StockWithBins"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_StorefrontCategory": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/StorefrontCategory"
             },
             "type": "array"
           }
@@ -16143,6 +16175,14 @@
               "null"
             ]
           },
+          "category_id": {
+            "description": "Main category (`/erp/product-categories`), same workspace; null = none.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "country_of_origin": {
             "type": [
               "string",
@@ -16524,6 +16564,14 @@
           },
           "business_price_incl": {
             "type": "string"
+          },
+          "category_id": {
+            "description": "Main category (`/erp/product-categories`), same workspace; null = none (Genesy addition).",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "country_of_origin": {
             "type": [
@@ -17065,6 +17113,7 @@
           "export_enabled",
           "store_only",
           "labels",
+          "category_id",
           "export_price_sync",
           "export_product_data",
           "export_data"
@@ -22791,6 +22840,37 @@
         ],
         "type": "object"
       },
+      "StorefrontCategory": {
+        "description": "A category the shop can browse: only ones holding sellable products.",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "product_count": {
+            "description": "Sellable web products in it (never 0).",
+            "example": 12,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "product_count"
+        ],
+        "type": "object"
+      },
       "StorefrontOrder": {
         "description": "What the shop sees of its order: ids, number, status, totals and currency; never the\ncustomer.",
         "properties": {
@@ -22936,6 +23016,17 @@
               "null"
             ]
           },
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CategoryRef",
+                "description": "The product's main category; null when it has none."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "currency": {
             "description": "ISO 4217 code.",
             "example": "EUR",
@@ -23048,6 +23139,7 @@
           "available_stock",
           "stock_status",
           "labels",
+          "category",
           "passport",
           "images",
           "variants"
@@ -29774,6 +29866,98 @@
         ]
       }
     },
+    "/storefront/categories": {
+      "get": {
+        "operationId": "storefront_categories_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_StorefrontCategory"
+                }
+              }
+            },
+            "description": "Categories by name; empty ones left out"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, unknown or revoked app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Key lacks `catalog:read`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "app_key": []
+          }
+        ],
+        "summary": "List categories with sellable products",
+        "tags": [
+          "storefront"
+        ]
+      }
+    },
     "/storefront/lots/{code}": {
       "get": {
         "operationId": "storefront_lots_get",
@@ -30335,6 +30519,16 @@
             "schema": {
               "format": "int64",
               "type": "integer"
+            }
+          },
+          {
+            "description": "Only products of this category (`GET /storefront/categories`); an unknown or foreign id\ngives an empty list.",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],

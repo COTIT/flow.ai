@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n             ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM relations\n                 WHERE id = $2 AND workspace_id = $1 AND deleted_at IS NULL)) AS \"supplier!\",\n             ($3::uuid IS NULL OR EXISTS (SELECT 1 FROM vat_groups\n                 WHERE id = $3 AND workspace_id = $1 AND deleted_at IS NULL)) AS \"vat!\",\n             ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM sales_groups\n                 WHERE id = $4 AND workspace_id = $1 AND deleted_at IS NULL)) AS \"sales!\",\n             ($5::uuid IS NULL OR EXISTS (SELECT 1 FROM warehouses\n                 WHERE id = $5 AND workspace_id = $1 AND deleted_at IS NULL)) AS \"warehouse!\",\n             ($6::uuid IS NULL OR EXISTS (SELECT 1 FROM currencies\n                 WHERE id = $6 AND workspace_id = $1 AND deleted_at IS NULL)) AS \"currency!\",\n             ($7::uuid IS NULL OR EXISTS (SELECT 1 FROM product_categories\n                 WHERE id = $7 AND workspace_id = $1 AND deleted_at IS NULL)) AS \"category!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "supplier!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "vat!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "sales!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "warehouse!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "category!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "fdd4ba26066464b8a0f9e5f140634195a99db8811a658bfda1c573266a3d4e7f"
+}

@@ -305,6 +305,7 @@ pub async fn duplicate(
         currency_id: Some(src.currency_id),
         vat_group_id: Some(src.vat_group_id),
         sales_group_id: Some(src.sales_group_id),
+        category_id: Some(src.category_id),
         default_warehouse_id: Some(src.default_warehouse_id),
         price: Some(src.price),
         gross_price: Some(src.gross_price),
@@ -436,6 +437,7 @@ async fn blank(state: &AppState, workspace_id: Uuid, f: &Fields) -> Result<Produ
         export_enabled: false,
         store_only: false,
         labels: Vec::new(),
+        category_id: None,
         export_price_sync: false,
         export_product_data: false,
         export_data: None,
@@ -473,6 +475,7 @@ fn apply(p: &mut ProductRow, f: &Fields) {
         supplier_relation_id,
         vat_group_id,
         sales_group_id,
+        category_id,
         default_warehouse_id,
         wholesale_price,
         supplier_wholesale_price,
@@ -576,7 +579,7 @@ async fn check(
     p: &ProductRow,
     f: &Fields,
 ) -> Result<(), AppError> {
-    let [supplier, vat, sales, warehouse, currency] = repo::refs_ok(
+    let [supplier, vat, sales, warehouse, currency, category] = repo::refs_ok(
         &mut *conn,
         workspace_id,
         [
@@ -585,6 +588,7 @@ async fn check(
             f.sales_group_id.flatten(),
             f.default_warehouse_id.flatten(),
             f.currency_id,
+            f.category_id.flatten(),
         ],
     )
     .await?;
@@ -594,6 +598,7 @@ async fn check(
         (vat, "vat_group_id", "vat_group"),
         (sales, "sales_group_id", "sales_group"),
         (warehouse, "default_warehouse_id", "warehouse"),
+        (category, "category_id", "product_category"),
     ] {
         if !ok {
             errors.insert(field.into(), vec![bad_id(field, domain)]);

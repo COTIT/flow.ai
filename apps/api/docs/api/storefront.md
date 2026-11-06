@@ -4,9 +4,13 @@ Catalog read for apps holding an app key with `catalog:read` (see `app-keys.md`)
 
 Only sellable web products show: `status = active`, not archived, not deleted, not `store_only` (sold at the till only, see `till.md`). Anything else, an id of another workspace, or a malformed id is `404`.
 
-## `GET /v1/storefront/products?page&page_size`
+## `GET /v1/storefront/products?page&page_size&category`
 
-`200 {"data": [product...], "meta": {current_page, from, to, last_page, per_page, total}}`, ordered by id. `page_size` defaults to 50, max 100.
+`200 {"data": [product...], "meta": {current_page, from, to, last_page, per_page, total}}`, ordered by name (then id). `page_size` defaults to 50, max 100. `category=<id>` keeps the products of that category; an unknown, deleted, malformed or another workspace's id gives an empty list (`total` 0), never an error.
+
+## `GET /v1/storefront/categories`
+
+`200 {"data": [{"id", "name", "description", "product_count"}]}`, ordered by name. Only live categories holding at least one product this API lists; `product_count` counts those products (store-only, inactive, archived and deleted ones don't count). One statement, at most 500 rows.
 
 ## `GET /v1/storefront/products/{product}`
 
@@ -23,6 +27,7 @@ Only sellable web products show: `status = active`, not archived, not deleted, n
   "price_gross": 1250, "price_net": 1033, "currency": "EUR", "currency_decimals": 2,
   "available_stock": "7.50", "stock_status": "in_stock",
   "labels": ["Raw", "Unheated"],
+  "category": { "id": "…", "name": "Honey" },
   "passport": { "public_code": "7K3M9Q2XAB" },
   "images": [],
   "variants": [
@@ -36,6 +41,7 @@ Only sellable web products show: `status = active`, not archived, not deleted, n
 - **`available_stock`** is on hand minus reserved over every live stock row, as a decimal string, or `null` when the product isn't stock-tracked. Stock is per product (variants have none).
 - **`stock_status`:** `sold_out` (available ≤ 0), `low` (at most the workspace setting `product.low_stock_threshold` units, default 5, set through `POST /settings`) or `in_stock`; `null` when not stock-tracked. The rule lives here, so the shop shows a "few left" badge without its own threshold.
 - **`labels`:** the product's short public labels in order (`products.md`), `[]` without.
+- **`category`:** the product's main category `{id, name}` (`products.md`, `category_id`), `null` without one or when the category was deleted.
 - **`passport`:** `{public_code}` of the lot the shop sells next: the product's published, released, unexpired lot with free stock (level − reserved > 0) and the earliest of expiry and best-before (undated last), over every warehouse. Read the page with `GET /storefront/lots/{public_code}`. `null` when no lot qualifies (no lots, none published, recalled, expired or empty).
 - **Never shown:** purchase, wholesale or cost prices, supplier data, internal references or notes, stock locations. A test pins the exact key set.
 

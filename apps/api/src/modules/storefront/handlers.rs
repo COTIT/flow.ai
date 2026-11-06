@@ -18,7 +18,7 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         product_images, settings,
         storefront::{
-            dto::{LOW_STOCK_DEFAULT, ListQuery, StorefrontProduct},
+            dto::{LOW_STOCK_DEFAULT, ListQuery, StorefrontCategory, StorefrontProduct},
             repo,
         },
     },
@@ -43,10 +43,19 @@ pub async fn list(
 ) -> Result<Json<Paginated<StorefrontProduct>>, AppError> {
     key.require(CATALOG_READ)?;
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let rows = repo::products(&state.db, key.workspace_id, None, page.size, page.offset()).await?;
+    let category = match query.category.as_deref() {
+        None | Some("") => None,
+        Some(c) => match Uuid::parse_str(c) {
+            Ok(id) => Some(id),
+            // Not an id: no product can be in it.
+            Err(_) => return Ok(Json(Paginated::new(Vec::new(), 0, page))),
+        },
+    };
+    let ws = key.workspace_id;
+    let rows = repo::products(&state.db, ws, None, category, page.size, page.offset()).await?;
     let total = match rows.first() {
         Some(r) => r.total,
-        None if page.offset() > 0 => repo::count(&state.db, key.workspace_id).await?,
+        None if page.offset() > 0 => repo::count(&state.db, ws, category).await?,
         None => 0,
     };
     let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
@@ -79,13 +88,33 @@ pub async fn get(
 ) -> Result<Data<StorefrontProduct>, AppError> {
     key.require(CATALOG_READ)?;
     let id = Uuid::parse_str(&id).map_err(|_| AppError::NotFound)?;
-    let row = repo::products(&state.db, key.workspace_id, Some(id), 1, 0)
+    let row = repo::products(&state.db, key.workspace_id, Some(id), None, 1, 0)
         .await?
         .pop()
         .ok_or(AppError::NotFound)?;
     let images = product_images::service::storefront_links(&state, key.workspace_id, &[id]).await?;
     let low = low_stock(&state, key.workspace_id).await?;
     Ok(Data(StorefrontProduct::new(row, &images, low)))
+}
+
+/// GET /storefront/categories -> `{data:[...]}`.
+#[utoipa::path(
+    get, path = "/storefront/categories", tag = "storefront",
+    operation_id = "storefront_categories_list", summary = "List categories with sellable products",
+    responses(
+        (status = 200, body = Envelope<Vec<StorefrontCategory>>, description = "Categories by name; empty ones left out"),
+        (status = 401, body = MessageBody, description = "Missing, unknown or revoked app key"),
+        (status = 403, body = MessageBody, description = "Key lacks `catalog:read`"),
+    ),
+    security(("app_key" = []))
+)]
+pub async fn categories(
+    State(state): State<AppState>,
+    key: AppKey,
+) -> Result<Data<Vec<StorefrontCategory>>, AppError> {
+    key.require(CATALOG_READ)?;
+    let rows = repo::categories(&state.db, key.workspace_id).await?;
+    Ok(Data(rows.into_iter().map(Into::into).collect()))
 }
 
 /// Setting `product.low_stock_threshold`, else 5.

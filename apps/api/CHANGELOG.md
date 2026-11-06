@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Product categories reach the shop (`docs/api/products.md`, `storefront.md`; migration `product_category_link`): products gain `category_id`, the main category, same workspace only (composite FK, `ON DELETE SET NULL (category_id)`; the category soft delete clears it in the same statement). Create and update validate it like the other ids (422 for an unknown, deleted or foreign id). The storefront product gains `category: {id, name} | null`, `GET /storefront/products` takes `?category=<id>` (unknown or foreign = empty list) and lists by name, not id, and new `GET /storefront/categories` lists the categories holding sellable products with `product_count`.
 - Lot guards (`docs/api/lots.md`, `stock.md`, `supply-chain.md`, `warehouses.md`, `webhooks.md`; no migration):
   - Status rules: released ↔ quarantine, either → recalled; recalled is final (`409 lot_status_final`), and POST can't start a lot recalled. Lots gain `next_statuses`. Each change emits `lot.status_changed`.
   - Recalled or held lots don't move: no stock into a recalled lot (`409 lot_recalled`; write-off and returns stay allowed, quarantine still takes goods in), no packing or dispatch from a recalled or quarantined lot (`409 lot_recalled` / `lot_quarantined`), all under the lot's row lock.

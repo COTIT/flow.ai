@@ -15,4 +15,9 @@ page?: number;
  * Default 50, max 100.
  */
 page_size?: number;
+/**
+ * Only products of this category (`GET /storefront/categories`); an unknown or foreign id
+ * gives an empty list.
+ */
+category?: string;
 };
