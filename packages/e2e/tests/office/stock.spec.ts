@@ -178,16 +178,16 @@ test("stock movements: All / Decreases / Counts ask the API for that type", asyn
   const card = page.getByRole("region", { name: "Stock movements" })
   const kind = card.getByRole("group", { name: "Movement type" })
   await expect(kind.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true")
-  await expect(card.getByRole("cell", { name: "120.00" })).toBeVisible()
+  await expect(card.getByRole("cell", { name: "120", exact: true })).toBeVisible()
 
   await kind.getByRole("button", { name: "Decreases" }).click()
   await expect(kind.getByRole("button", { name: "Decreases" })).toHaveAttribute("aria-pressed", "true")
-  await expect(card.getByRole("cell", { name: "120.00" })).toHaveCount(0)
-  await expect(card.getByRole("cell", { name: "-1.00" })).toBeVisible()
+  await expect(card.getByRole("cell", { name: "120", exact: true })).toHaveCount(0)
+  await expect(card.getByRole("cell", { name: "-1", exact: true })).toBeVisible()
 
   await kind.getByRole("button", { name: "Counts" }).click()
-  await expect(card.getByRole("cell", { name: "-3.00" })).toBeVisible()
-  await expect(card.getByRole("cell", { name: "-1.00" })).toHaveCount(0)
+  await expect(card.getByRole("cell", { name: "-3", exact: true })).toBeVisible()
+  await expect(card.getByRole("cell", { name: "-1", exact: true })).toHaveCount(0)
   await expectFits(page)
 })
 
@@ -246,20 +246,20 @@ test("stock per warehouse; a change shows as a movement", async ({
   stockApi(api)
   await page.goto("/products/prod-honey")
   const stock = page.getByRole("region", { name: "Stock", exact: true })
-  await expect(stock.getByText("120.00")).toBeVisible()
-  await expect(stock.getByText("120", { exact: true })).toBeVisible()
+  // Whole quantities read without decimals: the place line and the total both say 120.
+  await expect(stock.getByText("120", { exact: true })).toHaveCount(2)
   await page.getByRole("button", { name: "Change stock" }).click()
   const dialog = page.getByRole("dialog")
   await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
   await dialog.getByLabel("Change (e.g. 10 or -3)").fill("10")
   await dialog.getByLabel("Reason").fill("Harvest intake")
   await dialog.getByRole("button", { name: "Save" }).click()
-  await expect(stock.getByText("130.00")).toBeVisible()
+  await expect(stock.getByText("130", { exact: true })).toBeVisible()
   // The movement: its change shows on a phone card too; the reason only on wider screens.
   await expect(page.getByRole("cell", { name: "10", exact: true })).toBeVisible()
   await expect(page.getByText("Harvest intake")).toBeAttached()
   await expect(
-    page.getByRole("status").filter({ hasText: "Stock changed" })
+    page.getByRole("status").filter({ hasText: "Added 10 at Dar es Salaam: now 130." })
   ).toBeVisible()
   expect(
     api.callsTo("POST", "/workspace/:ws/products/:id/stocks")[0]?.body
@@ -321,16 +321,16 @@ test("all stock and below-zero lists", async ({ page, api, isMobile }) => {
       paged([row("s2", "-3.00")])
     )
   await page.goto("/stock")
-  await expect(page.getByRole("cell", { name: "120.00" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "120", exact: true })).toBeVisible()
   // Held and available come from the API; the page does no subtraction. Phone rows hide them.
   if (!isMobile) {
     await expect(page.getByRole("columnheader", { name: "Held" })).toBeVisible()
     await expect(page.getByRole("columnheader", { name: "Available" })).toBeVisible()
-    await expect(page.getByRole("cell", { name: "116.00" })).toBeVisible()
+    await expect(page.getByRole("cell", { name: "116", exact: true })).toBeVisible()
   }
   await page.getByRole("link", { name: "Below zero" }).click()
   await expect(page).toHaveURL(/\/stock\/negative$/)
-  await expect(page.getByRole("cell", { name: "-3.00" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "-3", exact: true })).toBeVisible()
   await expect(page.getByRole("link", { name: "Below zero" })).toHaveAttribute(
     "aria-current",
     "page"
@@ -407,7 +407,7 @@ const productWrites = [
       await dialog.getByLabel("Change (e.g. 10 or -3)").fill("10")
       await dialog.getByRole("button", { name: "Save" }).click()
     },
-    saved: "Stock changed",
+    saved: "Added 10",
   },
 ]
 
@@ -492,7 +492,7 @@ test("/products/[id] stock change: retried after a network failure, the API can 
   ).toBeVisible()
   await productWrites[1]!.run(page)
   await expect(
-    page.getByRole("status").filter({ hasText: "Stock changed" })
+    page.getByRole("status").filter({ hasText: "Added 10" })
   ).toBeVisible()
   expect(keys).toHaveLength(2)
   expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/)

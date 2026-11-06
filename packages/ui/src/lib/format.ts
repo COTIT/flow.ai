@@ -9,6 +9,16 @@ export function formatShare(bp: number, locale: string): string {
   }).format(fraction as unknown as number)
 }
 
+/** An API quantity ("16.00", "-1.00", "1.50") for reading: whole ones without decimals, others
+ * as the API gives them, in the app's locale. The string goes in as-is, so nothing is rounded. */
+export function formatQty(qty: string, locale: string): string {
+  const whole = /^-?\d+(\.0*)?$/.test(qty)
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 20,
+  }).format(qty as unknown as number)
+}
+
 /** An API date (`YYYY-MM-DD`) in words. Read and shown as UTC so it never moves a day. */
 export const formatDay = (day: string, locale: string) =>
   new Intl.DateTimeFormat(locale, {

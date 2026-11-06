@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Package } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
@@ -20,6 +21,7 @@ import {
   useStockWithBins,
 } from "@genesy/api-client/endpoints/stock"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
+import type { StockWithBins } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Checkbox } from "@genesy/ui/components/checkbox"
 import { Button } from "@genesy/ui/components/button"
@@ -41,7 +43,8 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
-import { formatDateTime } from "@genesy/ui/lib/format"
+import { formatDateTime, formatQty } from "@genesy/ui/lib/format"
+import { Badge } from "@genesy/ui/components/badge"
 import { Bento, DetailSkeleton, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import {
@@ -53,6 +56,13 @@ import {
 } from "@/components/list"
 import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
+import {
+  BatchLink,
+  BelowZeroWhy,
+  byPlace,
+  inlineLink,
+  lotOf,
+} from "@/components/stock"
 
 import { ProductImages } from "./images"
 import { ProductSizes } from "./sizes"
@@ -67,8 +77,8 @@ export default function ProductPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  /** `?done=created`: "New product" just made it. */
-  searchParams: Promise<{ done?: string }>
+  /** `?done=created`: "New product" just made it; `?change=<warehouse>` opens Change stock there. */
+  searchParams: Promise<{ done?: string; change?: string }>
 }) {
   const t = useTranslations()
   const locale = useLocale()
@@ -91,9 +101,15 @@ export default function ProductPage({
     { page, type: type || undefined },
     enabled
   )
+  const query = React.use(searchParams)
   const done = useDone(
-    React.use(searchParams).done === "created" ? t("done.productCreated") : null
+    query.done === "created" ? t("done.productCreated") : null
   )
+  // The place Change stock is open at ("" = the first place); null = closed.
+  const [changeAt, setChangeAt] = React.useState<string | null>(
+    query.change ?? null
+  )
+  const qty = (v: string) => formatQty(v, locale)
   const update = useProductsUpdate({
     mutation: {
       onMutate: done.clear,
@@ -108,13 +124,6 @@ export default function ProductPage({
   const errors = fieldErrors(update.error)
   const statusLabel = (s: string) =>
     t.has(`products.statuses.${s}`) ? t(`products.statuses.${s}`) : s
-  const place = (s: { warehouse: unknown; bin: unknown }) =>
-    [
-      (s.warehouse as Named)?.name,
-      (s.bin as Named)?.bin_name ?? (s.bin as Named)?.bin_code,
-    ]
-      .filter(Boolean)
-      .join(" · ")
   const columns = [
     { label: t("lots.eventAt") },
     { label: t("stock.type") },
@@ -334,10 +343,12 @@ export default function ProductPage({
             action={
               <MutateStock
                 productId={id}
-                onDone={() => {
-                  done.show(t("done.stockChanged"))
+                at={changeAt}
+                onAt={setChangeAt}
+                rows={stock.data?.data ?? []}
+                onDone={(message) => {
+                  done.show(message)
                   for (const queryKey of [
-                    getStockWithBinsQueryKey(workspaceId, id),
                     getStockMovementsQueryKey(workspaceId, id),
                     getProductsGetQueryKey(workspaceId, id),
                   ])
@@ -351,7 +362,7 @@ export default function ProductPage({
               <Metric label={t("stock.onHand")}>
                 {p.total_available_stock ?? "—"}
               </Metric>
-              <Metric label={t("stock.reserved")}>
+              <Metric label={t("stock.held")}>
                 {p.total_reserved_stock ?? "—"}
               </Metric>
             </div>
@@ -363,29 +374,73 @@ export default function ProductPage({
             ) : stock.data.data.length === 0 ? (
               <Empty title={t("stock.empty")} />
             ) : (
-              <div className="flex flex-col gap-2 text-sm">
-                {stock.data.data.map((s) => (
-                  <div key={s.id} className="flex justify-between gap-3">
-                    <span className="min-w-0">{place(s)}</span>
+              <div className="flex flex-col gap-3 text-sm">
+                {byPlace(stock.data.data).map((place) => {
+                  const level = (v: string) => (
                     <span className="font-semibold tabular-nums">
-                      {s.stock_lvl}
+                      {/* The sign is read from the API's string, never computed. */}
+                      {v.startsWith("-") ? (
+                        <Badge variant="red" data-dot="false">
+                          {qty(v)}
+                        </Badge>
+                      ) : (
+                        qty(v)
+                      )}
                     </span>
-                  </div>
-                ))}
-                {stock.data.data.map((s, _, rows) => (
-                  <div
-                    key={`min-${s.id}`}
-                    className="flex justify-between gap-3 text-muted-foreground"
-                  >
-                    <span className="min-w-0">
-                      {t("stock.minimum")}
-                      {rows.length > 1 ? ` · ${place(s)}` : ""}
-                    </span>
-                    <span className="tabular-nums">
-                      {s.minimal_stock_level}
-                    </span>
-                  </div>
-                ))}
+                  )
+                  const alone = place.rows.length === 1 && place.base
+                  return (
+                    <div key={place.id} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="min-w-0 font-medium">
+                          {place.name}
+                        </span>
+                        {alone ? level(place.base!.stock_lvl) : null}
+                      </div>
+                      {alone ? null : (
+                        <ul className="flex flex-col gap-1 pl-3">
+                          {place.rows.map((r) => {
+                            const lot = lotOf(r.lot)
+                            const bin = r.bin as Named
+                            const binName = bin?.bin_name ?? bin?.bin_code
+                            return (
+                              <li
+                                key={r.id}
+                                className="flex items-center justify-between gap-3 text-muted-foreground"
+                              >
+                                <span className="min-w-0">
+                                  {binName ? `${binName} · ` : null}
+                                  {lot ? (
+                                    <BatchLink lot={lot} />
+                                  ) : binName ? null : (
+                                    t("stock.noBatch")
+                                  )}
+                                </span>
+                                {level(r.stock_lvl)}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                      {place.base && place.base.minimal_stock_level > 0 ? (
+                        <span className="text-muted-foreground">
+                          {`${t("stock.minimum")} ${place.base.minimal_stock_level}`}
+                        </span>
+                      ) : null}
+                      {place.rows.some((r) => r.stock_lvl.startsWith("-")) ? (
+                        <BelowZeroWhy>
+                          <button
+                            type="button"
+                            className={inlineLink}
+                            onClick={() => setChangeAt(place.id)}
+                          >
+                            {t("stock.correctIt")}
+                          </button>
+                        </BelowZeroWhy>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </Tile>
@@ -464,13 +519,13 @@ export default function ProductPage({
                       data-m="right"
                       className="text-right font-semibold tabular-nums"
                     >
-                      {m.quantity_change}
+                      {m.quantity_change == null ? "—" : qty(m.quantity_change)}
                     </TableCell>
                     <TableCell
                       data-m="hide"
                       className="text-right tabular-nums"
                     >
-                      {m.quantity_after}
+                      {m.quantity_after == null ? "—" : qty(m.quantity_after)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -488,27 +543,60 @@ export default function ProductPage({
   )
 }
 
-/** Add to or take from one warehouse's stock; the change is a signed decimal string. */
+/** Add to or take from one place's stock (its row without a batch); the change is a signed
+ * decimal string. Says what the place holds now, and after saving, where the change went. */
 function MutateStock({
   productId,
+  at,
+  onAt,
+  rows,
   onDone,
 }: {
   productId: string
-  onDone: () => void
+  at: string | null
+  onAt: (at: string | null) => void
+  rows: StockWithBins[]
+  onDone: (message: string) => void
 }) {
   const t = useTranslations()
+  const locale = useLocale()
+  const qty = (v: string) => formatQty(v, locale)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
-  const [open, setOpen] = React.useState(false)
+  const queryClient = useQueryClient()
+  const open = at !== null
   const warehouses = useWarehousesList(
     workspaceId,
     { page_size: 100 },
     { query: { enabled: open && Boolean(workspaceId) } }
   )
+  const chosen = at || warehouses.data?.data[0]?.id || ""
+  const place = byPlace(rows).find((p) => p.id === chosen)
+  const placeName = warehouses.data?.data.find((w) => w.id === chosen)?.name
+  const batches = place?.rows.filter((r) => lotOf(r.lot)) ?? []
   const mutate = useStockMutate({
     mutation: {
-      onSuccess: () => {
-        onDone()
-        setOpen(false)
+      onSuccess: async (_, { data }) => {
+        // The new level is the API's, read back after the change; nothing is added up here.
+        const key = getStockWithBinsQueryKey(workspaceId, productId)
+        await queryClient.refetchQueries({ queryKey: key })
+        const now = byPlace(
+          queryClient.getQueryData<{ data: StockWithBins[] }>(key)?.data ?? []
+        ).find((p) => p.id === data.warehouse_id)?.base?.stock_lvl
+        const value = data.mutation_value.trim()
+        const taken = value.startsWith("-")
+        const name = warehouses.data?.data.find(
+          (w) => w.id === data.warehouse_id
+        )?.name
+        onDone(
+          now && name
+            ? t(taken ? "done.stockTaken" : "done.stockAdded", {
+                qty: qty(value.replace(/^[-+]/, "")),
+                place: name,
+                now: qty(now),
+              })
+            : t("done.stockChanged")
+        )
+        onAt(null)
       },
     },
   })
@@ -518,7 +606,7 @@ function MutateStock({
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        setOpen(o)
+        onAt(o ? "" : null)
         if (!o) mutate.reset()
       }}
     >
@@ -551,7 +639,13 @@ function MutateStock({
             label={t("stock.warehouse")}
             errors={errors.warehouse_id}
           >
-            <select name="warehouse_id" className={selectClass} required>
+            <select
+              name="warehouse_id"
+              className={selectClass}
+              required
+              value={chosen}
+              onChange={(e) => onAt(e.target.value)}
+            >
               {warehouses.data?.data.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.name}
@@ -559,6 +653,37 @@ function MutateStock({
               ))}
             </select>
           </Field>
+          {placeName ? (
+            <div className="flex flex-col gap-1 text-sm" aria-live="polite">
+              <p>
+                {place?.base
+                  ? t("stock.nowAt", {
+                      place: placeName,
+                      qty: qty(place.base.stock_lvl),
+                    })
+                  : t("stock.noneAt", { place: placeName })}
+              </p>
+              {batches.length ? (
+                <>
+                  <p className="text-muted-foreground">
+                    {t("stock.batchesApart")}
+                  </p>
+                  <ul className="flex flex-col">
+                    {batches.map((r) => {
+                      const lot = lotOf(r.lot)!
+                      return (
+                        <li key={r.id}>
+                          <Link className={inlineLink} href={`/lots/${lot.id}`}>
+                            {`${t("stock.batch", { code: lot.code })}: ${qty(r.stock_lvl)}`}
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           <Field
             id="m-value"
             label={t("stock.changeHint")}
