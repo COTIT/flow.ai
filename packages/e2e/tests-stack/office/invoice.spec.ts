@@ -65,12 +65,22 @@ test("order → invoice → sent → partly paid → paid → credit note → cr
   await expect(next.getByText("A draft gets its number when you send it.")).toBeVisible()
   await expect(page.getByRole("link", { name: `Open order ${order.number}` })).toBeVisible()
 
-  // Sent: numbered, even though the stack has no PDF renderer.
-  await next.getByRole("button", { name: "Send", exact: true }).click()
-  await page.getByRole("dialog", { name: "Send the invoice" }).getByRole("button", { name: "Send", exact: true }).click()
-  await expect(page.getByText("Invoice sent.")).toBeVisible()
-  await expect(page.getByRole("heading", { name: /^Invoice \S+$/ })).toBeVisible()
+  // Numbered for manual delivery; the stack has no PDF renderer.
   const invoiceId = page.url().split("/").at(-1)!
+  await next.getByRole("button", { name: "Send", exact: true }).click()
+  const sendResponse = page.waitForResponse((response) =>
+    response.request().method() === "POST" && new URL(response.url()).pathname.endsWith(`/invoices/${invoiceId}/send`)
+  )
+  await page.getByRole("dialog", { name: "Send the invoice" }).getByRole("button", { name: "Send", exact: true }).click()
+  const response = await sendResponse
+  expect(response.ok()).toBe(true)
+  expect(response.request().postDataJSON()).toMatchObject({ send_method: "manual" })
+  const receipt = (await response.json()).delivery
+  expect(receipt.invoice_id).toBe(invoiceId)
+  expect(["manual", "queued"]).toContain(receipt.status)
+  await expect(page.getByText(/^Invoice numbered\./)).toBeVisible()
+  await expect(page.getByText("Invoice sent.", { exact: true })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: /^Invoice \S+$/ })).toBeVisible()
   const sent = await owner.get<Invoice>(owner.ws(`/invoices/${invoiceId}`))
   expect(sent.status).toBe("pending")
   expect(sent.invoice_nr).toBeTruthy()
