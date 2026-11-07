@@ -203,8 +203,8 @@ jobs:
       - name: Checkpoint schema matches pinned saver
         run: pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
       - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
-      # The builds above are turbo cache hits here.
-      - run: pnpm turbo run e2e
+      # Reuse the builds above and stream browser progress without Turbo's grouped log buffer.
+      - run: pnpm --filter @genesy/e2e e2e
       - name: Secure form survives development Strict Mode
         run: pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
       - name: Upload report and traces
