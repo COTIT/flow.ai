@@ -10,6 +10,15 @@ const directive = (csp: string, name: string) =>
 describe("contentSecurityPolicy", () => {
   const csp = contentSecurityPolicy("abc123")
 
+  it("allows the voice page to reach only ElevenLabs and its local audio workers", () => {
+    const voice = contentSecurityPolicy("n", { voice: true })
+    expect(directive(voice, "connect-src")).toBe(
+      "connect-src 'self' https://api.elevenlabs.io wss://api.elevenlabs.io"
+    )
+    expect(directive(voice, "worker-src")).toBe("worker-src 'self' blob:")
+    expect(directive(csp, "connect-src")).toBe("connect-src 'self'")
+  })
+
   it("runs only scripts carrying this response's nonce (and what they load)", () => {
     expect(directive(csp, "script-src")).toBe(
       "script-src 'self' 'nonce-abc123' 'strict-dynamic'"

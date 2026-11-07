@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_batches SET fingerprint=$5 WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 AND state='proposed'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "710ecc26ddc9cc3dfa57304567b87a7939c226ecabfa99e3c5a07ce81a57189b"
+}

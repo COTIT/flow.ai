@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id FROM currencies c JOIN invoices i ON i.workspace_id=c.workspace_id AND i.currency_id=c.id WHERE i.workspace_id=$1 AND i.id=$2 FOR SHARE OF c",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4238362adada74986af9567e3b2219daafd35baa05598ca5220e218cf97cd9a0"
+}

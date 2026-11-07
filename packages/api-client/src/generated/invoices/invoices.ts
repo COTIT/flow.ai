@@ -31,6 +31,7 @@ import type {
   EnvelopeInvoiceResource,
   EnvelopePublicInvoice,
   InvoiceBody,
+  InvoiceDeliveryReply,
   InvoiceListPage,
   InvoicesListParams,
   InvoicesPreviewParams,
@@ -325,7 +326,7 @@ export const useInvoicesCreate = <TError = ErrorType<MessageBody | ValidationErr
       return useMutation(getInvoicesCreateMutationOptions(options), queryClient);
     }
     /**
- * @summary Running invoice sends (always none: sends finish in their request)
+ * @summary Pending or uncertain invoice deliveries
  */
 export const invoicesSendTasks = (
     workspace: string,
@@ -396,7 +397,7 @@ export function useInvoicesSendTasks<TData = Awaited<ReturnType<typeof invoicesS
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Running invoice sends (always none: sends finish in their request)
+ * @summary Pending or uncertain invoice deliveries
  */
 
 export function useInvoicesSendTasks<TData = Awaited<ReturnType<typeof invoicesSendTasks>>, TError = ErrorType<MessageBody>>(
@@ -903,7 +904,7 @@ export const invoicesResend = (
 ) => {
 
 
-      return apiRequest<MessageBody>(
+      return apiRequest<InvoiceDeliveryReply>(
       {url: `/workspace/${workspace}/invoices/${invoice}/resend`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: sendMessageRequest, signal
@@ -972,7 +973,7 @@ export const invoicesSend = (
 ) => {
 
 
-      return apiRequest<MessageBody>(
+      return apiRequest<InvoiceDeliveryReply>(
       {url: `/workspace/${workspace}/invoices/${invoice}/send`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: sendMessageRequest, signal

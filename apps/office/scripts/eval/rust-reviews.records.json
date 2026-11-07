@@ -1,0 +1,497 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "records-person-verify",
+      "test": "farm_records::a_household_needs_a_second_pair_of_eyes",
+      "operations": [
+        "farm_records_persons_verify"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"the registrar may still verify the person\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Person verification by registrar succeeds200 under native policy; household four-eyes rule does not apply to person."
+    },
+    {
+      "id": "records-person-correct",
+      "test": "farm_records::a_correction_resets_verification_and_stamps_provenance",
+      "operations": [
+        "farm_records_persons_correct"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(p[\"source\"], \"field_verified\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native correction trims name, normalizes phone, resets verification/verifier and stamps real village officer provenance."
+    },
+    {
+      "id": "records-correction-role",
+      "test": "farm_records::correction_rules",
+      "operations": [
+        "farm_records_persons_correct"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403,
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"farmers are read-only\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer PUT403, wrong-village officer404; verification/user/source injection and blank name422."
+    },
+    {
+      "id": "records-farm-correct-validation",
+      "test": "farm_records::correction_rules",
+      "operations": [
+        "farm_records_farms_correct"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "json!({ \"label\": \"Farm\", \"latitude\": \"91\", \"longitude\": \"35\" })"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native farm correction invalid latitude91 produces422. No positive farm correction claim from this test."
+    },
+    {
+      "id": "records-cycle-correct",
+      "test": "farm_records::a_cycle_correction_follows_the_crop_measure",
+      "operations": [
+        "farm_records_crop_cycles_correct"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(res[\"data\"][\"tree_count\"], 45);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Banana correction rejects area measure and reversed harvest window422; correct tree measure stores45 and responds200."
+    },
+    {
+      "id": "records-harvest-revise",
+      "test": "farm_records::a_harvest_revision_keeps_one_current_row_and_the_history",
+      "operations": [
+        "farm_records_harvest_reports_revise",
+        "farm_records_harvest_reports_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(old[\"quantity_kg\"], \"3200.00\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native expected revision999kg creates current row, independent list retains old3200kg and exactly one current; actual series remains separate. Farmer can read own history."
+    },
+    {
+      "id": "records-harvest-revise-role",
+      "test": "farm_records::a_harvest_revision_keeps_one_current_row_and_the_history",
+      "operations": [
+        "farm_records_harvest_reports_revise"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"a farmer cannot revise a figure\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual farmer cannot revise harvest403 before any mutation."
+    },
+    {
+      "id": "records-harvest-verify",
+      "test": "farm_records::harvest_reports_verify_like_any_record",
+      "operations": [
+        "farm_records_harvest_reports_verify"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(res[\"data\"][\"provenance\"][\"verification\"], \"verified\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual harvest report verified by village officer200 with exact verified provenance."
+    },
+    {
+      "id": "records-holdings",
+      "test": "farm_records::holdings_read_a_persons_households_farms_plots_and_cycles_in_one_call",
+      "operations": [
+        "farm_records_persons_holdings"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          404
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(names, [\"Neema\", \"Rehema\"]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact household members, farm/plot/cycle identities and3200kg harvest; farmer GPS redacted; wrong village, unrelated household and actual outsider404."
+    },
+    {
+      "id": "records-harvest-list",
+      "test": "farm_records::the_harvest_report_list_follows_the_cycle_rules",
+      "operations": [
+        "farm_records_harvest_reports_all"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"another workspace is refused\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact current/history ids by village/farmer/ops and filters/paging; unknown verification422 exact error; actual outsider404."
+    },
+    {
+      "id": "records-registration-state",
+      "test": "farm_registration::registration_creates_the_chain_with_server_provenance",
+      "operations": [
+        "farm_records_register"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_registration.rs",
+          "contains": "\"every registration row is audited under the officer\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual registration creates one complete person/household/member/farm/manager/plot/cycle chain; exact normalized phone/source/capturing officer/unverified status, farmer-reported expected harvest and zero incorrectly audited rows."
+    },
+    {
+      "id": "records-registration-role",
+      "test": "farm_registration::farmers_and_anonymous_callers_cannot_register",
+      "operations": [
+        "farm_records_register"
+      ],
+      "gates": {
+        "authorization": [
+          401,
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_registration.rs",
+          "contains": "assert_eq!(count(&pool, \"farm_persons\").await, 0);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer registration403 and no-bearer401; zero persisted people."
+    },
+    {
+      "id": "records-registration-village",
+      "test": "farm_registration::registration_is_refused_outside_the_officers_villages",
+      "operations": [
+        "farm_records_register"
+      ],
+      "gates": {
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_registration.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Wrong assigned-village officer registration403; zero persisted people."
+    },
+    {
+      "id": "records-registration-validation",
+      "test": "farm_registration::registration_input_rules",
+      "operations": [
+        "farm_records_register"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_registration.rs",
+          "contains": "assert_eq!(res[\"errors\"][field][0], message, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Missing clientref/phone/GPS, nonmobile phone and unknown crop422 exact messages; zero people after all failures."
+    },
+    {
+      "id": "records-passbook-mine",
+      "test": "farm_passbook::a_farmer_reads_their_passbook_newest_first_with_a_running_balance",
+      "operations": [
+        "farm_passbook_mine"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_passbook.rs",
+          "contains": "[(2_550, 62_550), (-40_000, 60_000), (100_000, 100_000)]"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact own ledger amounts/running balances/newest order/currency/decimals; other farmer entry excluded; balance survives paging."
+    },
+    {
+      "id": "records-passbook-person",
+      "test": "farm_passbook::staff_of_the_village_read_a_persons_passbook_nobody_else",
+      "operations": [
+        "farm_passbook_person"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          403,
+          404
+        ],
+        "authorization": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_passbook.rs",
+          "contains": "assert_eq!(amounts(&res), [(500, 500)]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Assigned officer/ops read exact person500 balance; other village404, another farmer403, real outsider and second farm workspace staff404."
+    },
+    {
+      "id": "records-passbook-mine-person",
+      "test": "farm_passbook::staff_of_the_village_read_a_persons_passbook_nobody_else",
+      "operations": [
+        "farm_passbook_mine"
+      ],
+      "gates": {
+        "farm_role": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_passbook.rs",
+          "contains": "\"staff account is no registered person\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Staff without linked person cannot read a fabricated own passbook404; another linked farmer own list empty."
+    },
+    {
+      "id": "records-consent-state",
+      "test": "farm_passbook::passport_consent_is_off_by_default_and_the_farmer_or_village_staff_set_it",
+      "operations": [
+        "farm_passbook_give_consent",
+        "farm_passbook_withdraw_consent"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_passbook.rs",
+          "contains": "assert!(res[\"data\"][\"consent_at\"].is_null());"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Direct DB initial false, linked farmer grants consenttrue/timestamp; village officer withdraws false/nulltimestamp. Both native operations exact outputs."
+    },
+    {
+      "id": "records-consent-role",
+      "test": "farm_passbook::passport_consent_is_off_by_default_and_the_farmer_or_village_staff_set_it",
+      "operations": [
+        "farm_passbook_give_consent"
+      ],
+      "gates": {
+        "farm_role": [
+          403,
+          404
+        ],
+        "authorization": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_passbook.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"another farmer\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Wrong-village staff404 and unrelated linked farmer403 when granting consent; withdrawal denials not inferred."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/farm_passbook.rs": "6d6dbaa687a6a8cd524b6376039410b1cbe30760ddbf6fec3c4338fda6d132cd",
+    "apps/api/tests/api/farm_records.rs": "19d715ea32a98a5e9a3552d913d6a566a54d55340d179f2550113810f39f16f8",
+    "apps/api/tests/api/farm_registration.rs": "211d2636566ab88c2a0f7def4c967fe96980f44f89041fa99c1285619394e9a4",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea"
+  }
+}

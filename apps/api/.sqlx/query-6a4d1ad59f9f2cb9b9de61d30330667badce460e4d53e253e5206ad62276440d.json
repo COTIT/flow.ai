@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_uploads SET file_id=$4,size_bytes=coalesce($5,size_bytes),media_type=coalesce($6,media_type),sha256=coalesce($7,sha256),state=CASE WHEN $8 OR state IN ('cancelled','cleanup_pending') OR created_at<=now()-interval '60 seconds' THEN 'cleanup_pending' ELSE 'uploaded' END WHERE workspace_id=$1 AND session_id=$2 AND id=$3 AND state IN ('reserved','uploaded','cancelled','cleanup_pending') AND (file_id IS NULL OR file_id=$4) RETURNING jsonb_build_object('id',id,'file_id',file_id,'state',state,'size_bytes',size_bytes,'media_type',media_type,'sha256',sha256) AS \"data!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6a4d1ad59f9f2cb9b9de61d30330667badce460e4d53e253e5206ad62276440d"
+}

@@ -1,0 +1,801 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "support-pue-create",
+      "test": "farm_pue::a_farmer_requests_a_machine_for_themselves",
+      "operations": [
+        "farm_pue_requests_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(e[\"est_kwh_per_week\"], \"720.000\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact submitted request, linked person/village/equipment/purpose, quantity and server-derived rated-power/time/energy estimate."
+    },
+    {
+      "id": "support-pue-create-errors",
+      "test": "farm_pue::request_figures_are_checked",
+      "operations": [
+        "farm_pue_requests_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert!(res[\"errors\"][field].is_array(), \"{body}: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Missing/malformed/unknown equipment, zero quantity, time bounds and unsupported acquisition422 with keyed errors."
+    },
+    {
+      "id": "support-pue-transition",
+      "test": "farm_pue::ops_review_stamps_the_decision",
+      "operations": [
+        "farm_pue_requests_transition"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(r[\"decision_note\"], \"fits the village capacity\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Ops review+approve records exact approved state, real decision actor/time/note; illegal approved->rejected422."
+    },
+    {
+      "id": "support-pue-transition-role",
+      "test": "farm_pue::a_farmer_cannot_review_or_approve_their_own_request",
+      "operations": [
+        "farm_pue_requests_transition"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "\"only ops or admin may review a request\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer cannot start review or approve403; direct invalid transition422; independent detail stays under_review."
+    },
+    {
+      "id": "support-pue-get-state",
+      "test": "farm_pue::a_farmer_cannot_review_or_approve_their_own_request",
+      "operations": [
+        "farm_pue_requests_get"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(res[\"data\"][\"status\"], \"under_review\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Independent own request detail verifies actual unchanged under_review status after forbidden approval."
+    },
+    {
+      "id": "support-pue-list-scope",
+      "test": "farm_pue::requests_are_read_by_their_farmer_and_village_staff",
+      "operations": [
+        "farm_pue_requests_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert!(!ids(&ilu).contains(&joseph.as_str()));"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer exact own id, village officer exact two excluding other village, ops all three; exact newest/status/village filters."
+    },
+    {
+      "id": "support-pue-role-hidden",
+      "test": "farm_pue::requests_are_read_by_their_farmer_and_village_staff",
+      "operations": [
+        "farm_pue_requests_get",
+        "farm_pue_requests_transition"
+      ],
+      "gates": {
+        "farm_role": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "let (status, _) = p.act(&mine, \"withdraw\", &p.f.officer_mga).await;"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Unrelated farmer cannot read other person request and wrong-village officer read/transition404. Per-operation observed404 required."
+    },
+    {
+      "id": "support-pue-tenant",
+      "test": "farm_pue::requests_of_another_workspace_are_404",
+      "operations": [
+        "farm_pue_requests_get",
+        "farm_pue_requests_transition"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "let theirs = format!(\"/v1/workspace/{other_ws}/farm/pue-requests/{id}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual second workspace farm admin cannot read or transition first request404; original ops also cannot use second workspace path."
+    },
+    {
+      "id": "support-pue-foreign-create",
+      "test": "farm_pue::requests_of_another_workspace_are_404",
+      "operations": [
+        "farm_pue_requests_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "// Our machine is not theirs to request."
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual second workspace create using first equipment/person422. Native field validation status retained."
+    },
+    {
+      "id": "support-pue-no-bearer",
+      "test": "farm_pue::requests_of_another_workspace_are_404",
+      "operations": [
+        "farm_pue_requests_list"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual request list without bearer401."
+    },
+    {
+      "id": "support-pue-energy",
+      "test": "farm_pue::village_energy_keeps_prospective_and_approved_load_apart",
+      "operations": [
+        "farm_pue_village_energy"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(e[\"headroom_kw\"], \"489.200\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual approved mill+pumps and prospective mill yield exact capacity, simultaneity,18raw/10.8peak approved,9prospective,489.2headroom and828weekly energy; empty village zero load."
+    },
+    {
+      "id": "support-pue-village-role",
+      "test": "farm_pue::village_energy_and_pipeline_are_for_staff_of_the_village",
+      "operations": [
+        "farm_pue_village_energy",
+        "farm_pue_village_pipeline"
+      ],
+      "gates": {
+        "farm_role": [
+          403,
+          404
+        ],
+        "authorization": [
+          403
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{kind}: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Both native reads: farmer403, wrong-village staff404, assigned officer200, unknown village404."
+    },
+    {
+      "id": "support-pue-pipeline",
+      "test": "farm_pue::the_pipeline_adds_rent_per_day_apart_from_purchase_prices",
+      "operations": [
+        "farm_pue_village_pipeline"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(submitted[\"indicative_rent_per_day\"][\"minor\"], 4_500_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact grouped request counts with purchase value500000000TZS distinct from rent/day4500000; draft rental field null."
+    },
+    {
+      "id": "support-pue-estimate",
+      "test": "farm_pue::the_estimate_preview_is_the_estimate_a_request_gets",
+      "operations": [
+        "farm_pue_requests_estimate"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert_eq!(n, 0, \"a preview writes nothing\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact3kW/72weekly estimate matches subsequent persisted request inputs; preview leaves zero request rows; unrated machine null, unknown422."
+    },
+    {
+      "id": "support-equipment-categories",
+      "test": "farm_catalogue::every_farm_member_reads_categories_only_managers_add",
+      "operations": [
+        "farm_equipment_categories_create",
+        "farm_equipment_categories_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert_eq!(list[\"data\"][0][\"name_sw\"], \"Kusaga\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Setup creates exact MILLING category, independent owner/ops/officer/farmer lists same id, Swahili name and active flag."
+    },
+    {
+      "id": "support-equipment-category-role",
+      "test": "farm_catalogue::every_farm_member_reads_categories_only_managers_add",
+      "operations": [
+        "farm_equipment_categories_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual village officer and farmer category create403."
+    },
+    {
+      "id": "support-equipment-category-errors",
+      "test": "farm_catalogue::a_category_code_is_unique_and_names_are_required",
+      "operations": [
+        "farm_equipment_categories_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert!(res[\"errors\"][\"name_sw\"].is_array(), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Duplicate category code and missing/blank translated names422 keyed fields."
+    },
+    {
+      "id": "support-equipment-state",
+      "test": "farm_catalogue::ops_adds_equipment_offered_for_rent_only",
+      "operations": [
+        "farm_equipment_create",
+        "farm_equipment_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert_eq!(one[\"data\"], res[\"data\"]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native rent-only machine exact power/time/rental5000000TZS/category/active fields; independent officer detail equals created resource."
+    },
+    {
+      "id": "support-equipment-list-role",
+      "test": "farm_catalogue::a_farmer_reads_equipment_but_cannot_add_it",
+      "operations": [
+        "farm_equipment_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert_eq!(list[\"data\"][0][\"code\"], \"MILL-500\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer sees exact active machine/code; after direct deactivation active filter0 and unrestricted list1."
+    },
+    {
+      "id": "support-equipment-create-role",
+      "test": "farm_catalogue::a_farmer_reads_equipment_but_cannot_add_it",
+      "operations": [
+        "farm_equipment_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "body[\"code\"] = json!(\"FRM\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer and village officer native machine create403."
+    },
+    {
+      "id": "support-equipment-tenant",
+      "test": "farm_catalogue::equipment_of_another_workspace_is_404",
+      "operations": [
+        "farm_equipment_get"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{other_ws}/farm/equipment/{id}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual other workspace route refuses both second owner and original ops404; malformed/unknown equipment404."
+    },
+    {
+      "id": "support-equipment-list-auth",
+      "test": "farm_catalogue::equipment_of_another_workspace_is_404",
+      "operations": [
+        "farm_equipment_list"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual equipment list without bearer401."
+    },
+    {
+      "id": "support-webhook-role",
+      "test": "webhook_endpoints::only_workspace_admins_manage_endpoints",
+      "operations": [
+        "webhooks_list",
+        "webhooks_create",
+        "webhooks_get",
+        "webhooks_update",
+        "webhooks_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/webhook_endpoints.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Non-admin active member denied on all native webhook routes403 before body validation; secret create remains secure UI gate separately."
+    },
+    {
+      "id": "support-webhook-tenant",
+      "test": "webhook_endpoints::another_workspace_never_reaches_an_endpoint",
+      "operations": [
+        "webhooks_list",
+        "webhooks_get",
+        "webhooks_update",
+        "webhooks_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/webhook_endpoints.rs",
+          "contains": "assert_eq!(api.get(&id).await[\"active\"], true, \"untouched\");"
+        }
+      ],
+      "review": "Actual second workspace owner list original404, own workspace target GET/PATCH/DELETE404, own list0; original remains active."
+    },
+    {
+      "id": "support-webhook-create",
+      "test": "webhook_endpoints::create_shows_the_secret_once_and_stores_it_sealed",
+      "operations": [
+        "webhooks_create",
+        "webhooks_get",
+        "webhooks_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/webhook_endpoints.rs",
+          "contains": "assert!(!api.list(\"\").await.to_string().contains(secret));"
+        }
+      ],
+      "review": "Native create exact URL/events/active and one-time secret format; independent GET/list omit secret; DB stored sealed ciphertext excludes plaintext substring. No secret value enters mapping/evidence; secure handoff not proved."
+    },
+    {
+      "id": "support-webhook-update-delete",
+      "test": "webhook_endpoints::update_changes_only_sent_fields_and_delete_is_204",
+      "operations": [
+        "webhooks_update",
+        "webhooks_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          204
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/webhook_endpoints.rs",
+          "contains": "assert_eq!((status, body), (StatusCode::NO_CONTENT, Value::Null));"
+        }
+      ],
+      "review": "PATCH exact events/inactive and preserved URL/description; native delete204 emptybody and subsequentGET404."
+    },
+    {
+      "id": "support-webhook-errors",
+      "test": "webhook_endpoints::bad_input_is_422",
+      "operations": [
+        "webhooks_create",
+        "webhooks_update"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/webhook_endpoints.rs",
+          "contains": "assert!(res[\"errors\"].get(field).is_some(), \"{body}: {res}\");"
+        }
+      ],
+      "review": "HTTP/private/credentialed/bad/overlong URLs, missing/unknown events and overlong description422; invalid PATCH URL422."
+    },
+    {
+      "id": "support-files-state",
+      "test": "files::a_base64_upload_is_stored_and_described",
+      "operations": [
+        "files_create",
+        "files_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/files.rs",
+          "contains": "assert_eq!((status.as_str(), size), (\"stored\", 19));"
+        }
+      ],
+      "review": "Real Rust/Postgres plus controlled MemoryStore: exact stored key/status/19PDF bytes/type/SHA and independent detail id/name/extension/size/uploader. Memory signedURL is a storage fake, not live S3 proof."
+    },
+    {
+      "id": "support-files-list-delete",
+      "test": "files::list_and_delete",
+      "operations": [
+        "files_list",
+        "files_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/files.rs",
+          "contains": "assert!(files.read(&key).is_none(), \"object removed\");"
+        }
+      ],
+      "review": "Exact newest-first two file ids; delete removes MemoryStore object, marks real DB rowdeleted, GET404 and remaining list1. External object storage is mocked."
+    },
+    {
+      "id": "support-files-errors",
+      "test": "files::upload_rules",
+      "operations": [
+        "files_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/files.rs",
+          "contains": "assert_eq!(count, 0);"
+        }
+      ],
+      "review": "Missing/invalid base64/name/public and long fields422 exact errors; real DB zero files."
+    },
+    {
+      "id": "support-files-role",
+      "test": "files::access_rules",
+      "operations": [
+        "files_list",
+        "files_create",
+        "files_get",
+        "files_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/files.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Permissionless member403 on four native routes; exact file grants create/list/get/delete succeed with controlled MemoryStore."
+    },
+    {
+      "id": "support-files-tenant",
+      "test": "files::access_rules",
+      "operations": [
+        "files_get",
+        "files_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/files.rs",
+          "contains": "// Another workspace can't reach the file, through either workspace."
+        }
+      ],
+      "review": "Actual second owner through original and own workspace refuses foreign fileGET; own workspace DELETE404. No untested filecreate/list tenant claim."
+    },
+    {
+      "id": "support-offers-state",
+      "test": "special_offers::crud_and_shape",
+      "operations": [
+        "special_offers_list",
+        "special_offers_create",
+        "special_offers_get",
+        "special_offers_update",
+        "special_offers_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "\"a patch keeps always_active and the product (Laravel reset both)\""
+        }
+      ],
+      "review": "Independent exact offerid/product/date/value/type/defaults; update20 preserves product/activation; list filters exact counts; delete thenGET404."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/farm_catalogue.rs": "5846e3d06d34d65762f3b02a5ee46adfb04f8f2c3f401ed89451aa42ae2a2655",
+    "apps/api/tests/api/farm_pue.rs": "ec01e371971602863ea769651ade0e927ec9aebee273c9b311d74825f3cf3d19",
+    "apps/api/tests/api/files.rs": "833ac195b95c261f2c8b82c49a693114e424f94046aab91f629d5eab9de205f3",
+    "apps/api/tests/api/special_offers.rs": "b32a99fd13301f3a68bc2c8419ed9d5bb7332baa2caf836ebd990188cb6c1106",
+    "apps/api/tests/api/webhook_endpoints.rs": "127e9211d0b58fa4eb21eb2e7557c868dba35b822dde7488d377cf7246424088",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502"
+  }
+}

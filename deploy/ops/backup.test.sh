@@ -14,6 +14,7 @@ mkdir -p "$t/bin" "$t/conf"
 for env in production staging; do
   mkdir -p "$t/root-$env/deploy/$env"
   cp "$REPO/deploy/$env/docker-compose.$env.yml" "$t/root-$env/deploy/$env/"
+  cp "$REPO/deploy/assistant-role.sql" "$t/root-$env/deploy/"
   echo "GENESY_REF=abc1234" > "$t/root-$env/deploy/$env/.env.$env"
 done
 
@@ -27,7 +28,12 @@ if [[ "$1" == compose ]]; then
   [[ "${1:-}" == exec ]] || exit 0
   shift 3   # exec -T db
   case "$1" in
-    psql) [[ "$*" == *to_regclass* ]] && echo t || echo "${STUB_SCHEMA:-20261101000000}" ;;
+    psql)
+      case "$*" in
+        *checkpoint_mode=verify*) [[ -z "${STUB_VERIFY_FAIL:-}" ]] || exit 1 ;;
+        *to_regclass*|*to_regnamespace*) echo t ;;
+        *) echo "${STUB_SCHEMA:-20261101000000}" ;;
+      esac ;;
     pg_dump) printf '%s' "${STUB_DUMP-PGDMP-fake}" ;;
     pg_restore) grep -q PGDMP || exit 1 ;;
   esac
@@ -36,6 +42,8 @@ fi
 case "$1" in
   exec)
     case "$*" in
+      *checkpoint_mode=verify*) [[ -z "${STUB_VERIFY_FAIL:-}" ]] || exit 1 ;;
+      *to_regnamespace*) echo t ;;
       *pg_isready*) ;;
       *pg_restore*) cat > /dev/null ;;
       *_sqlx_migrations*) echo "${STUB_RESTORED:-20261101000000}" ;;
@@ -130,6 +138,12 @@ rm -f "$t/conf/offsite.env" "$t/conf/age.pub" "$t/conf/offsite_key" "$t/conf/pin
 run restore-test.sh production || fail "restore test failed: $(cat "$t/out")"
 grep -q "docker run -d --name genesy-restore-test-production-.* --network none .*postgres:18" "$CALLS" || fail "throwaway not isolated or wrong image"
 grep -q "docker rm -fv genesy-restore-test-production-" "$CALLS" || fail "throwaway not removed"
+identities_line="$(grep -n 'checkpoint_mode=identities' "$CALLS" | head -1 | cut -d: -f1 || true)"
+restore_test_line="$(grep -n 'pg_restore -U genesy -d genesy --no-owner' "$CALLS" | head -1 | cut -d: -f1)"
+[[ -n "$identities_line" && "$identities_line" -lt "$restore_test_line" ]] || fail 'roles not bootstrapped before ACL restore'
+verify_line="$(grep -n 'checkpoint_mode=verify' "$CALLS" | head -1 | cut -d: -f1 || true)"
+[[ -n "$verify_line" && "$verify_line" -gt "$restore_test_line" ]] || fail 'restored grants not verified'
+if STUB_VERIFY_FAIL=1 run restore-test.sh production; then fail 'unsafe restored grants accepted'; fi
 if STUB_RESTORED=20250101000000 run restore-test.sh production; then fail "older schema passed"; fi
 if STUB_WORKSPACES=0 run restore-test.sh production; then fail "empty production passed"; fi
 STUB_WORKSPACES=0 run restore-test.sh staging || fail "staging needs no workspace: $(cat "$t/out")"

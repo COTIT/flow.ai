@@ -23,7 +23,8 @@ export interface CreditLineBody {
   /** A line of the invoice. */
   id: string;
   /**
-     * Quantity returned to stock; decimal.
+     * Money including VAT for the selected credit quantity, in invoice currency.
+     * Capped to its paid amount; sets the price and clears the discount.
      * @nullable
      */
   return_amount?: number | null;

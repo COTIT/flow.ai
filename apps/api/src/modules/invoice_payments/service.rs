@@ -231,6 +231,7 @@ pub async fn mark_as_credited(
     let note = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    invoices::approval::check(&mut tx, workspace_id, id, None).await?;
     let answer = Answer::ok();
     if note.is_credit && note.status == "credited" {
         idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
@@ -289,6 +290,7 @@ async fn lock_all(
     let mut found = BTreeMap::new();
     for id in sorted {
         if let Some(t) = repo::lock(conn, workspace_id, id).await? {
+            invoices::approval::check(conn, workspace_id, id, None).await?;
             found.insert(id, t);
         }
     }

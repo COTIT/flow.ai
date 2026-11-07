@@ -2051,3 +2051,122 @@ fn till_pair_is_public_and_documented() {
     }
     assert!(op.get("security").is_none(), "no token");
 }
+
+#[test]
+fn every_assistant_control_operation_is_documented() {
+    let s = spec();
+    let ops = s["paths"]
+        .as_object()
+        .unwrap()
+        .values()
+        .flat_map(|p| p.as_object().unwrap().values())
+        .filter(|op| {
+            op["tags"]
+                .as_array()
+                .is_some_and(|tags| tags.iter().any(|t| t == "assistant"))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(ops.len(), 25);
+    for op in ops {
+        assert!(
+            op["operationId"]
+                .as_str()
+                .unwrap()
+                .starts_with("assistant_")
+        );
+        assert!(op["security"].is_array());
+        for code in ["403", "404", "429", "500", "503"] {
+            assert!(
+                op["responses"][code].is_object(),
+                "{} {code}",
+                op["operationId"]
+            );
+        }
+    }
+    assert_eq!(
+        s["components"]["securitySchemes"]["assistant_bridge"]["name"],
+        "Assistant-Bridge-Signature"
+    );
+}
+
+#[test]
+fn order_create_schema_matches_required_nonempty_lines_validation() {
+    let s = spec();
+    let schema = &s["components"]["schemas"]["CreateOrderRequest"];
+    assert!(
+        schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v == "lines")
+    );
+    let lines = &schema["properties"]["lines"];
+    assert_eq!(lines["type"], "array");
+    assert_eq!(lines["minItems"], 1);
+    assert_eq!(lines["maxItems"], 50);
+    let line = &s["components"]["schemas"]["LineRequest"];
+    for field in ["product_id", "quantity"] {
+        assert!(
+            line["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v == field),
+            "{field} must be required by native planner"
+        );
+    }
+}
+
+#[test]
+fn assistant_control_metadata_is_valid_for_client_generation() {
+    let spec = spec();
+    let history =
+        &spec["paths"]["/workspace/{workspace}/assistant/sessions/{session}/actions"]["get"];
+    let before = history["parameters"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["name"] == "before")
+        .unwrap();
+    assert_eq!(before["in"], "query");
+    for (path, methods) in spec["paths"].as_object().unwrap() {
+        for (method, operation) in methods.as_object().unwrap() {
+            if operation["operationId"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("assistant_"))
+            {
+                for (status, response) in operation["responses"].as_object().unwrap() {
+                    assert!(
+                        response["description"]
+                            .as_str()
+                            .is_some_and(|text| !text.is_empty()),
+                        "{method} {path} {status}"
+                    );
+                }
+            }
+        }
+    }
+}
+#[test]
+fn assistant_coverage_record_contains_only_operation_status_and_test_identity() {
+    let record = contract::coverage_record(
+        &Method::GET,
+        "/v1/workspace/private-workspace/products/private-product?secret=never-record",
+        StatusCode::OK,
+        "products::create_then_get_prints_laravel_prices",
+    )
+    .unwrap();
+    assert_eq!(record["operationId"], "products_get");
+    assert_eq!(record["method"], "GET");
+    assert_eq!(record["status"], 200);
+    assert_eq!(record["contractValidated"], true);
+    let encoded = serde_json::to_string(&record).unwrap();
+    assert!(!encoded.contains("private-workspace"));
+    assert!(!encoded.contains("private-product"));
+    assert!(!encoded.contains("never-record"));
+    assert_eq!(record.as_object().unwrap().len(), 6);
+    assert!(
+        contract::coverage_record(&Method::GET, "/v1/not-documented", StatusCode::OK, "test")
+            .is_none()
+    );
+}

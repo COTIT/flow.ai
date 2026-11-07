@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One command per deploy step on the VPS, as user deploy (README "Deploy"):
 #   deploy.sh <staging|production> <sha> [--bundle <file>]   deploy a commit
-#   deploy.sh <staging|production> rollback [--restore-db]    back to the previous version
+#   deploy.sh <staging|production> rollback [--restore-db|--compatible-assistant]
 #   deploy.sh <staging|production> prune                     drop image tags but live + previous
 #   deploy.sh <staging|production> compose <args…>           docker compose with the right -f chain
 # Deploy: commit (from the checkout or a git bundle; the VPS has no git network access) →
@@ -21,7 +21,7 @@ main() {
   (( $# >= 2 )) && shift 2 || shift $#
   case "$action" in
     compose) exec "${COMPOSE[@]}" "$@" ;;
-    "") die "usage: deploy.sh <staging|production> <sha> [--bundle <file>] | rollback [--restore-db] | prune | compose <args>" ;;
+    "") die "usage: deploy.sh <staging|production> <sha> [--bundle <file>] | rollback [--restore-db|--compatible-assistant] | prune | compose <args>" ;;
   esac
   exec 9> "$DIR/.deploy.lock"
   flock -n 9 || die "another deploy of $GENESY_ENV is running"
@@ -38,6 +38,15 @@ state_get() { [[ ! -f "$STATE" ]] || sed -n "s/^$1=//p" "$STATE" | tail -1; }
 state_write() { printf '%s\n' "$@" > "$STATE.new" && mv "$STATE.new" "$STATE"; }
 
 log() { echo "$(date -u +%FT%TZ) ${USER:-?} $GENESY_ENV $*" >> "$DIR/deploys.log"; }
+
+release_fingerprint() {
+  [[ -f "$ROOT/deploy/assistant-compatibility.json" ]] || return 0
+  python3 - "$ROOT/deploy/assistant-compatibility.json" <<'PY'
+import json,sys
+marker=json.load(open(sys.argv[1]))
+print('/'.join(str(marker[key]) for key in ['graphVersion','workflowVersion','saverVersion','checkpointSchema','checkpointSchemaVersion','invoiceDeliveryVersion','batchVersion']))
+PY
+}
 
 # use_ref <sha>: check the commit out and make its full sha the image tag in the env file (CI
 # tags the GHCR images with the full sha).
@@ -70,6 +79,11 @@ health() {
   [[ -z "${ROUTES_OFF:-}" ]] || ok="Traefik routes off (no DNS yet); checked container health only"
   for _ in $(seq 12); do
     bad="$(hosts_down)"
+    if [[ -z "$bad" && "$(env_value ASSISTANT_ENABLED)" == true ]]; then
+      "${COMPOSE[@]}" exec -T office node -e \
+        "fetch('http://127.0.0.1:3000/api/voice/readiness',{signal:AbortSignal.timeout(5000)}).then(r=>process.exit(r.status===200?0:1),()=>process.exit(1))" \
+        || bad=' office=assistant-not-ready'
+    fi
     [[ -z "$bad" ]] && { echo "health: $ok"; return 0; }
     sleep "${HEALTH_WAIT:-5}"
   done
@@ -100,9 +114,10 @@ deploy() {
   fi
   git -C "$ROOT" cat-file -e "$sha^{commit}" 2> /dev/null \
     || die "commit $sha is not in $ROOT; copy a bundle over and pass --bundle <file>"
-  local was_live was_schema
+  local was_live was_schema fingerprint
   was_live="$(state_get live)"
   use_ref "$sha"
+  fingerprint="$(release_fingerprint)"
   log "deploy $REF start (was ${was_live:-none})"
   images
 
@@ -112,6 +127,9 @@ deploy() {
   dump="$(backup "pre-$REF")"
   [[ -n "$dump" ]] || die "backup printed no dump path"
   "${COMPOSE[@]}" --profile "$MIGRATE_SVC" run --rm "$MIGRATE_SVC" migrate
+  if [[ "$(env_value ASSISTANT_ENABLED)" == true ]]; then
+    checkpoint_roles verify "${COMPOSE[@]}" exec -T db
+  fi
   "${COMPOSE[@]}" "${UP[@]}"
 
   # A redeploy of the live commit keeps the recorded previous version.
@@ -120,7 +138,7 @@ deploy() {
     previous="$(state_get previous)" previous_schema="$(state_get previous_schema)"
   fi
   state_write "live=$REF" "live_schema=$(schema_version)" "previous=$previous" \
-    "previous_schema=$previous_schema" "pre_deploy_dump=$dump"
+    "previous_schema=$previous_schema" "pre_deploy_dump=$dump" "assistant_fingerprint=$fingerprint"
   if ! health; then
     log "deploy $REF unhealthy"
     die "deploy of $REF is up but unhealthy; to go back: deploy/deploy.sh $GENESY_ENV rollback"
@@ -130,14 +148,36 @@ deploy() {
 }
 
 rollback() {
-  local restore=0
-  [[ "${1:-}" == --restore-db ]] && restore=1
+  local restore=0 compatible=0 fingerprint=""
+  case "${1:-}" in
+    "") ;;
+    --restore-db) restore=1 ;;
+    --compatible-assistant) compatible=1 ;;
+    *) die "unknown rollback option: $1" ;;
+  esac
+  (( $# <= 1 )) || die 'rollback accepts one option only'
+  if (( compatible )); then
+    [[ "$(env_value ASSISTANT_ENABLED)" == false ]] || die 'set ASSISTANT_ENABLED=false before compatible assistant rollback'
+  fi
   local live previous previous_schema dump now_schema
   live="$(state_get live)" previous="$(state_get previous)"
   previous_schema="$(state_get previous_schema)" dump="$(state_get pre_deploy_dump)"
   [[ -n "$previous" ]] || die "no previous version recorded in $STATE"
   now_schema="$(schema_version)"
-  if [[ "$now_schema" != "$previous_schema" ]]; then
+  if (( ! compatible )) && { (( ! restore )) || [[ "$now_schema" == "$previous_schema" ]]; } &&
+    { [[ -n "$(state_get assistant_fingerprint)" ]] || git -C "$ROOT" cat-file -e "$live:deploy/assistant-compatibility.json" 2>/dev/null; }; then
+    die 'assistant rollback requires ASSISTANT_ENABLED=false and --compatible-assistant to verify worker and batch compatibility'
+  fi
+  if (( compatible )); then
+    [[ "$previous_schema" =~ ^[0-9]+$ && "$now_schema" =~ ^[0-9]+$ ]] || die 'invalid schema evidence'
+    local applied saver
+    applied="$("${COMPOSE[@]}" exec -T db psql -U genesy -d genesy -Atc \
+      "SELECT version, encode(checksum, 'hex') FROM public._sqlx_migrations WHERE success AND version > $previous_schema ORDER BY version")"
+    saver="$("${COMPOSE[@]}" exec -T db psql -U genesy -d genesy -Atc 'SELECT max(v) FROM assistant_checkpoint.checkpoint_migrations')"
+    fingerprint="$(printf '%s\n' "$applied" | python3 "$ROOT/deploy/assistant-compatibility.py" \
+      "$ROOT" "$live" "$previous" "$previous_schema" "$now_schema" "$saver")" \
+      || die 'compatible assistant rollback rejected; leave database intact and investigate'
+  elif [[ "$now_schema" != "$previous_schema" ]]; then
     (( restore )) || die "the database changed since $previous (schema $previous_schema -> $now_schema). \
 Rolling back needs --restore-db, which restores the pre-deploy dump and loses everything written since."
     [[ -n "$dump" ]] || die "no pre-deploy dump recorded: deploy $previous again instead"
@@ -153,7 +193,7 @@ Rolling back needs --restore-db, which restores the pre-deploy dump and loses ev
   (( restore )) && sudo -n "$OPS_LIB/restore.sh" "$GENESY_ENV" "$dump"
   "${COMPOSE[@]}" "${UP[@]}"
   state_write "live=$REF" "live_schema=$(schema_version)" "previous=$live" \
-    "previous_schema=$now_schema" "pre_deploy_dump="
+    "previous_schema=$now_schema" "pre_deploy_dump=" "assistant_fingerprint=$fingerprint"
   health || { log "rollback to $REF unhealthy"; die "rolled back to $REF but it is unhealthy"; }
   log "rollback to $REF ok"
 }

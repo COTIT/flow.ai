@@ -19,6 +19,8 @@ use sqlx::PgPool;
 /// Claim and run every due job until none is left, recording outcomes as the runner does.
 async fn run_jobs(pool: &PgPool) {
     let ctx = Ctx {
+        invoice_state: None,
+        assistant_api_key: None,
         db: pool.clone(),
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),

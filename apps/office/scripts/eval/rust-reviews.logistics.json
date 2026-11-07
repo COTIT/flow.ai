@@ -1,0 +1,1020 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "logistics-variant-default",
+      "test": "product_variants::product_starts_with_its_default_variant",
+      "operations": [
+        "product_variants_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "assert_eq!(v[\"relationships\"][\"product\"][\"id\"], product.as_str());"
+        }
+      ],
+      "review": "Exact single default variant/product/price/weight/options/images asserted."
+    },
+    {
+      "id": "logistics-variant-crud",
+      "test": "product_variants::create_get_update_delete",
+      "operations": [
+        "product_variants_create",
+        "product_variants_get",
+        "product_variants_update",
+        "product_variants_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201,
+          204
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "assert_eq!(rows(&api.list(\"\").await).len(), 1);"
+        }
+      ],
+      "review": "Create250 price/SKU independently GET; PUT10% computes242 and switches single default; default delete422, other delete204 followed by exact remaining count1."
+    },
+    {
+      "id": "logistics-variant-validation",
+      "test": "product_variants::validation",
+      "operations": [
+        "product_variants_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "The price field is required when impact on price is not present."
+        }
+      ],
+      "review": "Missing price/impact and negative price produce exact422 errors."
+    },
+    {
+      "id": "logistics-variant-generate",
+      "test": "product_variants::generate_from_option_types",
+      "operations": [
+        "product_variants_generate"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "assert_eq!(made.len(), 2, \"unresolvable combination skipped\");"
+        },
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "assert_eq!(after - before, 2);"
+        }
+      ],
+      "review": "Native fixture intentionally resolves two of three combinations. Independent workspace/product DB count increases by two; exact SKU/price/options/stock and typed partial receipt requested3/created2/skipped1 asserted. Does not claim all submitted combinations created."
+    },
+    {
+      "id": "logistics-variant-tenant",
+      "test": "product_variants::variants_are_scoped_to_their_product_and_workspace",
+      "operations": [
+        "product_variants_list"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{eve_ws}/products/{other}/variants\");"
+        }
+      ],
+      "review": "Second workspace owner cannot list first workspace product variants404."
+    },
+    {
+      "id": "logistics-variant-create-role",
+      "test": "product_variants::variants_are_scoped_to_their_product_and_workspace",
+      "operations": [
+        "product_variants_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "Some(json!({ \"price\": 1 })), &viewer)"
+        }
+      ],
+      "review": "product.view member lists200 but create403. Other effect denials remain missing."
+    },
+    {
+      "id": "logistics-variant-parent",
+      "test": "product_variants::variants_are_scoped_to_their_product_and_workspace",
+      "operations": [
+        "product_variants_get",
+        "product_variants_update",
+        "product_variants_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "\"{method} through another product\""
+        }
+      ],
+      "review": "Real variant via wrong product within same workspace404 GET/PUT/DELETE; not a cross-workspace fixture."
+    },
+    {
+      "id": "logistics-storage-crud",
+      "test": "storage_locations::create_list_replace_delete",
+      "operations": [
+        "storage_locations_create",
+        "storage_locations_list",
+        "storage_locations_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/storage_locations.rs",
+          "contains": "assert!(w.of_product().await.is_empty());"
+        }
+      ],
+      "review": "Exact created id/location/description, bin-generated path reuse, replace leaves exact one id, independent empty list after delete and repeat404."
+    },
+    {
+      "id": "logistics-storage-create-errors",
+      "test": "storage_locations::validation_and_access",
+      "operations": [
+        "storage_locations_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/storage_locations.rs",
+          "contains": "\"writes need warehouse.update\""
+        }
+      ],
+      "review": "Exact required/domain/UUID/length/bool422 errors; warehouse.get-only readerPOST403 before validation."
+    },
+    {
+      "id": "logistics-storage-tenant",
+      "test": "storage_locations::validation_and_access",
+      "operations": [
+        "storage_locations_list"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/storage_locations.rs",
+          "contains": "\"/product/{}\", w.product"
+        }
+      ],
+      "review": "Actual outsider GET original product storage locations404, authorized reader200."
+    },
+    {
+      "id": "logistics-location-state",
+      "test": "warehouse_locations::create_get_update_round_trip",
+      "operations": [
+        "warehouse_locations_create",
+        "warehouse_locations_get",
+        "warehouse_locations_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "(json!(\"B.1\"), json!({ \"k\": 1 }))"
+        }
+      ],
+      "review": "Independent GET exact id/trimmed location/parent/meta; update changes location and preserves meta."
+    },
+    {
+      "id": "logistics-location-list",
+      "test": "warehouse_locations::list_is_per_warehouse_with_search_and_limit",
+      "operations": [
+        "warehouse_locations_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "assert_eq!(ids(&all), vec![a1.clone(), b2.clone()]);"
+        }
+      ],
+      "review": "Exact own warehouse ids/search/literal wildcard/paging; another warehouse location excluded; maximum5000 asserted."
+    },
+    {
+      "id": "logistics-location-bulk",
+      "test": "warehouse_locations::bulk_delete_by_query_string",
+      "operations": [
+        "warehouse_locations_delete_many"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "assert_eq!(ids(&api.list(\"\").await), vec![c]);"
+        }
+      ],
+      "review": "Exact two requested ids deleted; independent list only third; missing/malformed/>100query ids422."
+    },
+    {
+      "id": "logistics-location-validation",
+      "test": "warehouse_locations::validation",
+      "operations": [
+        "warehouse_locations_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "assert_eq!(res[\"errors\"][\"location\"], json!([msg]));"
+        }
+      ],
+      "review": "Missing/blank/overlong location and nonobjectmeta422."
+    },
+    {
+      "id": "logistics-location-delete",
+      "test": "warehouse_locations::single_delete_and_bad_ids",
+      "operations": [
+        "warehouse_locations_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "api.assert_bad_ids_404(&gone, json!({ \"location\": \"x\" }))"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Deleted exact previously created id then shared helper requires GET/update/delete404."
+    },
+    {
+      "id": "logistics-location-authority",
+      "test": "warehouse_locations::access_rules",
+      "operations": [
+        "warehouse_locations_list",
+        "warehouse_locations_create",
+        "warehouse_locations_get",
+        "warehouse_locations_update",
+        "warehouse_locations_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "api.assert_member_forbidden(&id).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Shared native permissionless member helper403 on list/create/get/update/delete; bulk DELETE excluded."
+    },
+    {
+      "id": "logistics-location-tenant",
+      "test": "warehouse_locations::access_rules",
+      "operations": [
+        "warehouse_locations_list",
+        "warehouse_locations_create",
+        "warehouse_locations_get",
+        "warehouse_locations_update",
+        "warehouse_locations_delete",
+        "warehouse_locations_delete_many"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "\"{method} {uri}\""
+        }
+      ],
+      "review": "Second workspace owner GET/POST/DELETE collection and row under original warehouse404; original row A unchanged."
+    },
+    {
+      "id": "logistics-hierarchy-layout",
+      "test": "warehouse_hierarchy::section_layout_generates_rows_shelves_and_bins",
+      "operations": [
+        "warehouse_sections_create",
+        "warehouse_rows_list",
+        "warehouse_shelves_list",
+        "warehouse_bins_list",
+        "warehouse_bins_by_warehouse"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "assert_eq!(data(&all).len(), 8);"
+        }
+      ],
+      "review": "Exact generated row/shelf/bin codes, dimensions/parents; warehouse-wide list eight exact generated bins."
+    },
+    {
+      "id": "logistics-hierarchy-section",
+      "test": "warehouse_hierarchy::section_resource_layout_and_defaults",
+      "operations": [
+        "warehouse_sections_create",
+        "warehouse_sections_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "json!({ \"rows\": 8, \"shelves_per_row\": 6, \"bins_per_shelf\": 4, \"total_rows\": 8,"
+        }
+      ],
+      "review": "Independent GET exact sectionid/warehouse/layout192/defaults; empty layout zero capacity/rows."
+    },
+    {
+      "id": "logistics-hierarchy-resources",
+      "test": "warehouse_hierarchy::row_shelf_bin_resources",
+      "operations": [
+        "warehouse_rows_create",
+        "warehouse_rows_get",
+        "warehouse_shelves_create",
+        "warehouse_shelves_get",
+        "warehouse_bins_create",
+        "warehouse_bins_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "assert_eq!(bin[\"shelf_id\"], sh.as_str());"
+        }
+      ],
+      "review": "Independent GET native-created row/shelf/bin exact ids/parents/dimensions/layout/defaults and detail stocks."
+    },
+    {
+      "id": "logistics-hierarchy-update",
+      "test": "warehouse_hierarchy::updates_are_patches",
+      "operations": [
+        "warehouse_sections_update",
+        "warehouse_rows_update",
+        "warehouse_shelves_update",
+        "warehouse_bins_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "assert_eq!(w.bins(&s, &r, &sh).get(&b).await[\"bin_name\"], \"First\");"
+        }
+      ],
+      "review": "Each native update independently GET exact changed section/row/shelf/bin fields with absent fields preserved."
+    },
+    {
+      "id": "logistics-hierarchy-create-validation",
+      "test": "warehouse_hierarchy::validation_wording",
+      "operations": [
+        "warehouse_sections_create",
+        "warehouse_rows_create",
+        "warehouse_shelves_create",
+        "warehouse_bins_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "assert_eq!(res[\"errors\"][key], expected, \"{body}: {res}\");"
+        }
+      ],
+      "review": "Native POST table tests required/range/type/enum errors at all four levels with exact keyed messages."
+    },
+    {
+      "id": "logistics-hierarchy-list",
+      "test": "warehouse_hierarchy::section_list_sorts_by_name_and_filters",
+      "operations": [
+        "warehouse_sections_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "vec![\"Alpha\", \"Bravo\", \"Charlie\"]"
+        }
+      ],
+      "review": "Exact ordered names, category/search filters and pagination counts."
+    },
+    {
+      "id": "logistics-hierarchy-row-delete",
+      "test": "warehouse_hierarchy::deleted_ancestor_hides_descendants",
+      "operations": [
+        "warehouse_rows_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "w.rows(&s).delete(&r).await;"
+        }
+      ],
+      "review": "Delete actual row; independently child shelf/bin list/detail404 proves descendants hidden; wrong live shelf path404. Other deletes not inferred."
+    },
+    {
+      "id": "logistics-hierarchy-section-delete",
+      "test": "warehouse_hierarchy::codes_unique_per_parent_ignoring_case",
+      "operations": [
+        "warehouse_sections_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "// A deleted section frees its code."
+        }
+      ],
+      "review": "Delete section then create samecode succeeds; proves live code reservation released."
+    },
+    {
+      "id": "logistics-hierarchy-section-role",
+      "test": "warehouse_hierarchy::access_rules_every_level",
+      "operations": [
+        "warehouse_sections_list",
+        "warehouse_sections_create",
+        "warehouse_sections_get",
+        "warehouse_sections_update",
+        "warehouse_sections_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "w.sections().assert_member_forbidden(&s).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Only sections have permissionless403 fixture here; lower-level403 remains missing despite authorized successes."
+    },
+    {
+      "id": "logistics-hierarchy-tenant",
+      "test": "warehouse_hierarchy::access_rules_every_level",
+      "operations": [
+        "warehouse_sections_get",
+        "warehouse_rows_get",
+        "warehouse_shelves_get",
+        "warehouse_bins_get",
+        "warehouse_bins_by_warehouse"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{eve_ws}{path}\");"
+        }
+      ],
+      "review": "Second owner GET original hierarchy row paths and warehouse-wide bins404; original bin remainsB1. No untested write/collection tenant claims."
+    },
+    {
+      "id": "logistics-pipeline-role",
+      "test": "deal_pipelines::members_need_the_catalog_grants",
+      "operations": [
+        "deal_pipelines_list",
+        "deal_pipelines_create",
+        "deal_pipelines_get",
+        "deal_pipelines_update",
+        "deal_pipelines_create_status",
+        "deal_pipelines_update_status",
+        "deal_pipelines_delete_status"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "assert_eq!(code, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Unrelated deal grants403 on seven pipeline/status routes; correct dedicated grants succeed."
+    },
+    {
+      "id": "logistics-pipeline-tenant",
+      "test": "deal_pipelines::other_workspaces_get_404",
+      "operations": [
+        "deal_pipelines_list",
+        "deal_pipelines_get",
+        "deal_pipelines_update",
+        "deal_pipelines_create_status",
+        "deal_pipelines_update_status",
+        "deal_pipelines_delete_status"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "\"{method} {path} via own workspace: {res}\""
+        }
+      ],
+      "review": "Real outsider list404; second owner original pipeline/status through own workspace404. Own list empty and original columns unchanged; collection create excluded."
+    },
+    {
+      "id": "logistics-pipeline-created",
+      "test": "deal_pipelines::create_then_get_in_deal_pipeline_resource_shape",
+      "operations": [
+        "deal_pipelines_create",
+        "deal_pipelines_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "(&p[\"name\"], &p[\"type\"], &p[\"sorting\"], &p[\"meta\"])"
+        }
+      ],
+      "review": "Independent GET trimmed Sales/type/sorting/meta, empty columns and zero summaries."
+    },
+    {
+      "id": "logistics-pipeline-update",
+      "test": "deal_pipelines::update_is_a_patch",
+      "operations": [
+        "deal_pipelines_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "(&json!(\"Renamed\"), &json!(\"sales\"), &json!(\"pos\"))"
+        }
+      ],
+      "review": "Independent GET confirms name-only patch preserves other fields, then explicitnull/type and sorting/meta patch."
+    },
+    {
+      "id": "logistics-pipeline-list",
+      "test": "deal_pipelines::list_pages_in_insertion_order_with_statuses",
+      "operations": [
+        "deal_pipelines_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "assert_eq!(rows[1][\"relationships\"][\"statuses\"][0][\"id\"], todo);"
+        }
+      ],
+      "review": "Exact two pipeline ids ordered with expected nested status and paging/empty-page total."
+    },
+    {
+      "id": "logistics-pipeline-errors",
+      "test": "deal_pipelines::pipeline_rules",
+      "operations": [
+        "deal_pipelines_create",
+        "deal_pipelines_update"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "\"sorting\": [\"The selected sorting is invalid.\"]"
+        }
+      ],
+      "review": "Create required/name/type/sorting/meta and update nullname422 exact fields."
+    },
+    {
+      "id": "logistics-pipeline-status-create",
+      "test": "deal_pipelines::status_create_then_read_in_status_resource_shape",
+      "operations": [
+        "deal_pipelines_create_status"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "assert_eq!(s[\"id\"], id);"
+        }
+      ],
+      "review": "Independent pipeline GET exact new status id/position/rules/won properties/meta/custom status."
+    },
+    {
+      "id": "logistics-pipeline-status-update",
+      "test": "deal_pipelines::status_update_accepts_the_column_echo_and_patches",
+      "operations": [
+        "deal_pipelines_update_status"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "\"the custom status never changes\""
+        }
+      ],
+      "review": "Independent pipeline GET verifies rules/color/stable custom status and reorder preservingrules; missingpipeline/null/bad rules422."
+    },
+    {
+      "id": "logistics-pipeline-status-delete",
+      "test": "deal_pipelines::status_delete_frees_the_custom_status",
+      "operations": [
+        "deal_pipelines_delete_status"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "assert!(columns(&a, &p).await.is_empty());"
+        }
+      ],
+      "review": "Independent columnlist empty after delete, repeat404, same custom status reused under new id."
+    },
+    {
+      "id": "logistics-deal-role",
+      "test": "deals::members_need_the_deal_grants",
+      "operations": [
+        "deals_list",
+        "deals_create",
+        "deals_get",
+        "deals_update",
+        "deals_move",
+        "deals_add_relation",
+        "deals_delete",
+        "deals_column"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(code, StatusCode::FORBIDDEN, \"column read\");"
+        }
+      ],
+      "review": "Unrelated pipelinegrant actor403 on eight deal/column routes; dedicated deal grants succeed."
+    },
+    {
+      "id": "logistics-deal-tenant",
+      "test": "deals::other_workspaces_get_404",
+      "operations": [
+        "deals_list",
+        "deals_get",
+        "deals_update",
+        "deals_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "a.assert_foreign_404(&id, json!({ \"title\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Shared real second workspace list/detail/update/delete404 and no leaked id; create excluded."
+    },
+    {
+      "id": "logistics-deal-actions-tenant",
+      "test": "deals::other_workspaces_get_404",
+      "operations": [
+        "deals_move",
+        "deals_add_relation"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "StatusCode::NOT_FOUND | StatusCode::UNPROCESSABLE_ENTITY"
+        }
+      ],
+      "review": "Foreign move/attach reject422 references or404 target; independentGET status/relation unchanged. Native422 distinction retained."
+    },
+    {
+      "id": "logistics-deal-column-tenant",
+      "test": "deals::other_workspaces_get_404",
+      "operations": [
+        "deals_column"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "let (code, _) = send(&a.app, Method::GET, &uri, None, Some(&eve.0)).await;"
+        }
+      ],
+      "review": "Second owner cannot read original pipeline/status column404."
+    },
+    {
+      "id": "logistics-deal-created",
+      "test": "deals::create_then_get_in_deal_resource_shape",
+      "operations": [
+        "deals_create",
+        "deals_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(d[\"deal_value\"], \"1250.50000000\", \"raw decimal(\u2026,8) text\");"
+        }
+      ],
+      "review": "Independent GET exact value/priority/dates/meta/position and agent/relation/currency/pipeline/status."
+    },
+    {
+      "id": "logistics-deal-move",
+      "test": "deals::drags_land_where_the_board_shows_them",
+      "operations": [
+        "deals_move",
+        "deals_column"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(column(&a, &b, &b.todo).await, todo, \"{t} -> {col}@{index}\");"
+        }
+      ],
+      "review": "Six native moves checked by independent exact titleorder in both columns, including clippedindex."
+    },
+    {
+      "id": "logistics-deal-list",
+      "test": "deals::list_filters_newest_first",
+      "operations": [
+        "deals_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(ids, [&json!(second), &json!(first)]);"
+        }
+      ],
+      "review": "Exact newest ids, relation/text/pipeline/statusfilters and paging; malformed filterUUIDs422 exacterrors."
+    },
+    {
+      "id": "logistics-deal-attach",
+      "test": "deals::add_relation_once",
+      "operations": [
+        "deals_add_relation"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422,
+          400
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(a.get(&id).await[\"relationships\"][\"relation\"][\"id\"], rel);"
+        }
+      ],
+      "review": "Unknownrelation422, attach200 independently GET exactrelation, reattach400 exactmessage."
+    },
+    {
+      "id": "logistics-deal-delete",
+      "test": "deals::delete_is_soft_and_final",
+      "operations": [
+        "deals_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert!(column(&a, &b, &b.todo).await.is_empty());"
+        }
+      ],
+      "review": "Delete followed by404 bad/deleted-id checks, empty general list and independently empty boardcolumn."
+    },
+    {
+      "id": "logistics-variant-generation-receipt-cases",
+      "test": "product_variants::generate_receipt_distinguishes_applied_empty_and_all_skipped_requests",
+      "operations": [
+        "product_variants_generate"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "assert_eq!(after - before, i64::try_from(created).unwrap());"
+        }
+      ],
+      "review": "Actual native applied/all-skipped/empty cases assert exact typed receipt and independent workspace/product persisted variant deltas1/0/0; array length matches created count. Execution remains unproven until passing observed run."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/deal_pipelines.rs": "fcf33c59f626a92bdc929c9e9bc54f6f38b2a822c1c85d05077339895e246a44",
+    "apps/api/tests/api/deals.rs": "f1a3aeb521d47d8cfdf488884f619388ef675dc424034de618290e09d088e58b",
+    "apps/api/tests/api/product_variants.rs": "fb977db4bd6181af0aa738d7973df46ca80c84ba9a0f311781e6164b33507156",
+    "apps/api/tests/api/storage_locations.rs": "347b59ab7d5f5de1386faf02c209a0edc4a1f23f3583d477c472c9c05cf5bae0",
+    "apps/api/tests/api/warehouse_hierarchy.rs": "4eb1391a69e588246c4f3281d3afb88c03957d5e78133bb8327dcebf1913812e",
+    "apps/api/tests/api/warehouse_locations.rs": "89035aedbcc36a85110f93ceeb428d9f333fbf51ef32d11d6dcd09af3a6f2cc4",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502"
+  }
+}

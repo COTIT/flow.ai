@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH proven AS (\n        SELECT a.workspace_id,a.id,p.status FROM assistant_actions a\n        JOIN order_payments p ON p.workspace_id=a.workspace_id AND p.id=CASE WHEN a.evidence->'refund'->>'refund_id' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN (a.evidence->'refund'->>'refund_id')::uuid END AND p.created_by=a.user_id AND p.kind='refund'\n        WHERE a.operation_id='orders_refund' AND a.state IN ('queued','dispatching','unknown','failed','completed') AND p.status IN ('refunded','failed','canceled') AND a.evidence->'refund'->>'status' IS DISTINCT FROM p.status\n        ORDER BY p.updated_at,a.id LIMIT 100 FOR UPDATE OF a SKIP LOCKED\n    ) UPDATE assistant_actions a SET state=CASE WHEN p.status='refunded' THEN 'completed' ELSE 'failed' END,\n        batch_verdict=CASE WHEN a.batch_id IS NULL THEN a.batch_verdict WHEN p.status='refunded' THEN 'completed' ELSE 'failed' END,\n        evidence=jsonb_set(a.evidence,'{refund,status}',to_jsonb(p.status)),proposal=NULL,review_facts='{}'::jsonb,finished_at=now()\n        FROM proven p WHERE a.workspace_id=p.workspace_id AND a.id=p.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "4731ab2531a3f72bd265146ff770faba9e028aae2664118f67adae0e3885fc29"
+}

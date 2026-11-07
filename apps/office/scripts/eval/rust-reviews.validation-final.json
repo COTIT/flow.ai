@@ -1,0 +1,1770 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "validation-final-custom-statuses-rules-and-uniqueness",
+      "test": "custom_statuses::rules_and_uniqueness",
+      "operations": [
+        "custom_statuses_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "json!({ \"domain\": [\"The domain field is required.\"], \"name\": [\"The name field is required.\"] })"
+        }
+      ],
+      "review": "Actual collection POST emptybody and duplicate-name input422; exact field errors. Same-case update is separate and not inferred."
+    },
+    {
+      "id": "validation-final-custom-statuses-list-hides-archived-and-pages-by-limit",
+      "test": "custom_statuses::list_hides_archived_and_pages_by_limit",
+      "operations": [
+        "custom_statuses_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "res[\"errors\"][\"limit\"], json!([msg])"
+        }
+      ],
+      "review": "Actual GET invalid limit201/0/x and domainnope422 with exact field errors; normal bounded pages independently checked."
+    },
+    {
+      "id": "validation-final-custom-types-name-and-domain-rules",
+      "test": "custom_types::name_and_domain_rules",
+      "operations": [
+        "custom_types_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "\"The selected domain: xyz is invalid.\""
+        }
+      ],
+      "review": "Module errors helper sends POST collection and asserts422. Named case asserts exact missing/invalid domain, name length and duplicate errors."
+    },
+    {
+      "id": "validation-final-product-brands-brand-validation",
+      "test": "product_brands::brand_validation",
+      "operations": [
+        "product_brands_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "res[\"errors\"][key], json!([msg])"
+        }
+      ],
+      "review": "Actual brand collection POST requires name, validates length/URLs/meta with exact422 field errors. Update-null assertion separate."
+    },
+    {
+      "id": "validation-final-product-brands-category-parent-rules",
+      "test": "product_brands::category_parent_rules",
+      "operations": [
+        "product_categories_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "The parent id is an invalid id for the product_category domain."
+        }
+      ],
+      "review": "Actual category collection POST malformed/unknown parent IDs422 with exact parent-id error; also refuses foreign parent. Not inferred from wrong-parent404."
+    },
+    {
+      "id": "validation-final-email-profiles-rules",
+      "test": "email_profiles::rules",
+      "operations": [
+        "email_profiles_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "\"The smtp.host must be a public address.\""
+        }
+      ],
+      "review": "Module post wrapper is collectionPOST. Exact native422 field errors cover required/name/email/SMTP shape, port/encryption/host privacy/conditions; synthetic secrets never included in evidence."
+    },
+    {
+      "id": "validation-final-email-templates-rules",
+      "test": "email_templates::rules",
+      "operations": [
+        "email_templates_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "\"The body must not be greater than 25000 characters.\""
+        }
+      ],
+      "review": "Module post wrapper sends collectionPOST. Exact native422 errors for required fields/domain/booleans/body length/condition references."
+    },
+    {
+      "id": "validation-final-hourly-rates-validation-uses-laravel-wording",
+      "test": "hourly_rates::validation_uses_laravel_wording",
+      "operations": [
+        "hourly_rates_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "\"The vat group id is an invalid id for the vat_group domain.\""
+        }
+      ],
+      "review": "Actual collection POST missingrequired and malformed/negative money/VAT/ledger fields422, exact error objects."
+    },
+    {
+      "id": "validation-final-sales-groups-rules-and-patch",
+      "test": "sales_groups::rules_and_patch",
+      "operations": [
+        "sales_groups_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "\"The revenue code must not be greater than 150 characters.\""
+        }
+      ],
+      "review": "Actual collection POST missingname and oversizedname/revenuecode422; update observations in samecase remain separate."
+    },
+    {
+      "id": "validation-final-vat-groups-rules-and-bounds",
+      "test": "vat_groups::rules_and_bounds",
+      "operations": [
+        "vat_groups_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "\"The vat amount must have 0-8 decimal places.\""
+        }
+      ],
+      "review": "Actual collection POST missingrequired, rate bounds/precision/text, invalid country/default boolean422 with exact errors."
+    },
+    {
+      "id": "validation-final-shipment-methods-create-rules",
+      "test": "shipment_methods::create_rules",
+      "operations": [
+        "shipment_methods_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "\"The max weight must be greater than 3.\""
+        }
+      ],
+      "review": "Actual collection POST missingrequired and backwardsweights/negativeprice/country/lead-time errors422 with exact paths."
+    },
+    {
+      "id": "validation-final-deal-pipelines-status-rules",
+      "test": "deal_pipelines::status_rules",
+      "operations": [
+        "deal_pipelines_create_status"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "\"The position must not be greater than 10000.\""
+        }
+      ],
+      "review": "Reviewed add_status wrapper POST /{pipeline}/status; required/rules/properties/UUID and position bounds422 with exact errors."
+    },
+    {
+      "id": "validation-final-deal-pipelines-malformed-unknown-and-deleted-ids-are-404",
+      "test": "deal_pipelines::malformed_unknown_and_deleted_ids_are_404",
+      "operations": [
+        "deal_pipelines_get",
+        "deal_pipelines_delete_status"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deal_pipelines.rs",
+          "contains": "for bad in [\"nope\", \"123\", unknown, dead_pipeline.as_str()]"
+        }
+      ],
+      "review": "Actual registered GET pipeline and DELETE nestedstatus loops include malformed/unknown/deleted parent IDs and malformed statusIDs404. Identifier validation only; no fabricated422."
+    },
+    {
+      "id": "validation-final-deals-create-rules",
+      "test": "deals::create_rules",
+      "operations": [
+        "deals_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "\"The expected close date must be a date after yesterday.\""
+        }
+      ],
+      "review": "Actual collection POST missingrequired and malformed dates/UUID/priority/money/text limits422 with exact field errors."
+    },
+    {
+      "id": "validation-final-deals-update-status-rules",
+      "test": "deals::update_status_rules",
+      "operations": [
+        "deals_move"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "\"The position must not be greater than 10000.\""
+        }
+      ],
+      "review": "Actual POST /{deal}/update-status emptyrequired/wrongboard status/negative andoversized position422 with exact field errors."
+    },
+    {
+      "id": "validation-final-app-keys-bad-ids-are-404",
+      "test": "app_keys::bad_ids_are_404",
+      "operations": [
+        "app_keys_revoke"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "for id in [\"nope\", \"01900000-0000-7000-8000-000000000001\"]"
+        }
+      ],
+      "review": "Actual DELETE malformed/unknown key IDs404. No key creation or secret data in evidence."
+    },
+    {
+      "id": "validation-final-teams-create-validates-like-laravel",
+      "test": "teams::create_validates_like_laravel",
+      "operations": [
+        "teams_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "res[\"errors\"][\"description\"]"
+        }
+      ],
+      "review": "Actual collectionPOST emptybody422 with exact required name/description errors; overlength/wrong permission shape separately asserted."
+    },
+    {
+      "id": "validation-final-teams-list-search-sort-and-paging",
+      "test": "teams::list_search_sort_and_paging",
+      "operations": [
+        "teams_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "json!([\"The q must not be greater than 100 characters.\"])"
+        }
+      ],
+      "review": "Actual GET101-character query422 exact qerror; literalwildcard handling and paging independently checked."
+    },
+    {
+      "id": "validation-final-teams-remove-users-must-already-be-in-team",
+      "test": "teams::remove_users_must_already_be_in_team",
+      "operations": [
+        "teams_remove_users"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "json!([\"This user ids does not exist in the team\"])"
+        }
+      ],
+      "review": "Actual POST remove-users with workspace member not in targetteam422 exact user_ids error."
+    },
+    {
+      "id": "validation-final-users-has-pin-code-must-be-boolean-and-past-end-keeps-total",
+      "test": "users::has_pin_code_must_be_boolean_and_past_end_keeps_total",
+      "operations": [
+        "users_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "json!([\"The has pin code field must be true or false.\"])"
+        }
+      ],
+      "review": "Actual GET has_pin_code=maybe422 exact field error; falsefilter and empty laterpage total remain accurate."
+    },
+    {
+      "id": "validation-final-warehouses-validation-uses-laravel-wording",
+      "test": "warehouses::validation_uses_laravel_wording",
+      "operations": [
+        "warehouses_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "\"The parent id must be a valid UUID.\""
+        }
+      ],
+      "review": "Actual collectionPOST required/text/bool/numeric/enums/GPS/parent/manager/custom-section validation422 with exact field messages."
+    },
+    {
+      "id": "validation-final-warehouses-list-roots-children-and-filters",
+      "test": "warehouses::list_roots_children_and_filters",
+      "operations": [
+        "warehouses_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "Method::GET, \"?parent_id=nope\""
+        }
+      ],
+      "review": "Actual GET malformed parent_id query422; requested root/child filters independently checked. Not a foreign-row inference."
+    },
+    {
+      "id": "validation-final-warehouses-set-default-needs-its-own-permission-and-scope",
+      "test": "warehouses::set_default_needs_its_own_permission_and_scope",
+      "operations": [
+        "warehouses_set_default"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "Method::POST, \"/nope/default\""
+        }
+      ],
+      "review": "Actual POST malformed warehouse pathidentifier404. Samecase permission and foreignworkspace checks are not counted as422."
+    },
+    {
+      "id": "validation-final-warehouse-locations-single-delete-and-bad-ids",
+      "test": "warehouse_locations::single_delete_and_bad_ids",
+      "operations": [
+        "warehouse_locations_get",
+        "warehouse_locations_update",
+        "warehouse_locations_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "api.assert_bad_ids_404(&gone, json!({ \"location\": \"x\" }))"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Reviewed common helper executes GET/POST/DELETE for malformed/unknown/deleted location IDs, asserts404 for each actual route."
+    },
+    {
+      "id": "validation-final-warehouse-locations-unknown-or-deleted-warehouse-is-404",
+      "test": "warehouse_locations::unknown_or_deleted_warehouse_is_404",
+      "operations": [
+        "warehouse_locations_list"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_locations.rs",
+          "contains": "let unknown = api.with_base(\"/erp/warehouses/01900000-0000-7000-8000-000000000001/locations\");"
+        }
+      ],
+      "review": "Actual GET collection with explicit unknown warehouse UUID404, and deleted-parent routes404. Path existence validation only; no422 claim."
+    },
+    {
+      "id": "validation-final-warehouse-hierarchy-updates-are-patches",
+      "test": "warehouse_hierarchy::updates_are_patches",
+      "operations": [
+        "warehouse_rows_update"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "json!({ \"row_code\": \"r2\" })"
+        }
+      ],
+      "review": "Actual native rowPOST patch onto existing sibling code case-insensitively422. Other successful patch calls do not imply validation."
+    },
+    {
+      "id": "validation-final-warehouse-hierarchy-update-of-unknown-id-is-404-even-with-a-taken-code",
+      "test": "warehouse_hierarchy::update_of_unknown_id_is_404_even_with_a_taken_code",
+      "operations": [
+        "warehouse_sections_update",
+        "warehouse_shelves_update",
+        "warehouse_bins_update"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "let (status, res) = api.update(unknown, body).await;"
+        }
+      ],
+      "review": "Actual sections/shelves/bins POST updates use explicit unknown UUID and taken code, native404 before uniqueness check. Source loop includes correct APIs; no malformedbody422 inferred."
+    },
+    {
+      "id": "validation-final-warehouse-hierarchy-access-rules-every-level",
+      "test": "warehouse_hierarchy::access_rules_every_level",
+      "operations": [
+        "warehouse_sections_get",
+        "warehouse_sections_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": ".assert_bad_ids_404(&gone_s, json!({ \"section_name\": \"x\", \"section_code\": \"x\" }))"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Section Api invokes reviewed helper GET/update/DELETE for malformed/unknown/deleted IDs404. Only section routes are assigned this helper evidence."
+    },
+    {
+      "id": "validation-final-deals-delete-is-soft-and-final",
+      "test": "deals::delete_is_soft_and_final",
+      "operations": [
+        "deals_get",
+        "deals_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "a.assert_bad_ids_404(&id, json!({ \"title\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Deal Api invokes reviewed helper GET/update/DELETE malformed/unknown/deleted IDs404. Only GET/delete remaining gaps assigned; no invented422."
+    },
+    {
+      "id": "validation-final-relations-create-without-type-fails-and-writes-nothing",
+      "test": "relations::create_without_type_fails_and_writes_nothing",
+      "operations": [
+        "relations_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(e[\"type\"], json!([\"The type field is required.\"]));"
+        }
+      ],
+      "review": "Module errors wrapper collectionPOST asserts422, exact missingtype error and independent DBcount0."
+    },
+    {
+      "id": "validation-final-relations-list-limit-like-laravel",
+      "test": "relations::list_limit_like_laravel",
+      "operations": [
+        "relations_list"
+      ],
+      "gates": {
+        "validation": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "(\"?limit=abc\", 30)"
+        }
+      ],
+      "review": "Explicit native coercion contract: invalid/zero/oversized limit query is safely bounded to documented defaults, exact per_page asserted; common Api::list requires200. This is accepted fallback validation, not an invented422."
+    },
+    {
+      "id": "validation-final-settings-crafted-type-paths-never-leak",
+      "test": "settings::crafted_type_paths_never_leak",
+      "operations": [
+        "settings_get"
+      ],
+      "gates": {
+        "validation": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "\"integrations..syncProviders\""
+        }
+      ],
+      "review": "Module get wrapper requires200. Crafted dotted/empty path segments never expose seeded synthetic secret, each actual query response inspected. Input filtering/privacy boundary, not a generic positive result."
+    },
+    {
+      "id": "validation-final-quick-search-groups-are-capped-and-wildcards-are-literal",
+      "test": "quick_search::groups_are_capped_and_wildcards_are_literal",
+      "operations": [
+        "search_quick"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/quick_search.rs",
+          "contains": "for q in [\"\", \"q=\", \"q=ab\", \"q=%20%20ab%20\"]"
+        }
+      ],
+      "review": "Actual quick-search GET missing/empty/short/oversizedq422 with field error; capped limit/literalwildcards independently checked."
+    },
+    {
+      "id": "validation-final-webhook-endpoints-bad-ids-are-404",
+      "test": "webhook_endpoints::bad_ids_are_404",
+      "operations": [
+        "webhooks_get",
+        "webhooks_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/webhook_endpoints.rs",
+          "contains": "for method in [Method::GET, Method::DELETE]"
+        }
+      ],
+      "review": "Actual GET/DELETE malformed or unknown endpointidentifier404. No secret creation/provider sends in this case."
+    },
+    {
+      "id": "validation-final-files-access-rules",
+      "test": "files::access_rules",
+      "operations": [
+        "files_get"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/files.rs",
+          "contains": "for bad in [\"nope\", \"01900000-0000-7000-8000-000000000001\"]"
+        }
+      ],
+      "review": "Actual GET malformed/unknown file IDs404. Foreigntenant refusals not mislabeled as input422."
+    },
+    {
+      "id": "validation-final-product-variants-generate-bounds-skus-and-values",
+      "test": "product_variants::generate_bounds_skus_and_values",
+      "operations": [
+        "product_variants_generate"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "The option types must not have more than 200 values in total."
+        }
+      ],
+      "review": "Actual POST generate validatesSKU255 and aggregate200-option-values with exact422 fields."
+    },
+    {
+      "id": "validation-final-products-bundle-children-and-supplier-stock-level-bounds",
+      "test": "products::bundle_children_and_supplier_stock_level_bounds",
+      "operations": [
+        "products_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "format!(\"?exclude_ids={}\", many.join(\",\"))"
+        }
+      ],
+      "review": "Actual list GET101 excludedIDs422; create checks in samecase not used for list validation."
+    },
+    {
+      "id": "validation-final-products-out-of-range-derived-prices-are-422",
+      "test": "products::out_of_range_derived_prices_are_422",
+      "operations": [
+        "products_update"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "The impact on price is out of range."
+        }
+      ],
+      "review": "Actual product POST patch rejects derived-price range422, exact field error and independent unchangedprice1."
+    },
+    {
+      "id": "validation-final-products-access-rules",
+      "test": "products::access_rules",
+      "operations": [
+        "products_get",
+        "products_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "api.assert_bad_ids_404(&gone, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Reviewed helper sends native GET/POST/DELETE malformed/unknown/deleted IDs404; only remaining GET/delete gaps assigned."
+    },
+    {
+      "id": "validation-final-special-offers-product-route-only-reaches-its-own-offers",
+      "test": "special_offers::product_route_only_reaches_its_own_offers",
+      "operations": [
+        "special_offers_list",
+        "special_offers_get",
+        "special_offers_update",
+        "special_offers_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"unknown product\");"
+        }
+      ],
+      "review": "Scoped list explicit unknown productUUID404; scoped detail/update/delete reject offer through different live parentproduct404. Nested relationship validation only, never cross-workspace proof."
+    },
+    {
+      "id": "validation-final-special-offers-legacy-rules",
+      "test": "special_offers::legacy_rules",
+      "operations": [
+        "special_offers_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "The selected type: wrong is invalid."
+        }
+      ],
+      "review": "Reviewed scoped Api /erp/products/{product}/special-offers collectionPOST error helper asserts422 exact required/type/value/date errors. Per-operation observation must be scopedcreate."
+    },
+    {
+      "id": "validation-final-special-offers-advanced-rules",
+      "test": "special_offers::advanced_rules",
+      "operations": [
+        "special_offers_create_all"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "The selected discount rule type: nope is invalid."
+        }
+      ],
+      "review": "Reviewed g=&w.api global /erp/special-offers collectionPOST error helper asserts422 exact rule/conditions/target/quantity errors."
+    },
+    {
+      "id": "validation-final-discounts-group-list-filters",
+      "test": "discounts::group_list_filters",
+      "operations": [
+        "discount_groups_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "(\"101\", \"The limit must not be greater than 100.\")"
+        }
+      ],
+      "review": "Actual group-list GET invalidlimit-1/101 returns422 exact limit error."
+    },
+    {
+      "id": "validation-final-discounts-discount-rules",
+      "test": "discounts::discount_rules",
+      "operations": [
+        "discounts_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "The valid from does not match the format Y-m-d."
+        }
+      ],
+      "review": "Reviewed discounts collectionPOST error helper422 exact group/percentage/date/name/code errors."
+    },
+    {
+      "id": "validation-final-discounts-discount-crud-and-shape",
+      "test": "discounts::discount_crud_and_shape",
+      "operations": [
+        "discounts_get",
+        "discounts_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "api.assert_bad_ids_404(&id, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Reviewed helper executes malformed/unknown/deleted discount GET/update/DELETE IDs404; only remaining get/delete assigned."
+    },
+    {
+      "id": "validation-final-discounts-window-edits-are-checked-on-the-latest-row",
+      "test": "discounts::window_edits_are_checked_on_the_latest_row",
+      "operations": [
+        "discounts_update"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "The valid to must be a date after valid from."
+        }
+      ],
+      "review": "Actual discount POST patch waits for competing edit, then latest stored date-window fails422 exact valid_to error."
+    },
+    {
+      "id": "validation-final-price-corrections-rules",
+      "test": "price_corrections::rules",
+      "operations": [
+        "price_corrections_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/price_corrections.rs",
+          "contains": "assert_eq!(error(&api, \"\", body, field).await, msg, \"{field}\");"
+        }
+      ],
+      "review": "Native collectionPOST error helper422 exact required/numeric/precision band fields; update calls not assigned tocreate."
+    },
+    {
+      "id": "validation-final-invoices-header-rules",
+      "test": "invoices::header_rules",
+      "operations": [
+        "invoices_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "The selected addressed contact id is invalid."
+        }
+      ],
+      "review": "Reviewed collectionPOST error helper422 exact requiredrelation/invalidcurrency/contact/payment/reference/note/billing fields. Source input assertions unchanged."
+    },
+    {
+      "id": "validation-final-invoice-credit-credits-are-refused-when-they-do-not-fit",
+      "test": "invoice_credit::credits_are_refused_when_they_do_not_fit",
+      "operations": [
+        "invoices_credit"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_credit.rs",
+          "contains": "The items.0.id field is required."
+        }
+      ],
+      "review": "Native POSTcredit wrapper/error helper422 exact missing/wrong-parent line IDs, excessivequantity/emptylines/invalidstatus. No provider refund implied."
+    },
+    {
+      "id": "validation-final-invoice-payments-payment-bodies-are-checked",
+      "test": "invoice_payments::payment_bodies_are_checked",
+      "operations": [
+        "invoice_payments_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "The amount must have at most 2 decimal places."
+        }
+      ],
+      "review": "Native POST /{invoice}/payments errorhelper422 exact amount/method/date/description/meta errors; independent invoice remains pendingpaid0."
+    },
+    {
+      "id": "validation-final-invoice-send-only-drafts-are-sent-and-only-numbered-ones-resent",
+      "test": "invoice_send::only_drafts_are_sent_and_only_numbered_ones_resent",
+      "operations": [
+        "invoices_send",
+        "invoices_resend"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "This Invoice has not been send yet."
+        },
+        {
+          "file": "apps/api/tests/common/invoicing.rs",
+          "contains": "pub async fn resend"
+        }
+      ],
+      "review": "Shared invoicing send/resend wrappers POST exact/{invoice}/send or /resend. Unnumbereddraft resend422 and sending sent/cancelledinvoice422 exactmessages; cancelledinvoice remains unnumbered."
+    },
+    {
+      "id": "validation-final-send-message-rules",
+      "test": "send_message::rules",
+      "operations": [
+        "messages_send"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "The selected email profile id is invalid."
+        }
+      ],
+      "review": "Reviewed send wrapper POST /send-message422 exact contact/address/method/subject/body/email/attachment/profile errors; independent email_send_logs count0. Fakes local only."
+    },
+    {
+      "id": "validation-final-pdf-templates-rules",
+      "test": "pdf_templates::rules",
+      "operations": [
+        "pdf_templates_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "The columns.0.label must not be greater than 55 characters."
+        }
+      ],
+      "review": "Template collectionPOST error helper422 exact domain/name/columns/padding/conditions/file-type/file-size errors. Controlled storage/renderer fake only."
+    },
+    {
+      "id": "validation-final-pdf-templates-a-template-preview-renders-the-newest-invoice",
+      "test": "pdf_templates::a_template_preview_renders_the_newest_invoice",
+      "operations": [
+        "pdf_templates_preview"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "Create an invoice to preview this template."
+        }
+      ],
+      "review": "Native GET exact templatepreview before anyinvoice422 exact business prerequisite; after creatinginvoice fake rendering proves separate result. No malformed-field error invented."
+    },
+    {
+      "id": "validation-final-farm-records-persons-search-by-name-and-phone-within-scope",
+      "test": "farm_records::persons_search_by_name_and_phone_within_scope",
+      "operations": [
+        "farm_records_persons_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "The q must not be greater than 100 characters."
+        }
+      ],
+      "review": "Native person-list GET query101characters422 exactqerror; other filter/privacy checks separate."
+    },
+    {
+      "id": "validation-final-farm-records-a-harvest-revision-with-a-client-ref-replays-and-refuses-a-different-body",
+      "test": "farm_records::a_harvest_revision_with_a_client_ref_replays_and_refuses_a_different_body",
+      "operations": [
+        "farm_records_harvest_reports_revise"
+      ],
+      "gates": {
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"the same ref with another body\""
+        }
+      ],
+      "review": "Harvest POST reused client_ref changedbody/othercycle409. Replay sameid and DBactualreport count1; idempotency validation, not field422."
+    },
+    {
+      "id": "validation-final-farm-supply-input-is-checked",
+      "test": "farm_supply::input_is_checked",
+      "operations": [
+        "farm_supply_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "\"lines.1.harvest_report_id\","
+        }
+      ],
+      "review": "BatchPOST badcode/kgprecision/duplicateharvest/zero price422 exact sortedfieldpaths; emptylines422."
+    },
+    {
+      "id": "validation-final-farm-tenancy-grant-input-rules",
+      "test": "farm_tenancy::grant_input_rules",
+      "operations": [
+        "farm_memberships_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "farmers get their login from an officer, never from this route"
+        }
+      ],
+      "review": "Membership POST invalidrole/missing orforbidden village/unknownvillage422 exactfield presence; seeded real member."
+    },
+    {
+      "id": "validation-final-farm-documents-the-type-comes-from-the-bytes",
+      "test": "farm_documents::the_type_comes_from_the_bytes",
+      "operations": [
+        "farm_documents_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "(\"page.html\", &b\"<html></html>\"[..]),"
+        }
+      ],
+      "review": "Multipart wrapper POST /plots/{plot}/documents explicit text/HTML bytes422; MIME sniffed. Oversize test allows422or413, so it is not used as exact422 evidence."
+    },
+    {
+      "id": "validation-final-farm-bug-reports-a-report-needs-an-image-a-description-and-at-most-30-actions",
+      "test": "farm_bug_reports::a_report_needs_an_image_a_description_and_at_most_30_actions",
+      "operations": [
+        "farm_bug_reports_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_bug_reports.rs",
+          "contains": "assert!(res[\"errors\"][\"actions\"].is_array(), \"{res}\");"
+        }
+      ],
+      "review": "Multipart wrapper POST bug-reports requiredimage/description/actioncap31/PDF-as-photo422 exactfieldpaths; no rawpayload evidence."
+    },
+    {
+      "id": "validation-final-farm-catalogue-equipment-figures-are-checked",
+      "test": "farm_catalogue::equipment_figures_are_checked",
+      "operations": [
+        "farm_equipment_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "(\"typical_hours_per_day\", json!(\"24.5\")),"
+        }
+      ],
+      "review": "EquipmentPOST precision/range/money/currencyUUID/category/bool422 exactfield paths."
+    },
+    {
+      "id": "validation-final-farm-vouchers-three-different-staff-and-an-id-check",
+      "test": "farm_vouchers::three_different_staff_and_an_id_check",
+      "operations": [
+        "farm_vouchers_redeem"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "record which ID document you checked"
+        }
+      ],
+      "review": "RedeemPOST missingid_type and false name_confirmed422 exactmessages. Syntheticvoucher; no physicalcheck claimed."
+    },
+    {
+      "id": "validation-final-send-message-office365-connection-tests",
+      "test": "send_message::office365_connection_tests",
+      "operations": [
+        "messages_office365_connection"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "Could not authenticate. Check the tenant, client id and client secret."
+        }
+      ],
+      "review": "Office365connectionPOST badtenant receives controlledGraph authentication422 exacttokenstage response; prerequisitevalidation, not liveMicrosoft evidence."
+    },
+    {
+      "id": "validation-final-lots-create-rejects-bad-input",
+      "test": "lots::create_rejects_bad_input",
+      "operations": [
+        "lots_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(errors(&res), [\"best_before\", \"expires_on\"]);"
+        }
+      ],
+      "review": "Native lot POST validates required fields, code format/length, dates, enums and temporal ordering with exact 422 error paths."
+    },
+    {
+      "id": "validation-final-lots-status-moves-follow-the-rules-and-recalled-is-final",
+      "test": "lots::status_moves_follow_the_rules_and_recalled_is_final",
+      "operations": [
+        "lots_update"
+      ],
+      "gates": {
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "(StatusCode::CONFLICT, &json!(\"lot_status_final\"))"
+        }
+      ],
+      "review": "Native PATCH rejects recalled-to-released/quarantine transitions with exact 409 lot_status_final. Same-status metadata update remains allowed; business-state validation only."
+    },
+    {
+      "id": "validation-final-lots-another-workspace-gets-404-everywhere",
+      "test": "lots::another_workspace_gets_404_everywhere",
+      "operations": [
+        "lots_get"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "for bad in [\"nope\", \"01900000-0000-7000-8000-000000000001\"]"
+        }
+      ],
+      "review": "Named case also explicitly tests malformed and unknown lot IDs on owned native GET, each 404. Foreign-workspace calls are not assigned as input validation."
+    },
+    {
+      "id": "validation-final-lot-passports-draft-rejects-unknown-keys-and-bad-values",
+      "test": "lot_passports::draft_rejects_unknown_keys_and_bad_values",
+      "operations": [
+        "lots_passport_save"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "\"unknown top-level key\""
+        }
+      ],
+      "review": "Reviewed PUT passport wrapper rejects unknown nested/top-level keys, block kind, lengths, country, coordinates, shares and dates with 422; independent draft title stays null."
+    },
+    {
+      "id": "validation-final-lot-passports-publish-needs-a-title-and-unpublish-hides-it",
+      "test": "lot_passports::publish_needs_a_title_and_unpublish_hides_it",
+      "operations": [
+        "lots_passport_publish"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert!(res[\"errors\"][\"title\"].is_array(), \"{res}\");"
+        }
+      ],
+      "review": "Reviewed native POST passport publish before required title exists returns 422 title error. Subsequent unpublish result is separate, not malformed-input evidence."
+    },
+    {
+      "id": "validation-final-orders-the-status-machine-refuses-wrong-moves",
+      "test": "orders::the_status_machine_refuses_wrong_moves",
+      "operations": [
+        "orders_delete",
+        "orders_update",
+        "orders_cancel",
+        "orders_confirm"
+      ],
+      "gates": {
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "for action in [\"cancel\", \"confirm\", \"complete\"]"
+        }
+      ],
+      "review": "Native confirmed-order PATCH lines and DELETE reject 409; duplicate confirm and completed-order cancel/confirm each strictly 409. Pick has an alternative-status assertion and is intentionally excluded."
+    },
+    {
+      "id": "validation-final-stock-stock-movements-filter-by-type",
+      "test": "stock::stock_movements_filter_by_type",
+      "operations": [
+        "stock_movements"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "for q in [\"type=sold\", \"type=increase,,x\"]"
+        }
+      ],
+      "review": "Actual native stock-movement GET rejects unsupported or malformed comma-separated type filters with exact 422 field error; valid filter results independently counted."
+    },
+    {
+      "id": "validation-final-deals-column-read-uses-the-board-sorting-and-index-shape",
+      "test": "deals::column_read_uses_the_board_sorting_and_index_shape",
+      "operations": [
+        "deals_column"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(code, StatusCode::NOT_FOUND, \"a column of another board\");"
+        }
+      ],
+      "review": "Actual column GET rejects a live status reached under a different live pipeline with 404. Nested path relationship validation, never cross-workspace proof."
+    },
+    {
+      "id": "validation-final-invites-invite-rejects-address-mail-parser-would-reject",
+      "test": "invites::invite_rejects_address_mail_parser_would_reject",
+      "operations": [
+        "invites_send"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invites.rs",
+          "contains": "assert!(common::invite_mails(&w.outbox).is_empty());"
+        }
+      ],
+      "review": "Actual native invitation POST rejects an address containing an invalid quote with asserted 422; captured mail outbox remains empty. No external email sent."
+    },
+    {
+      "id": "validation-final-custom-types-list-filters-by-domain-and-flags",
+      "test": "custom_types::list_filters_by_domain_and_flags",
+      "operations": [
+        "custom_types_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "The selected domain: nope is invalid."
+        }
+      ],
+      "review": "Actual native list GET rejects unsupported domain=nope with exact 422 domain error."
+    },
+    {
+      "id": "validation-final-email-templates-list-filters-and-pages",
+      "test": "email_templates::list_filters_and_pages",
+      "operations": [
+        "email_templates_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "Method::GET, \"?template_domain=nope\""
+        }
+      ],
+      "review": "Actual native list GET rejects unsupported template_domain with asserted 422. Valid language and pagination observations remain separate."
+    },
+    {
+      "id": "validation-final-discounts-group-crud-and-shape",
+      "test": "discounts::group_crud_and_shape",
+      "operations": [
+        "discount_groups_get",
+        "discount_groups_update",
+        "discount_groups_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "api.assert_bad_ids_404(&id, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Reviewed shared helper tests malformed, unknown and deleted group IDs on GET/POST/DELETE, asserting native 404. No body-field422 or tenant claim inferred."
+    },
+    {
+      "id": "validation-final-farm-records-soft-deleted-records-disappear-from-reads",
+      "test": "farm_records::soft_deleted_records_disappear_from_reads",
+      "operations": [
+        "farm_records_farms_get"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert!(!ids(&f.list(\"/farms\", &f.ops).await).contains(&c.asha.farm));"
+        }
+      ],
+      "review": "Explicitly soft-deleted known farm ID is unavailable on owned native GET404 and excluded from list. Resource-existence validation only; not malformed UUID or tenant proof."
+    },
+    {
+      "id": "validation-final-orders-drafts-change-and-delete",
+      "test": "orders::drafts_change_and_delete",
+      "operations": [
+        "orders_get"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "let (s, _) = call(&w, Method::GET, &format!(\"/{id}\"), None).await;"
+        }
+      ],
+      "review": "Owned native GET for the exact just-deleted order returns asserted404. Resource-existence precondition only; no fabricated malformed-field422."
+    },
+    {
+      "id": "validation-final-pdf-templates-create-get-update-list-delete",
+      "test": "pdf_templates::create_get_update_list_delete",
+      "operations": [
+        "pdf_templates_get"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": ".call(Method::DELETE, &format!(\"/{id}\"), None, &api.owner)"
+        }
+      ],
+      "review": "Owned native GET for exact template ID immediately after deletion returns asserted404. Resource-existence validation only; fake renderer/storage setup remains local."
+    },
+    {
+      "id": "validation-final-workspaces-delete-invite-kills-the-link",
+      "test": "workspaces::delete_invite_kills_the_link",
+      "operations": [
+        "invites_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "StatusCode::NOT_FOUND"
+        }
+      ],
+      "review": "Native invitation DELETE repeated for exact revoked ID returns asserted404; independent invite list is empty. Resource-existence/repeat-input boundary, not malformedbody422."
+    },
+    {
+      "id": "validation-final-orders-the-status-machine-refuses-wrong-moves-pick",
+      "test": "orders::the_status_machine_refuses_wrong_moves",
+      "operations": [
+        "orders_pick"
+      ],
+      "gates": {
+        "validation": [
+          409,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "s == StatusCode::CONFLICT || s == StatusCode::UNPROCESSABLE_ENTITY"
+        }
+      ],
+      "review": "Named native case sends draft-order POST pick with empty lines and explicitly permits only409or422 refusal. Assign only the actually observed allowed status after full case passes. This proves incompatible-state request rejection, not precise field-error wording."
+    },
+    {
+      "id": "validation-final-reviewed-object-body-matrix",
+      "test": "assistant_capability_auth::reviewed_object_body_capabilities_reject_boolean_json_before_domain_work",
+      "operations": [
+        "discount_groups_update",
+        "farm_crops_update",
+        "farm_payouts_cash_movement",
+        "farm_villages_update",
+        "farm_vouchers_lookup",
+        "messages_office365_send",
+        "orders_pick",
+        "pdf_templates_update",
+        "till_users_update",
+        "till_vaults_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "assert_eq!(exercised.len(), 10);"
+        },
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "[\"body\"]"
+        },
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "Some(json!(false))"
+        }
+      ],
+      "review": "DTO TYPE ONLY: exact ten reviewed JSON object contracts receive valid JSON boolean false as the real workspace owner/farm admin. Each native route must return strict422 with only nonempty errors.body text. Real OpenAPI object schema and JSON media are checked; cash/vault/mail row counts remain unchanged. Does not prove individual field rules, existing-target mutation semantics, provider behavior or business result. Fresh entire test pass plus observed per-operation422 required; source alone is not executed evidence."
+    },
+    {
+      "id": "validation-final-reviewed-malformed-uuid-matrix",
+      "test": "assistant_capability_auth::reviewed_bodyless_uuid_capabilities_reject_malformed_resource_identifiers",
+      "operations": [
+        "discount_groups_relations",
+        "farm_bug_reports_get",
+        "farm_documents_get",
+        "farm_documents_list",
+        "farm_logins_history",
+        "farm_market_demand_matches",
+        "farm_market_demands_get",
+        "farm_market_opportunities_get",
+        "farm_market_village_matches",
+        "farm_market_village_supply",
+        "farm_memberships_revoke",
+        "farm_passbook_give_consent",
+        "farm_passbook_person",
+        "farm_passbook_withdraw_consent",
+        "farm_payouts_get",
+        "farm_pue_requests_get",
+        "farm_records_crop_cycles_get",
+        "farm_records_harvest_reports_list",
+        "farm_records_harvest_reports_verify",
+        "farm_records_households_get",
+        "farm_records_persons_get",
+        "farm_records_persons_holdings",
+        "farm_records_persons_verify",
+        "farm_records_plots_get",
+        "farm_supply_get",
+        "farm_surveys_close",
+        "farm_surveys_get",
+        "farm_surveys_results",
+        "farm_vouchers_timeline",
+        "files_delete",
+        "invoices_duplicate",
+        "lots_events",
+        "lots_farmer_credits",
+        "lots_holds",
+        "lots_passport_get",
+        "lots_passport_unpublish",
+        "lots_stock",
+        "messages_profile_test",
+        "orders_events",
+        "pdf_templates_delete",
+        "product_variants_list",
+        "products_duplicate",
+        "products_images_list",
+        "products_price_history",
+        "relations_financial_summary",
+        "stock_with_bins",
+        "storage_locations_delete",
+        "supply_links_revoke",
+        "till_registers_pairing",
+        "till_registers_rotate_key",
+        "warehouse_bins_by_warehouse",
+        "warehouse_bins_get",
+        "warehouse_bins_list",
+        "warehouse_rows_delete",
+        "warehouse_rows_get",
+        "warehouse_rows_list",
+        "warehouse_sections_list",
+        "warehouse_shelves_delete",
+        "warehouse_shelves_get",
+        "warehouse_shelves_list"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "\"{}: malformed UUID must be404\""
+        },
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "assert_eq!(exercised.len(), 60);"
+        }
+      ],
+      "review": "MALFORMED UUID ONLY: exact60 reviewed bodyless routes retain real workspace and privileged owner/farm admin. Only first resource UUID becomes not-a-uuid, independently invalid UUID; native route template remains identical, strict404 and exact NotFound body required. No body, required query, domain/model string or unavailable stub is included. Hierarchical cases invalidate outermost resource rather than relying on missing/foreign parents. No tenant, field-rule, business-result, approval or provider proof implied. Entire fresh test pass plus actual per-operation404 required."
+    },
+    {
+      "id": "validation-final-reviewed-bound-workspace-matrix",
+      "test": "assistant_capability_auth::reviewed_no_business_input_capabilities_reject_malformed_bound_workspace",
+      "operations": [
+        "farm_supply_dispatch_options",
+        "farm_tower_verify_summary",
+        "invoices_send_tasks",
+        "till_users_list",
+        "till_vaults_list",
+        "workspaces_get"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "\"{}: malformed workspace must be404\""
+        },
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "assert_eq!(exercised.len(), 6);"
+        }
+      ],
+      "review": "BOUND WORKSPACE ONLY: exactsix routes have no business parameters/body, proved against native route metadata. Real privileged actor and actual live workspace are created; only bound workspace identifier becomes independently malformed UUID. Every native operation must return strict404 exact NotFound body. No waiver or generic empty200 assigned. This proves workspace identifier validation only, not cross-workspace isolation or business results. Entire fresh case pass plus observed per-operation404 required."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/custom_statuses.rs": "c285a2a1eb594b9148c428657012a628267fa043ce1de135c5fda68c7cff6d7e",
+    "apps/api/tests/api/custom_types.rs": "555272c65dfd02eb6475558d2470964fab17d1d42627293a4462544dec9e0069",
+    "apps/api/tests/api/product_brands.rs": "ec22c3fc8250349dd3c7f43a98959eef57e123147d3c26f2e679c29fa081725a",
+    "apps/api/tests/api/email_profiles.rs": "a7f139939d3763b0e02a96a5227590800aefea0f382be983263cbe404c0179d2",
+    "apps/api/tests/api/email_templates.rs": "8e760ab9bbd1963215ad8036db61f0b969fc9599e29e4465351e92140f4bffcb",
+    "apps/api/tests/api/hourly_rates.rs": "f9f30d5435d8502dd4c7aa5d5392fbfacf96b3121ec929a61ddc73896658e70e",
+    "apps/api/tests/api/sales_groups.rs": "0d328135f8ec21d4a502e6c0296f621faec93f1f9952258d1dfa6a63b127328d",
+    "apps/api/tests/api/vat_groups.rs": "8e3be712a3a81c0f6e114be30886db06ab98fcd4cc01c4c5b90e2739b451e3e0",
+    "apps/api/tests/api/shipment_methods.rs": "430e29abf920e82286c075a0e69fdb15b86af06a329b5ccdf53e6593c2afcb2b",
+    "apps/api/tests/api/deal_pipelines.rs": "fcf33c59f626a92bdc929c9e9bc54f6f38b2a822c1c85d05077339895e246a44",
+    "apps/api/tests/api/deals.rs": "f1a3aeb521d47d8cfdf488884f619388ef675dc424034de618290e09d088e58b",
+    "apps/api/tests/api/app_keys.rs": "69b1eec2a21267a5dc15e3f4a44896e874558900ff262569883dde24c0b077e0",
+    "apps/api/tests/api/teams.rs": "c25c0a5e9090e1f5efcd90b8e0718224ec301e165fd2f29ad1cc0086064f15ad",
+    "apps/api/tests/api/users.rs": "ad4038132134cc3bf22ea8dff73bfa86cf0b983f45a0cc8c22fe0fd95b729ee4",
+    "apps/api/tests/api/warehouses.rs": "dee907d2a85bed51524bb5cf4f0849c7be74595fb2a789515fa9a4272aa3f0b8",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502",
+    "apps/api/tests/api/warehouse_locations.rs": "89035aedbcc36a85110f93ceeb428d9f333fbf51ef32d11d6dcd09af3a6f2cc4",
+    "apps/api/tests/api/warehouse_hierarchy.rs": "4eb1391a69e588246c4f3281d3afb88c03957d5e78133bb8327dcebf1913812e",
+    "apps/api/tests/api/relations.rs": "92137e2f44a1cc6a110b5cacfc1064b1f350eefb22b71cbaa59e377af7053841",
+    "apps/api/tests/api/settings.rs": "b3e3130ad8c70597abbd0d31e88bcf9cf0dbf831791855fb713ffc3c2c3b7035",
+    "apps/api/tests/api/quick_search.rs": "b3423224b4ace298108c1825bfcbe0b3171ec667c68dabf6ff51de2b87ff2b13",
+    "apps/api/tests/api/webhook_endpoints.rs": "127e9211d0b58fa4eb21eb2e7557c868dba35b822dde7488d377cf7246424088",
+    "apps/api/tests/api/files.rs": "833ac195b95c261f2c8b82c49a693114e424f94046aab91f629d5eab9de205f3",
+    "apps/api/tests/api/product_variants.rs": "fb977db4bd6181af0aa738d7973df46ca80c84ba9a0f311781e6164b33507156",
+    "apps/api/tests/api/products.rs": "4139cce3b59e69eb20b185a47d74c93efa096522b28f320f1caf1a9842f0d07b",
+    "apps/api/tests/api/special_offers.rs": "b32a99fd13301f3a68bc2c8419ed9d5bb7332baa2caf836ebd990188cb6c1106",
+    "apps/api/tests/api/discounts.rs": "50fd46a6b93e50c4d667a86a13d5d8805c257ef27562b3efca8bac753a765f42",
+    "apps/api/tests/api/price_corrections.rs": "b2c6bcc58699f727177c53779e19f98526b26522a5dbc0063a0263f2d4af5873",
+    "apps/api/tests/api/invoices.rs": "3f163f6e6e6714e08bbd87bb37740a3c80fd7365ad66d498e6fec297d0f2249e",
+    "apps/api/tests/api/invoice_credit.rs": "971e80bd35354b560c1156bedba33a0bda8565a371c2e43a00deb204b1c7ea0b",
+    "apps/api/tests/api/invoice_payments.rs": "6893c82e2149220729f421729dd3b9f1a7740920d16038fe70c3e5e1214b3e63",
+    "apps/api/tests/common/invoicing.rs": "638cb90bbe4587c1d91bd4f81299e2be3ea46184acfe709556ac51f8ba98b82a",
+    "apps/api/tests/api/invoice_send.rs": "16ff741cf198b29f422d8e342a5c73e6f46fe64ad7b5149f2ef91dac99119826",
+    "apps/api/tests/api/send_message.rs": "2fecec99bf479cfcf3a3c4a85225ca8943724349ab2f608099f471a6e82b3300",
+    "apps/api/tests/api/pdf_templates.rs": "2d663a93d3a9b80f967bf3054bc1ca696c169cf1d543547b3c0734f67eefa5f3",
+    "apps/api/tests/api/farm_records.rs": "19d715ea32a98a5e9a3552d913d6a566a54d55340d179f2550113810f39f16f8",
+    "apps/api/tests/api/farm_supply.rs": "f81c5cb189fc2f29d076d3fcc726a1225c5e983af6d0b8ec6a4b56dc0f2363a8",
+    "apps/api/tests/api/farm_tenancy.rs": "d8e1fa641e48ac4bd7b10331dde39ca63f361b51e22ba7d3c09fd5e1735df8c8",
+    "apps/api/tests/api/farm_documents.rs": "9db18507155b094857b135aa681fb39a25cea5c73f9a13c65f98da9c109a6212",
+    "apps/api/tests/api/farm_bug_reports.rs": "8954d65e9dd24bdf9ba3b709098d32ea60d509f96188f7235df78ded8d40667b",
+    "apps/api/tests/api/farm_catalogue.rs": "5846e3d06d34d65762f3b02a5ee46adfb04f8f2c3f401ed89451aa42ae2a2655",
+    "apps/api/tests/api/farm_vouchers.rs": "75e37a0d633d99a687e6dc52e3d0a829e7ddad3056ec369c649586aa6470aa07",
+    "apps/api/tests/api/lots.rs": "1a9815634c391a5e53829a416d7992eab9b542c766c17806310f8dd229518bf4",
+    "apps/api/tests/api/lot_passports.rs": "5ac3d2c3dd1e640ca700db0c97868393ddf14a5e318425a158a7ff90ae3ed71a",
+    "apps/api/tests/api/orders.rs": "2e77c1be91b5ac9123dce59e58cf9eb1395cc2ce32d66703eb4ab7ecc06a3ab7",
+    "apps/api/tests/api/stock.rs": "873cbeed6c7f044fa15f9211203c74a3cad0b959206bb7549a9146df7d16eb3d",
+    "apps/api/tests/api/invites.rs": "05866df03a4d12a6d6ad5384e0162cfe8e9e66bc51b1ffe8aea781ec518403a7",
+    "apps/api/tests/api/workspaces.rs": "c748334e722d49775f4f3298222b48ec0e43df25e8d6eef9221559ae9e05c1c4",
+    "apps/api/tests/api/assistant_capability_auth.rs": "11f42b99eda7d3aef046aa2dc671b5780d46c5ae6d08652affef8b87b26966ae"
+  }
+}

@@ -14,16 +14,16 @@ use crate::{
     error::{UnprocessableBody, ValidationErrorBody},
     http::response::MessageBody,
     modules::{
-        app_keys, auth, cash, contacts, currencies, custom_statuses, custom_types, deal_pipelines,
-        deals, discount_groups, discounts, email_profiles, email_templates, email_verification,
-        farm_bug_reports, farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market,
-        farm_memberships, farm_passbook, farm_payouts, farm_pue, farm_records, farm_supply,
-        farm_surveys, farm_tower, farm_villages, farm_vouchers, files, hourly_rates, invites,
-        invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
-        price_corrections, pricing, product_brands, product_categories, product_images,
-        product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-        special_offers, stock, storage_locations, storefront, supply_chain, supply_links, teams,
-        till, till_catalog, till_sales,
+        app_keys, assistant, auth, cash, contacts, currencies, custom_statuses, custom_types,
+        deal_pipelines, deals, discount_groups, discounts, email_profiles, email_templates,
+        email_verification, farm_bug_reports, farm_catalogue, farm_crops, farm_documents,
+        farm_logins, farm_market, farm_memberships, farm_passbook, farm_payouts, farm_pue,
+        farm_records, farm_supply, farm_surveys, farm_tower, farm_villages, farm_vouchers, files,
+        hourly_rates, invites, invoice_payments, invoices, lots, messages, orders, pdf_templates,
+        permissions, price_corrections, pricing, product_brands, product_categories,
+        product_images, product_variants, products, relations, sales_groups, search, settings,
+        shipment_methods, special_offers, stock, storage_locations, storefront, supply_chain,
+        supply_links, teams, till, till_catalog, till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -68,6 +68,14 @@ impl Modify for BearerAuth {
         doc.components
             .get_or_insert_with(Default::default)
             .add_security_scheme(
+                "assistant_bridge",
+                SecurityScheme::ApiKey(utoipa::openapi::security::ApiKey::Header(
+                    utoipa::openapi::security::ApiKeyValue::new("Assistant-Bridge-Signature"),
+                )),
+            );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
                 "bearer",
                 SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
             );
@@ -102,6 +110,7 @@ impl Modify for BearerAuth {
 /// Documented routes that need no token; `build_app` puts them behind the IP rate limit.
 pub(crate) fn public() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
+        .merge(assistant::routes::public())
         .merge(auth::routes::public())
         .merge(invites::routes::public())
         .merge(email_verification::routes::public())
@@ -116,6 +125,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
 /// as they get `#[utoipa::path]` annotations.
 pub(crate) fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
+        .merge(assistant::routes::private())
         .merge(auth::routes::private())
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())
@@ -235,12 +245,41 @@ fn add_shared_responses(doc: &mut Value) {
     {
         let has_body = op.get("requestBody").is_some();
         let secured = op.get("security").is_some();
+        let assistant = op["tags"]
+            .as_array()
+            .is_some_and(|tags| tags.iter().any(|t| t == "assistant"));
+        let bearer = op["security"]
+            .as_array()
+            .is_some_and(|ss| ss.iter().any(|s| s.get("bearer").is_some()));
         let Some(responses) = op.get_mut("responses").and_then(Value::as_object_mut) else {
             continue;
         };
         let mut add = |code: &str, r: Value| {
             responses.entry(code).or_insert(r);
         };
+        if assistant {
+            add(
+                "403",
+                reply("Workspace access or trusted bridge proof refused", None),
+            );
+            add(
+                "404",
+                reply("Unknown resource or another login/workspace", None),
+            );
+        }
+        if bearer && !assistant {
+            add(
+                "400",
+                reply("Malformed optional assistant action headers", None),
+            );
+            add(
+                "409",
+                reply(
+                    "Optional assistant action approval unavailable, changed, expired or consumed",
+                    None,
+                ),
+            );
+        }
         add("429", reply("Too many requests", Some(&retry)));
         add("500", reply("Server error", None));
         add("503", reply("Busy or timed out; retry later", Some(&retry)));

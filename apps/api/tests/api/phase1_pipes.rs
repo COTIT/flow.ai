@@ -55,6 +55,8 @@ async fn receiver(seen: Seen) -> String {
 /// Run every due job the way the runner does; the test receiver is the only trusted host.
 async fn run_jobs(pool: &PgPool) {
     let ctx = Ctx {
+        invoice_state: None,
+        assistant_api_key: None,
         db: pool.clone(),
         files: None,
         http: Outbound::new(&["127.0.0.1".to_owned()]).unwrap(),

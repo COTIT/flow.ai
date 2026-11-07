@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
+import { GenesyVoiceProvider } from "@/components/voice/provider"
 import { AppShell } from "@/components/shell"
 import { LoadError, NoAccess } from "@/components/states"
 import { rightFor, useRights } from "@/lib/can"
@@ -26,18 +27,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!hydrated || !token) return null
 
   return (
-    <AppShell>
-      {workspaces.isError ? (
-        <LoadError
-          error={workspaces.error}
-          onRetry={() => void workspaces.refetch()}
-        />
-      ) : null}
-      {!right || rights.may(right) ? (
-        children
-      ) : rights.read ? (
-        <NoAccess />
-      ) : null}
-    </AppShell>
+    <GenesyVoiceProvider>
+      <AppShell>
+        {workspaces.isError ? (
+          <LoadError
+            error={workspaces.error}
+            onRetry={() => void workspaces.refetch()}
+          />
+        ) : null}
+        {!right || rights.may(right) ? (
+          children
+        ) : rights.read ? (
+          <NoAccess />
+        ) : null}
+      </AppShell>
+    </GenesyVoiceProvider>
   )
 }

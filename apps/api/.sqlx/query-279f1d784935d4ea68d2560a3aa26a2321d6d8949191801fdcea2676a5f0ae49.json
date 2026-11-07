@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions a SET state='queued',evidence=evidence || jsonb_build_object('refund',jsonb_build_object('refund_id',$4::uuid,'status','creating')),proposal=NULL,review_facts='{}'::jsonb,finished_at=NULL WHERE a.workspace_id=$1 AND a.user_id=$2 AND a.id=$3 AND a.operation_id='orders_refund' AND a.state='dispatching' AND EXISTS(SELECT 1 FROM order_payments p WHERE p.workspace_id=$1 AND p.id=$4 AND p.kind='refund' AND p.created_by=$2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "279f1d784935d4ea68d2560a3aa26a2321d6d8949191801fdcea2676a5f0ae49"
+}

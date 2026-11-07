@@ -1,0 +1,2251 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "products-access",
+      "test": "products::access_rules",
+      "operations": [
+        "products_list",
+        "products_create",
+        "products_get",
+        "products_update",
+        "products_delete"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ],
+        "authorization": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "api.assert_member_forbidden(&id).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Products use /products base. Shared helper creates an active member without permissions, checks each native CRUD route returns403 and exact unauthorized message before invalid-body validation."
+    },
+    {
+      "id": "products-foreign",
+      "test": "products::access_rules",
+      "operations": [
+        "products_list",
+        "products_get",
+        "products_update",
+        "products_delete",
+        "products_price_history"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "api.assert_foreign_404(&id, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        },
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{mal_ws}/products/{id}/price-history\");"
+        }
+      ],
+      "review": "Real second owner/workspace; outsider list and foreign row through own workspace are404, lists contain no foreign row, original row remains. Separate price-history request is404. Collection create intentionally excluded."
+    },
+    {
+      "id": "products-exact-resource",
+      "test": "products::create_then_get_prints_laravel_prices",
+      "operations": [
+        "products_get"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!(p[\"id\"], id);"
+        },
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!(p[\"price\"], \"743.0578\");"
+        }
+      ],
+      "review": "GET verifies exact created ID, resource fields, decimal text, relationships and original/current prices; schema validity alone is insufficient."
+    },
+    {
+      "id": "products-created-storage",
+      "test": "products::create_writes_default_variant_and_price_history",
+      "operations": [
+        "products_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!((variants, default_price.as_str()), (1, \"220.00000000\"));"
+        }
+      ],
+      "review": "POST creates exact returned product ID; real Postgres query verifies one default variant and exact stored price, followed by price-history assertions."
+    },
+    {
+      "id": "products-validation",
+      "test": "products::validation_wording",
+      "operations": [
+        "products_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "for (body, key, expected) in cases"
+        }
+      ],
+      "review": "POST checks required name/price, invalid numbers/status/type/URL, length, cross-domain IDs and field-specific exact error messages."
+    },
+    {
+      "id": "products-duplicate-delete",
+      "test": "products::delete_and_duplicate",
+      "operations": [
+        "products_duplicate",
+        "products_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!(c[\"product_nr\"], \"PRO-00002\");"
+        },
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "json!({ \"data\": { \"message\": \"The Product has been deleted\" } })"
+        }
+      ],
+      "review": "Duplicate preserves name/price/reference with new number. Delete checks exact receipt then GET404. Status selection is matched per operation to its own executed call."
+    },
+    {
+      "id": "currencies-restricted-writes",
+      "test": "currencies::writes_need_permission_and_403_comes_before_422",
+      "operations": [
+        "currencies_create",
+        "currencies_update",
+        "currencies_delete"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ],
+        "authorization": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(res[\"message\"], UNAUTHORIZED);"
+        }
+      ],
+      "review": "Member without currency permissions receives403 on POSTcollection, POSTrow andDELETE; message exact, invalid name cannot expose validation."
+    },
+    {
+      "id": "currencies-member-reads",
+      "test": "currencies::member_reads_without_any_permission",
+      "operations": [
+        "currencies_list",
+        "currencies_get"
+      ],
+      "gates": {
+        "authorization": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "let bob = member_with(&w.app, &w.pool, &w.ws, \"bob@example.com\", &[]).await;"
+        }
+      ],
+      "review": "Currency reads intentionally require membership without granular permission; both list/get explicitly return200 for member holding no permissions."
+    },
+    {
+      "id": "currencies-foreign",
+      "test": "currencies::other_workspace_rows_are_404",
+      "operations": [
+        "currencies_list",
+        "currencies_get",
+        "currencies_update",
+        "currencies_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(w.get(&id).await[\"name\"], \"Dollar\");"
+        },
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": ".all(|c| c[\"id\"] != id.as_str())"
+        }
+      ],
+      "review": "Second workspace owner cannot reach original workspace or foreign currency via own workspace;404, no list leak, original unchanged. Collection create excluded."
+    },
+    {
+      "id": "currencies-resource",
+      "test": "currencies::create_then_get_in_currency_resource_shape",
+      "operations": [
+        "currencies_create",
+        "currencies_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(c[\"id\"], id.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(c[\"decimals\"], 2);"
+        }
+      ],
+      "review": "Created ID re-fetched and exact keys, name, USD type, prefixes, decimals, defaults, booleans/meta/timestamps verified."
+    },
+    {
+      "id": "currencies-list-page",
+      "test": "currencies::list_pages_with_laravel_meta",
+      "operations": [
+        "currencies_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"name\"], \"C2\", \"oldest first\");"
+        }
+      ],
+      "review": "Three created currencies; page2 checks exact total/currentpage/lastpage/one row and expected name."
+    },
+    {
+      "id": "currencies-update",
+      "test": "currencies::update_is_a_patch_and_returns_message_ok",
+      "operations": [
+        "currencies_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(c[\"name\"], \"Euro\");"
+        },
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(c[\"meta\"], json!({ \"k\": \"v\" }), \"absent keeps\");"
+        }
+      ],
+      "review": "Exact native message plus subsequent GET confirms patch values, explicit null/blank clears, preserved omitted meta and identity."
+    },
+    {
+      "id": "app-key-admin",
+      "test": "app_keys::only_workspace_admins_manage_keys",
+      "operations": [
+        "app_keys_list",
+        "app_keys_create",
+        "app_keys_revoke"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Active nonadmin member refused list/create/revoke, invalid body still403. Separate workspace_admin member successfully creates."
+    },
+    {
+      "id": "app-key-foreign",
+      "test": "app_keys::another_workspace_never_reaches_a_key",
+      "operations": [
+        "app_keys_list",
+        "app_keys_revoke"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "\"untouched\""
+        }
+      ],
+      "review": "Actual second workspace/token: outsider list and foreign revoke404, own list empty, original key unrevoked. Create excluded."
+    },
+    {
+      "id": "app-key-private-result",
+      "test": "app_keys::create_shows_the_key_once_and_the_list_never",
+      "operations": [
+        "app_keys_create",
+        "app_keys_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "assert!(!listed.to_string().contains(&plain[8..]), \"secret leaked\");"
+        },
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "assert_eq!(stored.len(), 32);"
+        }
+      ],
+      "review": "Once-only native plaintext verified; list excludes key/plaintext, stored hash32bytes. This proves native result privacy, not assistant secure-handoff behavior."
+    },
+    {
+      "id": "app-key-revoke",
+      "test": "app_keys::revoke_is_204_idempotent_and_shows_in_the_list",
+      "operations": [
+        "app_keys_revoke"
+      ],
+      "gates": {
+        "result": [
+          204
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "assert_eq!((status, body), (StatusCode::NO_CONTENT, Value::Null));"
+        }
+      ],
+      "review": "Two revocations each204empty; subsequent list has revocation timestamp."
+    },
+    {
+      "id": "app-key-validation",
+      "test": "app_keys::bad_input_is_422",
+      "operations": [
+        "app_keys_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/app_keys.rs",
+          "contains": "assert!(res[\"errors\"].get(field).is_some(), \"{body}: {res}\");"
+        }
+      ],
+      "review": "Required/overlong name, invalid kind and empty/missing/foreign-kind scopes produce422 plus exact field errors."
+    },
+    {
+      "id": "order-foreign",
+      "test": "orders::other_workspaces_and_missing_permissions_are_refused",
+      "operations": [
+        "orders_get",
+        "orders_confirm",
+        "orders_cancel",
+        "orders_complete",
+        "orders_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::NOT_FOUND, \"{action}\");"
+        }
+      ],
+      "review": "Actual second owner/workspace cannot get/confirm/cancel/complete/delete source order; outsider token on source workspace also404."
+    },
+    {
+      "id": "order-restricted-confirm",
+      "test": "orders::other_workspaces_and_missing_permissions_are_refused",
+      "operations": [
+        "orders_confirm"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(level(&w, &w.honey).await, (\"10.00\".into(), \"0.00\".into()));"
+        }
+      ],
+      "review": "Viewer reads order but cannot confirm;403 and exact stock/reservation unchanged."
+    },
+    {
+      "id": "order-list-filter",
+      "test": "orders::list_pages_and_filters",
+      "operations": [
+        "orders_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"id\"], a.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "\"?status=nope\""
+        }
+      ],
+      "review": "Two orders with one confirmed; status filter returns exactly that ID and total1, invalid status422."
+    },
+    {
+      "id": "farm-supply-four-eyes",
+      "test": "farm_supply::only_ops_or_admin_who_did_not_verify_the_harvest",
+      "operations": [
+        "farm_supply_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "four_eyes": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"field officer\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"the verifier: {res}\");"
+        }
+      ],
+      "review": "Field officer refused; owner who verified harvest refused; independent ops actor creates same requested batch201. No owner bypass of four-eyes."
+    },
+    {
+      "id": "farm-supply-foreign",
+      "test": "farm_supply::another_workspace_neither_buys_our_harvest_nor_reads_our_batch",
+      "operations": [
+        "farm_supply_create",
+        "farm_supply_list",
+        "farm_supply_get"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(errors(&res), [\"lines.0.harvest_report_id\"]);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(list[\"data\"], json!([]));"
+        }
+      ],
+      "review": "Second real Farm workspace cannot buy source harvest422(fieldchecked), read batch404, or list source rows; foreign currency/product similarly rejected and outsiderlist404."
+    },
+    {
+      "id": "farm-record-foreign",
+      "test": "farm_records::another_workspace_reads_nothing",
+      "operations": [
+        "farm_records_persons_list",
+        "farm_records_farms_get"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{tail}\");"
+        }
+      ],
+      "review": "Second actual workspace owner denied persons list and source farm detail. Separate no-bearer request401 applies only personslist."
+    },
+    {
+      "id": "farm-record-no-login",
+      "test": "farm_records::another_workspace_reads_nothing",
+      "operations": [
+        "farm_records_persons_list"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        }
+      ],
+      "review": "Personslist no bearer401; not generalized to every farm record operation."
+    },
+    {
+      "id": "product-brands-shared-access",
+      "test": "product_brands::brand_access",
+      "operations": [
+        "product_brands_list",
+        "product_brands_create",
+        "product_brands_get",
+        "product_brands_update",
+        "product_brands_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "product-brands-shared-foreign",
+      "test": "product_brands::brand_access",
+      "operations": [
+        "product_brands_list",
+        "product_brands_get",
+        "product_brands_update",
+        "product_brands_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "product-brands-bad-identities",
+      "test": "product_brands::brand_access",
+      "operations": [
+        "product_brands_get",
+        "product_brands_update",
+        "product_brands_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "product-categories-shared-access",
+      "test": "product_brands::category_access",
+      "operations": [
+        "product_categories_list",
+        "product_categories_create",
+        "product_categories_get",
+        "product_categories_update",
+        "product_categories_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "product-categories-shared-foreign",
+      "test": "product_brands::category_access",
+      "operations": [
+        "product_categories_list",
+        "product_categories_get",
+        "product_categories_update",
+        "product_categories_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "product-categories-bad-identities",
+      "test": "product_brands::category_access",
+      "operations": [
+        "product_categories_get",
+        "product_categories_update",
+        "product_categories_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "custom-statuses-shared-access",
+      "test": "custom_statuses::delete_bad_ids_and_access",
+      "operations": [
+        "custom_statuses_list",
+        "custom_statuses_create",
+        "custom_statuses_get",
+        "custom_statuses_update",
+        "custom_statuses_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "custom-statuses-shared-foreign",
+      "test": "custom_statuses::delete_bad_ids_and_access",
+      "operations": [
+        "custom_statuses_list",
+        "custom_statuses_get",
+        "custom_statuses_update",
+        "custom_statuses_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "custom-statuses-bad-identities",
+      "test": "custom_statuses::delete_bad_ids_and_access",
+      "operations": [
+        "custom_statuses_get",
+        "custom_statuses_update",
+        "custom_statuses_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "custom-types-shared-access",
+      "test": "custom_types::delete_bad_ids_and_access",
+      "operations": [
+        "custom_types_list",
+        "custom_types_create",
+        "custom_types_get",
+        "custom_types_update",
+        "custom_types_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "custom-types-shared-foreign",
+      "test": "custom_types::delete_bad_ids_and_access",
+      "operations": [
+        "custom_types_list",
+        "custom_types_get",
+        "custom_types_update",
+        "custom_types_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "custom-types-bad-identities",
+      "test": "custom_types::delete_bad_ids_and_access",
+      "operations": [
+        "custom_types_get",
+        "custom_types_update",
+        "custom_types_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "sales-groups-shared-access",
+      "test": "sales_groups::delete_bad_ids_and_access",
+      "operations": [
+        "sales_groups_list",
+        "sales_groups_create",
+        "sales_groups_get",
+        "sales_groups_update",
+        "sales_groups_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "sales-groups-shared-foreign",
+      "test": "sales_groups::delete_bad_ids_and_access",
+      "operations": [
+        "sales_groups_list",
+        "sales_groups_get",
+        "sales_groups_update",
+        "sales_groups_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "sales-groups-bad-identities",
+      "test": "sales_groups::delete_bad_ids_and_access",
+      "operations": [
+        "sales_groups_get",
+        "sales_groups_update",
+        "sales_groups_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "shipment-methods-shared-access",
+      "test": "shipment_methods::delete_bad_ids_and_access",
+      "operations": [
+        "shipment_methods_list",
+        "shipment_methods_create",
+        "shipment_methods_get",
+        "shipment_methods_update",
+        "shipment_methods_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "shipment-methods-shared-foreign",
+      "test": "shipment_methods::delete_bad_ids_and_access",
+      "operations": [
+        "shipment_methods_list",
+        "shipment_methods_get",
+        "shipment_methods_update",
+        "shipment_methods_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "shipment-methods-bad-identities",
+      "test": "shipment_methods::delete_bad_ids_and_access",
+      "operations": [
+        "shipment_methods_get",
+        "shipment_methods_update",
+        "shipment_methods_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "hourly-rates-shared-access",
+      "test": "hourly_rates::delete_bad_ids_and_access",
+      "operations": [
+        "hourly_rates_list",
+        "hourly_rates_create",
+        "hourly_rates_get",
+        "hourly_rates_update",
+        "hourly_rates_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "hourly-rates-shared-foreign",
+      "test": "hourly_rates::delete_bad_ids_and_access",
+      "operations": [
+        "hourly_rates_list",
+        "hourly_rates_get",
+        "hourly_rates_update",
+        "hourly_rates_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "hourly-rates-bad-identities",
+      "test": "hourly_rates::delete_bad_ids_and_access",
+      "operations": [
+        "hourly_rates_get",
+        "hourly_rates_update",
+        "hourly_rates_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "vat-groups-shared-access",
+      "test": "vat_groups::delete_bad_ids_and_access",
+      "operations": [
+        "vat_groups_list",
+        "vat_groups_create",
+        "vat_groups_get",
+        "vat_groups_update",
+        "vat_groups_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "vat-groups-shared-foreign",
+      "test": "vat_groups::delete_bad_ids_and_access",
+      "operations": [
+        "vat_groups_list",
+        "vat_groups_get",
+        "vat_groups_update",
+        "vat_groups_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "vat-groups-bad-identities",
+      "test": "vat_groups::delete_bad_ids_and_access",
+      "operations": [
+        "vat_groups_get",
+        "vat_groups_update",
+        "vat_groups_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "price-corrections-shared-access",
+      "test": "price_corrections::access",
+      "operations": [
+        "price_corrections_list",
+        "price_corrections_create",
+        "price_corrections_get",
+        "price_corrections_update",
+        "price_corrections_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/price_corrections.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "price-corrections-shared-foreign",
+      "test": "price_corrections::access",
+      "operations": [
+        "price_corrections_list",
+        "price_corrections_get",
+        "price_corrections_update",
+        "price_corrections_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/price_corrections.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "price-corrections-bad-identities",
+      "test": "price_corrections::access",
+      "operations": [
+        "price_corrections_get",
+        "price_corrections_update",
+        "price_corrections_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/price_corrections.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "discount-groups-shared-access",
+      "test": "discounts::group_access",
+      "operations": [
+        "discount_groups_list",
+        "discount_groups_create",
+        "discount_groups_get",
+        "discount_groups_update",
+        "discount_groups_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "discount-groups-shared-foreign",
+      "test": "discounts::group_access",
+      "operations": [
+        "discount_groups_list",
+        "discount_groups_get",
+        "discount_groups_update",
+        "discount_groups_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "discounts-shared-access",
+      "test": "discounts::discount_access",
+      "operations": [
+        "discounts_list",
+        "discounts_create",
+        "discounts_get",
+        "discounts_update",
+        "discounts_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "discounts-shared-foreign",
+      "test": "discounts::discount_access",
+      "operations": [
+        "discounts_list",
+        "discounts_get",
+        "discounts_update",
+        "discounts_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "warehouses-shared-access",
+      "test": "warehouses::access_rules",
+      "operations": [
+        "warehouses_list",
+        "warehouses_create",
+        "warehouses_get",
+        "warehouses_update",
+        "warehouses_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "warehouses-shared-foreign",
+      "test": "warehouses::access_rules",
+      "operations": [
+        "warehouses_list",
+        "warehouses_get",
+        "warehouses_update",
+        "warehouses_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "warehouses-bad-identities",
+      "test": "warehouses::access_rules",
+      "operations": [
+        "warehouses_get",
+        "warehouses_update",
+        "warehouses_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "email-profiles-shared-access",
+      "test": "email_profiles::access_rules",
+      "operations": [
+        "email_profiles_list",
+        "email_profiles_create",
+        "email_profiles_get",
+        "email_profiles_update",
+        "email_profiles_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "email-profiles-shared-foreign",
+      "test": "email_profiles::access_rules",
+      "operations": [
+        "email_profiles_list",
+        "email_profiles_get",
+        "email_profiles_update",
+        "email_profiles_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "email-profiles-bad-identities",
+      "test": "email_profiles::access_rules",
+      "operations": [
+        "email_profiles_get",
+        "email_profiles_update",
+        "email_profiles_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "email-templates-shared-access",
+      "test": "email_templates::access_rules",
+      "operations": [
+        "email_templates_list",
+        "email_templates_create",
+        "email_templates_get",
+        "email_templates_update",
+        "email_templates_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "email-templates-shared-foreign",
+      "test": "email_templates::access_rules",
+      "operations": [
+        "email_templates_list",
+        "email_templates_get",
+        "email_templates_update",
+        "email_templates_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "email-templates-bad-identities",
+      "test": "email_templates::access_rules",
+      "operations": [
+        "email_templates_get",
+        "email_templates_update",
+        "email_templates_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "invoices-shared-access",
+      "test": "invoices::access_rules",
+      "operations": [
+        "invoices_list",
+        "invoices_create",
+        "invoices_get",
+        "invoices_update",
+        "invoices_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "invoices-shared-foreign",
+      "test": "invoices::access_rules",
+      "operations": [
+        "invoices_list",
+        "invoices_get",
+        "invoices_update",
+        "invoices_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "invoices-bad-identities",
+      "test": "invoices::access_rules",
+      "operations": [
+        "invoices_get",
+        "invoices_update",
+        "invoices_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "pdf-templates-shared-access",
+      "test": "pdf_templates::access_rules",
+      "operations": [
+        "pdf_templates_list",
+        "pdf_templates_create",
+        "pdf_templates_get",
+        "pdf_templates_update",
+        "pdf_templates_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "pdf-templates-shared-foreign",
+      "test": "pdf_templates::access_rules",
+      "operations": [
+        "pdf_templates_list",
+        "pdf_templates_get",
+        "pdf_templates_update",
+        "pdf_templates_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "special-offers-shared-access",
+      "test": "special_offers::access",
+      "operations": [
+        "special_offers_list_all",
+        "special_offers_create_all",
+        "special_offers_get_all",
+        "special_offers_update_all",
+        "special_offers_delete_all"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "assert_member_forbidden(&id)"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Reviewed concrete resource base and five-route permission helper. Active permissionless member gets403 on each CRUD route before body validation; operation/status must be observed inside this passing test. Does not prove secure assistant handoff."
+    },
+    {
+      "id": "special-offers-shared-foreign",
+      "test": "special_offers::access",
+      "operations": [
+        "special_offers_list_all",
+        "special_offers_get_all",
+        "special_offers_update_all",
+        "special_offers_delete_all"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "assert_foreign_404(&id"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Reviewed second owner/workspace helper: outsider list404, foreign row through own workspace404, no list leak, original survives. Collection create deliberately excluded."
+    },
+    {
+      "id": "special-offers-bad-identities",
+      "test": "special_offers::access",
+      "operations": [
+        "special_offers_get_all",
+        "special_offers_update_all",
+        "special_offers_delete_all"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "assert_bad_ids_404("
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "for id in [\"nope\", \"123\", unknown, deleted]"
+        }
+      ],
+      "review": "Native malformed/unknown/deleted row identifiers are all404; helper checks GET/POST/DELETE. This is route-specific native validation, not a generic fabricated422."
+    },
+    {
+      "id": "farm-household-four-eyes",
+      "test": "farm_records::a_household_needs_a_second_pair_of_eyes",
+      "operations": [
+        "farm_records_households_verify"
+      ],
+      "gates": {
+        "four_eyes": [
+          422
+        ],
+        "validation": [
+          422
+        ],
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"a household must be verified by someone other than the officer who registered it\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"a second staff member verifies the household\""
+        }
+      ],
+      "review": "Registrar is refused422; separate ops verifies same household200. Person registrar is explicitly allowed and not generalized into this gate."
+    },
+    {
+      "id": "farm-farm-verification",
+      "test": "farm_records::verification_stamps_the_verifier_and_is_one_way",
+      "operations": [
+        "farm_records_farms_verify"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403,
+          404
+        ],
+        "validation": [
+          422
+        ],
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"a farmer cannot verify\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(p[\"verification\"], \"verified\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(res[\"message\"], \"record is not awaiting verification\");"
+        }
+      ],
+      "review": "Farmer403, other village404, correct officer200 with exact provenance/verifier identity; second verify422 and unknown404."
+    },
+    {
+      "id": "farm-own-household-reads",
+      "test": "farm_records::a_farmer_reads_her_own_farm_and_household_only",
+      "operations": [
+        "farm_records_farms_list",
+        "farm_records_households_list",
+        "farm_records_persons_list",
+        "farm_records_plots_list",
+        "farm_records_crop_cycles_list"
+      ],
+      "gates": {
+        "farm_role": [
+          200
+        ],
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "vec![c.neema.farm.clone()]"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(f.list(\"/crop-cycles\", &neema).await[\"meta\"][\"total\"], 2);"
+        }
+      ],
+      "review": "Farmer lists exactly own farm, household, household persons/plots and two cycles; actual returned IDs checked, not only status."
+    },
+    {
+      "id": "farm-village-scope",
+      "test": "farm_records::officers_read_their_village_only",
+      "operations": [
+        "farm_records_persons_list",
+        "farm_records_farms_list",
+        "farm_records_persons_get",
+        "farm_records_households_get",
+        "farm_records_farms_get",
+        "farm_records_plots_get",
+        "farm_records_crop_cycles_get",
+        "farm_records_harvest_reports_list"
+      ],
+      "gates": {
+        "farm_role": [
+          200,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(mga[\"meta\"][\"total\"], 0, \"no Mgama persons\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{tail}\");"
+        }
+      ],
+      "review": "Ilundo/Mgama staff see only assigned village; ops sees all. Each explicit foreign-village detail request404. List200 proves filtered scope through exact IDs/count assertions."
+    },
+    {
+      "id": "farm-sensitive-fields",
+      "test": "farm_records::phone_and_gps_are_for_village_staff_only",
+      "operations": [
+        "farm_records_persons_list",
+        "farm_records_farms_list",
+        "farm_records_plots_list"
+      ],
+      "gates": {
+        "farm_role": [
+          200
+        ],
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert!(row[k].is_null(), \"{tail}.{k} leaked to a farmer: {row}\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": ".all(|p| p[\"phone\"].is_string())"
+        }
+      ],
+      "review": "Farmer phone/GPS fields null, assigned officer sees typed phone/GPS; actual privacy projection asserted for each list."
+    },
+    {
+      "id": "farm-payout-four-eyes",
+      "test": "farm_payouts::whoever_registered_verified_or_belongs_to_the_household_cannot_pay",
+      "operations": [
+        "farm_payouts_create"
+      ],
+      "gates": {
+        "four_eyes": [
+          403
+        ],
+        "authorization": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"you registered this household, so another staff member must pay this farmer\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"you verified this household, so another staff member must pay this farmer\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(res[\"message\"], \"you cannot pay your own household\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(balance(&d).await, 1_000_000);"
+        }
+      ],
+      "review": "Registrar, household verifier and household member each refused403; balance unchanged after all requests."
+    },
+    {
+      "id": "farm-payout-exact-once",
+      "test": "farm_payouts::an_officer_pays_from_the_balance_and_a_retry_pays_once",
+      "operations": [
+        "farm_payouts_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ],
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(res[\"data\"][\"amount\"][\"minor\"], 300_000);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(res[\"data\"][\"amount\"][\"currency\"], \"TZS\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(balance(&d).await, 700_000, \"paid once\");"
+        }
+      ],
+      "review": "Exact300000TZS debit, actor identity, remaining700000; same client_ref replays identical result, changed amount409 without another debit."
+    },
+    {
+      "id": "farm-payout-limits",
+      "test": "farm_payouts::officers_pay_up_to_the_workspace_limit_ops_above_it",
+      "operations": [
+        "farm_payouts_create"
+      ],
+      "gates": {
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"this payout is above the officer limit: ops or admin must pay it\""
+        }
+      ],
+      "review": "Officer allowed at200000 limit, refused403 at200001; independent ops allowed same above-limit amount201."
+    },
+    {
+      "id": "farm-payout-foreign",
+      "test": "farm_payouts::only_staff_of_the_village_pay_and_nothing_crosses_workspaces",
+      "operations": [
+        "farm_payouts_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ],
+        "farm_role": [
+          403
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"our farmer from their workspace\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"a farmer pays nobody\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert!(res[\"errors\"][\"currency_id\"].is_array());"
+        }
+      ],
+      "review": "Actual second Farm workspace cannot pay source farmer404; wrong village404, farmer403; foreigncurrency422 with field error."
+    },
+    {
+      "id": "farm-payout-balance-and-attestation",
+      "test": "farm_payouts::never_more_than_the_balance_and_never_from_a_negative_one",
+      "operations": [
+        "farm_payouts_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"The amount must not be greater than the balance of 1000000.\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "(\"name_confirmed\", json!(false))"
+        }
+      ],
+      "review": "Overdraw/negative balance, zero amount, unsupportedID and missing name attestation422; field errors asserted. Native secure handoff remains separate."
+    },
+    {
+      "id": "farm-voucher-own-household",
+      "test": "farm_vouchers::a_household_member_never_redeems_their_own_voucher",
+      "operations": [
+        "farm_vouchers_redeem"
+      ],
+      "gates": {
+        "four_eyes": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "\"you cannot redeem a voucher for your own household\""
+        }
+      ],
+      "review": "Redeemer linked to recipient household is refused422 with exact reason; normal API proof does not substitute for realUI attestation evidence."
+    },
+    {
+      "id": "farm-supply-village-reader",
+      "test": "farm_supply::officers_read_their_villages_farmers_read_nothing",
+      "operations": [
+        "farm_supply_list",
+        "farm_supply_get"
+      ],
+      "gates": {
+        "farm_role": [
+          200,
+          403,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(list[\"data\"].as_array().unwrap().len(), 1);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(list[\"data\"], json!([]));"
+        },
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        }
+      ],
+      "review": "Assigned village list contains exactly its batch; other village list empty/detail404; farmerdetail403. Per-operation observations constrain which statuses apply."
+    },
+    {
+      "id": "farm-supply-append-only",
+      "test": "farm_supply::batches_and_shares_are_append_only",
+      "operations": [
+        "farm_supply_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert!(err.is_err(), \"{sql} must be refused\");"
+        }
+      ],
+      "review": "Created batch201 then real Postgres rejects UPDATE/DELETE of both batch and share rows; preserves append-only records."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/products.rs": "4139cce3b59e69eb20b185a47d74c93efa096522b28f320f1caf1a9842f0d07b",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502",
+    "apps/api/tests/api/currencies.rs": "3125ce1caf10270a6ad9dedae87893afd07834ba333bf7792195cb893f4dad1c",
+    "apps/api/tests/api/app_keys.rs": "69b1eec2a21267a5dc15e3f4a44896e874558900ff262569883dde24c0b077e0",
+    "apps/api/tests/api/orders.rs": "2e77c1be91b5ac9123dce59e58cf9eb1395cc2ce32d66703eb4ab7ecc06a3ab7",
+    "apps/api/tests/api/farm_supply.rs": "f81c5cb189fc2f29d076d3fcc726a1225c5e983af6d0b8ec6a4b56dc0f2363a8",
+    "apps/api/tests/api/farm_records.rs": "19d715ea32a98a5e9a3552d913d6a566a54d55340d179f2550113810f39f16f8",
+    "apps/api/tests/api/product_brands.rs": "ec22c3fc8250349dd3c7f43a98959eef57e123147d3c26f2e679c29fa081725a",
+    "apps/api/tests/api/custom_statuses.rs": "c285a2a1eb594b9148c428657012a628267fa043ce1de135c5fda68c7cff6d7e",
+    "apps/api/tests/api/custom_types.rs": "555272c65dfd02eb6475558d2470964fab17d1d42627293a4462544dec9e0069",
+    "apps/api/tests/api/sales_groups.rs": "0d328135f8ec21d4a502e6c0296f621faec93f1f9952258d1dfa6a63b127328d",
+    "apps/api/tests/api/shipment_methods.rs": "430e29abf920e82286c075a0e69fdb15b86af06a329b5ccdf53e6593c2afcb2b",
+    "apps/api/tests/api/hourly_rates.rs": "f9f30d5435d8502dd4c7aa5d5392fbfacf96b3121ec929a61ddc73896658e70e",
+    "apps/api/tests/api/vat_groups.rs": "8e3be712a3a81c0f6e114be30886db06ab98fcd4cc01c4c5b90e2739b451e3e0",
+    "apps/api/tests/api/price_corrections.rs": "b2c6bcc58699f727177c53779e19f98526b26522a5dbc0063a0263f2d4af5873",
+    "apps/api/tests/api/discounts.rs": "50fd46a6b93e50c4d667a86a13d5d8805c257ef27562b3efca8bac753a765f42",
+    "apps/api/tests/api/warehouses.rs": "dee907d2a85bed51524bb5cf4f0849c7be74595fb2a789515fa9a4272aa3f0b8",
+    "apps/api/tests/api/email_profiles.rs": "a7f139939d3763b0e02a96a5227590800aefea0f382be983263cbe404c0179d2",
+    "apps/api/tests/api/email_templates.rs": "8e760ab9bbd1963215ad8036db61f0b969fc9599e29e4465351e92140f4bffcb",
+    "apps/api/tests/api/invoices.rs": "3f163f6e6e6714e08bbd87bb37740a3c80fd7365ad66d498e6fec297d0f2249e",
+    "apps/api/tests/api/pdf_templates.rs": "2d663a93d3a9b80f967bf3054bc1ca696c169cf1d543547b3c0734f67eefa5f3",
+    "apps/api/tests/api/special_offers.rs": "b32a99fd13301f3a68bc2c8419ed9d5bb7332baa2caf836ebd990188cb6c1106",
+    "apps/api/tests/api/farm_payouts.rs": "f65e835bef79bcb734b94f34a3688f94e1d7ce8e25587d62cfd5817263379029",
+    "apps/api/tests/api/farm_vouchers.rs": "75e37a0d633d99a687e6dc52e3d0a829e7ddad3056ec369c649586aa6470aa07"
+  }
+}

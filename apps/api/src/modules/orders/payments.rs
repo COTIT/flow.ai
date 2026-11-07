@@ -19,7 +19,14 @@ use crate::{
         repo::{self as jobs, Claimed, NewJob},
         runner::Step,
     },
-    modules::orders::{checkout, dto::OrderAction, repo as orders, service, trail},
+    modules::{
+        assistant::{preconditions, repo as assistant},
+        orders::{
+            checkout,
+            dto::{OrderAction, RefundCreated, RefundReceipt},
+            repo as orders, service, trail,
+        },
+    },
     money,
     payments::{self, NewRefund, Provider, Status},
 };
@@ -633,6 +640,41 @@ pub async fn net_paid(
     Ok((r.paid - r.refunded, r.provider.map(|p| (p, r.provider_id))))
 }
 
+/// Interpret only the native refund admission envelope, including idempotent replay.
+pub fn refund_receipt(answer: &Answer) -> Option<RefundReceipt> {
+    #[derive(serde::Deserialize)]
+    struct Envelope {
+        data: RefundCreated,
+    }
+    if answer.status != 201 {
+        return None;
+    }
+    let reply: Envelope = serde_json::from_slice(&answer.body).ok()?;
+    (reply.data.amount > 0 && matches!(reply.data.status.as_str(), "creating" | "pending"))
+        .then_some(RefundReceipt {
+            refund_id: reply.data.refund_id,
+            status: reply.data.status,
+        })
+}
+
+async fn bind_refund(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    user: Uuid,
+    answer: &Answer,
+) -> Result<(), AppError> {
+    if let Some(action) = preconditions::action_id() {
+        let receipt = refund_receipt(answer)
+            .ok_or_else(|| AppError::Internal("invalid native refund admission".into()))?;
+        if assistant::queue_refund(conn, workspace, user, action, receipt.refund_id).await? != 1 {
+            return Err(AppError::Conflict(
+                "Assistant refund claim is no longer available.",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// POST /orders/{order}/refunds: refund part of what was paid (`amount` minor units, at most
 /// paid − refunds not failed). The refund row commits first; the provider call follows and a
 /// failure is left to the sweep. 201 `{data:{refund_id, amount, status}}`.
@@ -649,11 +691,18 @@ pub async fn refund(
     if let Some(a) =
         idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
     {
+        bind_refund(&mut tx, workspace_id, user_id, &a).await?;
+        tx.commit().await?;
         return Ok(a);
     }
     let o = orders::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    if preconditions::expects("order") {
+        let lines = orders::lines(&mut *tx, workspace_id, &[id]).await?;
+        let facts = service::review_locked(&mut tx, workspace_id, &o, &lines).await?;
+        preconditions::check_locked(workspace_id, "order", &facts)?;
+    }
     let paid = paid_totals(&mut *tx, workspace_id, &[o.id]).await?;
     let paid = paid.get(&o.id).copied().unwrap_or_default();
     service::check(OrderAction::Refund, &o, &[], paid)?;
@@ -712,6 +761,7 @@ pub async fn refund(
         "data": { "refund_id": refund_id, "amount": amount, "status": "creating" }
     }));
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
+    bind_refund(&mut tx, workspace_id, user_id, &answer).await?;
     tx.commit().await?;
     if let Some(p) = state.payments.as_ref().filter(|p| p.name() == pay.provider) {
         refund_at_provider(
@@ -726,4 +776,34 @@ pub async fn refund(
         .await?;
     }
     Ok(answer)
+}
+
+#[cfg(test)]
+mod refund_receipt_tests {
+    use super::*;
+
+    #[test]
+    fn only_valid_native_refund_admission_is_projected() {
+        let id = Uuid::now_v7();
+        for status in ["creating", "pending"] {
+            let answer =
+                Answer::created(&json!({"data":{"refund_id":id,"amount":1250,"status":status}}));
+            let receipt = refund_receipt(&answer).unwrap();
+            assert_eq!(receipt.refund_id, id);
+            assert_eq!(receipt.status, status);
+            assert_eq!(
+                serde_json::to_value(receipt).unwrap(),
+                json!({"refund_id":id,"status":status})
+            );
+        }
+        for body in [
+            json!({}),
+            json!({"data":{"refund_id":id,"amount":0,"status":"creating"}}),
+            json!({"data":{"refund_id":"bad","amount":1250,"status":"creating"}}),
+            json!({"data":{"refund_id":id,"amount":1250,"status":"refunded"}}),
+        ] {
+            assert!(refund_receipt(&Answer::created(&body)).is_none());
+        }
+        assert!(refund_receipt(&Answer::ok()).is_none());
+    }
 }

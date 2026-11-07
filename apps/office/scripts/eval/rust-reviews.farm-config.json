@@ -1,0 +1,891 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "farmcfg-village-create",
+      "test": "farm_tenancy::ops_creates_a_village_and_a_retry_replays",
+      "operations": [
+        "farm_villages_create"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(again[\"data\"], res[\"data\"]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual native create exact clientid/normalized latitude/default language; repeat replays same resource and direct DB count1."
+    },
+    {
+      "id": "farmcfg-village-create-role",
+      "test": "farm_tenancy::officers_and_farmers_cannot_create_villages",
+      "operations": [
+        "farm_villages_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "for token in [&f.officer_ilu, &neema]"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Village officer and farmer cannot create village403."
+    },
+    {
+      "id": "farmcfg-village-create-tenant",
+      "test": "farm_tenancy::ops_cannot_create_a_village_in_another_workspace",
+      "operations": [
+        "farm_villages_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{other_ws}/farm/villages\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual ops bearer targeting second workspace villagecreate404."
+    },
+    {
+      "id": "farmcfg-village-create-error",
+      "test": "farm_tenancy::a_duplicate_village_code_is_refused",
+      "operations": [
+        "farm_villages_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert!(res[\"errors\"][\"code\"].is_array(), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Existing actual ILUNDO code duplicate422."
+    },
+    {
+      "id": "farmcfg-village-update",
+      "test": "farm_tenancy::ops_renames_a_village_officers_cannot",
+      "operations": [
+        "farm_villages_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(res[\"data\"][\"code\"], \"ILUNDO\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Village officer PATCH403; ops renames exact Ilundo B with original ILUNDO code preserved."
+    },
+    {
+      "id": "farmcfg-village-read-guards",
+      "test": "farm_tenancy::outsiders_get_404_and_anonymous_401",
+      "operations": [
+        "farm_villages_list"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "\"/v1/workspace/not-a-uuid/farm/villages\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual outsider404, absent bearer401 and malformed workspace404."
+    },
+    {
+      "id": "farmcfg-capacity-state",
+      "test": "farm_energy::ops_records_a_new_capacity_and_the_old_one_is_kept",
+      "operations": [
+        "farm_villages_capacity_create",
+        "farm_villages_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_energy.rs",
+          "contains": "vec![(\"500.00\".to_owned(), false), (\"600.00\".to_owned(), true)]"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual capacity600/nameplate update keeps old500inactive and new600active in independent DB query; native village list exact id capacity600."
+    },
+    {
+      "id": "farmcfg-capacity-role",
+      "test": "farm_energy::officers_and_farmers_cannot_add_a_capacity_row",
+      "operations": [
+        "farm_villages_capacity_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_energy.rs",
+          "contains": "assert_eq!(capacity_rows(&pool, &f.ilundo).await.len(), 1);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Officer/farmer capacitywrite403 and independent existing rowcount1 unchanged."
+    },
+    {
+      "id": "farmcfg-capacity-tenant",
+      "test": "farm_energy::capacity_of_another_workspace_or_an_unknown_village_is_404",
+      "operations": [
+        "farm_villages_capacity_create"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_energy.rs",
+          "contains": "// The other workspace's farm admin aims at our village through their own workspace."
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Second farm workspace admin foreign village404, original ops wrongworkspace404, unknown/malformed village404, no bearer401."
+    },
+    {
+      "id": "farmcfg-membership-create",
+      "test": "farm_tenancy::a_field_officer_is_scoped_to_the_named_village",
+      "operations": [
+        "farm_memberships_create"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(m[\"user\"][\"id\"], juma.as_str());"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual grant field_officer exact village/user and nullrevocation."
+    },
+    {
+      "id": "farmcfg-membership-idempotency",
+      "test": "farm_tenancy::a_repeat_grant_adds_no_second_membership",
+      "operations": [
+        "farm_memberships_create"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(again[\"data\"][\"id\"], first[\"id\"]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Repeated grant returns original id; independent DB membership count1."
+    },
+    {
+      "id": "farmcfg-membership-list",
+      "test": "farm_tenancy::officers_list_their_own_memberships_managers_list_all",
+      "operations": [
+        "farm_memberships_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(ids(&all).len(), 4);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual assigned officer sees own1, ops sees all4 and exact four distinct ids; helper pins define real membership roles."
+    },
+    {
+      "id": "farmcfg-membership-revoke",
+      "test": "farm_tenancy::revoked_access_ends_on_the_next_request",
+      "operations": [
+        "farm_memberships_revoke"
+      ],
+      "gates": {
+        "result": [
+          204
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(status, StatusCode::NO_CONTENT);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native revoke exact officer membership then independent officer read contains zero live memberships on next request."
+    },
+    {
+      "id": "farmcfg-membership-revoke-role",
+      "test": "farm_tenancy::ops_cannot_touch_admin_memberships",
+      "operations": [
+        "farm_memberships_revoke"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Ops cannot revoke existing admin membership403; unsupported PATCH405 does not establish revoke result."
+    },
+    {
+      "id": "farmcfg-login-issued",
+      "test": "farm_logins::an_officer_issues_a_first_login_from_the_registered_phone",
+      "operations": [
+        "farm_logins_issue"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_logins.rs",
+          "contains": "assert!(!stored.contains(&temp(&login)), \"only the hash is stored\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact normalized phone/initial issue, real issuer/village farmer role and must-change flag verified directly in DB; temporary secret hash excludes plaintext. Secure UI proof remains separate; no literal secret in audit evidence."
+    },
+    {
+      "id": "farmcfg-login-errors",
+      "test": "farm_logins::issue_refusals",
+      "operations": [
+        "farm_logins_issue"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_logins.rs",
+          "contains": "\"add a phone number before issuing a login\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual duplicate loginphone and missing phone reject422 exact business messages."
+    },
+    {
+      "id": "farmcfg-login-role",
+      "test": "farm_logins::who_may_issue_and_read_the_history",
+      "operations": [
+        "farm_logins_issue"
+      ],
+      "gates": {
+        "authorization": [
+          401,
+          403
+        ],
+        "farm_role": [
+          403,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_logins.rs",
+          "contains": "\"a Mgama officer cannot issue an Ilundo login\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer issue403, wrong-village officer404, absent bearer401."
+    },
+    {
+      "id": "farmcfg-login-history",
+      "test": "farm_logins::who_may_issue_and_read_the_history",
+      "operations": [
+        "farm_logins_history"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_logins.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"must_change_password\"], true);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual history initialkind/issuername/must-change fields; wrong-village officer404 and farmer403."
+    },
+    {
+      "id": "farmcfg-crop-read-update",
+      "test": "farm_records::crops_are_config_ops_writes_everyone_reads",
+      "operations": [
+        "farm_crops_list",
+        "farm_crops_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(res[\"data\"][\"is_active\"], false);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer native crop list exactly3; ops PATCH actual poultry inactive returnsfalse."
+    },
+    {
+      "id": "farmcfg-crop-create-role",
+      "test": "farm_records::crops_are_config_ops_writes_everyone_reads",
+      "operations": [
+        "farm_crops_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "let dup = json!({ \"code\": \"MAIZE\", \"name_en\": \"Maize\", \"name_sw\": \"Mahindi\" });"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Village officer cannot create403; duplicate actual MAIZE code422. Positive create result remains missing here."
+    },
+    {
+      "id": "farmcfg-tower-production",
+      "test": "farm_tower::production_groups_cycles_by_crop_and_harvest_month",
+      "operations": [
+        "farm_tower_production"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tower.rs",
+          "contains": "assert_eq!(maize[\"actual_kg\"], \"3000.00\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact crop/month cycle and plot counts, cycle area1.6, expected3200, banana40trees/poultry50units; independent actualharvest adds exact3000 to production."
+    },
+    {
+      "id": "farmcfg-tower-quality",
+      "test": "farm_tower::data_quality_counts_how_complete_a_village_is",
+      "operations": [
+        "farm_tower_data_quality"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tower.rs",
+          "contains": "assert_eq!(q[\"cycles_with_estimate\"], 1);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual fixture3persons/1verified/2farms/2GPS/3cycles/1estimate, exact village id."
+    },
+    {
+      "id": "farmcfg-tower-role-tenant",
+      "test": "farm_tower::tower_reads_are_for_staff_of_the_village",
+      "operations": [
+        "farm_tower_production",
+        "farm_tower_data_quality"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403,
+          404
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tower.rs",
+          "contains": "let other = Farm::new_named(f.pool.clone(), \"else.test\", \"elsewhere\").await;"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Both native reads farmer403, wrong-village404, unknown village404 and actual second farmworkspace staff404."
+    },
+    {
+      "id": "farmcfg-tower-queue",
+      "test": "farm_tower::the_verify_queue_summary_counts_what_the_verify_lists_hold",
+      "operations": [
+        "farm_tower_verify_summary"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tower.rs",
+          "contains": "assert_eq!(s[kind], list[\"meta\"][\"total\"], \"{kind}: {s}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Summary equals six real unverified native lists for ops and each village officer; total sum exact; verified person decreases4to3 and Mgama only1."
+    },
+    {
+      "id": "farmcfg-tower-queue-tenant",
+      "test": "farm_tower::the_verify_queue_summary_of_another_workspace_is_never_ours",
+      "operations": [
+        "farm_tower_verify_summary"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "cross_workspace": [
+          200,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tower.rs",
+          "contains": "assert_eq!(res[\"data\"][\"total\"], 0, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Second farm workspace own summary zero, same bearer original workspace404, absent bearer401."
+    },
+    {
+      "id": "farmcfg-loan-state",
+      "test": "farm_loans::ops_adds_a_loan_listing_and_every_member_reads_it",
+      "operations": [
+        "farm_loans_create",
+        "farm_loans_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_loans.rs",
+          "contains": "assert_eq!(l[\"indicative_max\"][\"minor\"], 50_000_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual INPUTS listing min5000000/max50000000TZS/active; farmer and officer independent active list1. No loan issuance, repayment or financial transaction modeled."
+    },
+    {
+      "id": "farmcfg-loan-errors",
+      "test": "farm_loans::a_loan_range_cannot_run_backwards_or_from_zero",
+      "operations": [
+        "farm_loans_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_loans.rs",
+          "contains": "res[\"errors\"][\"indicative_min_minor\"].is_array()"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Reversed min/max and zero minimum422 keyed errors."
+    },
+    {
+      "id": "farmcfg-loan-role",
+      "test": "farm_loans::officers_and_farmers_cannot_add_a_loan_listing",
+      "operations": [
+        "farm_loans_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_loans.rs",
+          "contains": "for token in [&f.officer_ilu, &neema]"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual officer and farmer cannot add loan listing403."
+    },
+    {
+      "id": "farmcfg-bug-create",
+      "test": "farm_bug_reports::a_farmer_files_a_report_under_their_own_name",
+      "operations": [
+        "farm_bug_reports_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_bug_reports.rs",
+          "contains": "assert_eq!(store.read(&key).unwrap().0, PNG);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Real native multipart report writes actual reporter/open status/ref and own reporter folder; MemoryStore contains exact PNG bytes. Controlled storage fake, no external upload proof."
+    },
+    {
+      "id": "farmcfg-bug-read",
+      "test": "farm_bug_reports::only_farm_admin_reads_reports_and_their_images",
+      "operations": [
+        "farm_bug_reports_get",
+        "farm_bug_reports_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_bug_reports.rs",
+          "contains": "assert_eq!(r[\"description\"], \"The save button does nothing\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Only admin native list1/detail exact description/open/reporter/action array and photo URL; farmer/officer/ops403. MemoryStore signed image remains fake."
+    },
+    {
+      "id": "farmcfg-bug-list-auth",
+      "test": "farm_bug_reports::only_farm_admin_reads_reports_and_their_images",
+      "operations": [
+        "farm_bug_reports_list"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_bug_reports.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual reportlist without bearer401."
+    },
+    {
+      "id": "farmcfg-document-state",
+      "test": "farm_documents::an_officer_files_a_title_document_and_reads_it_back",
+      "operations": [
+        "farm_documents_create",
+        "farm_documents_list",
+        "farm_documents_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "assert_eq!(store.read(&key).unwrap().0, PDF);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native multipart exactPDF MIME/basename/size/real uploader and own plot folder; independent list1/detail signed key and positive TTL<=15min. Controlled MemoryStore, not live S3."
+    },
+    {
+      "id": "farmcfg-document-role",
+      "test": "farm_documents::only_staff_of_the_village_see_or_file_documents",
+      "operations": [
+        "farm_documents_create",
+        "farm_documents_get",
+        "farm_documents_list"
+      ],
+      "gates": {
+        "farm_role": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "\"no upload from outside the village staff\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Wrong-village officer and linked farmer native list/detail/upload404; ops sees document1. Native policy hides existence rather than403."
+    },
+    {
+      "id": "farmcfg-document-list-tenant",
+      "test": "farm_documents::only_staff_of_the_village_see_or_file_documents",
+      "operations": [
+        "farm_documents_list"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "let (outsider, _) = common::signup(&f.app, \"out@else.test\", \"elsewhere\").await;"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual unrelated workspace owner cannot read plot documents404; absent bearer401. Other document tenant gates remain explicit gaps."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/farm_bug_reports.rs": "8954d65e9dd24bdf9ba3b709098d32ea60d509f96188f7235df78ded8d40667b",
+    "apps/api/tests/api/farm_documents.rs": "9db18507155b094857b135aa681fb39a25cea5c73f9a13c65f98da9c109a6212",
+    "apps/api/tests/api/farm_energy.rs": "52c5bba569eb0b795be8411fd4ade0de5d26d9ae661eb8942982e8b61e5f6086",
+    "apps/api/tests/api/farm_loans.rs": "315de3337057302a918a956cd30888a3ec7b543b2263d935de51062bce8d9ef0",
+    "apps/api/tests/api/farm_logins.rs": "329ddb5245c7eb058b8ee5a327b548bba73f121960a3c39a79ae1cfb3b6ea263",
+    "apps/api/tests/api/farm_records.rs": "19d715ea32a98a5e9a3552d913d6a566a54d55340d179f2550113810f39f16f8",
+    "apps/api/tests/api/farm_tenancy.rs": "d8e1fa641e48ac4bd7b10331dde39ca63f361b51e22ba7d3c09fd5e1735df8c8",
+    "apps/api/tests/api/farm_tower.rs": "23d0105de6be3d4c6ffeef0286972906142f5043e44838135a9e59c00c438014",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea"
+  }
+}

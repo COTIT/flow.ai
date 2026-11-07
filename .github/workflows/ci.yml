@@ -198,9 +198,15 @@ jobs:
       # refuses under CI). Uses the committed openapi.json; the api job proves it fresh.
       - name: Generated API client matches openapi.json
         run: pnpm turbo run generate:check --filter=@genesy/api-client --only
+      - name: Reviewed voice catalog matches OpenAPI and authorization sources
+        run: pnpm --filter @genesy/office voice:check
+      - name: Checkpoint schema matches pinned saver
+        run: pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
       - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
       # The builds above are turbo cache hits here.
       - run: pnpm turbo run e2e
+      - name: Secure form survives development Strict Mode
+        run: pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
       - name: Upload report and traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -222,7 +228,7 @@ jobs:
     # Headless browser tests against the whole stack (packages/e2e/STACK.md): the real API (debug
     # build: fake payments), a seeded throwaway Postgres in Docker, all five apps built for it.
     # Catches what the mock-API specs in `web` can't (permissions, cross-app flows, the seed).
-    # Not an images gate (yet). Estimate: ~12 min warm, ~25 cold (STACK.md "Timings").
+    # Release images wait for this job. Estimate: ~12 min warm, ~25 cold (STACK.md "Timings").
     needs: changes
     if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
     runs-on: ubuntu-24.04
@@ -294,13 +300,14 @@ jobs:
   images:
     # Release images for the VPS, one tag set per green main commit, pulled by the deploy
     # (deploy/*/README.md "Deploy"). Never for PRs: the only jobs that can push packages.
-    # A skipped api or web (inputs unchanged) counts as green; failed or cancelled blocks.
+    # Skipped checks (inputs unchanged) count as green; failed or cancelled checks block.
     if: >-
       !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       && needs.changes.result == 'success'
       && (needs.api.result == 'success' || needs.api.result == 'skipped')
       && (needs.web.result == 'success' || needs.web.result == 'skipped')
-    needs: [changes, api, web]
+      && (needs['stack-e2e'].result == 'success' || needs['stack-e2e'].result == 'skipped')
+    needs: [changes, api, web, stack-e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:

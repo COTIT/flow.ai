@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH expired AS (SELECT b.workspace_id,b.id FROM assistant_batches b WHERE b.state IN ('completed','cancelled','expired','paused') AND b.finished_at<now()-interval '90 days' AND NOT EXISTS(SELECT 1 FROM assistant_actions a WHERE a.workspace_id=b.workspace_id AND a.batch_id=b.id) ORDER BY b.finished_at LIMIT 1000 FOR UPDATE SKIP LOCKED) DELETE FROM assistant_batches b USING expired e WHERE b.workspace_id=e.workspace_id AND b.id=e.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "d3ecb60e0599f6baba76fee68542e84a12d3204ec7a477558751190befcd45d9"
+}

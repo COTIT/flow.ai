@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions a SET state='dispatching',proposal=NULL,dispatched_at=clock_timestamp() FROM assistant_batches b WHERE a.workspace_id=$1 AND a.user_id=$2 AND a.login_id=$3 AND a.id=$4 AND a.session_id=$5 AND a.operation_id=$6 AND a.request_hash=$7 AND a.state='batch_pending' AND a.expires_at>clock_timestamp() AND a.batch_id=$9 AND b.workspace_id=a.workspace_id AND b.user_id=a.user_id AND b.login_id=a.login_id AND b.session_id=a.session_id AND b.id=a.batch_id AND a.batch_index=b.next_index AND b.state='running' AND b.expires_at>clock_timestamp() AND b.run_expires_at>clock_timestamp() AND b.run_hash=$10 AND (NOT $8 OR (a.review_facts->>'version'='1' AND a.review_facts->>'operation_id'=$6 AND a.review_facts->'facts'->>'kind' IS NOT NULL AND (coalesce(a.review_facts->'facts'->'locked','null'::jsonb)<>'null'::jsonb OR coalesce(a.review_facts->'facts'->'priced','null'::jsonb)<>'null'::jsonb))) AND EXISTS(SELECT 1 FROM assistant_sessions s WHERE s.workspace_id=$1 AND s.id=$5 AND s.user_id=$2 AND s.login_id=$3 AND s.state='active' AND s.expires_at>clock_timestamp() AND s.last_seen_at>clock_timestamp()-interval '15 minutes') AND EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=$3 AND t.user_id=$2 AND t.expires_at>clock_timestamp()) RETURNING a.review_facts AS \"facts!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "facts!",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "assistant_actions",
+            "name": "review_facts"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bytea",
+        "Bool",
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "538dec3e8a46a6ed7ef4fdaa58750e79d181636c0726e479bcabef3535779d8c"
+}

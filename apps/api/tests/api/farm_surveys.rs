@@ -705,3 +705,284 @@ async fn the_list_carries_voucher_sums_for_staff_only(pool: PgPool) {
         "the single survey carries it too"
     );
 }
+
+#[sqlx::test]
+async fn draft_edits_replace_and_remove_questions_preserve_requested_state(pool: PgPool) {
+    let (f, s) = setup(pool).await;
+    let (id, questions) = f.survey(&s.tzs, 1000, 15, true).await;
+    let tail = format!("/surveys/{id}");
+    let (status, response) = f
+        .call(
+            Method::PATCH,
+            &tail,
+            Some(json!({
+                "title_en":"Updated storage survey", "title_sw":null,
+                "description_sw":"Maelezo", "reward_minor":125_000,
+                "max_households":2, "audit_percent":0, "village_id":f.ilundo
+            })),
+            &f.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{response}");
+    let saved = f.list(&tail, &f.owner).await["data"].clone();
+    assert_eq!(saved["title_en"], "Updated storage survey");
+    assert_eq!(saved["title_sw"], Value::Null);
+    assert_eq!(saved["description_sw"], "Maelezo");
+    assert_eq!(saved["reward"]["minor"], 125_000);
+    assert_eq!(saved["reward"]["currency_id"], s.tzs);
+    assert_eq!(saved["max_households"], 2);
+    assert_eq!(saved["audit_percent"], 0);
+    assert_eq!(saved["village_id"], f.ilundo);
+    assert_eq!(saved["status"], "draft");
+    assert_eq!(saved["questions"].as_array().unwrap().len(), 2);
+
+    let replacement = json!({ "position":1, "kind":"multi_choice",
+        "prompt_en":" Choose storage ", "prompt_sw":"Chagua hifadhi", "required":false,
+        "options":[{"value":" home ","label_en":" Home ","label_sw":"Nyumbani"},
+                   {"value":"store","label_en":"Store","label_sw":"Ghala"}] });
+    let (status, response) = f
+        .call(
+            Method::PUT,
+            &format!("{tail}/questions/{}", questions[0]),
+            Some(replacement.clone()),
+            &f.owner,
+        )
+        .await;
+    assert_eq!((status, response), (StatusCode::NO_CONTENT, Value::Null));
+    let saved = f.list(&tail, &f.owner).await["data"].clone();
+    let first = saved["questions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|q| q["id"] == questions[0])
+        .unwrap();
+    assert_eq!(first["kind"], "multi_choice");
+    assert_eq!(first["prompt_en"], "Choose storage");
+    assert_eq!(first["prompt_sw"], "Chagua hifadhi");
+    assert_eq!(first["required"], false);
+    assert_eq!(
+        first["options"],
+        json!([
+            {"value":"home","label_en":"Home","label_sw":"Nyumbani"},
+            {"value":"store","label_en":"Store","label_sw":"Ghala"}
+        ])
+    );
+    assert_eq!(saved["questions"][1]["id"], questions[1]);
+    assert_eq!(saved["questions"][1]["kind"], "number");
+
+    let (status, response) = f
+        .call(
+            Method::POST,
+            &format!("{tail}/questions"),
+            Some(json!({"position":3,"kind":"text","prompt_en":"Other storage?","required":false})),
+            &f.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{response}");
+    let added = response["data"]["id"].as_str().unwrap().to_owned();
+    let saved = f.list(&tail, &f.owner).await["data"].clone();
+    assert_eq!(saved["questions"].as_array().unwrap().len(), 3);
+    assert_eq!(saved["questions"][2]["id"], added);
+    assert_eq!(saved["questions"][2]["prompt_en"], "Other storage?");
+
+    let removed = format!("{tail}/questions/{}", questions[1]);
+    let (status, response) = f.call(Method::DELETE, &removed, None, &f.owner).await;
+    assert_eq!((status, response), (StatusCode::NO_CONTENT, Value::Null));
+    let saved = f.list(&tail, &f.owner).await["data"].clone();
+    let remaining: Vec<_> = saved["questions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|q| q["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(remaining, [questions[0].as_str(), added.as_str()]);
+    assert_eq!(saved["questions"][0]["kind"], "multi_choice");
+    assert_eq!(
+        f.call(Method::DELETE, &removed, None, &f.owner).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        f.call(Method::PUT, &removed, Some(replacement), &f.owner)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[sqlx::test]
+async fn draft_edit_routes_reject_non_admin_foreign_targets_and_invalid_fields(pool: PgPool) {
+    let (f, s) = setup(pool).await;
+    let (id, questions) = f.survey(&s.tzs, 1000, 0, true).await;
+    let other = Farm::new_named(f.pool.clone(), "survey-other.test", "survey-other").await;
+    let tail = format!("/surveys/{id}");
+    let question = json!({"position":1,"kind":"text","prompt_en":"Changed"});
+    let calls = [
+        (
+            Method::PATCH,
+            tail.clone(),
+            Some(json!({"title_en":"Changed"})),
+        ),
+        (
+            Method::POST,
+            format!("{tail}/questions"),
+            Some(json!({"position":3,"kind":"text","prompt_en":"Added"})),
+        ),
+        (
+            Method::PUT,
+            format!("{tail}/questions/{}", questions[0]),
+            Some(question.clone()),
+        ),
+        (
+            Method::DELETE,
+            format!("{tail}/questions/{}", questions[0]),
+            None,
+        ),
+    ];
+    for (method, path, body) in &calls {
+        let (status, response) = f.call(method.clone(), path, body.clone(), &f.ops).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{method} {path}: {response}");
+        let (status, response) = other
+            .call(method.clone(), path, body.clone(), &other.owner)
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "foreign {method} {path}: {response}"
+        );
+        let (status, _) = send(&f.app, method.clone(), &f.url(path), body.clone(), None).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {path}");
+    }
+    for (method, path, body, field) in [
+        (
+            Method::PATCH,
+            tail.clone(),
+            json!({"title_en":null}),
+            "title_en",
+        ),
+        (
+            Method::POST,
+            format!("{tail}/questions"),
+            json!({"position":0,"kind":"text","prompt_en":"Invalid"}),
+            "position",
+        ),
+        (
+            Method::PUT,
+            format!("{tail}/questions/{}", questions[0]),
+            json!({"position":1,"kind":"invented","prompt_en":"Invalid"}),
+            "kind",
+        ),
+    ] {
+        let (status, response) = f.call(method, &path, Some(body), &f.owner).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{response}");
+        assert!(response["errors"][field].is_array(), "{response}");
+    }
+    let (another, other_questions) = f.survey(&s.tzs, 1000, 0, true).await;
+    assert_ne!(another, id);
+    for method in [Method::PUT, Method::DELETE] {
+        let body = (method == Method::PUT).then(|| question.clone());
+        let (status, _) = f
+            .call(
+                method,
+                &format!("{tail}/questions/{}", other_questions[0]),
+                body,
+                &f.owner,
+            )
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "question must belong to selected survey"
+        );
+    }
+    let saved = f.list(&tail, &f.owner).await["data"].clone();
+    assert_eq!(saved["title_en"], "Maize storage");
+    assert_eq!(saved["questions"].as_array().unwrap().len(), 2);
+    assert_eq!(saved["questions"][0]["id"], questions[0]);
+    assert_eq!(saved["questions"][0]["kind"], "single_choice");
+}
+
+#[sqlx::test]
+async fn voucher_list_returns_only_selected_survey_without_codes_and_enforces_scope(pool: PgPool) {
+    let (f, s) = setup(pool).await;
+    let (id, questions) = f.survey(&s.tzs, 500_000, 0, false).await;
+    let mut expected = Vec::new();
+    for token in [&s.neema, &s.asha] {
+        let (status, response) = f
+            .answer(
+                &id,
+                json!({questions[0].clone():"home"}),
+                &client_ref(),
+                token,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{response}");
+        expected.push(response["data"]["voucher_id"].as_str().unwrap().to_owned());
+    }
+    let (another, another_questions) = f.survey(&s.tzs, 1000, 0, false).await;
+    let (status, response) = f
+        .answer(
+            &another,
+            json!({another_questions[0].clone():"home"}),
+            &client_ref(),
+            &s.neema,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{response}");
+    let unrelated = response["data"]["voucher_id"].clone();
+    let tail = format!("/surveys/{id}/vouchers");
+    let listed = f.list(&tail, &f.ops).await;
+    assert_eq!(listed["meta"]["total"], 2);
+    let rows = listed["data"].as_array().unwrap();
+    let mut got: Vec<_> = rows
+        .iter()
+        .map(|v| v["voucher_id"].as_str().unwrap().to_owned())
+        .collect();
+    got.sort();
+    expected.sort();
+    assert_eq!(got, expected);
+    for row in rows {
+        assert_ne!(row["voucher_id"], unrelated);
+        assert_eq!(row["amount"]["minor"], 500_000);
+        assert_eq!(row["amount"]["currency"], "TZS");
+        assert_eq!(row["status"], "issued");
+        assert_eq!(row["audit_required"], false);
+        assert_eq!(row["expired"], false);
+        assert!(row.get("code").is_none() && row.get("code_hash").is_none());
+        assert!(
+            row["respondent_name"]
+                .as_str()
+                .is_some_and(|n| !n.is_empty())
+        );
+    }
+    let first = f.list(&format!("{tail}?page_size=1"), &f.owner).await;
+    let second = f
+        .list(&format!("{tail}?page_size=1&page=2"), &f.owner)
+        .await;
+    assert_eq!(first["meta"]["total"], 2);
+    assert_eq!(second["meta"]["total"], 2);
+    assert_ne!(
+        first["data"][0]["voucher_id"],
+        second["data"][0]["voucher_id"]
+    );
+    for token in [&s.neema, &f.officer_ilu] {
+        assert_eq!(
+            f.call(Method::GET, &tail, None, token).await.0,
+            StatusCode::FORBIDDEN
+        );
+    }
+    let other = Farm::new_named(f.pool.clone(), "voucher-other.test", "voucher-other").await;
+    assert_eq!(
+        other.call(Method::GET, &tail, None, &other.owner).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        f.call(Method::GET, "/surveys/nope/vouchers", None, &f.ops)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        send(&f.app, Method::GET, &f.url(&tail), None, None).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+}

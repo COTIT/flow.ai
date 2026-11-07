@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM assistant_sessions WHERE id=$1 AND state='cleaned') AS \"cleaned!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cleaned!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "779136d96474856fc46f2ab4c1789ddf0baa8b456c4555dd2a425322cca50dec"
+}

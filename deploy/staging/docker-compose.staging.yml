@@ -27,6 +27,7 @@ x-edge-labels: &edge-labels
   traefik.http.middlewares.genesy-staging-allow.ipallowlist.sourcerange: ${STAGING_IP_ALLOWLIST:-0.0.0.0/0,::/0}
 
 x-api-env: &api-env
+  ASSISTANT_ENABLED: "false"
   DATABASE_URL_FILE: /run/secrets/database_url
   CREDENTIALS_KEY_FILE: /run/secrets/credentials_key
   BIND_ADDR: 0.0.0.0:8080
@@ -143,6 +144,7 @@ services:
         { APP: office, NEXT_PUBLIC_SHOP_URL: "https://staging-shop.genesy.app" }
     image: ghcr.io/cotit/genesy-office:${GENESY_REF:-local}-staging
     environment:
+      ASSISTANT_ENABLED: "false"
       API_URL: http://api:8080/v1
       FILES_ORIGIN: ${FILES_ORIGIN:-}
     networks: [internal, edge]

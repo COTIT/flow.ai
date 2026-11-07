@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',b.id,'session_id',b.session_id,'protocol_version',b.protocol_version,'fingerprint',encode(b.fingerprint,'hex'),'state',CASE WHEN b.state IN ('proposed','approved','running') AND b.expires_at<=clock_timestamp() THEN 'expired' WHEN b.state='running' AND b.run_expires_at<=clock_timestamp() THEN 'paused' ELSE b.state END,'reason',CASE WHEN b.expires_at<=clock_timestamp() AND b.state IN ('proposed','approved','running') THEN 'expired' WHEN b.state='running' AND b.run_expires_at<=clock_timestamp() THEN 'interrupted' ELSE b.reason END,'next_index',b.next_index,'action_count',b.action_count,'expires_at',b.expires_at,'started_at',b.started_at,'recoverable',b.state IN ('proposed','approved') AND b.started_at IS NULL AND b.expires_at>clock_timestamp() AND NOT EXISTS(SELECT 1 FROM assistant_actions a WHERE a.workspace_id=b.workspace_id AND a.batch_id=b.id AND (a.proposal IS NULL OR coalesce(a.proposal->>'content_type','') LIKE 'multipart/%')),'steps','[]'::jsonb) AS \"batch!\" FROM assistant_batches b WHERE b.workspace_id=$1 AND b.user_id=$2 AND b.login_id=$3 AND b.session_id=$4 ORDER BY b.created_at DESC,b.id DESC LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "batch!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b787defea33e5e2843a88399a4c3ee48b67bac07069d602a0a14e6c48ce6b963"
+}

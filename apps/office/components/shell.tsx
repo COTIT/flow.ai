@@ -15,6 +15,7 @@ import {
   Layers,
   LogOut,
   Menu,
+  Mic,
   Package,
   Tags,
   Search,
@@ -55,6 +56,7 @@ import { Sheet, SheetContent, SheetTitle } from "@genesy/ui/components/sheet"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 
+import { VoiceControls } from "@/components/voice/controls"
 import { rightFor, useCan, useRights } from "@/lib/can"
 
 type Item = {
@@ -71,32 +73,94 @@ type Item = {
 
 const items: Item[] = [
   { href: "/", match: "/", label: "nav.overview", icon: LayoutGrid },
-  { href: "/products", match: "/products", label: "nav.products", icon: Package, group: "shell.sell" },
-  { href: "/products/categories", match: "/products/categories", label: "nav.categories", icon: Tags },
+  { href: "/voice", match: "/voice", label: "nav.voice", icon: Mic },
+  {
+    href: "/products",
+    match: "/products",
+    label: "nav.products",
+    icon: Package,
+    group: "shell.sell",
+  },
+  {
+    href: "/products/categories",
+    match: "/products/categories",
+    label: "nav.categories",
+    icon: Tags,
+  },
   { href: "/stock", match: "/stock", label: "nav.stock", icon: Archive },
-  { href: "/orders", match: "/orders", label: "nav.orders", icon: ShoppingBag, count: "orders" },
-  { href: "/invoices", match: "/invoices", label: "nav.invoices", icon: FileText },
-  { href: "/lots", match: "/lots", label: "nav.lots", icon: Layers, group: "shell.trace" },
-  { href: "/supply/links", match: "/supply", label: "nav.supply", icon: Truck, count: "supply" },
-  { href: "/till/registers", match: "/till", label: "nav.till", icon: Calculator, group: "shell.store" },
-  { href: "/settings/app-keys", match: "/settings/app-keys", label: "nav.appKeys", icon: KeyRound, group: "shell.settings" },
-  { href: "/settings/webhooks", match: "/settings/webhooks", label: "nav.webhooks", icon: Zap },
-  { href: "/settings/invites", match: "/settings/invites", label: "nav.invites", icon: UserPlus },
+  {
+    href: "/orders",
+    match: "/orders",
+    label: "nav.orders",
+    icon: ShoppingBag,
+    count: "orders",
+  },
+  {
+    href: "/invoices",
+    match: "/invoices",
+    label: "nav.invoices",
+    icon: FileText,
+  },
+  {
+    href: "/lots",
+    match: "/lots",
+    label: "nav.lots",
+    icon: Layers,
+    group: "shell.trace",
+  },
+  {
+    href: "/supply/links",
+    match: "/supply",
+    label: "nav.supply",
+    icon: Truck,
+    count: "supply",
+  },
+  {
+    href: "/till/registers",
+    match: "/till",
+    label: "nav.till",
+    icon: Calculator,
+    group: "shell.store",
+  },
+  {
+    href: "/settings/app-keys",
+    match: "/settings/app-keys",
+    label: "nav.appKeys",
+    icon: KeyRound,
+    group: "shell.settings",
+  },
+  {
+    href: "/settings/webhooks",
+    match: "/settings/webhooks",
+    label: "nav.webhooks",
+    icon: Zap,
+  },
+  {
+    href: "/settings/invites",
+    match: "/settings/invites",
+    label: "nav.invites",
+    icon: UserPlus,
+  },
 ]
 
 // Each entry with the heading of the section it sits in (the last group named at or above it).
 const sectioned = items.map((item, i) => ({
   ...item,
-  group: items.slice(0, i + 1).reverse().find((x) => x.group)?.group,
+  group: items
+    .slice(0, i + 1)
+    .reverse()
+    .find((x) => x.group)?.group,
 }))
 
 // Last match wins: /products/categories is Categories, not Products.
 const current = (pathname: string) =>
-  [...items].reverse().find(
-    (i) =>
-      pathname === i.match ||
-      (i.match !== "/" && pathname.startsWith(`${i.match}/`))
-  )
+  [...items]
+    .reverse()
+    .find(
+      (i) =>
+        pathname === i.match ||
+        (i.match !== "/" && pathname.startsWith(`${i.match}/`))
+    )
 
 /** Initials on the gold disc (sidebar foot, phone bar). */
 export function Avatar({ initials }: { initials?: string }) {
@@ -191,7 +255,9 @@ function UserTile() {
       <Avatar initials={user?.initials} />
       <div className="min-w-0 flex-1">
         {/* min-h: the lines keep their height while the name loads. */}
-        <p className="min-h-[1lh] truncate text-[13px] font-semibold">{user?.name}</p>
+        <p className="min-h-[1lh] truncate text-[13px] font-semibold">
+          {user?.name}
+        </p>
         <p className="min-h-[1lh] truncate text-xs text-muted-foreground">
           {workspace?.display_name}
         </p>
@@ -298,7 +364,7 @@ function TopBar() {
   return (
     <div
       data-topbar=""
-      className="glass-strong hidden items-center gap-3 rounded-[20px] py-2.5 pr-3 pl-[18px] md:flex"
+      className="hidden items-center gap-3 rounded-[20px] glass-strong py-2.5 pr-3 pl-[18px] md:flex"
     >
       {/* Drawn once the workspace name is known, so the page name never slides along. */}
       {/* Below xl the sidebar already marks the page, and the bar has no room for the crumb. */}
@@ -306,7 +372,11 @@ function TopBar() {
         {workspace ? (
           <>
             <span className="min-w-0 truncate">{workspace.display_name}</span>
-            <ChevronRight aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
+            <ChevronRight
+              aria-hidden="true"
+              className="size-4 shrink-0"
+              strokeWidth={1.75}
+            />
             <b className="font-semibold whitespace-nowrap text-foreground">
               {active ? t(active.label) : null}
             </b>
@@ -352,7 +422,7 @@ function MobileBar({ onMenu }: { onMenu: () => void }) {
   const user = useUsersMe().data?.data.user
   const search = useSearchAllowed()
   return (
-    <div className="glass-strong flex items-center gap-2.5 rounded-[18px] py-2 pr-2 pl-3.5 md:hidden">
+    <div className="flex items-center gap-2.5 rounded-[18px] glass-strong py-2 pr-2 pl-3.5 md:hidden">
       <Button
         variant="ghost"
         size="icon"
@@ -385,9 +455,10 @@ function MobileBar({ onMenu }: { onMenu: () => void }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations()
   const [menu, setMenu] = React.useState(false)
+  const pathname = usePathname()
   return (
     <div className="flex min-h-svh items-start gap-5 p-5 max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:p-3">
-      <aside className="glass-strong sticky top-5 hidden max-h-[calc(100svh-40px)] w-[252px] shrink-0 flex-col gap-[18px] overflow-y-auto rounded-[24px] px-3.5 py-[18px] md:flex">
+      <aside className="sticky top-5 hidden max-h-[calc(100svh-40px)] w-[252px] shrink-0 flex-col gap-[18px] overflow-y-auto rounded-[24px] glass-strong px-3.5 py-[18px] md:flex">
         <div className="px-2 pt-1 pb-1.5">
           <Logo className="h-auto w-[150px]" />
         </div>
@@ -397,6 +468,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col gap-5 max-md:gap-3">
         <MobileBar onMenu={() => setMenu(true)} />
         <TopBar />
+        <div className="rounded-2xl glass-strong px-3 py-2 empty:hidden">
+          {pathname !== "/voice" ? <VoiceControls compact /> : null}
+        </div>
         <main className="flex min-w-0 flex-col gap-5 max-md:gap-3">
           {children}
         </main>
@@ -404,7 +478,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sheet open={menu} onOpenChange={setMenu}>
         <SheetContent
           side="left"
-          className={cn("w-[288px] gap-[18px] overflow-y-auto px-3.5 py-[18px] md:hidden")}
+          className={cn(
+            "w-[288px] gap-[18px] overflow-y-auto px-3.5 py-[18px] md:hidden"
+          )}
         >
           <SheetTitle className="sr-only">{t("nav.label")}</SheetTitle>
           <div className="px-2 pt-1 pb-1.5">

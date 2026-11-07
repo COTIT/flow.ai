@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id FROM contacts p JOIN invoices i ON i.workspace_id=p.workspace_id AND i.relation_id=p.relation_id WHERE i.workspace_id=$1 AND i.id=$2 AND p.id=$3 FOR SHARE OF p",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0c7f479bc2c34f9a7144c4570fdc5bd700b471bea888383d7eff2ec486a808dd"
+}

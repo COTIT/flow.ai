@@ -1,0 +1,859 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "reference-currency-delete",
+      "test": "currencies::delete_is_soft_and_hides_the_row",
+      "operations": [
+        "currencies_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "row kept for referencing documents"
+        }
+      ],
+      "review": "Native delete followed by detail404, own list excludes exact id, real DB deleted_attrue and repeat404."
+    },
+    {
+      "id": "reference-brand-crud",
+      "test": "product_brands::brand_crud_round_trip",
+      "operations": [
+        "product_brands_create",
+        "product_brands_get",
+        "product_brands_update",
+        "product_brands_list",
+        "product_brands_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "vec![\"Bosch\", \"Makita\"]"
+        }
+      ],
+      "review": "Independent GET exact id/trimmed brand/logo/meta; null website patch preserves name; exact list/search names and post-delete onlyMakita."
+    },
+    {
+      "id": "reference-category-create-list",
+      "test": "product_brands::category_tree",
+      "operations": [
+        "product_categories_create",
+        "product_categories_get",
+        "product_categories_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "vec![grand.as_str()]"
+        }
+      ],
+      "review": "Independent GET exact childid/parentid/name/childids; native list exact tree order and root/parent filters."
+    },
+    {
+      "id": "reference-category-update",
+      "test": "product_brands::category_parent_rules",
+      "operations": [
+        "product_categories_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "Moving to root again is fine."
+        }
+      ],
+      "review": "Actual child parent null patch independently GET has nullparent; self/ancestor/unknown/foreign references rejected in samefixture."
+    },
+    {
+      "id": "reference-category-delete",
+      "test": "product_brands::category_access",
+      "operations": [
+        "product_categories_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "api.assert_bad_ids_404(&gone, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native delete exact created Gone then shared GET/update/delete404 proves state removed; separate access/tenant assertions unchanged."
+    },
+    {
+      "id": "reference-status-create",
+      "test": "custom_statuses::create_then_get_in_custom_status_resource_shape",
+      "operations": [
+        "custom_statuses_create",
+        "custom_statuses_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "a JSON bool, not Laravel's 0/1"
+        }
+      ],
+      "review": "Independent GET exact name/domainlowercase/metavalue and archivedfalse; resource keys checked additionally."
+    },
+    {
+      "id": "reference-status-list",
+      "test": "custom_statuses::list_hides_archived_and_pages_by_limit",
+      "operations": [
+        "custom_statuses_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "archived not counted"
+        }
+      ],
+      "review": "Real seeded210statuses plus archived record; exact total/page sizes and archivedid excluded, archived detail remains readable."
+    },
+    {
+      "id": "reference-status-delete",
+      "test": "custom_statuses::delete_bad_ids_and_access",
+      "operations": [
+        "custom_statuses_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "a.assert_bad_ids_404(&gone, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native deleted Gone id independently GET/update/delete404; deleted name reusable."
+    },
+    {
+      "id": "reference-type-create",
+      "test": "custom_types::create_then_get_in_custom_type_resource_shape",
+      "operations": [
+        "custom_types_create",
+        "custom_types_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "only four domains keep properties"
+        }
+      ],
+      "review": "Independent GET exact shipment/domainlowercase/meta, intentionally null unsupported-domain properties. Additional resource keys checked."
+    },
+    {
+      "id": "reference-type-update",
+      "test": "custom_types::update_keeps_domain_and_rechecks_properties",
+      "operations": [
+        "custom_types_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "assert_eq!(t[\"name\"], \"Vendor\");"
+        }
+      ],
+      "review": "Independent GET nameVendor/supplierfalse and original immutable relation domain; absent fields retained and duplicate/null invalid mutations422. Ignored domain must be excluded from assistant input."
+    },
+    {
+      "id": "reference-type-list",
+      "test": "custom_types::list_filters_by_domain_and_flags",
+      "operations": [
+        "custom_types_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "[\"Z Partner\", \"Z Customer\"]"
+        }
+      ],
+      "review": "Exact five named fixture rows filtered by domain/supplier/leave/default-work flags and query; unrelated domain flags ignored under nativepolicy."
+    },
+    {
+      "id": "reference-type-delete",
+      "test": "custom_types::delete_bad_ids_and_access",
+      "operations": [
+        "custom_types_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_types.rs",
+          "contains": "a.assert_bad_ids_404(&gone, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native deleted known Gone id independently GET/update/delete404."
+    },
+    {
+      "id": "reference-profile-create-get-delete",
+      "test": "email_profiles::create_get_list_delete",
+      "operations": [
+        "email_profiles_create",
+        "email_profiles_get",
+        "email_profiles_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "the list has no smtp"
+        }
+      ],
+      "review": "Independent GET exact id/name/sender/email/default/html/conditions and masked SMTP; real DB credentialsealed, no secret in list; native delete followed byGET404. No SMTP delivery proof; secure UI separate."
+    },
+    {
+      "id": "reference-profile-list",
+      "test": "email_profiles::list_filters",
+      "operations": [
+        "email_profiles_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "[\"NL\", \"Any\"]"
+        }
+      ],
+      "review": "Actual created profiles exact names/order; language filters return exact allowed sets."
+    },
+    {
+      "id": "reference-profile-update",
+      "test": "email_profiles::the_password_mask",
+      "operations": [
+        "email_profiles_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_profiles.rs",
+          "contains": "kept byte for byte"
+        }
+      ],
+      "review": "Native mask update independently DB same sealedbytes and GET new name; new value changes ciphertext, null clears DB+maskedGET; changedserver with oldmask422. Credentials remain synthetic and never enter evidence."
+    },
+    {
+      "id": "reference-email-template-crud",
+      "test": "email_templates::create_get_update_delete",
+      "operations": [
+        "email_templates_create",
+        "email_templates_get",
+        "email_templates_update",
+        "email_templates_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "Some(\"<p>New</p>\")"
+        }
+      ],
+      "review": "Independent GET exact normalizeddomain/name/subject/default/meta; native update bodyNew clearsconditions andpreserves subject/domain; missingbody422; delete followed byGET404."
+    },
+    {
+      "id": "reference-email-template-list",
+      "test": "email_templates::list_filters_and_pages",
+      "operations": [
+        "email_templates_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "[\"Order any\", \"Invoice EN\", \"Invoice NL\"]"
+        }
+      ],
+      "review": "Actual three templates exact newest-name order, totals and domain/language/page filters."
+    },
+    {
+      "id": "reference-price-band-crud",
+      "test": "price_corrections::crud_and_shape",
+      "operations": [
+        "price_corrections_create",
+        "price_corrections_get",
+        "price_corrections_update",
+        "price_corrections_list",
+        "price_corrections_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/price_corrections.rs",
+          "contains": "(&json!(\"0.00\"), &json!(\"0.05\"), &json!(\"100\"))"
+        }
+      ],
+      "review": "Independent GET exact decimal band values; patch clearsrounding and changesremove while retainsvalue_to; native listone, delete leavesempty; default/null money distinctions asserted."
+    },
+    {
+      "id": "reference-discount-crud",
+      "test": "discounts::discount_crud_and_shape",
+      "operations": [
+        "discounts_create",
+        "discounts_get",
+        "discounts_update",
+        "discounts_list",
+        "discounts_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_eq!(ids(&listed), vec![id.clone()]);"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Independent GET exact name/flags/code/12.5percent/dates/seasonal; update15percent dates while preservesname; exact group list id; delete independently GET/update/delete404."
+    },
+    {
+      "id": "reference-sales-create",
+      "test": "sales_groups::create_then_get_in_sales_group_resource_shape",
+      "operations": [
+        "sales_groups_create",
+        "sales_groups_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "json!(\"AB-333\"), json!(\"BA-443\")"
+        }
+      ],
+      "review": "Independent GET exact name/purchasecode/revenuecode/meta."
+    },
+    {
+      "id": "reference-sales-update",
+      "test": "sales_groups::rules_and_patch",
+      "operations": [
+        "sales_groups_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "assert_eq!(g[\"name\"], \"PRODUCT-33\");"
+        }
+      ],
+      "review": "Independent GET exact patched name/revenuecode, explicit nullpurchase and retainedmeta; required/length validation in samecase."
+    },
+    {
+      "id": "reference-sales-list",
+      "test": "sales_groups::list_pages_and_searches",
+      "operations": [
+        "sales_groups_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"name\"], \"G2\");"
+        }
+      ],
+      "review": "Real threegroups exact page2G2 and queryG1, total3."
+    },
+    {
+      "id": "reference-sales-delete",
+      "test": "sales_groups::delete_bad_ids_and_access",
+      "operations": [
+        "sales_groups_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/sales_groups.rs",
+          "contains": "a.assert_bad_ids_404(&gone, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native deleted exact Gone id independently GET/update/delete404."
+    },
+    {
+      "id": "reference-hourly-create",
+      "test": "hourly_rates::create_then_get_in_hourly_rate_resource_shape",
+      "operations": [
+        "hourly_rates_create",
+        "hourly_rates_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "assert_eq!(r[\"purchase_price\"], \"40.12\");"
+        }
+      ],
+      "review": "Independent GET exact title/description/consumer1000/business800/purchase40.12/ledger/meta and exact linked VATid21NL."
+    },
+    {
+      "id": "reference-hourly-update",
+      "test": "hourly_rates::update_patches_prices_required_vat_optional",
+      "operations": [
+        "hourly_rates_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "(json!(\"rate #1\"), json!(\"2000\"), json!(\"1800\"))"
+        }
+      ],
+      "review": "Independent GET exact patched title/prices, retained VAT/purchase; later null clears VAT/purchase and required-null refusals422."
+    },
+    {
+      "id": "reference-hourly-list",
+      "test": "hourly_rates::list_joins_vat_groups_in_one_query",
+      "operations": [
+        "hourly_rates_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"title\"], \"rate 50\");"
+        }
+      ],
+      "review": "Actual60rates; exact searchcount10, secondpage10/title50/linkedVAT andtotal60."
+    },
+    {
+      "id": "reference-hourly-delete",
+      "test": "hourly_rates::delete_bad_ids_and_access",
+      "operations": [
+        "hourly_rates_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "a.assert_bad_ids_404(&gone, update.clone()).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native delete known Gone independently GET/update/delete404."
+    },
+    {
+      "id": "reference-vat-create",
+      "test": "vat_groups::create_then_get_in_vat_group_resource_shape",
+      "operations": [
+        "vat_groups_create",
+        "vat_groups_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "assert_eq!(g[\"name\"], \"High Rate\");"
+        }
+      ],
+      "review": "Independent GET exact id/name/rate21/defaulttrue/uppercaseNL/meta."
+    },
+    {
+      "id": "reference-vat-update",
+      "test": "vat_groups::update_needs_name_and_rate_and_patches_the_rest",
+      "operations": [
+        "vat_groups_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "assert_eq!(g[\"country\"], Value::Null, \"null clears\");"
+        }
+      ],
+      "review": "Independent GET nameLow/rate9, default/meta retained, countrynull; missingrequired fields422."
+    },
+    {
+      "id": "reference-vat-list",
+      "test": "vat_groups::country_and_search_filters_combine",
+      "operations": [
+        "vat_groups_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "[\"NL High\", \"BE High\"]"
+        }
+      ],
+      "review": "Actual three VAT rows exact country/case-insensitivequery combinations andtotal3."
+    },
+    {
+      "id": "reference-vat-delete",
+      "test": "vat_groups::delete_bad_ids_and_access",
+      "operations": [
+        "vat_groups_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/vat_groups.rs",
+          "contains": "a.assert_bad_ids_404(&gone, update.clone()).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native known Gone deletion independently GET/update/delete404."
+    },
+    {
+      "id": "reference-shipment-create",
+      "test": "shipment_methods::create_keeps_every_field_in_laravel_shape",
+      "operations": [
+        "shipment_methods_create",
+        "shipment_methods_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "assert_eq!(s[\"shipping_costs\"], \"780.00000000\");"
+        }
+      ],
+      "review": "Independent GET exact name/carrier/cost/impacts/weightbounds/countries/selectable; additional contract keys checked."
+    },
+    {
+      "id": "reference-shipment-update",
+      "test": "shipment_methods::update_checks_weights_against_stored_row",
+      "operations": [
+        "shipment_methods_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "(json!(\"DHL 1-4KG\"), json!(4.0))"
+        }
+      ],
+      "review": "Independent GET exact patched name/maxweight/selectable/countries and retainedcarrier; bound/required errors422."
+    },
+    {
+      "id": "reference-shipment-list",
+      "test": "shipment_methods::picker_pages_through_everything",
+      "operations": [
+        "shipment_methods_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "assert_eq!(second[\"data\"][49][\"name\"], \"M149\");"
+        }
+      ],
+      "review": "Actual150methods: first100/second50, last exactM149 andpagecount2."
+    },
+    {
+      "id": "reference-shipment-delete",
+      "test": "shipment_methods::delete_bad_ids_and_access",
+      "operations": [
+        "shipment_methods_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/shipment_methods.rs",
+          "contains": "a.assert_bad_ids_404(&gone, update.clone()).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Native known Gone deletion independently GET/update/delete404."
+    },
+    {
+      "id": "reference-warehouse-create",
+      "test": "warehouses::create_then_get_round_trips_laravel_resource",
+      "operations": [
+        "warehouses_create",
+        "warehouses_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_eq!(w[\"slug\"], \"north-west-storage\");"
+        }
+      ],
+      "review": "Independent GET exact id/slug/alias/location/default/flags/manager/status and dimensions from native create."
+    },
+    {
+      "id": "reference-warehouse-update",
+      "test": "warehouses::update_is_a_patch",
+      "operations": [
+        "warehouses_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_eq!(w[\"name\"], \"Main 2\");"
+        }
+      ],
+      "review": "Independent GET exact newname/null location/storetrue; absent alias/manager/dimensions retained; missing requiredname422."
+    },
+    {
+      "id": "reference-warehouse-list",
+      "test": "warehouses::list_roots_children_and_filters",
+      "operations": [
+        "warehouses_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "vec![child.clone()]"
+        }
+      ],
+      "review": "Exact known root-child relationship/resource and parentfilter child id; root/full/pickup filters/counts and malformedparent422."
+    },
+    {
+      "id": "reference-warehouse-delete",
+      "test": "warehouses::delete_is_soft_and_keeps_children",
+      "operations": [
+        "warehouses_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_eq!(api.get(&child).await[\"name\"], \"Child\");"
+        }
+      ],
+      "review": "Native rootdelete followed by404, independent child stillreadable and new child underdeletedparent422."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/currencies.rs": "3125ce1caf10270a6ad9dedae87893afd07834ba333bf7792195cb893f4dad1c",
+    "apps/api/tests/api/custom_statuses.rs": "c285a2a1eb594b9148c428657012a628267fa043ce1de135c5fda68c7cff6d7e",
+    "apps/api/tests/api/custom_types.rs": "555272c65dfd02eb6475558d2470964fab17d1d42627293a4462544dec9e0069",
+    "apps/api/tests/api/discounts.rs": "50fd46a6b93e50c4d667a86a13d5d8805c257ef27562b3efca8bac753a765f42",
+    "apps/api/tests/api/email_profiles.rs": "a7f139939d3763b0e02a96a5227590800aefea0f382be983263cbe404c0179d2",
+    "apps/api/tests/api/email_templates.rs": "8e760ab9bbd1963215ad8036db61f0b969fc9599e29e4465351e92140f4bffcb",
+    "apps/api/tests/api/hourly_rates.rs": "f9f30d5435d8502dd4c7aa5d5392fbfacf96b3121ec929a61ddc73896658e70e",
+    "apps/api/tests/api/price_corrections.rs": "b2c6bcc58699f727177c53779e19f98526b26522a5dbc0063a0263f2d4af5873",
+    "apps/api/tests/api/product_brands.rs": "ec22c3fc8250349dd3c7f43a98959eef57e123147d3c26f2e679c29fa081725a",
+    "apps/api/tests/api/sales_groups.rs": "0d328135f8ec21d4a502e6c0296f621faec93f1f9952258d1dfa6a63b127328d",
+    "apps/api/tests/api/shipment_methods.rs": "430e29abf920e82286c075a0e69fdb15b86af06a329b5ccdf53e6593c2afcb2b",
+    "apps/api/tests/api/vat_groups.rs": "8e3be712a3a81c0f6e114be30886db06ab98fcd4cc01c4c5b90e2739b451e3e0",
+    "apps/api/tests/api/warehouses.rs": "dee907d2a85bed51524bb5cf4f0849c7be74595fb2a789515fa9a4272aa3f0b8",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502"
+  }
+}

@@ -9,7 +9,13 @@ export function contentSecurityPolicy(
     dev = false,
     frameAncestors = "'none'",
     imgSrc,
-  }: { dev?: boolean; frameAncestors?: string; imgSrc?: string } = {}
+    voice = false,
+  }: {
+    dev?: boolean
+    frameAncestors?: string
+    imgSrc?: string
+    voice?: boolean
+  } = {}
 ): string {
   const files = exactOrigin(imgSrc)
   return [
@@ -19,7 +25,8 @@ export function contentSecurityPolicy(
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' blob: data:${files ? ` ${files}` : ""}`,
     "font-src 'self'",
-    `connect-src 'self'${dev ? " ws:" : ""}`,
+    `connect-src 'self'${voice ? " https://api.elevenlabs.io wss://api.elevenlabs.io" : ""}${dev ? " ws:" : ""}`,
+    ...(voice ? ["worker-src 'self' blob:", "media-src 'self' blob:"] : []),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

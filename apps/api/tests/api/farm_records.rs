@@ -373,6 +373,9 @@ async fn a_correction_resets_verification_and_stamps_provenance(pool: PgPool) {
         p["captured_by"]["id"],
         f.user_id("salima@ruaha.test").await.as_str()
     );
+    let saved = f.list(&one, &f.officer_ilu).await;
+    assert_eq!(saved["data"]["id"], c.neema.person);
+    assert_eq!(saved["data"], *d);
 }
 
 #[sqlx::test]
@@ -497,11 +500,26 @@ async fn harvest_reports_verify_like_any_record(pool: PgPool) {
 async fn crops_are_config_ops_writes_everyone_reads(pool: PgPool) {
     let (f, c, neema) = setup(pool).await;
     assert_eq!(f.list("/crops", &neema).await["meta"]["total"], 3);
-    let body = json!({ "code": "COFFEE", "name_en": "Coffee", "name_sw": "Kahawa" });
+    let body = json!({ "code": "COFFEE", "name_en": "Coffee", "name_sw": "Kahawa", "measured_by": "tree_count" });
     let (status, _) = f
         .call(Method::POST, "/crops", Some(body.clone()), &f.officer_ilu)
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, created) = f.call(Method::POST, "/crops", Some(body), &f.ops).await;
+    assert_eq!(status, StatusCode::CREATED, "{created}");
+    let crop_id = created["data"]["id"].as_str().unwrap();
+    let listed = f.list("/crops", &neema).await;
+    let coffee = listed["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|crop| crop["id"] == crop_id)
+        .unwrap();
+    assert_eq!(coffee["code"], "COFFEE");
+    assert_eq!(coffee["name_en"], "Coffee");
+    assert_eq!(coffee["name_sw"], "Kahawa");
+    assert_eq!(coffee["measured_by"], "tree_count");
+    assert_eq!(coffee["is_active"], true);
     let dup = json!({ "code": "MAIZE", "name_en": "Maize", "name_sw": "Mahindi" });
     let (status, res) = f.call(Method::POST, "/crops", Some(dup), &f.ops).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
@@ -916,4 +934,121 @@ async fn every_crop_cycle_names_its_crop(pool: PgPool) {
         cycles.len(),
         "one crop key per cycle"
     );
+}
+
+#[sqlx::test]
+async fn plot_and_cycle_verification_checks_scope_and_actor(pool: PgPool) {
+    let (f, c, farmer) = setup(pool.clone()).await;
+    let other = Farm::new_named(pool, "other-records.test", "other-records").await;
+    let verifier = f.user_id("ops@ruaha.test").await;
+    for (kind, id) in [
+        ("plots", &c.neema.plot),
+        ("crop-cycles", &c.neema.cycles[0]),
+    ] {
+        let tail = format!("/{kind}/{id}/verification");
+        let (status, _) = send(&f.app, Method::POST, &f.url(&tail), None, None).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        let (status, _) = f.call(Method::POST, &tail, None, &farmer).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "farmer cannot verify {kind}");
+        let (status, _) = f.call(Method::POST, &tail, None, &f.officer_mga).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "another village: {kind}");
+        let (status, _) = other.call(Method::POST, &tail, None, &other.ops).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "another workspace: {kind}");
+
+        let (status, result) = f.call(Method::POST, &tail, None, &f.ops).await;
+        assert_eq!(status, StatusCode::OK, "{result}");
+        assert_eq!(result["data"]["id"], id.as_str());
+        let provenance = &result["data"]["provenance"];
+        assert_eq!(provenance["verification"], "verified");
+        assert_eq!(provenance["verified_by"]["id"], verifier.as_str());
+        assert!(provenance["verified_at"].is_string());
+        let saved = f.list(&format!("/{kind}/{id}"), &f.ops).await;
+        assert_eq!(saved["data"]["provenance"], *provenance);
+        let (status, result) = f.call(Method::POST, &tail, None, &f.ops).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(result["message"], "record is not awaiting verification");
+    }
+}
+
+#[sqlx::test]
+async fn household_farm_and_plot_corrections_preserve_identity_and_reset_verification(
+    pool: PgPool,
+) {
+    let (f, c, farmer) = setup(pool.clone()).await;
+    let other = Farm::new_named(pool, "other-corrections.test", "other-corrections").await;
+    let corrector = f.user_id("salima@ruaha.test").await;
+    for (kind, id, body) in [
+        (
+            "households",
+            &c.neema.household,
+            json!({"label":"Corrected household"}),
+        ),
+        (
+            "farms",
+            &c.neema.farm,
+            json!({"label":"Corrected farm","latitude":"-8.25","longitude":"35.5"}),
+        ),
+        (
+            "plots",
+            &c.neema.plot,
+            json!({"label":"Corrected plot","area_ha":"2.3750","latitude":"-8.25","longitude":"35.5"}),
+        ),
+    ] {
+        f.verify(kind, id, &f.ops).await;
+        let tail = format!("/{kind}/{id}");
+        let before = f.list(&tail, &f.ops).await;
+        let (status, _) = send(&f.app, Method::PUT, &f.url(&tail), Some(body.clone()), None).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        let (status, _) = f
+            .call(Method::PUT, &tail, Some(body.clone()), &farmer)
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::FORBIDDEN,
+            "farmer cannot correct {kind}"
+        );
+        let (status, _) = f
+            .call(Method::PUT, &tail, Some(body.clone()), &f.officer_mga)
+            .await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "another village: {kind}");
+        let (status, _) = other
+            .call(Method::PUT, &tail, Some(body.clone()), &other.ops)
+            .await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "another workspace: {kind}");
+        let mut invalid = body.clone();
+        invalid["verification"] = json!("verified");
+        let (status, _) = f
+            .call(Method::PUT, &tail, Some(invalid), &f.officer_ilu)
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "provenance is not editable: {kind}"
+        );
+        assert_eq!(f.list(&tail, &f.ops).await["data"], before["data"]);
+
+        let (status, result) = f
+            .call(Method::PUT, &tail, Some(body.clone()), &f.officer_ilu)
+            .await;
+        assert_eq!(status, StatusCode::OK, "{result}");
+        assert_eq!(result["data"]["id"], id.as_str());
+        assert_eq!(result["data"]["label"], body["label"]);
+        for field in ["latitude", "longitude", "area_ha"] {
+            if let Some(expected) = body[field].as_str() {
+                let actual = result["data"][field].as_str().unwrap();
+                assert_eq!(
+                    actual.parse::<rust_decimal::Decimal>().unwrap(),
+                    expected.parse::<rust_decimal::Decimal>().unwrap()
+                );
+            }
+        }
+        let provenance = &result["data"]["provenance"];
+        assert_eq!(provenance["verification"], "unverified");
+        assert_eq!(provenance["source"], "field_verified");
+        assert!(provenance["verified_by"].is_null());
+        assert!(provenance["verified_at"].is_null());
+        assert_eq!(provenance["captured_by"]["id"], corrector.as_str());
+        let saved = f.list(&tail, &f.ops).await;
+        assert_eq!(saved["data"], result["data"]);
+    }
 }

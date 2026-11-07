@@ -405,6 +405,8 @@ async fn signed(w: &W, body: &str) {
 
 async fn drain(w: &W) {
     let ctx = Ctx {
+        invoice_state: None,
+        assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),

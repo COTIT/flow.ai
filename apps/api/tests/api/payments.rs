@@ -131,6 +131,8 @@ async fn notify(w: &W, provider_id: &str) {
 /// Run every due job of `kinds_` until none is left.
 async fn run(w: &W, kinds_: &[&str]) {
     let ctx = Ctx {
+        invoice_state: None,
+        assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
@@ -1050,4 +1052,163 @@ async fn a_refund_amount_is_decimal_text_the_api_converts(pool: PgPool) {
         res["data"]["amount"], 1250,
         "minor units come back from the API"
     );
+}
+
+async fn assistant_refund_world(pool: PgPool) -> W {
+    let mut w = world(pool.clone()).await;
+    let mut state = common::state(pool, Mailer::capture().0);
+    state.payments = Some(Provider::Fake(w.fake.clone()));
+    state.assistant_bridge_secret = Some(std::sync::Arc::new(
+        genesy_360_api::AssistantSecret::new(super::assistant_preconditions::BRIDGE.into())
+            .unwrap(),
+    ));
+    w.api.app = build_app(state);
+    w
+}
+
+#[sqlx::test]
+async fn assistant_refund_stays_queued_until_verified_provider_settlement(pool: PgPool) {
+    let w = assistant_refund_world(pool.clone()).await;
+    let order = paid(&w, 2).await;
+    let path = format!("/v1/workspace/{}/orders/{order}/refunds", w.api.ws);
+    let body = json!({"amount":"5.00"});
+    let (session, action, _) =
+        super::assistant_preconditions::approved(&w.api, "orders_refund", &path, body.clone())
+            .await;
+    let (status, result) = super::assistant_preconditions::dispatch(
+        &w.api.app,
+        &path,
+        body.clone(),
+        &w.api.owner,
+        &session,
+        &action,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{result}");
+    assert_eq!(result["data"]["status"], "creating");
+    let refund = result["data"]["refund_id"].as_str().unwrap();
+    let uri = format!("/v1/workspace/{}/assistant/actions/{action}", w.api.ws);
+    let (_, pending) = send(&w.api.app, Method::GET, &uri, None, Some(&w.api.owner)).await;
+    assert_eq!(pending["data"]["state"], "queued");
+    assert!(pending["data"]["finished_at"].is_null());
+    assert_eq!(pending["data"]["evidence"]["refund"]["refund_id"], refund);
+    assert_eq!(
+        super::assistant_preconditions::dispatch(
+            &w.api.app,
+            &path,
+            body,
+            &w.api.owner,
+            &session,
+            &action
+        )
+        .await
+        .0,
+        StatusCode::CONFLICT
+    );
+    assert_eq!(w.fake.creates(refund), 1);
+    let provider_id: String = sqlx::query_scalar(
+        "SELECT provider_id FROM order_payments WHERE workspace_id=$1::uuid AND id=$2::uuid",
+    )
+    .bind(&w.api.ws)
+    .bind(refund)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    // Settlement may update this receipt, never restart the paused controller.
+    let batch: uuid::Uuid = sqlx::query_scalar("INSERT INTO assistant_batches(workspace_id,session_id,user_id,login_id,fingerprint,action_count,state,reason) SELECT workspace_id,session_id,user_id,login_id,decode(repeat('00',32),'hex'),2,'paused','queued' FROM assistant_actions WHERE workspace_id=$1::uuid AND id=$2::uuid RETURNING id").bind(&w.api.ws).bind(&action).fetch_one(&pool).await.unwrap();
+    sqlx::query("UPDATE assistant_actions SET batch_id=$3,batch_index=0,batch_verdict='queued' WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&w.api.ws).bind(&action).bind(batch).execute(&pool).await.unwrap();
+    w.fake.set_status(&provider_id, Status::Refunded);
+    notify(&w, &provider_id).await;
+    drain(&w).await;
+    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    let (_, settled) = send(&w.api.app, Method::GET, &uri, None, Some(&w.api.owner)).await;
+    assert_eq!(settled["data"]["state"], "completed");
+    assert_eq!(settled["data"]["evidence"]["refund"]["status"], "refunded");
+    assert!(settled["data"]["finished_at"].is_string());
+    assert_eq!(settled["data"]["batch_verdict"], "completed");
+    let progress: (String, i16) = sqlx::query_as(
+        "SELECT state,next_index FROM assistant_batches WHERE workspace_id=$1::uuid AND id=$2",
+    )
+    .bind(&w.api.ws)
+    .bind(batch)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(progress, ("paused".into(), 0));
+
+    assert_eq!(
+        w.fake.creates(refund),
+        1,
+        "metadata reconciliation never transports again"
+    );
+}
+
+#[sqlx::test]
+async fn assistant_refund_commit_keeps_correlation_when_http_finalization_is_lost(pool: PgPool) {
+    let w = assistant_refund_world(pool.clone()).await;
+    let order = paid(&w, 2).await;
+    let path = format!("/v1/workspace/{}/orders/{order}/refunds", w.api.ws);
+    let body = json!({"amount":"5.00"});
+    let (session, action, _) =
+        super::assistant_preconditions::approved(&w.api, "orders_refund", &path, body.clone())
+            .await;
+    sqlx::query("CREATE FUNCTION reject_refund_http_finish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.operation_id='orders_refund' AND NEW.http_status IS NOT NULL THEN RAISE EXCEPTION 'injected response finalization loss'; END IF; RETURN NEW; END $$").execute(&pool).await.unwrap();
+    sqlx::query("CREATE TRIGGER reject_refund_http_finish BEFORE UPDATE ON assistant_actions FOR EACH ROW EXECUTE FUNCTION reject_refund_http_finish()").execute(&pool).await.unwrap();
+    let (status, result) = super::assistant_preconditions::dispatch(
+        &w.api.app,
+        &path,
+        body,
+        &w.api.owner,
+        &session,
+        &action,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{result}");
+    let refund = result["data"]["refund_id"].as_str().unwrap();
+    let (state, evidence): (String, Value) = sqlx::query_as(
+        "SELECT state,evidence FROM assistant_actions WHERE workspace_id=$1::uuid AND id=$2::uuid",
+    )
+    .bind(&w.api.ws)
+    .bind(&action)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(state, "queued");
+    assert_eq!(evidence["refund"]["refund_id"], refund);
+    let count:i64=sqlx::query_scalar("SELECT count(*) FROM order_payments WHERE workspace_id=$1::uuid AND order_id=$2::uuid AND kind='refund'").bind(&w.api.ws).bind(order).fetch_one(&pool).await.unwrap();
+    assert_eq!(count, 1);
+    assert_eq!(w.fake.creates(refund), 1);
+}
+
+#[sqlx::test]
+async fn assistant_refund_settlement_before_http_finish_cannot_be_downgraded(pool: PgPool) {
+    let w = assistant_refund_world(pool.clone()).await;
+    let order = paid(&w, 2).await;
+    let path = format!("/v1/workspace/{}/orders/{order}/refunds", w.api.ws);
+    let body = json!({"amount":"5.00"});
+    let (session, action, _) =
+        super::assistant_preconditions::approved(&w.api, "orders_refund", &path, body.clone())
+            .await;
+    // Inject authoritative settlement between atomic admission and late HTTP finalization.
+    sqlx::query("CREATE FUNCTION settle_refund_before_http_finish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF OLD.state='dispatching' AND NEW.state='queued' AND NEW.operation_id='orders_refund' THEN UPDATE order_payments SET status='refunded' WHERE workspace_id=NEW.workspace_id AND id::text=NEW.evidence->'refund'->>'refund_id'; UPDATE assistant_actions SET state='completed',evidence=jsonb_set(evidence,'{refund,status}','\"refunded\"'::jsonb),finished_at=now() WHERE workspace_id=NEW.workspace_id AND id=NEW.id; END IF; RETURN NEW; END $$").execute(&pool).await.unwrap();
+    sqlx::query("CREATE TRIGGER settle_refund_before_http_finish AFTER UPDATE ON assistant_actions FOR EACH ROW EXECUTE FUNCTION settle_refund_before_http_finish()").execute(&pool).await.unwrap();
+    let (status, result) = super::assistant_preconditions::dispatch(
+        &w.api.app,
+        &path,
+        body,
+        &w.api.owner,
+        &session,
+        &action,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{result}");
+    let refund = result["data"]["refund_id"].as_str().unwrap();
+    let (state,evidence,finished):(String,Value,bool)=sqlx::query_as("SELECT state,evidence,finished_at IS NOT NULL FROM assistant_actions WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&w.api.ws).bind(action).fetch_one(&pool).await.unwrap();
+    assert_eq!(state, "completed");
+    assert_eq!(
+        evidence["refund"],
+        json!({"refund_id":refund,"status":"refunded"})
+    );
+    assert!(finished);
+    assert_eq!(w.fake.creates(refund), 1);
 }

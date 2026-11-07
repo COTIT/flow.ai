@@ -704,6 +704,12 @@ async fn access_rules_every_level(pool: PgPool) {
             let (status, res) = api.call(method.clone(), &path, body, &carl).await;
             assert_eq!(status, StatusCode::OK, "{method} {path}: {res}");
         }
+        let (status, _) = api.call(Method::GET, &format!("/{id}"), None, &carl).await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "deleted hierarchy row cannot be read"
+        );
     }
     let (status, _) = w
         .api
@@ -726,6 +732,66 @@ async fn access_rules_every_level(pool: PgPool) {
         assert_eq!(status, StatusCode::NOT_FOUND, "{uri}");
     }
     assert_eq!(w.bins(&s, &r, &sh).get(&b).await["bin_code"], "B1");
+    let original = (
+        w.sections().get(&s).await,
+        w.rows(&s).get(&r).await,
+        w.shelves(&s, &r).get(&sh).await,
+        w.bins(&s, &r, &sh).get(&b).await,
+    );
+    for (collection, id, body) in [
+        (
+            format!("/warehouses/{wh}/sections"),
+            &s,
+            json!({"section_name":"Foreign probe","section_code":"FOREIGN"}),
+        ),
+        (
+            format!("/warehouses/{wh}/sections/{s}/rows"),
+            &r,
+            json!({"row_name":"Foreign probe","row_code":"FOREIGN","length_meters":1,"width_meters":1,"height_meters":1}),
+        ),
+        (
+            format!("/warehouses/{wh}/sections/{s}/rows/{r}/shelves"),
+            &sh,
+            json!({"shelf_code":"FOREIGN","shelf_level":1}),
+        ),
+        (
+            format!("/warehouses/{wh}/sections/{s}/rows/{r}/shelves/{sh}/bins"),
+            &b,
+            json!({"bin_code":"FOREIGN"}),
+        ),
+    ] {
+        for workspace in [&w.api.ws, &eve_ws] {
+            let collection = format!("/v1/workspace/{workspace}{collection}");
+            for (method, path, body) in [
+                (Method::GET, collection.clone(), None),
+                (Method::POST, collection.clone(), Some(body.clone())),
+                (
+                    Method::POST,
+                    format!("{collection}/{id}"),
+                    Some(body.clone()),
+                ),
+                (Method::DELETE, format!("{collection}/{id}"), None),
+            ] {
+                let (status, reply) =
+                    send(&w.api.app, method.clone(), &path, body, Some(&eve)).await;
+                assert_eq!(
+                    status,
+                    StatusCode::NOT_FOUND,
+                    "foreign live hierarchy {method} {path}: {reply}"
+                );
+            }
+        }
+    }
+    assert_eq!(
+        (
+            w.sections().get(&s).await,
+            w.rows(&s).get(&r).await,
+            w.shelves(&s, &r).get(&sh).await,
+            w.bins(&s, &r, &sh).get(&b).await
+        ),
+        original,
+        "foreign hierarchy writes leave every live owner row unchanged"
+    );
 }
 
 #[sqlx::test]

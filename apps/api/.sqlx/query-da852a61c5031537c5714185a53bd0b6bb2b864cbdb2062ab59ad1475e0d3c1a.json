@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_sessions SET last_seen_at=now() WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 AND state='active' AND expires_at>now() AND last_seen_at>now()-interval '15 minutes'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "da852a61c5031537c5714185a53bd0b6bb2b864cbdb2062ab59ad1475e0d3c1a"
+}

@@ -84,6 +84,14 @@ async fn error(f: &F, path: &str, body: Value, field: &str) -> String {
 async fn cash_payments_settle_an_invoice_within_five_cents(pool: PgPool) {
     let f = setup(pool).await;
     let id = sent(&f, "100", false).await;
+    common::native_fixture::capture(
+        &f.api.pool,
+        common::native_fixture::Case::CashInvoicePayment { invoice: &id },
+        &f.api.ws,
+        &f.api.owner,
+        &pay("60", "cash"),
+    )
+    .await;
     paid(&f, &id, pay("60", "cash")).await;
     assert_eq!(state(&f, &id).await, ("partially_paid".into(), 6_000));
     let inv = f.api.get(&id).await;

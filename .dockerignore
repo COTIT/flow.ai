@@ -1,12 +1,14 @@
 # Context for deploy/images web images (repo root). apps/api builds from its own folder.
 **/node_modules
 **/.next
+**/.next-*
 **/dist
 **/.turbo
 **/coverage
 **/*.tsbuildinfo
 **/.env
 **/.env.*
+**/.voice-data
 !**/.env.example
 **/playwright-report
 **/test-results

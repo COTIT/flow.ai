@@ -5,11 +5,13 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { SendReceipt } from './sendReceipt';
 
 /**
  * Office 365 test result.
  */
 export interface Office365Answer {
+  delivery?: SendReceipt | null;
   message: string;
   /**
      * test-connection success only.

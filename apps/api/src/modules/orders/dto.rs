@@ -39,13 +39,13 @@ pub const STATUSES: &[&str] = &[
 /// One order line as sent.
 #[derive(Deserialize, ToSchema)]
 pub struct LineRequest {
-    #[schema(value_type = Uuid)]
+    #[schema(value_type = Uuid, required = true, nullable = false)]
     product_id: Option<Value>,
     /// A variant of the product; its price wins.
     #[schema(value_type = Option<Uuid>)]
     product_variant_id: Option<Value>,
     /// Decimal text or number, more than 0, at most 2 decimals.
-    #[schema(value_type = String, example = "2")]
+    #[schema(value_type = String, required = true, nullable = false, example = "2")]
     quantity: Option<Value>,
     /// Minor units excl VAT; default the catalog price. Office only.
     #[schema(value_type = Option<i64>, example = 1250)]
@@ -178,6 +178,7 @@ pub struct CreateOrderRequest {
     reference: Option<String>,
     #[schema(max_length = 1000)]
     note: Option<String>,
+    #[schema(value_type=Vec<LineRequest>,required=true,nullable=false,min_items=1,max_items=50)]
     lines: Option<Vec<LineRequest>>,
 }
 
@@ -506,6 +507,7 @@ pub struct CustomerRequest {
 )]
 pub struct CheckoutRequest {
     /// 1 to 50 lines: `product_id`, optional `product_variant_id`, `quantity` (at most 1000).
+    #[schema(value_type=Vec<LineRequest>,required=true,nullable=false,min_items=1,max_items=50)]
     lines: Option<Vec<LineRequest>>,
     customer: Option<CustomerRequest>,
 }
@@ -697,12 +699,19 @@ impl Validate for RefundRequest {
 }
 
 /// Refund reply.
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct RefundCreated {
     pub refund_id: Uuid,
     pub amount: i64,
     /// `creating` until the provider confirms; its status follows by webhook.
     #[schema(example = "creating")]
+    pub status: String,
+}
+
+/// Trusted native refund admission; settlement requires authoritative payment evidence.
+#[derive(Clone, Serialize)]
+pub struct RefundReceipt {
+    pub refund_id: Uuid,
     pub status: String,
 }
 

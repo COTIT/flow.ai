@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_sessions SET state=CASE WHEN state='cleaned' THEN state ELSE 'closed' END,closed_at=coalesce(closed_at,now()) WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4996509780eaa520b96c4927a6bd9d55bde375aa46441200d9f9732446f2af6"
+}

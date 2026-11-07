@@ -1,0 +1,1419 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "safety-final-invoice-create-foreign-references",
+      "test": "invoices::another_workspaces_rows_are_unknown",
+      "operations": [
+        "invoices_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "let (eve_rel, eve_contact) = relation(&eve_api, \"Eve\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "error(&api, \"\", body, field).await;"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Real second owner creates its own relation, contact and product. First workspace invoice POST refuses each foreign reference with422 and exact field error. This proves foreign-reference rejection, not outsider collection authorization."
+    },
+    {
+      "id": "safety-final-invoice-credit-authority",
+      "test": "invoice_credit::crediting_needs_credit_and_create_rights_in_the_workspace",
+      "operations": [
+        "invoices_credit"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_credit.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"invoice.create too\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_credit.rs",
+          "contains": "&format!(\"/v1/workspace/{eve_ws}/invoices/{src}/credit\"),"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        },
+        {
+          "file": "apps/api/tests/common/invoicing.rs",
+          "contains": "pub async fn setup(pool: PgPool) -> F {"
+        }
+      ],
+      "review": "Live paid source invoice; active member holding invoice.credit alone is403 because invoice.create is also required. Real foreign owner targeting that existing source under their own workspace is404. No inference to duplicate or other invoice actions."
+    },
+    {
+      "id": "safety-final-warehouse-default-authority",
+      "test": "warehouses::set_default_needs_its_own_permission_and_scope",
+      "operations": [
+        "warehouses_set_default"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "&[\"warehouse.update\"],"
+        },
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{eve_ws}{BASE}/{id}/default\");"
+        },
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Existing warehouse: warehouse.update-only member is403 while warehouse.set_default holder succeeds. Real foreign owner uses their workspace and actual warehouse id, receiving404. Garbage-id branch is excluded."
+    },
+    {
+      "id": "safety-final-stock-foreign-warehouse",
+      "test": "stock::foreign_ids_are_rejected",
+      "operations": [
+        "stock_set_levels",
+        "stock_set_requirements",
+        "stock_move_between_bins",
+        "stock_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "let foreign = res[\"data\"][\"warehouse_id\"].as_str().unwrap().to_owned();"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "let (status, res) = w.delete(&format!(\"warehouse_id={foreign}\")).await;"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert!(w.levels().await.is_empty());"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Second workspace creates actual warehouse. Each listed native mutation refuses that warehouse422; final direct stock query is empty. Actual endpoint-specific foreign-reference rejection; no coverage inferred for stock read companions."
+    },
+    {
+      "id": "safety-final-membership-grant-authority",
+      "test": "farm_tenancy::ops_cannot_mint_admin_or_self_elevate",
+      "operations": [
+        "farm_memberships_create"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "json!({ \"user_id\": juma, \"role\": \"admin\" }),"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "json!({ \"user_id\": ops_id, \"role\": \"field_officer\", \"village_id\": f.ilundo }),"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Existing ops and active workspace member Juma: native grant rejects admin/ops escalation and self changes403. This covers exact membership-grant restrictions, not all farm write routes."
+    },
+    {
+      "id": "safety-final-membership-revoke-admin",
+      "test": "farm_tenancy::ops_cannot_touch_admin_memberships",
+      "operations": [
+        "farm_memberships_revoke"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": ".find(|m| m[\"role\"] == \"admin\")"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "&format!(\"/memberships/{admin}\"),"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Ops attempts DELETE of actual admin membership read from native list and receives403. PATCH405 is unsupported route and contributes no gate."
+    },
+    {
+      "id": "safety-final-membership-foreign-user",
+      "test": "farm_tenancy::staff_roles_need_an_active_workspace_member",
+      "operations": [
+        "farm_memberships_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "signup(&f.app, \"stranger@else.test\", \"stranger\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "Some(json!({ \"user_id\": stranger, \"role\": \"ops\" })),"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "assert!(res[\"errors\"][\"user_id\"].is_array(), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Native admin cannot grant ops to actual user belonging only to a different workspace.422 user_id proves active-membership boundary for grant; no guessed nonexistent user."
+    },
+    {
+      "id": "safety-final-village-list-outsider",
+      "test": "farm_tenancy::outsiders_get_404_and_anonymous_401",
+      "operations": [
+        "farm_villages_list"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "let (outsider, _) = signup(&f.app, \"out@else.test\", \"outside\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/farm_tenancy.rs",
+          "contains": "let (status, _) = f.call(Method::GET, \"/villages\", None, &outsider).await;"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Real unrelated owner cannot list first farm villages404. Malformed workspace path and anonymous request are separate branches and do not establish this tenant gate."
+    },
+    {
+      "id": "safety-final-voucher-redeem-farmer",
+      "test": "farm_vouchers::three_different_staff_and_an_id_check",
+      "operations": [
+        "farm_vouchers_redeem"
+      ],
+      "gates": {
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "let (status, _) = redeem(&f, &code, &s.neema).await;"
+        },
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"farmers never redeem\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Actual issued voucher and linked household farmer: redemption403. Third independent staff member succeeds after document/name attestation. Four-eyes422 branches remain distinct from this farm-role refusal."
+    },
+    {
+      "id": "safety-final-dispatch-options-role-and-outsider",
+      "test": "farm_packing::farm_ops_read_dispatch_options_and_dispatch",
+      "operations": [
+        "farm_supply_dispatch_options"
+      ],
+      "gates": {
+        "farm_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"farmer\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"not a member\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Native farm dispatch-options refuses named field officers and real linked farmer403; actual unrelated workspace owner404. Ops sees exact live outgoing link/available lot/warehouse. Shop not-OK assertion alone is excluded."
+    },
+    {
+      "id": "safety-final-supply-dispatch-plain-member",
+      "test": "farm_packing::farm_ops_dispatch_and_plain_members_do_not",
+      "operations": [
+        "supply_chain_dispatch"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "let plain = c.f.member(\"plain@ruaha.test\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "for token in [&plain, &c.f.officer_ilu] {"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(level(&c.f.pool, &jar).await, \"9.00\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Live packed stock and accepted supply link. Plain active workspace member and field officer cannot dispatch403; ops succeeds without product.update. Native stock level proves denied attempts did not dispatch extra stock."
+    },
+    {
+      "id": "safety-final-supply-link-grant-ops",
+      "test": "farm_packing::farm_ops_dispatch_and_plain_members_do_not",
+      "operations": [
+        "supply_links_grant"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "// Sharing farmer data stays with workspace admins: farm ops may not grant a link."
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "Some(json!({ \"to_workspace_id\": s.a_ws, \"fields\": [\"village\"] })),"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Farm ops is an active workspace member but cannot grant sharing link403 to existing partner workspace. This is exact grant authority, not list/revoke authority."
+    },
+    {
+      "id": "safety-final-supply-link-list-ops",
+      "test": "farm_packing::farm_ops_read_dispatch_options_and_dispatch",
+      "operations": [
+        "supply_links_list"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "c.f.ws_call(Method::GET, \"/supply-links\", None, &c.f.ops)"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Actual farm ops cannot read Office supply-links list403 while dedicated farm dispatch options succeeds. Does not imply other Office mutation denials."
+    },
+    {
+      "id": "safety-final-mail-profile-test-role",
+      "test": "send_message::a_profile_test_mails_the_caller",
+      "operations": [
+        "messages_profile_test"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "&[\"emailprofile.get\"],"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "\"/v1/workspace/{}/email-profiles/{id}/test-connection\","
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Actual profile is created and successfully tested against local SMTP. Active emailprofile.get-only viewer is403 on effectful connection-test GET. No cross-workspace assertion exists in this test."
+    },
+    {
+      "id": "safety-final-pdf-template-foreign-logo",
+      "test": "pdf_templates::access_rules",
+      "operations": [
+        "pdf_templates_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "body[\"logo_file_id\"] = res[\"data\"][\"file_id\"].clone();"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "\"The selected logo file id is invalid.\""
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Second workspace uploads a real file. First workspace template create refuses that live foreign logo422. Native helper error checks422 and the exact logo_file_id message; no collection foreign actor denial inferred."
+    },
+    {
+      "id": "safety-final-invoice-preview-foreign-template",
+      "test": "pdf_templates::access_rules",
+      "operations": [
+        "invoices_preview"
+      ],
+      "gates": {
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "let foreign = res[\"data\"][\"pdf_template_id\"].as_str().unwrap();"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "&format!(\"/{inv}/preview?pdf_template_id={foreign}\"),"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "\"built-in layout\""
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Actual second-workspace template id cannot select its layout for owned invoice. Native preview200 uses built-in Invoice_pdf_ document filename. This is explicit foreign-template fallback isolation, not outsider invoice denial."
+    },
+    {
+      "id": "safety-final-settings-tenant-write-isolation",
+      "test": "settings::other_workspaces_settings_stay_apart",
+      "operations": [
+        "settings_update"
+      ],
+      "gates": {
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "&format!(\"/v1/workspace/{mal_ws}/settings\"),"
+        },
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "assert_eq!(get(&api, \"?type=invoice.prefix\").await, json!([]));"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Real second owner writes MAL- prefix in its own workspace200; independent first-workspace read remains unset. Proves write isolation only, not foreign actor denial on settings POST."
+    },
+    {
+      "id": "safety-final-till-user-list-isolation",
+      "test": "till_login::another_workspace_is_refused_everywhere",
+      "operations": [
+        "till_users_list"
+      ],
+      "gates": {
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "let (_, listed) = eve.call(Method::GET, \"/users\", None, &eve.owner).await;"
+        },
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(listed[\"data\"][0][\"id\"], eve_user.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(listed[\"data\"][0][\"name\"], \"Eve\");"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Two real workspace tills/users. Second owner lists exactly its own Eve row and never first-workspace Mary; length1 and id/name assert actual data isolation. Device/session tests in same function do not extend Office coverage."
+    },
+    {
+      "id": "safety-final-farm-document-client-id-isolation",
+      "test": "farm_documents::a_client_id_of_another_plot_or_workspace_never_returns_that_document",
+      "operations": [
+        "farm_documents_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "assert_eq!(status, StatusCode::CONFLICT, \"taken in workspace 1\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "\"same answer whichever plot or workspace holds the id\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_documents.rs",
+          "contains": "\"the other document is never returned: {body_a}\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Two real farms with separately registered plots and actual uploaded documents. Reusing globally occupied client id in other workspace returns generic409 matching same-workspace wrong-plot answer; response cannot expose deed.pdf. Native upload helper performs contract check."
+    },
+    {
+      "id": "safety-final-hourly-rate-foreign-vat",
+      "test": "hourly_rates::vat_group_must_be_live_and_in_this_workspace",
+      "operations": [
+        "hourly_rates_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "let foreign = vat_group(&a, &eve_ws, &eve).await;"
+        },
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "foreign.as_str(),"
+        },
+        {
+          "file": "apps/api/tests/api/hourly_rates.rs",
+          "contains": "json!([\"The vat group id is an invalid id for the vat_group domain.\"])"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Second owner creates actual VAT group; first workspace hourly-rate POST rejects it422 with exact vat_group_id message. Deleted/random rows are separate loop cases and are not tenant proof."
+    },
+    {
+      "id": "safety-final-deal-create-foreign-currency-agent",
+      "test": "deals::referenced_rows_must_be_this_workspaces",
+      "operations": [
+        "deals_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "json!(eve_currency),"
+        },
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "json!(eve_user),"
+        },
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "assert_eq!(res[\"errors\"][field], json!([msg]), \"{field}: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Second signup seeds actual currency and user; owned board deal POST rejects foreign currency and sales-agent ids422 with exact field messages. Wrong-parent board status and nonexistent relation are excluded from tenant proof."
+    },
+    {
+      "id": "safety-final-category-create-foreign-parent",
+      "test": "product_brands::category_parent_rules",
+      "operations": [
+        "product_categories_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "let uri = format!(\"/v1/workspace/{eve_ws}/erp/product-categories\");"
+        },
+        {
+          "file": "apps/api/tests/api/product_brands.rs",
+          "contains": "Some(json!({ \"name\": \"x\", \"parent_id\": root })),"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Actual root category created in first workspace cannot be referenced as parent by real second owner collection POST422. Does not infer generic collection denial from CRUD helper."
+    },
+    {
+      "id": "safety-final-relation-create-foreign-type",
+      "test": "relations::relation_type_must_be_a_live_relation_type_of_this_workspace",
+      "operations": [
+        "relations_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": ".bind(&evil_ws)"
+        },
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "foreign.as_str(),"
+        },
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "json!([\"The relation type id is not valid\"]),"
+        },
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Second signup has seeded live relation type read from its workspace; first workspace relation POST rejects it422 with exact relation_type_id error. Wrong-domain/deleted/random ids are separate cases."
+    },
+    {
+      "id": "safety-final-relation-create-role",
+      "test": "relations::create_needs_relation_create",
+      "operations": [
+        "relations_create"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "&[\"relation.list\"],"
+        },
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "let (status, res) = api.call(Method::POST, \"\", Some(json!({})), &bob).await;"
+        },
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Active list-only member cannot create relation403 before invalid-body validation; distinct create-only member successfully creates valid relation. Exact create operation, not all relation routes."
+    },
+    {
+      "id": "safety-final-lot-stock-role",
+      "test": "lot_stock::stock_mutations_check_input_access_and_workspace",
+      "operations": [
+        "lots_stock_mutate"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "let a = lot(&w, \"ILU-1\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "let uri = format!(\"/{a}/stock-mutations\");"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"403 before 422\");"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {"
+        }
+      ],
+      "review": "Actual lot; active member with no grants cannot mutate lot stock403 before body validation. Foreign native lot/warehouse cases additionally leave levels empty, but existing tenant mapping is separate."
+    },
+    {
+      "id": "safety-final-farm-equipment-foreign-currency",
+      "test": "farm_catalogue::equipment_refers_only_to_this_workspaces_category_and_currency",
+      "operations": [
+        "farm_equipment_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "let mut body = mill(&category, &foreign_currency);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_catalogue.rs",
+          "contains": "assert!(res[\"errors\"][\"currency_id\"].is_array(), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Real second workspace currency is inserted and returned; own-farm ops equipment create rejects it422 with currency_id error. Random category id branch is excluded."
+    },
+    {
+      "id": "safety-final-farm-reconciliation-outsider",
+      "test": "farm_payouts::only_staff_of_the_village_pay_and_nothing_crosses_workspaces",
+      "operations": [
+        "farm_payouts_reconciliation"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "let (outsider, _) = signup(&d.f.app, \"out@else2.test\", \"outside\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "&format!(\"/cash/reconciliation?day={}\", today()),"
+        },
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(balance(&d).await, 1_000_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Actual unrelated owner requests first farm daily reconciliation404; first-farm passbook balance remains unchanged. Payout-create foreign/person/currency cases are separate operations."
+    },
+    {
+      "id": "safety-final-pue-create-village-role",
+      "test": "farm_pue::staff_file_a_request_for_a_person_of_their_village",
+      "operations": [
+        "farm_pue_requests_create"
+      ],
+      "gates": {
+        "farm_role": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "let (status, res) = p.request(&p.f.officer_mga, body).await;"
+        },
+        {
+          "file": "apps/api/tests/api/farm_pue.rs",
+          "contains": "assert!(res[\"errors\"][\"person_id\"].is_array(), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "Actual Ilundo person/farm and machine: Ilundo officer can request201, Mgama officer receives422 person_id for the identical body. This is explicit staff village-role scope, not cross-workspace coverage."
+    },
+    {
+      "id": "safety-final-empty-grants-matrix",
+      "test": "assistant_capability_auth::every_permission_protected_capability_refuses_an_active_member_without_grants",
+      "operations": [
+        "app_keys_create",
+        "app_keys_list",
+        "app_keys_revoke",
+        "contacts_create",
+        "contacts_delete",
+        "contacts_update",
+        "currencies_create",
+        "currencies_delete",
+        "currencies_update",
+        "custom_statuses_create",
+        "custom_statuses_delete",
+        "custom_statuses_get",
+        "custom_statuses_list",
+        "custom_statuses_update",
+        "custom_types_create",
+        "custom_types_delete",
+        "custom_types_get",
+        "custom_types_list",
+        "custom_types_update",
+        "deal_pipelines_create",
+        "deal_pipelines_create_status",
+        "deal_pipelines_delete_status",
+        "deal_pipelines_get",
+        "deal_pipelines_list",
+        "deal_pipelines_update",
+        "deal_pipelines_update_status",
+        "deals_add_relation",
+        "deals_column",
+        "deals_create",
+        "deals_delete",
+        "deals_get",
+        "deals_list",
+        "deals_move",
+        "deals_update",
+        "discount_groups_attach",
+        "discount_groups_create",
+        "discount_groups_delete",
+        "discount_groups_detach",
+        "discount_groups_get",
+        "discount_groups_list",
+        "discount_groups_relations",
+        "discount_groups_update",
+        "discounts_create",
+        "discounts_delete",
+        "discounts_get",
+        "discounts_list",
+        "discounts_update",
+        "email_profiles_create",
+        "email_profiles_delete",
+        "email_profiles_get",
+        "email_profiles_list",
+        "email_profiles_update",
+        "email_templates_create",
+        "email_templates_delete",
+        "email_templates_get",
+        "email_templates_list",
+        "email_templates_update",
+        "farm_memberships_create",
+        "farm_memberships_revoke",
+        "files_create",
+        "files_delete",
+        "files_get",
+        "files_list",
+        "hourly_rates_create",
+        "hourly_rates_delete",
+        "hourly_rates_get",
+        "hourly_rates_list",
+        "hourly_rates_update",
+        "invites_delete",
+        "invites_list",
+        "invites_send",
+        "invoice_payments_create",
+        "invoice_payments_mark_as_credited",
+        "invoice_payments_void",
+        "invoices_create",
+        "invoices_credit",
+        "invoices_delete",
+        "invoices_duplicate",
+        "invoices_get",
+        "invoices_list",
+        "invoices_preview",
+        "invoices_resend",
+        "invoices_send",
+        "invoices_send_tasks",
+        "invoices_update",
+        "lots_create",
+        "lots_passport_publish",
+        "lots_passport_save",
+        "lots_passport_unpublish",
+        "lots_stock_mutate",
+        "lots_update",
+        "messages_logs",
+        "messages_office365_connection",
+        "messages_office365_send",
+        "messages_profile_test",
+        "messages_send",
+        "orders_cancel",
+        "orders_complete",
+        "orders_confirm",
+        "orders_create",
+        "orders_delete",
+        "orders_events",
+        "orders_get",
+        "orders_invoice",
+        "orders_list",
+        "orders_pick",
+        "orders_refund",
+        "orders_returns",
+        "orders_sales_summary",
+        "orders_update",
+        "pdf_templates_available_fields",
+        "pdf_templates_create",
+        "pdf_templates_delete",
+        "pdf_templates_get",
+        "pdf_templates_list",
+        "pdf_templates_preview",
+        "pdf_templates_update",
+        "price_corrections_create",
+        "price_corrections_delete",
+        "price_corrections_get",
+        "price_corrections_list",
+        "price_corrections_update",
+        "product_brands_create",
+        "product_brands_delete",
+        "product_brands_get",
+        "product_brands_list",
+        "product_brands_update",
+        "product_categories_create",
+        "product_categories_delete",
+        "product_categories_get",
+        "product_categories_list",
+        "product_categories_update",
+        "product_variants_create",
+        "product_variants_delete",
+        "product_variants_generate",
+        "product_variants_get",
+        "product_variants_list",
+        "product_variants_update",
+        "products_create",
+        "products_delete",
+        "products_duplicate",
+        "products_get",
+        "products_images_replace",
+        "products_linked_products",
+        "products_list",
+        "products_price_history",
+        "products_sale_statics",
+        "products_search",
+        "products_sync_external",
+        "products_update",
+        "relations_create",
+        "relations_delete",
+        "relations_list",
+        "relations_update",
+        "sales_groups_create",
+        "sales_groups_delete",
+        "sales_groups_get",
+        "sales_groups_list",
+        "sales_groups_update",
+        "search_quick",
+        "search_search",
+        "settings_get",
+        "settings_update",
+        "shipment_methods_create",
+        "shipment_methods_delete",
+        "shipment_methods_get",
+        "shipment_methods_list",
+        "shipment_methods_update",
+        "special_offers_create",
+        "special_offers_create_all",
+        "special_offers_delete",
+        "special_offers_delete_all",
+        "special_offers_get",
+        "special_offers_get_all",
+        "special_offers_list",
+        "special_offers_list_all",
+        "special_offers_update",
+        "special_offers_update_all",
+        "stock_configured_bins",
+        "stock_delete",
+        "stock_list",
+        "stock_move_between_bins",
+        "stock_movements",
+        "stock_mutate",
+        "stock_negative",
+        "stock_set_levels",
+        "stock_set_requirements",
+        "stock_with_bins",
+        "storage_locations_create",
+        "storage_locations_delete",
+        "storage_locations_list",
+        "supply_chain_dispatch",
+        "supply_chain_pack",
+        "supply_chain_receive",
+        "supply_links_accept",
+        "supply_links_grant",
+        "supply_links_list",
+        "supply_links_revoke",
+        "teams_add_users",
+        "teams_create",
+        "teams_delete",
+        "teams_get",
+        "teams_list",
+        "teams_remove_users",
+        "teams_set_permissions",
+        "teams_update",
+        "till_registers_create",
+        "till_registers_list",
+        "till_registers_pairing",
+        "till_registers_rotate_key",
+        "till_sales_list",
+        "till_shifts_list",
+        "till_users_create",
+        "till_users_list",
+        "till_users_update",
+        "till_vaults_create",
+        "till_vaults_list",
+        "users_get",
+        "users_list",
+        "vat_groups_create",
+        "vat_groups_delete",
+        "vat_groups_get",
+        "vat_groups_list",
+        "vat_groups_update",
+        "warehouse_bins_by_warehouse",
+        "warehouse_bins_create",
+        "warehouse_bins_delete",
+        "warehouse_bins_get",
+        "warehouse_bins_list",
+        "warehouse_bins_update",
+        "warehouse_locations_create",
+        "warehouse_locations_delete",
+        "warehouse_locations_delete_many",
+        "warehouse_locations_get",
+        "warehouse_locations_list",
+        "warehouse_locations_update",
+        "warehouse_rows_create",
+        "warehouse_rows_delete",
+        "warehouse_rows_get",
+        "warehouse_rows_list",
+        "warehouse_rows_update",
+        "warehouse_sections_create",
+        "warehouse_sections_delete",
+        "warehouse_sections_get",
+        "warehouse_sections_list",
+        "warehouse_sections_update",
+        "warehouse_shelves_create",
+        "warehouse_shelves_delete",
+        "warehouse_shelves_get",
+        "warehouse_shelves_list",
+        "warehouse_shelves_update",
+        "warehouses_create",
+        "warehouses_delete",
+        "warehouses_get",
+        "warehouses_list",
+        "warehouses_set_default",
+        "warehouses_update",
+        "webhooks_create",
+        "webhooks_delete",
+        "webhooks_get",
+        "webhooks_list",
+        "webhooks_update",
+        "workspaces_get",
+        "workspaces_update"
+      ],
+      "gates": {
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "assert_eq!(exercised.len(), 264);"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn member_with("
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "All264 reviewed permission/owner-protected eligible routes are called without assistant headers by an active nonowner member. DB access proves effective grants empty and target farm roles0. Strict403 for every exact native method/path;404/422 never count. Only farm membership grant uses valid fields/actual owner user and revoke uses a live admin membership, because native services validate/lookup before role policy. This establishes no-grant-member refusal only, not arbitrary grant combinations, farm-role rules, tenant isolation or results. Fresh whole-case pass plus observed per-operation403 required."
+    },
+    {
+      "id": "safety-final-live-workspace-collection-matrix",
+      "test": "assistant_capability_auth::reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_workspace",
+      "operations": [
+        "app_keys_create",
+        "currencies_create",
+        "custom_statuses_create",
+        "custom_types_create",
+        "deal_pipelines_create",
+        "discount_groups_create",
+        "discounts_create",
+        "email_profiles_create",
+        "email_templates_create",
+        "farm_bug_reports_create",
+        "farm_bug_reports_list",
+        "farm_crops_create",
+        "farm_crops_list",
+        "farm_equipment_categories_create",
+        "farm_equipment_categories_list",
+        "farm_equipment_list",
+        "farm_loans_create",
+        "farm_loans_list",
+        "farm_market_buyers_create",
+        "farm_market_buyers_list",
+        "farm_market_demands_list",
+        "farm_market_harvest_available",
+        "farm_market_opportunities_list",
+        "farm_memberships_list",
+        "farm_passbook_mine",
+        "farm_payouts_cash_movement",
+        "farm_pue_requests_estimate",
+        "farm_pue_requests_list",
+        "farm_records_crop_cycles_list",
+        "farm_records_farms_list",
+        "farm_records_households_list",
+        "farm_records_plots_list",
+        "farm_records_register",
+        "farm_surveys_eligibility",
+        "farm_surveys_list",
+        "farm_vouchers_lookup",
+        "farm_vouchers_mine",
+        "farm_vouchers_redeem",
+        "farm_vouchers_redemption_totals",
+        "farm_vouchers_redemptions",
+        "files_create",
+        "files_list",
+        "invites_list",
+        "invoices_send_tasks",
+        "lots_create",
+        "messages_office365_connection",
+        "messages_office365_send",
+        "orders_list",
+        "price_corrections_create",
+        "product_brands_create",
+        "products_create",
+        "products_search",
+        "sales_groups_create",
+        "shipment_methods_create",
+        "special_offers_create_all",
+        "stock_list",
+        "stock_negative",
+        "storage_locations_create",
+        "supply_links_grant",
+        "teams_create",
+        "till_users_create",
+        "till_vaults_create",
+        "till_vaults_list",
+        "vat_groups_create",
+        "warehouses_create",
+        "webhooks_create",
+        "workspaces_update"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/assistant_capability_auth.rs",
+          "contains": "assert_eq!(exercised.len(), 67);"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn signup("
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {"
+        }
+      ],
+      "review": "All67 explicitly reviewed collection/no-resource-path routes are called by a real different workspace owner against actual live Farm workspace. DB proves no target membership/farm role. Native path template must contain only workspace placeholder; only schema-valid from/to required queries allowed. Strict404 for every native call, no assistant headers. No sampled nested resource404, body validation, role or business result claim. Fresh whole-case pass plus observed per-operation404 required."
+    },
+    {
+      "id": "safety-final-live-hierarchy-tenants",
+      "test": "warehouse_hierarchy::access_rules_every_level",
+      "operations": [
+        "warehouse_sections_list",
+        "warehouse_sections_create",
+        "warehouse_sections_delete",
+        "warehouse_sections_update",
+        "warehouse_rows_list",
+        "warehouse_rows_create",
+        "warehouse_rows_delete",
+        "warehouse_rows_update",
+        "warehouse_shelves_list",
+        "warehouse_shelves_create",
+        "warehouse_shelves_delete",
+        "warehouse_shelves_update",
+        "warehouse_bins_list",
+        "warehouse_bins_create",
+        "warehouse_bins_update"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "foreign live hierarchy {method} {path}: {reply}"
+        },
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "foreign hierarchy writes leave every live owner row unchanged"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn signup("
+        }
+      ],
+      "review": "Actual owner warehouse/section/row/shelf/bin matching chain exists before foreign probes. Real second owner calls each collection GET/POST and existing-child POST/DELETE through first workspace and their own workspace, with valid per-level bodies. Every response strictly404; full owner GET snapshots of all four live rows remain unchanged. Previous sampled/deleted/GET-only branches are not used as mutation tenant proof. Requires freshly rebuilt passing whole test and matching operation404 observations."
+    },
+    {
+      "id": "safety-final-live-variant-tenants",
+      "test": "product_variants::variants_are_scoped_to_their_product_and_workspace",
+      "operations": [
+        "product_variants_create",
+        "product_variants_generate",
+        "product_variants_delete",
+        "product_variants_get",
+        "product_variants_update"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "foreign live variant {method} {path}: {reply}"
+        },
+        {
+          "file": "apps/api/tests/api/product_variants.rs",
+          "contains": "foreign create/generate/delete add no variants"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn signup("
+        }
+      ],
+      "review": "Existing matching owner product+default variant, not wrong-parent sibling. Real second owner uses both workspace paths for collection create/generate and item GET/PUT/DELETE; valid price/SKU/generation inputs, strict404. Owner detail and exact variant list remain unchanged. Earlier same-workspace wrong-parent loop does not supply cross-workspace proof. Requires new rebuilt passing test and matching observed404."
+    },
+    {
+      "id": "safety-final-live-product-offer-tenants",
+      "test": "special_offers::product_route_only_reaches_its_own_offers",
+      "operations": [
+        "special_offers_list",
+        "special_offers_create",
+        "special_offers_get",
+        "special_offers_update",
+        "special_offers_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "foreign live product offer {method} {path}: {reply}"
+        },
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "foreign create/delete add no offers"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn signup("
+        }
+      ],
+      "review": "Live matching owner product and its offer are created through product-scoped native routes. Real second owner probes all five exact product-scoped routes under both workspace paths with valid legacy create/update fields. Every response strictly404; exact owner offer/detail list unchanged. Global /erp/special-offers and earlier wrong-parent checks are separate. Requires fresh whole-test pass and operation-specific404 observations."
+    },
+    {
+      "id": "safety-final-live-contact-tenants",
+      "test": "relations::contact_rules_and_scoping",
+      "operations": [
+        "contacts_update",
+        "contacts_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "foreign live contact {method} {path}: {reply}"
+        },
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "foreign contact writes leave owner data unchanged"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn signup("
+        }
+      ],
+      "review": "Actual contact belongs to actual owner relation. Real second owner attempts item POST and DELETE through both workspace paths using matching relation/contact ids and valid names/job title. Strict404, then independent DB contact rows exactly unchanged. Existing wrong-relation and /undefined branches are not tenant proof. Requires fresh whole-test pass and matching operation404."
+    },
+    {
+      "id": "safety-final-live-storage-location-tenant",
+      "test": "storage_locations::validation_and_access",
+      "operations": [
+        "storage_locations_delete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/storage_locations.rs",
+          "contains": "foreign live storage location delete: {reply}"
+        },
+        {
+          "file": "apps/api/tests/api/storage_locations.rs",
+          "contains": "foreign delete leaves the live owner storage location unchanged"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "pub async fn signup("
+        }
+      ],
+      "review": "Native create establishes actual storage location attached to existing owner product/warehouse scan location. Real second owner DELETE through both workspace paths is strict404; exact owner product storage-location list remains unchanged. No fabricated missing storage id. Requires fresh passing whole test and operation404 observation."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/assistant_capability_auth.rs": "11f42b99eda7d3aef046aa2dc671b5780d46c5ae6d08652affef8b87b26966ae",
+    "apps/api/tests/api/deals.rs": "f1a3aeb521d47d8cfdf488884f619388ef675dc424034de618290e09d088e58b",
+    "apps/api/tests/api/farm_catalogue.rs": "5846e3d06d34d65762f3b02a5ee46adfb04f8f2c3f401ed89451aa42ae2a2655",
+    "apps/api/tests/api/farm_documents.rs": "9db18507155b094857b135aa681fb39a25cea5c73f9a13c65f98da9c109a6212",
+    "apps/api/tests/api/farm_packing.rs": "60df1ef3a7748cea112a9122f3b406985432cf3be7bd9591ed1c35645f8701a0",
+    "apps/api/tests/api/farm_payouts.rs": "f65e835bef79bcb734b94f34a3688f94e1d7ce8e25587d62cfd5817263379029",
+    "apps/api/tests/api/farm_pue.rs": "ec01e371971602863ea769651ade0e927ec9aebee273c9b311d74825f3cf3d19",
+    "apps/api/tests/api/farm_tenancy.rs": "d8e1fa641e48ac4bd7b10331dde39ca63f361b51e22ba7d3c09fd5e1735df8c8",
+    "apps/api/tests/api/farm_vouchers.rs": "75e37a0d633d99a687e6dc52e3d0a829e7ddad3056ec369c649586aa6470aa07",
+    "apps/api/tests/api/hourly_rates.rs": "f9f30d5435d8502dd4c7aa5d5392fbfacf96b3121ec929a61ddc73896658e70e",
+    "apps/api/tests/api/invoice_credit.rs": "971e80bd35354b560c1156bedba33a0bda8565a371c2e43a00deb204b1c7ea0b",
+    "apps/api/tests/api/invoices.rs": "3f163f6e6e6714e08bbd87bb37740a3c80fd7365ad66d498e6fec297d0f2249e",
+    "apps/api/tests/api/lot_stock.rs": "603e67eea810ce9eefbdb0285fd33bf5dccbb39afca0cbd167a9b580a5f5c0fc",
+    "apps/api/tests/api/pdf_templates.rs": "2d663a93d3a9b80f967bf3054bc1ca696c169cf1d543547b3c0734f67eefa5f3",
+    "apps/api/tests/api/product_brands.rs": "ec22c3fc8250349dd3c7f43a98959eef57e123147d3c26f2e679c29fa081725a",
+    "apps/api/tests/api/product_variants.rs": "fb977db4bd6181af0aa738d7973df46ca80c84ba9a0f311781e6164b33507156",
+    "apps/api/tests/api/relations.rs": "92137e2f44a1cc6a110b5cacfc1064b1f350eefb22b71cbaa59e377af7053841",
+    "apps/api/tests/api/send_message.rs": "2fecec99bf479cfcf3a3c4a85225ca8943724349ab2f608099f471a6e82b3300",
+    "apps/api/tests/api/settings.rs": "b3e3130ad8c70597abbd0d31e88bcf9cf0dbf831791855fb713ffc3c2c3b7035",
+    "apps/api/tests/api/special_offers.rs": "b32a99fd13301f3a68bc2c8419ed9d5bb7332baa2caf836ebd990188cb6c1106",
+    "apps/api/tests/api/stock.rs": "873cbeed6c7f044fa15f9211203c74a3cad0b959206bb7549a9146df7d16eb3d",
+    "apps/api/tests/api/storage_locations.rs": "347b59ab7d5f5de1386faf02c209a0edc4a1f23f3583d477c472c9c05cf5bae0",
+    "apps/api/tests/api/till_login.rs": "069e9f9e18ee85db1928e9be7819eb347c8d08211679e88cb0124e047a09cf5e",
+    "apps/api/tests/api/warehouse_hierarchy.rs": "4eb1391a69e588246c4f3281d3afb88c03957d5e78133bb8327dcebf1913812e",
+    "apps/api/tests/api/warehouses.rs": "dee907d2a85bed51524bb5cf4f0849c7be74595fb2a789515fa9a4272aa3f0b8",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea",
+    "apps/api/tests/common/invoicing.rs": "638cb90bbe4587c1d91bd4f81299e2be3ea46184acfe709556ac51f8ba98b82a",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502"
+  }
+}

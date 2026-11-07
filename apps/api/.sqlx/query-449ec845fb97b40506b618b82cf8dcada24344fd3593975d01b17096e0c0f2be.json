@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_uploads SET state='cancelled' WHERE state='reserved' AND created_at<=now()-interval '60 seconds'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "449ec845fb97b40506b618b82cf8dcada24344fd3593975d01b17096e0c0f2be"
+}

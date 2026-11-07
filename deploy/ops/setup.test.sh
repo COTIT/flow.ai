@@ -13,6 +13,7 @@ run || fail "setup: $(cat "$p/out")"
 for f in lib.sh backup.sh restore.sh restore-test.sh watch.sh; do
   cmp -s "$HERE/$f" "$p/usr/local/lib/genesy-ops/$f" || fail "$f not installed"
 done
+cmp -s "$HERE/../assistant-role.sql" "$p/usr/local/lib/genesy-ops/assistant-role.sql" || fail 'role bootstrap SQL not installed'
 [[ "$(mode "$p/srv/genesy-backups")" == 700 && "$(mode "$p/etc/genesy-ops")" == 700 ]] || fail "dirs not root-only"
 [[ "$(cat "$p/etc/sudoers.d/genesy-ops")" == "deploy ALL=(root) NOPASSWD: /usr/local/lib/genesy-ops/backup.sh, /usr/local/lib/genesy-ops/restore.sh" ]] \
   || fail "sudo rule: $(cat "$p/etc/sudoers.d/genesy-ops")"

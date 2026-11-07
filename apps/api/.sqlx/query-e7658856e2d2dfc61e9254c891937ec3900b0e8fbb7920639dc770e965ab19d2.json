@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoice_deliveries SET status='sending',send_log_id=$3 WHERE workspace_id=$1 AND id=$2 AND status='running'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e7658856e2d2dfc61e9254c891937ec3900b0e8fbb7920639dc770e965ab19d2"
+}

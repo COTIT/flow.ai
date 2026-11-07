@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH expired AS (SELECT workspace_id,id FROM invoice_deliveries WHERE status IN ('accepted','blocked','manual','failed') AND finished_at<now()-interval '90 days' ORDER BY finished_at LIMIT 1000 FOR UPDATE SKIP LOCKED) DELETE FROM invoice_deliveries d USING expired e WHERE d.workspace_id=e.workspace_id AND d.id=e.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "bf9875ca5fea73b6710f953c3ededd866554af39b0062cafb3abf84fa33b7982"
+}

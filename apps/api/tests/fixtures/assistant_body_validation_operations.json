@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "scope": "dto_top_level_type_validation_only",
+  "probe": false,
+  "expectedStatus": 422,
+  "objectBodyOperationIds": [
+    "discount_groups_update",
+    "farm_crops_update",
+    "farm_payouts_cash_movement",
+    "farm_villages_update",
+    "farm_vouchers_lookup",
+    "messages_office365_send",
+    "orders_pick",
+    "pdf_templates_update",
+    "till_users_update",
+    "till_vaults_create"
+  ]
+}

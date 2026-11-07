@@ -3,7 +3,11 @@
 //! (numbering, stock, PDF, mail, public link) and credit notes.
 
 pub mod actions;
+pub mod approval;
+pub(crate) mod approval_repo;
 pub mod credit;
+pub mod delivery;
+pub mod delivery_repo;
 pub mod dto;
 pub mod handlers;
 pub mod pdf;

@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('session_id',s.id,'workspace_id',s.workspace_id,'conversation_id',s.conversation_id,'file_ids',ARRAY(SELECT u.file_id FROM assistant_uploads u WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id AND u.file_id IS NOT NULL AND u.state<>'cleaned')) AS \"data!\" FROM assistant_sessions s WHERE s.state<>'cleaned' AND NOT EXISTS(SELECT 1 FROM assistant_uploads u WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id AND u.state='reserved' AND u.created_at>now()-interval '60 seconds') AND (s.state='closed' OR s.expires_at<=now() OR s.last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=s.login_id AND t.expires_at>now())) ORDER BY s.last_seen_at LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "09abf58f3cac646b5ec1a4ee5db861e4bc03f5f49893c84d5e3c1fbc7a0abfe0"
+}

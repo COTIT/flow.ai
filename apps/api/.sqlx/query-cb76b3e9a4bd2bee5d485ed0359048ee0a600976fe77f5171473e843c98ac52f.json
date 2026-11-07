@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoice_deliveries SET status=$3,request=NULL,finished_at=CASE WHEN $3='unknown' THEN NULL ELSE now() END,pdf_file_id=coalesce(pdf_file_id,(SELECT i.pdf_file_id FROM invoices i WHERE i.workspace_id=$1 AND i.id=invoice_deliveries.invoice_id)) WHERE workspace_id=$1 AND id=$2 AND status IN ('running','sending','unknown') RETURNING action_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "action_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "action_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "cb76b3e9a4bd2bee5d485ed0359048ee0a600976fe77f5171473e843c98ac52f"
+}

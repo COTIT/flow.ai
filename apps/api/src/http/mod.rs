@@ -1,6 +1,7 @@
 //! Shared HTTP glue: extractors used by more than one feature.
 
 pub mod app_key;
+pub mod assistant;
 pub mod auth;
 pub mod farm;
 pub mod json;
@@ -48,6 +49,7 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         request_timeout: std::time::Duration::from_secs(60),
         body_deadline: std::time::Duration::from_secs(60),
         credentials: None,
+        assistant_bridge_secret: None,
         files: None,
         pdf: None,
         payments: None,

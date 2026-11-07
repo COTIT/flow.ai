@@ -27,8 +27,8 @@ import type {
 import type {
   EnvelopeProductVariantResource,
   EnvelopeVariantCreated,
-  EnvelopeVecProductVariantResource,
   GenerateVariantsRequest,
+  GeneratedVariants,
   MessageBody,
   ProductVariantRequest,
   ValidationErrorBody,
@@ -237,7 +237,7 @@ export const productVariantsGenerate = (
 ) => {
 
 
-      return apiRequest<EnvelopeVecProductVariantResource>(
+      return apiRequest<GeneratedVariants>(
       {url: `/workspace/${workspace}/products/${product}/variants/generate`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: generateVariantsRequest, signal

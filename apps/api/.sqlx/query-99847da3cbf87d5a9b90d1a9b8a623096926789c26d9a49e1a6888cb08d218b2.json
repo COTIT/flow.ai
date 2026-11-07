@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH proven AS (\n           SELECT workspace_id,id FROM assistant_actions\n           WHERE batch_id IS NOT NULL AND batch_verdict='unknown'\n             AND state IN ('queued','partial','failed') AND finished_at IS NOT NULL\n             AND (\n               (operation_id IN ('messages_send','messages_profile_test') AND (\n                 (state='queued' AND evidence#>>'{delivery,status}'='accepted') OR\n                 (state='failed' AND evidence#>>'{delivery,status}' IN ('blocked','no_recipients')) OR\n                 (state='partial' AND evidence#>>'{delivery,status}'='manual'))) OR\n               (operation_id IN ('invoices_send','invoices_resend') AND (\n                 (state='queued' AND evidence#>>'{delivery,status}'='accepted') OR\n                 (state='partial' AND evidence#>>'{delivery,status}' IN ('blocked','manual','failed')))))\n           ORDER BY finished_at,id LIMIT 100 FOR UPDATE SKIP LOCKED\n         ) UPDATE assistant_actions a SET batch_verdict=a.state FROM proven p\n           WHERE a.workspace_id=p.workspace_id AND a.id=p.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "99847da3cbf87d5a9b90d1a9b8a623096926789c26d9a49e1a6888cb08d218b2"
+}

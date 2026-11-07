@@ -3,7 +3,7 @@
 // Laravel: none for the list, an unassignable check for one.
 
 use axum::{
-    Json,
+    Extension, Json,
     extract::{Path, State},
     http::StatusCode,
 };
@@ -20,8 +20,8 @@ use crate::{
     modules::{
         product_variants::{
             dto::{
-                GenerateBody, GenerateDoc, VariantBody, VariantCreated, VariantDoc, VariantList,
-                VariantRequestDoc,
+                GenerateBody, GenerateDoc, GeneratedVariants, GenerationReceipt, VariantBody,
+                VariantCreated, VariantDoc, VariantList, VariantRequestDoc,
             },
             service,
         },
@@ -175,7 +175,7 @@ pub async fn delete(
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
     request_body = GenerateDoc,
     responses(
-        (status = 201, body = Envelope<Vec<VariantDoc>>, description = "The created variants"),
+        (status = 201, body = GeneratedVariants, description = "Created variants and exact requested, created and skipped counts"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
@@ -187,7 +187,14 @@ pub async fn generate(
     access: Can<VariantCreate>,
     Path((_, p)): ProductPath,
     ValidatedJson(g): ValidatedJson<GenerateBody>,
-) -> Result<(StatusCode, Data<Vec<Value>>), AppError> {
+) -> Result<
+    (
+        StatusCode,
+        Extension<GenerationReceipt>,
+        Json<GeneratedVariants>,
+    ),
+    AppError,
+> {
     let made = service::generate(&state, access.workspace_id, &p, g, actor(access.user_id)).await?;
-    Ok((StatusCode::CREATED, Data(made)))
+    Ok((StatusCode::CREATED, Extension(made.receipt), Json(made)))
 }

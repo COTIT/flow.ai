@@ -1,6 +1,8 @@
 //! Products (Laravel ERP/Product): catalog CRUD, prices with VAT, price history, default
 //! variant, bundles, barcode lookup.
 
+pub mod approval;
+pub(crate) mod approval_repo;
 pub mod dto;
 pub mod handlers;
 pub mod pricing;

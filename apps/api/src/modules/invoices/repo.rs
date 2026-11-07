@@ -1098,3 +1098,27 @@ pub async fn line_cents(
     .fetch_all(db)
     .await
 }
+
+/// Bounded material header, lines and selected recipient; excludes tokens and private meta.
+pub(super) async fn approval_snapshot(
+    db: impl PgExecutor<'_>,
+    workspace: Uuid,
+    id: Uuid,
+    contact: Option<Uuid>,
+) -> Result<Option<Value>, sqlx::Error> {
+    sqlx::query_scalar!(r#"SELECT jsonb_build_object('id',i.id,'status',i.status,'reference',i.reference,'note',i.note,'updated_at',i.updated_at,'stored_total_minor',i.total,'paid_minor',i.paid_total,'number',i.invoice_number,'due_date',i.due_date,'is_credit',i.is_credit,'relation_id',i.relation_id,'billing_address',i.billing_address,'addressed_contact',i.addressed_contact,'currency',jsonb_build_object('id',c.id,'code',c.asset_type,'decimals',c.decimals),'selected_contact_id',$3::uuid,'selected_contact',(SELECT jsonb_build_object('id',p.id,'first_name',p.first_name,'last_name',p.last_name,'email',p.email) FROM contacts p WHERE p.workspace_id=$1 AND p.relation_id=i.relation_id AND p.id=$3 AND p.deleted_at IS NULL),'lines',coalesce((SELECT jsonb_agg(jsonb_build_object('id',l.id,'title',l.title,'quantity',trim_scale(l.quantity)::text,'price',trim_scale(l.price)::text,'vat',trim_scale(l.vat)::text,'discount',trim_scale(l.discount_percentage)::text,'credited_quantity',trim_scale(l.credit_amount)::text,'warehouse_id',l.mutate_from_warehouse_id) ORDER BY l.position,l.id) FROM items l WHERE l.workspace_id=$1 AND l.invoice_id=i.id),'[]'::jsonb)) AS "facts!" FROM invoices i JOIN currencies c ON c.workspace_id=i.workspace_id AND c.id=i.currency_id WHERE i.workspace_id=$1 AND i.id=$2 AND i.deleted_at IS NULL"#,workspace,id,contact).fetch_optional(db).await
+}
+
+/// Hold selected currency and recipient steady through existing invoice transaction.
+pub(super) async fn approval_share(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    id: Uuid,
+    contact: Option<Uuid>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!("SELECT c.id FROM currencies c JOIN invoices i ON i.workspace_id=c.workspace_id AND i.currency_id=c.id WHERE i.workspace_id=$1 AND i.id=$2 FOR SHARE OF c",workspace,id).fetch_all(&mut *conn).await?;
+    if let Some(contact) = contact {
+        sqlx::query!("SELECT p.id FROM contacts p JOIN invoices i ON i.workspace_id=p.workspace_id AND i.relation_id=p.relation_id WHERE i.workspace_id=$1 AND i.id=$2 AND p.id=$3 FOR SHARE OF p",workspace,id,contact).fetch_all(conn).await?;
+    }
+    Ok(())
+}

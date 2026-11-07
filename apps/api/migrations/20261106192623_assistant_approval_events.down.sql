@@ -1,0 +1,2 @@
+DROP INDEX assistant_actions_approval_event_idx;
+ALTER TABLE assistant_actions DROP COLUMN approval_event_sha256;

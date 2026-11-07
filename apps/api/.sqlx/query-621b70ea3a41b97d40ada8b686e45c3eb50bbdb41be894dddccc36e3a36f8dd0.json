@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.workspace_id,s.id FROM assistant_sessions s\n         WHERE s.state='cleaned' AND s.cleaned_at<now()-interval '90 days'\n           AND s.conversation_id IS NULL\n           AND NOT EXISTS(SELECT 1 FROM assistant_batches b WHERE b.workspace_id=s.workspace_id AND b.session_id=s.id)\n           AND NOT EXISTS(SELECT 1 FROM assistant_actions a\n               WHERE a.workspace_id=s.workspace_id AND a.session_id=s.id)\n           AND NOT EXISTS(SELECT 1 FROM assistant_uploads u\n               WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id\n                 AND (u.state<>'cleaned' OR u.file_id IS NOT NULL))\n         ORDER BY s.cleaned_at,s.id LIMIT 100 FOR UPDATE OF s SKIP LOCKED",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_sessions",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_sessions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "621b70ea3a41b97d40ada8b686e45c3eb50bbdb41be894dddccc36e3a36f8dd0"
+}

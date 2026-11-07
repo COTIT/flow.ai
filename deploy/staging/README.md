@@ -1,5 +1,7 @@
 # Staging
 
+Office assistant stays disabled by default. See [assistant deployment](../ASSISTANT.md) for runtime secrets, restricted checkpoint roles, readiness and compatible rollback.
+
 A full Genesy stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), the five apps and the landing page, all served through the VPS's existing Traefik.
 
 Think of it as a dress rehearsal stage: same sets as opening night, fake money in the till, and every letter lands in a box backstage.

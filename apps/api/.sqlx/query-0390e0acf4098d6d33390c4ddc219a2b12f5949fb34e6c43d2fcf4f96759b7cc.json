@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions SET batch_id=$4,batch_index=$6,state='batch_pending',expires_at=(SELECT expires_at FROM assistant_batches WHERE workspace_id=$1 AND id=$4) WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$5 AND state='proposed' AND batch_id IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0390e0acf4098d6d33390c4ddc219a2b12f5949fb34e6c43d2fcf4f96759b7cc"
+}

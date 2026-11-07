@@ -77,6 +77,19 @@ pub async fn find(
     .await
 }
 
+/// Serialize permission changes against same live workspace team.
+pub async fn lock(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    team_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    Ok(sqlx::query_scalar!(
+        "SELECT id FROM teams WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR UPDATE",
+        team_id,
+        workspace_id,
+    ).fetch_optional(db).await?.is_some())
+}
+
 /// One page of live teams + total matching count, in one query.
 pub async fn list(
     db: impl PgExecutor<'_>,

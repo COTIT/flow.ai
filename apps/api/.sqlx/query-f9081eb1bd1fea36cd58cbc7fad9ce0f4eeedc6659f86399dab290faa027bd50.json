@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id AS invoice_delivery_id,invoice_id,CASE WHEN status IN ('running','sending') THEN 'queued' ELSE status END AS \"status!\",send_log_id,pdf_file_id FROM invoice_deliveries WHERE workspace_id=$1 AND id=$2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invoice_delivery_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "send_log_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "send_log_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "pdf_file_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "pdf_file_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "f9081eb1bd1fea36cd58cbc7fad9ce0f4eeedc6659f86399dab290faa027bd50"
+}

@@ -269,6 +269,8 @@ mod tests {
     fn ctx(db: &PgPool, trusted: &[&str]) -> Ctx {
         let trusted: Vec<String> = trusted.iter().map(|s| (*s).to_owned()).collect();
         Ctx {
+            invoice_state: None,
+            assistant_api_key: None,
             db: db.clone(),
             files: None,
             http: Outbound::new(&trusted).unwrap(),
@@ -595,6 +597,7 @@ mod tests {
         event(&db, ws, "stock.changed").await;
         let id = fan(&db, ws).await[0];
         let keyless = Ctx {
+            invoice_state: None,
             credentials: None,
             ..ctx(&db, &["127.0.0.1"])
         };

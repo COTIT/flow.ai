@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH stopped AS (\n           SELECT a.workspace_id,a.id FROM assistant_actions a JOIN assistant_batches b\n             ON b.workspace_id=a.workspace_id AND b.id=a.batch_id\n           WHERE a.state='batch_pending' AND b.state IN ('paused','cancelled','expired','completed')\n             AND (a.proposal IS NOT NULL OR a.review_facts<>'{}'::jsonb)\n           ORDER BY b.finished_at,a.id LIMIT 1000 FOR UPDATE OF a SKIP LOCKED\n         ) UPDATE assistant_actions a SET proposal=NULL,review_facts='{}'::jsonb\n           FROM stopped s WHERE a.workspace_id=s.workspace_id AND a.id=s.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "cc0b35736b796ec9d46f49384f1c5ee32afac497dd6d285339ccc3673662dd05"
+}

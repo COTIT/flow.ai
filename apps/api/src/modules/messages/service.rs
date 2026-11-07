@@ -16,7 +16,10 @@ use crate::{
         auth::token::PlainSecret,
         email_profiles::{self, service::password_path},
         files,
-        messages::repo::{self, LogRow, NewLog},
+        messages::{
+            dto::{SendReceipt, SendStatus},
+            repo::{self, LogRow, NewLog},
+        },
         settings::{self, credentials::RE_ENTER},
         users, workspaces,
     },
@@ -71,9 +74,56 @@ pub async fn send(
     workspace_id: Uuid,
     user_id: Uuid,
     o: Outgoing<'_>,
-) -> Result<(), AppError> {
+) -> Result<SendReceipt, AppError> {
+    crate::modules::assistant::mail_recipients::check(workspace_id, &o.to)?;
+    let action = crate::modules::assistant::preconditions::action_id();
+    send_once(
+        state,
+        workspace_id,
+        user_id,
+        o,
+        Uuid::now_v7(),
+        action,
+        None,
+    )
+    .await
+}
+
+/// Send only after specific invoice attempt commits its SMTP fence.
+pub(crate) async fn send_reserved(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    o: Outgoing<'_>,
+    delivery_id: Uuid,
+    action_id: Option<Uuid>,
+) -> Result<SendReceipt, AppError> {
+    send_once(
+        state,
+        workspace_id,
+        user_id,
+        o,
+        delivery_id,
+        action_id,
+        Some(delivery_id),
+    )
+    .await
+}
+
+async fn send_once(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    o: Outgoing<'_>,
+    log_id: Uuid,
+    action_id: Option<Uuid>,
+    delivery: Option<Uuid>,
+) -> Result<SendReceipt, AppError> {
     if o.to.is_empty() && o.cc.is_empty() && o.bcc.is_empty() {
-        return Ok(());
+        return Ok(SendReceipt {
+            status: SendStatus::NoRecipients,
+            send_log_id: None,
+        });
     }
     let rows = attachment_rows(state, workspace_id, o.attachments).await?;
     let route = route(state, workspace_id, o.email_profile_id, o.message_type).await?;
@@ -91,11 +141,11 @@ pub async fn send(
     }
     .render()
     .map_err(|e| AppError::Internal(format!("mail layout: {e}")))?;
-    let log_id = Uuid::now_v7();
     let mut tx = state.db.begin().await?;
     repo::insert(
         &mut tx,
         &NewLog {
+            assistant_action_id: action_id,
             id: log_id,
             workspace_id,
             user_id,
@@ -109,8 +159,16 @@ pub async fn send(
         },
     )
     .await?;
+    if let Some(delivery) = delivery
+        && !crate::modules::invoices::delivery_repo::fence(&mut *tx, workspace_id, delivery, log_id)
+            .await?
+    {
+        return Err(AppError::Conflict(
+            "Invoice delivery attempt has already been consumed.",
+        ));
+    }
+    repo::mark(&mut *tx, log_id, "sending", None, None).await?;
     tx.commit().await?;
-    repo::mark(&state.db, log_id, "sending", None, None).await?;
     let mail = Mail {
         from: route.from,
         to: o.to,
@@ -135,11 +193,17 @@ pub async fn send(
     match outcome {
         Ok(Delivered::Accepted { message_id }) => {
             record("accepted", message_id, None).await;
-            Ok(())
+            Ok(SendReceipt {
+                status: SendStatus::Accepted,
+                send_log_id: Some(log_id),
+            })
         }
         Ok(Delivered::Blocked { .. }) => {
             record("blocked", None, None).await;
-            Ok(())
+            Ok(SendReceipt {
+                status: SendStatus::Blocked,
+                send_log_id: Some(log_id),
+            })
         }
         Err(Failure::Refused(why)) => {
             record("failed", None, Some(why.into())).await;
@@ -454,7 +518,16 @@ pub async fn contact_email(
     workspace_id: Uuid,
     contact_id: Uuid,
 ) -> Result<Option<String>, AppError> {
-    repo::contact_email(&state.db, workspace_id, contact_id)
+    contact_email_from(&state.db, workspace_id, contact_id).await
+}
+
+/// Shared contact validation and normalization for native sends and approval snapshots.
+pub(crate) async fn contact_email_from(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    contact_id: Uuid,
+) -> Result<Option<String>, AppError> {
+    repo::contact_email(db, workspace_id, contact_id)
         .await?
         .ok_or_else(|| {
             AppError::field(

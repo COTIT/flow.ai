@@ -4,6 +4,7 @@ use axum::{
     Json,
     extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -14,7 +15,7 @@ use crate::{
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Envelope, Message, MessageBody},
+        response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
     mail::{Delivered, Failure, Mail, Sender, Via, graph},
@@ -23,7 +24,7 @@ use crate::{
         messages::{
             dto::{
                 EmailLog, Office365Failure, Office365Reply, Office365Request, ProfileTestResult,
-                SendMessageRequest,
+                SendMessageReply, SendMessageRequest, SendReceipt, SendStatus,
             },
             service::{self, Outgoing},
         },
@@ -58,7 +59,7 @@ pub struct ListQuery {
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = SendMessageRequest,
     responses(
-        (status = 200, body = MessageBody, description = "Sent, logged or blocked by the allow-list (`ok`)"),
+        (status = 200, body = SendMessageReply, description = "Processed; receipt distinguishes transport acceptance, blocked, manual and no recipients"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `workspace.send-message`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
         (status = 422, body = UnprocessableBody, description = "Invalid input, unknown contact, attachment or profile, or no usable mail server"),
@@ -69,11 +70,21 @@ pub async fn send_message(
     State(state): State<AppState>,
     access: Can<SendMessage>,
     ValidatedJson(input): ValidatedJson<SendMessageRequest>,
-) -> Result<Message, AppError> {
+) -> Result<Response, AppError> {
     let contact =
         service::contact_email(&state, access.workspace_id, input.addressed_contact_id).await?;
     if input.manual {
-        return Ok(Message("ok"));
+        let delivery = SendReceipt {
+            status: SendStatus::Manual,
+            send_log_id: None,
+        };
+        return Ok(mail_response(
+            Json(SendMessageReply {
+                message: "ok",
+                delivery,
+            }),
+            delivery,
+        ));
     }
     let to = if input.to.is_empty() {
         contact.into_iter().collect()
@@ -92,8 +103,14 @@ pub async fn send_message(
         entity: None,
         button: None,
     };
-    service::send(&state, access.workspace_id, access.user_id, outgoing).await?;
-    Ok(Message("ok"))
+    let delivery = service::send(&state, access.workspace_id, access.user_id, outgoing).await?;
+    Ok(mail_response(
+        Json(SendMessageReply {
+            message: "ok",
+            delivery,
+        }),
+        delivery,
+    ))
 }
 
 /// GET /settings/email-logs: the workspace's sends, newest first (`setting.get`, the
@@ -127,7 +144,7 @@ pub async fn logs(
     operation_id = "messages_profile_test", summary = "Send a test email to the caller through a profile",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("profile" = Uuid, Path, description = "Email profile id")),
     responses(
-        (status = 200, body = Envelope<ProfileTestResult>, description = "The test email went out"),
+        (status = 200, body = Envelope<ProfileTestResult>, description = "Transport receipt; acceptance true only when the server accepted mail"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or profile, or caller not a member"),
         (status = 422, body = UnprocessableBody, description = "The profile has no usable mail server, or the server refused the mail"),
@@ -138,7 +155,7 @@ pub async fn profile_test(
     State(state): State<AppState>,
     access: Can<ProfileUpdate>,
     Path((_, id)): Path<(String, String)>,
-) -> Result<Data<Value>, AppError> {
+) -> Result<Response, AppError> {
     let id = Uuid::parse_str(&id).map_err(|_| AppError::NotFound)?;
     email_profiles::repo::find(&state.db, access.workspace_id, id)
         .await?
@@ -157,8 +174,19 @@ pub async fn profile_test(
         entity: None,
         button: None,
     };
-    service::send(&state, access.workspace_id, access.user_id, outgoing).await?;
-    Ok(Data(json!({ "success_connection": true })))
+    let delivery = service::send(&state, access.workspace_id, access.user_id, outgoing).await?;
+    Ok(mail_response(
+        Data(
+            json!({"success_connection":delivery.status==SendStatus::Accepted,"delivery":delivery}),
+        ),
+        delivery,
+    ))
+}
+
+fn mail_response(body: impl IntoResponse, receipt: SendReceipt) -> Response {
+    let mut response = body.into_response();
+    response.extensions_mut().insert(receipt);
+    response
 }
 
 /// A test answer: `{data:{ok, stage, message, …}}`, 200 or 422.
@@ -293,9 +321,9 @@ pub async fn office365_send(
                 true,
                 "send",
                 format!(
-                    "Test e-mail sent to {to} from {from}. Check the inbox and the sender mailbox Sent Items."
+                    "Mail server accepted the test email to {to} from {from}. Check the recipient inbox for delivery."
                 ),
-                json!({}),
+                json!({"delivery":SendReceipt{status:SendStatus::Accepted,send_log_id:None}}),
             ),
             Ok(Delivered::Blocked { .. }) => answer(
                 false,

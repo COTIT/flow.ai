@@ -245,9 +245,9 @@ async fn a_send_that_cannot_mail_is_refused_before_numbering(pool: PgPool) {
 }
 
 /// A mail server that fails after the number was taken: the invoice stays numbered and
-/// pending, and resend delivers it once the server works.
+/// pending; ambiguous transport requires verification before another send.
 #[sqlx::test]
-async fn a_failed_mail_keeps_the_number_and_resend_retries(pool: PgPool) {
+async fn a_failed_mail_keeps_number_and_requires_verification_before_resend(pool: PgPool) {
     let f = setup(pool).await;
     let port = f.smtp_port;
     let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -261,6 +261,13 @@ async fn a_failed_mail_keeps_the_number_and_resend_retries(pool: PgPool) {
     assert_eq!(numbered(&f, &id).await, (Some(1000), "pending".into()));
     assert_eq!(level(&f, &f.main).await, "9.00", "stock moved once");
     settings(&f.api, smtp(port)).await;
+    assert_eq!(
+        resend(&f, &id, message(&f, "email")).await.0,
+        StatusCode::CONFLICT
+    );
+    assert!(f.inbox.lock().unwrap().is_empty());
+    // Operator verification is explicit; changing SMTP configuration alone proves nothing.
+    sqlx::query("UPDATE invoice_deliveries SET status='failed',finished_at=now() WHERE workspace_id=$1::uuid AND invoice_id=$2::uuid AND status='unknown'").bind(&f.api.ws).bind(&id).execute(&f.api.pool).await.unwrap();
     assert_eq!(resend(&f, &id, message(&f, "email")).await, ok());
     assert_eq!(f.inbox.lock().unwrap().len(), 1);
 }
@@ -580,6 +587,60 @@ async fn sends_have_no_background_tasks(pool: PgPool) {
     );
 }
 
+#[sqlx::test]
+async fn active_send_tasks_expose_only_owned_unresolved_receipts(pool: PgPool) {
+    let f = setup(pool.clone()).await;
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    let user: uuid::Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email='ada@example.com'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let mut expected = Vec::new();
+    for state in [
+        "queued", "running", "sending", "unknown", "accepted", "blocked", "manual", "failed",
+    ] {
+        let id: uuid::Uuid = sqlx::query_scalar("INSERT INTO invoice_deliveries(workspace_id,invoice_id,user_id,kind,status,request) VALUES($1::uuid,$2::uuid,$3,'send',$4,'{\"subject\":\"private mail body\"}'::jsonb) RETURNING id")
+            .bind(&f.api.ws).bind(&invoice).bind(user).bind(state)
+            .fetch_one(&pool).await.unwrap();
+        if ["queued", "running", "sending", "unknown"].contains(&state) {
+            expected.push((
+                id.to_string(),
+                if state == "unknown" {
+                    "unknown"
+                } else {
+                    "queued"
+                },
+            ));
+        }
+    }
+    let response = f.api.list("/send-tasks/active").await;
+    let rows = response["data"].as_array().unwrap();
+    assert_eq!(rows.len(), 4);
+    for (id, state) in expected {
+        let task = rows.iter().find(|task| task["id"] == id).unwrap();
+        assert_eq!(task["invoice_delivery_id"], id);
+        assert_eq!(task["invoice_id"], invoice);
+        assert_eq!(task["status"], state);
+        assert!(task["created_at"].is_string());
+        assert_eq!(task.as_object().unwrap().len(), 5);
+    }
+    assert!(!response.to_string().contains("private mail body"));
+    let other = f
+        .api
+        .as_new_owner("other-send-tasks@example.com", "other-send-tasks")
+        .await;
+    assert_eq!(other.list("/send-tasks/active").await, json!({"data":[]}));
+    let path = format!("/v1/workspace/{}/invoices/send-tasks/active", f.api.ws);
+    let (status, _) = common::send(&f.api.app, Method::GET, &path, None, None).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    let (status, _) = common::send(&f.api.app, Method::GET, &path, None, Some(&other.owner)).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    sqlx::query("INSERT INTO invoice_deliveries(workspace_id,invoice_id,user_id,kind) SELECT $1::uuid,$2::uuid,$3,'send' FROM generate_series(1,101)")
+        .bind(&f.api.ws).bind(&invoice).bind(user).execute(&pool).await.unwrap();
+    let bounded = f.api.list("/send-tasks/active").await;
+    assert_eq!(bounded["data"].as_array().unwrap().len(), 100);
+}
+
 /// Edit the currency's decimals as the owner.
 async fn decimals(f: &F, currency: &str, decimals: i64) -> (StatusCode, Value) {
     f.api
@@ -815,4 +876,448 @@ async fn a_manual_send_of_another_workspaces_draft_is_a_404(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
     assert_eq!(numbered(&f, &id).await, (None, "draft".to_owned()));
+}
+
+#[sqlx::test]
+async fn durable_delivery_receipt_links_invoice_job_and_send_log(pool: PgPool) {
+    let f = setup(pool.clone()).await;
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    let (status, body) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/send"),
+            Some(message(&f, "email")),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["message"], "ok");
+    let delivery = body["delivery"]["invoice_delivery_id"]
+        .as_str()
+        .expect("numbered invoice must have durable delivery receipt");
+    assert_eq!(body["delivery"]["status"], "accepted");
+    let row:(String,Option<String>,bool)=sqlx::query_as("SELECT status,send_log_id::text,request IS NULL FROM invoice_deliveries WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&f.api.ws).bind(delivery).fetch_one(&pool).await.unwrap();
+    assert_eq!(row.0, "accepted");
+    assert!(row.1.is_some());
+    assert!(row.2, "resolved business mail input must be cleared");
+    let jobs:i64=sqlx::query_scalar("SELECT count(*) FROM jobs WHERE workspace_id=$1::uuid AND kind='invoice_delivery' AND payload->>'delivery_id'=$2").bind(&f.api.ws).bind(delivery).fetch_one(&pool).await.unwrap();
+    assert_eq!(jobs, 1);
+    assert_eq!(f.inbox.lock().unwrap().len(), 1);
+}
+
+#[sqlx::test]
+async fn durable_delivery_manual_without_renderer_records_no_transport(pool: PgPool) {
+    let f = setup_with(pool.clone(), false).await;
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    let (status, body) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/send"),
+            Some(message(&f, "manual")),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let delivery = body["delivery"]["invoice_delivery_id"]
+        .as_str()
+        .expect("manual numbering must have durable receipt");
+    assert_eq!(body["delivery"]["status"], "manual");
+    assert!(body["delivery"]["send_log_id"].is_null());
+    assert!(f.inbox.lock().unwrap().is_empty());
+    let row:(String,bool)=sqlx::query_as("SELECT status,request IS NULL FROM invoice_deliveries WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&f.api.ws).bind(delivery).fetch_one(&pool).await.unwrap();
+    assert_eq!(row, ("manual".into(), true));
+    assert!(numbered(&f, &invoice).await.0.is_some());
+}
+
+async fn review_action(
+    f: &crate::common::invoicing::F,
+    operation: &str,
+    path: &str,
+    input: Value,
+) -> (String, String, Value) {
+    use hmac::{Hmac, KeyInit, Mac};
+    use sha2::{Digest, Sha256};
+    let base = format!("/v1/workspace/{}/assistant", f.api.ws);
+    let (_, session) = crate::common::send(
+        &f.api.app,
+        Method::POST,
+        &format!("{base}/sessions"),
+        Some(json!({"language":"en"})),
+        Some(&f.api.owner),
+    )
+    .await;
+    let session = session["data"]["id"].as_str().unwrap().to_owned();
+    let(status,proposal)=crate::common::send(&f.api.app,Method::POST,&format!("{base}/actions"),Some(json!({"session_id":session,"operation_id":operation,"method":"POST","path":path,"body":input})),Some(&f.api.owner)).await;
+    assert_eq!(status, StatusCode::CREATED, "{proposal}");
+    let action = proposal["data"]["id"].as_str().unwrap().to_owned();
+    let uri = format!("{base}/actions/{action}/approve");
+    let body = json!({"session_id":session});
+    let stamp = chrono::Utc::now().timestamp().to_string();
+    let canonical = format!(
+        "{stamp}\nPOST\n{uri}\n{}",
+        hex::encode(Sha256::digest(body.to_string().as_bytes()))
+    );
+    let mut mac = <Hmac<Sha256> as KeyInit>::new_from_slice(INVOICE_BRIDGE.as_bytes()).unwrap();
+    mac.update(canonical.as_bytes());
+    let signature = hex::encode(mac.finalize().into_bytes());
+    let (status, _) = crate::common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &uri,
+        Some(body),
+        Some(&f.api.owner),
+        &[
+            ("Assistant-Bridge-Timestamp", &stamp),
+            ("Assistant-Bridge-Signature", &signature),
+        ],
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    (session, action, proposal)
+}
+const INVOICE_BRIDGE: &str = "invoice-review-test-bridge-secret-thirty-two-bytes";
+fn assistant_invoice_app(f: &mut crate::common::invoicing::F) {
+    f.delivery_state.assistant_bridge_secret = Some(std::sync::Arc::new(
+        genesy_360_api::AssistantSecret::new(INVOICE_BRIDGE.into()).unwrap(),
+    ));
+    f.api.app = genesy_360_api::build_app(f.delivery_state.clone());
+}
+
+#[sqlx::test]
+async fn assistant_invoice_review_rejects_changed_amount_before_numbering(pool: PgPool) {
+    let mut f = setup_with(pool.clone(), false).await;
+    assistant_invoice_app(&mut f);
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    let path = format!("/v1/workspace/{}/invoices/{invoice}/send", f.api.ws);
+    let input = message(&f, "manual");
+    let (session, action, proposal) =
+        review_action(&f, "invoices_send", &path, input.clone()).await;
+    assert_eq!(
+        proposal["data"]["review_facts"]["facts"]["locked"]["total_minor"],
+        1210
+    );
+    sqlx::query("UPDATE invoices SET total=2000,updated_at=now() WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&f.api.ws).bind(&invoice).execute(&pool).await.unwrap();
+    let (status, response) = crate::common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &path,
+        Some(input),
+        Some(&f.api.owner),
+        &[
+            ("Assistant-Action-Id", &action),
+            ("Assistant-Session-Id", &session),
+        ],
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::CONFLICT,
+        "{}",
+        String::from_utf8_lossy(&response)
+    );
+    assert_eq!(numbered(&f, &invoice).await, (None, "draft".into()));
+    let row:(String,Option<chrono::DateTime<chrono::Utc>>)=sqlx::query_as("SELECT state,finished_at FROM assistant_actions WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&f.api.ws).bind(action).fetch_one(&pool).await.unwrap();
+    assert_eq!(row.0, "failed");
+    assert!(row.1.is_some());
+}
+
+fn delivery_ctx(f: &crate::common::invoicing::F) -> genesy_360_api::jobs::kinds::Ctx {
+    genesy_360_api::jobs::kinds::Ctx {
+        invoice_state: Some(f.delivery_state.clone()),
+        assistant_api_key: None,
+        db: f.api.pool.clone(),
+        files: f.delivery_state.files.clone(),
+        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        credentials: f.delivery_state.credentials.clone(),
+        payments: f.delivery_state.payments.clone(),
+    }
+}
+
+#[sqlx::test]
+async fn committed_invoice_job_survives_failure_before_first_claim(pool: PgPool) {
+    let f = setup_with(pool.clone(), false).await;
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    sqlx::raw_sql("CREATE FUNCTION fail_invoice_claim() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.status='running' THEN RAISE EXCEPTION 'injected crash after numbering commit'; END IF; RETURN NEW; END $$;CREATE TRIGGER fail_claim BEFORE UPDATE ON invoice_deliveries FOR EACH ROW EXECUTE FUNCTION fail_invoice_claim();").execute(&pool).await.unwrap();
+    let (status, _) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/send"),
+            Some(message(&f, "manual")),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(numbered(&f, &invoice).await, (Some(1000), "pending".into()));
+    sqlx::raw_sql(
+        "DROP TRIGGER fail_claim ON invoice_deliveries;DROP FUNCTION fail_invoice_claim();",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let job = genesy_360_api::jobs::repo::claim(
+        &pool,
+        &["invoice_delivery"],
+        1,
+        std::time::Duration::from_secs(60),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
+        .await
+        .unwrap();
+    let row:(String,bool)=sqlx::query_as("SELECT status,request IS NULL FROM invoice_deliveries WHERE workspace_id=$1::uuid AND invoice_id=$2::uuid").bind(&f.api.ws).bind(&invoice).fetch_one(&pool).await.unwrap();
+    assert_eq!(row, ("manual".into(), true));
+    assert_eq!(numbered(&f, &invoice).await.0, Some(1000));
+    assert!(f.inbox.lock().unwrap().is_empty());
+}
+
+#[sqlx::test]
+async fn crash_after_smtp_acceptance_reconciles_without_second_mail(pool: PgPool) {
+    let f = setup(pool.clone()).await;
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    sqlx::raw_sql("CREATE FUNCTION fail_invoice_finish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.status='accepted' THEN RAISE EXCEPTION 'injected crash after SMTP acceptance'; END IF;RETURN NEW;END $$;CREATE TRIGGER fail_finish BEFORE UPDATE ON invoice_deliveries FOR EACH ROW EXECUTE FUNCTION fail_invoice_finish();").execute(&pool).await.unwrap();
+    let (status, _) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/send"),
+            Some(message(&f, "email")),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(f.inbox.lock().unwrap().len(), 1);
+    assert_eq!(numbered(&f, &invoice).await.0, Some(1000));
+    sqlx::raw_sql("DROP TRIGGER fail_finish ON invoice_deliveries;DROP FUNCTION fail_invoice_finish();UPDATE invoice_deliveries SET started_at=now()-interval '11 minutes';").execute(&pool).await.unwrap();
+    let job = genesy_360_api::jobs::repo::claim(
+        &pool,
+        &["invoice_delivery"],
+        1,
+        std::time::Duration::from_secs(60),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
+        .await
+        .unwrap();
+    let sweep = genesy_360_api::jobs::repo::Claimed {
+        id: uuid::Uuid::now_v7(),
+        kind: "invoice_delivery_sweep".into(),
+        workspace_id: None,
+        payload: json!({}),
+        attempts: 1,
+        max_attempts: 5,
+        created_by: None,
+        token: uuid::Uuid::now_v7(),
+    };
+    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), sweep)
+        .await
+        .unwrap();
+    let row:(String,bool)=sqlx::query_as("SELECT status,request IS NULL FROM invoice_deliveries WHERE workspace_id=$1::uuid AND invoice_id=$2::uuid").bind(&f.api.ws).bind(&invoice).fetch_one(&pool).await.unwrap();
+    assert_eq!(row, ("accepted".into(), true));
+    assert_eq!(f.inbox.lock().unwrap().len(), 1);
+}
+
+#[sqlx::test]
+async fn resend_cannot_replace_snapshot_while_previous_delivery_unresolved(pool: PgPool) {
+    let f = setup(pool.clone()).await;
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    let (status, _) = send(&f, &invoice, message(&f, "manual")).await;
+    assert_eq!(status, StatusCode::OK);
+    let before: Option<serde_json::Value> = sqlx::query_scalar(
+        "SELECT addressed_contact FROM invoices WHERE workspace_id=$1::uuid AND id=$2::uuid",
+    )
+    .bind(&f.api.ws)
+    .bind(&invoice)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    for state in ["queued", "running", "sending", "unknown"] {
+        let id:uuid::Uuid=sqlx::query_scalar("INSERT INTO invoice_deliveries(workspace_id,invoice_id,user_id,kind,status) SELECT $1::uuid,$2::uuid,created_by,'resend',$3 FROM invoices WHERE workspace_id=$1::uuid AND id=$2::uuid RETURNING id").bind(&f.api.ws).bind(&invoice).bind(state).fetch_one(&pool).await.unwrap();
+        let (status, _) = resend(&f, &invoice, message(&f, "email")).await;
+        assert_eq!(
+            status,
+            StatusCode::CONFLICT,
+            "pending {state} must block replacing source snapshots"
+        );
+        assert!(f.inbox.lock().unwrap().is_empty());
+        let after: Option<serde_json::Value> = sqlx::query_scalar(
+            "SELECT addressed_contact FROM invoices WHERE workspace_id=$1::uuid AND id=$2::uuid",
+        )
+        .bind(&f.api.ws)
+        .bind(&invoice)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(after, before);
+        sqlx::query(
+            "UPDATE invoice_deliveries SET status='blocked' WHERE workspace_id=$1::uuid AND id=$2",
+        )
+        .bind(&f.api.ws)
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+}
+#[sqlx::test]
+async fn assistant_mail_review_binds_fallback_recipient_before_smtp(pool: PgPool) {
+    let mut f = setup(pool.clone()).await;
+    assistant_invoice_app(&mut f);
+    let path = format!("/v1/workspace/{}/send-message", f.api.ws);
+    let mut input = message(&f, "email");
+    input["to"] = json!([]);
+    let (session, action, proposal) =
+        review_action(&f, "messages_send", &path, input.clone()).await;
+    assert_eq!(
+        proposal["data"]["review_facts"]["facts"]["locked"]["to"],
+        json!(["cleo@client.test"])
+    );
+    sqlx::query("UPDATE contacts SET email='changed@client.test' WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&f.api.ws).bind(&f.contact).execute(&pool).await.unwrap();
+    let (status, response) = crate::common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &path,
+        Some(input),
+        Some(&f.api.owner),
+        &[
+            ("Assistant-Action-Id", &action),
+            ("Assistant-Session-Id", &session),
+        ],
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::CONFLICT,
+        "{}",
+        String::from_utf8_lossy(&response)
+    );
+    assert!(f.inbox.lock().unwrap().is_empty());
+}
+
+#[sqlx::test]
+async fn assistant_invoice_commit_receipt_survives_http_failure_and_worker_completion(
+    pool: PgPool,
+) {
+    let mut f = setup_with(pool.clone(), false).await;
+    assistant_invoice_app(&mut f);
+    let invoice = draft(&f, chairs(&f, 1, None), false).await;
+    let path = format!("/v1/workspace/{}/invoices/{invoice}/send", f.api.ws);
+    let input = message(&f, "manual");
+    let (session, action, _) = review_action(&f, "invoices_send", &path, input.clone()).await;
+    sqlx::raw_sql("CREATE FUNCTION fail_invoice_claim() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.status='running' THEN RAISE EXCEPTION 'injected crash after numbering commit';END IF;RETURN NEW;END $$;CREATE TRIGGER fail_claim BEFORE UPDATE ON invoice_deliveries FOR EACH ROW EXECUTE FUNCTION fail_invoice_claim();").execute(&pool).await.unwrap();
+    let (status, _) = crate::common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &path,
+        Some(input),
+        Some(&f.api.owner),
+        &[
+            ("Assistant-Action-Id", &action),
+            ("Assistant-Session-Id", &session),
+        ],
+    )
+    .await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(numbered(&f, &invoice).await.0, Some(1000));
+    let query = "SELECT state,finished_at IS NULL,evidence->'delivery'->>'invoice_delivery_id' FROM assistant_actions WHERE workspace_id=$1::uuid AND id=$2::uuid";
+    let row: (String, bool, Option<String>) = sqlx::query_as(query)
+        .bind(&f.api.ws)
+        .bind(&action)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(row.0, "queued");
+    assert!(row.1);
+    assert!(row.2.is_some());
+    sqlx::raw_sql(
+        "DROP TRIGGER fail_claim ON invoice_deliveries;DROP FUNCTION fail_invoice_claim();",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let job = genesy_360_api::jobs::repo::claim(
+        &pool,
+        &["invoice_delivery"],
+        1,
+        std::time::Duration::from_secs(60),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
+        .await
+        .unwrap();
+    let row: (String, bool, Option<String>) = sqlx::query_as(query)
+        .bind(&f.api.ws)
+        .bind(&action)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(row.0, "partial");
+    assert!(!row.1);
+    assert!(row.2.is_some());
+}
+
+#[sqlx::test]
+async fn thousand_line_invoice_review_binds_hidden_tail_and_fresh_review_sends(pool: PgPool) {
+    let mut f = setup_with(pool.clone(), false).await;
+    assistant_invoice_app(&mut f);
+    let items=json!((0..1000).map(|i|json!({"title":format!("Line{i} {}","x".repeat(220)),"quantity":1,"price":"10","vat":"21"})).collect::<Vec<_>>());
+    let invoice = draft(&f, items, false).await;
+    let path = format!("/v1/workspace/{}/invoices/{invoice}/send", f.api.ws);
+    let input = message(&f, "manual");
+    let (session, action, review) = review_action(&f, "invoices_send", &path, input.clone()).await;
+    let facts = &review["data"]["review_facts"]["facts"]["locked"];
+    assert_eq!(facts["line_count"], 1000);
+    assert_eq!(facts["lines_omitted"], 995);
+    assert_eq!(facts["lines_preview"].as_array().unwrap().len(), 5);
+    assert!(
+        facts.get("material_sha256").is_none(),
+        "private comparison digest is not public review content"
+    );
+    sqlx::query("UPDATE items SET title='Changed after review' WHERE workspace_id=$1::uuid AND id=(SELECT id FROM items WHERE workspace_id=$1::uuid AND invoice_id=$2::uuid ORDER BY position DESC,id DESC LIMIT 1)").bind(&f.api.ws).bind(&invoice).execute(&pool).await.unwrap();
+    let (status, body) = crate::common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &path,
+        Some(input.clone()),
+        Some(&f.api.owner),
+        &[
+            ("Assistant-Action-Id", &action),
+            ("Assistant-Session-Id", &session),
+        ],
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::CONFLICT,
+        "{}",
+        String::from_utf8_lossy(&body)
+    );
+    assert_eq!(numbered(&f, &invoice).await.0, None);
+    let (session, action, fresh) = review_action(&f, "invoices_send", &path, input.clone()).await;
+    assert_eq!(
+        fresh["data"]["review_facts"]["facts"]["locked"]["total_minor"],
+        1210000
+    );
+    let (status, body) = crate::common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &path,
+        Some(input),
+        Some(&f.api.owner),
+        &[
+            ("Assistant-Action-Id", &action),
+            ("Assistant-Session-Id", &session),
+        ],
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    assert_eq!(numbered(&f, &invoice).await.0, Some(1000));
 }

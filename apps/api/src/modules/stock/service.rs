@@ -14,6 +14,7 @@ use crate::{
     http::json::human,
     idempotency::{self, Actor, Answer, Key},
     modules::{
+        assistant::preconditions,
         products::{
             dto::PHYSICAL, repo as products, repo::ProductRow, service as products_service,
         },
@@ -265,6 +266,10 @@ pub async fn set_levels(
     let slots = entry_slots(state, workspace_id, product.id, &entries).await?;
     let mut tx = state.db.begin().await?;
     let mut created = repo::lock_all(&mut tx, workspace_id, &slots).await?;
+    if preconditions::expects("stock") {
+        let facts = preconditions::stock_facts(&mut tx, workspace_id, product.id, &entries).await?;
+        preconditions::check_locked(workspace_id, "stock", &facts)?;
+    }
     let mut held_errors: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for (i, (e, slot)) in entries.iter().zip(slots).enumerate() {
         let (row, _) = repo::lock_or_create(&mut tx, workspace_id, slot).await?;

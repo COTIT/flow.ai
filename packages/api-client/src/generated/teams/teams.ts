@@ -30,6 +30,7 @@ import type {
   EnvelopeTeamResource,
   MessageBody,
   PaginatedTeamResource,
+  PermissionChangeReply,
   PermissionsRequest,
   TeamsListParams,
   UpdateTeamRequest,
@@ -542,7 +543,7 @@ export const teamsSetPermissions = (
 ) => {
 
 
-      return apiRequest<MessageBody>(
+      return apiRequest<PermissionChangeReply>(
       {url: `/workspace/${workspace}/users/teams/${team}/permissions`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: permissionsRequest, signal

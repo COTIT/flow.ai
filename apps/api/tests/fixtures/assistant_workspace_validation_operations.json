@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "scope": "malformed_bound_workspace_only",
+  "malformed": "not-a-uuid",
+  "expectedStatus": 404,
+  "workspaceOperationIds": [
+    "farm_supply_dispatch_options",
+    "farm_tower_verify_summary",
+    "invoices_send_tasks",
+    "till_users_list",
+    "till_vaults_list",
+    "workspaces_get"
+  ]
+}

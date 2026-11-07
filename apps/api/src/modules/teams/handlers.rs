@@ -4,6 +4,7 @@ use axum::{
     Json,
     extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 
 use crate::{
@@ -17,8 +18,8 @@ use crate::{
     },
     modules::teams::{
         dto::{
-            CreateTeamRequest, ListQuery, PermissionsRequest, TeamCreated, TeamResource,
-            UpdateTeamRequest, UserIdsRequest,
+            CreateTeamRequest, ListQuery, PermissionChangeReply, PermissionsRequest, TeamCreated,
+            TeamResource, UpdateTeamRequest, UserIdsRequest,
         },
         repo::ListFilter,
         service::{self, Caller},
@@ -65,9 +66,12 @@ pub async fn create(
     State(state): State<AppState>,
     access: Can<TeamCreate>,
     ValidatedJson(input): ValidatedJson<CreateTeamRequest>,
-) -> Result<(StatusCode, Data<TeamCreated>), AppError> {
-    let team_id = service::create(&state, access.workspace_id, caller(&access), input).await?;
-    Ok((StatusCode::CREATED, Data(TeamCreated { team_id })))
+) -> Result<Response, AppError> {
+    let created = service::create(&state, access.workspace_id, caller(&access), input).await?;
+    let receipt = created.permission_changes.clone();
+    let mut response = (StatusCode::CREATED, Data(created)).into_response();
+    response.extensions_mut().insert(receipt);
+    Ok(response)
 }
 
 /// GET /users/teams -> `{data:[...], meta}`.
@@ -241,7 +245,7 @@ pub async fn remove_users(
     ),
     request_body = PermissionsRequest,
     responses(
-        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 200, body = PermissionChangeReply, description = "Processed; receipt identifies unapplied or ignored changes"),
         (status = 403, body = MessageBody, description = "Inactive membership, missing `team.permissions`, or a non-admin removing `workspace_admin`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
@@ -253,7 +257,16 @@ pub async fn permissions(
     access: Can<TeamPermissions>,
     Path((_, team)): TeamPath,
     ValidatedJson(entries): ValidatedJson<PermissionsRequest>,
-) -> Result<Message, AppError> {
-    service::set_permissions(&state, access.workspace_id, &team, caller(&access), entries).await?;
-    Ok(Message("ok"))
+) -> Result<Response, AppError> {
+    let permission_changes =
+        service::set_permissions(&state, access.workspace_id, &team, caller(&access), entries)
+            .await?;
+    let receipt = permission_changes.clone();
+    let mut response = Json(PermissionChangeReply {
+        message: "ok",
+        permission_changes,
+    })
+    .into_response();
+    response.extensions_mut().insert(receipt);
+    Ok(response)
 }

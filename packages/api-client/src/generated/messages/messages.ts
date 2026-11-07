@@ -31,6 +31,7 @@ import type {
   Office365Reply,
   Office365Request,
   PaginatedEmailLog,
+  SendMessageReply,
   SendMessageRequest,
   UnprocessableBody,
   ValidationErrorBody
@@ -168,7 +169,7 @@ export const messagesSend = (
 ) => {
 
 
-      return apiRequest<MessageBody>(
+      return apiRequest<SendMessageReply>(
       {url: `/workspace/${workspace}/send-message`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: sendMessageRequest, signal

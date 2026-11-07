@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',id,'invoice_delivery_id',id,'invoice_id',invoice_id,'status',CASE WHEN status IN ('running','sending') THEN 'queued' ELSE status END,'created_at',created_at) AS \"task!\" FROM invoice_deliveries WHERE workspace_id=$1 AND status IN ('queued','running','sending','unknown') ORDER BY created_at DESC LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d5fca547604445c5c95605aacc2caa941d107abf561c4148ab3865857c94f5e8"
+}

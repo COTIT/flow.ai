@@ -80,19 +80,29 @@ pub async fn create_in(
     user_id: Uuid,
     input: InvoiceInput,
 ) -> Result<Uuid, AppError> {
-    let mut errors = Errors::default();
-    let relation_id = input.relation_id.unwrap_or_default();
-    // Lock order everywhere: invoice row, relation, products.
-    let addresses = relation(&mut *tx, workspace_id, relation_id, &mut errors).await?;
-    let currency_id = currency(&mut *tx, workspace_id, input.currency_id, &mut errors).await?;
-    let contact = contact(&mut *tx, workspace_id, relation_id, &input, &mut errors).await?;
-    let refs = Refs::load(&mut *tx, workspace_id, &input.items, &mut errors).await?;
-    errors.into_result()?;
-    let billing = match &input.billing_address {
-        Some(Some(a)) => Some(to_json(a)?),
-        Some(None) => None,
-        None => default_billing(addresses.as_deref())?,
+    let review_kind = if crate::modules::assistant::preconditions::expects("order") {
+        Some("order")
+    } else if crate::modules::assistant::preconditions::expects("invoice") {
+        Some("invoice")
+    } else {
+        None
     };
+    let defaults = resolve_create(tx, workspace_id, &input, review_kind.is_some()).await?;
+    if let Some(kind) = review_kind {
+        let actual = create_quote(tx, workspace_id, &input, &defaults).await?;
+        crate::modules::assistant::preconditions::check_priced_required(
+            workspace_id,
+            kind,
+            &actual,
+        )?;
+    }
+    let CreateDefaults {
+        relation_id,
+        currency_id,
+        billing,
+        contact,
+        refs,
+    } = defaults;
     let id = repo::insert(
         &mut *tx,
         workspace_id,
@@ -135,28 +145,29 @@ pub async fn update(
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;
     let locked = draft(&mut tx, workspace_id, id).await?;
-    let mut errors = Errors::default();
-    let relation_id = input.relation_id.unwrap_or_default();
-    let addresses = relation(&mut tx, workspace_id, relation_id, &mut errors).await?;
-    let mut contact = contact(&mut tx, workspace_id, relation_id, &input, &mut errors).await?;
-    let lines: HashMap<Uuid, Option<Uuid>> = repo::item_products(&mut tx, workspace_id, id)
-        .await?
-        .into_iter()
-        .collect();
-    let refs = Refs::load(&mut tx, workspace_id, &input.items, &mut errors).await?;
-    errors.into_result()?;
-    let mut billing = match &input.billing_address {
-        Some(Some(a)) => Some(Some(to_json(a)?)),
-        Some(None) => Some(None),
-        None => None,
-    };
-    // Another relation: the old relation's contact and address must not stay on the invoice.
-    if relation_id != locked.relation_id {
-        contact.get_or_insert(None);
-        if billing.is_none() {
-            billing = Some(default_billing(addresses.as_deref())?);
-        }
+    let defaults = resolve_update(
+        &mut tx,
+        workspace_id,
+        id,
+        &locked,
+        &input,
+        crate::modules::assistant::preconditions::expects("invoice"),
+    )
+    .await?;
+    if crate::modules::assistant::preconditions::expects("invoice") {
+        let actual = update_quote(id, &defaults);
+        crate::modules::assistant::preconditions::check_priced_required(
+            workspace_id,
+            "invoice",
+            &actual,
+        )?;
     }
+    let UpdateDefaults {
+        relation_id,
+        billing,
+        contact,
+        lines,
+    } = defaults;
     repo::update_header(
         &mut tx,
         workspace_id,
@@ -180,7 +191,7 @@ pub async fn update(
         },
     )
     .await?;
-    write_lines(&mut tx, workspace_id, id, &input.items, &refs, &lines).await?;
+    write_line_plan(&mut tx, workspace_id, id, &lines).await?;
     store_totals(&mut tx, workspace_id, id, locked.currency_id).await?;
     tx.commit().await?;
     Ok(())
@@ -210,6 +221,7 @@ pub async fn duplicate(
     let row = repo::find_for_share(&mut tx, workspace_id, source)
         .await?
         .ok_or(AppError::NotFound)?;
+    super::approval::check(&mut tx, workspace_id, source, None).await?;
     let lines = repo::lines(&mut *tx, workspace_id, source).await?;
     let copy = repo::insert(
         &mut tx,
@@ -388,6 +400,7 @@ async fn draft(
     let locked = repo::lock(conn, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    super::approval::check(conn, workspace_id, id, None).await?;
     if !actions::allows(InvoiceAction::Edit, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(NOT_DRAFT.into()));
     }
@@ -581,6 +594,21 @@ async fn write_lines(
     refs: &Refs,
     lines: &HashMap<Uuid, Option<Uuid>>,
 ) -> Result<(), AppError> {
+    let plan = line_plan(rows, refs, lines)?;
+    write_line_plan(conn, workspace_id, invoice_id, &plan).await
+}
+
+struct LinePlan {
+    new: NewLines,
+    changed: LineChanges,
+    deleted: Vec<Uuid>,
+}
+
+fn line_plan(
+    rows: &[ItemRow],
+    refs: &Refs,
+    lines: &HashMap<Uuid, Option<Uuid>>,
+) -> Result<LinePlan, AppError> {
     let mut errors = Errors::default();
     let last: HashMap<Uuid, usize> = rows
         .iter()
@@ -594,27 +622,7 @@ async fn write_lines(
     for row in rows {
         let superseded = |id: &Uuid| last.get(id) != Some(&row.index);
         match &row.kind {
-            RowKind::New(f) => {
-                let product = f.product_id.flatten().and_then(|p| refs.products.get(&p));
-                let product_id = product.map(|p| p.id);
-                new.product_id.push(product_id);
-                new.product_variant_id.push(
-                    refs.variant(f, product_id)
-                        .or_else(|| product.and_then(|p| p.default_variant_id)),
-                );
-                new.warehouse_id.push(refs.warehouse(f, product));
-                new.title.push(f.title.clone());
-                new.description.push(f.description.clone().flatten());
-                new.quantity.push(f.quantity);
-                new.price.push(f.price.unwrap_or_default());
-                new.vat.push(f.vat);
-                new.discount.push(f.discount.unwrap_or_default());
-                new.purchase_price
-                    .push(f.purchase_price.unwrap_or_default());
-                new.position
-                    .push(f.position.or(i32::try_from(row.index).ok()).unwrap_or(1));
-                new.parent_item_id.push(None);
-            }
+            RowKind::New(f) => append_new_line(&mut new, f, row.index, refs),
             RowKind::Update(id, _) | RowKind::Delete(Some(id)) if superseded(id) => {}
             RowKind::Update(id, f) => {
                 let Some(product) = lines.get(id) else {
@@ -647,17 +655,281 @@ async fn write_lines(
         }
     }
     errors.into_result()?;
-    repo::delete_lines(conn, workspace_id, invoice_id, &deleted).await?;
-    repo::update_lines(conn, workspace_id, invoice_id, &changed).await?;
-    repo::insert_lines(conn, workspace_id, invoice_id, &new).await?;
+    Ok(LinePlan {
+        new,
+        changed,
+        deleted,
+    })
+}
+
+async fn write_line_plan(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+    plan: &LinePlan,
+) -> Result<(), AppError> {
+    repo::delete_lines(conn, workspace_id, invoice_id, &plan.deleted).await?;
+    repo::update_lines(conn, workspace_id, invoice_id, &plan.changed).await?;
+    repo::insert_lines(conn, workspace_id, invoice_id, &plan.new).await?;
     Ok(())
 }
 
+/// Prepared headers and line references consumed unchanged by native insertion.
+struct CreateDefaults {
+    relation_id: Uuid,
+    currency_id: Uuid,
+    billing: Option<Value>,
+    contact: Option<Option<Value>>,
+    refs: Refs,
+}
+
+async fn resolve_create(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    input: &InvoiceInput,
+    lock_facts: bool,
+) -> Result<CreateDefaults, AppError> {
+    let relation_id = input.relation_id.unwrap_or_default();
+    if lock_facts {
+        let products = unique(input.items.iter().filter_map(|row| match &row.kind {
+            RowKind::New(f) => f.product_id.flatten(),
+            _ => None,
+        }));
+        share_input_defaults(conn, workspace_id, input, &products).await?;
+    }
+    let mut errors = Errors::default();
+    // Lock order everywhere: invoice row, relation, products.
+    let addresses = relation(&mut *conn, workspace_id, relation_id, &mut errors).await?;
+    let currency_id = currency(&mut *conn, workspace_id, input.currency_id, &mut errors).await?;
+    let contact = contact(&mut *conn, workspace_id, relation_id, input, &mut errors).await?;
+    let refs = Refs::load(&mut *conn, workspace_id, &input.items, &mut errors).await?;
+    errors.into_result()?;
+    let billing = match &input.billing_address {
+        Some(Some(a)) => Some(to_json(a)?),
+        Some(None) => None,
+        None => default_billing(addresses.as_deref())?,
+    };
+    Ok(CreateDefaults {
+        relation_id,
+        currency_id,
+        billing,
+        contact,
+        refs,
+    })
+}
+
+async fn share_input_defaults(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    input: &InvoiceInput,
+    products: &[Uuid],
+) -> Result<(), AppError> {
+    let warehouses = unique(
+        sent_fields(&input.items)
+            .filter_map(|(_, f)| f.mutate_from_warehouse_id.flatten().flatten()),
+    );
+    super::approval_repo::share_defaults(
+        conn,
+        workspace_id,
+        input.relation_id.unwrap_or_default(),
+        input.addressed_contact_id.flatten().flatten(),
+        products,
+        &warehouses,
+    )
+    .await?;
+    Ok(())
+}
+
+struct UpdateDefaults {
+    relation_id: Uuid,
+    billing: Option<Option<Value>>,
+    contact: Option<Option<Value>>,
+    lines: LinePlan,
+}
+
+async fn resolve_update(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    locked: &repo::Locked,
+    input: &InvoiceInput,
+    lock_facts: bool,
+) -> Result<UpdateDefaults, AppError> {
+    let existing: HashMap<Uuid, Option<Uuid>> = repo::item_products(conn, workspace_id, id)
+        .await?
+        .into_iter()
+        .collect();
+    if lock_facts {
+        let products = unique(input.items.iter().filter_map(|row| match &row.kind {
+            RowKind::New(f) => f.product_id.flatten(),
+            RowKind::Update(id, _) => existing.get(id).copied().flatten(),
+            RowKind::Delete(_) | RowKind::Skip => None,
+        }));
+        share_input_defaults(conn, workspace_id, input, &products).await?;
+    }
+    let mut errors = Errors::default();
+    let relation_id = input.relation_id.unwrap_or_default();
+    let addresses = relation(&mut *conn, workspace_id, relation_id, &mut errors).await?;
+    let mut contact = contact(&mut *conn, workspace_id, relation_id, input, &mut errors).await?;
+    let refs = Refs::load(&mut *conn, workspace_id, &input.items, &mut errors).await?;
+    errors.into_result()?;
+    let mut billing = match &input.billing_address {
+        Some(Some(a)) => Some(Some(to_json(a)?)),
+        Some(None) => Some(None),
+        None => None,
+    };
+    // Another relation: the old relation's contact and address must not stay on the invoice.
+    if relation_id != locked.relation_id {
+        contact.get_or_insert(None);
+        if billing.is_none() {
+            billing = Some(default_billing(addresses.as_deref())?);
+        }
+    }
+    let lines = line_plan(&input.items, &refs, &existing)?;
+    Ok(UpdateDefaults {
+        relation_id,
+        billing,
+        contact,
+        lines,
+    })
+}
+
+/// Resolve the native draft patch under the same invoice and input-default locks.
+pub(super) async fn review_update(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    input: &InvoiceInput,
+) -> Result<Value, AppError> {
+    let locked = draft(conn, workspace_id, id).await?;
+    let defaults = resolve_update(conn, workspace_id, id, &locked, input, true).await?;
+    Ok(update_quote(id, &defaults))
+}
+
+fn update_quote(id: Uuid, defaults: &UpdateDefaults) -> Value {
+    let mut lines = quoted_new_lines(&defaults.lines.new);
+    for line in &mut lines {
+        line["change"] = serde_json::json!("new");
+    }
+    let changed = &defaults.lines.changed;
+    let decimal = |value: Decimal| value.normalize().to_string();
+    for i in 0..changed.id.len() {
+        lines.push(serde_json::json!({"change":"update","id":changed.id[i],"variant_id":changed.product_variant_id[i],"set_variant":changed.product_variant_id[i].is_some(),"warehouse_id":changed.warehouse_id[i],"set_warehouse":changed.set_warehouse[i],"title":changed.title[i],"description":changed.description[i],"set_description":changed.set_description[i],"quantity":decimal(changed.quantity[i]),"price":changed.price[i].map(decimal),"set_price":changed.price[i].is_some(),"vat":decimal(changed.vat[i]),"discount":changed.discount[i].map(decimal),"set_discount":changed.discount[i].is_some(),"purchase_price":decimal(changed.purchase_price[i]),"position":changed.position[i],"set_position":changed.position[i].is_some()}));
+    }
+    for id in &defaults.lines.deleted {
+        lines.push(serde_json::json!({"change":"delete","id":id}));
+    }
+    let mut full = serde_json::json!({"invoice_id":id,"relation_id":defaults.relation_id,"set_billing_address":defaults.billing.is_some(),"set_addressed_contact":defaults.contact.is_some(),"new_line_count":defaults.lines.new.title.len(),"changed_line_count":changed.id.len(),"deleted_line_count":defaults.lines.deleted.len(),"lines":lines});
+    if let Some(billing) = &defaults.billing {
+        full["billing_address"] = serde_json::json!(billing);
+    }
+    if let Some(contact) = &defaults.contact {
+        full["addressed_contact"] = serde_json::json!(contact);
+    }
+    super::approval::bounded_review(full)
+}
+
+fn quoted_new_lines(new: &NewLines) -> Vec<Value> {
+    let decimal = |value: Decimal| value.normalize().to_string();
+    (0..new.title.len()).map(|i|serde_json::json!({"product_id":new.product_id[i],"variant_id":new.product_variant_id[i],"warehouse_id":new.warehouse_id[i],"title":new.title[i],"description":new.description[i],"quantity":decimal(new.quantity[i]),"price":decimal(new.price[i]),"vat":decimal(new.vat[i]),"discount":decimal(new.discount[i]),"purchase_price":decimal(new.purchase_price[i]),"position":new.position[i]})).collect()
+}
+
+/// One native new-line builder supplies both persisted values and approval pricing.
+fn append_new_line(new: &mut NewLines, f: &ItemFields, index: usize, refs: &Refs) {
+    let product = f.product_id.flatten().and_then(|p| refs.products.get(&p));
+    let product_id = product.map(|p| p.id);
+    new.product_id.push(product_id);
+    new.product_variant_id.push(
+        refs.variant(f, product_id)
+            .or_else(|| product.and_then(|p| p.default_variant_id)),
+    );
+    new.warehouse_id.push(refs.warehouse(f, product));
+    new.title.push(f.title.clone());
+    new.description.push(f.description.clone().flatten());
+    new.quantity.push(f.quantity);
+    new.price.push(f.price.unwrap_or_default());
+    new.vat.push(f.vat);
+    new.discount.push(f.discount.unwrap_or_default());
+    new.purchase_price
+        .push(f.purchase_price.unwrap_or_default());
+    new.position
+        .push(f.position.or(i32::try_from(index).ok()).unwrap_or(1));
+    new.parent_item_id.push(None);
+}
+
+/// Resolve the same native header, contact, billing and line defaults without inserting.
+pub(crate) async fn review_create(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    input: &InvoiceInput,
+) -> Result<Value, AppError> {
+    let defaults = resolve_create(conn, workspace_id, input, true).await?;
+    create_quote(conn, workspace_id, input, &defaults).await
+}
+
+async fn create_quote(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    input: &InvoiceInput,
+    defaults: &CreateDefaults,
+) -> Result<Value, AppError> {
+    let CreateDefaults {
+        relation_id,
+        currency_id,
+        billing,
+        contact,
+        refs,
+    } = defaults;
+    let billing = billing.as_ref();
+    let contact = contact.as_ref().and_then(Option::as_ref);
+    let currency = products::approval_repo::currency(conn, workspace_id, *currency_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let decimals = currency["decimals"]
+        .as_u64()
+        .and_then(|v| u32::try_from(v).ok())
+        .ok_or_else(|| AppError::Internal("invoice currency decimals".into()))?;
+    let mut new = NewLines::default();
+    let mut errors = Errors::default();
+    for row in &input.items {
+        match &row.kind {
+            RowKind::New(f) => append_new_line(&mut new, f, row.index, refs),
+            RowKind::Update(_, _) => errors.invalid(&format!("items.{}.id", row.index)),
+            RowKind::Delete(_) | RowKind::Skip => {}
+        }
+    }
+    errors.into_result()?;
+    let values: Vec<engine::Line> = (0..new.title.len())
+        .map(|i| engine::Line {
+            quantity: new.quantity[i],
+            price: new.price[i],
+            vat: new.vat[i],
+            discount: new.discount[i],
+            purchase_price: Some(new.purchase_price[i]),
+            set_child: false,
+        })
+        .collect();
+    let (summary, _) = price_values(&values, decimals)?;
+    let lines = quoted_new_lines(&new);
+    let full = serde_json::json!({"relation_id":relation_id,"currency":currency,"billing_address":billing,"addressed_contact":contact,"reference":input.reference.as_ref().and_then(Option::as_deref),"note":input.note.as_ref().and_then(Option::as_deref),"payment_method":input.payment_method.as_deref().unwrap_or("bank_transfer"),"is_credit":input.is_credit,"lines":lines,"total_minor":crate::money::minor(summary.total,decimals)?,"subtotal_minor":crate::money::minor(summary.excl,decimals)?});
+    Ok(super::approval::bounded_review(full))
+}
+
 /// Totals and margin of `lines` at `dp`; 422 when a figure leaves Decimal's range.
-fn price(lines: &[repo::ItemRow], dp: u32) -> Result<(engine::Summary, engine::Margin), AppError> {
+pub(super) fn price(
+    lines: &[repo::ItemRow],
+    dp: u32,
+) -> Result<(engine::Summary, engine::Margin), AppError> {
     let engine_lines: Vec<engine::Line> = lines.iter().map(engine_line).collect();
-    let summary = engine::summarise(&engine_lines, dp).map_err(|_| out_of_range())?;
-    let margin = engine::margin(&engine_lines, &summary.lines, dp).map_err(|_| out_of_range())?;
+    price_values(&engine_lines, dp)
+}
+
+fn price_values(
+    engine_lines: &[engine::Line],
+    dp: u32,
+) -> Result<(engine::Summary, engine::Margin), AppError> {
+    let summary = engine::summarise(engine_lines, dp).map_err(|_| out_of_range())?;
+    let margin = engine::margin(engine_lines, &summary.lines, dp).map_err(|_| out_of_range())?;
     Ok((summary, margin))
 }
 

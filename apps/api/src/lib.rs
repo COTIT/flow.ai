@@ -38,6 +38,7 @@ use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 pub use crypto::CredentialKey;
 /// Job handlers (`jobs::runner::Handler`) return it.
 pub use error::AppError;
+pub use http::assistant::AssistantSecret;
 pub use http::{
     rate_limit::RateLimit,
     slots::{Slots, WorkspaceSlots},
@@ -76,6 +77,8 @@ pub struct AppState {
     pub invites_per_hour: i64,
     /// Seals integration credentials (`CREDENTIALS_KEY`); None refuses storing one.
     pub credentials: Option<std::sync::Arc<CredentialKey>>,
+    /// Server-only assistant bridge signing key; None refuses signed controls.
+    pub assistant_bridge_secret: Option<std::sync::Arc<AssistantSecret>>,
     /// File objects (the uploads bucket); None answers file routes with 503.
     pub files: Option<storage::Store>,
     /// HTML to PDF (Gotenberg); None answers PDF routes with 503.
@@ -107,13 +110,17 @@ pub fn build_app(state: AppState) -> Router {
     let private = http::timeout::body_deadline(private, state.body_deadline).merge(
         http::timeout::body_deadline(documents, state.body_deadline * 2),
     );
+    let private = http::timeout::request_timeout(private, state.request_timeout);
+    let private = http::assistant::apply(private, state.clone());
     let private = http::rate_limit::apply_private(
         private,
         state.private_rate_limit,
         state.private_ip_rate_limit,
     );
     state.slots.spawn_cleanup();
-    let v1 = http::timeout::request_timeout(public.merge(private), state.request_timeout)
+    let public = http::timeout::request_timeout(public, state.request_timeout);
+    let v1 = public
+        .merge(private)
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,

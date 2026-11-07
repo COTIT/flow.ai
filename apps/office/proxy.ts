@@ -1,7 +1,7 @@
 import { cspProxy } from "@genesy/security/proxy"
 
 // FILES_ORIGIN: the file storage host serving signed image links (product images, passport preview).
-export const proxy = cspProxy({ imgSrc: process.env.FILES_ORIGIN })
+export const proxy = cspProxy({ imgSrc: process.env.FILES_ORIGIN, voice: true })
 
 // Pages only: static files, images and the /v1 forward to the backend skip it.
 export const config = {

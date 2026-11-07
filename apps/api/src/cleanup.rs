@@ -36,6 +36,8 @@ pub struct Pruned {
     pub webhook_events: u64,
     /// Till sessions ended or expired over a day ago.
     pub till_sessions: u64,
+    /// Resolved assistant actions older than 90 days; unresolved claims stay.
+    pub assistant_actions: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -43,6 +45,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
     Ok(Pruned {
         // First: a failure further down must not leave open sends open.
         stuck_sends: messages::close_stuck(db).await?,
+        assistant_actions: crate::modules::assistant::repo::prune(db).await?,
         access_tokens: auth::prune_expired_tokens(db).await?,
         verification_tokens: email_verification::prune_expired(db).await?,
         invites: invites::prune_old(db).await?,
@@ -154,6 +157,7 @@ mod tests {
         assert_eq!(
             pruned,
             Pruned {
+                assistant_actions: 0,
                 access_tokens: 1,
                 verification_tokens: 1,
                 invites: 2,

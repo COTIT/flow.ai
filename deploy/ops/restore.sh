@@ -21,6 +21,10 @@ fi
 
 "$here/backup.sh" "$GENESY_ENV" pre-restore
 "${COMPOSE[@]}" stop api shop office till landing field
+checkpoint_roles identities "${COMPOSE[@]}" exec -T db
 "${COMPOSE[@]}" exec -T db pg_restore -U genesy -d genesy --clean --if-exists \
   --single-transaction --exit-on-error < "$dump"
+if [[ "$("${COMPOSE[@]}" exec -T db psql -U genesy -d genesy -Atc "SELECT to_regnamespace('assistant_checkpoint') IS NOT NULL")" == t ]]; then
+  checkpoint_roles verify "${COMPOSE[@]}" exec -T db
+fi
 echo "restore: $(basename "$dump") is now the $GENESY_ENV database; apps are stopped"

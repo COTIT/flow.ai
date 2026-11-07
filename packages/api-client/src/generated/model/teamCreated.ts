@@ -5,10 +5,12 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { PermissionChangeReceipt } from './permissionChangeReceipt';
 
 /**
  * Create response: the new team's id.
  */
 export interface TeamCreated {
+  permission_changes: PermissionChangeReceipt;
   team_id: string;
 }

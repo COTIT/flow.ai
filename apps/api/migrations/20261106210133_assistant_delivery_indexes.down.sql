@@ -1,0 +1,3 @@
+DROP INDEX invoice_deliveries_retention_idx;
+DROP INDEX invoice_deliveries_invoice_pending_idx;
+DROP INDEX assistant_actions_receipt_retention_idx;

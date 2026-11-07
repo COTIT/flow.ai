@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions SET state=CASE WHEN state IN ('proposed','approved','batch_pending') THEN 'approved' ELSE state END,approved_at=coalesce(approved_at,now()),approval_event_sha256=coalesce(approval_event_sha256,$6::text) WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 AND session_id=$5 AND batch_id IS NULL AND ((state IN ('proposed','approved','batch_pending') AND expires_at>now() AND (approval_event_sha256 IS NULL OR $6::text IS NULL OR approval_event_sha256=$6::text)) OR ($6::text IS NOT NULL AND approval_event_sha256=$6::text))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "36947e31d3281ca91fa2650af5cf031f1ce780d9d4593f062f2ababd54e6568d"
+}

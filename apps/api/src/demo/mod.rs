@@ -185,6 +185,8 @@ async fn webhook(api: &Api, ws: &str, provider_id: &str) -> Result<(), AppError>
 /// Run the payment inbox jobs in-process (the job runner is not up during a seed).
 async fn drain_payments(state: &AppState, fake: &Fake) -> Result<(), AppError> {
     let ctx = Ctx {
+        invoice_state: None,
+        assistant_api_key: None,
         db: state.db.clone(),
         files: None,
         http: Outbound::new(&[]).map_err(|e| AppError::Internal(e.to_string()))?,

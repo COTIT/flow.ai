@@ -104,6 +104,13 @@ async fn create_then_get_in_team_resource_shape(pool: PgPool) {
         .await;
 
     assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(
+        res["data"]["permission_changes"],
+        json!({
+            "status":"partial", "applied":["relation.create","relation.get","workspace_admin"],
+            "not_applied":[], "ignored_count":2
+        })
+    );
     let id = res["data"]["team_id"].as_str().unwrap();
     let team = w.get(id).await;
     assert_eq!(team["id"], id);
@@ -471,34 +478,63 @@ async fn permissions_save_is_a_delta(pool: PgPool) {
     let (status, res) = w
         .grant(&team, json!(["relation.get", "relation.create"]), &w.owner)
         .await;
-    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(
+        (status, res),
+        (
+            StatusCode::OK,
+            json!({ "message": "ok", "permission_changes":{
+        "status":"applied", "applied":["relation.create","relation.get"], "not_applied":[], "ignored_count":0
+    } })
+        )
+    );
     assert_eq!(
         w.get(&team).await["permissions"],
         json!(["relation.create", "relation.get"])
     );
 
     // vimdesk-web sends kept grants positive and unticked ones with `-`; junk ignored.
-    w.grant(
-        &team,
-        json!([
-            "relation.get",
-            "-relation.create",
-            "relation",
-            "-relation",
-            null,
-            "",
-            "-",
-            5
-        ]),
-        &w.owner,
-    )
-    .await;
+    let (_, receipt) = w
+        .grant(
+            &team,
+            json!([
+                "relation.get",
+                "-relation.create",
+                "relation",
+                "-relation",
+                null,
+                "",
+                "-",
+                5
+            ]),
+            &w.owner,
+        )
+        .await;
+    assert_eq!(
+        receipt["permission_changes"],
+        json!({
+            "status":"partial", "applied":["-relation.create","relation.get"], "not_applied":[], "ignored_count":6
+        })
+    );
     assert_eq!(w.get(&team).await["permissions"], json!(["relation.get"]));
 
     // Add then remove in one call: removal wins (Laravel order).
-    w.grant(&team, json!(["order.list", "-order.list"]), &w.owner)
+    let (_, receipt) = w
+        .grant(&team, json!(["order.list", "-order.list"]), &w.owner)
         .await;
+    assert_eq!(
+        receipt["permission_changes"],
+        json!({
+            "status":"partial", "applied":["-order.list"], "not_applied":["order.list"], "ignored_count":0
+        })
+    );
     assert_eq!(w.get(&team).await["permissions"], json!(["relation.get"]));
+    let (_, receipt) = w.grant(&team, json!([]), &w.owner).await;
+    assert_eq!(
+        receipt["permission_changes"],
+        json!({
+            "status":"applied", "applied":[], "not_applied":[], "ignored_count":0
+        })
+    );
 
     let (status, res) = w
         .call(
@@ -528,10 +564,16 @@ async fn only_owner_grants_workspace_admin(pool: PgPool) {
     )
     .await;
 
-    let (status, _) = w
+    let (status, receipt) = w
         .grant(&team, json!(["workspace_admin", "relation.list"]), &bob)
         .await;
     assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        receipt["permission_changes"],
+        json!({
+            "status":"partial", "applied":["relation.list"], "not_applied":["workspace_admin"], "ignored_count":0
+        })
+    );
     assert_eq!(
         w.get(&team).await["permissions"],
         json!(["relation.list"]),
@@ -543,6 +585,51 @@ async fn only_owner_grants_workspace_admin(pool: PgPool) {
         w.get(&team).await["permissions"],
         json!(["relation.list", "workspace_admin"])
     );
+}
+
+#[sqlx::test]
+async fn create_receipt_reports_restricted_permissions_without_disclosing_other_grants(
+    pool: PgPool,
+) {
+    let w = world(pool).await;
+    let bob = member_with(
+        &w.app,
+        &w.pool,
+        &w.ws,
+        "bob@example.com",
+        &["team.create", "team.permissions"],
+    )
+    .await;
+    let (status, response) = w.call(Method::POST, "", Some(json!({
+        "name":"Restricted", "description":"d",
+        "permissions":["workspace_admin", "relation.list", "private input never echoed", null]
+    })), &bob).await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(
+        response["data"]["permission_changes"],
+        json!({
+            "status":"partial", "applied":["relation.list"], "not_applied":["workspace_admin"], "ignored_count":2
+        })
+    );
+    let team = response["data"]["team_id"].as_str().unwrap();
+    assert_eq!(w.get(team).await["permissions"], json!(["relation.list"]));
+    w.grant(team, json!(["order.list"]), &w.owner).await;
+    let (status, response) = w
+        .grant(
+            team,
+            json!(["relation.list", "-relation.get", "unknown secret"]),
+            &bob,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        response["permission_changes"],
+        json!({
+            "status":"partial", "applied":["-relation.get", "relation.list"], "not_applied":[], "ignored_count":1
+        })
+    );
+    assert!(!response.to_string().contains("order.list"));
+    assert!(!response.to_string().contains("unknown secret"));
 }
 
 // ================= permission per route

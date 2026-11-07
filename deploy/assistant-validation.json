@@ -1,0 +1,139 @@
+{
+  "formatVersion": 1,
+  "releaseGate": "pending",
+  "releaseCommit": null,
+  "imageDigest": null,
+  "observedAt": "2026-11-07T02:36:14.978447+00:00",
+  "source": {
+    "baseCommit": "ffcf5c8b8b8aad49862b97d1abafde2d97c7a69b",
+    "workingTree": "uncommitted",
+    "hostArtifactSource": "isolated temporary source snapshot; not a release image"
+  },
+  "provider": {
+    "observation": "Development prompt-only update for fixed-batch preparation/status; GET verified exact prompt and unchanged conversation/platform settings. No native session executed for this version.",
+    "versionId": "agtvrsn_6801m6sxseqgekd8wrnrrxg0j560",
+    "template": "deploy/assistant-agent.template.json",
+    "templateSha256": "43a937b677d1b0aa92f8df7f666078749c5ff8b04e06be87a8c89c615e657aa4",
+    "stagingApplied": false,
+    "productionApplied": false,
+    "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
+    "productionProvisioned": true,
+    "productionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
+    "temporaryIntegrationKeysReused": true
+  },
+  "localEvidence": {
+    "hostStandalone": {
+      "status": "passed",
+      "platform": "darwin-arm64",
+      "nodeVersion": "v23.3.0",
+      "privateEnvironmentFiles": 0,
+      "externalDependencySymlinks": 0,
+      "workletsIdenticalToInstalledSdk": 3,
+      "clientChunksHttp200": 27,
+      "checks": [
+        "health200",
+        "login200",
+        "disabled readiness200",
+        "disabled session/tools/confirm/attachments503"
+      ]
+    },
+    "postgresRestore": {
+      "status": "passed",
+      "image": "postgres:18-alpine",
+      "imageId": "sha256:d198b39c31a6df6012ac71d61fe3596277c3c06e0884fc24965669cb8d799f10",
+      "isolation": "two disposable containers; network none; no published ports; removed after check",
+      "checkpointSchemaVersion": 5,
+      "checkpointCrud": true,
+      "businessSelectDenied": true,
+      "persistentDdlDenied": true,
+      "migrationWritesDenied": true,
+      "runtimeRoleConnectionsAccepted": 10,
+      "eleventhRoleConnectionRejected": true
+    },
+    "processGuards": {
+      "status": "passed",
+      "scope": "14 unit tests; not a container load measurement",
+      "poolConnectionsPerProcess": 4,
+      "readinessConnectionsPerProcess": 1,
+      "graphWritersPerProcess": 2,
+      "binaryRequestsPerProcess": 2
+    },
+    "linuxContainerBuild": {
+      "status": "passed_frozen_runtime",
+      "imageId": "sha256:52ddaaf77db4a912dea30c9f4bb1f793cc20119cb8d604f00dbfb82f8cfb9138",
+      "sourceSha256": "70efe98ac4ea1ad2d095e6ed6767186fee8b16737eab058c3954d2d1b24cc953",
+      "scope": "Final frozen Office runtime, catalog with 205 pinned sources, generated clients and secure-form lifecycle fix. CI release image still pending."
+    },
+    "linuxCapacityPreliminary": {
+      "status": "passed_preliminary",
+      "imageId": "sha256:505fd6d3c26d364610e40cded5c68199efde220bf8c5b39323786e5de6b889ee",
+      "limitsMiB": [
+        384,
+        512
+      ],
+      "instancesPerLimit": 2,
+      "concurrentValidUploadsPerLimit": 4,
+      "bytesPerUpload": 9441663,
+      "oomKilled": false,
+      "faultCoverage": "Admission-before-commit stop/restart without replay only. Stronger checkpoint-pool and postcommit-ack tests remain pending."
+    },
+    "nativeFinal": {
+      "status": "passed",
+      "apiTestsPassed": 1393,
+      "apiTestsIgnored": 6,
+      "apiTestsFailed": 0,
+      "unitTestsPassed": 458,
+      "openapiTestsPassed": 64,
+      "catalogOperations": 456,
+      "pinnedAuthorities": 205,
+      "eligibleOperationsObserved": 390,
+      "reviewedSemanticResults": 387,
+      "explicitlyUnavailable": 3,
+      "reviewedGateRecords": 2575,
+      "catalogSha256": "503e3a982dcac4a569ec43206c1f439171d3bb139271c3d11f2c900a814dde78",
+      "openapiSha256": "96c8891e6422dbfc3df700e0c911aa6a93df8856bf0edc8aa31d9252c41d629f",
+      "checks": [
+        "clippy all-targets -D warnings",
+        "sqlx prepare --check --all-targets",
+        "cargo fmt --check",
+        "catalog generation/freshness"
+      ]
+    },
+    "webFinal": {
+      "status": "passed",
+      "officeUnitTests": 300,
+      "apiClientUnitTests": 24,
+      "productionVoiceBrowserCases": 68,
+      "developmentSecureFormBrowserCases": 2,
+      "webPackageTypechecks": true,
+      "officeLint": true,
+      "generatedClientFreshness": true,
+      "scope": "Mocked provider/API browser checks; physical devices remain untested."
+    },
+    "linuxPackagingSmoke": {
+      "imageId": "sha256:52ddaaf77db4a912dea30c9f4bb1f793cc20119cb8d604f00dbfb82f8cfb9138",
+      "healthStatus": 200,
+      "loginStatus": 200,
+      "disabledReadinessStatus": 200,
+      "disabledAdmissionRoutes": 6,
+      "byteIdenticalWorklets": 3,
+      "memoryLimitMiB": 384,
+      "peakMemoryBytes": 111898624,
+      "oomKilled": false,
+      "runtimeSecretsProvided": 0,
+      "providerConversationsStarted": 0,
+      "businessWrites": 0,
+      "scope": "packaging smoke only; no capacity or enabled real-stack claim"
+    }
+  },
+  "pendingGates": {
+    "linuxContainerImage": "Frozen Office Linux build and 384 MiB packaging smoke passed; green-main CI release images still required.",
+    "staging384MiB": "Extended saturation/acknowledgement experiments deferred by user scope correction. Preliminary live load passed; final packaging smoke required.",
+    "production512MiB": "Extended load experiments deferred by user scope correction. Initial rollout retains bounded uploads/workspace admission and required packaging/readiness checks.",
+    "realStackAcceptance": "Existing repository full-stack CI remains required for release; exhaustive native-model trials are deferred.",
+    "paidMultilingualAcceptance": "Deferred by user scope correction: exhaustive model/capability benchmark not completed and not a gate for initial deployment.",
+    "environmentAgentBindings": "Production agent matches verified development conversation/platform settings; private credentials and single-workspace allowlist prepared on server, admission disabled. Applying runtime configuration remains pending deployment.",
+    "physicalDevices": "user-owned after production deployment: Android/Chrome and iPhone/Safari microphone, speaker and camera; not tested"
+  },
+  "scopeCorrection": "User directed stop scope creep: finish existing implementation and queued checks; no added features, test matrices or exhaustive model benchmark."
+}

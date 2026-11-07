@@ -25,6 +25,8 @@ pub const NOT_ALLOWED: &str = "This action is unauthorized.";
 #[derive(Debug)]
 pub struct WorkspaceAccess {
     pub user_id: Uuid,
+    /// Current login, binding assistant sessions without retaining bearer tokens.
+    pub token_id: Uuid,
     pub workspace_id: Uuid,
     granted: Granted,
     /// This request's slots (per workspace and per user), held until the handler returns.
@@ -65,6 +67,7 @@ impl FromRequestParts<AppState> for WorkspaceAccess {
         let slot = state.slots.take(user.user_id, workspace_id).await?;
         Ok(Self {
             user_id: user.user_id,
+            token_id: user.token_id,
             workspace_id,
             granted: Granted::new(access.owner, access.permissions),
             _slot: slot,

@@ -49,6 +49,22 @@ Rust handlers ──▶ apps/api/openapi.json ──▶ orval ──▶ packages
 - In an app: `lib/api.ts` calls `configureApi(...)` once; then use the hooks, e.g.
   `import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"` and types from `@genesy/api-client/model`.
 
+## Office voice assistant
+
+Open `/voice` in Office for ElevenLabs voice or text conversations. Voice also accepts typed messages and temporary JPEG, PNG, WebP and PDF references. The conversation persists across Office navigation. Rust enforces the signed-in staff member's current permissions and workspace on every operation. Credential entry and physical verification open secure native forms after the conversation ends.
+
+Use `apps/office/.env.example` for server configuration. Set `ASSISTANT_WORKSPACE_ALLOWLIST` to the comma-separated UUIDs of approved workspaces. Empty or malformed scope refuses new work. Enable admissions with `ASSISTANT_ENABLED=true` after migrations, restricted checkpoint-role provisioning and `/api/voice/readiness` pass. Configure `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ASSISTANT_BRIDGE_SECRET` and `ASSISTANT_CHECKPOINT_URL`; the Rust API needs the same bridge secret and its provider cleanup key. Runtime secrets support `NAME_FILE` instead of `NAME`. See [operator setup and rollback](deploy/ASSISTANT.md).
+
+The native agent requires signed sessions and the `discover_genesy_tools` and `execute_genesy_tool` client tools. ElevenLabs requires its **ElevenAgents Write** key permission to issue signed sessions. Its primary and explicit fallback models must support images and PDFs. One native planner serves voice and text; no separate OpenAI integration is required.
+
+Set `LANGSMITH_API_KEY`, `LANGSMITH_TRACING=true` and `LANGSMITH_PROJECT` for workflow tracing. Inputs and outputs are hidden; credentials, conversation content, file bytes and raw business responses stay outside checkpoints and exported traces. Exporter failure never retries a business action.
+
+Effects show an immutable review and expire after 120 seconds. LangGraph persists the review interruption in PostgreSQL; Rust atomically consumes the exact approved request before dispatch. Office exposes the confirmation phrase only on the native review card, never in model tools or contextual updates. Users can read it aloud or approve with its button. Spoken approval passes through ElevenLabs ASR as a user utterance; later echoes cannot dispatch the action again. Lost acknowledgement remains unknown until reconciled. Mail-server acceptance does not establish delivery.
+
+References are limited to 10 MiB each, ten per session and two concurrent uploads. Inspection never implicitly saves or sends a file. End/clear schedules durable provider cleanup; used references remain in model context until that conversation is deleted. Browser reload restores task status through opaque IDs and requires a fresh review; conversation content and original file bytes are not restored.
+
+After backend contract changes, run `pnpm --filter @genesy/office voice:generate`. `voice:check` and the Office unit tests detect a stale catalog. Run the focused browser checks against an Office production build with `pnpm --filter @genesy/e2e exec playwright test --config voice.config.ts voice.spec.ts`; both desktop and 375px layouts are covered.
+
 ## End-to-end tests (Playwright)
 
 Every web change is checked headless in a real browser; no clicking through by hand.

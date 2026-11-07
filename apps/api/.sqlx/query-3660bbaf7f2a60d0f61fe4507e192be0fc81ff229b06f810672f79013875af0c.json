@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions SET state='cancelled',proposal=NULL,review_facts='{}'::jsonb,finished_at=now() WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 AND session_id=$5 AND batch_id IS NULL AND state IN ('proposed','approved','cancelled')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3660bbaf7f2a60d0f61fe4507e192be0fc81ff229b06f810672f79013875af0c"
+}

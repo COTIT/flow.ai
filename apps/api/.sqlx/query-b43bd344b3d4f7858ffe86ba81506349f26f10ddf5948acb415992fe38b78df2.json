@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT workspace_id,id FROM invoice_deliveries WHERE (status IN ('running','sending') OR (status='unknown' AND EXISTS(SELECT 1 FROM email_send_logs l WHERE l.workspace_id=invoice_deliveries.workspace_id AND l.id=invoice_deliveries.send_log_id AND l.status IN ('accepted','blocked')))) AND started_at<now()-interval '10 minutes' ORDER BY started_at LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "b43bd344b3d4f7858ffe86ba81506349f26f10ddf5948acb415992fe38b78df2"
+}

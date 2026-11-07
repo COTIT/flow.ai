@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',id,'session_id',session_id,'operation_id',operation_id,'step_index',step_index,'batch_id',batch_id,'batch_index',batch_index,'batch_verdict',batch_verdict,'state',CASE WHEN state IN ('proposed','approved','batch_pending') AND expires_at<=now() THEN 'expired' WHEN batch_verdict IS NOT NULL THEN batch_verdict WHEN batch_id IS NOT NULL AND state='completed' THEN 'unknown' WHEN state='batch_pending' THEN 'proposed' ELSE state END,'expires_at',expires_at,'proposal',CASE WHEN state IN ('proposed','approved','batch_pending') AND expires_at>now() THEN proposal ELSE NULL END,'http_status',http_status,'finished_at',finished_at,'review_facts',CASE WHEN state IN ('proposed','approved','batch_pending') AND expires_at>now() THEN review_facts ELSE NULL END,'evidence',evidence) AS \"data!\" FROM assistant_actions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND session_id=$4 AND step_index<$5 ORDER BY step_index DESC LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9bc7f4f9de119167cd4dda0ef9457c3ebe5103fb421d6db112713f0353f753de"
+}

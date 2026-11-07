@@ -1,0 +1,807 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "discovery-link-state",
+      "test": "supply_links::r_grants_a_accepts_and_both_see_the_live_link",
+      "operations": [
+        "supply_links_grant",
+        "supply_links_accept",
+        "supply_links_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/supply_links.rs",
+          "contains": "assert_eq!(list[\"data\"][0][\"id\"], id.as_str());"
+        }
+      ],
+      "review": "Actual two-workspace grant has exact sorted allowlist/pending/outgoing partner. Receiving admin accepts live/incoming; independent lists agree on exact id/status/direction."
+    },
+    {
+      "id": "discovery-link-errors",
+      "test": "supply_links::the_allow_list_and_target_are_checked",
+      "operations": [
+        "supply_links_grant"
+      ],
+      "gates": {
+        "validation": [
+          422,
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/supply_links.rs",
+          "contains": "farmer_names can't be shared until the data-protection gate opens."
+        }
+      ],
+      "review": "Disallowed names/photos/unknown fields/array and self/unknown/malformed target422; existing open pair409. Empty field grant valid under native policy."
+    },
+    {
+      "id": "discovery-link-accept-role",
+      "test": "supply_links::only_the_receiving_admin_accepts_and_outsiders_see_nothing",
+      "operations": [
+        "supply_links_accept"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/supply_links.rs",
+          "contains": "a member who is not admin"
+        }
+      ],
+      "review": "Granting admin cannot accept403, recipient non-admin403, unrelated workspace404, outsider recipient path404; repeated live accept409."
+    },
+    {
+      "id": "discovery-link-revoke-tenant",
+      "test": "supply_links::only_the_receiving_admin_accepts_and_outsiders_see_nothing",
+      "operations": [
+        "supply_links_revoke"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/supply_links.rs",
+          "contains": "call(&t, Method::DELETE, &c_ws, &format!(\"/{id}\"), None, &c)"
+        }
+      ],
+      "review": "Actual third workspace cannot revoke original shared link404."
+    },
+    {
+      "id": "discovery-link-revoked",
+      "test": "supply_links::either_side_revokes_and_a_revoked_link_stays_dead",
+      "operations": [
+        "supply_links_revoke"
+      ],
+      "gates": {
+        "result": [
+          204
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/supply_links.rs",
+          "contains": "a revoked link never comes back"
+        }
+      ],
+      "review": "Either linked side revoke204, repeat204; independent list revoked, reaccept409, new grant allowed."
+    },
+    {
+      "id": "discovery-link-list",
+      "test": "supply_links::the_list_filters_by_status_and_direction",
+      "operations": [
+        "supply_links_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "cross_workspace": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/supply_links.rs",
+          "contains": "third workspace, {q}"
+        }
+      ],
+      "review": "Exact pending/live/revoked counts before/after transitions, direction and revoked id. Third workspace gets0 under each filter; invalid status/direction422."
+    },
+    {
+      "id": "discovery-quick-state",
+      "test": "quick_search::one_query_finds_each_kind",
+      "operations": [
+        "search_quick"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/quick_search.rs",
+          "contains": "PO chairs 77"
+        }
+      ],
+      "review": "Actual query exact Chair product/order reference/lot; invoice number/customer and relation/contact queries exact; absent term empty groups."
+    },
+    {
+      "id": "discovery-quick-role",
+      "test": "quick_search::each_group_needs_its_list_permission",
+      "operations": [
+        "search_quick"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/quick_search.rs",
+          "contains": "needs workspace.global-search"
+        }
+      ],
+      "review": "No global-search403; product-list-only actor receives product/lot and null forbidden order/invoice/relation groups."
+    },
+    {
+      "id": "discovery-quick-tenant",
+      "test": "quick_search::another_workspace_finds_nothing_of_acme",
+      "operations": [
+        "search_quick"
+      ],
+      "gates": {
+        "cross_workspace": [
+          200,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/quick_search.rs",
+          "contains": "eve under acme's path"
+        }
+      ],
+      "review": "Actual second owner own searches across original terms have every group empty; same bearer original workspace404."
+    },
+    {
+      "id": "discovery-search-state",
+      "test": "searches::every_domain_answers_with_its_module_shape",
+      "operations": [
+        "search_search"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/searches.rs",
+          "contains": "assert_eq!(names(&res, key), [name], \"{domain}\");"
+        }
+      ],
+      "review": "Six actual seeded reference domains return exact named row, native-specific property and total1."
+    },
+    {
+      "id": "discovery-search-errors",
+      "test": "searches::unknown_unported_or_missing_domain_is_404",
+      "operations": [
+        "search_search"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/searches.rs",
+          "contains": "?domain=contact"
+        }
+      ],
+      "review": "Unknown/unported/missing domain404; no fabricated domain result."
+    },
+    {
+      "id": "discovery-search-role-tenant",
+      "test": "searches::needs_global_search_and_stays_in_the_workspace",
+      "operations": [
+        "search_search"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          200,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/searches.rs",
+          "contains": "assert_eq!(res[\"data\"], json!([]), \"{domain} leaks\");"
+        }
+      ],
+      "review": "No global-search403 exactmessage; second owner own reference-domain queries empty200, original path404."
+    },
+    {
+      "id": "discovery-permission-state",
+      "test": "permissions::member_gets_laravel_catalog_shape",
+      "operations": [
+        "permissions_catalog"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/permissions.rs",
+          "contains": "assert_eq!(enforced.len(), 247);"
+        }
+      ],
+      "review": "Actual authority catalog49groups, exact team actions/classification and247 enforced permissions; workspace_admin absent from assignable list."
+    },
+    {
+      "id": "discovery-permission-tenant",
+      "test": "permissions::outsider_unknown_or_malformed_workspace_is_404",
+      "operations": [
+        "permissions_catalog"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/permissions.rs",
+          "contains": "assert_eq!(res[\"message\"], NOT_FOUND);"
+        }
+      ],
+      "review": "Actual second owner original workspace, unknown and malformed workspace404 exactmessage."
+    },
+    {
+      "id": "discovery-permission-auth",
+      "test": "permissions::no_token_is_401",
+      "operations": [
+        "permissions_catalog"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/permissions.rs",
+          "contains": "assert_eq!(catalog(&app, None, &ws).await.0, StatusCode::UNAUTHORIZED);"
+        }
+      ],
+      "review": "Actual catalog without bearer401."
+    },
+    {
+      "id": "discovery-permission-inactive",
+      "test": "permissions::inactive_member_is_403",
+      "operations": [
+        "permissions_catalog"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/permissions.rs",
+          "contains": "assert_eq!(res[\"message\"], UNAUTHORIZED);"
+        }
+      ],
+      "review": "Real membership disabled in DB: catalog403 exactmessage."
+    },
+    {
+      "id": "discovery-contact-crud",
+      "test": "relations::contact_create_update_delete",
+      "operations": [
+        "contacts_create",
+        "contacts_update",
+        "contacts_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(api.get(&rel).await[\"relationships\"][\"contacts\"], json!([]));"
+        }
+      ],
+      "review": "Create independent detail exact id/normalized name/email/default/phones. Update independent DB jobtitle plus preserved email/phone. Delete independent relation contactlist empty."
+    },
+    {
+      "id": "discovery-contact-role",
+      "test": "relations::contact_rules_and_scoping",
+      "operations": [
+        "contacts_create",
+        "contacts_update",
+        "contacts_delete"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}\");"
+        }
+      ],
+      "review": "Relation-list-only member cannot create/update/delete contact403."
+    },
+    {
+      "id": "discovery-contact-create-tenant",
+      "test": "relations::contact_rules_and_scoping",
+      "operations": [
+        "contacts_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "let foreign = format!(\"/v1/workspace/{eve_ws}/relations/{rel}/contacts\");"
+        }
+      ],
+      "review": "Actual second owner foreign parent create404; unknown parent404; missing names/bademail/defaultfor422 exacterrors."
+    },
+    {
+      "id": "discovery-contact-parent",
+      "test": "relations::contact_rules_and_scoping",
+      "operations": [
+        "contacts_update",
+        "contacts_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "contact via another relation, {method}"
+        }
+      ],
+      "review": "Actual contact through wrong relation and undefined id404 for both update/delete. Parent mismatch alone is not cross-workspace proof."
+    },
+    {
+      "id": "discovery-template-vars",
+      "test": "email_templates::variables_per_domain",
+      "operations": [
+        "email_templates_variables"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/email_templates.rs",
+          "contains": "invoice number"
+        }
+      ],
+      "review": "Invoice variable map exact model label and relation object; leave-request domain explicitly empty."
+    },
+    {
+      "id": "discovery-barcode",
+      "test": "products::barcode_search_is_exact_and_case_insensitive",
+      "operations": [
+        "products_search"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          404,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!(res[\"data\"][\"id\"], id.as_str(), \"{query}\");"
+        }
+      ],
+      "review": "Case-insensitive barcode/EAN/Shift prefix/id matches exact product; partial string404, missingquery422 exactmessage."
+    },
+    {
+      "id": "discovery-image-state",
+      "test": "product_images::images_keep_their_order_and_reach_the_storefront",
+      "operations": [
+        "products_images_replace",
+        "products_images_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_images.rs",
+          "contains": "GET answers what PUT stored"
+        }
+      ],
+      "review": "Native PUT exact image/file/variant order independently GET and storefront correct split. Reorder and empty replacement reflected; real DB plus controlled MemoryStore, not external storage proof."
+    },
+    {
+      "id": "discovery-image-write-guards",
+      "test": "product_images::only_this_workspaces_images_of_this_product",
+      "operations": [
+        "products_images_replace"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404,
+          422
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_images.rs",
+          "contains": "files need file.get"
+        }
+      ],
+      "review": "Missing write/file rights403; actual foreign file422 and foreign product404; bad type/UUID/duplicate/>20/wrongvariant422."
+    },
+    {
+      "id": "discovery-image-read-tenant",
+      "test": "product_images::only_this_workspaces_images_of_this_product",
+      "operations": [
+        "products_images_list"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/product_images.rs",
+          "contains": "Another workspace's product is unknown from there."
+        }
+      ],
+      "review": "Second owner GET original images404; permissionless original member200 by native policy."
+    },
+    {
+      "id": "discovery-stats-placeholder",
+      "test": "products::product_page_companions_answer_truthfully",
+      "operations": [
+        "products_sale_statics"
+      ],
+      "gates": {
+        "transport": [
+          200
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "\"units_sold\": 0, \"revenue\": 0.0,"
+        }
+      ],
+      "review": "Native source hardcodes zero/null statistics. Transport and unknown-product404 only; NOT semantic result coverage until real totals or truthful unavailable behavior."
+    },
+    {
+      "id": "discovery-linked-placeholder",
+      "test": "products::product_page_companions_answer_truthfully",
+      "operations": [
+        "products_linked_products"
+      ],
+      "gates": {
+        "transport": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "json!({ \"products\": [] })"
+        }
+      ],
+      "review": "Unported linked-products route hardcodes empty array. Transport only; no genuine linked-record result proof."
+    },
+    {
+      "id": "discovery-sync-noop",
+      "test": "products::product_page_companions_answer_truthfully",
+      "operations": [
+        "products_sync_external"
+      ],
+      "gates": {
+        "transport": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "sync-product-stock-locations-from-external-service"
+        }
+      ],
+      "review": "Native source explicitly has no connected external stock service and returns200ok without sync. Transport only; real sync/result remains missing."
+    },
+    {
+      "id": "discovery-warehouse-default",
+      "test": "warehouses::first_warehouse_becomes_default_and_true_moves_it",
+      "operations": [
+        "warehouses_set_default"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouses.rs",
+          "contains": "assert_eq!(api.get(&b).await[\"default_warehouse\"], false);"
+        }
+      ],
+      "review": "Dedicated default action independently GET selectedA true andpreviousB false; exactly one default remains."
+    },
+    {
+      "id": "discovery-shelf-delete-transport",
+      "test": "warehouse_hierarchy::access_rules_every_level",
+      "operations": [
+        "warehouse_shelves_delete"
+      ],
+      "gates": {
+        "transport": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "assert_eq!(status, StatusCode::OK, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Authorized native shelf delete200 in CRUD loop; no independent delete-state assertion, so result remains missing."
+    },
+    {
+      "id": "discovery-bin-delete-guards",
+      "test": "warehouse_hierarchy::a_bin_holding_stock_is_not_deleted",
+      "operations": [
+        "warehouse_bins_delete"
+      ],
+      "gates": {
+        "validation": [
+          409
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "transport": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "bin_holds_stock"
+        }
+      ],
+      "review": "Stocked delete409 exactmessage; actual foreign owner path404; after removingstock delete200. No independent post-delete check, so result remains missing."
+    },
+    {
+      "id": "discovery-supply-options",
+      "test": "farm_supply::options_offer_only_lines_the_batch_accepts",
+      "operations": [
+        "farm_supply_options"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(h[\"available_kg\"], \"200.00\");"
+        }
+      ],
+      "review": "Native filtering selects exact verified/current samevillage/crop unbought harvest:300total/100committed/200available; others excluded; wrongcrop empty."
+    },
+    {
+      "id": "discovery-supply-option-guards",
+      "test": "farm_supply::options_are_for_ops_and_admin_of_this_workspace",
+      "operations": [
+        "farm_supply_options"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "cross_workspace": [
+          404,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(errors(&res), [\"crop_id\", \"village_id\"]);"
+        }
+      ],
+      "review": "Officer/farmer403, second farmops/outsider404, actual foreign village/crop inputs422 exactfields."
+    },
+    {
+      "id": "discovery-supply-option-errors",
+      "test": "farm_supply::options_need_a_village_and_a_crop",
+      "operations": [
+        "farm_supply_options"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "The crop_id must be a valid UUID."
+        }
+      ],
+      "review": "Missing village/crop and malformed ids422 exacterrors."
+    },
+    {
+      "id": "discovery-raw-product",
+      "test": "farm_supply::ops_add_a_raw_product_a_batch_can_use",
+      "operations": [
+        "farm_supply_raw_product"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "workspace default VAT: {p}"
+        }
+      ],
+      "review": "Trimmed kg rawproduct independently GET disabled/physical/stock/defaultVAT/number; excluded shop/till, accepted by real batch then crop suggestions."
+    },
+    {
+      "id": "discovery-raw-product-guards",
+      "test": "farm_supply::raw_products_are_for_ops_and_admin_with_a_name",
+      "operations": [
+        "farm_supply_raw_product"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "refused calls write nothing"
+        }
+      ],
+      "review": "Officer/farmer403, actual second ops404, missing/blank/overlong name422; independent DB only one accepted namedrow."
+    },
+    {
+      "id": "discovery-dispatch-options",
+      "test": "farm_supply::a_bought_batch_stocks_its_raw_lot_at_the_farm_store",
+      "operations": [
+        "farm_supply_dispatch_options"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "dispatchable: {res}"
+        }
+      ],
+      "review": "Actual batch rawlot stock at farmstore; native dispatch options includes exact warehouse. No untested role/tenant/error claims."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/email_templates.rs": "8e760ab9bbd1963215ad8036db61f0b969fc9599e29e4465351e92140f4bffcb",
+    "apps/api/tests/api/farm_supply.rs": "f81c5cb189fc2f29d076d3fcc726a1225c5e983af6d0b8ec6a4b56dc0f2363a8",
+    "apps/api/tests/api/permissions.rs": "0b148854e58bac0453b4a1ec09c58dca9d2665e021135c923d6392002e0dbab2",
+    "apps/api/tests/api/product_images.rs": "c7ab86d8258f9613b960df10ce88c3ce07565ffcb777ee602fa3cf85094af97d",
+    "apps/api/tests/api/products.rs": "4139cce3b59e69eb20b185a47d74c93efa096522b28f320f1caf1a9842f0d07b",
+    "apps/api/tests/api/quick_search.rs": "b3423224b4ace298108c1825bfcbe0b3171ec667c68dabf6ff51de2b87ff2b13",
+    "apps/api/tests/api/relations.rs": "92137e2f44a1cc6a110b5cacfc1064b1f350eefb22b71cbaa59e377af7053841",
+    "apps/api/tests/api/searches.rs": "09d3f8995e8fe144b27a2d9d3bbc03dba3a66cca5f5ade52564275d01e6ec5b8",
+    "apps/api/tests/api/supply_links.rs": "cff3822222902e4055bfb811aee6d159ccf40bf258646e13aa1eb55ccb4a876b",
+    "apps/api/tests/api/warehouse_hierarchy.rs": "4eb1391a69e588246c4f3281d3afb88c03957d5e78133bb8327dcebf1913812e",
+    "apps/api/tests/api/warehouses.rs": "dee907d2a85bed51524bb5cf4f0849c7be74595fb2a789515fa9a4272aa3f0b8"
+  }
+}

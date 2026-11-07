@@ -8,7 +8,52 @@ use std::{
 
 use axum::http::{Method, StatusCode};
 use jsonschema::Validator;
-use serde_json::Value;
+use serde_json::{Value, json};
+
+/// Sanitized executed HTTP observation; test success and assertion review remain separate.
+pub fn coverage_record(
+    method: &Method,
+    uri: &str,
+    status: StatusCode,
+    test_name: &str,
+) -> Option<Value> {
+    let (_, operation) = find_route(&spec()["paths"], method, uri)?;
+    Some(json!({
+        "formatVersion": 1,
+        "operationId": operation["operationId"].as_str()?,
+        "method": method.as_str(),
+        "status": status.as_u16(),
+        "test": test_name,
+        "contractValidated": true,
+    }))
+}
+
+fn record_coverage(method: &Method, uri: &str, status: StatusCode) {
+    use std::{fs::OpenOptions, io::Write, os::unix::fs::OpenOptionsExt};
+
+    let Some(path) = std::env::var_os("ASSISTANT_HTTP_COVERAGE_FILE") else {
+        return;
+    };
+    let thread = std::thread::current();
+    let Some(mut record) = coverage_record(method, uri, status, thread.name().unwrap_or("unnamed"))
+    else {
+        return;
+    };
+    if let Ok(hash) = std::env::var("ASSISTANT_HTTP_COVERAGE_CATALOG_SHA256") {
+        assert!(hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        record["catalogHash"] = Value::String(hash);
+    }
+    // One complete line per request; raw URI, arguments and response never leave memory.
+    static WRITE: Mutex<()> = Mutex::new(());
+    let _guard = WRITE.lock().unwrap();
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .mode(0o600)
+        .open(path)
+        .expect("assistant HTTP coverage file cannot be opened");
+    writeln!(file, "{record}").expect("assistant HTTP coverage record cannot be written");
+}
 
 fn spec() -> &'static Value {
     static SPEC: OnceLock<Value> = OnceLock::new();
@@ -108,5 +153,6 @@ pub fn check(method: &Method, uri: &str, status: StatusCode, body: &Value) {
             errors.is_empty(),
             "contract: {method} {uri} -> {status}: {errors:#?}"
         );
+        record_coverage(method, uri, status);
     }
 }

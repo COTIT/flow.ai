@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_uploads SET state=CASE WHEN file_id IS NULL THEN 'cancelled' ELSE 'cleanup_pending' END WHERE workspace_id=$1 AND session_id=$2 AND id=$3 AND state<>'cleaned'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ab9ec6a8489ab1abcd0aec5cdb508999b565e7312c80f49601c3ba48270fd04f"
+}

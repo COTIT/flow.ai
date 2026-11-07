@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions SET state='queued',evidence=jsonb_build_object('operation_id',operation_id,'delivery',jsonb_build_object('invoice_delivery_id',$3::uuid,'invoice_id',$4::uuid,'status','queued')),proposal=NULL,review_facts='{}'::jsonb WHERE workspace_id=$1 AND id=$2 AND state IN ('dispatching','unknown')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ba7a6aa9c30b749895de3b3788c1c0fa6d5169af3cb7f2d3acaca5febb744448"
+}

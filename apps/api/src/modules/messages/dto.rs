@@ -1,7 +1,7 @@
 //! `POST /send-message` (Laravel SendMessageRequest) and the Office 365 test bodies.
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -13,6 +13,30 @@ use crate::{
         relations::address::{self, Address},
     },
 };
+
+/// What transport actually established; accepted never proves inbox delivery.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SendStatus {
+    Accepted,
+    Blocked,
+    Manual,
+    NoRecipients,
+}
+
+/// Bounded evidence; contains no recipients, message body or provider secrets.
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+pub struct SendReceipt {
+    pub status: SendStatus,
+    pub send_log_id: Option<Uuid>,
+}
+
+/// Existing success message plus truthful transport receipt.
+#[derive(Serialize, ToSchema)]
+pub struct SendMessageReply {
+    pub message: &'static str,
+    pub delivery: SendReceipt,
+}
 
 /// `POST /send-message`; unknown keys are skipped.
 #[derive(Deserialize, Default, ToSchema)]
@@ -98,8 +122,9 @@ pub struct EmailLog {
 #[allow(dead_code)]
 #[derive(ToSchema)]
 pub struct ProfileTestResult {
-    /// Always true (a failure is an error reply).
+    /// True only when transport accepted the test mail.
     success_connection: bool,
+    delivery: SendReceipt,
 }
 
 // Doc-only: `data` of an Office 365 test reply built with `json!`.
@@ -108,6 +133,7 @@ pub struct ProfileTestResult {
 #[derive(ToSchema)]
 pub struct Office365Answer {
     ok: bool,
+    delivery: Option<SendReceipt>,
     /// Step reached: `token`, `mailbox` or `send`.
     stage: String,
     message: String,
@@ -145,6 +171,7 @@ impl utoipa::PartialSchema for Office365Failure {
 impl ToSchema for Office365Failure {}
 
 /// A validated send. `template_id` was stored by Laravel, never used.
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SendInput {
     pub addressed_contact_id: Uuid,
     /// The billing address a sent document takes.

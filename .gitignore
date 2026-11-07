@@ -3,6 +3,7 @@ node_modules/
 
 # build output
 .next/
+.next-*/
 .next-stack/
 dist-stack/
 dist/
@@ -11,6 +12,8 @@ target/
 .turbo/
 *.tsbuildinfo
 next-env.d.ts
+.voice-data/
+apps/office/public/voice-audio/
 
 # test output
 coverage/

@@ -39,6 +39,7 @@ import { Field, selectClass } from "@/components/field"
 import { Done, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
+import { invoiceDeliveryNotice } from "@/lib/invoice-delivery"
 
 import { invoiceMoney, invoiceNumber } from "../shared"
 
@@ -113,6 +114,9 @@ export function NextStep({
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const { may } = useRights()
   const done = useDone()
+  const [delivery, setDelivery] = React.useState<ReturnType<
+    typeof invoiceDeliveryNotice
+  > | null>(null)
   const [dialog, setDialog] = React.useState<InvoiceAction | null>(null)
   const vars = { workspace: workspaceId, invoice: inv.id }
   const ok = (message: string) => () => {
@@ -149,9 +153,11 @@ export function NextStep({
         (a === "duplicate" && duplicate.isPending) ||
         (a === "cancel" && cancel.isPending)
       }
-      onClick={() =>
-        a === "duplicate" ? duplicate.mutate(vars) : setDialog(a)
-      }
+      onClick={() => {
+        setDelivery(null)
+        if (a === "duplicate") duplicate.mutate(vars)
+        else setDialog(a)
+      }}
     >
       {t(`invoices.act.${a}`)}
     </Button>
@@ -163,6 +169,15 @@ export function NextStep({
   return (
     <Tile id="invoice-next" title={t("invoices.nextStep")} span="col-span-4">
       <Done message={done.message} />
+      <div role="status">
+        {delivery ? (
+          <Notice
+            live={false}
+            variant={delivery.variant}
+            title={t(delivery.key)}
+          />
+        ) : null}
+      </div>
       {inv.status === "draft" ? (
         <Notice variant="info" title={t("invoices.draftInfo")} />
       ) : null}
@@ -190,9 +205,12 @@ export function NextStep({
           inv={inv}
           resend={dialog === "resend"}
           onOpenChange={close}
-          onDone={ok(
-            t(dialog === "send" ? "done.invoice.sent" : "done.invoice.resent")
-          )}
+          onDone={(body) => {
+            setDialog(null)
+            done.clear()
+            setDelivery(invoiceDeliveryNotice(body, inv.id))
+            onChanged()
+          }}
         />
       ) : null}
       {dialog === "pay" ? (
@@ -310,7 +328,7 @@ function SendDialog({
   inv: InvoiceResource
   resend: boolean
   onOpenChange: (open: boolean) => void
-  onDone: () => void
+  onDone: (body: unknown) => void
 }) {
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""

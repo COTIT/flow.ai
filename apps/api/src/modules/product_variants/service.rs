@@ -13,7 +13,10 @@ use crate::{
     error::AppError,
     modules::{
         product_variants::{
-            dto::{Fields, Generate, render},
+            dto::{
+                Combination, Fields, Generate, GeneratedVariants, GenerationReceipt,
+                GenerationReceiptStatus, render,
+            },
             repo::{self, VariantRow},
         },
         products::{
@@ -108,39 +111,10 @@ pub async fn create(
     actor: Actor,
 ) -> Result<Uuid, AppError> {
     let product_id = parse(product_id)?;
-    let now = chrono::Utc::now();
-    let mut v = VariantRow {
-        id: Uuid::nil(),
-        product_id,
-        is_default: false,
-        sku: None,
-        barcode: None,
-        ean13: None,
-        price: Decimal::ZERO,
-        gross_price: Decimal::ZERO,
-        original_price: None,
-        wholesale_price: None,
-        original_wholesale_price: None,
-        supplier_wholesale_price: None,
-        impact_on_price: None,
-        impact_on_wholesale_price: None,
-        weight: None,
-        reference_vendor: None,
-        reference_vendor2: None,
-        reference_vendor3: None,
-        meta: None,
-        created_at: now,
-        updated_at: now,
-    };
-    apply(&mut v, &f);
-    let priority = if f.price.flatten().is_some() {
-        Priority::Price
-    } else {
-        Priority::Impact
-    };
     let mut tx = state.db.begin().await?;
     let p = lock_product(&mut tx, workspace_id, product_id).await?;
-    normalise_variant(&mut v, p.price, priority)?;
+    let mut v = prepare_create(p.id, &f, p.price)?;
+    crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
     if v.is_default {
         // Uuid::nil() is never a real id, so this clears every current default.
         repo::clear_default(&mut tx, workspace_id, p.id, Uuid::nil()).await?;
@@ -178,22 +152,8 @@ pub async fn update(
     let before = repo::find_locked(&mut tx, workspace_id, p.id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    let mut v = before.clone();
-    apply(&mut v, &f);
-    if before.is_default && !v.is_default {
-        return Err(AppError::field(
-            "is_default",
-            "The default variant stays the default until another variant takes over.",
-        ));
-    }
-    if v.price != before.price || v.impact_on_price != before.impact_on_price {
-        let priority = if v.price != before.price {
-            Priority::Price
-        } else {
-            Priority::Impact
-        };
-        normalise_variant(&mut v, p.price, priority)?;
-    }
+    let v = prepare_update(&before, &f, p.price)?;
+    crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
     // Clear the old default first: the one-default index checks each statement.
     if v.is_default && !before.is_default {
         repo::clear_default(&mut tx, workspace_id, p.id, v.id).await?;
@@ -254,11 +214,12 @@ pub async fn generate(
     product_id: &str,
     g: Generate,
     actor: Actor,
-) -> Result<Vec<Value>, AppError> {
+) -> Result<GeneratedVariants, AppError> {
     let (p, pv) = product(state, workspace_id, product_id).await?;
     let mut tx = state.db.begin().await?;
     let p = lock_product(&mut tx, workspace_id, p.id).await?;
     repo::lock_options(&mut tx, workspace_id).await?;
+    crate::modules::products::approval::check_generation(&mut tx, workspace_id, &p, &g).await?;
     let mut by_index: Vec<Vec<Uuid>> = Vec::new();
     let mut by_key: HashMap<String, Uuid> = HashMap::new();
     for (ot, t) in g.option_types.iter().enumerate() {
@@ -277,47 +238,13 @@ pub async fn generate(
         }
         by_index.push(ids);
     }
-    let default_price = g.default_price.unwrap_or(p.price);
-    let default_stock = g.default_stock.unwrap_or_default();
     let mut made = Vec::new();
     for (i, c) in g.combinations.iter().enumerate() {
         let ids = resolve(&c.ids, &by_key, &by_index);
         if ids.is_empty() {
             continue;
         }
-        let price = c.price.unwrap_or(default_price);
-        let sku = c.sku.clone().or_else(|| {
-            g.sku_pattern
-                .as_ref()
-                .map(|pat| pat.replace("{index}", &(i + 1).to_string()))
-        });
-        let now = chrono::Utc::now();
-        let mut v = VariantRow {
-            id: Uuid::nil(),
-            product_id: p.id,
-            is_default: false,
-            sku,
-            barcode: None,
-            ean13: None,
-            price,
-            gross_price: price,
-            original_price: Some(price),
-            wholesale_price: p.wholesale_price,
-            original_wholesale_price: p.wholesale_price,
-            supplier_wholesale_price: p.supplier_wholesale_price,
-            impact_on_price: p.impact_on_price,
-            impact_on_wholesale_price: p.impact_on_wholesale_price,
-            weight: p.weight,
-            reference_vendor: p.reference_vendor.clone(),
-            reference_vendor2: p.reference_vendor2.clone(),
-            reference_vendor3: p.reference_vendor3.clone(),
-            meta: Some(
-                json!({ "stock": crate::money::php_number(c.stock.unwrap_or(default_stock)) }),
-            ),
-            created_at: now,
-            updated_at: now,
-        };
-        normalise_variant(&mut v, p.price, Priority::Price)?;
+        let mut v = generated_variant(&p, &g, i, c)?;
         v.id = repo::insert(&mut tx, workspace_id, &v).await?;
         repo::link_values(&mut tx, workspace_id, v.id, &ids).await?;
         let changes = created_prices(&v);
@@ -335,7 +262,155 @@ pub async fn generate(
     }
     events::product_changed(&mut tx, workspace_id, p.id, "updated").await?;
     tx.commit().await?;
-    render_all(state, workspace_id, &made, &pv).await
+    let data = render_all(state, workspace_id, &made, &pv).await?;
+    let requested = g.combinations.len();
+    let created = made.len();
+    let skipped = requested - created;
+    Ok(GeneratedVariants {
+        data,
+        receipt: GenerationReceipt {
+            status: if skipped == 0 {
+                GenerationReceiptStatus::Applied
+            } else {
+                GenerationReceiptStatus::Partial
+            },
+            requested,
+            created,
+            skipped,
+        },
+    })
+}
+
+/// Resolve native variant create fields and normalization without an insert.
+pub(crate) fn prepare_create(
+    product_id: Uuid,
+    f: &Fields,
+    product_price: Decimal,
+) -> Result<VariantRow, AppError> {
+    let now = chrono::Utc::now();
+    let mut v = VariantRow {
+        id: Uuid::nil(),
+        product_id,
+        is_default: false,
+        sku: None,
+        barcode: None,
+        ean13: None,
+        price: Decimal::ZERO,
+        gross_price: Decimal::ZERO,
+        original_price: None,
+        wholesale_price: None,
+        original_wholesale_price: None,
+        supplier_wholesale_price: None,
+        impact_on_price: None,
+        impact_on_wholesale_price: None,
+        weight: None,
+        reference_vendor: None,
+        reference_vendor2: None,
+        reference_vendor3: None,
+        meta: None,
+        created_at: now,
+        updated_at: now,
+    };
+    apply(&mut v, f);
+    let priority = if f.price.flatten().is_some() {
+        Priority::Price
+    } else {
+        Priority::Impact
+    };
+    normalise_variant(&mut v, product_price, priority)?;
+    Ok(v)
+}
+
+/// Resolve native patch priority and default-switch validation before writing.
+pub(crate) fn prepare_update(
+    before: &VariantRow,
+    f: &Fields,
+    product_price: Decimal,
+) -> Result<VariantRow, AppError> {
+    let mut v = before.clone();
+    apply(&mut v, f);
+    if before.is_default && !v.is_default {
+        return Err(AppError::field(
+            "is_default",
+            "The default variant stays the default until another variant takes over.",
+        ));
+    }
+    if v.price != before.price || v.impact_on_price != before.impact_on_price {
+        let priority = if v.price != before.price {
+            Priority::Price
+        } else {
+            Priority::Impact
+        };
+        normalise_variant(&mut v, product_price, priority)?;
+    }
+    Ok(v)
+}
+
+/// Native generated variant defaults, shared by quotes and persisted combinations.
+pub(crate) fn generated_variant(
+    p: &ProductRow,
+    g: &Generate,
+    i: usize,
+    c: &Combination,
+) -> Result<VariantRow, AppError> {
+    let default_price = g.default_price.unwrap_or(p.price);
+    let default_stock = g.default_stock.unwrap_or_default();
+    let price = c.price.unwrap_or(default_price);
+    let sku = c.sku.clone().or_else(|| {
+        g.sku_pattern
+            .as_ref()
+            .map(|pat| pat.replace("{index}", &(i + 1).to_string()))
+    });
+    let now = chrono::Utc::now();
+    let mut v = VariantRow {
+        id: Uuid::nil(),
+        product_id: p.id,
+        is_default: false,
+        sku,
+        barcode: None,
+        ean13: None,
+        price,
+        gross_price: price,
+        original_price: Some(price),
+        wholesale_price: p.wholesale_price,
+        original_wholesale_price: p.wholesale_price,
+        supplier_wholesale_price: p.supplier_wholesale_price,
+        impact_on_price: p.impact_on_price,
+        impact_on_wholesale_price: p.impact_on_wholesale_price,
+        weight: p.weight,
+        reference_vendor: p.reference_vendor.clone(),
+        reference_vendor2: p.reference_vendor2.clone(),
+        reference_vendor3: p.reference_vendor3.clone(),
+        meta: Some(json!({ "stock": crate::money::php_number(c.stock.unwrap_or(default_stock)) })),
+        created_at: now,
+        updated_at: now,
+    };
+    normalise_variant(&mut v, p.price, Priority::Price)?;
+    Ok(v)
+}
+
+/// Resolve the same synthetic combination keys without allocating database option rows.
+pub(crate) fn generation_rows(p: &ProductRow, g: &Generate) -> Result<Vec<VariantRow>, AppError> {
+    let mut by_index = Vec::new();
+    let mut by_key = HashMap::new();
+    let mut next = 1u128;
+    for (ot, option) in g.option_types.iter().enumerate() {
+        let mut ids = Vec::new();
+        for (vi, (value, _)) in option.values.iter().enumerate() {
+            let id = Uuid::from_u128(next);
+            next += 1;
+            by_key.insert(format!("{value}-{ot}-{vi}"), id);
+            by_key.insert(value.clone(), id);
+            ids.push(id);
+        }
+        by_index.push(ids);
+    }
+    g.combinations
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| !resolve(&c.ids, &by_key, &by_index).is_empty())
+        .map(|(i, c)| generated_variant(p, g, i, c))
+        .collect()
 }
 
 /// Raw combination ids -> option value ids: a synthetic key or value first, then a trailing

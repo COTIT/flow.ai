@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM assistant_sessions s\n         USING unnest($1::uuid[],$2::uuid[]) AS expired(workspace_id,id)\n         WHERE s.workspace_id=expired.workspace_id AND s.id=expired.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4fb9b88e3382f15cf1f5ec2eb53dbba1e4019649b634cde0e8439ed0e419be72"
+}

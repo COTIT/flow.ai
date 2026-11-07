@@ -1464,6 +1464,31 @@ async fn contact_rules_and_scoping(pool: PgPool) {
     )
     .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+    let original_contacts = contacts_in_db(&api, &rel).await;
+    for workspace in [&api.ws, &eve_ws] {
+        let path = format!("/v1/workspace/{workspace}/relations/{rel}/contacts/{cid}");
+        for (method, body) in [
+            (
+                Method::POST,
+                Some(
+                    json!({"first_name":"Foreign","last_name":"Changed","job_title":"Foreign probe"}),
+                ),
+            ),
+            (Method::DELETE, None),
+        ] {
+            let (status, reply) = send(&api.app, method.clone(), &path, body, Some(&eve)).await;
+            assert_eq!(
+                status,
+                StatusCode::NOT_FOUND,
+                "foreign live contact {method} {path}: {reply}"
+            );
+        }
+    }
+    assert_eq!(
+        contacts_in_db(&api, &rel).await,
+        original_contacts,
+        "foreign contact writes leave owner data unchanged"
+    );
 }
 
 // ---- financial summary

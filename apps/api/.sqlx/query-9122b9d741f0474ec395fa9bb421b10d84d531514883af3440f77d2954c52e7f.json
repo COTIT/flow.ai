@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_actions SET state='expired',proposal=NULL,review_facts='{}'::jsonb,finished_at=now() WHERE state IN ('proposed','approved','batch_pending') AND expires_at<=now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "9122b9d741f0474ec395fa9bb421b10d84d531514883af3440f77d2954c52e7f"
+}

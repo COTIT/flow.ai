@@ -138,3 +138,5 @@ Payment body: `{redirect_url}`: https, or http to localhost/127.0.0.1 only; at m
 - 503 `no payment provider configured` without `PAYMENTS_PROVIDER`; 503 while the provider is down (retry); 409 when the order isn't awaiting payment or has expired.
 
 The `order_expire` job (every minute) cancels web orders past `expires_at` and gives their stock back.
+
+Assistant refund dispatch keeps the native 201 body unchanged. Its durable receipt exposes only `refund_id` and admission/settlement status; queued means settlement is unconfirmed. The native payment worker remains responsible for provider recovery. Assistant reconciliation reads verified native payment rows, never sends another refund and never continues a paused batch.

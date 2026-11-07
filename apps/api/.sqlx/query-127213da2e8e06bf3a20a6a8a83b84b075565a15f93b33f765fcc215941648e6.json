@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_batches SET next_index=$5+1,state=CASE WHEN $5+1=action_count THEN 'completed' WHEN state='running' AND expires_at<=clock_timestamp() THEN 'expired' WHEN state='running' AND run_expires_at<=clock_timestamp() THEN 'paused' ELSE state END,reason=CASE WHEN $5+1=action_count THEN NULL WHEN state='running' AND expires_at<=clock_timestamp() THEN 'expired' WHEN state='running' AND run_expires_at<=clock_timestamp() THEN 'interrupted' ELSE reason END,finished_at=CASE WHEN $5+1=action_count OR state IN ('paused','cancelled','expired') OR expires_at<=clock_timestamp() OR run_expires_at<=clock_timestamp() THEN coalesce(finished_at,now()) ELSE NULL END,run_expires_at=CASE WHEN state='running' AND expires_at>clock_timestamp() AND run_expires_at>clock_timestamp() THEN least(expires_at,clock_timestamp()+interval '45 seconds') ELSE run_expires_at END WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 AND next_index=$5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "127213da2e8e06bf3a20a6a8a83b84b075565a15f93b33f765fcc215941648e6"
+}

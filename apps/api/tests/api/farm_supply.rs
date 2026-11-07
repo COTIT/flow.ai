@@ -503,6 +503,10 @@ async fn officers_read_their_villages_farmers_read_nothing(pool: PgPool) {
             .await;
     assert_eq!(list["data"].as_array().unwrap().len(), 1);
     assert_eq!(list["meta"]["total"], 1);
+    assert_eq!(list["data"][0]["id"], id);
+    assert_eq!(list["data"][0]["kg_total"], "10.00");
+    assert_eq!(list["data"][0]["price_per_kg"], 800000);
+    assert_eq!(list["data"][0]["lot"]["code"], "ILU-M-10");
     let (_, list) =
         w.f.call(Method::GET, "/supply-batches", None, &w.f.officer_mga)
             .await;

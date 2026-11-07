@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM assistant_actions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND session_id=$4 AND batch_id IS NULL AND state IN ('proposed','approved') AND expires_at>clock_timestamp()) AS \"pending!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pending!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dafe7469130584420068773f3ebaa6f28c472b6f56848528901cb9f93028e91d"
+}

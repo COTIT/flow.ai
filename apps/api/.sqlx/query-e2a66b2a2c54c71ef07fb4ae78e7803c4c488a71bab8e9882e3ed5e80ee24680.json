@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM assistant_batches WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND session_id=$4 AND approval_event_sha256=$5 AND id IS DISTINCT FROM $6) AS \"used!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "used!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e2a66b2a2c54c71ef07fb4ae78e7803c4c488a71bab8e9882e3ed5e80ee24680"
+}

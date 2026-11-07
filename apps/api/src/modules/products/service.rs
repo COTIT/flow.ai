@@ -140,19 +140,29 @@ pub async fn create(
     f: Fields,
     actor: Actor,
 ) -> Result<Uuid, AppError> {
-    let mut row = blank(state, workspace_id, &f).await?;
-    apply(&mut row, &f);
-    check(&mut *state.db.acquire().await?, workspace_id, &row, &f).await?;
-    normalise_row(&mut row, Priority::Price)?;
     let mut tx = state.db.begin().await?;
+    let id = create_in(&mut tx, workspace_id, f, actor).await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+async fn create_in(
+    conn: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    workspace_id: Uuid,
+    f: Fields,
+    actor: Actor,
+) -> Result<Uuid, AppError> {
     // Lock first, then read the series, so the snapshot is the latest settings.
-    repo::lock_numbers(&mut tx, workspace_id).await?;
-    let (appendix, start) = settings::service::numbering(&mut *tx, workspace_id, "product").await?;
-    row.product_number = repo::next_number(&mut tx, workspace_id, start).await?;
+    repo::lock_numbers(conn, workspace_id).await?;
+    let mut row = prepare_create(conn, workspace_id, &f).await?;
+    super::approval::check_product(conn, workspace_id, &row).await?;
+    let (appendix, start) =
+        settings::service::numbering(&mut **conn, workspace_id, "product").await?;
+    row.product_number = repo::next_number(conn, workspace_id, start).await?;
     row.product_nr_formatted = appendix.format(row.product_number);
-    row.id = repo::insert(&mut tx, workspace_id, &appendix.to_json(), &row).await?;
+    row.id = repo::insert(conn, workspace_id, &appendix.to_json(), &row).await?;
     repo::insert_history(
-        &mut tx,
+        conn,
         workspace_id,
         row.id,
         None,
@@ -174,16 +184,11 @@ pub async fn create(
         price: variant_price.unwrap_or(row.price),
         ..row.clone()
     };
-    let variant = repo::insert_default_variant(
-        &mut tx,
-        workspace_id,
-        &variant_row,
-        row.price,
-        variant_impact,
-    )
-    .await?;
+    let variant =
+        repo::insert_default_variant(conn, workspace_id, &variant_row, row.price, variant_impact)
+            .await?;
     repo::insert_history(
-        &mut tx,
+        conn,
         workspace_id,
         row.id,
         Some(variant),
@@ -193,19 +198,18 @@ pub async fn create(
     )
     .await?;
     if let Some(children) = bundle_children(&row, &f) {
-        repo::set_children(&mut tx, workspace_id, row.id, children).await?;
+        repo::set_children(conn, workspace_id, row.id, children).await?;
     }
     if row.has_stock {
-        let main = stock::seed(&mut tx, workspace_id, row.id).await?;
+        let main = stock::seed(conn, workspace_id, row.id).await?;
         // Laravel overwrote a chosen default with the main warehouse; only fill a missing one.
         if let Some(main) = main
             && row.default_warehouse_id.is_none()
         {
-            repo::set_default_warehouse(&mut tx, workspace_id, row.id, main).await?;
+            repo::set_default_warehouse(conn, workspace_id, row.id, main).await?;
         }
     }
-    events::product_changed(&mut tx, workspace_id, row.id, "created").await?;
-    tx.commit().await?;
+    events::product_changed(conn, workspace_id, row.id, "created").await?;
     Ok(row.id)
 }
 
@@ -222,20 +226,8 @@ pub async fn update(
     let before = repo::find_locked(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    let mut row = before.clone();
-    apply(&mut row, &f);
-    check(&mut tx, workspace_id, &row, &f).await?;
-    if row.gross_price != before.gross_price
-        || row.price != before.price
-        || row.impact_on_price != before.impact_on_price
-    {
-        let priority = if f.price.is_some_and(|p| p != before.price) {
-            Priority::Price
-        } else {
-            Priority::Impact
-        };
-        normalise_row(&mut row, priority)?;
-    }
+    let row = prepare_update(&mut tx, workspace_id, &before, &f).await?;
+    super::approval::check_product(&mut tx, workspace_id, &row).await?;
     repo::update(&mut tx, workspace_id, &row).await?;
     if row.price != before.price {
         // Inheriting variants (the default size made with the product) follow, priced as at
@@ -276,10 +268,28 @@ pub async fn duplicate(
     id: &str,
     user_id: Uuid,
 ) -> Result<Uuid, AppError> {
-    let src = repo::find(&state.db, workspace_id, parse(id)?)
+    let mut tx = state.db.begin().await?;
+    repo::lock_numbers(&mut tx, workspace_id).await?;
+    let src = repo::find_locked(&mut tx, workspace_id, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;
-    let f = Fields {
+    let id = create_in(
+        &mut tx,
+        workspace_id,
+        duplicate_fields(&src),
+        Actor {
+            user_id,
+            flow: "system",
+        },
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+/// Native copy fields, shared with approval quotes before any insert.
+pub(super) fn duplicate_fields(src: &ProductRow) -> Fields {
+    Fields {
         name: Some(src.name.clone()),
         brand: Some(src.brand.clone()),
         kind: Some(src.kind.clone()),
@@ -332,12 +342,7 @@ pub async fn duplicate(
         export_data: Some(src.export_data.clone()),
         meta: Some(src.meta.clone()),
         set_children: None,
-    };
-    let actor = Actor {
-        user_id,
-        flow: "system",
-    };
-    create(state, workspace_id, f, actor).await
+    }
 }
 
 /// Soft delete, else 404; 422 while an item line uses it.
@@ -373,17 +378,58 @@ pub async fn history(
     Ok((rows.iter().map(resource::history_row).collect(), total))
 }
 
+/// Resolve create defaults and native price normalization without writing.
+pub(super) async fn prepare_create(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    f: &Fields,
+) -> Result<ProductRow, AppError> {
+    let mut row = blank(conn, workspace_id, f).await?;
+    apply(&mut row, f);
+    check(conn, workspace_id, &row, f).await?;
+    normalise_row(&mut row, Priority::Price)?;
+    Ok(row)
+}
+
+/// Merge a patch with the same native priority and reference checks as the write.
+pub(super) async fn prepare_update(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    before: &ProductRow,
+    f: &Fields,
+) -> Result<ProductRow, AppError> {
+    let mut row = before.clone();
+    apply(&mut row, f);
+    check(conn, workspace_id, &row, f).await?;
+    if row.gross_price != before.gross_price
+        || row.price != before.price
+        || row.impact_on_price != before.impact_on_price
+    {
+        let priority = if f.price.is_some_and(|p| p != before.price) {
+            Priority::Price
+        } else {
+            Priority::Impact
+        };
+        normalise_row(&mut row, priority)?;
+    }
+    Ok(row)
+}
+
 /// A new row with Laravel's create defaults; main currency and VAT group filled in.
-async fn blank(state: &AppState, workspace_id: Uuid, f: &Fields) -> Result<ProductRow, AppError> {
+async fn blank(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    f: &Fields,
+) -> Result<ProductRow, AppError> {
     let currency_id = match f.currency_id {
         Some(id) => id,
-        None => repo::main_currency(&state.db, workspace_id)
+        None => repo::main_currency(&mut *conn, workspace_id)
             .await?
             .ok_or_else(|| AppError::field("currency_id", BAD_CURRENCY))?,
     };
     let vat_group_id = match f.vat_group_id {
         Some(v) => v,
-        None => repo::fallback_vat_group(&state.db, workspace_id).await?,
+        None => repo::fallback_vat_group(&mut *conn, workspace_id).await?,
     };
     let now = Utc::now();
     Ok(ProductRow {

@@ -116,7 +116,7 @@ async fn validation(pool: PgPool) {
 
 #[sqlx::test]
 async fn generate_from_option_types(pool: PgPool) {
-    let (api, _) = world(pool.clone()).await;
+    let (api, product) = world(pool.clone()).await;
     let body = json!({
         "option_types": [{ "name": "Color", "sort_order": 0,
                            "values": [{ "value": "Red", "sort_order": 0 }, { "value": "Blue", "sort_order": 1 }] }],
@@ -128,6 +128,14 @@ async fn generate_from_option_types(pool: PgPool) {
         "sku_pattern": "SH-{index}", "default_price": "9", "default_stock": 0
     });
 
+    let before: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM product_variants WHERE workspace_id=$1::uuid AND product_id=$2::uuid",
+    )
+    .bind(&api.ws)
+    .bind(&product)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
     let (status, res) = api
         .call(Method::POST, "/generate", Some(body.clone()), &api.owner)
         .await;
@@ -135,6 +143,19 @@ async fn generate_from_option_types(pool: PgPool) {
     assert_eq!(status, StatusCode::CREATED, "{res}");
     let made = rows(&res);
     assert_eq!(made.len(), 2, "unresolvable combination skipped");
+    let after: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM product_variants WHERE workspace_id=$1::uuid AND product_id=$2::uuid",
+    )
+    .bind(&api.ws)
+    .bind(&product)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(after - before, 2);
+    assert_eq!(
+        res["receipt"],
+        json!({"status":"partial","requested":3,"created":2,"skipped":1})
+    );
     assert_eq!(
         (made[0]["sku"].clone(), made[0]["price"].clone()),
         (json!("R"), json!("10"))
@@ -165,7 +186,7 @@ async fn generate_from_option_types(pool: PgPool) {
 
 #[sqlx::test]
 async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
-    let (api, _) = world(pool.clone()).await;
+    let (api, product) = world(pool.clone()).await;
     let variant = rows(&api.list("").await)[0]["id"]
         .as_str()
         .unwrap()
@@ -193,6 +214,52 @@ async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
     let uri = format!("/v1/workspace/{eve_ws}/products/{other}/variants");
     let (status, _) = common::send(&api.app, Method::GET, &uri, None, Some(&eve)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let original_variant = api.get(&variant).await;
+    let original_variants = api.list("").await["data"].clone();
+    for workspace in [&api.ws, &eve_ws] {
+        let collection = format!("/v1/workspace/{workspace}/products/{product}/variants");
+        for (method, path, body) in [
+            (Method::GET, collection.clone(), None),
+            (
+                Method::POST,
+                collection.clone(),
+                Some(json!({"price":"1","sku":"Foreign probe"})),
+            ),
+            (Method::GET, format!("{collection}/{variant}"), None),
+            (
+                Method::PUT,
+                format!("{collection}/{variant}"),
+                Some(json!({"price":"2","sku":"Foreign changed"})),
+            ),
+            (Method::DELETE, format!("{collection}/{variant}"), None),
+            (
+                Method::POST,
+                format!("{collection}/generate"),
+                Some(
+                    json!({"option_types":[{"name":"Size","values":[{"value":"Foreign size"}]}],"combinations":[{"option_value_ids":["Foreign size"]}]}),
+                ),
+            ),
+        ] {
+            let (status, reply) =
+                common::send(&api.app, method.clone(), &path, body, Some(&eve)).await;
+            assert_eq!(
+                status,
+                StatusCode::NOT_FOUND,
+                "foreign live variant {method} {path}: {reply}"
+            );
+        }
+    }
+    assert_eq!(
+        api.get(&variant).await,
+        original_variant,
+        "foreign calls leave the live variant unchanged"
+    );
+    assert_eq!(
+        api.list("").await["data"],
+        original_variants,
+        "foreign create/generate/delete add no variants"
+    );
 
     let viewer = member_with(
         &api.app,
@@ -353,4 +420,40 @@ async fn parallel_default_switches_and_generates(pool: PgPool) {
     .await
     .unwrap();
     assert_eq!(defaults, 1);
+}
+
+#[sqlx::test]
+async fn generate_receipt_distinguishes_applied_empty_and_all_skipped_requests(pool: PgPool) {
+    let (api, product) = world(pool.clone()).await;
+    for (combinations, status, requested, created, skipped) in [
+        (
+            json!([{"option_value_ids":["Known"],"price":"1.25"}]),
+            "applied",
+            1,
+            1,
+            0,
+        ),
+        (
+            json!([{"option_value_ids":["Unknown"],"price":"1.25"}]),
+            "partial",
+            1,
+            0,
+            1,
+        ),
+        (json!([]), "applied", 0, 0, 0),
+    ] {
+        let body = json!({"option_types":[{"name":"Receipt size","values":[{"value":"Known"}]}],"combinations":combinations});
+        let before: i64 = sqlx::query_scalar("SELECT count(*) FROM product_variants WHERE workspace_id=$1::uuid AND product_id=$2::uuid").bind(&api.ws).bind(&product).fetch_one(&pool).await.unwrap();
+        let (code, response) = api
+            .call(Method::POST, "/generate", Some(body), &api.owner)
+            .await;
+        assert_eq!(code, StatusCode::CREATED, "{response}");
+        assert_eq!(rows(&response).len(), created);
+        let after: i64 = sqlx::query_scalar("SELECT count(*) FROM product_variants WHERE workspace_id=$1::uuid AND product_id=$2::uuid").bind(&api.ws).bind(&product).fetch_one(&pool).await.unwrap();
+        assert_eq!(after - before, i64::try_from(created).unwrap());
+        assert_eq!(
+            response["receipt"],
+            json!({"status":status,"requested":requested,"created":created,"skipped":skipped})
+        );
+    }
 }

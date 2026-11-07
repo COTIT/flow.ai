@@ -13,7 +13,11 @@ export const blockedHandler: Allow = {
  * Loads `path` twice and checks the headers every Next app sends (packages/security): a CSP
  * whose script nonce is new on each load, framing refused, plus nosniff and Referrer-Policy.
  */
-export async function expectSecurityHeaders(page: Page, path: string) {
+export async function expectSecurityHeaders(
+  page: Page,
+  path: string,
+  connectOrigins: readonly string[] = []
+) {
   const nonces: string[] = []
   for (let load = 0; load < 2; load++) {
     const headers = (await page.goto(path))!.headers()
@@ -30,7 +34,7 @@ export async function expectSecurityHeaders(page: Page, path: string) {
     expect(csp["object-src"]).toEqual(["'none'"])
     expect(csp["base-uri"]).toEqual(["'self'"])
     expect(csp["form-action"]).toEqual(["'self'"])
-    expect(csp["connect-src"]).toEqual(["'self'"])
+    expect(csp["connect-src"]).toEqual(["'self'", ...connectOrigins])
     const scripts = csp["script-src"]!
     expect(scripts).toContain("'strict-dynamic'")
     expect(scripts).not.toContain("'unsafe-inline'")

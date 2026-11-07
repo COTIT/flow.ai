@@ -69,7 +69,7 @@ A new kind needs three things in `jobs::kinds`:
 - an entry in `KINDS`;
 - a match arm in `dispatch`.
 
-Handlers get `Ctx` (the job pool and, when configured, the file bucket) and the `Claimed` job.
+Handlers get `Ctx` and the `Claimed` job. Specific invoice delivery also receives the configured application services using the job pool; jobs contain only a delivery id. Credentials stay in runtime configuration. The hourly prune additionally removes resolved assistant/delivery audit after 90 days and up to 100 old cleaned session contexts without unresolved references.
 
 **Rules:**
 - **One connection at a time.** The job pool has one connection per worker. Holding two at once can starve the other workers.
@@ -99,12 +99,17 @@ How a tick works:
 | `close_stuck_sends` | 5 min | email sends left open for 10 min become `unknown` |
 | `prune` | 60 min | expired tokens, invites, login quotas, stuck sends, jobs (succeeded/cancelled after 7 days, failed after 30), slots after 30 days |
 | `file_sweep` | 60 min | file rows a crash left pending or deleting (only with a bucket) |
+| `assistant_cleanup` | 1 min | expire transient drafts/claims, remove due provider conversations after confirmed deletion |
+| `invoice_delivery_sweep` | 5 min | reconcile typed mail evidence or mark interrupted attempts unknown; never resend |
+
 
 ## Kinds
 
 | Kind | Workspace | Keys | Payload | Enqueued by |
 |---|---|---|---|---|
 | `close_stuck_sends`, `prune`, `file_sweep` | none | `dedupe_key = schedule:<name>` | `{}` | the scheduler |
+| `invoice_delivery` | yes | `dedupe_key = invoice_delivery:<delivery>` | `{delivery_id}` only | invoice numbering/resend transaction |
+| `assistant_cleanup`, `invoice_delivery_sweep` | none | `dedupe_key = schedule:<name>` | `{}` | the scheduler |
 | `stock_seed` | yes | `concurrency_key = stock_seed:<ws>`, coalesced | `{after, done}` cursor | warehouse create, an update that turns a warehouse into a store or the main one, set-default |
 
 `stock_seed` chunks hold at most 50,000 stock rows: 5000 products, fewer when there are more than 10 target warehouses. Each chunk locks the products it updates in id order, then inserts the stock rows in (product, warehouse) order, the same order as `stock::repo::lock_all`.
@@ -141,3 +146,5 @@ Blue/green: the claim only takes `jobs::kinds::KINDS`, so the older color never 
 | L1 small tenant's job start while another has 100k queued | < 2 s | p50 24 ms, max 424 ms |
 | L1 throughput, 50k trivial jobs, 2 pools × 4 workers | 1,000 jobs/s | 1,198 jobs/s (740–980 before the review fixes: dropping the `locked_until` index made renewals HOT, and the fallback no longer runs on an empty queue). The test asserts a 500 floor as a regression guard; runs on a busy dev Mac vary |
 | L2 two schedulers over 1,000 slots | each slot once | each once, 0.37 s |
+
+Invoice delivery uses a durable domain claim in addition to the rail lease. A retried/reclaimed job cannot repeat rendering or SMTP after that claim was consumed. Interrupted attempts become unknown; known accepted/blocked log evidence resolves them without another transport call. Queued intent can run after restart. See `invoices.md` for receipt and verification rules.

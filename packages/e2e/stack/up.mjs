@@ -20,6 +20,11 @@ const t0 = Date.now()
 const building = new Set()
 const lap = (what) => console.log(`stack: ${what} (${((Date.now() - t0) / 1000).toFixed(0)} s)`)
 
+/** Office needs package build preparation; other stack builds retain their isolated entrypoints. */
+export function nextBuildArgs(name) {
+  return ["--filter", `@genesy/${name}`, ...(name === "office" ? ["build"] : ["exec", "next", "build"])]
+}
+
 export async function up() {
   const existing = readState()
   if (existing && alive(existing.pids.api)) {
@@ -53,7 +58,7 @@ export async function up() {
   const nextEnv = (name) => ({ ...process.env, ...apps[name].env, NEXT_DIST_DIR: ".next-stack" })
   const field = { ...process.env, API_URL: api, VITE_FEATURE_RESOURCES: "on" }
   const builds = [
-    ...Object.keys(apps).map((name) => [name, ["--filter", `@genesy/${name}`, "exec", "next", "build"], nextEnv(name)]),
+    ...Object.keys(apps).map((name) => [name, nextBuildArgs(name), nextEnv(name)]),
     ["field", ["--filter", "@genesy/field", "exec", "vite", "build", "--outDir", "dist-stack"], field],
   ]
   // Two at a time, beside the cargo build and the seed: a 2-core runner gains nothing from more.

@@ -378,6 +378,11 @@ async fn another_workspace_is_refused_everywhere(pool: PgPool) {
     assert_eq!(status, StatusCode::NOT_FOUND);
     let (_, listed) = eve.call(Method::GET, "/users", None, &eve.owner).await;
     assert_eq!(listed["data"].as_array().unwrap().len(), 1);
+    assert_eq!(listed["data"][0]["id"], eve_user.as_str());
+    assert_eq!(listed["data"][0]["name"], "Eve");
+    assert_eq!(listed["data"][0]["active"], true);
+    assert!(listed["data"][0].get("pin").is_none());
+    assert!(listed["data"][0].get("pin_hash").is_none());
     // A register can't point at another workspace's warehouse.
     let body = json!({ "name": "x", "warehouse_id": store_id(&eve).await });
     let (status, res) = api

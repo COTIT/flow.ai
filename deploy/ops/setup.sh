@@ -62,6 +62,7 @@ install -d -m 755 "$LIB"
 for f in lib.sh backup.sh restore.sh restore-test.sh watch.sh; do
   install -m 755 "$KIT/$f" "$LIB/$f"
 done
+install -m 644 "$KIT/../assistant-role.sql" "$LIB/assistant-role.sql"
 install -d -m 700 "$P/srv/genesy-backups" "$P/var/lib/genesy-ops"
 
 # deploy.sh (user deploy) takes the pre-deploy backup and, on rollback --restore-db, the restore.

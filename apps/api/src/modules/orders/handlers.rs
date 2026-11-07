@@ -4,6 +4,7 @@
 use axum::{
     Json,
     extract::{Path, Query, State},
+    response::{IntoResponse, Response},
 };
 
 use crate::{
@@ -320,8 +321,8 @@ pub async fn refund(
     access: Can<OrderDelete>,
     Path((_, id)): OrderPath,
     Keyed { input, key }: Keyed<RefundRequest>,
-) -> Result<Answer, AppError> {
-    payments::refund(
+) -> Result<Response, AppError> {
+    let answer = payments::refund(
         &state,
         access.workspace_id,
         access.user_id,
@@ -329,7 +330,13 @@ pub async fn refund(
         input.amount,
         key,
     )
-    .await
+    .await?;
+    let receipt = payments::refund_receipt(&answer);
+    let mut response = answer.into_response();
+    if let Some(receipt) = receipt {
+        response.extensions_mut().insert(receipt);
+    }
+    Ok(response)
 }
 
 /// GET /orders/{order}/events -> `{data:[...], meta}`.

@@ -3,6 +3,8 @@
 //! `workspace_admin`), so `team.invite` / `invite.create` / `team.permissions` can't become
 //! admin rights (Laravel had no such gate). No HTTP types here.
 
+use std::collections::BTreeSet;
+
 use uuid::Uuid;
 
 use crate::{
@@ -12,7 +14,10 @@ use crate::{
     modules::{
         permissions::catalog::{WORKSPACE_ADMIN, assignable},
         teams::{
-            dto::{BAD_USERS, NOT_IN_TEAM, NewTeam, TeamPatch},
+            dto::{
+                BAD_USERS, NOT_IN_TEAM, NewTeam, PermissionChangeReceipt, PermissionChangeStatus,
+                PermissionEntries, TeamCreated, TeamPatch,
+            },
             repo::{self, ListFilter, Patch, TeamRow, TeamUser},
         },
     },
@@ -48,13 +53,54 @@ fn grantable(raw: impl IntoIterator<Item = String>, by_owner: bool) -> Vec<Strin
         .collect()
 }
 
+fn permission_changes(
+    entries: &PermissionEntries,
+    effective: &[String],
+    delta: bool,
+) -> PermissionChangeReceipt {
+    let mut requested = BTreeSet::new();
+    let mut ignored_count = entries.ignored_count;
+    for entry in &entries.names {
+        let entry = entry.trim();
+        let (remove, name) = if delta {
+            entry
+                .strip_prefix('-')
+                .map_or((false, entry), |name| (true, name.trim()))
+        } else {
+            (false, entry)
+        };
+        let name = name.to_lowercase();
+        if assignable(&name) || name == WORKSPACE_ADMIN {
+            requested.insert(if remove { format!("-{name}") } else { name });
+        } else {
+            ignored_count += 1;
+        }
+    }
+    let (applied, not_applied): (Vec<_>, Vec<_>) = requested.into_iter().partition(|entry| {
+        let (remove, name) = entry
+            .strip_prefix('-')
+            .map_or((false, entry.as_str()), |name| (true, name));
+        effective.iter().any(|permission| permission == name) != remove
+    });
+    PermissionChangeReceipt {
+        status: if not_applied.is_empty() && ignored_count == 0 {
+            PermissionChangeStatus::Applied
+        } else {
+            PermissionChangeStatus::Partial
+        },
+        applied,
+        not_applied,
+        ignored_count,
+    }
+}
+
 pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
     caller: Caller,
     input: NewTeam,
-) -> Result<Uuid, AppError> {
-    let perms = grantable(input.permissions, caller.is_owner);
+) -> Result<TeamCreated, AppError> {
+    let perms = grantable(input.permissions.names.iter().cloned(), caller.is_owner);
     let mut tx = state.db.begin().await?;
     let id = repo::insert(
         &mut *tx,
@@ -65,8 +111,15 @@ pub async fn create(
     )
     .await?;
     repo::grant(&mut *tx, workspace_id, id, &perms).await?;
+    let saved = repo::find(&mut *tx, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let permission_changes = permission_changes(&input.permissions, &saved.permissions, false);
     tx.commit().await?;
-    Ok(id)
+    Ok(TeamCreated {
+        team_id: id,
+        permission_changes,
+    })
 }
 
 pub async fn list(
@@ -160,26 +213,31 @@ pub async fn set_permissions(
     workspace_id: Uuid,
     team: &str,
     caller: Caller,
-    entries: Vec<String>,
-) -> Result<(), AppError> {
-    let team = live(state, workspace_id, team).await?.0;
+    entries: PermissionEntries,
+) -> Result<PermissionChangeReceipt, AppError> {
+    let team = parse(team)?;
+    let mut tx = state.db.begin().await?;
+    found(repo::lock(&mut *tx, workspace_id, team).await?)?;
     let mut adds = Vec::new();
     let mut removes = Vec::new();
-    for entry in entries {
+    for entry in &entries.names {
         match entry.trim().strip_prefix('-') {
             Some(name) => removes.push(name.trim().to_lowercase()),
-            None => adds.push(entry),
+            None => adds.push(entry.clone()),
         }
     }
     if removes.iter().any(|r| r == WORKSPACE_ADMIN) && !caller.is_admin {
         return Err(AppError::Forbidden(NOT_ALLOWED));
     }
     let adds = grantable(adds, caller.is_owner);
-    let mut tx = state.db.begin().await?;
     repo::grant(&mut *tx, workspace_id, team, &adds).await?;
     repo::revoke(&mut *tx, workspace_id, team, &removes).await?;
+    let saved = repo::find(&mut *tx, workspace_id, team)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let receipt = permission_changes(&entries, &saved.permissions, true);
     tx.commit().await?;
-    Ok(())
+    Ok(receipt)
 }
 
 /// Malformed id = unknown id = 404.

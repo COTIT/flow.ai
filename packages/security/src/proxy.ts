@@ -7,12 +7,13 @@ import { contentSecurityPolicy } from "./headers"
  * its scripts with it) and to the layout as `x-nonce`, plus the CSP response header.
  */
 export function cspProxy(
-  options: { frameAncestors?: string; imgSrc?: string } = {}
+  options: { frameAncestors?: string; imgSrc?: string; voicePath?: string; voice?: boolean } = {}
 ) {
   return function proxy(request: NextRequest) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
     const csp = contentSecurityPolicy(nonce, {
       ...options,
+      voice: options.voice === true || options.voicePath === request.nextUrl.pathname,
       dev: process.env.NODE_ENV === "development",
     })
 

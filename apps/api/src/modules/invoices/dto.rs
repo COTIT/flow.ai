@@ -980,7 +980,8 @@ pub struct CreditLineBody {
     id: Uuid,
     /// Quantity to credit; decimal.
     credit_amount: Option<f64>,
-    /// Quantity returned to stock; decimal.
+    /// Money including VAT for the selected credit quantity, in invoice currency.
+    /// Capped to its paid amount; sets the price and clears the discount.
     return_amount: Option<f64>,
     /// Accepted and ignored.
     disable_discount: Option<bool>,

@@ -31,8 +31,12 @@ for _ in $(seq 60); do
 done
 (( ready )) || die "throwaway postgres did not start"
 
+checkpoint_roles identities docker exec -i "$name"
 docker exec -i "$name" pg_restore -U genesy -d genesy --no-owner --exit-on-error < "$dump"
 sql() { docker exec "$name" psql -U genesy -d genesy -Atc "$1"; }
+if [[ "$(sql "SELECT to_regnamespace('assistant_checkpoint') IS NOT NULL")" == t ]]; then
+  checkpoint_roles verify docker exec -i "$name"
+fi
 got="$(sql "SELECT coalesce(max(version), 0) FROM _sqlx_migrations WHERE success")"
 (( got > 0 )) || die "restored database has no migrations"
 # The dump is taken after the version is read, so it can only be at or past it.

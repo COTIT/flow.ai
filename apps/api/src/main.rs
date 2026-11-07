@@ -159,6 +159,7 @@ async fn main() {
         request_timeout: Duration::from_secs(config.request_timeout_secs),
         body_deadline: Duration::from_secs(config.request_body_deadline_secs),
         credentials,
+        assistant_bridge_secret: config.assistant_bridge_secret.map(std::sync::Arc::new),
         files,
         pdf,
         payments: payments.clone(),
@@ -297,10 +298,15 @@ async fn main() {
         idle: jobs::IDLE,
         max_run: jobs::MAX_RUN,
         handler: jobs::kinds::handler(jobs::kinds::Ctx {
+            invoice_state: Some(AppState {
+                db: jobs_db.clone(),
+                ..state.clone()
+            }),
             db: jobs_db,
             files: job_files,
             http: job_http,
             credentials: job_credentials,
+            assistant_api_key: config.elevenlabs_api_key.map(std::sync::Arc::new),
             payments: payments.clone(),
         }),
     }

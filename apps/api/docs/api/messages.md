@@ -8,11 +8,11 @@ Every route sits under `/v1/workspace/{workspace}`.
 
 | Route | Permission | Answer |
 |---|---|---|
-| `POST /send-message` | `workspace.send-message` | `{"message": "ok"}` |
+| `POST /send-message` | `workspace.send-message` | `{"message":"ok","delivery":{status,send_log_id}}` |
 | `GET /settings/email-logs` | `setting.get` | paginated send logs, newest first |
 | `POST /settings/office365/test-connection` | `setting.update` | `{data: {ok, stage, message, …}}`, 200 or 422 |
 | `POST /settings/office365/test-send` | `setting.update` | same |
-| `GET /email-profiles/{id}/test-connection` | `emailprofile.update` | `{"data": {"success_connection": true}}` |
+| `GET /email-profiles/{id}/test-connection` | `emailprofile.update` | `{data:{success_connection,delivery:{status,send_log_id}}}` |
 
 - `setting.get`: Laravel checked `setting.view`, which the catalog doesn't offer.
 - `emailprofile.update`: Laravel checked `ftpserver.view` here (a bug).
@@ -165,3 +165,9 @@ Answers are always `{data: {...}}`, Laravel's texts:
 | `MAIL_ALLOWED_RECIPIENT_DOMAINS` | empty (all) | the allow-list above |
 | `MAIL_TRUSTED_SMTP_HOSTS` | empty | workspace SMTP hosts dialled without the address and port checks |
 | `GRAPH_LOGIN_URL`, `GRAPH_API_URL` | Microsoft's | local fakes only; an overridden host is trusted by the outbound client |
+
+## Transport receipts
+
+`POST /send-message` keeps HTTP 200 and `message: "ok"`, with `delivery: {status, send_log_id}`. Status is `accepted`, `blocked`, `manual` or `no_recipients`. Accepted means transport acceptance; inbox delivery is unverified. Manual and no-recipient requests perform no transport and have a null log id. Blocked mail has a durable blocked send log.
+
+Profile test replies add the same receipt. `success_connection` is true only for transport acceptance; allow-list blocking returns false. Assistant action audit copies this bounded receipt through a typed response extension, without persisting response bodies or mail content.

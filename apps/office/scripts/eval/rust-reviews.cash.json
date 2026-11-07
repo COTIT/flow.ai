@@ -1,0 +1,623 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "cash-register-user-state",
+      "test": "till_login::login_with_device_key_and_pin_opens_a_session",
+      "operations": [
+        "till_registers_create",
+        "till_users_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(res[\"data\"][\"register\"][\"id\"], reg.as_str());"
+        }
+      ],
+      "review": "Native staff register/user creation independently verified through actual device/PIN login, exact registerid/name/userid/name and logout invalidation. Credentials remain synthetic fixture memory; secure UI not proved."
+    },
+    {
+      "id": "cash-register-list",
+      "test": "till_login::office_routes_need_cashregister_rights_and_valid_input",
+      "operations": [
+        "till_registers_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert!(row.get(\"key\").is_none(), \"secret only on create\");"
+        }
+      ],
+      "review": "Staff list exact Till1 name and key prefix, no full key; not a model-safe secret creation proof."
+    },
+    {
+      "id": "cash-office-authority",
+      "test": "till_login::office_routes_need_cashregister_rights_and_valid_input",
+      "operations": [
+        "till_registers_list",
+        "till_registers_create",
+        "till_users_list",
+        "till_users_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}\");"
+        }
+      ],
+      "review": "Active member without cashregister grants403 before invalid body validation; dedicated grants can create user201."
+    },
+    {
+      "id": "cash-office-validation",
+      "test": "till_login::office_routes_need_cashregister_rights_and_valid_input",
+      "operations": [
+        "till_registers_create",
+        "till_users_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert!(res[\"errors\"][\"warehouse_id\"].is_array(), \"{res}\");"
+        }
+      ],
+      "review": "Non-store register warehouse and invalid PIN length/characters422 with exact keyed errors. No real device keys retained."
+    },
+    {
+      "id": "cash-office-tenant",
+      "test": "till_login::another_workspace_is_refused_everywhere",
+      "operations": [
+        "till_registers_list",
+        "till_registers_rotate_key",
+        "till_users_update"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{path}\");"
+        }
+      ],
+      "review": "Actual second workspace owner cannot list first registers, rotate first register key through own workspace, or update foreign till user404."
+    },
+    {
+      "id": "cash-register-foreign-input",
+      "test": "till_login::another_workspace_is_refused_everywhere",
+      "operations": [
+        "till_registers_create"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "// A register can't point at another workspace's warehouse."
+        }
+      ],
+      "review": "Native register create cannot reference actual second workspace store warehouse422."
+    },
+    {
+      "id": "cash-user-update-key-rotate",
+      "test": "till_login::revoked_or_rotated_key_and_deactivated_user_kill_live_sessions",
+      "operations": [
+        "till_users_update",
+        "till_registers_rotate_key"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(me(&api, &t1).await, StatusCode::UNAUTHORIZED, \"key rotated\");"
+        }
+      ],
+      "review": "Deactivate exact user invalidates only their session; real key rotation invalidates old key/sessions while new key authenticates. All fixture keys remain private; secure handoff separately required."
+    },
+    {
+      "id": "cash-user-update-pin",
+      "test": "till_login::new_pin_deactivation_and_new_login_end_old_sessions",
+      "operations": [
+        "till_users_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(me(&api, &t).await, StatusCode::UNAUTHORIZED, \"new PIN\");"
+        }
+      ],
+      "review": "Real deactivate/reactivate does not revive session, rename preserves it, PIN change invalidates session and new PIN authenticates; repeated login replaces older session."
+    },
+    {
+      "id": "cash-pairing-result",
+      "test": "till_pairing::shop_name_and_code_give_the_till_its_key_and_retire_the_old_one",
+      "operations": [
+        "till_registers_pairing"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_pairing.rs",
+          "contains": "assert_eq!(audit, (true, true, true, Some(\"127.0.0.1\".into())));"
+        }
+      ],
+      "review": "Issued native one-time code successfully pairs exact register, retires old key/sessions and writes real actor/redemption/key/IP audit; staff register list paired_at stamped. No code/key values enter evidence; secure UI remains open."
+    },
+    {
+      "id": "cash-pairing-guards",
+      "test": "till_pairing::codes_are_stored_hashed_and_need_register_rights",
+      "operations": [
+        "till_registers_pairing"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_pairing.rs",
+          "contains": "\"another workspace's register\""
+        }
+      ],
+      "review": "Read-only cashregister member cannot issue pairing code403; second workspace register reference404; direct DB hash length32 and plaintext absent."
+    },
+    {
+      "id": "cash-vaults-shifts-authority",
+      "test": "till_cash::office_cash_routes_need_cashregister_rights",
+      "operations": [
+        "till_vaults_list",
+        "till_vaults_create",
+        "till_shifts_list"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_cash.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}\");"
+        }
+      ],
+      "review": "Permissionless member denied on native vaultlist/create and shiftlist403; till tokens cannot call staff vault route401."
+    },
+    {
+      "id": "cash-vault-shift-state",
+      "test": "till_cash::open_transfer_close_balances_in_minor_units",
+      "operations": [
+        "till_vaults_create",
+        "till_vaults_list",
+        "till_shifts_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_cash.rs",
+          "contains": "assert_eq!(t.vault_balance().await, 2000);"
+        }
+      ],
+      "review": "Native fixture creates actual safe id; real transfer persists exact2000 vault balance; closed shift independent staff list reports expected2515/count2510/difference-5 and total1. Till/device transfer is local DB fixture, no physical cash movement."
+    },
+    {
+      "id": "cash-shift-list",
+      "test": "till_cash::office_shifts_filter_by_open_register_and_time",
+      "operations": [
+        "till_shifts_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_cash.rs",
+          "contains": "assert_eq!(res[\"meta\"][\"total\"], 0, \"acme's register under evil\");"
+        }
+      ],
+      "review": "Exact own open/closed shift ids, register and inclusive-from/exclusive-to filters; bad dates/bool/UUID422. Real second workspace query for original register returns empty0."
+    },
+    {
+      "id": "cash-sales-list",
+      "test": "till_sales::office_sales_filter_by_time_and_register",
+      "operations": [
+        "till_sales_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_sales.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"client_ref\"], \"a-1\");"
+        }
+      ],
+      "review": "Two actual local fixture sales: exact refs/order/time/register/mismatch filters; malformed query422; real second workspace original register filter returns0. No live payment provider or real transaction."
+    },
+    {
+      "id": "cash-payout-void",
+      "test": "farm_payouts::a_void_adds_reversing_rows_and_nothing_is_ever_edited",
+      "operations": [
+        "farm_payouts_void"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "validation": [
+          422,
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(kinds, [\"sale_credit\", \"payout\", \"payout_void\"]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Officer void403, blank reason422; ops exact reason reverses balance to1000000, repeat409. Real passbook append-only reversing row; DB refuses changes/deletes across financial ledgers."
+    },
+    {
+      "id": "cash-cash-movement-result",
+      "test": "farm_payouts::the_day_reconciles_float_payouts_returns_and_the_count",
+      "operations": [
+        "farm_payouts_cash_movement"
+      ],
+      "gates": {
+        "result": [
+          201
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"officers don't hand out floats\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Ops issues1000000 float, officer cannot issue float403 but can count own490000; subsequent independent reconciliation verifies amounts. All synthetic ledger records, no cash handover."
+    },
+    {
+      "id": "cash-cash-reconciliation",
+      "test": "farm_payouts::the_day_reconciles_float_payouts_returns_and_the_count",
+      "operations": [
+        "farm_payouts_reconciliation"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(m(\"variance\"), Some(-10_000));"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact per-officer/day opening0,float1000000,paid350000,void50000,returned200000,expected500000,count490000,variance-10000; officer sees own row and unrelated officer sees empty."
+    },
+    {
+      "id": "cash-payout-list",
+      "test": "farm_payouts::payouts_are_listed_to_staff_of_the_village_and_to_the_farmer_paid",
+      "operations": [
+        "farm_payouts_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200,
+          403
+        ],
+        "authorization": [
+          403
+        ],
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "\"her own only\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Real two-person payouts: ops total2, assigned officer2, other village0, linked farmer exact own person only1; querying another person403, malformed person422. Actual second farm workspace list empty0."
+    },
+    {
+      "id": "cash-payout-detail",
+      "test": "farm_payouts::payouts_are_listed_to_staff_of_the_village_and_to_the_farmer_paid",
+      "operations": [
+        "farm_payouts_get"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          403,
+          404
+        ],
+        "authorization": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_payouts.rs",
+          "contains": "assert_eq!(res[\"data\"][\"amount\"][\"minor\"], 300_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Own linked farmer reads exact300000TZS and nullvoid; unrelated farmer403, wrong-village staff404, second workspace staff404, ops succeeds."
+    },
+    {
+      "id": "cash-voucher-mine",
+      "test": "farm_vouchers::only_the_household_reads_its_code",
+      "operations": [
+        "farm_vouchers_mine"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "farm_role": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "\"another household sees no voucher\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual linked household sees exact issued fixture code, no audit flag and nullvoidreason; unrelated household empty0. Sensitive code not retained in sanitized evidence; secure handoff separately required where policy applies."
+    },
+    {
+      "id": "cash-voucher-lookup",
+      "test": "farm_vouchers::lookups_are_staff_only_logged_and_blind_outside_the_village",
+      "operations": [
+        "farm_vouchers_lookup"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          401,
+          403
+        ],
+        "farm_role": [
+          403,
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "\"every scan is on the record\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer403, absent bearer401, out-of-village staff foundfalse; eligible staff exact200000/can_redeem, registrar blocked reason. Real event order issued/refused/scanned/scanned proves audit. No literal codes exported."
+    },
+    {
+      "id": "cash-voucher-void",
+      "test": "farm_vouchers::ops_voids_with_a_reason_and_the_void_is_on_the_trail",
+      "operations": [
+        "farm_vouchers_void"
+      ],
+      "gates": {
+        "result": [
+          204
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "\"the household's own voucher list says why\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Officer403, blank reason422; ops void204 independently proven by redemption refusal, typed timeline reason and household list voidstatus/reason. Repeated void422."
+    },
+    {
+      "id": "cash-voucher-timeline",
+      "test": "farm_vouchers::the_trail_is_append_only_and_filtered_by_who_asks",
+      "operations": [
+        "farm_vouchers_timeline"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          401
+        ],
+        "farm_role": [
+          200,
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "\"the farmer sees no scans or staff steps\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Exact farmer answered/issued/redeemed, staff scans withoutrefusals, ops whole trail; wrong village404 and absent bearer401. Actual DB rejects event UPDATE/DELETE."
+    },
+    {
+      "id": "cash-voucher-log",
+      "test": "farm_vouchers::redemptions_reconcile_per_officer_per_day_in_minor_units",
+      "operations": [
+        "farm_vouchers_redemptions",
+        "farm_vouchers_redemption_totals"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          403
+        ],
+        "farm_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "assert_eq!(totals[\"data\"][0][\"minor\"], 200_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual redeemed fixture voucher groups by Tanzania day: exact1voucher/200000TZS/redeemer and IDtypeNIDA; field officer cash logs403. No physical payout or external payment."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/farm_payouts.rs": "f65e835bef79bcb734b94f34a3688f94e1d7ce8e25587d62cfd5817263379029",
+    "apps/api/tests/api/farm_vouchers.rs": "75e37a0d633d99a687e6dc52e3d0a829e7ddad3056ec369c649586aa6470aa07",
+    "apps/api/tests/api/till_cash.rs": "f26036a4bca79551b42bdb1a1ec55d700fe19243ace569267c686e10a4f76ff8",
+    "apps/api/tests/api/till_login.rs": "069e9f9e18ee85db1928e9be7819eb347c8d08211679e88cb0124e047a09cf5e",
+    "apps/api/tests/api/till_pairing.rs": "749a3f77bdab746214990082214cbb670edfe16257f8e022a62f32d7d7292593",
+    "apps/api/tests/api/till_sales.rs": "057c12eeb8645761b59c5828892398520a6a933c46dbf6155f57be81cff87c1f",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea"
+  }
+}

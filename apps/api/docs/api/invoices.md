@@ -15,10 +15,10 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 | `DELETE /invoices/{id}` | `invoice.delete` | `{"message": "ok"}` (cancels) |
 | `POST /invoices/{id}/duplicate` | `invoice.create` | `201 {"data": {"invoice_id": "<uuid>"}}` |
 | `GET /invoices/{id}/preview` | `invoice.view` | `{data: FileResource}` of the rendered PDF |
-| `POST /invoices/{id}/send` | `invoice.send` + `workspace.send-message` | `{"message": "ok"}` |
-| `POST /invoices/{id}/resend` | `invoice.send` + `workspace.send-message` | `{"message": "ok"}` |
+| `POST /invoices/{id}/send` | `invoice.send` + `workspace.send-message` | `{"message":"ok","delivery":{…}}` |
+| `POST /invoices/{id}/resend` | `invoice.send` + `workspace.send-message` | `{"message":"ok","delivery":{…}}` |
 | `POST /invoices/{id}/credit` | `invoice.credit` + `invoice.create` | `201 {"data": {"invoice_id": "<credit note>"}}` |
-| `GET /invoices/send-tasks/active` | `invoice.list` | `{"data": []}` |
+| `GET /invoices/send-tasks/active` | `invoice.list` | `{data:[…]}` (at most 100 pending/unknown receipts) |
 | `GET /v1/invoices/fetch-from-hashed/{token}` | none (public, rate limited) | `{data: public invoice}` |
 
 - A body may be up to 2 MiB, with up to 1000 item rows, as on the item-total routes. Its body deadline is twice the normal one.
@@ -211,14 +211,14 @@ Only a `draft` is sent: anything else is `422 {"message": "This Invoice does not
 4. sets `send_date` (the moment of numbering) and `due_date` when they are empty;
 5. sets the status: `pending`; with a total of 0, `paid` (invoice) or `credited` (credit note), as Laravel's balance update did;
 6. creates the payment token (once per invoice);
-7. takes the next number of the series and stores it with the appendix.
+7. takes the next number of the series, stores it with the appendix, and records delivery intent with its specific job.
 
 After commit, in a task of its own (a request timeout or a client that leaves doesn't stop it; the caller still gets its outcome):
 
 8. renders the PDF with `pdf_template_id` when that is an invoice template of this workspace, else the built-in layout, stores it as a file (`Invoice_pdf_{number}.pdf`) and sets it as the invoice's `pdf_file`;
 9. mails it unless `send_method` is `manual` (below).
 
-A failure in 8 or 9 (the sidecar or the mail server failing) answers with that error (the PDF's 503, the mail's 503 from `messages.md`), and the invoice **stays numbered and `pending`**: send it with resend. Laravel queued 7 and 8 and dropped a second send within 10 s; here the second send waits on the invoice's row lock and gets the 422.
+A failure in 8 or 9 answers with that error and preserves the invoice number. Proven pre-transport failures permit a later resend. Ambiguous transport or interrupted rendering remains unknown and blocks another send until verified. A second send of an already-numbered draft keeps its 422; overlapping eligible resends return 409 before replacing recipient/PDF snapshots.
 
 ### Due date
 
@@ -304,3 +304,13 @@ For the SPA's `/clients/pay-for-invoice/{token}` page. No login; behind the publ
 - Every path takes at most one invoice row and takes it first, so sends and credits of one invoice queue instead of deadlocking.
 - Lines are written with one statement per kind (insert, update, delete via `UNNEST`), whatever the line count.
 - Totals are stored before commit.
+
+## Durable delivery receipts
+
+`POST /invoices/{invoice}/send` and `/resend` keep `message: "ok"` and add `delivery`: `{invoice_delivery_id, invoice_id, status, send_log_id, pdf_file_id}`. Status is `queued`, `accepted`, `blocked`, `manual`, `failed` or `unknown`. Accepted means the mail server accepted transport, without confirming inbox delivery. `GET /invoices/send-tasks/active` returns at most 100 pending or uncertain delivery references for the workspace.
+
+Numbering/recipient snapshots, delivery intent and its specific `invoice_delivery` job commit together. The request waits for one attempt. A restart can run queued intent; a claimed attempt is never automatically replayed. The request and worker share a once-only claim before rendering. Log insertion and the SMTP fence commit before transport. A five-minute sweep resolves known accepted/blocked send-log evidence or records interrupted attempts as unknown. Failures preserve the invoice number.
+
+Send/resend returns 409 while that invoice has queued, running, sending or unknown delivery work. This protects its recipient and PDF snapshots from a late worker. Unknown work requires operator/send-log verification before another send; there is no automatic resend promise.
+
+Pending business mail input contains the validated message and file references, never SMTP credentials or file bytes. It is bounded to 3 MiB and cleared on terminal/unknown outcomes. PostgreSQL backups can retain prior pending values. Resolved bounded delivery audit expires after 90 days; unknown receipts remain. Generated PDF ids are reserved with the delivery before rendering, so interrupted file writes retain a durable reference.

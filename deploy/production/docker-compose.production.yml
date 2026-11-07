@@ -21,6 +21,7 @@ x-edge-labels: &edge-labels
   traefik.docker.network: ${TRAEFIK_NETWORK:?set TRAEFIK_NETWORK in .env.production}
 
 x-api-env: &api-env
+  ASSISTANT_ENABLED: "false"
   DATABASE_URL_FILE: /run/secrets/database_url
   CREDENTIALS_KEY_FILE: /run/secrets/credentials_key
   SMTP_URL_FILE: /run/secrets/smtp_url
@@ -111,6 +112,7 @@ services:
       args: { APP: office, NEXT_PUBLIC_SHOP_URL: "https://shop.genesy.app" }
     image: ghcr.io/cotit/genesy-office:${GENESY_REF}
     environment:
+      ASSISTANT_ENABLED: "false"
       API_URL: http://api:8080/v1
       FILES_ORIGIN: ${FILES_ORIGIN:-}
     networks: [internal, edge]

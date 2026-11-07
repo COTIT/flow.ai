@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_batches SET state='running',started_at=now(),run_hash=$5,run_expires_at=least(expires_at,clock_timestamp()+interval '45 seconds') WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 AND state='approved' AND started_at IS NULL AND expires_at>clock_timestamp()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1751ece3bfa36db1d879907e99090d9589cab344b73645f697999dcdc1077e66"
+}

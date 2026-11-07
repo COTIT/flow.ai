@@ -16,8 +16,11 @@ export interface CreateOrderRequest {
      * @nullable
      */
   currency_id?: string | null;
-  /** @nullable */
-  lines?: LineRequest[] | null;
+  /**
+     * @minItems 1
+     * @maxItems 50
+     */
+  lines: LineRequest[];
   /**
      * @maxLength 1000
      * @nullable

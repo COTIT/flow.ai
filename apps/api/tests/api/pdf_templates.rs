@@ -152,7 +152,11 @@ async fn create_get_update_list_delete(pool: PgPool) {
         .await;
     let count = |v: &Value| v["data"].as_array().unwrap().len();
     assert_eq!(count(&api.list("").await), 2);
-    assert_eq!(count(&api.list("?domain=invoice").await), 1);
+    let invoices = api.list("?domain=invoice").await;
+    assert_eq!(count(&invoices), 1);
+    assert_eq!(invoices["data"][0]["id"], id);
+    assert_eq!(invoices["data"][0]["name"], "Renamed");
+    assert_eq!(invoices["data"][0]["domain"], "invoice");
     assert_eq!(count(&api.list("?q=renam").await), 1);
     assert_eq!(
         count(&api.list("?language=nl").await),

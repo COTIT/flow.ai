@@ -1,0 +1,461 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "remaining-teams-list",
+      "test": "teams::list_has_admin_team_and_members_with_user_shape",
+      "operations": [
+        "teams_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "assert_eq!(user[\"id\"], w.user_id(\"ada@example.com\").await);"
+        }
+      ],
+      "review": "Real selected-workspace list has exactly Admin Team, exact owned user id/name/email, total1 and page1; independently seeded membership, not an empty placeholder."
+    },
+    {
+      "id": "remaining-teams-update",
+      "test": "teams::update_changes_only_sent_fields",
+      "operations": [
+        "teams_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "(Some(\"Sales\"), Some(\"New desc\"))"
+        }
+      ],
+      "review": "Native description patch independently GET exact new description while retains name Sales; invalid null/empty mutation422."
+    },
+    {
+      "id": "remaining-teams-delete",
+      "test": "teams::delete_soft_deletes_and_drops_its_grants_from_members",
+      "operations": [
+        "teams_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "assert!(deleted, \"row kept, soft deleted\");"
+        }
+      ],
+      "review": "Independent Postgres deleted_at check on exact team id after delete, member loses its only team.list grant and receives403."
+    },
+    {
+      "id": "remaining-teams-members",
+      "test": "teams::add_and_remove_users",
+      "operations": [
+        "teams_add_users",
+        "teams_remove_users"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "assert_eq!(w.get(&team).await[\"relationships\"][\"users\"], json!([]));"
+        }
+      ],
+      "review": "Independent GET after duplicate/idempotent add contains exact Bob user id, then GET after remove has empty members; exact created team fixture."
+    },
+    {
+      "id": "remaining-users-list",
+      "test": "users::list_shape_matches_users_tab",
+      "operations": [
+        "users_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "assert_eq!(ada[\"id\"], w.id_of(\"ada@example.com\").await);"
+        }
+      ],
+      "review": "Real selected-workspace list has exactly Ada and Bob, exact user id/name/email, workspace-scoped permission/team values and total2."
+    },
+    {
+      "id": "remaining-products-list",
+      "test": "products::list_filters",
+      "operations": [
+        "products_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "\"active, newest first\""
+        }
+      ],
+      "review": "Known Hammer/Saw/disabled Old fixtures; exact ordered active ids, exact disabled/query/barcode/exclusion results and page total2."
+    },
+    {
+      "id": "remaining-products-update",
+      "test": "products::gross_and_markup_normalise_on_save",
+      "operations": [
+        "products_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!(api.get(&id).await[\"price\"], \"240\");"
+        }
+      ],
+      "review": "Independent GET proves markup20 produces price240, then price275 with gross250 yields markup10; exact native decimal strings."
+    },
+    {
+      "id": "remaining-products-price-history",
+      "test": "products::create_writes_default_variant_and_price_history",
+      "operations": [
+        "products_price_history"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/products.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"new_value\"], \"230\");"
+        }
+      ],
+      "review": "Actual default variant counted in Postgres; native history exact fields/manual actor/null-to220, price update220-to230, name-only patch does not add price history."
+    },
+    {
+      "id": "remaining-global-offer-read",
+      "test": "special_offers::crud_and_shape",
+      "operations": [
+        "special_offers_get_all",
+        "special_offers_list_all"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "assert_eq!(w.api.get(&id).await[\"id\"], id.as_str());"
+        }
+      ],
+      "review": "Global GET reaches exact scoped-created offer id; global legacy-filter list total1 and bogo-filter total0. Creation/update/delete in this case use scoped endpoints and do not prove global mutation results."
+    },
+    {
+      "id": "remaining-farm-supply-detail",
+      "test": "farm_supply::verified_actual_harvests_become_a_raw_lot_with_farmer_shares",
+      "operations": [
+        "farm_supply_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(read[\"data\"], res[\"data\"]);"
+        }
+      ],
+      "review": "Independent officer GET exact saved batch data matches created370.50kg/800000price, per-person250.00/120.50 shares and lot code; native lot GET verifies raw product id."
+    },
+    {
+      "id": "remaining-voucher-redeem",
+      "test": "farm_vouchers::redeem_is_safe_to_repeat_and_to_race",
+      "operations": [
+        "farm_vouchers_redeem"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_vouchers.rs",
+          "contains": "assert_eq!(n, 1, \"one redemption, one event\");"
+        }
+      ],
+      "review": "Five concurrent real native requests create exactly one fresh redemption; same staff retry returns replayedtrue, independently Postgres exact voucher has one redeemed event. Other staff cannot redeem again; synthetic vouchers only."
+    },
+    {
+      "id": "remaining-invite-send",
+      "test": "invites::owner_invite_stores_hash_and_mails_link",
+      "operations": [
+        "invites_send"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invites.rs",
+          "contains": "\"only sha256 stored\""
+        }
+      ],
+      "review": "Native invite creates exact returned id, capture-mailer receives one mail for expected recipient/workspace/link and independent DB token_hash equals SHA256 of that mailed code. Controlled mail fake proves acceptance semantics only, no external delivery claim."
+    },
+    {
+      "id": "remaining-status-update",
+      "test": "custom_statuses::untouched_meta_survives_update",
+      "operations": [
+        "custom_statuses_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/custom_statuses.rs",
+          "contains": "assert_eq!(saved[\"name\"], \"B\");"
+        }
+      ],
+      "review": "Native rename A-toB independently GET exact requested new name and unchanged meta k1. Added assertion awaits fresh API test execution."
+    },
+    {
+      "id": "remaining-global-offer-mutations",
+      "test": "special_offers::global_mutations_round_trip_the_exact_offer",
+      "operations": [
+        "special_offers_create_all",
+        "special_offers_update_all",
+        "special_offers_delete_all"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/special_offers.rs",
+          "contains": "\"deleted global offer cannot be read\""
+        }
+      ],
+      "review": "Actual global create exact returned id/product/type/value12.5 independently GET; update20 independently GET/list exact id/value and retainedproduct/type; native delete independently GET404 plus emptylist. New case awaits fresh API execution."
+    },
+    {
+      "id": "remaining-till-user-list",
+      "test": "till_login::another_workspace_is_refused_everywhere",
+      "operations": [
+        "till_users_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/till_login.rs",
+          "contains": "assert_eq!(listed[\"data\"][0][\"id\"], eve_user.as_str());"
+        }
+      ],
+      "review": "Real own-office bearer list exact sole Eve user id/name/activetrue, PIN/hash absent; foreign tenant operations refused in samecase. Added exact result assertions await fresh API execution."
+    },
+    {
+      "id": "remaining-hierarchy-deletes",
+      "test": "warehouse_hierarchy::access_rules_every_level",
+      "operations": [
+        "warehouse_shelves_delete",
+        "warehouse_bins_delete"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/warehouse_hierarchy.rs",
+          "contains": "\"deleted hierarchy row cannot be read\""
+        }
+      ],
+      "review": "Each actual lower-level fixture is created through nativeHTTP with known id, then nativeDELETE and independent exactidGET404 as limited warehouse member. Added state assertion awaits fresh API execution; status200 alone was insufficient."
+    },
+    {
+      "id": "remaining-farm-supply-list",
+      "test": "farm_supply::officers_read_their_villages_farmers_read_nothing",
+      "operations": [
+        "farm_supply_list"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_supply.rs",
+          "contains": "assert_eq!(list[\"data\"][0][\"lot\"][\"code\"], \"ILU-M-10\");"
+        }
+      ],
+      "review": "Independent officer list exact known batch id/10.00kg/800000minorprice/ILU-M-10lot; village-other listempty/detail404 and farmer403 retained. Added exact result assertions await fresh API execution."
+    },
+    {
+      "id": "remaining-crop-create",
+      "test": "farm_records::crops_are_config_ops_writes_everyone_reads",
+      "operations": [
+        "farm_crops_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(coffee[\"measured_by\"], \"tree_count\");"
+        }
+      ],
+      "review": "Actual ops Coffee create returns id; independent farmer list selects that exact id and asserts COFFEE/Coffee/Kahawa/tree_count/activetrue. Officer create forbidden and duplicate crop422 retained. New round-trip assertions await fresh API execution."
+    },
+    {
+      "id": "remaining-currency-create-validation",
+      "test": "currencies::empty_body_lists_every_required_field",
+      "operations": [
+        "currencies_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "\"decimals\": [\"The decimals field is required.\"],"
+        }
+      ],
+      "review": "Existing native empty create asserts exact five required-field422 errors."
+    },
+    {
+      "id": "remaining-currency-update-validation",
+      "test": "currencies::update_null_on_required_field_is_422",
+      "operations": [
+        "currencies_update"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(w.get(&id).await[\"name\"], \"Dollar\");"
+        }
+      ],
+      "review": "Existing native null/empty required-field update asserts exact422 errors and independent saved name Dollar unchanged."
+    },
+    {
+      "id": "remaining-currency-id-validation",
+      "test": "currencies::malformed_and_unknown_ids_are_404",
+      "operations": [
+        "currencies_get",
+        "currencies_update",
+        "currencies_delete"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Existing real native GET/POST/DELETE for malformed nope/123 and valid unknown UUID each404. This proves identifier validation only, not cross-workspace access."
+    },
+    {
+      "id": "remaining-currency-query-validation",
+      "test": "currencies::search_query_is_capped_and_literal",
+      "operations": [
+        "currencies_list"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currencies.rs",
+          "contains": "json!([\"The q must not be greater than 100 characters.\"])"
+        }
+      ],
+      "review": "Existing native query101characters422 with exact q error; literalpercent search independently matches only100percent Coin."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/teams.rs": "c25c0a5e9090e1f5efcd90b8e0718224ec301e165fd2f29ad1cc0086064f15ad",
+    "apps/api/tests/api/users.rs": "ad4038132134cc3bf22ea8dff73bfa86cf0b983f45a0cc8c22fe0fd95b729ee4",
+    "apps/api/tests/api/products.rs": "4139cce3b59e69eb20b185a47d74c93efa096522b28f320f1caf1a9842f0d07b",
+    "apps/api/tests/api/special_offers.rs": "b32a99fd13301f3a68bc2c8419ed9d5bb7332baa2caf836ebd990188cb6c1106",
+    "apps/api/tests/api/farm_supply.rs": "f81c5cb189fc2f29d076d3fcc726a1225c5e983af6d0b8ec6a4b56dc0f2363a8",
+    "apps/api/tests/api/farm_vouchers.rs": "75e37a0d633d99a687e6dc52e3d0a829e7ddad3056ec369c649586aa6470aa07",
+    "apps/api/tests/api/invites.rs": "05866df03a4d12a6d6ad5384e0162cfe8e9e66bc51b1ffe8aea781ec518403a7",
+    "apps/api/tests/api/custom_statuses.rs": "c285a2a1eb594b9148c428657012a628267fa043ce1de135c5fda68c7cff6d7e",
+    "apps/api/tests/api/till_login.rs": "069e9f9e18ee85db1928e9be7819eb347c8d08211679e88cb0124e047a09cf5e",
+    "apps/api/tests/api/warehouse_hierarchy.rs": "4eb1391a69e588246c4f3281d3afb88c03957d5e78133bb8327dcebf1913812e",
+    "apps/api/tests/api/farm_records.rs": "19d715ea32a98a5e9a3552d913d6a566a54d55340d179f2550113810f39f16f8",
+    "apps/api/tests/api/currencies.rs": "3125ce1caf10270a6ad9dedae87893afd07834ba333bf7792195cb893f4dad1c"
+  }
+}

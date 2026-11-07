@@ -8,7 +8,10 @@ import { test } from "../../src/test"
 test("pages carry a fresh-nonce CSP, nosniff and a referrer policy", async ({
   page,
 }) => {
-  await expectSecurityHeaders(page, "/login")
+  await expectSecurityHeaders(page, "/login", [
+    "https://api.elevenlabs.io",
+    "wss://api.elevenlabs.io",
+  ])
 })
 
 test.describe("injected markup", () => {

@@ -8,7 +8,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -470,4 +470,40 @@ pub struct VariantCreated {
 #[derive(ToSchema)]
 pub struct VariantList {
     data: Vec<VariantDoc>,
+}
+
+/// Whether every requested combination produced a persisted variant.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum GenerationReceiptStatus {
+    /// Every requested combination was created.
+    Applied,
+    /// Some requested combinations were unresolved and skipped.
+    Partial,
+}
+
+/// Native generation counts from the committed write, without inferred caller outcomes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, ToSchema)]
+pub struct GenerationReceipt {
+    /// Whether any requested combination was skipped.
+    pub status: GenerationReceiptStatus,
+    /// Validated combinations supplied by the caller.
+    #[schema(minimum = 0, maximum = 500)]
+    pub requested: usize,
+    /// Variants persisted by this transaction.
+    #[schema(minimum = 0, maximum = 500)]
+    pub created: usize,
+    /// Requested combinations that created no variant.
+    #[schema(minimum = 0, maximum = 500)]
+    pub skipped: usize,
+}
+
+/// Existing generated-variant array with an additive native outcome receipt.
+#[derive(Serialize, ToSchema)]
+pub struct GeneratedVariants {
+    /// Created variants, preserving native order and resource shape.
+    #[schema(value_type = Vec<VariantDoc>)]
+    pub data: Vec<Value>,
+    /// Exact outcome of the requested combinations.
+    pub receipt: GenerationReceipt,
 }

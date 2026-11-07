@@ -1,0 +1,619 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "market-deal-update",
+      "test": "deals::update_is_a_patch_and_keeps_an_unchanged_past_close_date",
+      "operations": ["deals_update"],
+      "gates": {
+        "result": [200],
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/deals.rs",
+          "contains": "(&json!(\"Renamed\"), &json!(\"A deal\"))"
+        }
+      ],
+      "review": "Independent GET exact title patch/preserved description and sales agent; explicit null clears, stored past close date preserved but changed past date422, required null fields422."
+    },
+    {
+      "id": "market-discountgroup-crud",
+      "test": "discounts::group_crud_and_shape",
+      "operations": [
+        "discount_groups_create",
+        "discount_groups_get",
+        "discount_groups_update",
+        "discount_groups_list",
+        "discount_groups_delete"
+      ],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_eq!(ids(&listed), vec![id.clone()]);"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {id}\");"
+        }
+      ],
+      "review": "Independent GET exact supplier/name/flags/meta, update rename and active flag with internal immutable, exact listid/total, then delete and GET/update/delete404 proof. Requested internal update is intentionally immutable and not treated as changed."
+    },
+    {
+      "id": "market-discountgroup-role",
+      "test": "discounts::group_access",
+      "operations": [
+        "discount_groups_create",
+        "discount_groups_get",
+        "discount_groups_update",
+        "discount_groups_list",
+        "discount_groups_delete"
+      ],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "api.assert_granted(GROUP_PERMS, body, \"discount_group_id\")"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Shared permissionless native CRUD403 and specific permission grants succeed; no attachment-route denial claim."
+    },
+    {
+      "id": "market-discountgroup-tenant",
+      "test": "discounts::group_access",
+      "operations": [
+        "discount_groups_get",
+        "discount_groups_update",
+        "discount_groups_list",
+        "discount_groups_delete"
+      ],
+      "gates": {
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "api.assert_foreign_404(&id, json!({ \"name\": \"x\" })).await;"
+        },
+        {
+          "file": "apps/api/tests/common/mod.rs",
+          "contains": "\"foreign list leaks {id}\""
+        }
+      ],
+      "review": "Shared real second workspace tests native CRUD tenant refusal plus list isolation; collection create excluded."
+    },
+    {
+      "id": "market-discountgroup-create-validation",
+      "test": "discounts::group_rules",
+      "operations": ["discount_groups_create"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "\"This relation does not exist\""
+        }
+      ],
+      "review": "Native create missing name/active/supplier, unknown supplier and longname422 with exact errors."
+    },
+    {
+      "id": "market-discountgroup-links",
+      "test": "discounts::attach_and_detach_relations",
+      "operations": [
+        "discount_groups_attach",
+        "discount_groups_detach",
+        "discount_groups_relations"
+      ],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "assert_eq!(ids(&listed), vec![b.clone()]);"
+        }
+      ],
+      "review": "Attach two exact relations, repeat no-op; independent list exact ids/total2; detach one leaves exact otherid."
+    },
+    {
+      "id": "market-discountgroup-link-validation",
+      "test": "discounts::attach_and_detach_relations",
+      "operations": ["discount_groups_attach", "discount_groups_detach"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "\"The relation ids field is required.\""
+        }
+      ],
+      "review": "Unknown relation/malformed array attach and missing detacharray422 with exactfield messages."
+    },
+    {
+      "id": "market-discountgroup-attach-role",
+      "test": "discounts::attach_and_detach_relations",
+      "operations": ["discount_groups_attach"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/discounts.rs",
+          "contains": "\"attach needs discountgroup.attach\""
+        }
+      ],
+      "review": "View-only group member cannot attach relation403; other link route role denials not inferred."
+    },
+    {
+      "id": "market-buyer-state",
+      "test": "farm_market::ops_keeps_the_buyer_book",
+      "operations": ["farm_market_buyers_create", "farm_market_buyers_list"],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(list[\"meta\"][\"total\"], 2, \"{list}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native new buyer channelafm/activetrue; independently list total2 (seeded+new). Duplicate name/channel invalid422 in samecase."
+    },
+    {
+      "id": "market-buyer-validation",
+      "test": "farm_market::ops_keeps_the_buyer_book",
+      "operations": ["farm_market_buyers_create"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert!(res[\"errors\"][\"channel\"].is_array(), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Duplicate buyername and unsupported auctionchannel422 keyed errors."
+    },
+    {
+      "id": "market-orderbook-roles",
+      "test": "farm_market::the_order_book_is_for_ops_and_admin_only",
+      "operations": [
+        "farm_market_buyers_list",
+        "farm_market_buyers_create",
+        "farm_market_demands_list",
+        "farm_market_demands_get"
+      ],
+      "gates": {
+        "authorization": [403],
+        "farm_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{tail}: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual village officer and farmer cannot read buyer/demand book or create buyer; native403. Project owner demandlist succeeds."
+    },
+    {
+      "id": "market-demand-state",
+      "test": "farm_market::ops_records_a_demand_and_its_capture_is_the_servers",
+      "operations": [
+        "farm_market_demands_create",
+        "farm_market_demands_get",
+        "farm_market_demands_list"
+      ],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(res[\"data\"][\"indicative_price_per_kg\"][\"minor\"], 80_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Create exact1200.50kg/buyer/crop/open/unverified and real capturing actor; native detail exactTZSminor80000, filtered listopen2/closed0. Server-owned capture/status inputs remain authoritative."
+    },
+    {
+      "id": "market-demand-validation",
+      "test": "farm_market::demand_figures_are_checked",
+      "operations": ["farm_market_demands_create"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert!(res[\"errors\"][field].is_array(), \"{patch}: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Zeroquantity/datewindow/baddate/unknownbuyer/crop/missingcurrency422 each keyed expectedfield."
+    },
+    {
+      "id": "market-opportunity-created",
+      "test": "farm_market::ops_proposes_a_village_against_a_demand",
+      "operations": ["farm_market_opportunities_create"],
+      "gates": {
+        "result": [201],
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(o[\"demand\"][\"id\"], m.demand);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Created opportunity exact proposed/village/crop/demand/buyer, empty supply and server-computed0kg. Duplicate demand+village422."
+    },
+    {
+      "id": "market-opportunity-create-validation",
+      "test": "farm_market::an_opportunity_is_born_proposed_for_the_demand_crop",
+      "operations": ["farm_market_opportunities_create"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "\"opportunity must match the demand crop and project\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Non-proposed initialstate and wrongcrop422 exactbusiness messages."
+    },
+    {
+      "id": "market-opportunity-write-roles",
+      "test": "farm_market::only_ops_and_admin_write_opportunities",
+      "operations": [
+        "farm_market_opportunities_create",
+        "farm_market_opportunities_status"
+      ],
+      "gates": {
+        "authorization": [403],
+        "farm_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "\"only project ops or admin may write opportunities\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Village officer create/status403 exactpolicy; farmer create403 but hidden status404, original remainsproposed."
+    },
+    {
+      "id": "market-opportunity-read-state",
+      "test": "farm_market::only_ops_and_admin_write_opportunities",
+      "operations": ["farm_market_opportunities_get"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(res[\"data\"][\"status\"], \"proposed\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Independent ops detail after forbidden changes verifies unchangedproposed state."
+    },
+    {
+      "id": "market-opportunity-transitions",
+      "test": "farm_market::opportunities_follow_ruahas_status_machine",
+      "operations": ["farm_market_opportunities_status"],
+      "gates": {
+        "result": [200],
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(res[\"data\"][\"status\"], to);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Shared/accepted/declined transition result exact; illegal proposed->accepted, terminal reversals and invalidsold rejected422. Lapsedterminal tested."
+    },
+    {
+      "id": "market-opportunity-list-scope",
+      "test": "farm_market::staff_read_the_opportunities_of_their_villages",
+      "operations": ["farm_market_opportunities_list"],
+      "gates": {
+        "result": [200],
+        "farm_role": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(mine[\"data\"][0][\"id\"], ilu);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Villageofficer list exactowned opportunity/total1; ops sees2, villagefilter1; farmerwithoutcontribution0."
+    },
+    {
+      "id": "market-opportunity-detail-role",
+      "test": "farm_market::staff_read_the_opportunities_of_their_villages",
+      "operations": ["farm_market_opportunities_get"],
+      "gates": {
+        "farm_role": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "&format!(\"/opportunities/{mga}\"),"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Wrong assignedvillage officer detail404. This role/predicate denial is404, not fabricated403."
+    },
+    {
+      "id": "market-market-tenant",
+      "test": "farm_market::the_market_of_another_workspace_is_404",
+      "operations": [
+        "farm_market_opportunities_get",
+        "farm_market_demands_get",
+        "farm_market_opportunities_status",
+        "farm_market_opportunities_create"
+      ],
+      "gates": {
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "let base = format!(\"/v1/workspace/{other_ws}/farm\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual second workspace admin attempts firstworkspace demand/opportunity reads and writes through own workspace404."
+    },
+    {
+      "id": "market-demand-foreign-input",
+      "test": "farm_market::the_market_of_another_workspace_is_404",
+      "operations": ["farm_market_demands_create"],
+      "gates": {
+        "cross_workspace": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Secondworkspace farmadmin submits originalworkspace buyer/crop references; native validation422 rather than404."
+    },
+    {
+      "id": "market-buyer-no-bearer",
+      "test": "farm_market::the_market_of_another_workspace_is_404",
+      "operations": ["farm_market_buyers_list"],
+      "gates": {
+        "authorization": [401]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual buyerlist requestwithoutbearer401; other route401 not inferred."
+    },
+    {
+      "id": "market-supply-state",
+      "test": "farm_market::ops_attaches_supply_and_the_server_sums_it",
+      "operations": [
+        "farm_market_supply_create",
+        "farm_market_harvest_available"
+      ],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(row[\"available_kg\"], \"1200.00\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native attach exactharvest/person/plot/capturingops and2000kg; independent availability expected3200,committed2000,available1200 and samefarmer/plot."
+    },
+    {
+      "id": "market-supply-validation",
+      "test": "farm_market::supply_must_be_a_current_expected_harvest_of_the_village_and_crop",
+      "operations": ["farm_market_supply_create"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "\"supply must reference a current, undeleted expected harvest report\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Wrongvillage/crop/currentexpected/type/unknownharvest/zeroquantity422; exactbusinessorfield assertions."
+    },
+    {
+      "id": "market-supply-roles",
+      "test": "farm_market::only_ops_and_admin_attach_supply",
+      "operations": ["farm_market_supply_create"],
+      "gates": {
+        "authorization": [403],
+        "farm_role": [403, 404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "\"only project ops or admin may attach supply\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Assignedofficer attach403, foreign-village officer/farmer hidden404; independent availability remains0committed."
+    },
+    {
+      "id": "market-supply-matches",
+      "test": "farm_market::village_supply_and_matches_count_each_harvest_once",
+      "operations": [
+        "farm_market_demand_matches",
+        "farm_market_village_matches",
+        "farm_market_village_supply"
+      ],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(r[\"coverage_pct\"], \"24.0\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Singleharvest countedonce acrosswide demandwindow; exactvillage/available1200/committed2000/coverable1200/coverage24%; village matches exactbuyer/opportunity, supply crop/month/quantities/cyclecount1."
+    },
+    {
+      "id": "market-village-matches-role",
+      "test": "farm_market::village_supply_and_matches_count_each_harvest_once",
+      "operations": ["farm_market_village_matches"],
+      "gates": {
+        "authorization": [403],
+        "farm_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(first[\"opportunity\"][\"id\"], opp);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Ops matchread200exactbuyer/opportunity; villageofficer403. Gate requires matching observed403, not merely positive assertions."
+    },
+    {
+      "id": "market-village-supply-role",
+      "test": "farm_market::village_supply_and_matches_count_each_harvest_once",
+      "operations": ["farm_market_village_supply"],
+      "gates": {
+        "authorization": [403],
+        "farm_role": [403, 404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Villageofficer readsassignedvillage200; farmer403 andother-villageofficer404. Peroperation/status+passingtest required."
+    },
+    {
+      "id": "market-harvest-role-scope",
+      "test": "farm_market::a_farmer_reads_harvest_availability_of_their_own_cycles_only",
+      "operations": ["farm_market_harvest_available"],
+      "gates": {
+        "result": [200],
+        "farm_role": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_market.rs",
+          "contains": "assert_eq!(none[\"data\"][0][\"village_id\"], m.f.mgama);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer sees ownharvest1, Iluofficer1, Mgaofficer1 fromMgama; exactvillage isolation. Positive role-filterproof200, not a forbiddenstatus."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/deals.rs": "f1a3aeb521d47d8cfdf488884f619388ef675dc424034de618290e09d088e58b",
+    "apps/api/tests/api/discounts.rs": "50fd46a6b93e50c4d667a86a13d5d8805c257ef27562b3efca8bac753a765f42",
+    "apps/api/tests/api/farm_market.rs": "351382b7dffa806612387dc71e737ecaae82a5457f7867717c116f735d3082d5",
+    "apps/api/tests/common/mod.rs": "196a88ecdc0058e654b601eb16f5d9aa60d00e7dd0149ba6e3f6caab2aed1502",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea"
+  }
+}

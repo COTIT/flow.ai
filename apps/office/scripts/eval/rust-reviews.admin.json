@@ -1,0 +1,559 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "admin-team-route-authority",
+      "test": "teams::each_route_needs_its_permission",
+      "operations": [
+        "teams_create",
+        "teams_list",
+        "teams_get",
+        "teams_update",
+        "teams_delete",
+        "teams_add_users",
+        "teams_remove_users",
+        "teams_set_permissions"
+      ],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "\"{method} {path} without {perm}\""
+        }
+      ],
+      "review": "Each native route is called by an active member without grants and must return403 with exact unauthorized message; another member holding that route permission succeeds. Success alone is not a result assertion."
+    },
+    {
+      "id": "admin-team-hidden",
+      "test": "teams::deleted_and_foreign_teams_are_hidden",
+      "operations": [
+        "teams_get",
+        "teams_update",
+        "teams_delete",
+        "teams_add_users",
+        "teams_set_permissions"
+      ],
+      "gates": {
+        "cross_workspace": [404],
+        "validation": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"{method} {path}: {res}\");"
+        }
+      ],
+      "review": "Actual foreign team, deleted team and malformed identifier all return404 through GET/update/delete/add-users/permissions. Collection create and remove-users excluded."
+    },
+    {
+      "id": "admin-team-list-outsider",
+      "test": "teams::outsider_gets_404",
+      "operations": ["teams_list"],
+      "gates": {
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "let (status, _) = w.call(Method::GET, \"\", None, &eve).await;"
+        }
+      ],
+      "review": "A real second workspace owner cannot list first workspace teams."
+    },
+    {
+      "id": "admin-team-create-state",
+      "test": "teams::create_then_get_in_team_resource_shape",
+      "operations": ["teams_create", "teams_get"],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "team[\"permissions\"],\n        json!([\"relation.create\", \"relation.get\", \"workspace_admin\"])"
+        }
+      ],
+      "review": "Create receipt asserts exactly known applied permissions and two ignored values; independent GET verifies id/name/meta/lowercase grants. Receipt addition has observed RED; execution proof requires later passing run."
+    },
+    {
+      "id": "admin-team-delta-state",
+      "test": "teams::permissions_save_is_a_delta",
+      "operations": ["teams_set_permissions"],
+      "gates": {
+        "result": [200],
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "\"status\":\"partial\", \"applied\":[\"-order.list\"], \"not_applied\":[\"order.list\"], \"ignored_count\":0"
+        }
+      ],
+      "review": "GET verifies persisted deltas; receipt distinguishes removal-wins conflict, unknown/nonstring inputs and empty delta. Missing permissions is422 with exact field message. Requires passing post-fix run."
+    },
+    {
+      "id": "admin-team-owner-only",
+      "test": "teams::only_owner_grants_workspace_admin",
+      "operations": ["teams_set_permissions"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "\"not_applied\":[\"workspace_admin\"]"
+        }
+      ],
+      "review": "Nonowner team.permissions actor gets200 partial with requested admin not applied; independent owner GET proves only relation.list persisted, then owner grant succeeds. This is semantic refusal inside successful native HTTP status, not a403 authorization gate."
+    },
+    {
+      "id": "admin-team-private-receipt",
+      "test": "teams::create_receipt_reports_restricted_permissions_without_disclosing_other_grants",
+      "operations": ["teams_create", "teams_set_permissions"],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/teams.rs",
+          "contains": "assert!(!response.to_string().contains(\"order.list\"));"
+        }
+      ],
+      "review": "Write-only team actor cannot receive unrelated grants or raw unknown input. Restricted create and delta receipts assert exact safe requested subsets; independent owner GET proves stored grants. Requires passing post-fix run."
+    },
+    {
+      "id": "admin-users-list-authority",
+      "test": "users::list_needs_workspace_list",
+      "operations": ["users_list"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403],
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "assert_eq!(w.list(\"\", &none).await.0, StatusCode::FORBIDDEN);"
+        }
+      ],
+      "review": "Permissionless member403, workspace.list holder200, real outsider404."
+    },
+    {
+      "id": "admin-users-list-tenant",
+      "test": "users::list_never_shows_other_workspaces",
+      "operations": ["users_list"],
+      "gates": {
+        "cross_workspace": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "assert_eq!(res[\"data\"].as_array().unwrap().len(), 1);"
+        }
+      ],
+      "review": "After creating a second workspace owner, first workspace users list still contains only its original one member; status alone is insufficient without this exact cardinality assertion."
+    },
+    {
+      "id": "admin-users-detail-authority",
+      "test": "users::detail_needs_user_get",
+      "operations": ["users_get"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "assert_eq!(w.detail(&ada, &none).await.0, StatusCode::FORBIDDEN);"
+        }
+      ],
+      "review": "Active member without user.get403; holder succeeds200."
+    },
+    {
+      "id": "admin-users-detail-state",
+      "test": "users::detail_matches_user_resource_scoped_to_workspace",
+      "operations": ["users_get"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "json!([{ \"workspace\": w.ws, \"permissions\": [\"relation.list\"] }])"
+        }
+      ],
+      "review": "Exact user id/email/active plus workspace permission scope and one Crew team asserted; user own foreign Admin Team excluded."
+    },
+    {
+      "id": "admin-users-detail-hidden",
+      "test": "users::detail_of_non_member_or_garbage_is_404",
+      "operations": ["users_get"],
+      "gates": {
+        "cross_workspace": [404],
+        "validation": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/users.rs",
+          "contains": "for user in [eve.as_str(), \"nope\", \"00000000-0000-7000-8000-000000000000\"]"
+        }
+      ],
+      "review": "Other workspace user, malformed and unknown ids return404 under actual owner request."
+    },
+    {
+      "id": "admin-workspace-authority",
+      "test": "workspaces::get_and_update_need_their_permissions",
+      "operations": ["workspaces_get", "workspaces_update"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "// 403 before body validation."
+        }
+      ],
+      "review": "GET permissionless403; update read-only403 before malformed email validation; correct dedicated permissions succeed. Per-operation observations constrain statuses."
+    },
+    {
+      "id": "admin-workspace-outsider",
+      "test": "workspaces::get_and_update_need_their_permissions",
+      "operations": ["workspaces_get"],
+      "gates": {
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert_eq!(w.get(&eve).await.0, StatusCode::NOT_FOUND);"
+        }
+      ],
+      "review": "Actual other workspace owner cannot read workspace detail. No update tenant claim from this case."
+    },
+    {
+      "id": "admin-workspace-resource",
+      "test": "workspaces::get_has_resource_shape_with_empty_profile_objects",
+      "operations": ["workspaces_get"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert_eq!(d[\"id\"], w.ws);"
+        }
+      ],
+      "review": "Exact workspace id/name/type/counts and empty profile/address/account objects asserted."
+    },
+    {
+      "id": "admin-workspace-update",
+      "test": "workspaces::update_stores_profile_and_merges_partial_updates",
+      "operations": ["workspaces_update"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert!(d[\"workspace_profile\"].get(\"hacker\").is_none());"
+        }
+      ],
+      "review": "Independent GET proves profile fields, partial merge, explicit null clearing and unknown field rejection; unchanged workspace type asserted."
+    },
+    {
+      "id": "admin-workspace-validation",
+      "test": "workspaces::update_validates_every_field",
+      "operations": ["workspaces_update"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert!(e.get(key).is_some(), \"no error for {key}: {e}\");"
+        }
+      ],
+      "review": "Invalid profile/address/account fields all produce422 field errors; independent GET proves company name unchanged."
+    },
+    {
+      "id": "admin-invite-authority",
+      "test": "workspaces::invite_list_and_delete_scoped_and_permissioned",
+      "operations": ["invites_list", "invites_delete"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert_eq!(w.invites(\"\", &none).await.0, StatusCode::FORBIDDEN);"
+        }
+      ],
+      "review": "Permissionless active member cannot list or delete invites. Per-operation observed403 required."
+    },
+    {
+      "id": "admin-invite-delete-tenant",
+      "test": "workspaces::invite_list_and_delete_scoped_and_permissioned",
+      "operations": ["invites_delete"],
+      "gates": {
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "let through_eves = format!(\"/v1/workspace/{eves}/invites/{id}\");"
+        }
+      ],
+      "review": "Other workspace owner cannot delete first workspace invite through own workspace; returns404."
+    },
+    {
+      "id": "admin-invite-list-state",
+      "test": "workspaces::pending_invites_listed_without_codes",
+      "operations": ["invites_list"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert_eq!(item[\"invite_id\"], id);"
+        }
+      ],
+      "review": "Pending invite id/email/status/inviter/team shape and total asserted; invite code absent; accepted filter empty. Uses local fake mailer, no external SMTP proof."
+    },
+    {
+      "id": "admin-invite-delete-state",
+      "test": "workspaces::delete_invite_kills_the_link",
+      "operations": ["invites_delete"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/workspaces.rs",
+          "contains": "assert_eq!(w.invites(\"\", &w.owner).await.1[\"data\"], json!([]));"
+        }
+      ],
+      "review": "Native delete200 followed by independent empty list and second delete404. Uses test fake mailer to create invite."
+    },
+    {
+      "id": "admin-invite-send-authority",
+      "test": "invites::non_member_gets_404_member_non_owner_gets_403",
+      "operations": ["invites_send"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403],
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invites.rs",
+          "contains": "\"outsider must not learn workspace exists\""
+        }
+      ],
+      "review": "Real outsider send404; after joining same workspace without invite authority send403 exact unauthorized message. Local fake mailer remains test-only."
+    },
+    {
+      "id": "admin-settings-authority",
+      "test": "settings::guards",
+      "operations": ["settings_get", "settings_update"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "let body = json!({ \"invoice\": { \"prefix\": \"X\" } });"
+        }
+      ],
+      "review": "Permissionless both routes403; read-only GET200/update403; write-only update200. Per-operation observed403 required."
+    },
+    {
+      "id": "admin-settings-identity-tenant",
+      "test": "settings::guards",
+      "operations": ["settings_get"],
+      "gates": {
+        "authorization": [401],
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        }
+      ],
+      "review": "Missing bearer401 and real outsider GET404; this case does not prove update401/tenant refusal."
+    },
+    {
+      "id": "admin-settings-state",
+      "test": "settings::post_replaces_only_the_sections_sent",
+      "operations": ["settings_get", "settings_update"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "assert_eq!(d[\"relation\"][\"prefix\"], \"K-\");"
+        }
+      ],
+      "review": "Actual update replaces sent invoice section while retaining unsent relation section; independent GET verifies defaults and submitted note."
+    },
+    {
+      "id": "admin-settings-validation",
+      "test": "settings::field_rules",
+      "operations": ["settings_update"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "assert_eq!(stored(&api).await, Value::Null, \"a 422 writes nothing\");"
+        }
+      ],
+      "review": "Exact field-specific validation errors across known settings sections, including bounds/types/URLs/SMTP Graph fields; persisted state unchanged."
+    },
+    {
+      "id": "admin-settings-tenant-state",
+      "test": "settings::other_workspaces_settings_stay_apart",
+      "operations": ["settings_get"],
+      "gates": {
+        "cross_workspace": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/settings.rs",
+          "contains": "assert_eq!(get(&api, \"?type=invoice.prefix\").await, json!([]));"
+        }
+      ],
+      "review": "Second workspace saves MAL prefix; first workspace query still empty. Native statuses plus explicit result isolation needed."
+    },
+    {
+      "id": "admin-relations-list-authority",
+      "test": "relations::list_needs_relation_list_and_stays_in_workspace",
+      "operations": ["relations_list"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403],
+        "cross_workspace": [404, 200],
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!((status, ids(&res)), (StatusCode::OK, vec![mine.clone()]));"
+        }
+      ],
+      "review": "Wrong permission403; permitted member exact own id list; other workspace list excludes first id; outsider first list404."
+    },
+    {
+      "id": "admin-relations-created",
+      "test": "relations::create_numbers_and_returns_relation_id",
+      "operations": ["relations_create", "relations_get"],
+      "gates": {
+        "result": [200, 201]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(api.get(&second).await[\"relation_nr\"], \"RE-0002\");"
+        }
+      ],
+      "review": "Independent GET and direct DB assertions verify identity, company/email/normalized phone, creator and exact increasing relation numbers after two native creates."
+    },
+    {
+      "id": "admin-relations-get-tenant",
+      "test": "relations::get_is_member_only_and_tenant_scoped",
+      "operations": ["relations_get"],
+      "gates": {
+        "cross_workspace": [404],
+        "validation": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "\"any member may read one relation (Laravel parity)\""
+        }
+      ],
+      "review": "Any member may GET relation200 by native policy; real foreign row through second workspace and deleted/malformed/unknown ids404. No invented relation.get permission gate."
+    },
+    {
+      "id": "admin-relations-write-authority",
+      "test": "relations::update_and_delete_permissions_and_ids",
+      "operations": ["relations_update", "relations_delete"],
+      "gates": {
+        "authorization": [403],
+        "restricted_role": [403],
+        "cross_workspace": [404],
+        "validation": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"foreign {method}\");"
+        }
+      ],
+      "review": "Wrong-permission member update/delete403; actual foreign target through second workspace404, deleted/malformed/unknown targets404. Authorized native update succeeds."
+    },
+    {
+      "id": "admin-relations-updated",
+      "test": "relations::update_patches_only_sent_keys",
+      "operations": ["relations_update"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(got[\"relation_nr\"], \"RE-0001\", \"number never changes\");"
+        }
+      ],
+      "review": "Independent GET proves submitted personal type/website, explicit alias clear, untouched company/email/address and preserved relation number."
+    },
+    {
+      "id": "admin-relations-deleted",
+      "test": "relations::delete_keeps_contacts_and_number",
+      "operations": ["relations_delete"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "\"Laravel left contacts in place\""
+        }
+      ],
+      "review": "Independent list total0, underlying contact remains, and next new relation numberRE-0002 proves soft delete preserves numbering."
+    },
+    {
+      "id": "admin-relations-financial-summary",
+      "test": "relations::financial_summary_zero_documents",
+      "operations": ["relations_financial_summary"],
+      "gates": {
+        "result": [200],
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/relations.rs",
+          "contains": "assert_eq!(d[\"expected_lifespan_years\"], 5);"
+        }
+      ],
+      "review": "Exact zero-document financial summary/credit limit fields and lite/full modes asserted; any member allowed200, actual foreign workspace request404. Native legacy float fields asserted only, no assistant money conversion claim."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/invites.rs": "05866df03a4d12a6d6ad5384e0162cfe8e9e66bc51b1ffe8aea781ec518403a7",
+    "apps/api/tests/api/relations.rs": "92137e2f44a1cc6a110b5cacfc1064b1f350eefb22b71cbaa59e377af7053841",
+    "apps/api/tests/api/settings.rs": "b3e3130ad8c70597abbd0d31e88bcf9cf0dbf831791855fb713ffc3c2c3b7035",
+    "apps/api/tests/api/teams.rs": "c25c0a5e9090e1f5efcd90b8e0718224ec301e165fd2f29ad1cc0086064f15ad",
+    "apps/api/tests/api/users.rs": "ad4038132134cc3bf22ea8dff73bfa86cf0b983f45a0cc8c22fe0fd95b729ee4",
+    "apps/api/tests/api/workspaces.rs": "c748334e722d49775f4f3298222b48ec0e43df25e8d6eef9221559ae9e05c1c4"
+  }
+}

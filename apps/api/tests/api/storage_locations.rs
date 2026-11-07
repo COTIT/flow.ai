@@ -245,10 +245,27 @@ async fn validation_and_access(pool: PgPool) {
         StatusCode::FORBIDDEN,
         "writes need warehouse.update"
     );
-    let (eve, _) = signup(&w.api.app, "eve@example.com", "evil").await;
+    let (eve, eve_ws) = signup(&w.api.app, "eve@example.com", "evil").await;
     let (status, _) = w
         .api
         .call(Method::GET, &format!("/product/{}", w.product), None, &eve)
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+    let id=w.api.create(json!({"parent_domain":"product","parent_id":w.product,"warehouse_location_id":w.location,"description":"Live tenant probe"}),"storage_location_id").await;
+    let original = w.of_product().await;
+    for workspace in [&w.api.ws, &eve_ws] {
+        let path = format!("/v1/workspace/{workspace}/erp/storage-locations/{id}");
+        let (status, reply) =
+            common::send(&w.api.app, Method::DELETE, &path, None, Some(&eve)).await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "foreign live storage location delete: {reply}"
+        );
+    }
+    assert_eq!(
+        w.of_product().await,
+        original,
+        "foreign delete leaves the live owner storage location unchanged"
+    );
 }

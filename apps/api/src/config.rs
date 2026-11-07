@@ -59,6 +59,10 @@ pub struct Config {
     /// Seals integration credentials (`CREDENTIALS_KEY`, 64 hex). Optional: without it the API
     /// runs and refuses to store a credential.
     pub credentials_key: Option<CredentialKey>,
+    /// Server-only assistant bridge HMAC key; Debug masked.
+    pub assistant_bridge_secret: Option<crate::AssistantSecret>,
+    /// Provider cleanup key; used only by scheduled cleanup job, Debug masked.
+    pub elevenlabs_api_key: Option<crate::AssistantSecret>,
     /// Files bucket (`B2_UPLOADS_*`, the uploads bucket Laravel uses; keys under `genesy/`).
     /// Optional: without it file routes answer 503.
     pub storage: Option<S3Config>,
@@ -132,6 +136,8 @@ impl fmt::Debug for Config {
                 &self.request_body_deadline_secs,
             )
             .field("credentials_key", &self.credentials_key)
+            .field("assistant_bridge_secret", &self.assistant_bridge_secret)
+            .field("elevenlabs_api_key", &self.elevenlabs_api_key)
             .field(
                 "storage",
                 &self.storage.as_ref().map(|s| (&s.endpoint, &s.bucket)),
@@ -253,6 +259,14 @@ impl Config {
             })
             .transpose()?;
         let storage = storage(&get)?;
+        let assistant_bridge_secret = get("ASSISTANT_BRIDGE_SECRET")
+            .filter(|v| !v.is_empty())
+            .map(crate::AssistantSecret::new)
+            .transpose()?;
+        let elevenlabs_api_key = get("ELEVENLABS_API_KEY")
+            .filter(|v| !v.is_empty())
+            .map(crate::AssistantSecret::new)
+            .transpose()?;
         let gotenberg_url = optional_url(&get, "GOTENBERG_URL")?;
         let mail_allowed_domains = get("MAIL_ALLOWED_RECIPIENT_DOMAINS").unwrap_or_default();
         let mail_trusted_smtp_hosts = get("MAIL_TRUSTED_SMTP_HOSTS")
@@ -290,6 +304,8 @@ impl Config {
             request_timeout_secs,
             request_body_deadline_secs,
             credentials_key,
+            assistant_bridge_secret,
+            elevenlabs_api_key,
             storage,
             gotenberg_url,
             mail_allowed_domains,
@@ -397,10 +413,12 @@ fn optional_url(
 
 /// Vars that may come from `<KEY>_FILE` (Docker secrets), so passwords never sit in env files;
 /// true = the file may be empty (an optional feature left off).
-const SECRET_FILE_VARS: [(&str, bool); 6] = [
+const SECRET_FILE_VARS: [(&str, bool); 8] = [
     ("DATABASE_URL", false),
     ("SMTP_URL", false),
     ("CREDENTIALS_KEY", false),
+    ("ASSISTANT_BRIDGE_SECRET", false),
+    ("ELEVENLABS_API_KEY", false),
     ("B2_UPLOADS_APPLICATION_KEY", true),
     ("STRIPE_SECRET_KEY", false),
     ("STRIPE_WEBHOOK_SECRET", false),
@@ -626,10 +644,27 @@ mod tests {
 
     #[test]
     fn debug_masks_database_url() {
-        let cfg =
-            Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://u:secret@h/db")])).unwrap();
+        let cfg = Config::from_lookup(lookup(&[(
+            "DATABASE_URL",
+            "postgres://u:db-password-never-log-this@h/db",
+        )]))
+        .unwrap();
+        assert!(!format!("{cfg:?}").contains("db-password-never-log-this"));
+    }
 
-        assert!(!format!("{cfg:?}").contains("secret"));
+    #[test]
+    fn debug_masks_assistant_bridge_and_provider_keys() {
+        let bridge = "bridge-material-must-never-appear-in-debug";
+        let provider = "provider-material-must-never-appear-in-debug";
+        let cfg = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("ASSISTANT_BRIDGE_SECRET", bridge),
+            ("ELEVENLABS_API_KEY", provider),
+        ]))
+        .unwrap();
+        let printed = format!("{cfg:?}");
+        assert!(!printed.contains(bridge));
+        assert!(!printed.contains(provider));
     }
 
     #[test]

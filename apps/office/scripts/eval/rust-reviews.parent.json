@@ -1,0 +1,2728 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "parent-invoice-create-read",
+      "test": "invoices::create_stores_a_draft_with_items_and_totals",
+      "operations": [
+        "invoices_create",
+        "invoices_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(inv[\"id\"], id);"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!((subtotal, total), (921, 1114));"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(items[1][\"total_incl\"], \"10.89\");"
+        }
+      ],
+      "review": "Created identifier round-trips through GET; actual Postgres subtotal/total cents and line VAT/discount quantities are checked, plus same relation/contact snapshots. Setup operations excluded."
+    },
+    {
+      "id": "parent-invoice-update",
+      "test": "invoices::update_diffs_items_and_recomputes_totals",
+      "operations": [
+        "invoices_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(titles, [\"A2\", \"C\", \"D\"]);"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!((subtotal, total), (13100, 15830));"
+        }
+      ],
+      "review": "Update deletes only selected line, preserves omitted line, patches header and recomputes exact database cents. GET is used to verify mutation, not generic result inference."
+    },
+    {
+      "id": "parent-invoice-delete",
+      "test": "invoices::delete_cancels_and_only_drafts_change",
+      "operations": [
+        "invoices_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(inv[\"status\"], \"cancelled\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(inv[\"invoice_nr\"], \"N/A\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!((status, res), (StatusCode::UNPROCESSABLE_ENTITY, msg));"
+        }
+      ],
+      "review": "DELETE records cancellation with exact receipt. Repeating DELETE on non-draft is422. Native update status validation observed in same case is not counted for unrelated capabilities."
+    },
+    {
+      "id": "parent-invoice-duplicate",
+      "test": "invoices::duplicate_copies_header_and_lines",
+      "operations": [
+        "invoices_duplicate"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_ne!(copy[\"id\"], id);"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(copy[\"reference\"], Value::Null);"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(item[\"purchase_price\"], \"3\");"
+        }
+      ],
+      "review": "Duplicate yields a fresh draft identifier with copied quantities/discounts/costs/totals and deliberately reset contact/reference. The deleted source remains a separate record."
+    },
+    {
+      "id": "parent-invoice-paging",
+      "test": "invoices::list_filters_and_pages",
+      "operations": [
+        "invoices_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(ids, [c.as_str(), b.as_str(), a.as_str()], \"newest first\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(all[\"meta\"][\"total\"], 3);"
+        },
+        {
+          "file": "apps/api/tests/api/invoices.rs",
+          "contains": "assert_eq!(count(&api.list(\"?page_size=2&page=2\").await), 1);"
+        }
+      ],
+      "review": "Real list checks exact row order, monetary projection, tenant relation, filters and page boundaries; limit mode intentionally omits meta."
+    },
+    {
+      "id": "parent-payment-create",
+      "test": "invoice_payments::cash_payments_settle_an_invoice_within_five_cents",
+      "operations": [
+        "invoice_payments_create"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(state(&f, &id).await, (\"partially_paid\".into(), 6_000));"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(p[\"amount\"], \"60.00000000\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(state(&f, &id).await, (\"paid\".into(), 9_998));"
+        }
+      ],
+      "review": "Payment helper asserts201 and returned payment ID; real invoice balance/status and exact payment amount demonstrate the cash five-cent settlement rule. Public reads not counted as eligible assistant tools."
+    },
+    {
+      "id": "parent-payment-void",
+      "test": "invoice_payments::a_voided_payment_stops_counting_and_stays_on_record",
+      "operations": [
+        "invoice_payments_void"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(kept, (4_000, true));"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(state(&f, &id).await, (\"partially_paid\".into(), 6_000));"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(void(&f, &id, &last).await.0, StatusCode::NOT_FOUND);"
+        }
+      ],
+      "review": "Void retains immutable ledger row and changes only paid balance/status; repeat and wrong-invoice payment return404. No foreign workspace proof inferred from same-workspace wrong invoice."
+    },
+    {
+      "id": "parent-payment-credit",
+      "test": "invoice_payments::mark_as_credited_refunds_the_open_balance",
+      "operations": [
+        "invoice_payments_mark_as_credited"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          400
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(state(&f, &note).await, (\"credited\".into(), -3_000));"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "Some(\"Refunded payment\".into()),"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(count, 1);"
+        }
+      ],
+      "review": "Credit-note refund writes exact negative ledger amount and transaction reference once; repeat is quiet success with one row, ordinary invoice is400."
+    },
+    {
+      "id": "parent-payment-access",
+      "test": "invoice_payments::payments_need_rights_in_the_workspace",
+      "operations": [
+        "invoice_payments_create"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_payments.rs",
+          "contains": "assert_eq!(state(&f, &id).await.1, 0);"
+        }
+      ],
+      "review": "Actual permissionless member denied, second owner workspace cannot pay foreign invoice; original paid total remains zero."
+    },
+    {
+      "id": "parent-invoice-send",
+      "test": "invoice_send::send_numbers_the_invoice_and_mails_its_pdf",
+      "operations": [
+        "invoices_send"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(inv[\"invoice_nr\"], \"INV-1000\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(mails.len(), 1);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(log, (\"accepted\".into(), \"invoice\".into(), id.clone()));"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(level(&f, &f.main).await, \"8.00\");"
+        }
+      ],
+      "review": "Real Rust/DB path uses isolated fake SMTP/render/storage dependencies: exact number, one mail, attachment/log correlation and stock movement checked. Proves transport acceptance, not delivery or a live renderer."
+    },
+    {
+      "id": "parent-invoice-resend",
+      "test": "invoice_send::resend_mails_again_with_the_new_contact_and_address",
+      "operations": [
+        "invoices_resend"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(inv[\"billing_address\"][\"address\"], \"Kalverstraat\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(mails.len(), 2);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(numbered(&f, &id).await, (Some(1000), \"pending\".into()));"
+        }
+      ],
+      "review": "Resend keeps invoice number, updates address and uses selected fallback contact; two total SMTP messages reflect original plus one explicit resend. No automatic unknown retry inferred."
+    },
+    {
+      "id": "parent-invoice-send-access",
+      "test": "invoice_send::sending_needs_both_permissions_and_the_workspace",
+      "operations": [
+        "invoices_send"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"workspace.send-message too\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(numbered(&f, &id).await.0, None);"
+        }
+      ],
+      "review": "Invoice.send alone is insufficient without workspace.send-message; genuine second workspace denied and draft never numbered."
+    },
+    {
+      "id": "parent-stock-mutation",
+      "test": "stock::mutate_moves_the_level_and_writes_the_ledger",
+      "operations": [
+        "stock_mutate"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "json!({ \"message\": \"ok\", \"before\": \"0.00\", \"after\": \"5.00\", \"warehouse\": main })"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(w.levels().await, [(w.main.clone(), None, s(\"2.99\"))]);"
+        }
+      ],
+      "review": "Actual before/after receipt, decimal rounding, per-bin slot and exact Postgres stock ledger are checked. Does not claim concurrent or recalled-lot safety from this case."
+    },
+    {
+      "id": "parent-stock-set",
+      "test": "stock::set_stock_levels_records_what_changed",
+      "operations": [
+        "stock_set_levels"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(w.levels().await, [(w.main.clone(), None, s(\"10.00\"))]);"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "\"an unchanged entry writes no movement\""
+        }
+      ],
+      "review": "Setting stock verifies levels, requirement rounding, no redundant movements and independent per-entry bins through real transactions."
+    },
+    {
+      "id": "parent-lot-crud",
+      "test": "lots::create_get_list_and_patch_a_lot",
+      "operations": [
+        "lots_create",
+        "lots_get",
+        "lots_list",
+        "lots_update"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(created[\"code\"], \"ILU-2026-07\");"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(listed[\"data\"][0][\"id\"], id);"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(res[\"data\"][\"expires_on\"], \"2028-12-31\");"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "\"public code is immutable\""
+        }
+      ],
+      "review": "Create, GET, list and PATCH each assert their real domain values. Public code remains immutable and omitted fields survive; setup product routes excluded."
+    },
+    {
+      "id": "parent-lot-write-permission",
+      "test": "lots::reads_need_membership_and_writes_need_product_update",
+      "operations": [
+        "lots_create",
+        "lots_update"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"403 before 422: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "&[\"product.update\"],"
+        }
+      ],
+      "review": "Permissionless member cannot create or patch lots before validation; member holding product.update succeeds. Read membership tests are separate."
+    },
+    {
+      "id": "parent-lot-member-read",
+      "test": "lots::reads_need_membership_and_writes_need_product_update",
+      "operations": [
+        "lots_list",
+        "lots_get",
+        "lots_events"
+      ],
+      "gates": {
+        "authorization": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "for path in [String::new(), format!(\"/{id}\"), format!(\"/{id}/events\")] {"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(status, StatusCode::OK, \"GET {path}: {res}\");"
+        }
+      ],
+      "review": "All three reads intentionally require membership without granular product.read. Genuine permissionless member succeeds; no stronger gate invented."
+    },
+    {
+      "id": "parent-lot-foreign",
+      "test": "lots::another_workspace_gets_404_everywhere",
+      "operations": [
+        "lots_list",
+        "lots_get",
+        "lots_update",
+        "lots_events"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"outsider on our workspace\");"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "\"{method} {path} via own workspace\""
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(api.get(&id).await[\"status\"], \"released\", \"untouched\");"
+        }
+      ],
+      "review": "Distinct owner/workspace cannot read original collection or foreign lot through own namespace, patch or events. Original status unchanged; collection create not covered."
+    },
+    {
+      "id": "parent-mail-accepted",
+      "test": "send_message::receipt_accepted_is_transport_acceptance_not_delivery",
+      "operations": [
+        "messages_send"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(body[\"delivery\"][\"status\"], \"accepted\");"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(f.inbox.lock().unwrap().len(), 1);"
+        }
+      ],
+      "review": "Native send route records one fake SMTP acceptance and durable send-log ID. Explicitly not proof of remote delivery."
+    },
+    {
+      "id": "parent-mail-blocked",
+      "test": "send_message::receipt_blocked_mail_has_durable_log_and_no_transport",
+      "operations": [
+        "messages_send"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(body[\"delivery\"][\"status\"], \"blocked\");"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(stored, \"blocked\");"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert!(f.inbox.lock().unwrap().is_empty());"
+        }
+      ],
+      "review": "Allow-list blocked receipt is persisted and no SMTP message emitted; HTTP200 must not imply delivery."
+    },
+    {
+      "id": "parent-mail-access",
+      "test": "send_message::access_rules",
+      "operations": [
+        "messages_send"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "\"The selected addressed contact id is invalid.\""
+        }
+      ],
+      "review": "Permissionless member denied403; own-workspace send referencing a real second-workspace contact rejects422 with native exact field error, not a fabricated404 policy."
+    },
+    {
+      "id": "parent-mail-logs",
+      "test": "send_message::the_send_logs",
+      "operations": [
+        "messages_logs"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(row[\"status\"], \"accepted\");"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(row[\"recipient_count\"], 3);"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(res[\"meta\"][\"total\"], 0);"
+        }
+      ],
+      "review": "Log result checks subject/provider/recipients/status and absent delivered_at. Second owner gets an empty own-workspace list (200), proving no leaked foreign log."
+    },
+    {
+      "id": "parent-invoice-preview",
+      "test": "pdf_templates::an_invoice_preview_uses_the_chosen_template_or_the_built_in_layout",
+      "operations": [
+        "invoices_preview"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          404,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "html.contains(\"Invoice\") && html.contains(\"Acme &#60;B.V.&#62;\") && html.contains(\"Tiny\"),"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert!(seen.lock().unwrap().pop().unwrap().contains(\"Ref R&amp;D\"));"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, \"{res}\");"
+        }
+      ],
+      "review": "Actual Rust route/storage path uses controlled fake renderer: verifies built-in escaped layout/CSP, selected template data, document naming and invalid template/invoice refusals. Does not prove a live PDF renderer deployment."
+    },
+    {
+      "id": "parent-stock-mutate-access",
+      "test": "stock::mutate_access",
+      "operations": [
+        "stock_mutate"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"403 before 422\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "let (eve, _) = signup(&w.api.app, \"eve@example.com\", \"evil\").await;"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "\"/01900000-0000-7000-8000-000000000001/stocks\","
+        }
+      ],
+      "review": "Stock-list-only member cannot mutate before validation; actual other-workspace owner denied on original namespace, unknown product404. This case does not test foreign warehouse association."
+    },
+    {
+      "id": "parent-stock-set-validation",
+      "test": "stock::set_stock_levels_validation_and_access",
+      "operations": [
+        "stock_set_levels"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(res[\"errors\"][field], json!([message]), \"{res}\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "&[\"stock.mutate\"],"
+        }
+      ],
+      "review": "Checks required warehouses/reason, nonnegative level, min/max ordering and warehouse/bin validity. stock.mutate alone cannot set levels; actual native403 before writing."
+    },
+    {
+      "id": "parent-stock-requirements",
+      "test": "stock::set_stock_requirements_and_default_warehouse",
+      "operations": [
+        "stock_set_requirements"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(w.requirements(&w.main).await, (1, 5));"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(p[\"default_warehouse\"][\"id\"], w.shop.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "json!([\"The warehouses.0.maximum stock level field is required.\"])"
+        }
+      ],
+      "review": "Checks exact stored requirement pair, default warehouse projection, unchanged physical level in ledger and missing maximum validation."
+    },
+    {
+      "id": "parent-stock-delete",
+      "test": "stock::delete_stock_only_at_zero",
+      "operations": [
+        "stock_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          400,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(res[\"message\"], \"Only stock at level 0 can be deleted\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert!(w.levels().await.is_empty());"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(w.movements().await.len(), 2, \"the ledger stays\");"
+        }
+      ],
+      "review": "Only zero stock is removed, ledger retained, nonexistent/nonzero stock400 and missing warehouse422. Real transactions and post-state, not HTTPsuccess alone."
+    },
+    {
+      "id": "parent-stock-bin-move",
+      "test": "stock::move_between_bins",
+      "operations": [
+        "stock_move_between_bins"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "json!([\"Insufficient stock available. Available: 3, Reserved: 0, Requested: 10\"])"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(total, \"5.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "let path = format!(\"/{}/move-stock-between-bins\", w.product);"
+        }
+      ],
+      "review": "Moves between actual bins/warehouse row; opposite parallel moves preserve total5.00. Refuses overdraw, invalid/wrong-warehouse/same bins, zero quantity and member lacking move permission."
+    },
+    {
+      "id": "parent-stock-bin-views",
+      "test": "stock::stock_with_bins_and_configured_bins",
+      "operations": [
+        "stock_with_bins",
+        "stock_configured_bins"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(rows[1][\"bin\"][\"id\"], bin.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(g[\"bins\"][0][\"row\"][\"row_code\"], \"H-ROW-A\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(g[\"bins\"][0][\"shelf\"][\"id\"], shelf.as_str());"
+        }
+      ],
+      "review": "Both read routes verify real stock slots and nested warehouse/section/row/shelf/bin IDs and codes. Setup mutations excluded."
+    },
+    {
+      "id": "parent-stock-bin-view-access",
+      "test": "stock::stock_with_bins_and_configured_bins",
+      "operations": [
+        "stock_with_bins"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"needs stock.list\");"
+        }
+      ],
+      "review": "Mutate-only member cannot read stock-with-bins. Configured-bin permission gate is not inferred from a different route."
+    },
+    {
+      "id": "parent-stock-configured-invalid",
+      "test": "stock::stock_with_bins_and_configured_bins",
+      "operations": [
+        "stock_configured_bins"
+      ],
+      "gates": {
+        "validation": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "\"/01900000-0000-7000-8000-000000000001/configured-bins\","
+        }
+      ],
+      "review": "Known-UUID-format but absent product returns native404; no wrong-workspace isolation inferred."
+    },
+    {
+      "id": "parent-stock-movement-view",
+      "test": "stock::stock_movements_list",
+      "operations": [
+        "stock_movements"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(oldest[\"movement_type\"], \"increase\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(oldest[\"relationships\"][\"stock\"][\"stock_lvl\"], \"3.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(filtered[\"meta\"][\"total\"], 2);"
+        }
+      ],
+      "review": "Movement list checks exact before/change/after amounts, actor/warehouse/bin metadata, reason, pagination and warehouse/bin filters."
+    },
+    {
+      "id": "parent-stock-lists",
+      "test": "stock::stock_lists_all_and_negative",
+      "operations": [
+        "stock_list",
+        "stock_negative"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(first[\"stock_lvl\"], \"2.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(negative[\"data\"][0][\"stock_lvl\"], \"-3.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/stock.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{path}\");"
+        }
+      ],
+      "review": "All/negative stock lists verify correct real warehouse/product values, store-only negative rows and search. Mutate-only member is denied both reads."
+    },
+    {
+      "id": "parent-lot-events",
+      "test": "lots::trail_records_create_edit_and_status_changes",
+      "operations": [
+        "lots_events"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "[\"status_changed\", \"updated\", \"created\"],"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(trail[0][\"from_status\"], \"released\");"
+        },
+        {
+          "file": "apps/api/tests/api/lots.rs",
+          "contains": "assert_eq!(trail[1][\"meta\"][\"changed\"], json!([\"origin\"]));"
+        }
+      ],
+      "review": "Event list proves ordered actual create/edit/status audit, actor IDs and no duplicate no-op event."
+    },
+    {
+      "id": "parent-lot-stock-mutate",
+      "test": "lot_stock::lot_stock_goes_in_and_out_on_its_own_row_with_a_ledger_line",
+      "operations": [
+        "lots_stock_mutate"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "assert_eq!(levels(&w).await, [(\"ILU-1\".to_owned(), \"7.50\".to_owned())]);"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "(\"decrease\".to_owned(), \"-2.50\".to_owned(), Some(a.clone())),"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "\"more than the lot holds: {res}\""
+        }
+      ],
+      "review": "Real lot stock ends7.50 with matching increase/decrease ledger IDs. Overdraw and zero quantity422 leave original level unchanged."
+    },
+    {
+      "id": "parent-passport-read-save-publish",
+      "test": "lot_passports::draft_publish_and_republish",
+      "operations": [
+        "lots_passport_get",
+        "lots_passport_save",
+        "lots_passport_publish"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(fresh[\"version\"], 0);"
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(res[\"data\"][\"draft\"][\"title\"], \"Ilundo forest honey\");"
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(res[\"data\"][\"published\"][\"title\"], \"Ilundo honey, July\");"
+        }
+      ],
+      "review": "GET/SAVE/PUBLISH are each checked: draft differs from public copy until publication, version increments and exact title/history persist. Unpublish not exercised here."
+    },
+    {
+      "id": "parent-passport-write-access",
+      "test": "lot_passports::members_read_writers_need_product_update_outsiders_get_404",
+      "operations": [
+        "lots_passport_save",
+        "lots_passport_publish",
+        "lots_passport_unpublish"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "(Method::PUT, \"/passport\", Some(json!({ \"title\": 5 }))),"
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "(Method::DELETE, \"/passport/publish\", None),"
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"{method} {path}\");"
+        }
+      ],
+      "review": "Permissionless active member cannot save/publish/unpublish even with invalid body; no silent owner fallback."
+    },
+    {
+      "id": "parent-passport-member-read",
+      "test": "lot_passports::members_read_writers_need_product_update_outsiders_get_404",
+      "operations": [
+        "lots_passport_get"
+      ],
+      "gates": {
+        "authorization": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": ".call(Method::GET, &format!(\"/{lot}/passport\"), None, &bob)"
+        }
+      ],
+      "review": "Passport read intentionally allows active member without granular write permission; explicit200 in reviewed test."
+    },
+    {
+      "id": "parent-passport-foreign",
+      "test": "lot_passports::members_read_writers_need_product_update_outsiders_get_404",
+      "operations": [
+        "lots_passport_get",
+        "lots_passport_save",
+        "lots_passport_publish",
+        "lots_passport_unpublish"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "\"{method} {path} via own workspace\""
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(show(&api, &lot).await[\"version\"], 0, \"untouched\");"
+        }
+      ],
+      "review": "True second workspace receives404 for all four foreign-lot passport routes, public version remains untouched."
+    },
+    {
+      "id": "parent-passport-unpublish",
+      "test": "lot_passports::publish_needs_a_title_and_unpublish_hides_it",
+      "operations": [
+        "lots_passport_unpublish"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(res[\"data\"][\"published\"], Value::Null);"
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(res[\"data\"][\"published_at\"], Value::Null);"
+        },
+        {
+          "file": "apps/api/tests/api/lot_passports.rs",
+          "contains": "assert_eq!(res[\"data\"][\"version\"], 1, \"version stays\");"
+        }
+      ],
+      "review": "Unpublish hides the published snapshot and timestamp, preserves version and draft, repeated unpublish succeeds, and event trail records transition. Separate publish validation is excluded from this operation."
+    },
+    {
+      "id": "parent-lot-stock-access-validation",
+      "test": "lot_stock::stock_mutations_check_input_access_and_workspace",
+      "operations": [
+        "lots_stock_mutate"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"403 before 422\");"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"our lot via eve's workspace\");"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "assert!(levels(&w).await.is_empty());"
+        }
+      ],
+      "review": "Denied mutation lacks stock permission before body validation; foreign lot is404, foreign warehouse and malformed quantities422; no stock rows are created."
+    },
+    {
+      "id": "parent-lot-stock-view",
+      "test": "lot_stock::a_lots_free_stock_is_read_per_warehouse",
+      "operations": [
+        "lots_stock"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "{ \"warehouse_id\": w.warehouse, \"level\": \"10.00\", \"reserved\": \"2.50\", \"available\": \"7.50\" },"
+        },
+        {
+          "file": "apps/api/tests/api/lot_stock.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"not a lot of hers\");"
+        }
+      ],
+      "review": "Known two-warehouse levels/reserved/available decimal strings are checked, empty initial list is checked, ordinary member can read, outsider workspace/member receives404."
+    },
+    {
+      "id": "parent-packing-result",
+      "test": "farm_packing::packing_turns_raw_kg_into_a_child_lot_of_jars",
+      "operations": [
+        "supply_chain_pack"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(res[\"data\"][\"parent_lot_id\"], c.raw.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(level(&c.f.pool, &c.raw).await, \"0.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(level(&c.f.pool, &jar).await, \"10.00\");"
+        }
+      ],
+      "review": "Exact raw kg becomes one child jar lot with correct ancestry, quantities, expiry and inventory; source ledger event is checked."
+    },
+    {
+      "id": "parent-packing-validation-isolation",
+      "test": "farm_packing::packing_is_refused_when_it_cannot_be_traced_or_stocked",
+      "operations": [
+        "supply_chain_pack"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(res[\"message\"], \"A packed lot can't be packed again.\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"another workspace's lot\");"
+        }
+      ],
+      "review": "Insufficient raw stock, invalid unit precision, repacking/nontraceable lots and foreign product are422; foreign workspace cannot pack source lot."
+    },
+    {
+      "id": "parent-supply-dispatch-result",
+      "test": "farm_packing::r_dispatches_over_a_live_link_and_a_receives_into_its_own_lot",
+      "operations": [
+        "supply_chain_dispatch"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(res[\"data\"][\"status\"], \"dispatched\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(level(&c.f.pool, &jar).await, \"6.00\");"
+        }
+      ],
+      "review": "Dispatch status and reduction from ten to six jars checked under accepted live link; source and recipient relationship exercised in one fixture."
+    },
+    {
+      "id": "parent-supply-receive-result",
+      "test": "farm_packing::r_dispatches_over_a_live_link_and_a_receives_into_its_own_lot",
+      "operations": [
+        "supply_chain_receive"
+      ],
+      "gates": {
+        "result": [
+          201
+        ],
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(res[\"data\"][\"status\"], \"received\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(level(&c.f.pool, &a_lot).await, \"4.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::CONFLICT, \"received once\");"
+        }
+      ],
+      "review": "Receive creates recipient-owned lot with four units; replay without native idempotency is409 and does not receive twice. No automatic retry guarantee inferred."
+    },
+    {
+      "id": "parent-supply-dispatch-validation-isolation",
+      "test": "farm_packing::transfers_need_a_live_link_and_each_side_does_only_its_part",
+      "operations": [
+        "supply_chain_dispatch"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ],
+        "authorization": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert!(res[\"errors\"][\"link_id\"].is_array());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"A can't dispatch R's lot\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"revoked link\");"
+        }
+      ],
+      "review": "Missing/invalid link and insufficient source stock422; recipient cannot dispatch sender lot404; revoked link403. Valid setup dispatches are not additional result evidence."
+    },
+    {
+      "id": "parent-supply-receive-access",
+      "test": "farm_packing::transfers_need_a_live_link_and_each_side_does_only_its_part",
+      "operations": [
+        "supply_chain_receive"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"a third workspace\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert!(res[\"errors\"][\"quantity\"].is_array());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"revoked link: {res}\");"
+        }
+      ],
+      "review": "Sender cannot receive own dispatch; third tenant404; permissionless member403; excess quantity422 and revoked link403."
+    },
+    {
+      "id": "parent-supply-dispatch-farm-role",
+      "test": "farm_packing::farm_ops_dispatch_and_plain_members_do_not",
+      "operations": [
+        "supply_chain_dispatch"
+      ],
+      "gates": {
+        "farm_role": [
+          201,
+          403
+        ],
+        "authorization": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(status, StatusCode::CREATED, \"farm ops ship: {res}\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "for token in [&plain, &c.f.officer_ilu] {"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(level(&c.f.pool, &jar).await, \"9.00\");"
+        }
+      ],
+      "review": "Farm ops dispatch one jar, plain member and field officer403. Link-grant refusal in same test excluded from dispatch proof."
+    },
+    {
+      "id": "parent-supply-list-result",
+      "test": "farm_packing::r_dispatches_over_a_live_link_and_a_receives_into_its_own_lot",
+      "operations": [
+        "supply_chain_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(t[\"id\"], transfer.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(t[\"direction\"], \"incoming\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(t[\"quantity\"], \"4.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert!(!text.contains(private), \"{private} leaked: {text}\");"
+        }
+      ],
+      "review": "List identifies exact dispatched transfer, direction, quantity and source code; names and private farm-side identifiers are absent."
+    },
+    {
+      "id": "parent-supply-list-filter-isolation",
+      "test": "farm_packing::the_transfer_list_filters_by_direction_and_status",
+      "operations": [
+        "supply_chain_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(total(a_ws.clone(), a.clone(), \"?status=received\").await, 1);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "for q in [\"?status=sent\", \"?direction=both\"] {"
+        },
+        {
+          "file": "apps/api/tests/api/farm_packing.rs",
+          "contains": "assert_eq!(total(third_ws, third, \"?direction=incoming\").await, 0);"
+        }
+      ],
+      "review": "Incoming/outgoing and dispatched/received totals change exactly after receive; unrelated workspace gets empty collection200, invalid filters422."
+    },
+    {
+      "id": "parent-farmer-credit-view",
+      "test": "farm_sales::the_shop_reads_its_lots_farmer_credits_without_farm_data",
+      "operations": [
+        "lots_farmer_credits"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_sales.rs",
+          "contains": "assert_eq!(rows[2][\"order_id\"], s.order.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_sales.rs",
+          "contains": "[\"at\", \"jars\", \"kind\", \"order_id\", \"order_number\", \"till_ref\"]"
+        },
+        {
+          "file": "apps/api/tests/api/farm_sales.rs",
+          "contains": "assert!(!body.contains(secret), \"leaks {secret}: {body}\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_sales.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"farm owner via {ws}\");"
+        }
+      ],
+      "review": "Known sale/return/till rows and exact allowed keys checked; amounts/farmer IDs/names absent, small farmer count suppressed; farm owner and unrelated tenant cannot read shop lot."
+    },
+    {
+      "id": "parent-lot-holds-view",
+      "test": "lot_orders::the_oldest_order_moves_first_and_release_moves_nothing_back",
+      "operations": [
+        "lots_holds"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_orders.rs",
+          "contains": "assert_eq!(left[\"data\"].as_array().unwrap().len(), 1);"
+        },
+        {
+          "file": "apps/api/tests/api/lot_orders.rs",
+          "contains": "assert_eq!(left[\"data\"][0][\"order_id\"], second.as_str());"
+        }
+      ],
+      "review": "Hold list identifies exact remaining second order after quarantine moves oldest whole reservation; release preserves placements. Other stock mutation effects excluded."
+    },
+    {
+      "id": "parent-lot-holds-foreign",
+      "test": "lot_orders::another_workspace_cannot_read_a_lots_holds",
+      "operations": [
+        "lots_holds"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/lot_orders.rs",
+          "contains": ".call(Method::GET, &format!(\"/{bad}/holds\"), None, &eve.owner)"
+        },
+        {
+          "file": "apps/api/tests/api/lot_orders.rs",
+          "contains": "assert_eq!(s, StatusCode::NOT_FOUND);"
+        }
+      ],
+      "review": "Another workspace owner cannot read foreign lot hold collection."
+    },
+    {
+      "id": "parent-pricing-items-result",
+      "test": "pricing::discounted_line_adds_up_and_is_echoed",
+      "operations": [
+        "pricing_calculate_items"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(d[\"total_excl\"], json!(26.97));"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(d[\"total_vat\"], json!(5.66));"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(d[\"total\"], json!(32.63));"
+        }
+      ],
+      "review": "Discounted item with quantity three checks subtotal26.97,VAT5.66,total32.63 and echoed requested item. No production write occurs."
+    },
+    {
+      "id": "parent-pricing-items-auth",
+      "test": "pricing::needs_token_and_membership",
+      "operations": [
+        "pricing_calculate_items"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "let (status, _) = send(&api.app, Method::POST, &uri, Some(body.clone()), None).await;"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "let (status, _) = send(&api.app, Method::POST, &uri, Some(body), Some(&mallory)).await;"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND);"
+        }
+      ],
+      "review": "Missing bearer401; authenticated outsider cannot calculate in target workspace404."
+    },
+    {
+      "id": "parent-pricing-items-precision",
+      "test": "pricing::eight_decimals_pass_nine_do_not",
+      "operations": [
+        "pricing_calculate_items"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "json!({ \"items\": [item(json!(1), json!(\"0.12345678\"), json!(21))] }),"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "\"The items.0.price must have 0-8 decimal places.\""
+        }
+      ],
+      "review": "Eight decimal places accepted, nine rejected on exact item price field via strict422 helper."
+    },
+    {
+      "id": "parent-pricing-items-foreign-reference",
+      "test": "pricing::another_workspaces_rows_are_unknown",
+      "operations": [
+        "pricing_calculate_items"
+      ],
+      "gates": {
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "error(&api, json!({ \"items\": [line] }), \"items.0.product_id\").await,"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "\"The selected items.0.product id is invalid.\""
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "json!({ \"currency_id\": their_currency, \"items\": [item(json!(1), json!(1), json!(0))] }),"
+        }
+      ],
+      "review": "Owned calculation rejects another workspace product and currency without disclosing catalog details; these are nested foreign references422, distinct from outsider route404."
+    },
+    {
+      "id": "parent-pricing-margin-result",
+      "test": "pricing::marge_has_laravels_shape",
+      "operations": [
+        "pricing_calculate_marge"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "\"total_purchase_price\": 34.5,"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "\"marge_total_amount\": 24.5,"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert!((pct - 41.525_423_728_813_56).abs() < 1e-9, \"{pct}\");"
+        }
+      ],
+      "review": "Known two-item fixture checks full result shape, exact purchase34.5/revenue59/margin24.5 amounts and bounded expected percentage."
+    },
+    {
+      "id": "parent-pricing-margin-auth-validation",
+      "test": "pricing::marge_guards_and_validation_match_calculate_items",
+      "operations": [
+        "pricing_calculate_marge"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND);"
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "\"The items.0.vat must be at least 0.\""
+        },
+        {
+          "file": "apps/api/tests/api/pricing.rs",
+          "contains": "assert_eq!(res[\"errors\"][\"items.0\"][0], \"The items.0 is out of range.\");"
+        }
+      ],
+      "review": "No bearer401, outsider404, negative VAT and oversized computed margin422. No result inference from status alone."
+    },
+    {
+      "id": "parent-order-draft-money",
+      "test": "orders::a_draft_is_priced_in_minor_units_with_vat_per_rate",
+      "operations": [
+        "orders_create",
+        "orders_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(o[\"number\"], \"ORD-0001\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(&json!(2950), &json!(320), &json!(3270))"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "\"a draft holds nothing\""
+        }
+      ],
+      "review": "Known draft round-trips by ID; exact subtotal2950/VAT320/total3270 minor units, per-rate VAT, line quantities and numbering checked. Creation does not reserve stock."
+    },
+    {
+      "id": "parent-order-update",
+      "test": "orders::drafts_change_and_delete",
+      "operations": [
+        "orders_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(&json!(726), &json!(\"back door\"))"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(o[\"data\"][\"lines\"].as_array().unwrap().len(), 1);"
+        }
+      ],
+      "review": "PATCH replaces requested lines and note and recomputes exact total726 cents; one resulting line remains."
+    },
+    {
+      "id": "parent-order-delete",
+      "test": "orders::drafts_change_and_delete",
+      "operations": [
+        "orders_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "let (s, _) = call(&w, Method::DELETE, &format!(\"/{id}\"), None).await;"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "let (s, _) = call(&w, Method::GET, &format!(\"/{id}\"), None).await;"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::NOT_FOUND);"
+        }
+      ],
+      "review": "Deleted draft cannot be read afterward; native DELETE result checked independently of HTTP success."
+    },
+    {
+      "id": "parent-order-confirm",
+      "test": "orders::confirm_holds_complete_takes_cancel_gives_back",
+      "operations": [
+        "orders_confirm"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!((s, &o[\"data\"][\"status\"]), (StatusCode::OK, &json!(\"open\")));"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(held(&w, &a).await, \"4.00\");"
+        }
+      ],
+      "review": "Confirm opens order and reserves exact aggregate four units without taking on-hand stock."
+    },
+    {
+      "id": "parent-order-complete",
+      "test": "orders::confirm_holds_complete_takes_cancel_gives_back",
+      "operations": [
+        "orders_complete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          409
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(StatusCode::OK, &json!(\"completed\"))"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(o[\"data\"][\"lines\"][0][\"deducted\"], \"3.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(ledger, 2);"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "&json!(\"Pick every stock line in full before completing.\")"
+        }
+      ],
+      "review": "Completion requires full picking, deducts three honey units plus second line, releases holds and writes exactly two stock ledger rows."
+    },
+    {
+      "id": "parent-order-cancel",
+      "test": "orders::confirm_holds_complete_takes_cancel_gives_back",
+      "operations": [
+        "orders_cancel"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(StatusCode::OK, &json!(\"cancelled\"))"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert!(o[\"data\"][\"cancelled_at\"].is_string());"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(held(&w, &b).await, \"0.00\");"
+        }
+      ],
+      "review": "Cancel stamps state/time and releases its reservation without deducting on-hand inventory."
+    },
+    {
+      "id": "parent-order-pick",
+      "test": "orders::every_office_action_leaves_one_event_with_its_actor",
+      "operations": [
+        "orders_pick"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(o[\"data\"][\"picked_at\"], Value::Null, \"one line left\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert!(picked_at.is_string(), \"{o}\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(o[\"data\"][\"picked_at\"], picked_at, \"stamped once\");"
+        }
+      ],
+      "review": "Partial pick leaves completion timestamp empty; all lines picked set it once and repeated absolute pick preserves timestamp. Event trail checks actor and three native pick requests."
+    },
+    {
+      "id": "parent-order-events",
+      "test": "orders::every_office_action_leaves_one_event_with_its_actor",
+      "operations": [
+        "orders_events"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(events(&w, &id).await, [ada(\"created\")]);"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "[ada(\"cancelled\"), ada(\"confirmed\"), ada(\"created\")]"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(res[\"meta\"][\"total\"], 3);"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"kind\"], \"confirmed\");"
+        }
+      ],
+      "review": "Exact newest-first actor/event sequence and paginated second result are checked, including all actual stock/order transitions."
+    },
+    {
+      "id": "parent-order-events-isolation",
+      "test": "orders::events_stay_in_their_workspace_and_a_gone_member_loses_their_name",
+      "operations": [
+        "orders_events"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(res[\"data\"][0][\"actor\"][\"id\"], clerk_id, \"id kept\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::NOT_FOUND, \"acme's order under evil\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::FORBIDDEN, \"needs order.view\");"
+        }
+      ],
+      "review": "Foreign workspace cannot read events, member lacking order.view403, removed member keeps opaque actor ID while name becomes null."
+    },
+    {
+      "id": "parent-order-return",
+      "test": "orders::returns_restock_and_close_the_order",
+      "operations": [
+        "orders_returns"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          409,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(StatusCode::OK, &json!(\"partially_returned\")),"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(o[\"data\"][\"lines\"][0][\"returned\"], \"2.00\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(level(&w, &w.honey).await, (\"9.00\".into(), \"0.00\".into()));"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(StatusCode::OK, &json!(\"returned\"))"
+        }
+      ],
+      "review": "Partial return restores requested two units, excessive return422, final damaged remainder closes return without shelf restock, repeated/unfinished-order return409."
+    },
+    {
+      "id": "parent-order-invoice",
+      "test": "orders::an_order_becomes_one_draft_invoice_without_moving_stock",
+      "operations": [
+        "orders_invoice"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          409,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert!(res[\"errors\"][\"relation_id\"].is_array());"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(inv[\"data\"][\"status\"], \"draft\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(json!(total), o[\"data\"][\"total\"], \"same engine, same total\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::CONFLICT, \"once\");"
+        }
+      ],
+      "review": "Known completed order becomes one draft invoice with two lines and matching database total, no extra stock movement; missing relation422 and repeated/draft conversion409."
+    },
+    {
+      "id": "parent-order-foreign",
+      "test": "orders::other_workspaces_and_missing_permissions_are_refused",
+      "operations": [
+        "orders_get",
+        "orders_delete",
+        "orders_confirm",
+        "orders_cancel",
+        "orders_complete"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "for action in [\"confirm\", \"cancel\", \"complete\"] {"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::NOT_FOUND, \"{action}\");"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "// Ada's workspace with Bob's token: not a member."
+        }
+      ],
+      "review": "Foreign owner cannot access another tenant order or transition/delete it; foreign token cannot read target tenant route. Does not establish collection-create isolation."
+    },
+    {
+      "id": "parent-order-confirm-restricted",
+      "test": "orders::other_workspaces_and_missing_permissions_are_refused",
+      "operations": [
+        "orders_confirm"
+      ],
+      "gates": {
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "&[\"order.view\"],"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::FORBIDDEN);"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(level(&w, &w.honey).await, (\"10.00\".into(), \"0.00\".into()));"
+        }
+      ],
+      "review": "Read-only member sees order but cannot confirm; no stock reservation remains after refusal."
+    },
+    {
+      "id": "parent-order-create-validation",
+      "test": "orders::bad_lines_are_refused",
+      "operations": [
+        "orders_create"
+      ],
+      "gates": {
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(json!([line(&theirs, \"1\")]), \"lines.0.product_id\"),"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "(Value::Array(vec![line(&w.honey, \"1\"); 51]), \"lines\"),"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert!(res[\"errors\"][key].is_array(), \"{key}: {res}\");"
+        }
+      ],
+      "review": "Empty/zero/overprecision/oversized lines and foreign product/variant IDs return field-specific422. This is nested foreign-reference refusal, not collection-create isolation."
+    },
+    {
+      "id": "parent-order-summary",
+      "test": "orders::sales_summary_counts_sold_orders_per_currency",
+      "operations": [
+        "orders_sales_summary"
+      ],
+      "gates": {
+        "result": [
+          200
+        ],
+        "validation": [
+          422
+        ],
+        "cross_workspace": [
+          200,
+          404
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "{ \"currency\": \"EUR\", \"decimals\": 2, \"orders\": 2, \"gross_total\": 2725 + 363,"
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "\"draft and cancelled don't count; currencies never mix\""
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "\"acme's sales never count for evil\""
+        },
+        {
+          "file": "apps/api/tests/api/orders.rs",
+          "contains": "assert_eq!(s, StatusCode::FORBIDDEN, \"needs order.list\");"
+        }
+      ],
+      "review": "Exact EUR/USD sales groups never mix; drafts/cancellations excluded, source/date boundaries checked; unrelated tenant sees only empty own scope and target-tenant request404; unprivileged member403."
+    },
+    {
+      "id": "parent-order-refund-intent",
+      "test": "payments::staff_refund_with_order_delete_and_cancel_only_once_refunded",
+      "operations": [
+        "orders_refund"
+      ],
+      "gates": {
+        "result": [
+          201
+        ],
+        "authorization": [
+          403
+        ],
+        "restricted_role": [
+          403
+        ],
+        "validation": [
+          409,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "assert_eq!(res[\"data\"][\"amount\"], 500);"
+        },
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "(StatusCode::CONFLICT, &json!(\"refund_required\"))"
+        },
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "w.fake.set_status(&pid, Status::Refunded);"
+        },
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "drain(&w).await;"
+        }
+      ],
+      "review": "Accepted refund intent has exact500 minor units; over-refund and unpaid order refused, inadequate permission403. Native fake provider is later marked refunded and drained before cancellation can succeed. HTTP201 proves submission only, never external settlement."
+    },
+    {
+      "id": "parent-order-refund-decimal",
+      "test": "payments::a_refund_amount_is_decimal_text_the_api_converts",
+      "operations": [
+        "orders_refund"
+      ],
+      "gates": {
+        "result": [
+          201
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "\"The amount must have at most 2 decimal places.\""
+        },
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "\"At most 25.00 can be refunded.\""
+        },
+        {
+          "file": "apps/api/tests/api/payments.rs",
+          "contains": "res[\"data\"][\"amount\"], 1250,"
+        }
+      ],
+      "review": "Decimal text12.5 becomes1250 minor units; precision, zero/negative, scientific/comma notation and excess refundable amount rejected. Result is accepted intent, not settled provider funds."
+    },
+    {
+      "id": "parent-profile-test-result",
+      "test": "send_message::a_profile_test_mails_the_caller",
+      "operations": [
+        "messages_profile_test"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(res[\"data\"][\"success_connection\"], true);"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(res[\"data\"][\"delivery\"][\"status\"], \"accepted\");"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "assert_eq!(inbox[0].rcpt, [\"<ada@example.com>\"]);"
+        }
+      ],
+      "review": "Controlled local SMTP receives the connection-test message for the authenticated caller. Native receipt proves transport acceptance only; no external inbox delivery claim."
+    },
+    {
+      "id": "parent-office365-connection-result",
+      "test": "send_message::office365_connection_tests",
+      "operations": [
+        "messages_office365_connection"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "\"messages_with_attachments\": 1"
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "\"stage\": \"mailbox\""
+        }
+      ],
+      "review": "Controlled Graph token/mailbox server returns the exact native success stage and attachment count. Bad tenant separately returns422; this is not live Microsoft verification."
+    },
+    {
+      "id": "parent-office365-send-result",
+      "test": "send_message::office365_connection_tests",
+      "operations": [
+        "messages_office365_send"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "\"Mail server accepted the test email to it@acme.test from box@acme.test. Check the recipient inbox for delivery.\""
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "p == \"/sendMail/box@acme.test\""
+        },
+        {
+          "file": "apps/api/tests/api/send_message.rs",
+          "contains": "b.contains(\"client_secret=s3cret\")"
+        }
+      ],
+      "review": "Stored masked credential is resolved by backend and controlled Graph server observes the requested mailbox send. Native response reports acceptance, without claiming inbox delivery."
+    },
+    {
+      "id": "parent-pdf-fields-result",
+      "test": "pdf_templates::available_fields_are_laravels",
+      "operations": [
+        "pdf_templates_available_fields"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(fields.len(), 25);"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(fields[\"price\"][\"type\"], \"currency\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "res[\"data\"][\"variables\"][\"model\"][\"invoice.invoice_nr\"]"
+        }
+      ],
+      "review": "Available-fields response checks exact invoice field count, price type and invoice-number variable. Unknown schema separately returns an empty field set."
+    },
+    {
+      "id": "parent-pdf-template-preview-result",
+      "test": "pdf_templates::a_template_preview_renders_the_newest_invoice",
+      "operations": [
+        "pdf_templates_preview"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(files.read(key).unwrap().0, b\"%PDF-1.4 fake\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(html.matches(csp).count(), 2, \"{html}\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "html.contains(\"<p>Ref R&amp;D for Acme &lt;B.V.&gt; -</p>\")"
+        }
+      ],
+      "review": "Controlled renderer returns a stored PDF artifact and receives escaped invoice content, fixed CSP, embedded images and expected page geometry. Real production rendering is not proven by this fake."
+    },
+    {
+      "id": "parent-invoice-credit-result",
+      "test": "invoice_credit::credit_takes_back_selected_lines_as_a_draft",
+      "operations": [
+        "invoices_credit"
+      ],
+      "gates": {
+        "result": [
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_credit.rs",
+          "contains": "assert_eq!(c[\"previous_invoice_id\"], json!(src));"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_credit.rs",
+          "contains": "assert_eq!(items[0][\"quantity\"], \"-1\");"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_credit.rs",
+          "contains": "assert_eq!(c[\"summary\"][\"total\"], json!(-10.89));"
+        }
+      ],
+      "review": "Selected source line creates a linked draft credit with exact negative quantity, inherited discount and negative total; source credited quantity changes while paid status remains. No provider refund settlement implied."
+    },
+    {
+      "id": "parent-active-send-task-result",
+      "test": "invoice_send::active_send_tasks_expose_only_owned_unresolved_receipts",
+      "operations": [
+        "invoices_send_tasks"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(task[\"invoice_delivery_id\"], id);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(task[\"invoice_id\"], invoice);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(task[\"status\"], state);"
+        },
+        {
+          "file": "apps/api/tests/api/invoice_send.rs",
+          "contains": "assert_eq!(bounded[\"data\"].as_array().unwrap().len(), 100);"
+        }
+      ],
+      "review": "Native rows in all eight delivery states yield only four unresolved receipts, with exact IDs and conservative queued projection. Request content stays hidden; another workspace sees none and cannot read the source workspace. Response bounded100."
+    },
+    {
+      "id": "parent-farm-plot-cycle-verify-result",
+      "test": "farm_records::plot_and_cycle_verification_checks_scope_and_actor",
+      "operations": [
+        "farm_records_plots_verify",
+        "farm_records_crop_cycles_verify",
+        "farm_records_crop_cycles_get"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(provenance[\"verified_by\"][\"id\"], verifier.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(saved[\"data\"][\"provenance\"], *provenance);"
+        }
+      ],
+      "review": "Both plot and crop-cycle verification persist the exact record ID and authenticated verifier/time. Anonymous, farmer, other-village and other-workspace attempts fail; repeated verification is rejected."
+    },
+    {
+      "id": "parent-farm-correction-result",
+      "test": "farm_records::household_farm_and_plot_corrections_preserve_identity_and_reset_verification",
+      "operations": [
+        "farm_records_households_correct",
+        "farm_records_plots_correct",
+        "farm_records_farms_correct",
+        "farm_records_households_get",
+        "farm_records_farms_get",
+        "farm_records_plots_get"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(result[\"data\"][\"label\"], body[\"label\"]);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(provenance[\"verification\"], \"unverified\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(provenance[\"captured_by\"][\"id\"], corrector.as_str());"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(saved[\"data\"], result[\"data\"]);"
+        }
+      ],
+      "review": "Household/farm/plot loop verifies exact identity and requested label, decimal GPS/area when applicable, persisted readback and reset verification attributed to corrector. Provenance edits and actor/village/workspace violations fail."
+    },
+    {
+      "id": "parent-farm-person-get-result",
+      "test": "farm_records::a_correction_resets_verification_and_stamps_provenance",
+      "operations": [
+        "farm_records_persons_get"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(saved[\"data\"][\"id\"], c.neema.person);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(saved[\"data\"], *d);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(d[\"phone\"], \"+255712999999\");"
+        }
+      ],
+      "review": "Independent person GET returns exact corrected identity, normalized phone and full expected correction/provenance response. The permitted officer reads their village; this mapping makes no broader privacy claim."
+    },
+    {
+      "id": "parent-pdf-create-read-result",
+      "test": "pdf_templates::create_get_update_list_delete",
+      "operations": [
+        "pdf_templates_create",
+        "pdf_templates_get"
+      ],
+      "gates": {
+        "result": [
+          200,
+          201
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(t[\"name\"], \"Default invoice\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(t[\"relationships\"][\"logoFile\"][\"id\"], logo);"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(t[\"extra_fields\"], json!({ \"display_description\": true }));"
+        }
+      ],
+      "review": "Created template is independently read with exact name/domain, columns, conditions and selected stored logo."
+    },
+    {
+      "id": "parent-pdf-update-result",
+      "test": "pdf_templates::create_get_update_list_delete",
+      "operations": [
+        "pdf_templates_update"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(t[\"name\"], \"Renamed\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(t[\"domain\"], \"invoice\", \"the domain can't change\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(t[\"relationships\"][\"logoFile\"], Value::Null, \"null clears\");"
+        }
+      ],
+      "review": "Native update round-trips the renamed template, immutable domain, explicitly cleared logo and retained omitted footer."
+    },
+    {
+      "id": "parent-pdf-list-result",
+      "test": "pdf_templates::create_get_update_list_delete",
+      "operations": [
+        "pdf_templates_list"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(invoices[\"data\"][0][\"id\"], id);"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(invoices[\"data\"][0][\"name\"], \"Renamed\");"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(invoices[\"data\"][0][\"domain\"], \"invoice\");"
+        }
+      ],
+      "review": "Filtered list returns exact created template ID and renamed saved fields; independent language/domain/search count cases remain."
+    },
+    {
+      "id": "parent-pdf-delete-result",
+      "test": "pdf_templates::create_get_update_list_delete",
+      "operations": [
+        "pdf_templates_delete"
+      ],
+      "gates": {
+        "result": [
+          200
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": ".call(Method::DELETE, &format!(\"/{id}\"), None, &api.owner)"
+        },
+        {
+          "file": "apps/api/tests/api/pdf_templates.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND);"
+        }
+      ],
+      "review": "Successful native deletion is followed by independent GET404 for the same template. No result inferred from status alone."
+    },
+    {
+      "id": "parent-farm-verify-guard-gates",
+      "test": "farm_records::plot_and_cycle_verification_checks_scope_and_actor",
+      "operations": [
+        "farm_records_plots_verify",
+        "farm_records_crop_cycles_verify"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "farm_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::FORBIDDEN, \"farmer cannot verify {kind}\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"another workspace: {kind}\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(result[\"message\"], \"record is not awaiting verification\");"
+        }
+      ],
+      "review": "Exact POST verification loop: anonymous401, farmer403, other-village/workspace404 and repeated verification422. GETs are excluded from these denial gates."
+    },
+    {
+      "id": "parent-farm-correction-guard-gates",
+      "test": "farm_records::household_farm_and_plot_corrections_preserve_identity_and_reset_verification",
+      "operations": [
+        "farm_records_households_correct",
+        "farm_records_farms_correct",
+        "farm_records_plots_correct"
+      ],
+      "gates": {
+        "authorization": [
+          401
+        ],
+        "farm_role": [
+          403
+        ],
+        "cross_workspace": [
+          404
+        ],
+        "validation": [
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED);"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"farmer cannot correct {kind}\""
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "assert_eq!(status, StatusCode::NOT_FOUND, \"another workspace: {kind}\");"
+        },
+        {
+          "file": "apps/api/tests/api/farm_records.rs",
+          "contains": "\"provenance is not editable: {kind}\""
+        }
+      ],
+      "review": "Exact PUT correction loop: anonymous401, farmer403, other-village/workspace404 and forbidden provenance422 with unchanged persisted record. GET readback does not inherit these denial gates."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/invoices.rs": "3f163f6e6e6714e08bbd87bb37740a3c80fd7365ad66d498e6fec297d0f2249e",
+    "apps/api/tests/api/invoice_payments.rs": "6893c82e2149220729f421729dd3b9f1a7740920d16038fe70c3e5e1214b3e63",
+    "apps/api/tests/api/invoice_send.rs": "16ff741cf198b29f422d8e342a5c73e6f46fe64ad7b5149f2ef91dac99119826",
+    "apps/api/tests/api/stock.rs": "873cbeed6c7f044fa15f9211203c74a3cad0b959206bb7549a9146df7d16eb3d",
+    "apps/api/tests/api/lots.rs": "1a9815634c391a5e53829a416d7992eab9b542c766c17806310f8dd229518bf4",
+    "apps/api/tests/api/send_message.rs": "2fecec99bf479cfcf3a3c4a85225ca8943724349ab2f608099f471a6e82b3300",
+    "apps/api/tests/api/pdf_templates.rs": "2d663a93d3a9b80f967bf3054bc1ca696c169cf1d543547b3c0734f67eefa5f3",
+    "apps/api/tests/api/lot_stock.rs": "603e67eea810ce9eefbdb0285fd33bf5dccbb39afca0cbd167a9b580a5f5c0fc",
+    "apps/api/tests/api/lot_passports.rs": "5ac3d2c3dd1e640ca700db0c97868393ddf14a5e318425a158a7ff90ae3ed71a",
+    "apps/api/tests/api/farm_packing.rs": "60df1ef3a7748cea112a9122f3b406985432cf3be7bd9591ed1c35645f8701a0",
+    "apps/api/tests/api/farm_sales.rs": "2be34aaf68bc9cca5b844d69e5eacb689bd109651109d1738ec2212fb7f285f1",
+    "apps/api/tests/api/lot_orders.rs": "9fe971ae815285b90c48c6cf73344b70303d86e8dadfcdc8b7fa36ee79042a72",
+    "apps/api/tests/api/pricing.rs": "e3affc1d135d93cd3a585c7e06c338ae896b2d5b44e09f25de617a3535f37c9f",
+    "apps/api/tests/api/orders.rs": "2e77c1be91b5ac9123dce59e58cf9eb1395cc2ce32d66703eb4ab7ecc06a3ab7",
+    "apps/api/tests/api/payments.rs": "be2f04ef9a08f63e1d764d9a4fd85ce80228b20ca970f83124d0c7790221ad5b",
+    "apps/api/tests/api/invoice_credit.rs": "971e80bd35354b560c1156bedba33a0bda8565a371c2e43a00deb204b1c7ea0b",
+    "apps/api/tests/api/farm_records.rs": "19d715ea32a98a5e9a3552d913d6a566a54d55340d179f2550113810f39f16f8"
+  }
+}

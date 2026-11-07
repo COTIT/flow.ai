@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 /// A send about to be attempted.
 pub struct NewLog<'a> {
+    pub assistant_action_id: Option<Uuid>,
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub user_id: Uuid,
@@ -59,9 +60,9 @@ pub async fn insert(tx: &mut PgConnection, l: &NewLog<'_>) -> Result<(), sqlx::E
     sqlx::query!(
         "INSERT INTO email_send_logs (id, workspace_id, user_id, provider, from_email, subject,
                                       to_recipients, cc_recipients, bcc_recipients, entity_type,
-                                      entity_id)
+                                      entity_id, assistant_action_id)
          VALUES ($1, $2, $3, $4, $5, $6, to_jsonb($7::text[]), to_jsonb($8::text[]),
-                 to_jsonb($9::text[]), $10, $11)",
+                 to_jsonb($9::text[]), $10, $11, $12)",
         l.id,
         l.workspace_id,
         l.user_id,
@@ -73,6 +74,7 @@ pub async fn insert(tx: &mut PgConnection, l: &NewLog<'_>) -> Result<(), sqlx::E
         l.bcc,
         l.entity.map(|e| e.0),
         l.entity.map(|e| e.1),
+        l.assistant_action_id,
     )
     .execute(&mut *tx)
     .await?;
@@ -106,12 +108,8 @@ pub async fn mark(
     error: Option<&str>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "UPDATE email_send_logs SET status = $2,
-            provider_message_id = COALESCE($3, provider_message_id),
-            error_message = COALESCE(left($4, 255), error_message),
-            sent_at = CASE WHEN $2 = 'accepted' THEN now() ELSE sent_at END,
-            updated_at = now()
-         WHERE id = $1 AND status IN ('pending', 'sending', 'unknown')",
+        "WITH recorded AS (UPDATE email_send_logs SET status=$2,provider_message_id=COALESCE($3,provider_message_id),error_message=COALESCE(left($4,255),error_message),sent_at=CASE WHEN $2='accepted' THEN now() ELSE sent_at END,updated_at=now() WHERE id=$1 AND status IN ('pending','sending','unknown') RETURNING id,workspace_id,assistant_action_id)
+         UPDATE assistant_actions a SET state=CASE WHEN $2='accepted' THEN 'queued' ELSE 'failed' END,finished_at=now(),review_facts='{}'::jsonb,proposal=NULL,evidence=a.evidence || jsonb_build_object('delivery',jsonb_build_object('status',$2::text,'send_log_id',r.id)) FROM recorded r WHERE a.workspace_id=r.workspace_id AND a.id=r.assistant_action_id AND a.state IN ('dispatching','unknown') AND a.operation_id IN ('messages_send','messages_profile_test') AND $2 IN ('accepted','blocked')",
         id,
         status,
         message_id,

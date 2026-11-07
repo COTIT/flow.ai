@@ -1,0 +1,470 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "id": "survey-publish",
+      "test": "farm_surveys::only_an_admin_authors_and_publishing_checks_the_content",
+      "operations": ["farm_surveys_publish"],
+      "gates": {
+        "result": [200],
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"publishing stamps who and when\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native publish exactlive state, realownerpublisher andtimestamp; empty survey and one-optionchoice refuse422 exactmessages."
+    },
+    {
+      "id": "survey-create-role",
+      "test": "farm_surveys::only_an_admin_authors_and_publishing_checks_the_content",
+      "operations": ["farm_surveys_create"],
+      "gates": {
+        "authorization": [403],
+        "farm_role": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"ops cannot author surveys\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual ops staff cannot author survey403; fixture author is projectadmin."
+    },
+    {
+      "id": "survey-frozen-content",
+      "test": "farm_surveys::a_live_survey_is_frozen_and_a_closed_one_stays_closed",
+      "operations": [
+        "farm_surveys_update",
+        "farm_surveys_add_question",
+        "farm_surveys_remove_question"
+      ],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"questions can only change while the survey is a draft\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Live survey PATCH reward and native question add/remove reject422; direct Postgres mutation also fails. No positive update/remove result claim."
+    },
+    {
+      "id": "survey-close-state",
+      "test": "farm_surveys::a_live_survey_is_frozen_and_a_closed_one_stays_closed",
+      "operations": ["farm_surveys_close"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"a closed survey takes no answers\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Native close200 then republish422 and submit422 exactclosed message prove terminal effect."
+    },
+    {
+      "id": "survey-publish-terminal",
+      "test": "farm_surveys::a_live_survey_is_frozen_and_a_closed_one_stays_closed",
+      "operations": ["farm_surveys_publish"],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"a closed survey cannot reopen: {res}\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Closed survey cannot republish422; originalclosed state retained."
+    },
+    {
+      "id": "survey-list-role-scope",
+      "test": "farm_surveys::farmers_see_live_surveys_never_drafts",
+      "operations": ["farm_surveys_list"],
+      "gates": {
+        "result": [200],
+        "farm_role": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "ids.contains(&json!(live)) && !ids.contains(&json!(draft))"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer list contains exactlive id and omitsdraft; ops sees both. Positive role-based filtering200 asserted."
+    },
+    {
+      "id": "survey-get-role-denial",
+      "test": "farm_surveys::farmers_see_live_surveys_never_drafts",
+      "operations": ["farm_surveys_get"],
+      "gates": {
+        "farm_role": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "&format!(\"/surveys/{draft}\"), None, &s.neema"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer cannot read known draft404; no fabricated403."
+    },
+    {
+      "id": "survey-answer-state",
+      "test": "farm_surveys::a_verified_household_answers_once_and_gets_one_voucher",
+      "operations": ["farm_surveys_answer"],
+      "gates": {
+        "result": [200, 201],
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "assert_eq!(n, 1, \"a retried submit creates nothing new\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual linked farmer answers, exactTZS500000 voucher/10charcode/provenance actor; identical clientref replays samevoucher and directDB count1. Another person cannot reuse reference422."
+    },
+    {
+      "id": "survey-eligibility-state",
+      "test": "farm_surveys::a_verified_household_answers_once_and_gets_one_voucher",
+      "operations": ["farm_surveys_eligibility"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"the list shows the answer and its voucher\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Independent eligibility read exactresponse/voucher ids and eligiblefalse after submit; initially eligible withnullreason."
+    },
+    {
+      "id": "survey-eligibility-validation",
+      "test": "farm_surveys::eligibility_rules",
+      "operations": ["farm_surveys_eligibility"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"your household must be verified by a second staff member\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual eligibility response distinguishes temporary password, self-verification, unverified household, post-publish household and multiple-household reasons. These are eligibility results, not generic403."
+    },
+    {
+      "id": "survey-answer-eligibility",
+      "test": "farm_surveys::eligibility_rules",
+      "operations": ["farm_surveys_answer"],
+      "gates": {
+        "validation": [422],
+        "farm_role": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "json!(\"set your own password before answering surveys\")"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual temporary-password farmer submit422 exacteligibility refusal. Other reasons in thiscase checked through eligibility GET only."
+    },
+    {
+      "id": "survey-anonymous",
+      "test": "farm_surveys::no_route_writes_responses_directly_and_anonymous_reads_nothing",
+      "operations": [
+        "farm_surveys_list",
+        "farm_surveys_get",
+        "farm_surveys_eligibility"
+      ],
+      "gates": {
+        "authorization": [401]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "assert_eq!(status, StatusCode::UNAUTHORIZED, \"{tail}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "All three actual nativeGETs withoutbearer401. Unsupported PUT/PATCH/DELETE response mutations405 do not prove listed CRUD capabilities."
+    },
+    {
+      "id": "survey-staff-answer",
+      "test": "farm_surveys::no_route_writes_responses_directly_and_anonymous_reads_nothing",
+      "operations": ["farm_surveys_answer"],
+      "gates": {
+        "validation": [422],
+        "farm_role": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"staff without a person answer nothing\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Villageofficer withoutlinkedperson cannot submit answer422; native person boundary retained."
+    },
+    {
+      "id": "survey-results",
+      "test": "farm_surveys::results_count_answers_and_money_in_minor_units",
+      "operations": ["farm_surveys_results"],
+      "gates": {
+        "result": [200],
+        "farm_role": [403],
+        "authorization": [403]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "assert_eq!(d[\"issued\"][\"minor\"], 1_000_000);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Two realfarmer responses; exactresponsecount2, issued/outstandingminor1000000, redeemed0, optiontally2 andnumericaverage6.00; farmerresults403."
+    },
+    {
+      "id": "survey-create-idempotency",
+      "test": "farm_surveys::a_retried_create_with_the_same_id_makes_one_draft",
+      "operations": ["farm_surveys_create"],
+      "gates": {
+        "result": [200, 201],
+        "validation": [422],
+        "farm_role": [403],
+        "authorization": [403],
+        "cross_workspace": [409]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"nothing leaks into the other workspace\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Clientidkept/realcreator recorded; changed retrybody replays originaltitle andonlyonedraft. Malformedid422, officer403; realsecondworkspace reuse409 andzerocreatedrows."
+    },
+    {
+      "id": "survey-summary-list",
+      "test": "farm_surveys::the_list_carries_voucher_sums_for_staff_only",
+      "operations": ["farm_surveys_list", "farm_surveys_get"],
+      "gates": {
+        "result": [200],
+        "farm_role": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"the single survey carries it too\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Twoissuedvouchers, oneactualredeem andonevoid; stafflist/detail summaries exactly match results inminorunits; farmer getsnullsummary."
+    },
+    {
+      "id": "survey-draft-write-results",
+      "test": "farm_surveys::draft_edits_replace_and_remove_questions_preserve_requested_state",
+      "operations": [
+        "farm_surveys_update",
+        "farm_surveys_add_question",
+        "farm_surveys_replace_question",
+        "farm_surveys_remove_question"
+      ],
+      "gates": {
+        "result": [200, 201, 204]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "assert_eq!(remaining, [questions[0].as_str(), added.as_str()]);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual draft PATCH independently GET exact title/null/description/money/currency/village/limits/status; PUT exact question/options and preserved sibling; POST exact added question; DELETE exact remaining ids and repeated/replace deleted id404."
+    },
+    {
+      "id": "survey-draft-authority",
+      "test": "farm_surveys::draft_edit_routes_reject_non_admin_foreign_targets_and_invalid_fields",
+      "operations": [
+        "farm_surveys_update",
+        "farm_surveys_add_question",
+        "farm_surveys_replace_question",
+        "farm_surveys_remove_question"
+      ],
+      "gates": {
+        "authorization": [401, 403],
+        "farm_role": [403],
+        "cross_workspace": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"foreign {method} {path}: {response}\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "All four native mutations use actual ops staff403, second farm workspace admin404 and no bearer401; independent original state unchanged."
+    },
+    {
+      "id": "survey-draft-field-validation",
+      "test": "farm_surveys::draft_edit_routes_reject_non_admin_foreign_targets_and_invalid_fields",
+      "operations": [
+        "farm_surveys_update",
+        "farm_surveys_add_question",
+        "farm_surveys_replace_question"
+      ],
+      "gates": {
+        "validation": [422]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "assert!(response[\"errors\"][field].is_array(), \"{response}\");"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "PATCH null title, POST position0 and PUT invented kind422 keyed errors; independent original state unchanged."
+    },
+    {
+      "id": "survey-question-parent-validation",
+      "test": "farm_surveys::draft_edit_routes_reject_non_admin_foreign_targets_and_invalid_fields",
+      "operations": [
+        "farm_surveys_replace_question",
+        "farm_surveys_remove_question"
+      ],
+      "gates": {
+        "validation": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"question must belong to selected survey\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Actual question from another draft cannot be replaced/removed through selected survey404; original target unchanged."
+    },
+    {
+      "id": "survey-voucher-list-results",
+      "test": "farm_surveys::voucher_list_returns_only_selected_survey_without_codes_and_enforces_scope",
+      "operations": ["farm_surveys_vouchers"],
+      "gates": {
+        "result": [200]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "assert_eq!(got, expected);"
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Two actual answers issue selected survey vouchers; another survey voucher excluded. Exact ids/500000TZS/issued/no audit/not expired and no code/hash; distinct paged rows with same total."
+    },
+    {
+      "id": "survey-voucher-list-guards",
+      "test": "farm_surveys::voucher_list_returns_only_selected_survey_without_codes_and_enforces_scope",
+      "operations": ["farm_surveys_vouchers"],
+      "gates": {
+        "authorization": [401, 403],
+        "farm_role": [403],
+        "cross_workspace": [404],
+        "validation": [404]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/farm_surveys.rs",
+          "contains": "\"/surveys/nope/vouchers\""
+        },
+        {
+          "file": "apps/api/tests/common/farm.rs",
+          "contains": "self.link(email, person).await;"
+        }
+      ],
+      "review": "Farmer/village officer403, actual second workspace admin404, malformed survey404 and absent bearer401."
+    }
+  ],
+  "sources": {
+    "apps/api/tests/api/farm_surveys.rs": "a795b43dfdd8f66d93a490426011f695292750683f016f4683babb9149e42b32",
+    "apps/api/tests/common/farm.rs": "2cc72c3ac170f5a30cc6c6a3f456a8ba9c183d15c4798b3a629b7cbf6f8879ea"
+  }
+}

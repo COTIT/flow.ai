@@ -66,6 +66,17 @@ pub async fn create(
     user_id: Uuid,
     f: NewFile<'_>,
 ) -> Result<Uuid, AppError> {
+    create_reserved(state, workspace_id, user_id, Uuid::now_v7(), f).await
+}
+
+/// Store generated invoice PDF under its durable reserved id.
+pub(crate) async fn create_reserved(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    id: Uuid,
+    f: NewFile<'_>,
+) -> Result<Uuid, AppError> {
     let bucket = store(state)?;
     // Scanning and hashing up to 10 MB is CPU work: off the async workers.
     let name = f.document_name.to_owned();
@@ -78,7 +89,6 @@ pub async fn create(
     .map_err(|e| AppError::Internal(format!("file scan: {e}")))?;
     let (extension, content_type) = kind.ok_or_else(|| AppError::field("upload", TYPES))?;
     let document_name = display_name(f.document_name);
-    let id = Uuid::now_v7();
     let key = format!("{UPLOADS_ROOT}/{workspace_id}/{id}");
     let size = i64::try_from(bytes.len()).map_err(|_| AppError::Internal("file size".into()))?;
     repo::insert_pending(

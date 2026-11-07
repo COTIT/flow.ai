@@ -205,5 +205,7 @@ async fn untouched_meta_survives_update(pool: PgPool) {
     let (status, _) = a.update(&id, json!({ "name": "B" })).await;
 
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(a.get(&id).await["meta"], json!({ "k": 1 }));
+    let saved = a.get(&id).await;
+    assert_eq!(saved["name"], "B");
+    assert_eq!(saved["meta"], json!({ "k": 1 }));
 }

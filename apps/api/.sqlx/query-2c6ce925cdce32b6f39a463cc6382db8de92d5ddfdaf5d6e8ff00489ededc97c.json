@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.id FROM warehouses w WHERE w.workspace_id=$1 AND w.deleted_at IS NULL AND (w.id=ANY($3) OR w.id IN (SELECT p.default_warehouse_id FROM products p WHERE p.workspace_id=$1 AND p.id=ANY($2) AND p.deleted_at IS NULL)) ORDER BY w.id FOR SHARE OF w",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2c6ce925cdce32b6f39a463cc6382db8de92d5ddfdaf5d6e8ff00489ededc97c"
+}

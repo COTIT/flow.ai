@@ -32,7 +32,14 @@ if [[ "$1" == compose ]]; then
       ref="$(sed -n 's/^GENESY_REF=//p' "$env_file")"
       printf 'postgres:18@sha256:abc\nghcr.io/cotit/genesy-api:%s\nghcr.io/cotit/genesy-shop:%s\n' "$ref" "$ref" ;;
     pull) [[ -z "${STUB_PULL_FAIL:-}" ]] || exit 1 ;;
-    exec) [[ "$*" == *to_regclass* ]] && echo t || cat "$T/schema" ;;
+    exec)
+      case "$*" in
+        *api/voice/readiness*) [[ -z "${STUB_ASSISTANT_READY_FAIL:-}" ]] || exit 1 ;;
+        *to_regclass*) echo t ;;
+        *checkpoint_migrations*) echo "${STUB_CHECKPOINT_VERSION:-5}" ;;
+        *'encode(checksum'*) cat "$T/applied" ;;
+        *) cat "$T/schema" ;;
+      esac ;;
     run) [[ -n "${STUB_MIGRATE_TO:-}" ]] && echo "$STUB_MIGRATE_TO" > "$T/schema" ;;
     ps) cat "$T/ps" 2> /dev/null ;;
   esac
@@ -185,5 +192,71 @@ printf 'api running healthy\ndb running healthy\nshop running healthy\n' > "$t/p
 run rollback || fail "nodns rollback: $(cat "$t/out")"
 grep -q "routes off" "$t/out" || fail "rollback probed Traefik under nodns"
 if grep -q "^curl" "$CALLS"; then fail "rollback probed Traefik under nodns"; fi
+
+# Explicit compatible rollback accepts only reviewed checksums and a disabled assistant.
+rm "$d/docker-compose.nodns.yml" "$d/.deploy-state"
+echo 20261102000000 > "$t/schema"
+run "$B" || fail 'compatibility baseline deploy'
+mkdir -p "$root/apps/api/migrations"
+printf 'CREATE SCHEMA assistant_checkpoint;\n' > "$root/apps/api/migrations/20261106184342_assistant_checkpoints.up.sql"
+cp "$HERE/assistant-compatibility.py" "$root/deploy/"
+python3 - "$root" "$t/applied" <<'PY'
+import hashlib,json,pathlib,sys
+root=pathlib.Path(sys.argv[1]); path='apps/api/migrations/20261106184342_assistant_checkpoints.up.sql'
+checksum=hashlib.sha384((root/path).read_bytes()).hexdigest()
+(root/'deploy/assistant-compatibility.json').write_text(json.dumps({'graphVersion':'office-assistant-v1','workflowVersion':2,'saverVersion':'1.1.2','checkpointSchema':'assistant_checkpoint','checkpointSchemaVersion':5,'invoiceDeliveryVersion':1,'batchVersion':1,'migrations':{path:checksum}}))
+for name in ("batches", "batch_repo", "batch_handlers", "batch_dto"):
+    target=root/f'apps/api/src/modules/assistant/{name}.rs'; target.parent.mkdir(parents=True,exist_ok=True); target.touch()
+guard=root/'apps/api/src/http/assistant.rs'; guard.parent.mkdir(parents=True,exist_ok=True); guard.write_text('Assistant-Batch-Token batch_repo::claim(')
+(root/'apps/api/src/modules/assistant/repo.rs').write_text('batch_repo::expire( batch_repo::prune(')
+module=root/'apps/api/src/modules/invoices/delivery.rs'; module.parent.mkdir(parents=True); module.touch()
+jobs=root/'apps/api/src/jobs/kinds.rs'; jobs.parent.mkdir(parents=True)
+jobs.write_text('INVOICE_DELIVERY => return crate::modules::invoices::delivery::run(ctx, &job).await,\nINVOICE_DELIVERY_SWEEP => return crate::modules::invoices::delivery::sweep(ctx).await,\n')
+pathlib.Path(sys.argv[2]).write_text('20261106184342|'+checksum+'\n')
+PY
+g add apps/api deploy/assistant-compatibility.py deploy/assistant-compatibility.json
+g commit -qm assistant
+R="$(g rev-parse HEAD)"
+STUB_MIGRATE_TO=20261106184342 run "$R" || fail 'assistant deploy'
+[[ "$(state assistant_fingerprint)" == office-assistant-v1/2/1.1.2/assistant_checkpoint/5/1/1 ]] || fail 'release fingerprint not recorded'
+echo 'ASSISTANT_ENABLED=false' >> "$d/.env.production"
+if run rollback --compatible-assistant; then fail 'pre-assistant rollback without worker accepted'; fi
+sed 's/^previous_schema=.*/previous_schema=20261106184342/' "$d/.deploy-state" > "$t/same-schema-state"
+cp "$d/.deploy-state" "$t/old-schema-state"
+cp "$t/same-schema-state" "$d/.deploy-state"
+if run rollback; then fail 'ordinary same-schema rollback bypassed assistant worker compatibility'; fi
+grep -q -- '--compatible-assistant' "$t/out" || fail 'ordinary assistant rollback lacks compatibility instruction'
+if run rollback --restore-db; then fail 'same-schema restore flag bypassed assistant worker compatibility'; fi
+if run rollback --compatible-assistant; then fail 'same-schema pre-assistant rollback accepted'; fi
+[[ "$(state live)" == "$R" ]] || fail 'rejected rollback changed running version'
+cp "$t/old-schema-state" "$d/.deploy-state"
+# A later reviewed migration can roll back to the first worker-capable release.
+python3 - "$root" "$t/applied" <<'PY'
+import hashlib,json,pathlib,sys
+root=pathlib.Path(sys.argv[1]); path='apps/api/migrations/20261106204413_invoice_delivery.up.sql'
+(root/path).write_text('CREATE TABLE invoice_deliveries (id uuid);\n')
+checksum=hashlib.sha384((root/path).read_bytes()).hexdigest()
+marker=root/'deploy/assistant-compatibility.json'; data=json.loads(marker.read_text()); data['migrations'][path]=checksum; marker.write_text(json.dumps(data))
+pathlib.Path(sys.argv[2]).write_text('20261106204413|'+checksum+'\n')
+PY
+g add apps/api/migrations deploy/assistant-compatibility.json
+g commit -qm 'later reviewed migration'
+S="$(g rev-parse HEAD)"
+STUB_MIGRATE_TO=20261106204413 run "$S" || fail 'later assistant deploy'
+echo 'ASSISTANT_ENABLED=true' >> "$d/.env.production"
+if STUB_ASSISTANT_READY_FAIL=1 run "$S"; then fail 'assistant deployed without readiness'; fi
+run "$S" || fail 'assistant readiness deploy'
+grep -q 'api/voice/readiness' "$CALLS" || fail 'assistant readiness not checked'
+if run rollback --compatible-assistant; then fail 'compatible rollback while enabled'; fi
+grep -q 'ASSISTANT_ENABLED=false' "$t/out" || fail 'no disable instruction'
+echo 'ASSISTANT_ENABLED=false' >> "$d/.env.production"
+if STUB_CHECKPOINT_VERSION=6 run rollback --compatible-assistant; then fail 'unknown checkpoint schema accepted'; fi
+cp "$t/applied" "$t/applied.good"
+printf '20261106204413|changed\n' > "$t/applied"
+if run rollback --compatible-assistant; then fail 'changed migration accepted'; fi
+cp "$t/applied.good" "$t/applied"
+run rollback --compatible-assistant || fail "compatible rollback: $(cat "$t/out")"
+! grep -q restore.sh "$CALLS" || fail 'compatible rollback restored business DB'
+[[ "$(state live)" == "$R" && -n "$(state assistant_fingerprint)" ]] || fail 'compatibility evidence not recorded'
 
 echo "deploy.test.sh: all passed"

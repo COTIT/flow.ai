@@ -1,10 +1,6 @@
-//! Sending invoices (Laravel SendInvoice, ResentInvoice, SendInvoiceMail). What the mail needs
-//! is checked first; then one transaction numbers the draft: recipient snapshots, prices at
-//! the currency's decimals, stock, dates, status, payment token, the counter last. The PDF and
-//! the mail run after commit, in a task the request can't cancel, so a slow mail server never
-//! holds a lock and a dropped request never leaves a numbered invoice half delivered.
-//! Lock order on every path: the invoice row, its currency (shared), its stock slots
-//! (sorted), the counter last. A PDF or mail failure keeps the number; resend retries.
+//! Invoice numbering and specific post-commit delivery. Intent commits with numbering;
+//! request/worker share one durable claim. Interrupted attempts remain unknown until
+//! send-log evidence resolves them. Lock order: invoice, currency, stock slots, counter.
 
 use chrono::{DateTime, Days, NaiveTime, Utc};
 use rust_decimal::Decimal;
@@ -77,45 +73,40 @@ pub async fn send(
     user_id: Uuid,
     id: &str,
     input: SendInput,
-) -> Result<(), AppError> {
+) -> Result<super::delivery::Receipt, AppError> {
     let id = parse(id)?;
-    let template = ready(state, workspace_id, &input, Kind::Send).await?;
-    number(state, workspace_id, user_id, id, &input).await?;
-    if input.manual && !renders(state) {
-        // Nothing to mail and nothing to render with: numbered, no PDF (preview still 503s).
-        return Ok(());
-    }
-    detached(
-        state,
-        workspace_id,
-        user_id,
-        id,
-        input,
-        template,
-        Kind::Send,
-    )
-    .await
+    ready(state, workspace_id, &input, Kind::Send).await?;
+    let delivery = number_inner(state, workspace_id, user_id, id, &input, true)
+        .await?
+        .ok_or_else(|| AppError::Internal("missing delivery intent".into()))?;
+    detached(state, workspace_id, delivery).await
 }
 
-/// POST /invoices/{id}/resend: a numbered invoice to the (new) contact and address.
+/// Resend records its selected recipient and durable job in one transaction.
 pub async fn resend(
     state: &AppState,
     workspace_id: Uuid,
     user_id: Uuid,
     id: &str,
-    input: SendInput,
-) -> Result<(), AppError> {
+    mut input: SendInput,
+) -> Result<super::delivery::Receipt, AppError> {
     let id = parse(id)?;
-    let template = ready(state, workspace_id, &input, Kind::Resend).await?;
+    ready(state, workspace_id, &input, Kind::Resend).await?;
     let mut tx = state.db.begin().await?;
     let locked = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    super::approval::check(&mut tx, workspace_id, id, Some(input.addressed_contact_id)).await?;
+    if super::delivery_repo::pending(&mut *tx, workspace_id, id).await? {
+        return Err(AppError::Conflict(
+            "Previous invoice delivery is unresolved. Verify its send log before another send.",
+        ));
+    }
     if !actions::allows(InvoiceAction::Resend, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(CAN_NOT_RESEND.into()));
     }
     let (billing, contact) = recipient(&mut tx, workspace_id, locked.relation_id, &input).await?;
-    // An invoice sent before a credential key was set gets its link now.
+    freeze_recipient(&mut input, &contact);
     let token = if locked.has_token {
         None
     } else {
@@ -130,17 +121,46 @@ pub async fn resend(
         token.as_ref().map(Token::parts),
     )
     .await?;
+    let delivery = enqueue(&mut tx, workspace_id, user_id, id, "resend", &input).await?;
     tx.commit().await?;
-    detached(
-        state,
-        workspace_id,
-        user_id,
+    detached(state, workspace_id, delivery).await
+}
+
+fn freeze_recipient(input: &mut SendInput, contact: &Value) {
+    if !input.manual
+        && input.to.is_empty()
+        && let Some(email) = contact["email"].as_str()
+    {
+        input.to.push(email.trim().to_lowercase());
+    }
+}
+
+async fn enqueue(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    user: Uuid,
+    id: Uuid,
+    kind: &str,
+    input: &SendInput,
+) -> Result<Uuid, AppError> {
+    let request = serde_json::to_value(input)
+        .map_err(|_| AppError::Internal("invoice delivery input".into()))?;
+    if request.to_string().len() > 3145728 {
+        return Err(AppError::field(
+            "body",
+            "Invoice delivery input exceeds its storage limit.",
+        ));
+    }
+    Ok(super::delivery_repo::insert(
+        conn,
+        workspace,
         id,
-        input,
-        template,
-        Kind::Resend,
+        user,
+        kind,
+        &request,
+        crate::modules::assistant::preconditions::action_id(),
     )
-    .await
+    .await?)
 }
 
 /// Whether this server can render and store a PDF.
@@ -194,12 +214,31 @@ pub(crate) async fn number(
     id: Uuid,
     input: &SendInput,
 ) -> Result<(), AppError> {
+    number_inner(state, workspace_id, user_id, id, input, false)
+        .await
+        .map(|_| ())
+}
+
+async fn number_inner(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    id: Uuid,
+    input: &SendInput,
+    queue: bool,
+) -> Result<Option<Uuid>, AppError> {
     let mut tx = state.db.begin().await?;
     let locked = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    super::approval::check(&mut tx, workspace_id, id, Some(input.addressed_contact_id)).await?;
     if !actions::allows(InvoiceAction::Send, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(CAN_NOT_SEND.into()));
+    }
+    if super::delivery_repo::pending(&mut *tx, workspace_id, id).await? {
+        return Err(AppError::Conflict(
+            "Previous invoice delivery is unresolved. Verify its send log before another send.",
+        ));
     }
     let (billing, contact) = recipient(&mut tx, workspace_id, locked.relation_id, input).await?;
     let total = priced(&mut tx, workspace_id, id, &locked).await?;
@@ -278,8 +317,15 @@ pub(crate) async fn number(
     )
     .await
     .map_err(|e| taken(e, workspace_id))?;
+    let delivery = if queue {
+        let mut frozen = input.clone();
+        freeze_recipient(&mut frozen, &contact);
+        Some(enqueue(&mut tx, workspace_id, user_id, id, "send", &frozen).await?)
+    } else {
+        None
+    };
     tx.commit().await.map_err(|e| taken(e, workspace_id))?;
-    Ok(())
+    Ok(delivery)
 }
 
 /// The total in minor units at the currency's current decimals, share locking the currency so
@@ -552,36 +598,44 @@ pub fn payment_link(state: &AppState, token: &str) -> String {
     format!("{}/clients/pay-for-invoice/{token}", state.frontend_url)
 }
 
-/// `deliver` in its own task: a request timeout or a client that leaves doesn't stop a mail
-/// whose invoice is already numbered. The caller still gets the outcome.
+/// Request disconnect cannot cancel committed specific delivery attempt.
 async fn detached(
     state: &AppState,
-    workspace_id: Uuid,
-    user_id: Uuid,
-    id: Uuid,
-    input: SendInput,
-    template: Option<TemplateRow>,
-    kind: Kind,
-) -> Result<(), AppError> {
+    workspace: Uuid,
+    delivery: Uuid,
+) -> Result<super::delivery::Receipt, AppError> {
     let state = state.clone();
-    tokio::spawn(
-        async move { deliver(&state, workspace_id, user_id, id, input, template, kind).await },
-    )
-    .await
-    .map_err(|e| AppError::Internal(format!("invoice delivery task: {e}")))?
+    tokio::spawn(async move { super::delivery::attempt(&state, workspace, delivery).await })
+        .await
+        .map_err(|e| AppError::Internal(format!("invoice delivery task: {e}")))?
 }
 
 /// After commit: the PDF (a send renders; a resend renders only with a template or when the
 /// stored one is gone, as Laravel's InvoiceSend listener), then the mail unless `manual`.
-async fn deliver(
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn deliver_reserved(
     state: &AppState,
     workspace_id: Uuid,
     user_id: Uuid,
     id: Uuid,
     input: SendInput,
-    template: Option<TemplateRow>,
-    kind: Kind,
-) -> Result<(), AppError> {
+    kind: &str,
+    delivery: Uuid,
+    reserved_pdf: Uuid,
+    action: Option<Uuid>,
+) -> Result<crate::modules::messages::dto::SendReceipt, AppError> {
+    let kind = if kind == "resend" {
+        Kind::Resend
+    } else {
+        Kind::Send
+    };
+    let template = ready(state, workspace_id, &input, kind).await?;
+    if input.manual && !renders(state) {
+        return Ok(crate::modules::messages::dto::SendReceipt {
+            status: crate::modules::messages::dto::SendStatus::Manual,
+            send_log_id: None,
+        });
+    }
     let row = repo::find(&state.db, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -598,13 +652,30 @@ async fn deliver(
     let (pdf_file, vars) = match stored {
         Some(file) => (file, None),
         None => {
-            let (file, vars) = render(state, workspace_id, user_id, id, template.as_ref()).await?;
+            let pdf = pdf::render(state, workspace_id, id, template.as_ref()).await?;
+            let vars = pdf.variables;
+            let file = files::service::create_reserved(
+                state,
+                workspace_id,
+                user_id,
+                reserved_pdf,
+                files::service::NewFile {
+                    document_name: &pdf.file_name,
+                    description: None,
+                    meta: None,
+                    bytes: pdf.bytes,
+                },
+            )
+            .await?;
             repo::set_pdf(&state.db, workspace_id, id, file).await?;
             (file, Some(vars))
         }
     };
     if input.manual {
-        return Ok(());
+        return Ok(crate::modules::messages::dto::SendReceipt {
+            status: crate::modules::messages::dto::SendStatus::Manual,
+            send_log_id: None,
+        });
     }
     let vars = match vars {
         Some(v) => v,
@@ -632,7 +703,7 @@ async fn deliver(
     let too_long = || AppError::field("body", TOO_LONG);
     let subject = substitute(&input.subject, &vars, false).ok_or_else(too_long)?;
     let body = substitute(&input.body, &vars, true).ok_or_else(too_long)?;
-    messages::send(
+    messages::send_reserved(
         state,
         workspace_id,
         user_id,
@@ -648,6 +719,8 @@ async fn deliver(
             entity: Some(("invoice", id)),
             button: link.as_deref().map(|l| (PAY_FOR, l)),
         },
+        delivery,
+        action,
     )
     .await
 }

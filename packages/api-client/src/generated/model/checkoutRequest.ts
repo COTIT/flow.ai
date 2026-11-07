@@ -15,7 +15,8 @@ export interface CheckoutRequest {
   customer?: CustomerRequest | null;
   /**
      * 1 to 50 lines: `product_id`, optional `product_variant_id`, `quantity` (at most 1000).
-     * @nullable
+     * @minItems 1
+     * @maxItems 50
      */
-  lines?: LineRequest[] | null;
+  lines: LineRequest[];
 }

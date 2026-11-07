@@ -51,14 +51,59 @@ function invoiceApi(api: FakeApi, start: Invoice) {
   api
     .on("GET", "/workspace/:ws/invoices/:id", () => ({ data: state.inv }))
     .on("GET", "/workspace/:ws/invoices", () => paged([]))
-    .on("POST", "/workspace/:ws/invoices/:id/send", () => {
+    .on("POST", "/workspace/:ws/invoices/:id/send", ({ body }) => {
       state.inv = { ...state.inv, status: "pending", invoice_nr: "2026-0007", allowed_actions: ["resend", "duplicate", "pay"] }
-      return { message: "ok" }
+      return deliveryReceipt((body as { send_method?: string }).send_method === "manual" ? "manual" : "accepted")
     })
+    .on("POST", "/workspace/:ws/invoices/:id/resend", () => deliveryReceipt("accepted"))
   return state
 }
 
-test("draft: send it as marked sent; it gets its number", async ({ page, api }) => {
+const deliveryReceipt = (status: string) => ({
+  message: "ok",
+  delivery: { status, invoice_delivery_id: "delivery-1", invoice_id: "inv-1", send_log_id: null, pdf_file_id: null },
+})
+
+const deliveryNotices = [
+  ["queued", "Invoice numbered. Email delivery is queued.", "info"],
+  ["accepted", "Invoice numbered. The mail server accepted the email; delivery is unconfirmed.", "info"],
+  ["manual", "Invoice numbered. Deliver it to the customer manually; no email was sent.", "info"],
+  ["blocked", "Invoice numbered. Email delivery is blocked; check the mail settings.", "warning"],
+  ["failed", "Invoice numbered. Email delivery failed; check its status before trying again.", "warning"],
+  ["unknown", "Invoice numbered. Email delivery is uncertain; verify its status before trying again.", "warning"],
+  ["legacy", "The invoice may have changed. Delivery is unconfirmed; check its status before trying again.", "warning"],
+] as const
+
+for (const action of ["send", "resend"] as const) {
+  for (const [status, message, variant] of deliveryNotices) {
+    test(`invoice ${action} delivery receipt: ${status}`, async ({ page, api }) => {
+      const state = invoiceApi(api, invoice(action === "resend"
+        ? { status: "pending", invoice_nr: "2026-0007", allowed_actions: ["resend", "duplicate", "pay"] }
+        : {}))
+      api.on("POST", `/workspace/:ws/invoices/:id/${action}`, () => {
+        state.inv = { ...state.inv, status: "pending", invoice_nr: "2026-0007", allowed_actions: ["resend", "duplicate", "pay"] }
+        return status === "legacy" ? { message: "ok" } : deliveryReceipt(status)
+      })
+      await page.goto("/invoices/inv-1")
+      const label = action === "resend" ? "Send again" : "Send"
+      await page.getByRole("button", { name: label, exact: true }).click()
+      const dialog = page.getByRole("dialog")
+      if (action === "send" && status !== "manual")
+        await dialog.getByRole("radio", { name: "Email to the customer" }).check()
+      await dialog.getByRole("button", { name: label, exact: true }).click()
+      await expect(dialog).toHaveCount(0)
+      await expect(page.getByRole("heading", { name: "Invoice 2026-0007" })).toBeVisible()
+      const notice = page.getByRole("status").filter({ hasText: message })
+      await expect(notice).toBeVisible()
+      await expect(notice.locator('[data-slot="notice"]')).toHaveAttribute("data-variant", variant)
+      await expect(page.getByText(/^Invoice sent(?: again)?\.$/)).toHaveCount(0)
+      expect(api.callsTo("POST", `/workspace/:ws/invoices/:id/${action}`)).toHaveLength(1)
+      await expectFits(page)
+    })
+  }
+}
+
+test("draft: number it for manual delivery without claiming email was sent", async ({ page, api }) => {
   invoiceApi(api, invoice())
   await page.goto("/invoices/inv-1")
   const next = page.getByRole("region", { name: "Next step" })
@@ -69,10 +114,10 @@ test("draft: send it as marked sent; it gets its number", async ({ page, api }) 
 
   await next.getByRole("button", { name: "Send", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Send the invoice" })
-  await expect(dialog.getByRole("radio", { name: "Mark as sent (no email)" })).toBeChecked()
+  await expect(dialog.getByRole("radio", { name: "Number for manual delivery (no email)" })).toBeChecked()
   await expectFits(page)
   await dialog.getByRole("button", { name: "Send", exact: true }).click()
-  await expect(page.getByText("Invoice sent.")).toBeVisible()
+  await expect(page.getByText("Invoice numbered. Deliver it to the customer manually; no email was sent.")).toBeVisible()
   await expect(page.getByRole("heading", { name: "Invoice 2026-0007" })).toBeVisible()
   await expect(next.getByRole("button", { name: "Record payment" })).toBeVisible()
   const [call] = api.callsTo("POST", "/workspace/:ws/invoices/:id/send")

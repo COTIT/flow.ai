@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM assistant_actions WHERE state IN ('completed','cancelled','expired','failed','queued','partial') AND finished_at<now()-interval '90 days' AND batch_verdict IS DISTINCT FROM 'unknown' AND (batch_id IS NULL OR state<>'completed' OR batch_verdict='completed')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "fbca29ac9a0aa08d425c85c040d254efaa1fe88b27c0675fe8cd98737f425f2e"
+}

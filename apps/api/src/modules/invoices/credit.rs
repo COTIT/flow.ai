@@ -48,6 +48,7 @@ pub async fn credit(
     let locked = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    super::approval::check(&mut tx, workspace_id, id, None).await?;
     if locked.is_credit {
         return Err(AppError::Unprocessable(CREDIT_NOTE.into()));
     }

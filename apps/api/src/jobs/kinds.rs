@@ -24,6 +24,12 @@ pub const CLOSE_STUCK_SENDS: &str = "close_stuck_sends";
 pub const PRUNE: &str = "prune";
 /// Finishes file rows a crash left half written or half deleted (hourly).
 pub const FILE_SWEEP: &str = "file_sweep";
+/// Runs one durable invoice delivery intent.
+pub const INVOICE_DELIVERY: &str = "invoice_delivery";
+/// Reconcile interrupted invoice transport attempts without replay.
+pub const INVOICE_DELIVERY_SWEEP: &str = "invoice_delivery_sweep";
+/// Removes ended/orphaned provider conversations every minute.
+pub const ASSISTANT_CLEANUP: &str = "assistant_cleanup";
 /// Zero stock rows for every product in a new main or store warehouse (`stock::sweep`).
 pub const STOCK_SEED: &str = "stock_seed";
 
@@ -50,9 +56,12 @@ pub const PAYMENT_SWEEP: &str = "payment_sweep";
 
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
+    INVOICE_DELIVERY,
+    INVOICE_DELIVERY_SWEEP,
     CLOSE_STUCK_SENDS,
     PRUNE,
     FILE_SWEEP,
+    ASSISTANT_CLEANUP,
     STOCK_SEED,
     WEBHOOK_FANOUT,
     WEBHOOK_DELIVER,
@@ -66,7 +75,17 @@ pub const KINDS: &[&str] = &[
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 6] = [
+pub static SCHEDULES: [Schedule; 8] = [
+    Schedule {
+        name: INVOICE_DELIVERY_SWEEP,
+        kind: INVOICE_DELIVERY_SWEEP,
+        every: Every::Minutes(5),
+    },
+    Schedule {
+        name: ASSISTANT_CLEANUP,
+        kind: ASSISTANT_CLEANUP,
+        every: Every::Minutes(1),
+    },
     Schedule {
         name: CLOSE_STUCK_SENDS,
         kind: CLOSE_STUCK_SENDS,
@@ -102,6 +121,10 @@ pub static SCHEDULES: [Schedule; 6] = [
 /// What handlers reach: the job pool and, when configured, the file bucket.
 #[derive(Clone)]
 pub struct Ctx {
+    /// Invoice-specific runtime; contains no serialized job credentials.
+    pub invoice_state: Option<crate::AppState>,
+    /// Provider cleanup key; never serialized into jobs or traces.
+    pub assistant_api_key: Option<Arc<crate::AssistantSecret>>,
     /// The job pool.
     pub db: PgPool,
     /// The file bucket, when configured.
@@ -125,6 +148,9 @@ pub fn handler(ctx: Ctx) -> Handler {
 /// Run one job (or one chunk) of a known kind.
 pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
     match job.kind.as_str() {
+        INVOICE_DELIVERY => return crate::modules::invoices::delivery::run(ctx, &job).await,
+        INVOICE_DELIVERY_SWEEP => return crate::modules::invoices::delivery::sweep(ctx).await,
+        ASSISTANT_CLEANUP => return crate::modules::assistant::cleanup::run(ctx).await,
         CLOSE_STUCK_SENDS => {
             messages::close_stuck(&ctx.db).await?;
         }
@@ -182,6 +208,8 @@ mod tests {
 
     fn ctx(db: &PgPool) -> Ctx {
         Ctx {
+            invoice_state: None,
+            assistant_api_key: None,
             db: db.clone(),
             files: None,
             http: Outbound::new(&[]).unwrap(),

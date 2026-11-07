@@ -123,6 +123,37 @@ impl From<TeamRow> for TeamResource {
 #[derive(Serialize, ToSchema)]
 pub struct TeamCreated {
     pub team_id: Uuid,
+    pub permission_changes: PermissionChangeReceipt,
+}
+
+/// Whether every requested permission change holds after writing.
+#[derive(Clone, Copy, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PermissionChangeStatus {
+    Applied,
+    Partial,
+}
+
+/// Known requested changes only; unrelated grants and raw unknown inputs stay private.
+#[derive(Clone, Serialize, ToSchema)]
+pub struct PermissionChangeReceipt {
+    pub status: PermissionChangeStatus,
+    pub applied: Vec<String>,
+    pub not_applied: Vec<String>,
+    pub ignored_count: u64,
+}
+
+/// Additive receipt preserves existing permission action message.
+#[derive(Serialize, ToSchema)]
+pub struct PermissionChangeReply {
+    pub message: &'static str,
+    pub permission_changes: PermissionChangeReceipt,
+}
+
+/// Validated array retains only strings and count of discarded non-strings.
+pub struct PermissionEntries {
+    pub names: Vec<String>,
+    pub ignored_count: u64,
 }
 
 /// GET list query. Unknown params (`tab`, `team_id`, ...) ignored: vimdesk-web spreads its route query.
@@ -167,14 +198,18 @@ fn optional_array(r: &mut Rules, field: &str, value: Option<Value>) -> Option<Ve
 }
 
 /// Strings among `items`, others dropped (Laravel skips non-strings).
-fn strings(items: Vec<Value>) -> Vec<String> {
-    items
-        .into_iter()
-        .filter_map(|v| match v {
-            Value::String(s) => Some(s),
-            _ => None,
-        })
-        .collect()
+fn strings(items: Vec<Value>) -> PermissionEntries {
+    let mut entries = PermissionEntries {
+        names: Vec::new(),
+        ignored_count: 0,
+    };
+    for item in items {
+        match item {
+            Value::String(name) => entries.names.push(name),
+            _ => entries.ignored_count += 1,
+        }
+    }
+    entries
 }
 
 /// POST /users/teams.
@@ -196,7 +231,7 @@ pub struct NewTeam {
     pub name: String,
     pub description: String,
     /// Raw requested names; service filters them against the catalog.
-    pub permissions: Vec<String>,
+    pub permissions: PermissionEntries,
     pub meta: Option<Value>,
 }
 
@@ -319,9 +354,9 @@ pub struct PermissionsRequest {
 
 impl Validate for PermissionsRequest {
     /// Raw entries; `-x` means remove `x`.
-    type Valid = Vec<String>;
+    type Valid = PermissionEntries;
 
-    fn validate(self, r: &mut Rules) -> Option<Vec<String>> {
+    fn validate(self, r: &mut Rules) -> Option<PermissionEntries> {
         let items = match self.permissions {
             // Laravel `required|array`: an empty array is "required" too, but the web app
             // never sends one and an empty delta is harmless, so it passes.

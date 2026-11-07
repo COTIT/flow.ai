@@ -216,7 +216,8 @@ async fn a_profile_sends_through_its_own_server(pool: PgPool) {
     body["email_profile_id"] = json!(profile);
     body["attachments"] = json!([file["data"]["file_id"]]);
     let (status, res) = send(&f, body).await;
-    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["message"], "ok");
 
     let inbox = f.inbox.lock().unwrap().clone();
     assert_eq!(inbox.len(), 1);
@@ -377,7 +378,8 @@ async fn the_allow_list_covers_every_transport(pool: PgPool) {
     body["email_profile_id"] = json!(profile);
     body["bcc"] = json!(["spy@outside.test"]);
     let (status, res) = send(&f, body.clone()).await;
-    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["message"], "ok");
     assert!(f.inbox.lock().unwrap().is_empty(), "SMTP: nothing sent");
     assert_eq!(the_log(&f.api).await.0, "blocked");
 
@@ -622,7 +624,8 @@ async fn manual_sends_nothing(pool: PgPool) {
     body["send_method"] = json!("manual");
     body["subject"] = Value::Null;
     let (status, res) = send(&f, body).await;
-    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["message"], "ok");
     assert!(f.inbox.lock().unwrap().is_empty());
 }
 
@@ -730,13 +733,9 @@ async fn a_profile_test_mails_the_caller(pool: PgPool) {
         None,
     )
     .await;
-    assert_eq!(
-        (status, res),
-        (
-            StatusCode::OK,
-            json!({ "data": { "success_connection": true } })
-        )
-    );
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["success_connection"], true);
+    assert_eq!(res["data"]["delivery"]["status"], "accepted");
     let inbox = f.inbox.lock().unwrap().clone();
     assert_eq!(inbox[0].rcpt, ["<ada@example.com>"]);
     assert!(
@@ -807,7 +806,7 @@ async fn office365_connection_tests(pool: PgPool) {
     assert_eq!(status, StatusCode::OK, "{res}");
     assert_eq!(
         res["data"]["message"],
-        "Test e-mail sent to it@acme.test from box@acme.test. Check the inbox and the sender mailbox Sent Items."
+        "Mail server accepted the test email to it@acme.test from box@acme.test. Check the recipient inbox for delivery."
     );
     let calls = f.graph.lock().unwrap().clone();
     assert!(
@@ -816,4 +815,80 @@ async fn office365_connection_tests(pool: PgPool) {
             .any(|(p, _, b)| p == "/tenant-2/token" && b.contains("client_secret=s3cret"))
     );
     assert!(calls.iter().any(|(p, ..)| p == "/sendMail/box@acme.test"));
+}
+
+#[sqlx::test]
+async fn receipt_blocked_mail_has_durable_log_and_no_transport(pool: PgPool) {
+    let f = setup(pool, "allowed.test", true).await;
+    let contact = contact(&f.api).await;
+    let mut input = message(&contact);
+    input["email_profile_id"] = json!(profile(&f.api, f.smtp_port).await);
+    let (status, body) = send(&f, input).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["delivery"]["status"], "blocked");
+    let id = body["delivery"]["send_log_id"].as_str().unwrap();
+    let stored: String = sqlx::query_scalar(
+        "SELECT status FROM email_send_logs WHERE workspace_id=$1::uuid AND id=$2::uuid",
+    )
+    .bind(&f.api.ws)
+    .bind(id)
+    .fetch_one(&f.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(stored, "blocked");
+    assert!(f.inbox.lock().unwrap().is_empty());
+}
+
+#[sqlx::test]
+async fn receipt_accepted_is_transport_acceptance_not_delivery(pool: PgPool) {
+    let f = setup(pool, "", true).await;
+    let contact = contact(&f.api).await;
+    let mut input = message(&contact);
+    input["email_profile_id"] = json!(profile(&f.api, f.smtp_port).await);
+    let (status, body) = send(&f, input).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["delivery"]["status"], "accepted");
+    assert!(body["delivery"]["send_log_id"].is_string());
+    assert_eq!(f.inbox.lock().unwrap().len(), 1);
+}
+
+#[sqlx::test]
+async fn receipt_manual_send_has_no_transport_or_send_log(pool: PgPool) {
+    let f = setup(pool, "", true).await;
+    let contact = contact(&f.api).await;
+    let mut input = message(&contact);
+    input["send_method"] = json!("manual");
+    let (status, body) = send(&f, input).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["delivery"]["status"], "manual");
+    assert!(body["delivery"]["send_log_id"].is_null());
+    assert!(f.inbox.lock().unwrap().is_empty());
+    let n: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM email_send_logs WHERE workspace_id=$1::uuid")
+            .bind(&f.api.ws)
+            .fetch_one(&f.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(n, 0);
+}
+
+#[sqlx::test]
+async fn receipt_no_recipients_is_explicit_noop(pool: PgPool) {
+    let f = setup(pool, "", true).await;
+    let contact = contact(&f.api).await;
+    sqlx::query("UPDATE contacts SET email=NULL WHERE workspace_id=$1::uuid AND id=$2::uuid")
+        .bind(&f.api.ws)
+        .bind(&contact)
+        .execute(&f.api.pool)
+        .await
+        .unwrap();
+    let mut input = message(&contact);
+    for field in ["to", "cc", "bcc"] {
+        input[field] = json!([]);
+    }
+    let (status, body) = send(&f, input).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["delivery"]["status"], "no_recipients");
+    assert!(body["delivery"]["send_log_id"].is_null());
+    assert!(f.inbox.lock().unwrap().is_empty());
 }

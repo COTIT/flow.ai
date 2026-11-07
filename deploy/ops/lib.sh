@@ -39,11 +39,35 @@ env_setup() {
   # File uploads likewise: each environment's own B2 bucket (staging's is not production's).
   [[ -f "$DIR/secrets/b2_uploads_key" && -f "$DIR/docker-compose.uploads.yml" ]] \
     && COMPOSE+=(-f "$DIR/docker-compose.uploads.yml")
+  local assistant_secrets
+  assistant_secrets="$(env_value SECRETS_DIR)"
+  assistant_secrets="${assistant_secrets:-./secrets}"
+  [[ "$assistant_secrets" == /* ]] || assistant_secrets="$DIR/$assistant_secrets"
+  case "$(env_value ASSISTANT_ENABLED)" in
+    "" | false)
+      # Cleanup keeps its provider credentials while new sessions are paused.
+      [[ -f "$assistant_secrets/elevenlabs_api_key" && -f "$DIR/docker-compose.assistant.yml" ]] \
+        && COMPOSE+=(-f "$DIR/docker-compose.assistant.yml")
+      :
+      ;;
+    true) COMPOSE+=(-f "$DIR/docker-compose.assistant.yml") ;;
+    *) die "ASSISTANT_ENABLED must be true or false" ;;
+  esac
   COMPOSE+=(--env-file "$ENV_FILE")
 }
 
 # env_value KEY: the value of KEY in ENV_FILE (last one wins), empty when unset.
 env_value() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -1; }
+
+# Restore grants refer to cluster roles absent from pg_dump. Verification never repairs ACLs.
+checkpoint_roles() {
+  local mode="$1" role_sql
+  shift
+  role_sql="$(dirname "${BASH_SOURCE[0]}")/assistant-role.sql"
+  [[ -f "$role_sql" ]] || role_sql="$(dirname "${BASH_SOURCE[0]}")/../assistant-role.sql"
+  "$@" psql -X -v ON_ERROR_STOP=1 -v "checkpoint_role=assistant_checkpoint_$GENESY_ENV" \
+    -v "checkpoint_mode=$mode" -U genesy -d genesy < "$role_sql" > /dev/null
+}
 
 # notify <check> <start|ok|fail> [message]: always logged; also pinged when OPS_CONF/ping_base
 # holds a dead-man URL (healthchecks.io style: <base>/<check>, /start, /fail). A failed ping

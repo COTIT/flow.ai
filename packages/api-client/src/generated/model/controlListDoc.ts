@@ -5,11 +5,11 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { ProductVariantResource } from './productVariantResource';
+import type { ControlListDocDataItem } from './controlListDocDataItem';
 
 /**
- * Success body: the result under `data`.
+ * Documented list envelope for bounded control records.
  */
-export interface EnvelopeVecProductVariantResource {
-  data: ProductVariantResource[];
+export interface ControlListDoc {
+  data: ControlListDocDataItem[];
 }

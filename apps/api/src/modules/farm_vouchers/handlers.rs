@@ -142,6 +142,7 @@ pub async fn timeline(
     responses(
         (status = 200, body = Paginated<Redemption>, description = "One page, newest first"),
         (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or caller is not a member"),
         (status = 422, body = ValidationErrorBody, description = "Missing or invalid dates"),
     ),
     security(("bearer" = []))
@@ -168,6 +169,7 @@ pub async fn redemptions(
     responses(
         (status = 200, body = Envelope<Vec<RedemptionTotal>>, description = "Newest day first; sums in minor units"),
         (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or caller is not a member"),
         (status = 422, body = ValidationErrorBody, description = "Missing or invalid dates"),
     ),
     security(("bearer" = []))

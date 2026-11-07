@@ -1,5 +1,7 @@
 # Production
 
+Office assistant stays disabled by default. See [assistant deployment](../ASSISTANT.md) for runtime secrets, restricted checkpoint roles, readiness and compatible rollback.
+
 The live Genesy stack on the VPS. It runs the API with its own Postgres, the five apps and the landing page, all served through the existing Traefik.
 
 It is a separate compose project, `genesy-prod`. It never touches the `control360` or `genesy-prod-green` projects, and its router names (`genesy-production-*`) don't clash with theirs.

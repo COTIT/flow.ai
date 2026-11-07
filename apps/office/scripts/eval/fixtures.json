@@ -1,0 +1,669 @@
+{
+  "version": 1,
+  "syntheticOnly": true,
+  "cases": [
+    {
+      "id": "orders-list-first-five",
+      "operationId": "orders_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "commands": {
+        "en": "Show the first five orders in this workspace.",
+        "nl": "Toon de eerste vijf bestellingen in deze werkruimte.",
+        "sw": "Nionyeshe maagizo matano ya kwanza katika nafasi hii ya kazi."
+      },
+      "resultEvidence": false
+    },
+    {
+      "id": "products-list-first-five",
+      "operationId": "products_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "commands": {
+        "en": "Show the first five products in this workspace.",
+        "nl": "Toon de eerste vijf producten in deze werkruimte.",
+        "sw": "Nionyeshe bidhaa tano za kwanza katika nafasi hii ya kazi."
+      },
+      "resultEvidence": false
+    },
+    {
+      "id": "product-get-owned-synthetic",
+      "operationId": "products_get",
+      "scenario": "happy",
+      "request": {
+        "path": {
+          "product": "{{productId}}"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data.id",
+          "equals": "{{productId}}"
+        },
+        {
+          "path": "data.name",
+          "type": "string"
+        }
+      ],
+      "commands": {
+        "en": "Show product {{productId}} in this workspace.",
+        "nl": "Toon product {{productId}} in deze werkruimte.",
+        "sw": "Nionyeshe bidhaa {{productId}} katika nafasi hii ya kazi."
+      },
+      "resultEvidence": true
+    },
+    {
+      "id": "product-get-malformed-id",
+      "operationId": "products_get",
+      "scenario": "validation",
+      "request": {
+        "path": {
+          "product": "not-a-uuid"
+        }
+      },
+      "expectedStatus": 404,
+      "assertions": [
+        {
+          "path": "message",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "currencies-list-first-five",
+      "operationId": "currencies_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/currencies.rs#list_pages_with_laravel_meta",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five currencies in this workspace.",
+        "nl": "Toon de eerste vijf valuta in deze werkruimte.",
+        "sw": "Nionyeshe sarafu tano za kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "warehouses-list-first-five",
+      "operationId": "warehouses_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/warehouses.rs#list_roots_children_and_filters",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five warehouses in this workspace.",
+        "nl": "Toon de eerste vijf magazijnen in deze werkruimte.",
+        "sw": "Nionyeshe maghala matano ya kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "product-brands-list-first-five",
+      "operationId": "product_brands_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/product_brands.rs#brand_crud_round_trip",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five product brands in this workspace.",
+        "nl": "Toon de eerste vijf productmerken in deze werkruimte.",
+        "sw": "Nionyeshe chapa za bidhaa tano za kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "product-categories-list-first-five",
+      "operationId": "product_categories_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/product_brands.rs#category_tree",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five product categories in this workspace.",
+        "nl": "Toon de eerste vijf productcategorieën in deze werkruimte.",
+        "sw": "Nionyeshe makundi matano ya kwanza ya bidhaa katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "custom-statuses-list-first-five",
+      "operationId": "custom_statuses_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "limit": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/custom_statuses.rs#list_hides_archived_and_pages_by_limit",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five custom statuses in this workspace.",
+        "nl": "Toon de eerste vijf aangepaste statussen in deze werkruimte.",
+        "sw": "Nionyeshe hali maalum tano za kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "custom-types-list-first-five",
+      "operationId": "custom_types_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/custom_types.rs#list_filters_by_domain_and_flags",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five custom types in this workspace.",
+        "nl": "Toon de eerste vijf aangepaste typen in deze werkruimte.",
+        "sw": "Nionyeshe aina maalum tano za kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "sales-groups-list-first-five",
+      "operationId": "sales_groups_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/sales_groups.rs#list_pages_and_searches",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five sales groups in this workspace.",
+        "nl": "Toon de eerste vijf verkoopgroepen in deze werkruimte.",
+        "sw": "Nionyeshe makundi matano ya kwanza ya mauzo katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "vat-groups-list-first-five",
+      "operationId": "vat_groups_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/vat_groups.rs#country_and_search_filters_combine",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five VAT groups in this workspace.",
+        "nl": "Toon de eerste vijf btw-groepen in deze werkruimte.",
+        "sw": "Nionyeshe makundi matano ya kwanza ya VAT katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "shipment-methods-list-first-five",
+      "operationId": "shipment_methods_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/shipment_methods.rs#picker_pages_through_everything",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five shipment methods in this workspace.",
+        "nl": "Toon de eerste vijf verzendmethoden in deze werkruimte.",
+        "sw": "Nionyeshe njia za usafirishaji tano za kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "hourly-rates-list-first-five",
+      "operationId": "hourly_rates_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/hourly_rates.rs#list_joins_vat_groups_in_one_query",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five hourly rates in this workspace.",
+        "nl": "Toon de eerste vijf uurtarieven in deze werkruimte.",
+        "sw": "Nionyeshe viwango vitano vya kwanza vya malipo kwa saa katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "price-corrections-list-first-five",
+      "operationId": "price_corrections_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/price_corrections.rs#crud_and_shape",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five price corrections in this workspace.",
+        "nl": "Toon de eerste vijf prijscorrecties in deze werkruimte.",
+        "sw": "Nionyeshe marekebisho matano ya kwanza ya bei katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "discount-groups-list-first-five",
+      "operationId": "discount_groups_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/discounts.rs#group_list_filters",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five discount groups in this workspace.",
+        "nl": "Toon de eerste vijf kortingsgroepen in deze werkruimte.",
+        "sw": "Nionyeshe makundi matano ya kwanza ya punguzo katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "discounts-list-first-five",
+      "operationId": "discounts_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/discounts.rs#discount_crud_and_shape",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five discounts in this workspace.",
+        "nl": "Toon de eerste vijf kortingen in deze werkruimte.",
+        "sw": "Nionyeshe mapunguzo matano ya kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "email-templates-list-first-five",
+      "operationId": "email_templates_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/email_templates.rs#access_rules",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five email templates in this workspace.",
+        "nl": "Toon de eerste vijf e-mailsjablonen in deze werkruimte.",
+        "sw": "Nionyeshe violezo vitano vya kwanza vya barua pepe katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "relations-list-first-five",
+      "operationId": "relations_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "limit": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/relations.rs#list_limit_like_laravel",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five business contacts in this workspace.",
+        "nl": "Toon de eerste vijf zakelijke relaties in deze werkruimte.",
+        "sw": "Nionyeshe wateja na wasambazaji watano wa kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "teams-list-first-five",
+      "operationId": "teams_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/teams.rs#list_search_sort_and_paging",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five teams in this workspace.",
+        "nl": "Toon de eerste vijf teams in deze werkruimte.",
+        "sw": "Nionyeshe timu tano za kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "users-list-first-five",
+      "operationId": "users_list",
+      "scenario": "happy",
+      "request": {
+        "query": {
+          "page_size": "5"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data",
+          "type": "array",
+          "maxLength": 5
+        }
+      ],
+      "resultEvidence": false,
+      "recipe": {
+        "source": "apps/api/tests/api/users.rs#list_shape_matches_users_tab",
+        "actor": "authenticated synthetic workspace owner",
+        "status": "read pilot; native execution and semantic source assertions remain unrun"
+      },
+      "commands": {
+        "en": "Show the first five users in this workspace.",
+        "nl": "Toon de eerste vijf gebruikers in deze werkruimte.",
+        "sw": "Nionyeshe watumiaji watano wa kwanza katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "currencies-get-owned-synthetic",
+      "operationId": "currencies_get",
+      "scenario": "happy",
+      "request": {
+        "path": {
+          "currency": "{{currencyId}}"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data.id",
+          "equals": "{{currencyId}}"
+        }
+      ],
+      "resultEvidence": true,
+      "commands": {
+        "en": "Show currency {{currencyId}} in this workspace.",
+        "nl": "Toon valuta {{currencyId}} in deze werkruimte.",
+        "sw": "Nionyeshe sarafu {{currencyId}} katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "warehouses-get-owned-synthetic",
+      "operationId": "warehouses_get",
+      "scenario": "happy",
+      "request": {
+        "path": {
+          "warehouse": "{{warehouseId}}"
+        }
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "data.id",
+          "equals": "{{warehouseId}}"
+        }
+      ],
+      "resultEvidence": true,
+      "commands": {
+        "en": "Show warehouse {{warehouseId}} in this workspace.",
+        "nl": "Toon magazijn {{warehouseId}} in deze werkruimte.",
+        "sw": "Nionyeshe ghala {{warehouseId}} katika nafasi hii ya kazi."
+      }
+    },
+    {
+      "id": "native-product-create",
+      "operationId": "products_create",
+      "scenario": "happy",
+      "nativeFixture": {
+        "caseId": "product-create",
+        "sourceTest": "products::create_writes_default_variant_and_price_history",
+        "request": { "method": "POST", "body": { "name": "A", "price": "220", "gross_price": "200" } },
+        "oracle": { "kind": "product_create", "expectedDelta": 1, "expectedDefaultVariants": 1, "expectedDefaultPrice": "220.00000000" }
+      },
+      "commands": {
+        "en": "Create one product using exactly these fields: {\"name\":\"A\",\"price\":\"220\",\"gross_price\":\"200\"}. Show the review for my confirmation. After I confirm, tell me the saved product name.",
+        "nl": "Maak één product met exact deze velden: {\"name\":\"A\",\"price\":\"220\",\"gross_price\":\"200\"}. Toon het voorstel zodat ik het kan bevestigen. Vertel na mijn bevestiging welke productnaam is opgeslagen.",
+        "sw": "Unda bidhaa moja kwa taarifa hizi hasa: {\"name\":\"A\",\"price\":\"220\",\"gross_price\":\"200\"}. Onyesha pendekezo ili nithibitishe. Baada ya uthibitisho wangu, niambie jina la bidhaa lililohifadhiwa."
+      }
+    },
+    {
+      "id": "native-cash-invoice-payment",
+      "operationId": "invoice_payments_create",
+      "scenario": "happy",
+      "nativeFixture": {
+        "caseId": "cash-invoice-payment",
+        "sourceTest": "invoice_payments::cash_payments_settle_an_invoice_within_five_cents",
+        "request": { "method": "POST", "body": { "date": "2026-10-23", "amount": "60", "payment_method": "cash" } },
+        "oracle": { "kind": "cash_invoice_payment", "expectedPaidDeltaMinor": 6000, "expectedRowDelta": 1, "expectedStatus": "partially_paid", "currency": "EUR" }
+      },
+      "commands": {
+        "en": "Record a cash payment on invoice {{invoiceId}} using exactly these fields: {\"date\":\"2026-10-23\",\"amount\":\"60\",\"payment_method\":\"cash\"}. Show the review for my confirmation. After I confirm, report the recorded amount of 60 EUR.",
+        "nl": "Boek een contante betaling op factuur {{invoiceId}} met exact deze velden: {\"date\":\"2026-10-23\",\"amount\":\"60\",\"payment_method\":\"cash\"}. Toon het voorstel zodat ik het kan bevestigen. Meld na mijn bevestiging het vastgelegde bedrag van 60 EUR.",
+        "sw": "Rekodi malipo ya taslimu kwa ankara {{invoiceId}} kwa taarifa hizi hasa: {\"date\":\"2026-10-23\",\"amount\":\"60\",\"payment_method\":\"cash\"}. Onyesha pendekezo ili nithibitishe. Baada ya uthibitisho wangu, niambie kiasi kilichorekodiwa cha 60 EUR."
+      }
+    }
+  ]
+}

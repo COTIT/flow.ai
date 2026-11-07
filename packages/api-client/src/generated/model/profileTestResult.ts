@@ -5,11 +5,13 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { SendReceipt } from './sendReceipt';
 
 /**
  * Profile connection test result.
  */
 export interface ProfileTestResult {
-  /** Always true (a failure is an error reply). */
+  delivery: SendReceipt;
+  /** True only when transport accepted the test mail. */
   success_connection: boolean;
 }

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id,state,batch_index,batch_verdict FROM assistant_actions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND batch_id=$4 AND id=$5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_actions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "assistant_actions",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "batch_index",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "assistant_actions",
+            "name": "batch_index"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "batch_verdict",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "assistant_actions",
+            "name": "batch_verdict"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "866adc20cec6ca2898176d76a203db82ff52cad601f9c4eb00e545dc467e54d4"
+}

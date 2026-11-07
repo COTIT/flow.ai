@@ -138,6 +138,47 @@ async fn crud_and_shape(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn global_mutations_round_trip_the_exact_offer(pool: PgPool) {
+    let w = world(pool).await;
+    let id = create(
+        &w.api,
+        legacy("fixed", "12.5", json!({ "product_id": w.product })),
+    )
+    .await;
+    let created = w.api.get(&id).await;
+    assert_eq!(created["id"], id.as_str());
+    assert_eq!(created["product_id"], w.product.as_str());
+    assert_eq!(created["value"], "12.5");
+    assert_eq!(created["type"], "fixed");
+
+    let (status, reply) = w.api.update(&id, json!({ "value": "20" })).await;
+    assert_eq!(
+        (status, reply),
+        (StatusCode::OK, json!({ "message": "ok" }))
+    );
+    let saved = w.api.get(&id).await;
+    assert_eq!(saved["value"], "20");
+    assert_eq!(saved["product_id"], w.product.as_str());
+    assert_eq!(saved["type"], "fixed");
+    let listed = w.api.list("").await;
+    assert_eq!(listed["data"].as_array().unwrap().len(), 1);
+    assert_eq!(listed["data"][0]["id"], id.as_str());
+    assert_eq!(listed["data"][0]["value"], "20");
+
+    w.api.delete(&id).await;
+    let (status, _) = w
+        .api
+        .call(Method::GET, &format!("/{id}"), None, &w.api.owner)
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "deleted global offer cannot be read"
+    );
+    assert_eq!(w.api.list("").await["data"], json!([]));
+}
+
+#[sqlx::test]
 async fn product_route_only_reaches_its_own_offers(pool: PgPool) {
     let w = world(pool).await;
     let other = product(&w.api, json!({ "name": "Other" })).await;
@@ -159,6 +200,49 @@ async fn product_route_only_reaches_its_own_offers(pool: PgPool) {
         .call(Method::GET, "", None, &w.api.owner)
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND, "unknown product");
+    let original_offer = on(&w).get(&id).await;
+    let original_offers = on(&w).list("").await["data"].clone();
+    let (eve, eve_ws) =
+        common::signup(&w.api.app, "foreign-offer@example.com", "foreign-offer").await;
+    for workspace in [&w.api.ws, &eve_ws] {
+        let collection = format!(
+            "/v1/workspace/{workspace}/erp/products/{}/special-offers",
+            w.product
+        );
+        for (method, path, body) in [
+            (Method::GET, collection.clone(), None),
+            (
+                Method::POST,
+                collection.clone(),
+                Some(legacy("fixed", "2", json!({}))),
+            ),
+            (Method::GET, format!("{collection}/{id}"), None),
+            (
+                Method::POST,
+                format!("{collection}/{id}"),
+                Some(json!({"value":"2"})),
+            ),
+            (Method::DELETE, format!("{collection}/{id}"), None),
+        ] {
+            let (status, reply) =
+                common::send(&w.api.app, method.clone(), &path, body, Some(&eve)).await;
+            assert_eq!(
+                status,
+                StatusCode::NOT_FOUND,
+                "foreign live product offer {method} {path}: {reply}"
+            );
+        }
+    }
+    assert_eq!(
+        on(&w).get(&id).await,
+        original_offer,
+        "foreign calls leave the live offer unchanged"
+    );
+    assert_eq!(
+        on(&w).list("").await["data"],
+        original_offers,
+        "foreign create/delete add no offers"
+    );
 }
 
 #[sqlx::test]

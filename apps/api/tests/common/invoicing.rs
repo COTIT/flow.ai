@@ -13,6 +13,7 @@ use super::{Api, fake_pdf, fake_smtp};
 
 pub struct F {
     pub api: Api,
+    pub delivery_state: genesy_360_api::AppState,
     pub inbox: fake_smtp::Inbox,
     pub smtp_port: u16,
     pub rel: String,
@@ -44,7 +45,7 @@ pub async fn setup_with(pool: PgPool, renders: bool) -> F {
         state.files = None;
     }
     let mut api = Api::new(pool, "/invoices").await;
-    api.app = build_app(state);
+    api.app = build_app(state.clone());
     settings(
         &api,
         json!({
@@ -95,6 +96,7 @@ pub async fn setup_with(pool: PgPool, renders: bool) -> F {
     assert_eq!(status, StatusCode::CREATED, "{res}");
     let contact = res["data"]["contact_id"].as_str().unwrap().to_owned();
     F {
+        delivery_state: state,
         api,
         inbox,
         smtp_port,
@@ -168,25 +170,27 @@ pub fn message(f: &F, method: &str) -> Value {
 }
 
 pub async fn send(f: &F, id: &str, body: Value) -> (StatusCode, Value) {
-    f.api
-        .call(
-            Method::POST,
-            &format!("/{id}/send"),
-            Some(body),
-            &f.api.owner,
-        )
-        .await
+    legacy_send(f, id, "send", body).await
 }
 
 pub async fn resend(f: &F, id: &str, body: Value) -> (StatusCode, Value) {
-    f.api
+    legacy_send(f, id, "resend", body).await
+}
+
+async fn legacy_send(f: &F, id: &str, kind: &str, body: Value) -> (StatusCode, Value) {
+    let (status, mut response) = f
+        .api
         .call(
             Method::POST,
-            &format!("/{id}/resend"),
+            &format!("/{id}/{kind}"),
             Some(body),
             &f.api.owner,
         )
-        .await
+        .await;
+    if status == StatusCode::OK {
+        response.as_object_mut().unwrap().remove("delivery");
+    }
+    (status, response)
 }
 
 /// Stored number and status.

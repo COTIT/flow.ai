@@ -28,7 +28,7 @@ RUN rm -rf /usr/local/lib/node_modules /opt/yarn-* \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg \
     && apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 ARG APP
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000 GENESY_APP=${APP}
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/${APP}/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/${APP}/.next/static ./apps/${APP}/.next/static
@@ -36,7 +36,7 @@ COPY --from=build --chown=node:node /repo/apps/${APP}/public ./apps/${APP}/publi
 WORKDIR /app/apps/${APP}
 USER node
 EXPOSE 3000
-# Any answer below 500 means the server is up (no app has a health route; / may need the API).
+# Office exposes a real liveness route; other apps retain their existing startup probe.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 \
-    CMD ["node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.status<500?0:1),()=>process.exit(1))"]
+    CMD ["node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit((process.env.GENESY_APP==='office'?r.status===200:r.status<500)?0:1),()=>process.exit(1))"]
 CMD ["node", "server.js"]

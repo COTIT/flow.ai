@@ -6,6 +6,7 @@ pub mod fake_pdf;
 pub mod fake_smtp;
 pub mod farm;
 pub mod invoicing;
+pub mod native_fixture;
 
 use axum::extract::ConnectInfo;
 use axum::{
@@ -69,6 +70,7 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         credentials: Some(std::sync::Arc::new(
             genesy_360_api::CredentialKey::from_hex(CREDENTIALS_KEY).unwrap(),
         )),
+        assistant_bridge_secret: None,
         files: Some(genesy_360_api::storage::Store::memory()),
         pdf: None,
         payments: None,

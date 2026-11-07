@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO assistant_actions(workspace_id,session_id,user_id,login_id,operation_id,step_index,request_hash,proposal,review_facts) VALUES($1,$2,$3,$4,$5,(SELECT coalesce(max(step_index),0)+1 FROM assistant_actions WHERE workspace_id=$1 AND session_id=$2),$6,$7,$8) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_actions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bytea",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "95c9d60fcd9d00edea56bf3c088a6ca526a2d2cdeb64d0ee7fbfa50d4cc6e947"
+}

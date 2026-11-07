@@ -175,6 +175,8 @@ async fn pay(w: &W, id: &str, redirect: &str) -> (StatusCode, Value) {
 /// Claim and run every due job of `kinds_` until none is left.
 async fn run_jobs(w: &W, kinds_: &[&str]) {
     let ctx = Ctx {
+        invoice_state: None,
+        assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),

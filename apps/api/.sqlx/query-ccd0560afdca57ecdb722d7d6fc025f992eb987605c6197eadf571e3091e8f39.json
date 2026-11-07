@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoice_deliveries SET status='running',started_at=now() WHERE workspace_id=$1 AND id=$2 AND status='queued' RETURNING invoice_id,user_id,action_id,kind,request,reserved_pdf_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "action_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "action_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "request",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "request"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "reserved_pdf_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_deliveries",
+            "name": "reserved_pdf_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ccd0560afdca57ecdb722d7d6fc025f992eb987605c6197eadf571e3091e8f39"
+}

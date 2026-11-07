@@ -32,14 +32,14 @@ Unknown, deleted, malformed or other-workspace `{team}` ids are all `404 {"messa
 
 | Route | Permission | Body / query | Success |
 |---|---|---|---|
-| `POST /` | `team.create` | `name` required ≤55, `description` required ≤225, `permissions` optional array, `meta` optional JSON | `201 {"data": {"team_id": "<uuid>"}}` |
+| `POST /` | `team.create` | `name` required ≤55, `description` required ≤225, `permissions` optional array, `meta` optional JSON | `201 {"data": {"team_id": "<uuid>", "permission_changes": receipt}}` |
 | `GET /` | `team.list` | `q` ≤100 (name or description, case-insensitive, `%` `_` literal), `sort` `name` / `-name` / `-created_at` (default oldest first), `page`, `page_size` (default 50, max 100) | `{"data": [team…], "meta": {current_page, from, last_page, per_page, to, total}}` |
 | `GET /{team}` | `team.get` | | `{"data": team}` |
 | `POST /{team}` | `team.update` | `name`, `description`, `meta`; an absent key keeps the value, `null` meta clears it | `{"message": "ok"}` |
 | `DELETE /{team}` | `team.delete` | | `{"message": "ok"}` |
 | `POST /{team}/add-users` | `team.invite` | `user_ids`: workspace members (active or not) | `{"message": "ok"}` |
 | `POST /{team}/remove-users` | `team.invite` | `user_ids`: users already in the team | `{"message": "ok"}` |
-| `POST /{team}/permissions` | `team.permissions` | `permissions` array, a delta (below) | `{"message": "ok"}` |
+| `POST /{team}/permissions` | `team.permissions` | `permissions` array, a delta (below) | `{"message": "ok", "permission_changes": receipt}` |
 
 Validation messages follow Laravel:
 
@@ -64,6 +64,14 @@ Unknown query params (`tab`, `team_id`, …) are ignored, and so is an unknown `
 - **No "only grant what you hold" rule.** A `team.permissions` holder can add any catalog name to a team, their own included. `team.create` can likewise create a team with any catalog name. This is Laravel parity and a known risk in the risk register.
 
 Deleting a team is a soft delete. Its grants and members stay in the database but stop counting.
+
+Create and permission changes include a receipt read from the write's own transaction:
+
+```json
+{"status":"partial", "applied":["relation.list"], "not_applied":["workspace_admin"], "ignored_count":1}
+```
+
+`applied` and `not_applied` contain only known requested permission changes, lowercased, sorted and deduplicated. Revocations retain their `-` prefix. Each entry is compared with the resulting grants; when a request both adds and removes a permission, the addition is not applied because removal wins. Unrelated existing grants are never included. Unknown names, malformed entries and non-strings contribute only to `ignored_count`; their raw values are never echoed. `status` is `applied` only when every known requested change holds and nothing was ignored; otherwise it is `partial`. This receipt preserves the existing authorization rules and successful HTTP status. Assistant batches pause on `partial`.
 
 ## Laravel differences
 

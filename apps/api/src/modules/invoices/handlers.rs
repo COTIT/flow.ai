@@ -253,12 +253,11 @@ pub struct PreviewQuery {
     pdf_template_id: Option<String>,
 }
 
-/// `send-tasks/active` reply: always an empty list.
-// Doc-only: the handler writes `{"data": []}` directly.
+/// Bounded pending or uncertain delivery tasks.
 #[allow(dead_code)]
 #[derive(utoipa::ToSchema)]
 pub struct SendTasks {
-    #[schema(value_type = Vec<Object>, max_items = 0)]
+    #[schema(value_type = Vec<Object>, max_items = 100)]
     data: Vec<Value>,
 }
 
@@ -328,7 +327,7 @@ pub async fn duplicate(
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
     request_body = SendMessageRequest,
     responses(
-        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 200, body = super::delivery::Reply, description = "Numbered invoice and transport receipt"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send` / `workspace.send-message`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
         (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"),
@@ -340,9 +339,9 @@ pub async fn send(
     access: Can<InvoiceSend>,
     Path((_, id)): Path<(String, String)>,
     ValidatedJson(input): ValidatedJson<SendMessageRequest>,
-) -> Result<Message, AppError> {
-    send::send(&state, access.workspace_id, access.user_id, &id, input).await?;
-    Ok(Message("ok"))
+) -> Result<Response, AppError> {
+    let receipt = send::send(&state, access.workspace_id, access.user_id, &id, input).await?;
+    Ok(delivery_response(receipt))
 }
 
 /// POST /invoices/{id}/resend (Laravel ResendInvoiceController).
@@ -352,7 +351,7 @@ pub async fn send(
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
     request_body = SendMessageRequest,
     responses(
-        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 200, body = super::delivery::Reply, description = "Numbered invoice and transport receipt"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send` / `workspace.send-message`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
         (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"),
@@ -364,26 +363,40 @@ pub async fn resend(
     access: Can<InvoiceSend>,
     Path((_, id)): Path<(String, String)>,
     ValidatedJson(input): ValidatedJson<SendMessageRequest>,
-) -> Result<Message, AppError> {
-    send::resend(&state, access.workspace_id, access.user_id, &id, input).await?;
-    Ok(Message("ok"))
+) -> Result<Response, AppError> {
+    let receipt = send::resend(&state, access.workspace_id, access.user_id, &id, input).await?;
+    Ok(delivery_response(receipt))
 }
 
-/// GET /invoices/send-tasks/active: sends finish inside their request, so none is ever
-/// running (Laravel listed its queued send jobs).
+fn delivery_response(receipt: super::delivery::Receipt) -> Response {
+    let mut response = Json(super::delivery::Reply {
+        message: "ok",
+        delivery: receipt.clone(),
+    })
+    .into_response();
+    response.extensions_mut().insert(receipt);
+    response
+}
+
+/// Pending or uncertain delivery receipts, bounded to this workspace.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/invoices/send-tasks/active", tag = "invoices",
-    operation_id = "invoices_send_tasks", summary = "Running invoice sends (always none: sends finish in their request)",
+    operation_id = "invoices_send_tasks", summary = "Pending or uncertain invoice deliveries",
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     responses(
-        (status = 200, body = SendTasks, description = "Always `{data: []}`"),
+        (status = 200, body = SendTasks, description = "At most 100 pending or uncertain deliveries"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
     ),
     security(("bearer" = []))
 )]
-pub async fn send_tasks(_access: Can<InvoiceList>) -> Json<Value> {
-    Json(json!({ "data": [] }))
+pub async fn send_tasks(
+    State(state): State<AppState>,
+    access: Can<InvoiceList>,
+) -> Result<Json<Value>, AppError> {
+    Ok(Json(
+        json!({"data":super::delivery_repo::active(&state.db,access.workspace_id).await?}),
+    ))
 }
 
 /// GET /v1/invoices/fetch-from-hashed/{token}: public, rate limited.

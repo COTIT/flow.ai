@@ -48,7 +48,7 @@ for (const [name, config] of Object.entries(configs)) {
   })
 
   test(`${name}: skips build output and generated code`, async () => {
-    for (const path of ["dist/a.ts", ".next/a.js", "dist-stack/a.js", ".next-stack/a.js", "src/generated/a.ts"]) {
+    for (const path of ["dist/a.ts", ".next/a.js", "dist-stack/a.js", ".next-stack/a.js", ".next-voice-ui/a.js", "src/generated/a.ts"]) {
       assert.deepEqual(await errors(config, path), [], path)
     }
   })

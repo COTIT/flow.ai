@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM assistant_checkpoint.checkpoint_blobs WHERE thread_id=ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "12fda1d0aa1163c14d05a47b554b560def3f3d082789bfecc7b133977076a4eb"
+}

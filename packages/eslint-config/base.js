@@ -11,8 +11,8 @@ import tseslint from "typescript-eslint"
  * @type {import("eslint").Linter.Config[]}
  */
 export const config = [
-  // .next-stack, dist-stack: the full-stack e2e builds (packages/e2e/STACK.md).
-  globalIgnores(["dist/**", ".next/**", "dist-stack/**", ".next-stack/**", "coverage/**", "src/generated/**"]),
+  // Isolated Next and full-stack builds must not be linted as application source.
+  globalIgnores(["dist/**", ".next/**", ".next-*/**", "dist-stack/**", "coverage/**", "src/generated/**"]),
   // ESLint only picks up .js/.mjs/.cjs by default; claim the TS/JSX files too.
   { files: ["**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"] },
   js.configs.recommended,

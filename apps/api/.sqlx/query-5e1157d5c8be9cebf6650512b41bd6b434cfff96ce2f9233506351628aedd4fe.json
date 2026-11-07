@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',id,'code',upper(asset_type),'decimals',decimals,'default',default_currency,'active',active,'symbol_prefix',symbol_prefix,'symbol_suffix',symbol_suffix) AS \"value!\" FROM currencies WHERE workspace_id=$1 AND id=$2 AND deleted_at IS NULL FOR SHARE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "value!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5e1157d5c8be9cebf6650512b41bd6b434cfff96ce2f9233506351628aedd4fe"
+}

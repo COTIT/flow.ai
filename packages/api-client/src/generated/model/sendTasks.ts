@@ -8,9 +8,9 @@
 import type { SendTasksDataItem } from './sendTasksDataItem';
 
 /**
- * `send-tasks/active` reply: always an empty list.
+ * Bounded pending or uncertain delivery tasks.
  */
 export interface SendTasks {
-  /** @maxItems 0 */
+  /** @maxItems 100 */
   data: SendTasksDataItem[];
 }

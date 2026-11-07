@@ -15,6 +15,7 @@ use crate::{
     error::AppError,
     idempotency::{self, Actor, Answer, Key},
     modules::{
+        assistant::preconditions,
         currencies, farm_supply, invoice_payments,
         invoices::{
             self,
@@ -92,6 +93,41 @@ pub struct Priced {
     pub vat: i64,
     pub total: i64,
     pub summary: Value,
+}
+
+/// Exact defaults and minor-unit values shown before assistant order approval.
+pub(crate) async fn review_priced(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    currency_id: Uuid,
+    decimals: u32,
+    warehouse_id: Uuid,
+    priced: &Priced,
+) -> Result<Value, AppError> {
+    let currency = currencies::repo::find(&mut *conn, workspace, currency_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let warehouse = crate::modules::warehouses::repo::compact(&mut *conn, workspace, warehouse_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let lines: Vec<_> = priced.lines.iter().map(|line|json!({"product_id":line.product_id,"variant_id":line.product_variant_id,"title":line.title,"quantity":line.quantity.normalize().to_string(),"unit_price_minor":line.unit_price,"vat_rate":line.vat_rate.normalize().to_string(),"discount_percentage":line.discount.normalize().to_string(),"line_excl_minor":line.line_excl,"line_vat_minor":line.line_vat,"tracked":line.tracked})).collect();
+    Ok(
+        json!({"currency":{"id":currency_id,"code":currency.asset_type.to_uppercase(),"decimals":decimals},"warehouse":{"id":warehouse_id,"name":warehouse.name},"subtotal_minor":priced.subtotal,"vat_minor":priced.vat,"total_minor":priced.total,"lines":lines}),
+    )
+}
+
+/// Material order state, read again under the ordinary order lock before mutation.
+pub(crate) async fn review_locked(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    order: &OrderRow,
+    lines: &[LineRow],
+) -> Result<Value, AppError> {
+    let paid = paid_of(conn, workspace, order.id).await?;
+    let lines: Vec<_> = lines.iter().map(|line|json!({"id":line.id,"product_id":line.product_id,"variant_id":line.product_variant_id,"quantity":line.quantity.normalize().to_string(),"unit_price_minor":line.unit_price,"vat_rate":line.vat_rate.normalize().to_string(),"discount_percentage":line.discount_percentage.normalize().to_string(),"line_excl_minor":line.line_excl,"line_vat_minor":line.line_vat,"tracked":line.tracked,"picked":line.picked.normalize().to_string(),"deducted":line.deducted.normalize().to_string(),"returned":line.returned.normalize().to_string()})).collect();
+    Ok(
+        json!({"id":order.id,"number":order.number,"status":order.status,"updated_at":order.updated_at,"relation_id":order.relation_id,"currency_id":order.currency_id,"currency":order.currency,"decimals":order.decimals,"warehouse_id":order.warehouse_id,"invoice_id":order.invoice_id,"invoice_status":order.invoice_status,"subtotal_minor":order.subtotal,"vat_minor":order.vat,"total_minor":order.total,"paid_minor":paid.net,"refundable_minor":paid.refundable,"lines":lines}),
+    )
 }
 
 /// Price `lines` in the order's currency: catalog price (the variant's when given) unless the
@@ -598,6 +634,10 @@ pub async fn create(
     let warehouse_id = warehouse(&mut tx, workspace_id, input.warehouse_id).await?;
     relation(&mut tx, workspace_id, input.relation_id).await?;
     let p = price(&mut tx, workspace_id, currency_id, dp, &input.lines, false).await?;
+    if preconditions::expects("order") {
+        let facts = review_priced(&mut tx, workspace_id, currency_id, dp, warehouse_id, &p).await?;
+        preconditions::check_priced(workspace_id, "order", &facts)?;
+    }
     let number = number(&mut tx, workspace_id).await?;
     let id = repo::insert(
         &mut tx,
@@ -723,6 +763,10 @@ where
         .await?
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
+    if preconditions::expects("order") {
+        let facts = review_locked(&mut tx, workspace_id, &o, &lines).await?;
+        preconditions::check_locked(workspace_id, "order", &facts)?;
+    }
     step(&mut tx, o, lines).await?;
     let answer = ok_json(&data(state, &mut tx, workspace_id, id).await?);
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
@@ -765,6 +809,11 @@ pub async fn update(
         if let Some(lines) = patch.lines {
             let dp = u32::try_from(o.decimals).unwrap_or(2);
             let p = price(conn, workspace_id, o.currency_id, dp, &lines, false).await?;
+            if preconditions::expects("order") {
+                let facts =
+                    review_priced(conn, workspace_id, o.currency_id, dp, warehouse_id, &p).await?;
+                preconditions::check_priced(workspace_id, "order", &facts)?;
+            }
             repo::write_lines(
                 conn,
                 workspace_id,
@@ -952,6 +1001,11 @@ pub async fn delete(
     let o = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    if preconditions::expects("order") {
+        let lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
+        let facts = review_locked(&mut tx, workspace_id, &o, &lines).await?;
+        preconditions::check_locked(workspace_id, "order", &facts)?;
+    }
     if o.status != "draft" {
         return Err(conflict(NOT_DRAFT));
     }
@@ -1081,6 +1135,62 @@ async fn book_paid(
     Ok(())
 }
 
+/// Build conversion input once for native insertion and material review.
+fn invoice_input(o: &OrderRow, lines: &[LineRow]) -> Result<InvoiceInput, AppError> {
+    let Some(relation_id) = o.relation_id else {
+        return Err(AppError::field("relation_id", NO_RELATION));
+    };
+    let dp = u32::try_from(o.decimals).unwrap_or(2);
+    let items = lines
+        .iter()
+        .enumerate()
+        .map(|(n, l)| ItemRow {
+            index: n,
+            kind: RowKind::New(ItemFields {
+                title: l.title.clone(),
+                description: None,
+                quantity: l.quantity,
+                price: Some(Decimal::new(l.unit_price, dp)),
+                vat: l.vat_rate,
+                discount: Some(l.discount_percentage),
+                purchase_price: None,
+                position: i32::try_from(n + 1).ok(),
+                product_id: Some(Some(l.product_id)),
+                product_variant_id: Some(l.product_variant_id),
+                mutate_from_warehouse_id: Some(None),
+            }),
+        })
+        .collect();
+    let input = InvoiceInput {
+        relation_id: Some(relation_id),
+        currency_id: Some(Some(o.currency_id)),
+        addressed_contact_id: None,
+        reference: Some(Some(
+            o.reference.clone().unwrap_or_else(|| o.number.clone()),
+        )),
+        note: o.note.clone().map(Some),
+        payment_method: None,
+        is_credit: false,
+        due_date: None,
+        billing_address: None,
+        customer_ref: None,
+        meta: Some(Some(json!({ "order_id": o.id, "order_number": o.number }))),
+        items,
+    };
+    Ok(input)
+}
+
+/// Resolve the invoice defaults conversion will consume under native share locks.
+pub(crate) async fn review_invoice(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    order: &OrderRow,
+    lines: &[LineRow],
+) -> Result<Value, AppError> {
+    let input = invoice_input(order, lines)?;
+    invoices::service::review_create(conn, workspace_id, &input).await
+}
+
 /// Make a draft invoice of the order's lines (once). The invoice moves no stock: the order
 /// already did.
 pub async fn invoice(
@@ -1098,46 +1208,7 @@ pub async fn invoice(
         key,
         async |conn, o, lines| {
             check(OrderAction::Invoice, &o, &lines, Paid::default())?;
-            let Some(relation_id) = o.relation_id else {
-                return Err(AppError::field("relation_id", NO_RELATION));
-            };
-            let dp = u32::try_from(o.decimals).unwrap_or(2);
-            let items = lines
-                .iter()
-                .enumerate()
-                .map(|(n, l)| ItemRow {
-                    index: n,
-                    kind: RowKind::New(ItemFields {
-                        title: l.title.clone(),
-                        description: None,
-                        quantity: l.quantity,
-                        price: Some(Decimal::new(l.unit_price, dp)),
-                        vat: l.vat_rate,
-                        discount: Some(l.discount_percentage),
-                        purchase_price: None,
-                        position: i32::try_from(n + 1).ok(),
-                        product_id: Some(Some(l.product_id)),
-                        product_variant_id: Some(l.product_variant_id),
-                        mutate_from_warehouse_id: Some(None),
-                    }),
-                })
-                .collect();
-            let input = InvoiceInput {
-                relation_id: Some(relation_id),
-                currency_id: Some(Some(o.currency_id)),
-                addressed_contact_id: None,
-                reference: Some(Some(
-                    o.reference.clone().unwrap_or_else(|| o.number.clone()),
-                )),
-                note: o.note.clone().map(Some),
-                payment_method: None,
-                is_credit: false,
-                due_date: None,
-                billing_address: None,
-                customer_ref: None,
-                meta: Some(Some(json!({ "order_id": o.id, "order_number": o.number }))),
-                items,
-            };
+            let input = invoice_input(&o, &lines)?;
             let invoice_id =
                 invoices::service::create_in(conn, workspace_id, user_id, input).await?;
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;

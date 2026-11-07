@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_batches SET state=CASE WHEN state IN ('completed','cancelled','expired') THEN state WHEN $5 THEN 'cancelled' ELSE 'paused' END,reason=CASE WHEN state='completed' THEN NULL WHEN state IN ('cancelled','expired') THEN reason ELSE $6 END,finished_at=coalesce(finished_at,now()) WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0f7756d8892febb4403e18df6d056d952ccb779ed6c8585da44cadfac274c282"
+}
