@@ -91,6 +91,8 @@ test("assistant opens as a full-screen overlay with plain transcripts and keyboa
   await expectFits(page)
   const box = await overlay.boundingBox()
   const viewport = page.viewportSize()!
+  expect(box?.x).toBe(0)
+  expect(box?.y).toBe(0)
   expect(box?.width).toBe(viewport.width)
   expect(box?.height).toBe(viewport.height)
   await expect(overlay.getByRole("log")).toBeVisible()
