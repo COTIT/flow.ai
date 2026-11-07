@@ -183,6 +183,8 @@ async function reviewAction(
   )
   const code = verifyReview(ticket, context, secret).confirmationCode
   const review: VoiceReview = {
+    operationId: step.operationId,
+    method: step.method,
     ticket,
     confirmationCode: code,
     confirmationPhrase: confirmationPhrase(code, context.language ?? "en")!,
@@ -215,6 +217,8 @@ export async function reviewStep(
   )
   return {
     actionId: stored.id,
+    operationId: action.operationId,
+    method: action.method.toUpperCase(),
     summary: action.summary,
     target: action.operationId.split("_").slice(0, -1).join(" "),
     details: {

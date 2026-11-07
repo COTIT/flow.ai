@@ -211,8 +211,9 @@ for (const { locale, messages, money, request, summary, phrase } of [
       exact: true,
     })
     await expect(task).toContainText(messages.voice.taskStates.queued)
-    await expect(task).toContainText(refundId)
-    await expect(task).toContainText("creating")
+    await expect(task).not.toContainText(refundId)
+    await expect(task).toContainText(messages.voice.recordReference.split("{number}")[0]!)
+    await expect(task).toContainText(messages.voice.values.creating)
     await expect(task).not.toContainText(/\b1250\b|\b12[.,]50\b/)
     await expect(task).not.toContainText(messages.voice.taskStates.completed)
     await expect.poll(() => continuation).toEqual(queued)

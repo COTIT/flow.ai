@@ -5,13 +5,14 @@ import { useTranslations } from "next-intl"
 import { Mic, MicOff, PhoneOff, VolumeX } from "lucide-react"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { useVoice } from "./provider"
+import { VoiceActivity } from "./activity"
 
 export function VoiceControls({ compact = false }: { compact?: boolean }) {
   const voice = useVoice()
   const t = useTranslations("voice")
   if (!voice.connected && !voice.starting && !voice.upgrading)
     return compact ? null : (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         <Button className="min-h-11" onClick={() => void voice.start(false)}>
           <Mic aria-hidden />
           {t("start")}
@@ -26,24 +27,8 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
       </div>
     )
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p role="status" className="min-w-0 text-[13px] font-medium">
-        {t(
-          voice.upgrading
-            ? "upgrading"
-            : voice.starting
-              ? "connecting"
-              : voice.textOnly
-                ? "textSession"
-                : voice.capturePaused
-                  ? "capturePaused"
-                  : voice.muted
-                    ? "muted"
-                    : voice.speaking
-                      ? "speaking"
-                      : "listening"
-        )}
-      </p>
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      {compact ? <VoiceActivity compact /> : null}
       {compact ? (
         <Link
           href="/voice"
@@ -64,7 +49,9 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
           onClick={() => void voice.upgrade()}
         >
           <Mic aria-hidden />
-          {!compact ? t("enableVoice") : null}
+          {!compact ? (
+            <span className="sr-only sm:not-sr-only">{t("enableVoice")}</span>
+          ) : null}
         </Button>
       ) : null}
       {voice.connected && !voice.textOnly ? (
@@ -82,15 +69,17 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
           onClick={voice.toggleMute}
         >
           {voice.muted ? <Mic aria-hidden /> : <MicOff aria-hidden />}
-          {!compact
-            ? t(
+          {!compact ? (
+            <span className="sr-only sm:not-sr-only">
+              {t(
                 voice.capturePaused
                   ? "resumeVoice"
                   : voice.muted
                     ? "unmute"
                     : "mute"
-              )
-            : null}
+              )}
+            </span>
+          ) : null}
         </Button>
       ) : null}
       {voice.speaking ? (
@@ -101,7 +90,9 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
           onClick={voice.stopSpeaking}
         >
           <VolumeX aria-hidden />
-          {!compact ? t("stopSpeaking") : null}
+          {!compact ? (
+            <span className="sr-only sm:not-sr-only">{t("stopSpeaking")}</span>
+          ) : null}
         </Button>
       ) : null}
       <Button
@@ -111,7 +102,9 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
         aria-label={t("end")}
       >
         <PhoneOff aria-hidden />
-        {!compact ? t("end") : null}
+        {!compact ? (
+          <span className="sr-only sm:not-sr-only">{t("end")}</span>
+        ) : null}
       </Button>
     </div>
   )

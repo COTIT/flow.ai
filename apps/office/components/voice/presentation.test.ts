@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest"
+import {
+  activityState,
+  displayReferences,
+  displayText,
+  operationLabel,
+} from "./presentation"
+
+describe("assistant activity", () => {
+  it("keeps a sent request pending until a reply, and distinguishes execution from approval", () => {
+    expect(activityState({ connected: true, thinking: true })).toBe("thinking")
+    expect(
+      activityState({ connected: true, thinking: true, requesting: true })
+    ).toBe("executing")
+    expect(
+      activityState({
+        connected: true,
+        thinking: true,
+        requesting: true,
+        review: true,
+      })
+    ).toBe("awaiting_review")
+    expect(activityState({ connected: true, review: true, busy: true })).toBe(
+      "executing"
+    )
+    expect(
+      activityState({ connected: true, thinking: true, error: "Failed" })
+    ).toBe("failed")
+  })
+  it("never turns queued, partial, or unverified native results into completion", () => {
+    for (const status of [
+      "queued",
+      "partial",
+      "unknown",
+      "paused",
+      "completed",
+    ])
+      expect(activityState({ connected: true, outcome: status })).toBe(status)
+    expect(activityState({ connected: true })).toBe("listening")
+    expect(activityState({ connected: true, textOnly: true })).toBe("ready")
+    expect(activityState({})).toBe("idle")
+  })
+  it("preserves native receipts when the conversation channel reports an error", () => {
+    for (const outcome of [
+      "queued",
+      "partial",
+      "unknown",
+      "completed",
+      "cancelled",
+    ])
+      expect(activityState({ error: "Connection lost", outcome })).toBe(outcome)
+  })
+})
+
+describe("readable approval presentation", () => {
+  const id = "01950000-0000-7000-8000-000000000001"
+  const other = "01950000-0000-7000-8000-000000000002"
+  it("uses existing authorized record names without changing signed data", () => {
+    const details = {
+      target: { product: id },
+      record: { id, name: "Cocoa", reference: "COC-01" },
+      changes: { quantity: "2.00", total: "€1.25" },
+    }
+    const original = JSON.stringify(details)
+    const references = displayReferences(details)
+    expect(displayText(id, references, (n) => `Reference ${n}`)).toContain(
+      "Cocoa"
+    )
+    expect(
+      displayText(
+        `Target ${id}, related ${other}`,
+        references,
+        (n) => `Reference ${n}`
+      )
+    ).toBe("Target Cocoa · COC-01, related Reference 2")
+    expect(JSON.stringify(details)).toBe(original)
+  })
+  it("gives unnamed references stable translated labels instead of literal IDs", () => {
+    const references = displayReferences({
+      target: { product: id },
+      changes: { warehouse_id: other },
+    })
+    expect(displayText(id, references, (n) => `Verwijzing ${n}`)).toBe(
+      "Verwijzing 1"
+    )
+    expect(displayText(other, references, (n) => `Verwijzing ${n}`)).toBe(
+      "Verwijzing 2"
+    )
+    expect(
+      displayText(
+        "Order ORD-2026-14 · €1.25",
+        references,
+        (n) => `Reference ${n}`
+      )
+    ).toBe("Order ORD-2026-14 · €1.25")
+  })
+  it("supplies translatable operation meaning, including destructive methods", () => {
+    expect(operationLabel("orders_create", "POST")).toEqual({
+      action: "create",
+      resource: "orders",
+    })
+    expect(operationLabel("invoices_send", "POST")).toEqual({
+      action: "send",
+      resource: "invoices",
+    })
+    expect(operationLabel("app_keys_revoke", "DELETE")).toEqual({
+      action: "delete",
+      resource: "app_keys",
+    })
+    expect(operationLabel("new_resource_custom", "PATCH")).toEqual({
+      action: "update",
+      resource: "record",
+    })
+  })
+})

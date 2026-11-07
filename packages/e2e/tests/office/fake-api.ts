@@ -94,7 +94,11 @@ export async function fakeApi(page: Page) {
     .on("GET", "/me/workspaces", () => ({
       data: [
         // The slug and the company name: the app shows display_name.
-        { id: WS, workspace_name: "ilundo-honey", display_name: "Ilundo Honey Co." },
+        {
+          id: WS,
+          workspace_name: "ilundo-honey",
+          display_name: "Ilundo Honey Co.",
+        },
         { id: WS2, workspace_name: "other-co", display_name: "Other Co" },
       ],
     }))
@@ -163,13 +167,38 @@ export async function choose(page: Page, name: string, option: string) {
   await page.getByRole("option", { name: option, exact: true }).click()
 }
 
+/** Empty dashboard reached when dismissing the assistant. No business data is needed. */
+export function emptyOverview(api: FakeApi) {
+  for (const path of [
+    "lots",
+    "products/stocks/negative",
+    "till/sales",
+    "till/shifts",
+    "supply-transfers",
+    "currencies",
+    "till/registers",
+  ])
+    api.on("GET", `/workspace/:ws/${path}`, () => paged([]))
+  api.on("GET", "/workspace/:ws/sales-summary", () => ({
+    data: {
+      from: "2026-11-02T00:00:00Z",
+      to: "2026-11-09T00:00:00Z",
+      source: null,
+      currencies: [],
+    },
+  }))
+}
+
 /** The page fits the screen (no sideways scroll) and, on a phone, every control is a 44 px target. */
 export async function expectFits(page: Page) {
   // Measure the settled page, not a dialog half way through closing.
   // A cancelled animation rejects `finished` with AbortError; it has settled all the same.
   await page.evaluate(() =>
     Promise.all(
-      document.getAnimations().map((a) => a.finished.catch(() => undefined))
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => undefined))
     )
   )
   await expectNoHorizontalScroll(page)

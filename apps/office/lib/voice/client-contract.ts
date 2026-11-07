@@ -6,11 +6,15 @@ export type VoiceSession = {
 }
 export type VoiceReviewStep = {
   actionId: string
+  operationId?: string
+  method?: string
   summary: string
   target?: string
   details: Record<string, unknown>
 }
 export type VoiceReview = {
+  operationId?: string
+  method?: string
   kind?: "batch"
   batchId?: string
   steps?: VoiceReviewStep[]

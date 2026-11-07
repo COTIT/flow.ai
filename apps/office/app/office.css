@@ -1,6 +1,82 @@
 /* Office-only glass rules (docs/design/web-redesign/canvas/glass.css). Unlayered like the
    shared glass rules in @genesy/ui, so they win over the components' utility classes. */
 
+/* Assistant fills the viewport; ordinary Office dialogs keep their glass and mobile sheet. */
+.theme-glass [data-voice-overlay][data-slot="dialog-content"] {
+  inset: 0;
+  display: flex;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  translate: none;
+  transform: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.voice-orb {
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      color-mix(in srgb, var(--gold) 18%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      circle at 65% 70%,
+      color-mix(in srgb, var(--teal) 28%, transparent),
+      transparent 65%
+    );
+}
+.voice-orb > span {
+  position: absolute;
+  inset: 3%;
+  border: 1px solid var(--gold);
+  border-radius: 46% 54% 48% 52%;
+  opacity: 0.6;
+  animation: voice-orbit 16s linear infinite;
+  animation-play-state: paused;
+}
+.voice-orb > span:nth-child(2) {
+  inset: 10%;
+  border-color: var(--tone-success);
+  border-radius: 54% 46% 55% 45%;
+  animation-direction: reverse;
+  animation-duration: 12s;
+}
+.voice-orb > span:nth-child(3) {
+  inset: 18%;
+  border-color: var(--muted-foreground);
+  animation-duration: 20s;
+}
+.voice-orb[data-animate="true"] > span {
+  animation-play-state: running;
+}
+.voice-orb[data-active="true"] > span {
+  animation-duration: 3s;
+}
+@keyframes voice-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-orb > span {
+    animation: none;
+  }
+}
+.theme-glass [data-voice-overlay] textarea {
+  min-height: 48px;
+  max-height: 20dvh;
+}
+
 /* The top bar's workspace picker is drawn as a 40 px outline button, not a 44 px field. */
 .theme-glass [data-topbar] [data-slot="select-trigger"] {
   height: 40px;

@@ -16,7 +16,7 @@ export type BatchProgress = {
   steps: {
     status: string
     message?: string
-    data?: { actionId?: string; summary?: string }
+    data?: { actionId?: string; summary?: string; operation?: string }
   }[]
 }
 const lifetime = 600000

@@ -1,4 +1,4 @@
-import { expect, expectFits, openMenu, test } from "./fake-api"
+import { expect, expectFits, emptyOverview, openMenu, test } from "./fake-api"
 import en from "../../../../apps/office/messages/en.json" with { type: "json" }
 import nl from "../../../../apps/office/messages/nl.json" with { type: "json" }
 import sw from "../../../../apps/office/messages/sw.json" with { type: "json" }
@@ -105,9 +105,7 @@ for (const scenario of [
           exact: true,
         })
         .click()
-      await expect(
-        page.locator('[data-slot="notice"][role="alert"]')
-      ).toContainText(scenario.expected)
+      await expect(page.getByRole("alert")).toContainText(scenario.expected)
       await expect(
         page.getByText(
           "Raw English backend detail that should stay off the alert"
@@ -364,7 +362,9 @@ test("reload recovers authenticated tasks without transcripts, files, or a provi
   await expect(
     page.getByRole("heading", { name: en.voice.recoveryTitle })
   ).toBeVisible()
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toHaveCount(0)
   await expect(page.getByRole("log")).not.toContainText(
     "Private conversation text"
   )
@@ -386,10 +386,12 @@ test("reload recovers authenticated tasks without transcripts, files, or a provi
   await page
     .getByRole("button", { name: en.voice.recoveryReview, exact: true })
     .click()
-  await expect(page.getByRole("dialog")).toContainText(
-    en.voice.recoveredReviewHint
-  )
-  await expect(page.getByRole("dialog")).toContainText("Saved server proposal")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText(en.voice.recoveredReviewHint)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText("Saved server proposal")
   expect(restores).toBe(1)
   expect(commits).toBe(0)
   await page
@@ -511,6 +513,11 @@ test("microphone denial keeps the text connection and keyboard controls usable",
   await expect(page.getByRole("log")).toHaveAttribute("aria-live", "polite")
   await expect(page.locator("[data-motion]")).toHaveCount(0)
   await expectFits(page)
+  const endControl = await page
+    .getByRole("button", { name: "End conversation", exact: true })
+    .boundingBox()
+  expect(endControl!.y).toBeGreaterThanOrEqual(0)
+  expect(endControl!.y + endControl!.height).toBeLessThanOrEqual(80)
   await page
     .getByRole("button", { name: "End conversation", exact: true })
     .click()
@@ -860,9 +867,9 @@ test("parallel native preparations keep one exact review and reject the second p
   await expect(
     page.getByRole("dialog", { name: "Review action" })
   ).toContainText("First concurrent proposal")
-  await expect(page.getByRole("dialog")).not.toContainText(
-    "Second concurrent proposal"
-  )
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).not.toContainText("Second concurrent proposal")
   await expectFits(page)
   await page
     .getByRole("button", { name: "Approve action", exact: true })
@@ -1061,7 +1068,7 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
     })
     await page.goto("/voice")
     await expect(
-      page.getByRole("heading", { level: 1, name: "Voice assistant" })
+      page.getByRole("dialog", { name: en.voice.title, exact: true })
     ).toBeVisible()
     await expect(
       page.getByRole("button", { name: "Start voice conversation" })
@@ -1086,17 +1093,28 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
     await expect(
       page.getByRole("dialog", { name: "Review action" })
     ).toContainText("Nested reviewed lot")
-    for (const value of [
+    const approval = page.getByRole("dialog", {
+      name: en.voice.review,
+      exact: true,
+    })
+    for (const id of [
       "0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa",
       "0193f6b0-1c2d-7e3f-8a9b-bbbbbbbbbbbb",
       "0193f6b0-1c2d-7e3f-8a9b-cccccccccccc",
-      "Ilundo Honey Co. · reviewed warehouse",
     ])
-      await expect(
-        page
-          .getByRole("dialog", { name: "Review action" })
-          .getByText(value, { exact: true })
-      ).toBeVisible()
+      await expect(approval).not.toContainText(id)
+    await expect(
+      approval.getByText("Ilundo Honey Co. · reviewed warehouse", {
+        exact: true,
+      })
+    ).toBeVisible()
+    await expect(approval).toContainText(en.voice.currentWorkspace)
+    await expect(approval).toContainText(
+      en.voice.recordReference.replace("{number}", "2")
+    )
+    await expect(approval).toContainText(
+      en.voice.recordReference.replace("{number}", "3")
+    )
     await expectFits(page)
     const readsBeforeApproval = _api.callsTo("GET", "/me/workspaces").length
     if (approved) await page.clock.fastForward(59000)
@@ -1372,7 +1390,7 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
     await expect(
       page
         .getByRole("region", { name: en.voice.currentTask, exact: true })
-        .locator('[data-slot="notice"] > div > p')
+        .locator("[data-task-outcome]")
         .first()
     ).toHaveText(en.voice.taskStates[finalStatus])
     await expect(
@@ -1586,7 +1604,9 @@ for (const interruption of [
       },
     })
     await expect.poll(() => cancellations).toBe(1)
-    await expect(page.getByRole("dialog")).toHaveCount(0)
+    await expect(
+      page.getByRole("dialog", { name: en.voice.review, exact: true })
+    ).toHaveCount(0)
     expect(approvals).toBe(0)
     await ask()
     emit({
@@ -1625,7 +1645,9 @@ for (const interruption of [
         .poll(() => _api.callsTo("GET", "/me/workspaces").length)
         .toBeGreaterThan(readsBeforeStop)
       release()
-      await expect(page.getByRole("dialog")).toHaveCount(0)
+      await expect(
+        page.getByRole("dialog", { name: en.voice.review, exact: true })
+      ).toHaveCount(0)
     }
     const progress = page.getByRole("region", { name: "Batch progress" })
     await expect(progress).toContainText("First reviewed step")
@@ -1746,7 +1768,9 @@ test("a review arriving after the tab hides is cancelled without exposing or dis
   release()
   await expect.poll(() => cancellations).toBe(1)
   await expect.poll(() => results.first).toMatchObject({ status: "cancelled" })
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toHaveCount(0)
   emit({
     type: "client_tool_call",
     client_tool_call: {
@@ -1840,35 +1864,34 @@ test("voice opens the microphone and audio worklets under the page security poli
     page.getByRole("button", { name: "End conversation" })
   ).toBeVisible()
   await expect(page.getByRole("log")).toContainText("Voice is connected.")
-  await page
-    .locator('div[aria-hidden="true"][class*="h-28"]')
-    .scrollIntoViewIfNeeded()
-  await expect(page.locator("[data-motion]")).toHaveCount(0)
+  const emblem = page.locator("[data-voice-orb]")
+  await emblem.scrollIntoViewIfNeeded()
+  await expect(emblem).toHaveAttribute("data-active", "false")
   await page.evaluate(() => Reflect.set(window, "voiceEnergy", 255))
-  await expect(page.locator("[data-motion]")).toHaveCount(1)
-  const emblem = page.locator('div[aria-hidden="true"][class*="h-28"]')
+  await expect(emblem).toHaveAttribute("data-active", "true")
   await emblem.evaluate((el) => {
     el.style.transform = "translateY(-2000px)"
   })
-  await expect(page.locator("[data-motion]")).toHaveCount(0)
+  await expect(emblem).toHaveAttribute("data-animate", "false")
   await emblem.evaluate((el) => {
     el.style.transform = ""
   })
-  await expect(page.locator("[data-motion]")).toHaveCount(1)
+  await expect(emblem).toHaveAttribute("data-active", "true")
   await page.evaluate(() => Reflect.set(window, "voiceEnergy", 0))
-  await expect(page.locator("[data-motion]")).toHaveCount(0)
+  await expect(emblem).toHaveAttribute("data-active", "false")
   await page.evaluate(() => Reflect.set(window, "voiceEnergy", 255))
-  await expect(page.locator("[data-motion]")).toHaveCount(1)
+  await expect(emblem).toHaveAttribute("data-active", "true")
   await page.getByRole("button", { name: "Mute", exact: true }).click()
   await expect(
     page.getByRole("button", { name: "Unmute", exact: true })
   ).toBeVisible()
-  await expect(page.locator("[data-motion]")).toHaveCount(0)
+  await expect(emblem).toHaveAttribute("data-animate", "false")
   await page.getByRole("button", { name: "Unmute", exact: true }).click()
-  await expect(page.locator("[data-motion]")).toHaveCount(1)
+  await expect(emblem).toHaveAttribute("data-active", "true")
   await page.emulateMedia({ reducedMotion: "reduce" })
-  await expect(page.locator("[data-motion]")).toHaveCount(0)
+  await expect(emblem).toHaveAttribute("data-animate", "false")
   await page.emulateMedia({ reducedMotion: "no-preference" })
+  await expect(emblem).toHaveAttribute("data-animate", "true")
   const picker = page.waitForEvent("filechooser")
   await page.getByRole("button", { name: "Take photo", exact: true }).click()
   await (
@@ -1895,7 +1918,12 @@ test("voice opens the microphone and audio worklets under the page security poli
       .getByRole("img", { name: "camera.png", exact: true })
   ).toBeVisible()
   await page.keyboard.press("Escape")
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: "camera.png", exact: true })
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.title, exact: true })
+  ).toBeVisible()
   await page.getByRole("button", { name: "Resume voice", exact: true }).click()
   await expect(
     page.getByRole("button", { name: "Mute", exact: true })
@@ -1928,7 +1956,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   page,
   api: _api,
 }) => {
-  void _api
+  emptyOverview(_api)
   let starts = 0
   let connections = 0
   let uploads = 0
@@ -2129,8 +2157,14 @@ test("text conversation survives navigation and shares a file without reconnecti
   await expect(page.getByRole("log")).toContainText(
     en.voice.taskStates.completed
   )
+  await page
+    .getByRole("button", { name: en.voice.closeAssistant, exact: true })
+    .click()
   await openMenu(page)
-  await page.getByRole("link", { name: "Orders", exact: true }).click()
+  await page
+    .getByRole("navigation", { name: en.nav.label, exact: true })
+    .getByRole("link", { name: "Orders", exact: true })
+    .click()
   await expect(
     page.getByRole("button", { name: "End conversation", exact: true })
   ).toBeVisible()
@@ -2640,16 +2674,22 @@ test("only the final user transcript naming the current action code can approve"
     ).toBeVisible()
   }
   await ask()
-  await expect(page.getByRole("dialog")).toContainText("Confirm action 123456")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText("Confirm action 123456")
   expect(commits).toBe(0)
   emit({
     type: "user_transcript",
     user_transcription_event: { user_transcript: "yes", event_id: 10 },
   })
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toHaveCount(0)
   expect(commits).toBe(0)
   await ask()
-  await expect(page.getByRole("dialog")).toContainText("Confirm action 654321")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText("Confirm action 654321")
   emit({
     type: "user_transcript",
     user_transcription_event: {
@@ -2657,10 +2697,14 @@ test("only the final user transcript naming the current action code can approve"
       event_id: 11,
     },
   })
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toHaveCount(0)
   expect(commits).toBe(0)
   await ask()
-  await expect(page.getByRole("dialog")).toContainText("Confirm action 000001")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText("Confirm action 000001")
   const final = {
     type: "user_transcript",
     user_transcription_event: {
@@ -2707,7 +2751,9 @@ test("only the final user transcript naming the current action code can approve"
     },
   })
   await ask()
-  await expect(page.getByRole("dialog")).toContainText("Confirm action 222222")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText("Confirm action 222222")
   emit({
     ...final,
     user_transcription_event: {
@@ -2715,10 +2761,14 @@ test("only the final user transcript naming the current action code can approve"
       event_id: 15,
     },
   })
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toHaveCount(0)
   expect(commits).toBe(1)
   await ask()
-  await expect(page.getByRole("dialog")).toContainText("Confirm action 333333")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toContainText("Confirm action 333333")
   const uncertain = {
     type: "user_transcript",
     user_transcription_event: {
@@ -2743,7 +2793,9 @@ test("only the final user transcript naming the current action code can approve"
       event_id: 301,
     },
   })
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review, exact: true })
+  ).toHaveCount(0)
   expect(commits).toBe(2)
   await expectFits(page)
   await page

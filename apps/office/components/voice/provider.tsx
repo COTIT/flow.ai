@@ -74,6 +74,8 @@ type VoiceContextValue = {
   starting: boolean
   upgrading: boolean
   busy: boolean
+  thinking: boolean
+  requesting: boolean
   textOnly: boolean
   muted: boolean
   capturePaused: boolean
@@ -168,6 +170,8 @@ function Session({ children }: { children: ReactNode }) {
   const [starting, setStarting] = useState(false)
   const [upgrading, setUpgrading] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [thinking, setThinking] = useState(false)
+  const [toolRequests, setToolRequests] = useState(0)
   const [textOnly, setTextOnly] = useState(false)
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
@@ -178,6 +182,11 @@ function Session({ children }: { children: ReactNode }) {
   function updateReview(next: VoiceReview | null) {
     proposal.current = next
     setReview(next)
+  }
+  function beginResponse() {
+    setThinking(true)
+    setError("")
+    if (!proposal.current && !dispatching.current) setOutcome(null)
   }
   function remember(pointer: RecoveryPointer) {
     recovered.current = pointer
@@ -403,6 +412,8 @@ function Session({ children }: { children: ReactNode }) {
     if (!statusRead && document.visibilityState !== "visible")
       return JSON.stringify({ status: "paused", message: t("recoveryHint") })
     if (!statusRead) preparing.current = before
+    setToolRequests((count) => count + 1)
+    setError("")
     try {
       if (statusRead) {
         const actionId = statusId as string
@@ -425,6 +436,7 @@ function Session({ children }: { children: ReactNode }) {
         if (!active.current || before !== generation.current)
           return JSON.stringify({ status: "paused" })
         if (statusKind === "batch") updateBatch(status, owner)
+        if (status.status !== "awaiting_review") setOutcome(status)
         if (
           args?.wait !== true ||
           !["awaiting_review", "running"].includes(status.status)
@@ -503,7 +515,11 @@ function Session({ children }: { children: ReactNode }) {
             recoverable: false,
             steps: (result.review.steps ?? []).map((step) => ({
               status: "awaiting_review",
-              data: { actionId: step.actionId, summary: step.summary },
+              data: {
+                actionId: step.actionId,
+                summary: step.summary,
+                operation: step.operationId,
+              },
             })),
           })
         }
@@ -523,12 +539,19 @@ function Session({ children }: { children: ReactNode }) {
         })
       return JSON.stringify(result)
     } catch (e) {
+      if (active.current && before === generation.current) {
+        setThinking(false)
+        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setOutcome({ status: statusRead ? "unknown" : "failed" })
+      }
       return JSON.stringify({
         status: "failed",
         message: e instanceof Error ? e.message : t("requestFailed"),
       })
     } finally {
       if (!statusRead && preparing.current === before) preparing.current = null
+      if (active.current && before === generation.current)
+        setToolRequests((count) => Math.max(0, count - 1))
     }
   }
   const conversation = useConversation({
@@ -579,6 +602,8 @@ function Session({ children }: { children: ReactNode }) {
     },
     onDisconnect: () => {
       if (!active.current) return
+      setThinking(false)
+      setToolRequests(0)
       if (continuation.current) {
         continuation.current = false
         switching.current = false
@@ -602,6 +627,7 @@ function Session({ children }: { children: ReactNode }) {
     },
     onError: () => {
       if (active.current) {
+        setThinking(false)
         setError(t("requestFailed"))
         setStarting(false)
         if (verified.current && !textOnly) pauseCapture()
@@ -617,10 +643,12 @@ function Session({ children }: { children: ReactNode }) {
       }
     },
     onMessage: ({ source, message, event_id, response_id }) => {
+      if (!active.current || !verified.current) return
       if (source === "user") {
         const finalizedEvent = Number.isSafeInteger(event_id) && event_id >= 0
         const replayed = finalizedEvent && seenUtterances.current.has(event_id)
         if (finalizedEvent) seenUtterances.current.add(event_id)
+        if (!replayed) beginResponse()
         if (activeBatch.current && dispatching.current && !replayed)
           void stopBatch("pause")
         if (proposal.current && !dispatching.current && !replayed) {
@@ -642,12 +670,15 @@ function Session({ children }: { children: ReactNode }) {
             void confirm("cancel")
           }
         }
-      }
+      } else setThinking(false)
       add(
         source === "user" ? "user" : "agent",
         message,
         `${source}:${response_id ?? event_id}`
       )
+    },
+    onAgentTyping: ({ is_typing }) => {
+      if (active.current && verified.current && is_typing) setThinking(true)
     },
     onInterruption: () => {
       if (dispatching.current && activeBatch.current) void stopBatch("pause")
@@ -662,6 +693,11 @@ function Session({ children }: { children: ReactNode }) {
             arguments: JSON.parse(String(arguments_json)),
           })
         } catch {
+          if (active.current && verified.current) {
+            setThinking(false)
+            setError(t("requestFailed"))
+            setOutcome({ status: "failed" })
+          }
           return JSON.stringify({
             status: "failed",
             message: t("requestFailed"),
@@ -865,6 +901,8 @@ function Session({ children }: { children: ReactNode }) {
     sessionLocale.current = sessionLanguage(locale)
     seenUtterances.current.clear()
     setStarting(true)
+    setThinking(false)
+    setToolRequests(0)
     setError("")
     setTextOnly(onlyText)
     capturePausedRef.current = false
@@ -932,6 +970,8 @@ function Session({ children }: { children: ReactNode }) {
     updateReview(null)
     setStarting(false)
     setBusy(false)
+    setThinking(false)
+    setToolRequests(0)
     if (!preserve) setMessages([])
     if (dispatching.current)
       setOutcome({ status: "unknown", message: t("unknown") })
@@ -1164,6 +1204,7 @@ function Session({ children }: { children: ReactNode }) {
         })
       }
       if (before !== generation.current || !active.current) return false
+      beginResponse()
       if (ids.length) {
         conversation.sendContextualUpdate(
           JSON.stringify({
@@ -1189,8 +1230,10 @@ function Session({ children }: { children: ReactNode }) {
       }
       return true
     } catch (e) {
-      if (active.current && before === generation.current)
+      if (active.current && before === generation.current) {
+        setThinking(false)
         setError(e instanceof Error ? e.message : t("requestFailed"))
+      }
       return false
     } finally {
       sending.current = false
@@ -1305,6 +1348,8 @@ function Session({ children }: { children: ReactNode }) {
         starting,
         upgrading,
         busy: busy || upgrading,
+        thinking,
+        requesting: toolRequests > 0,
         textOnly,
         muted: conversation.isMuted,
         capturePaused,

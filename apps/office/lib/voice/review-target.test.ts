@@ -72,6 +72,10 @@ it("uses one authorized resource lookup and projects only safe identifying field
     },
   })
   const review = (await restoreReview(draft(productA), context)).review!
+  expect(review).toMatchObject({
+    operationId: "products_delete",
+    method: "DELETE",
+  })
   expect(review.details.record).toEqual({
     id: productA,
     name: "Cocoa",
