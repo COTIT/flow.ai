@@ -19,6 +19,7 @@ import {
   BATCH_PREPARE_OPERATION,
 } from "@/lib/voice/batches"
 import { withVoiceTracing } from "@/lib/voice/tracing"
+import { narrate } from "@/lib/voice/narration"
 export const runtime = "nodejs"
 
 /** Trusted UI boundary; never registered as an ElevenLabs client tool. */
@@ -154,7 +155,14 @@ async function handle(request: Request) {
         true
       )
     )
-    return voiceResponse(await executeAction(review.action, context, review.id))
+    return voiceResponse(
+      narrate(
+        await executeAction(review.action, context, review.id),
+        "execute",
+        review.action.summary,
+        language
+      )
+    )
   } catch (error) {
     return isBatch ? batchFailure(error, language) : voiceFailure(error)
   } finally {

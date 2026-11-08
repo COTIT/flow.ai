@@ -419,3 +419,103 @@ it("traces confirmation approval inside one request span against a live session"
   expect(mocks.spans).toEqual(["genesy_assistant_confirm", "approve"])
   expect(mocks.modes).toEqual(["live"])
 })
+
+it("labels a lookup with its human step for the status line", async () => {
+  const response = await toolRequest(
+    request({
+      command: "execute",
+      operationId: "orders_list",
+      arguments: {},
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  expect(await response.json()).toMatchObject({
+    status: "completed",
+    steps: ["Checking: List orders"],
+  })
+})
+
+it("narrates a proposed change in the session language without exposing the challenge", async () => {
+  mocks.session.mockResolvedValue({
+    id: "s1",
+    language: "nl",
+    state: "active",
+    conversation_id: "conv1",
+  })
+  const response = await toolRequest(
+    request({
+      command: "execute",
+      operationId: "orders_create",
+      arguments: { body: orderBody },
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  const summary = catalog.getOperation("orders_create")!.summary
+  expect(await response.json()).toMatchObject({
+    status: "requires_confirmation",
+    steps: [`Controleren: ${summary}`, "Je controle voorbereiden"],
+    narration: "Dit ga ik doen. Lees de kaart en keur hem goed.",
+  })
+})
+
+it("labels approved execution as running then finalizing", async () => {
+  const response = await confirmationRequest(
+    request({
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      ticket: "ticket",
+      decision: "approve",
+      method: "click",
+    })
+  )
+  expect(await response.json()).toMatchObject({
+    status: "completed",
+    steps: ["Running it now", "Finalizing"],
+  })
+})
+
+const execute = (operationId: string, args: unknown) =>
+  toolRequest(
+    request({
+      command: "execute",
+      operationId,
+      arguments: args,
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+
+it("returns the exact input schema when an undiscovered lookup has invalid arguments", async () => {
+  const response = await execute("orders_get", { path: {} })
+  expect(response.status).toBe(400)
+  const body = await response.json()
+  expect(body.message).toBeTruthy()
+  expect(body.operation).toMatchObject({ id: "orders_get" })
+  expect(
+    body.operation.parameters.map((p: { name: string }) => p.name)
+  ).toContain("order")
+  expect(mocks.execute).not.toHaveBeenCalled()
+})
+
+it("never returns an inline schema for an effect with invalid arguments", async () => {
+  const response = await execute("orders_create", { body: {} })
+  expect(response.status).toBe(400)
+  expect(await response.json()).not.toHaveProperty("operation")
+  expect(mocks.propose).not.toHaveBeenCalled()
+})
+
+it("suggests permitted candidates for a guessed operation id", async () => {
+  const response = await execute("order_list", {})
+  expect(response.status).toBe(400)
+  const body = await response.json()
+  expect(body.candidates.map((tool: { id: string }) => tool.id)).toContain(
+    "orders_list"
+  )
+  mocks.authorize.mockResolvedValue({ ...context, permissions: [] })
+  const denied = await (await execute("order_list", {})).json()
+  expect(
+    denied.candidates.map((tool: { id: string }) => tool.id)
+  ).not.toContain("orders_list")
+})

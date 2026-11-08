@@ -28,6 +28,7 @@ import {
   BATCH_STATUS_OPERATION,
 } from "@/lib/voice/batches"
 import { withVoiceTracing } from "@/lib/voice/tracing"
+import { narrate } from "@/lib/voice/narration"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -232,9 +233,17 @@ async function handle(request: Request) {
     }
     if (input.command !== "execute")
       throw new VoiceError("Unknown assistant command.")
-    const operation = getOperation(String(input.operationId ?? ""))
+    const operationId = String(input.operationId ?? "")
+    const operation = getOperation(operationId)
     if (!operation || !["execute", "secure_ui"].includes(operation.disposition))
-      throw new VoiceError("This operation is not exposed to the assistant.")
+      // Guessed IDs get permitted candidates so the model can retry without a discovery turn.
+      return voiceResponse(
+        {
+          message: "This operation is not exposed to the assistant.",
+          candidates: discoverTools(operationId, context.permissions),
+        },
+        400
+      )
     if (!isToolAllowed(operation, context.permissions))
       throw new VoiceError("You do not have permission for this action.", 403)
     if (operation.disposition === "secure_ui") {
@@ -257,15 +266,38 @@ async function handle(request: Request) {
       )
     } catch (error) {
       if (error instanceof ToolUnavailableError) throw error
-      throw new VoiceError(
+      const message =
         error instanceof Error ? error.message : "Invalid arguments."
-      )
+      // Lookups may run undiscovered: return their exact contract inline. Effects stay discover-first.
+      if (!operation.write)
+        return voiceResponse(
+          {
+            message,
+            operation: discoverTools(operation.id, context.permissions)[0],
+          },
+          400
+        )
+      throw new VoiceError(message)
     }
     if (action.write)
-      return voiceResponse(await proposeAction(action, context, files))
+      return voiceResponse(
+        narrate(
+          await proposeAction(action, context, files),
+          "review",
+          action.summary,
+          language
+        )
+      )
     if (files.size)
       throw new VoiceError("This lookup does not accept binary attachments.")
-    return voiceResponse(await executeAction(action, context, randomUUID()))
+    return voiceResponse(
+      narrate(
+        await executeAction(action, context, randomUUID()),
+        "lookup",
+        action.summary,
+        language
+      )
+    )
   } catch (error) {
     return isBatch ? batchFailure(error, language) : voiceFailure(error)
   } finally {

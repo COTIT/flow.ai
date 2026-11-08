@@ -62,3 +62,55 @@ it("traces the draft, its review target lookup and ticket signing as separate sp
   expect(result.status).toBe("requires_confirmation")
   expect(mocks.spans).toEqual(["propose", "review_target", "review_ticket"])
 })
+
+it("products_create review shows the proposed name and prices next to the currency facts", async () => {
+  const { reviewStep } = await import("./actions")
+  const workspace = "01950000-0000-7000-8000-000000000009"
+  const { prepareAction } = await import("./catalog")
+  const { reviewTarget } =
+    await vi.importActual<typeof import("./review-target")>("./review-target")
+  mocks.target.mockImplementation(reviewTarget)
+  const create = prepareAction(
+    "products_create",
+    { body: { name: "A", price: "220", gross_price: "200" } },
+    workspace
+  )
+  const step = await reviewStep(
+    create,
+    { ...context, workspaceId: workspace },
+    {
+      id: "01950000-0000-7000-8000-000000000002",
+      session_id: "s1",
+      operation_id: "products_create",
+      state: "proposed",
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+      review_facts: {
+        version: 1,
+        operation_id: "products_create",
+        facts: {
+          kind: "product",
+          priced: {
+            product_id: null,
+            name: "A",
+            currency: { id: "c1", code: "USD", decimals: 2, default: true },
+            vat_group: null,
+            price: "220.0000",
+            gross_price: "200.0000",
+          },
+        },
+      },
+    }
+  )
+  expect(step.details).toMatchObject({
+    changes: { name: "A", price: "220", gross_price: "200" },
+    current: {
+      kind: "product",
+      priced: {
+        name: "A",
+        currency: "USD",
+        price: "220.0000",
+        gross_price: "200.0000",
+      },
+    },
+  })
+})

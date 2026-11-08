@@ -174,7 +174,21 @@ for (const { locale, messages, money, request, summary, phrase } of [
               },
             },
           }))
-        } else if (event.tool_call_id === "refund-watch") {
+        } else if (event.tool_call_id.startsWith("refund-watch")) {
+          if (result.status === "running") {
+            socket.send(JSON.stringify({
+              type: "client_tool_call",
+              client_tool_call: {
+                tool_name: "execute_genesy_tool",
+                tool_call_id: "refund-watch-again",
+                parameters: {
+                  operation_id: "assistant_task_status",
+                  arguments_json: JSON.stringify({ actionId, wait: true }),
+                },
+              },
+            }))
+            return
+          }
           continuation = result
           socket.send(JSON.stringify({
             type: "agent_response",
@@ -221,6 +235,7 @@ for (const { locale, messages, money, request, summary, phrase } of [
     await expect(page.getByRole("log")).not.toContainText(messages.voice.taskStates.completed)
     expect(approvals).toBe(1)
     expect(userMessages).toBe(1)
+    expect(sdkPayloads.join("\n")).toContain("assistant_progress")
     expect(sdkPayloads.join("\n")).not.toMatch(/\b1250\b/)
     expect(sdkPayloads.join("\n")).not.toContain("private-refund-ticket")
     expect(sdkPayloads.join("\n")).not.toContain("864209")
