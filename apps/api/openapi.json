@@ -2004,6 +2004,65 @@
         ],
         "type": "object"
       },
+      "CompareCurrency": {
+        "description": "Both periods in one currency.",
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/Sums"
+          },
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/Sums"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "gross_change_bp": {
+            "description": "Signed change of gross in basis points (10000 = +100 %), half away from zero. Absent\nwhen the base gross is 0.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "gross_difference": {
+            "description": "current − base gross, minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "net_change_bp": {
+            "description": "Same as `gross_change_bp` on net totals; absent when the base net is 0.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "net_difference": {
+            "description": "current − base net (excl VAT), minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders_difference": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "current",
+          "base",
+          "gross_difference",
+          "orders_difference",
+          "net_difference"
+        ],
+        "type": "object"
+      },
       "CompleteInput": {
         "additionalProperties": false,
         "description": "Provider file reference after upload; ownership comes from signed bridge.",
@@ -4124,6 +4183,37 @@
         ],
         "type": "object"
       },
+      "CustomerCurrency": {
+        "description": "Ranked customers in one currency.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rows": {
+            "description": "Best first: gross total, then name.",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRow"
+            },
+            "type": "array"
+          },
+          "without_customer": {
+            "$ref": "#/components/schemas/OrderTotals",
+            "description": "Orders with no customer (till walk-ins); never ranked."
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "rows",
+          "without_customer"
+        ],
+        "type": "object"
+      },
       "CustomerRequest": {
         "description": "The web customer, kept on the order for the office; never sent back to the shop or in\nevents.",
         "properties": {
@@ -4159,6 +4249,40 @@
         "required": [
           "email",
           "name"
+        ],
+        "type": "object"
+      },
+      "CustomerRow": {
+        "description": "One ranked customer.",
+        "properties": {
+          "gross_total": {
+            "description": "Their orders' totals incl VAT, minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "net_total": {
+            "description": "Totals excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Named"
+          },
+          "vat_total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "relation",
+          "orders",
+          "gross_total",
+          "net_total",
+          "vat_total"
         ],
         "type": "object"
       },
@@ -5940,6 +6064,18 @@
         ],
         "type": "object"
       },
+      "Envelope_InvoiceExport": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InvoiceExport"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_InvoiceResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -6726,6 +6862,18 @@
         ],
         "type": "object"
       },
+      "Envelope_SalesCompare": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SalesCompare"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_SalesGroupCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7048,6 +7196,30 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TokenResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_TopCustomers": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TopCustomers"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_TopProducts": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TopProducts"
           }
         },
         "required": [
@@ -7849,6 +8021,39 @@
         "required": [
           "id",
           "name"
+        ],
+        "type": "object"
+      },
+      "ExportTotals": {
+        "description": "Exported totals in one currency (credit notes negative).",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "excl": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "vat": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "excl",
+          "vat",
+          "total"
         ],
         "type": "object"
       },
@@ -9514,6 +9719,58 @@
         "required": [
           "message",
           "delivery"
+        ],
+        "type": "object"
+      },
+      "InvoiceExport": {
+        "description": "GET /invoices-export.",
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTotals"
+            },
+            "type": "array"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file_id": {
+            "description": "Stored CSV (removed after 24 h); null when nothing was in range.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoices": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lines": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "example": "invoices-2026-10-01-to-2026-10-31.csv",
+            "type": "string"
+          },
+          "url": {
+            "description": "Download link, valid until `expires_at` (10 minutes).",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "invoices",
+          "lines",
+          "currencies"
         ],
         "type": "object"
       },
@@ -12509,6 +12766,23 @@
         ],
         "type": "object"
       },
+      "Named": {
+        "description": "`{id, name}` of a relation or product.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "NumberSummary": {
         "description": "Number answers of one question.",
         "properties": {
@@ -13248,6 +13522,36 @@
           "lines",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "OrderTotals": {
+        "description": "Orders and their gross total.",
+        "properties": {
+          "gross_total": {
+            "description": "Totals incl VAT, minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "net_total": {
+            "description": "Totals excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "vat_total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "orders",
+          "gross_total",
+          "net_total",
+          "vat_total"
         ],
         "type": "object"
       },
@@ -15563,6 +15867,24 @@
         ],
         "type": "object"
       },
+      "Period": {
+        "description": "A resolved period.",
+        "properties": {
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
       "PermissionChangeReceipt": {
         "description": "Known requested changes only; unrelated grants and raw unknown inputs stay private.",
         "properties": {
@@ -16327,6 +16649,31 @@
         },
         "required": [
           "product_id"
+        ],
+        "type": "object"
+      },
+      "ProductCurrency": {
+        "description": "Ranked products in one currency.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ProductRow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "rows"
         ],
         "type": "object"
       },
@@ -17445,6 +17792,67 @@
           "export_price_sync",
           "export_product_data",
           "export_data"
+        ],
+        "type": "object"
+      },
+      "ProductRow": {
+        "description": "One ranked product (or variant).",
+        "properties": {
+          "gross_total": {
+            "description": "Line totals incl VAT, minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lines": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "net_total": {
+            "description": "Line totals excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Named"
+          },
+          "title": {
+            "description": "Line title as sold (names the size).",
+            "type": "string"
+          },
+          "units": {
+            "description": "Quantity sold, 2 decimals.",
+            "example": "12.00",
+            "type": "string"
+          },
+          "variant": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VariantRef",
+                "description": "Set when `by=variant` and the line was for a variant."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vat_total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product",
+          "title",
+          "units",
+          "lines",
+          "orders",
+          "gross_total",
+          "net_total",
+          "vat_total"
         ],
         "type": "object"
       },
@@ -21453,6 +21861,40 @@
         ],
         "type": "object"
       },
+      "SalesCompare": {
+        "description": "GET /sales/compare.",
+        "properties": {
+          "compare_to_period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CompareCurrency"
+            },
+            "type": "array"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "time_zone": {
+            "example": "UTC",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "compare_to_period",
+          "time_zone",
+          "currencies"
+        ],
+        "type": "object"
+      },
       "SalesGroupCreated": {
         "description": "Create response: the new row's id.",
         "properties": {
@@ -23825,6 +24267,40 @@
         ],
         "type": "object"
       },
+      "Sums": {
+        "description": "One period's sales.",
+        "properties": {
+          "gross_total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "net_total": {
+            "description": "Totals excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunded_total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "vat_total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "orders",
+          "gross_total",
+          "net_total",
+          "vat_total",
+          "refunded_total"
+        ],
+        "type": "object"
+      },
       "SupplyLineRequest": {
         "description": "Attach a current expected harvest figure of the opportunity's village and crop (ops or admin). The attacher is the caller. A client `id` makes retries safe.",
         "properties": {
@@ -24864,6 +25340,84 @@
           "access_token",
           "token_type",
           "workspace_ids"
+        ],
+        "type": "object"
+      },
+      "TopCustomers": {
+        "description": "GET /sales/top-customers.",
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerCurrency"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "time_zone": {
+            "description": "Zone the plain dates were read in (`UTC` when unset or unknown).",
+            "example": "Africa/Dar_es_Salaam",
+            "type": "string"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "time_zone",
+          "currencies"
+        ],
+        "type": "object"
+      },
+      "TopProducts": {
+        "description": "GET /sales/top-products.",
+        "properties": {
+          "by": {
+            "description": "`product` or `variant`.",
+            "type": "string"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCurrency"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "time_zone": {
+            "example": "UTC",
+            "type": "string"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "time_zone",
+          "by",
+          "currencies"
         ],
         "type": "object"
       },
@@ -26198,6 +26752,25 @@
         "required": [
           "type",
           "value"
+        ],
+        "type": "object"
+      },
+      "VariantRef": {
+        "description": "A sold variant.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id"
         ],
         "type": "object"
       },
@@ -68646,6 +69219,171 @@
         ]
       }
     },
+    "/workspace/{workspace}/invoices-export": {
+      "get": {
+        "description": "CSV of the numbered invoices (credit notes and cancelled ones too, for a gapless number sequence) dated in `[from, to)`: one row per line with customer, VAT number, VAT rate, line and invoice totals. Stored as a workspace file for 24 hours; `url` downloads it for 10 minutes. Nothing in range stores nothing (`url` null). At most 10000 lines per export.",
+        "operationId": "invoices_export",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Invoice date (`send_date`) at or after: RFC 3339, or `YYYY-MM-DD` = local midnight.",
+            "example": "2026-10-01",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Invoice date before (exclusive), at most 366 days after `from`.",
+            "example": "2026-11-01",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_InvoiceExport"
+                }
+              }
+            },
+            "description": "The stored export and a download link"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `invoice.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, or over 10000 lines"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export invoices for my accountant as a CSV download (export invoices for accountant, bookkeeping)",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
     "/workspace/{workspace}/invoices/send-tasks/active": {
       "get": {
         "operationId": "invoices_send_tasks",
@@ -85422,6 +86160,608 @@
         "summary": "Sales in a time range, per currency",
         "tags": [
           "orders"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales/compare": {
+      "get": {
+        "description": "Sales of `[from, to)` against `[compare_from, compare_to)` per currency sold in either: both totals, `gross_difference`, `orders_difference` and `gross_change_bp` (signed basis points, 10000 = +100 %, absent when the base gross is 0). Same sold rule as `orders_sales_summary`. Bounds take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone); each period at most 366 days. Money in minor units.",
+        "operationId": "orders_sales_compare",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period start: RFC 3339, or `YYYY-MM-DD` = local midnight in the workspace time zone.",
+            "example": "2026-11-01",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period end (exclusive), at most 366 days after `from`.",
+            "example": "2026-12-01",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the period to compare against (the base), same forms.",
+            "example": "2026-10-01",
+            "in": "query",
+            "name": "compare_from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the base period (exclusive).",
+            "example": "2026-11-01",
+            "in": "query",
+            "name": "compare_to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only `office`, `storefront` or `till` orders.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SalesCompare"
+                }
+              }
+            },
+            "description": "Both periods per currency"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "A bound missing or malformed, an end not after its start, a period over 366 days, unknown `source`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Compare sales of two periods (compare periods, this vs last, change %)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales/top-customers": {
+      "get": {
+        "description": "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. Money in minor units.",
+        "operationId": "orders_top_customers",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold at or after: RFC 3339, or `YYYY-MM-DD` = local midnight in the workspace time zone.",
+            "example": "2026-10-01",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold before (exclusive), same forms, at most 366 days after `from`.",
+            "example": "2026-11-01",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only `office`, `storefront` or `till` orders.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Rows per currency, 1 to 20 (default 5).",
+            "example": 5,
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "top-products only: `product` (default) or `variant` (each size apart).",
+            "in": "query",
+            "name": "by",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "top-products only: just this product (all its variants), e.g. \"how much honey sold\".",
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TopCustomers"
+                }
+              }
+            },
+            "description": "Ranked customers per currency"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or missing `order.list` or `relation.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Top customers by sales in a period (best customers, who bought the most)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales/top-products": {
+      "get": {
+        "description": "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
+        "operationId": "products_top_sellers",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold at or after: RFC 3339, or `YYYY-MM-DD` = local midnight in the workspace time zone.",
+            "example": "2026-10-01",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold before (exclusive), same forms, at most 366 days after `from`.",
+            "example": "2026-11-01",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only `office`, `storefront` or `till` orders.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Rows per currency, 1 to 20 (default 5).",
+            "example": 5,
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "top-products only: `product` (default) or `variant` (each size apart).",
+            "in": "query",
+            "name": "by",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "top-products only: just this product (all its variants), e.g. \"how much honey sold\".",
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TopProducts"
+                }
+              }
+            },
+            "description": "Ranked products per currency"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Best-selling products in a period (best sellers, top products)",
+        "tags": [
+          "products"
         ]
       }
     },

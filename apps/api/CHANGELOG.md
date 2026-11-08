@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Sales analytics add-ons (no migration): top customers, best sellers and compare report `net_total` and `vat_total` beside `gross_total` (compare adds `net_difference`, `net_change_bp`). `GET /sales/top-products?product_id=` answers one product's sales over all its variants. Demo seed backdates `orders.confirmed_at` too: sales reports read it first, so a fresh seed put every sale on seed day and left last month empty. Staging needs a reseed to see it.
 - Sales analytics and accountant export (`docs/api/analytics.md`; migration `files_expires_at`). The voice agent can now answer these; before, Genesy couldn't:
   - `GET /workspace/{ws}/sales/top-customers` (`order.list` + `relation.list`) ranks customers per currency by gross cents. Till walk-ins are reported apart as `without_customer`.
   - `GET /sales/top-products` (`order.list`) ranks best sellers; `by=variant` ranks each size apart.

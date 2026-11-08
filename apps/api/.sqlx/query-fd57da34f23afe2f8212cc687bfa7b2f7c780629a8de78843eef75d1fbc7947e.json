@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE files SET status = 'deleting', deleted_at = COALESCE(deleted_at, now()),\n                          updated_at = now()\n         WHERE id IN (SELECT id FROM files\n                      WHERE (status = 'pending' AND updated_at < now() - interval '1 hour')\n                         OR (status = 'deleting' AND updated_at < now() - interval '5 minutes')\n                         OR (status = 'stored' AND expires_at < now())\n                      ORDER BY updated_at LIMIT $1 FOR UPDATE SKIP LOCKED)\n         RETURNING id, key",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "fd57da34f23afe2f8212cc687bfa7b2f7c780629a8de78843eef75d1fbc7947e"
+}

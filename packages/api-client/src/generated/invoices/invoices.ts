@@ -28,11 +28,13 @@ import type {
   CreditInvoiceRequest,
   EnvelopeFileResource,
   EnvelopeInvoiceCreated,
+  EnvelopeInvoiceExport,
   EnvelopeInvoiceResource,
   EnvelopePublicInvoice,
   InvoiceBody,
   InvoiceDeliveryReply,
   InvoiceListPage,
+  InvoicesExportParams,
   InvoicesListParams,
   InvoicesPreviewParams,
   MessageBody,
@@ -326,6 +328,107 @@ export const useInvoicesCreate = <TError = ErrorType<MessageBody | ValidationErr
       return useMutation(getInvoicesCreateMutationOptions(options), queryClient);
     }
     /**
+ * CSV of the numbered invoices (credit notes and cancelled ones too, for a gapless number sequence) dated in `[from, to)`: one row per line with customer, VAT number, VAT rate, line and invoice totals. Stored as a workspace file for 24 hours; `url` downloads it for 10 minutes. Nothing in range stores nothing (`url` null). At most 10000 lines per export.
+ * @summary Export invoices for my accountant as a CSV download (export invoices for accountant, bookkeeping)
+ */
+export const invoicesExport = (
+    workspace: string,
+    params: InvoicesExportParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeInvoiceExport>(
+      {url: `/workspace/${workspace}/invoices-export`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesExportQueryKey = (workspace: string,
+    params?: InvoicesExportParams,) => {
+    return [
+    `/workspace/${workspace}/invoices-export`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getInvoicesExportQueryOptions = <TData = Awaited<ReturnType<typeof invoicesExport>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: InvoicesExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesExport>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInvoicesExportQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof invoicesExport>>> = ({ signal }) => invoicesExport(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof invoicesExport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InvoicesExportQueryResult = NonNullable<Awaited<ReturnType<typeof invoicesExport>>>
+export type InvoicesExportQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useInvoicesExport<TData = Awaited<ReturnType<typeof invoicesExport>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: InvoicesExportParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesExport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesExport>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesExport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesExport<TData = Awaited<ReturnType<typeof invoicesExport>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: InvoicesExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesExport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesExport>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesExport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesExport<TData = Awaited<ReturnType<typeof invoicesExport>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: InvoicesExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesExport>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Export invoices for my accountant as a CSV download (export invoices for accountant, bookkeeping)
+ */
+
+export function useInvoicesExport<TData = Awaited<ReturnType<typeof invoicesExport>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: InvoicesExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesExport>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInvoicesExportQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Pending or uncertain invoice deliveries
  */
 export const invoicesSendTasks = (

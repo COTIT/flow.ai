@@ -127,6 +127,9 @@ pub struct TopQuery {
     pub limit: Option<String>,
     /// top-products only: `product` (default) or `variant` (each size apart).
     pub by: Option<String>,
+    /// top-products only: just this product (all its variants), e.g. "how much honey sold".
+    #[param(value_type = Option<Uuid>)]
+    pub product_id: Option<String>,
 }
 
 /// Validated top-N query.
@@ -135,6 +138,7 @@ pub struct Top {
     pub source: Option<String>,
     pub limit: i64,
     pub by_variant: bool,
+    pub product_id: Option<Uuid>,
 }
 
 impl TopQuery {
@@ -151,6 +155,17 @@ impl TopQuery {
             by.is_none_or(|b| matches!(b, "product" | "variant")),
             "The by must be product or variant.",
         );
+        let product_id = self
+            .product_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty());
+        let parsed = product_id.and_then(|v| Uuid::parse_str(v).ok());
+        r.check(
+            "product_id",
+            product_id.is_none() || parsed.is_some(),
+            "The product id must be a valid UUID.",
+        );
         r.into_result()?;
         let (Some(from), Some(to)) = (from, to) else {
             return Err(AppError::Internal("bounds checked above".into()));
@@ -160,6 +175,7 @@ impl TopQuery {
             source,
             limit,
             by_variant: by == Some("variant"),
+            product_id: parsed,
         })
     }
 }
@@ -252,6 +268,9 @@ pub struct OrderTotals {
     pub orders: i64,
     /// Totals incl VAT, minor units.
     pub gross_total: i64,
+    /// Totals excl VAT.
+    pub net_total: i64,
+    pub vat_total: i64,
 }
 
 /// One ranked customer.
@@ -261,6 +280,9 @@ pub struct CustomerRow {
     pub orders: i64,
     /// Their orders' totals incl VAT, minor units.
     pub gross_total: i64,
+    /// Totals excl VAT.
+    pub net_total: i64,
+    pub vat_total: i64,
 }
 
 /// Ranked customers in one currency.
@@ -309,6 +331,9 @@ pub struct ProductRow {
     pub orders: i64,
     /// Line totals incl VAT, minor units.
     pub gross_total: i64,
+    /// Line totals excl VAT.
+    pub net_total: i64,
+    pub vat_total: i64,
 }
 
 /// Ranked products in one currency.
@@ -338,6 +363,9 @@ pub struct TopProducts {
 pub struct Sums {
     pub orders: i64,
     pub gross_total: i64,
+    /// Totals excl VAT.
+    pub net_total: i64,
+    pub vat_total: i64,
     pub refunded_total: i64,
 }
 
@@ -356,6 +384,11 @@ pub struct CompareCurrency {
     /// when the base gross is 0.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gross_change_bp: Option<i64>,
+    /// current − base net (excl VAT), minor units.
+    pub net_difference: i64,
+    /// Same as `gross_change_bp` on net totals; absent when the base net is 0.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub net_change_bp: Option<i64>,
 }
 
 /// GET /sales/compare.

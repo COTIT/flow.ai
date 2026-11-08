@@ -14,25 +14,28 @@ Paths under `/v1/workspace/{workspace}`. Bearer token; a non-member gets 404, a 
 ```json
 { "data": { "from": "…", "to": "…", "time_zone": "UTC", "source": null,
   "currencies": [{ "currency": "EUR", "decimals": 2,
-    "rows": [{ "relation": { "id": "…", "name": "Beta Shop" }, "orders": 1, "gross_total": 2000 }],
-    "without_customer": { "orders": 1, "gross_total": 300 } }] } }
+    "rows": [{ "relation": { "id": "…", "name": "Beta Shop" }, "orders": 1, "gross_total": 2000, "net_total": 1800, "vat_total": 200 }],
+    "without_customer": { "orders": 1, "gross_total": 300, "net_total": 270, "vat_total": 30 } }] } }
 ```
 
 - `rows`: the top `limit` customers per currency (default 5, 1 to 20; else a 422), by the totals incl VAT of their orders, then name, then id.
 - `without_customer`: orders with no relation (till walk-ins), never ranked. Zeros when there are none.
 - `relation.list` is required as well because the answer names customers.
+- Every total comes three ways: `gross_total` (incl VAT), `net_total` (the orders' `subtotal`, excl VAT) and `vat_total` (gross − net), so gross = net + VAT exactly. The same holds in best sellers and compare.
 
-## Best sellers `GET /sales/top-products?from&to&source&limit&by` (`order.list`)
+## Best sellers `GET /sales/top-products?from&to&source&limit&by&product_id` (`order.list`)
 
 ```json
 { "data": { "from": "…", "to": "…", "time_zone": "UTC", "source": null, "by": "product",
   "currencies": [{ "currency": "EUR", "decimals": 2, "rows": [
     { "product": { "id": "…", "name": "Honey" }, "variant": null, "title": "Honey",
-      "units": "5.00", "lines": 2, "orders": 2, "gross_total": 2500 }] }] } }
+      "units": "5.00", "lines": 2, "orders": 2, "gross_total": 2500,
+      "net_total": 2250, "vat_total": 250 }] }] } }
 ```
 
 - Ranked per currency by line totals incl VAT (`line_excl + line_vat`), then product id. `units` is the summed quantity (2 decimals), `lines` the order lines, `orders` the distinct orders.
 - `by=variant` ranks each variant apart: `variant` is `{id, sku}`, or null for lines without one. `title` is the line title as sold, so it names the size. Any other `by` is a 422.
+- `product_id` keeps one product's lines (all its variants), so "how much honey did we sell in October" is one row. Not a UUID: 422 on `product_id`. An id from another account finds nothing (`currencies: []`). `net_total` = `line_excl`, `vat_total` = `line_vat`.
 
 ## Compare periods `GET /sales/compare?from&to&compare_from&compare_to&source` (`order.list`)
 
@@ -40,13 +43,14 @@ Paths under `/v1/workspace/{workspace}`. Bearer token; a non-member gets 404, a 
 { "data": { "period": { "from": "…", "to": "…" }, "compare_to_period": { "from": "…", "to": "…" },
   "time_zone": "UTC", "source": null,
   "currencies": [{ "currency": "EUR", "decimals": 2,
-    "current": { "orders": 4, "gross_total": 3800, "refunded_total": 0 },
-    "base": { "orders": 1, "gross_total": 1000, "refunded_total": 0 },
-    "gross_difference": 2800, "orders_difference": 3, "gross_change_bp": 28000 }] } }
+    "current": { "orders": 4, "gross_total": 3800, "net_total": 3420, "vat_total": 380, "refunded_total": 0 },
+    "base": { "orders": 1, "gross_total": 1000, "net_total": 900, "vat_total": 100, "refunded_total": 0 },
+    "gross_difference": 2800, "orders_difference": 3, "gross_change_bp": 28000,
+    "net_difference": 2520, "net_change_bp": 28000 }] } }
 ```
 
 - One row per currency sold in either period; a period with no sales in that currency shows zeros.
-- `gross_difference` and `orders_difference` are current minus base. `gross_change_bp` is the signed change of `gross_total` in basis points (10000 = +100 %), rounded half away from zero. It is left out when the base gross is 0.
+- `gross_difference` and `orders_difference` are current minus base. `gross_change_bp` is the signed change of `gross_total` in basis points (10000 = +100 %), rounded half away from zero. It is left out when the base gross is 0. `net_difference` and `net_change_bp` do the same on net totals; `net_change_bp` is left out when the base net is 0.
 - Both are computed in SQL. Each period follows the period rules (422 on `to` or `compare_to`). The periods may overlap, and an order in both counts in both.
 
 ## Invoice export `GET /invoices-export?from&to` (`invoice.list`)

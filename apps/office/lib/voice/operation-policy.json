@@ -1,5 +1,5 @@
 {
-  "analytics_invoices_export": {
+  "invoices_export": {
     "method": "GET",
     "path": "/workspace/{workspace}/invoices-export",
     "disposition": "execute",
@@ -31,7 +31,7 @@
     },
     "confirmationFields": []
   },
-  "analytics_sales_compare": {
+  "orders_sales_compare": {
     "method": "GET",
     "path": "/workspace/{workspace}/sales/compare",
     "disposition": "execute",
@@ -62,7 +62,7 @@
     },
     "confirmationFields": []
   },
-  "analytics_top_customers": {
+  "orders_top_customers": {
     "method": "GET",
     "path": "/workspace/{workspace}/sales/top-customers",
     "disposition": "execute",
@@ -93,7 +93,7 @@
     },
     "confirmationFields": []
   },
-  "analytics_top_products": {
+  "products_top_sellers": {
     "method": "GET",
     "path": "/workspace/{workspace}/sales/top-products",
     "disposition": "execute",

@@ -1,6 +1,6 @@
 //! SQL for sales analytics and the invoice export. "Sold" = the `orders::repo::sales_summary`
 //! rule: status open, completed, partially_returned or returned, at confirmed_at, else paid_at,
-//! completed_at, created_at.
+//! completed_at, created_at. Order net = `subtotal`, VAT = `total - subtotal`, so gross = net + VAT.
 // shortcut: each query scans the workspace's orders in range like sales_summary (no index on
 // the sold-at expression); add one when a workspace passes ~100k orders.
 
@@ -43,6 +43,8 @@ pub struct CustomerTotal {
     pub name: String,
     pub orders: i64,
     pub gross_total: i64,
+    pub net_total: i64,
+    pub vat_total: i64,
 }
 
 /// Top `limit` customers per currency by gross total (then name, id), plus one walk-in row
@@ -59,7 +61,8 @@ pub async fn top_customers(
         CustomerTotal,
         r#"WITH g AS (
                SELECT upper(c.asset_type) AS currency, c.decimals, o.relation_id,
-                      count(*) AS orders, sum(o.total)::bigint AS gross
+                      count(*) AS orders, sum(o.total)::bigint AS gross,
+                      sum(o.subtotal)::bigint AS net
                FROM orders o
                JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
                WHERE o.workspace_id = $1
@@ -77,7 +80,8 @@ pub async fn top_customers(
                FROM g
                LEFT JOIN relations rel ON rel.workspace_id = $1 AND rel.id = g.relation_id)
            SELECT r.currency AS "currency!", r.decimals AS "decimals!", r.relation_id,
-                  r.name AS "name!", r.orders AS "orders!", r.gross AS "gross_total!"
+                  r.name AS "name!", r.orders AS "orders!", r.gross AS "gross_total!",
+                  r.net AS "net_total!", r.gross - r.net AS "vat_total!"
            FROM r
            WHERE r.relation_id IS NULL OR r.rank <= $5
            ORDER BY r.currency, r.relation_id IS NULL, r.rank"#,
@@ -104,10 +108,13 @@ pub struct ProductTotal {
     pub lines: i64,
     pub orders: i64,
     pub gross_total: i64,
+    pub net_total: i64,
+    pub vat_total: i64,
 }
 
 /// Top `limit` products per currency by line totals incl VAT; each variant apart when
-/// `by_variant`. Ordered by currency, rank.
+/// `by_variant`; only `product_id` when set. Ordered by currency, rank.
+#[allow(clippy::too_many_arguments)]
 pub async fn top_products(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -116,6 +123,7 @@ pub async fn top_products(
     source: Option<&str>,
     limit: i64,
     by_variant: bool,
+    product_id: Option<Uuid>,
 ) -> Result<Vec<ProductTotal>, sqlx::Error> {
     sqlx::query_as!(
         ProductTotal,
@@ -123,7 +131,8 @@ pub async fn top_products(
                SELECT upper(c.asset_type) AS currency, c.decimals, l.product_id,
                       CASE WHEN $6 THEN l.product_variant_id END AS variant_id,
                       max(l.title) AS title, sum(l.quantity) AS units, count(*) AS lines,
-                      count(DISTINCT o.id) AS orders, sum(l.line_excl + l.line_vat)::bigint AS gross
+                      count(DISTINCT o.id) AS orders, sum(l.line_excl + l.line_vat)::bigint AS gross,
+                      sum(l.line_excl)::bigint AS net, sum(l.line_vat)::bigint AS vat
                FROM orders o
                JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
                JOIN order_lines l ON l.workspace_id = o.workspace_id AND l.order_id = o.id
@@ -132,6 +141,7 @@ pub async fn top_products(
                  AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2
                  AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3
                  AND ($4::text IS NULL OR o.source = $4)
+                 AND ($7::uuid IS NULL OR l.product_id = $7)
                GROUP BY 1, 2, 3, 4),
            r AS (
                SELECT g.*, row_number() OVER (
@@ -140,7 +150,8 @@ pub async fn top_products(
                FROM g)
            SELECT r.currency AS "currency!", r.decimals AS "decimals!", r.product_id AS "product_id!",
                   p.name, r.variant_id, v.sku, r.title AS "title!", r.units::text AS "units!",
-                  r.lines AS "lines!", r.orders AS "orders!", r.gross AS "gross_total!"
+                  r.lines AS "lines!", r.orders AS "orders!", r.gross AS "gross_total!",
+                  r.net AS "net_total!", r.vat AS "vat_total!"
            FROM r
            JOIN products p ON p.workspace_id = $1 AND p.id = r.product_id
            LEFT JOIN product_variants v ON v.workspace_id = $1 AND v.id = r.variant_id
@@ -152,6 +163,7 @@ pub async fn top_products(
         source,
         limit,
         by_variant,
+        product_id,
     )
     .fetch_all(db)
     .await
@@ -163,13 +175,17 @@ pub struct CompareRow {
     pub decimals: i16,
     pub current_orders: i64,
     pub current_gross: i64,
+    pub current_net: i64,
     pub current_refunded: i64,
     pub base_orders: i64,
     pub base_gross: i64,
+    pub base_net: i64,
     pub base_refunded: i64,
     pub gross_difference: i64,
     pub orders_difference: i64,
     pub gross_change_bp: Option<i64>,
+    pub net_difference: i64,
+    pub net_change_bp: Option<i64>,
 }
 
 /// Sales of `[from, to)` against `[base_from, base_to)` per currency sold in either. The
@@ -187,7 +203,7 @@ pub async fn compare(
     sqlx::query_as!(
         CompareRow,
         r#"WITH s AS (
-               SELECT upper(c.asset_type) AS currency, c.decimals, o.total,
+               SELECT upper(c.asset_type) AS currency, c.decimals, o.total, o.subtotal,
                       coalesce(r.amount, 0) AS refunded,
                       t.at >= $2 AND t.at < $3 AS cur, t.at >= $4 AND t.at < $5 AS base
                FROM orders o
@@ -206,17 +222,24 @@ pub async fn compare(
                SELECT currency, decimals,
                       count(*) FILTER (WHERE cur) AS co,
                       coalesce(sum(total) FILTER (WHERE cur), 0)::bigint AS cg,
+                      coalesce(sum(subtotal) FILTER (WHERE cur), 0)::bigint AS cn,
                       coalesce(sum(refunded) FILTER (WHERE cur), 0)::bigint AS cr,
                       count(*) FILTER (WHERE base) AS bo,
                       coalesce(sum(total) FILTER (WHERE base), 0)::bigint AS bg,
+                      coalesce(sum(subtotal) FILTER (WHERE base), 0)::bigint AS bn,
                       coalesce(sum(refunded) FILTER (WHERE base), 0)::bigint AS br
                FROM s GROUP BY 1, 2)
            SELECT currency AS "currency!", decimals AS "decimals!",
-                  co AS "current_orders!", cg AS "current_gross!", cr AS "current_refunded!",
-                  bo AS "base_orders!", bg AS "base_gross!", br AS "base_refunded!",
+                  co AS "current_orders!", cg AS "current_gross!", cn AS "current_net!",
+                  cr AS "current_refunded!",
+                  bo AS "base_orders!", bg AS "base_gross!", bn AS "base_net!",
+                  br AS "base_refunded!",
                   cg - bg AS "gross_difference!", co - bo AS "orders_difference!",
                   CASE WHEN bg <> 0 THEN round((cg - bg) * 10000::numeric / bg)::bigint END
-                      AS gross_change_bp
+                      AS gross_change_bp,
+                  cn - bn AS "net_difference!",
+                  CASE WHEN bn <> 0 THEN round((cn - bn) * 10000::numeric / bn)::bigint END
+                      AS net_change_bp
            FROM a ORDER BY 1"#,
         workspace_id,
         from,

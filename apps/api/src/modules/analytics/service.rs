@@ -94,11 +94,15 @@ pub async fn top_customers(
                 relation: Named { id, name: r.name },
                 orders: r.orders,
                 gross_total: r.gross_total,
+                net_total: r.net_total,
+                vat_total: r.vat_total,
             }),
             None => {
                 c.without_customer = OrderTotals {
                     orders: r.orders,
                     gross_total: r.gross_total,
+                    net_total: r.net_total,
+                    vat_total: r.vat_total,
                 }
             }
         }
@@ -128,6 +132,7 @@ pub async fn top_products(
         q.source.as_deref(),
         q.limit,
         q.by_variant,
+        q.product_id,
     )
     .await?;
     let mut currencies: Vec<ProductCurrency> = Vec::new();
@@ -151,6 +156,8 @@ pub async fn top_products(
                 lines: r.lines,
                 orders: r.orders,
                 gross_total: r.gross_total,
+                net_total: r.net_total,
+                vat_total: r.vat_total,
             });
         }
     }
@@ -200,16 +207,22 @@ pub async fn compare(
                 current: Sums {
                     orders: r.current_orders,
                     gross_total: r.current_gross,
+                    net_total: r.current_net,
+                    vat_total: r.current_gross - r.current_net,
                     refunded_total: r.current_refunded,
                 },
                 base: Sums {
                     orders: r.base_orders,
                     gross_total: r.base_gross,
+                    net_total: r.base_net,
+                    vat_total: r.base_gross - r.base_net,
                     refunded_total: r.base_refunded,
                 },
                 gross_difference: r.gross_difference,
                 orders_difference: r.orders_difference,
                 gross_change_bp: r.gross_change_bp,
+                net_difference: r.net_difference,
+                net_change_bp: r.net_change_bp,
             })
             .collect(),
     })

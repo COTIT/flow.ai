@@ -249,13 +249,13 @@ async fn top_customers_rank_per_currency(pool: PgPool) {
         json!([
             { "currency": "EUR", "decimals": 2,
               "rows": [
-                  { "relation": { "id": w.beta, "name": "Beta Shop" }, "orders": 1, "gross_total": 2000 },
-                  { "relation": { "id": w.alpha, "name": "Alpha Farm" }, "orders": 2, "gross_total": 1500 },
+                  { "relation": { "id": w.beta, "name": "Beta Shop" }, "orders": 1, "gross_total": 2000, "net_total": 1800, "vat_total": 200 },
+                  { "relation": { "id": w.alpha, "name": "Alpha Farm" }, "orders": 2, "gross_total": 1500, "net_total": 1350, "vat_total": 150 },
               ],
-              "without_customer": { "orders": 1, "gross_total": 300 } },
+              "without_customer": { "orders": 1, "gross_total": 300, "net_total": 270, "vat_total": 30 } },
             { "currency": "USD", "decimals": 2,
-              "rows": [ { "relation": { "id": w.alpha, "name": "Alpha Farm" }, "orders": 1, "gross_total": 700 } ],
-              "without_customer": { "orders": 0, "gross_total": 0 } },
+              "rows": [ { "relation": { "id": w.alpha, "name": "Alpha Farm" }, "orders": 1, "gross_total": 700, "net_total": 630, "vat_total": 70 } ],
+              "without_customer": { "orders": 0, "gross_total": 0, "net_total": 0, "vat_total": 0 } },
         ]),
         "{d}"
     );
@@ -284,9 +284,9 @@ async fn top_products_rank_by_gross(pool: PgPool) {
         d["currencies"][0],
         json!({ "currency": "EUR", "decimals": 2, "rows": [
             { "product": { "id": w.honey, "name": "Honey" }, "variant": null, "title": "Honey",
-              "units": "5.00", "lines": 2, "orders": 2, "gross_total": 2500 },
+              "units": "5.00", "lines": 2, "orders": 2, "gross_total": 2500, "net_total": 2250, "vat_total": 250 },
             { "product": { "id": w.wax, "name": "Wax" }, "variant": null, "title": "Wax",
-              "units": "3.00", "lines": 3, "orders": 3, "gross_total": 1300 },
+              "units": "3.00", "lines": 3, "orders": 3, "gross_total": 1300, "net_total": 1170, "vat_total": 130 },
         ] }),
         "{d}"
     );
@@ -320,6 +320,24 @@ async fn top_products_rank_by_gross(pool: PgPool) {
     assert_eq!(rows[0]["gross_total"], 4000);
     assert_eq!(rows[1]["variant"], Value::Null);
     assert_eq!(rows[1]["gross_total"], 2500);
+
+    // One product's sales: "how much honey did we sell in October?"
+    let d = owner_get(
+        &w,
+        &format!("/sales/top-products?{OCT}&product_id={}", w.honey),
+    )
+    .await;
+    let rows = &d["currencies"][0]["rows"];
+    assert_eq!(rows.as_array().unwrap().len(), 1, "{d}");
+    assert_eq!(rows[0]["gross_total"], 6500, "both sizes together");
+    assert_eq!(rows[0]["units"], "6.00");
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let d = owner_get(
+        &w,
+        &format!("/sales/top-products?{OCT}&product_id={}", eve.ws),
+    )
+    .await;
+    assert_eq!(d["currencies"], json!([]), "an unknown id finds nothing");
 }
 
 #[sqlx::test]
@@ -375,17 +393,19 @@ async fn compare_gives_difference_and_change(pool: PgPool) {
         d["currencies"],
         json!([
             { "currency": "EUR", "decimals": 2,
-              "current": { "orders": 4, "gross_total": 3800, "refunded_total": 0 },
-              "base": { "orders": 1, "gross_total": 1000, "refunded_total": 0 },
-              "gross_difference": 2800, "orders_difference": 3, "gross_change_bp": 28000 },
+              "current": { "orders": 4, "gross_total": 3800, "net_total": 3420, "vat_total": 380, "refunded_total": 0 },
+              "base": { "orders": 1, "gross_total": 1000, "net_total": 900, "vat_total": 100, "refunded_total": 0 },
+              "gross_difference": 2800, "orders_difference": 3, "gross_change_bp": 28000,
+              "net_difference": 2520, "net_change_bp": 28000 },
             { "currency": "JPY", "decimals": 0,
-              "current": { "orders": 0, "gross_total": 0, "refunded_total": 0 },
-              "base": { "orders": 1, "gross_total": 500, "refunded_total": 0 },
-              "gross_difference": -500, "orders_difference": -1, "gross_change_bp": -10000 },
+              "current": { "orders": 0, "gross_total": 0, "net_total": 0, "vat_total": 0, "refunded_total": 0 },
+              "base": { "orders": 1, "gross_total": 500, "net_total": 500, "vat_total": 0, "refunded_total": 0 },
+              "gross_difference": -500, "orders_difference": -1, "gross_change_bp": -10000,
+              "net_difference": -500, "net_change_bp": -10000 },
             { "currency": "USD", "decimals": 2,
-              "current": { "orders": 1, "gross_total": 700, "refunded_total": 0 },
-              "base": { "orders": 0, "gross_total": 0, "refunded_total": 0 },
-              "gross_difference": 700, "orders_difference": 1 },
+              "current": { "orders": 1, "gross_total": 700, "net_total": 630, "vat_total": 70, "refunded_total": 0 },
+              "base": { "orders": 0, "gross_total": 0, "net_total": 0, "vat_total": 0, "refunded_total": 0 },
+              "gross_difference": 700, "orders_difference": 1, "net_difference": 630 },
         ]),
         "no change % from a zero base; {d}"
     );
@@ -494,6 +514,10 @@ async fn analytics_refuse_bad_queries(pool: PgPool) {
             "compare_to",
         ),
         ("/invoices-export?from=2026-10-01", "to"),
+        (
+            "/sales/top-products?from=2026-10-01&to=2026-11-01&product_id=honey",
+            "product_id",
+        ),
     ] {
         let (s, res) = get(&w.api, &w.api.owner, &w.api.ws, path).await;
         assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{path}: {res}");

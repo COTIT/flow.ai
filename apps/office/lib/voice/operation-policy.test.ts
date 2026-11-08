@@ -355,8 +355,8 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(456)
-    expect(tools).toHaveLength(375)
+    expect(operationManifest).toHaveLength(460)
+    expect(tools).toHaveLength(379)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
