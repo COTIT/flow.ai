@@ -1,5 +1,5 @@
 //! SQL for `files`. Rows move pending -> stored and stored -> deleting -> deleted; the sweep
-//! finishes rows left pending or deleting.
+//! finishes rows left pending or deleting and removes stored rows past `expires_at`.
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -33,6 +33,8 @@ pub struct NewRow<'a> {
     pub sha256: &'a [u8],
     pub meta: Option<&'a Value>,
     pub uploaded_by: Uuid,
+    /// The sweep deletes the stored file after this; None keeps it.
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 /// A row the sweep claimed.
@@ -45,8 +47,8 @@ pub struct Claimed {
 pub async fn insert_pending(db: impl PgExecutor<'_>, r: &NewRow<'_>) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO files (id, workspace_id, key, document_name, description, extension,
-                            content_type, size, sha256, meta, uploaded_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                            content_type, size, sha256, meta, uploaded_by, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         r.id,
         r.workspace_id,
         r.key,
@@ -58,6 +60,7 @@ pub async fn insert_pending(db: impl PgExecutor<'_>, r: &NewRow<'_>) -> Result<(
         r.sha256,
         r.meta,
         r.uploaded_by,
+        r.expires_at,
     )
     .execute(db)
     .await?;
@@ -178,8 +181,8 @@ pub async fn list(
     Ok((rows, total))
 }
 
-/// Claim up to `limit` rows a write left pending for over an hour or a delete left deleting
-/// for over five minutes, as deleting. Pending ones flip so an upload finishing late can't
+/// Claim up to `limit` rows a write left pending for over an hour, a delete left deleting
+/// for over five minutes, or stored past their `expires_at`, as deleting. Pending ones flip so an upload finishing late can't
 /// mark them stored; the refreshed `updated_at` makes another replica's sweep skip them.
 pub async fn claim_unfinished(db: &sqlx::PgPool, limit: i64) -> Result<Vec<Claimed>, sqlx::Error> {
     sqlx::query_as!(
@@ -189,6 +192,7 @@ pub async fn claim_unfinished(db: &sqlx::PgPool, limit: i64) -> Result<Vec<Claim
          WHERE id IN (SELECT id FROM files
                       WHERE (status = 'pending' AND updated_at < now() - interval '1 hour')
                          OR (status = 'deleting' AND updated_at < now() - interval '5 minutes')
+                         OR (status = 'stored' AND expires_at < now())
                       ORDER BY updated_at LIMIT $1 FOR UPDATE SKIP LOCKED)
          RETURNING id, key",
         limit,

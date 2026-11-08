@@ -325,6 +325,15 @@ async fn the_seed_fills_every_module(pool: PgPool) {
             "SELECT (extract(epoch FROM max(created_at) - min(created_at)) / 86400)::bigint FROM orders WHERE workspace_id = $1",
         ),
         (
+            // Sales spread over the window at their sold-at time (the sales-summary rule), so
+            // "last month's sales" isn't empty on a freshly seeded stack.
+            afm,
+            60,
+            "SELECT (extract(epoch FROM max(t.at) - min(t.at)) / 86400)::bigint FROM orders o
+             CROSS JOIN LATERAL (SELECT coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) AS at) t
+             WHERE o.workspace_id = $1 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')",
+        ),
+        (
             afm,
             15,
             "SELECT count(*) FROM order_payments WHERE workspace_id = $1 AND kind = 'payment' AND status = 'paid'",

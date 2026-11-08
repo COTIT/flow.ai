@@ -1,5 +1,6 @@
 //! Feature modules. Each owns its routes, handlers, service, repo, DTOs.
 
+pub mod analytics;
 pub mod app_keys;
 pub mod assistant;
 pub mod attention;

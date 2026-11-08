@@ -1,0 +1,133 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH g AS (\n               SELECT upper(c.asset_type) AS currency, c.decimals, l.product_id,\n                      CASE WHEN $6 THEN l.product_variant_id END AS variant_id,\n                      max(l.title) AS title, sum(l.quantity) AS units, count(*) AS lines,\n                      count(DISTINCT o.id) AS orders, sum(l.line_excl + l.line_vat)::bigint AS gross,\n                      sum(l.line_excl)::bigint AS net, sum(l.line_vat)::bigint AS vat\n               FROM orders o\n               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n               JOIN order_lines l ON l.workspace_id = o.workspace_id AND l.order_id = o.id\n               WHERE o.workspace_id = $1\n                 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')\n                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2\n                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3\n                 AND ($4::text IS NULL OR o.source = $4)\n                 AND ($7::uuid IS NULL OR l.product_id = $7)\n               GROUP BY 1, 2, 3, 4),\n           r AS (\n               SELECT g.*, row_number() OVER (\n                          PARTITION BY g.currency\n                          ORDER BY g.gross DESC, g.product_id, g.variant_id NULLS FIRST) AS rank\n               FROM g)\n           SELECT r.currency AS \"currency!\", r.decimals AS \"decimals!\", r.product_id AS \"product_id!\",\n                  p.name, r.variant_id, v.sku, r.title AS \"title!\", r.units::text AS \"units!\",\n                  r.lines AS \"lines!\", r.orders AS \"orders!\", r.gross AS \"gross_total!\",\n                  r.net AS \"net_total!\", r.vat AS \"vat_total!\"\n           FROM r\n           JOIN products p ON p.workspace_id = $1 AND p.id = r.product_id\n           LEFT JOIN product_variants v ON v.workspace_id = $1 AND v.id = r.variant_id\n           WHERE r.rank <= $5\n           ORDER BY r.currency, r.rank",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_lines",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "variant_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "sku",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "sku"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "title!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "units!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "lines!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "gross_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "net_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "vat_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Int8",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      null,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "9a3575274baa5d345cced640f8e9a3a7c5928f2b2f21f966a0d309026bd69032"
+}

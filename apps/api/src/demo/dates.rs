@@ -38,6 +38,8 @@ pub async fn backdate(
         "UPDATE orders o SET
             created_at = d.at,
             updated_at = d.at,
+            -- sales reports read confirmed_at first; left as seed time, every sale landed today
+            confirmed_at = CASE WHEN o.confirmed_at IS NOT NULL THEN d.at + interval '5 minutes' END,
             paid_at = CASE WHEN o.paid_at IS NOT NULL THEN d.at + interval '20 minutes' END,
             completed_at = CASE WHEN o.completed_at IS NOT NULL THEN least(d.at + interval '1 day', now()) END,
             cancelled_at = CASE WHEN o.cancelled_at IS NOT NULL THEN least(d.at + interval '2 days', now()) END

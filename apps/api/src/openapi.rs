@@ -14,7 +14,7 @@ use crate::{
     error::{UnprocessableBody, ValidationErrorBody},
     http::response::MessageBody,
     modules::{
-        app_keys, assistant, attention, auth, cash, contacts, currencies, custom_statuses,
+        analytics, app_keys, assistant, attention, auth, cash, contacts, currencies, custom_statuses,
         custom_types, deal_pipelines, deals, discount_groups, discounts, email_profiles,
         email_templates, email_verification, farm_bug_reports, farm_catalogue, farm_crops,
         farm_documents, farm_logins, farm_market, farm_memberships, farm_passbook, farm_payouts,
@@ -190,6 +190,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(supply_links::routes::private())
         .merge(supply_chain::routes::private())
         .merge(orders::routes::private())
+        .merge(analytics::routes::private())
         .merge(orders::routes::storefront())
         .merge(till::routes::private())
         .merge(till_catalog::routes::private())
