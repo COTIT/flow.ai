@@ -522,7 +522,9 @@ test("the design preview route is not served by the production build", async ({
   void _api
   // The app shell streams first, so the status stays 200; the page itself is "not found".
   await page.goto("/voice/design")
-  await expect(page.getByText(en.states.pageNotFound, { exact: true })).toBeVisible()
+  await expect(
+    page.getByText(en.states.pageNotFound, { exact: true })
+  ).toBeVisible()
   await expect(page.locator("[data-design-switcher]")).toHaveCount(0)
   await expect(page.getByRole("dialog", { name: en.voice.title })).toHaveCount(
     0
