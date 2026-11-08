@@ -2177,3 +2177,74 @@ async fn boot_warm_up_builds_assistant_operation_inventory() {
     genesy_360_api::warm_up().await;
     assert!(genesy_360_api::assistant_operations_ready());
 }
+
+/// Voice and API clients pick filter/status values from these descriptions; a value missing
+/// here makes them guess (`picked`, `inactive`) and get a 422.
+#[test]
+fn status_fields_list_every_allowed_value() {
+    let spec = spec();
+    let param = |path: &str, name: &str| {
+        spec["paths"][path]["get"]["parameters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["name"] == name)
+            .unwrap()["description"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    // Same lists as `orders::dto::STATUSES` and `products::dto::STATUSES`.
+    let orders = param("/workspace/{workspace}/orders", "status");
+    for value in [
+        "draft",
+        "awaiting_payment",
+        "open",
+        "completed",
+        "cancelled",
+        "partially_returned",
+        "returned",
+    ] {
+        assert!(
+            orders.contains(&format!("`{value}`")),
+            "orders status misses {value}: {orders}"
+        );
+    }
+    let product =
+        spec["components"]["schemas"]["ProductRequest"]["properties"]["status"]["description"]
+            .as_str()
+            .unwrap();
+    let products = param("/workspace/{workspace}/products", "status");
+    for value in ["active", "disabled", "nla"] {
+        assert!(
+            product.contains(&format!("`{value}`")),
+            "product status misses {value}: {product}"
+        );
+        assert!(
+            products.contains(&format!("`{value}`")),
+            "products filter misses {value}: {products}"
+        );
+    }
+}
+
+/// Copy takes no changes and refunds cover online payments only; voice must know both.
+#[test]
+fn duplicate_and_refund_say_what_they_cannot_do() {
+    let spec = spec();
+    let op = |path: &str| &spec["paths"][path]["post"];
+    let copy = op("/workspace/{workspace}/products/{product}/duplicate");
+    assert!(
+        copy["description"]
+            .as_str()
+            .unwrap_or("")
+            .contains("update the copy")
+    );
+    let refund = op("/workspace/{workspace}/orders/{order}/refunds");
+    assert!(refund["summary"].as_str().unwrap().contains("online"));
+    assert!(
+        refund["description"]
+            .as_str()
+            .unwrap_or("")
+            .contains("till")
+    );
+}

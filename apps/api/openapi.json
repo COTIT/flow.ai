@@ -16742,7 +16742,7 @@
             ]
           },
           "status": {
-            "description": "Default `active`.",
+            "description": "`active` (on sale), `disabled` (hidden from shop and till, kept, e.g. until next season)\nor `nla` (no longer available). Default `active`.",
             "type": [
               "string",
               "null"
@@ -73231,7 +73231,7 @@
             }
           },
           {
-            "description": "One status.",
+            "description": "One status: `draft`, `awaiting_payment`, `open`, `completed`, `cancelled`,\n`partially_returned` or `returned`. Picked orders are still `open`.",
             "in": "query",
             "name": "status",
             "required": false,
@@ -75082,6 +75082,7 @@
     },
     "/workspace/{workspace}/orders/{order}/refunds": {
       "post": {
+        "description": "Only an order paid online. A till sale paid at the counter has no online payment here (409); its money goes back on the till, and `orders_returns` records the goods coming back.",
         "operationId": "orders_refund",
         "parameters": [
           {
@@ -75270,7 +75271,7 @@
             "bearer": []
           }
         ],
-        "summary": "Refund part of an online payment",
+        "summary": "Refund part of an online (card or web) payment",
         "tags": [
           "orders"
         ]
@@ -75639,7 +75640,7 @@
             }
           },
           {
-            "description": "Default `active`.",
+            "description": "`active`, `disabled` or `nla`. Default `active`.",
             "in": "query",
             "name": "status",
             "required": false,
@@ -80172,6 +80173,7 @@
     },
     "/workspace/{workspace}/products/{product}/duplicate": {
       "post": {
+        "description": "An exact copy; takes no changes. For another size, name or price, copy first, then update the copy.",
         "operationId": "products_duplicate",
         "parameters": [
           {

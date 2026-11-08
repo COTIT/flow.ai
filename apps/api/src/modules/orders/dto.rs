@@ -332,7 +332,8 @@ pub struct ListQuery {
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
-    /// One status.
+    /// One status: `draft`, `awaiting_payment`, `open`, `completed`, `cancelled`,
+    /// `partially_returned` or `returned`. Picked orders are still `open`.
     pub status: Option<String>,
 }
 

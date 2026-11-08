@@ -16,7 +16,7 @@ q?: string;
  */
 search?: string;
 /**
- * Default `active`.
+ * `active`, `disabled` or `nla`. Default `active`.
  */
 status?: string;
 /**
