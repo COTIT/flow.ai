@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND o.id = $2\n           FOR UPDATE OF o",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  coalesce((SELECT coalesce(nullif(r.company_name, ''), nullif(r.alias, ''))\n                            FROM relations r\n                            WHERE r.workspace_id = o.workspace_id AND r.id = o.relation_id),\n                           nullif(o.customer ->> 'name', '')) AS customer_name,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND o.id = $2",
   "describe": {
     "columns": [
       {
@@ -237,6 +237,12 @@
       },
       {
         "ordinal": 22,
+        "name": "customer_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 23,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -247,7 +253,7 @@
         }
       },
       {
-        "ordinal": 23,
+        "ordinal": 24,
         "name": "confirmed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -258,7 +264,7 @@
         }
       },
       {
-        "ordinal": 24,
+        "ordinal": 25,
         "name": "picked_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -269,7 +275,7 @@
         }
       },
       {
-        "ordinal": 25,
+        "ordinal": 26,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -309,11 +315,12 @@
       true,
       true,
       null,
+      null,
       false,
       true,
       true,
       false
     ]
   },
-  "hash": "1f482dd7d707e5ddf151be54be906a589677f4fc5fd4088aab38f1cd60dcea4c"
+  "hash": "cbae21e1e60958aa0dca98f1cfcccdde5b570ebf7b4de8fd421cc38af1663aad"
 }

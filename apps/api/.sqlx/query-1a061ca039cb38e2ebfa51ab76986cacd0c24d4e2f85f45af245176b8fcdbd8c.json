@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT upper(c.asset_type) AS \"code!\", c.decimals,\n                  sum(i.total - i.paid_total)::bigint AS \"open_minor!\"\n           FROM invoices i\n           JOIN currencies c ON c.workspace_id = i.workspace_id AND c.id = i.currency_id\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL\n             AND NOT i.is_credit\n             AND i.status IN ('pending', 'awaiting_payment', 'awaiting_pos_payment', 'partially_paid')\n             AND ($2::uuid IS NULL OR i.relation_id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($5::bool IS NULL OR i.is_credit = $5)\n             AND (CASE WHEN $6\n                       THEN ($4::text[] IS NOT NULL AND i.status = ANY($4))\n                            OR (i.meta -> 'on_account' = 'true'\n                                AND i.status NOT IN ('paid', 'credited', 'cancelled'))\n                       ELSE $4::text[] IS NULL OR i.status = ANY($4) END)\n             AND ($7::text IS NULL OR i.reference ILIKE $7 OR EXISTS (\n                     SELECT 1 FROM relations r\n                     WHERE r.workspace_id = i.workspace_id AND r.id = i.relation_id\n                       AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))\n             AND ($8::timestamptz IS NULL OR i.send_date < $8)\n             AND ($9::timestamptz IS NULL OR i.due_date < $9)\n           GROUP BY upper(c.asset_type), c.decimals\n           ORDER BY 1, 2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "open_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Bool",
+        "Bool",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "1a061ca039cb38e2ebfa51ab76986cacd0c24d4e2f85f45af245176b8fcdbd8c"
+}

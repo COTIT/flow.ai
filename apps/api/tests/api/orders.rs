@@ -1319,3 +1319,77 @@ async fn sales_summary_counts_sold_orders_per_currency(pool: PgPool) {
     let (s, _) = summary(&w, &clerk, &ws, &range).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "needs order.list");
 }
+
+async fn relation(w: &W, name: &str) -> String {
+    w.api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": name, "type": "business",
+                    "addresses": [{ "address": "Main", "house_number": "1", "zipcode": "1000AA",
+                                    "city": "Amsterdam", "country": "NL", "type": "billing" }] }),
+            "relation_id",
+        )
+        .await
+}
+
+/// `relation_id` narrows the list to one customer; every item names its customer
+/// (`customer_name`: the relation's company name, else the web customer's name).
+#[sqlx::test]
+async fn list_filters_by_customer_and_names_it(pool: PgPool) {
+    let w = world(pool).await;
+    let serena = relation(&w, "Hotel Serena").await;
+    let other = relation(&w, "Kili Lodge").await;
+    let (s, res) = call(
+        &w,
+        Method::POST,
+        "",
+        Some(json!({ "relation_id": serena, "lines": [line(&w.honey, "1")] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let hotel = res["data"]["order_id"].as_str().unwrap().to_owned();
+    let (s, _) = call(
+        &w,
+        Method::POST,
+        "",
+        Some(json!({ "relation_id": other, "lines": [line(&w.wax, "1")] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let web = draft(&w, json!([line(&w.honey, "1")])).await;
+    sqlx::query(
+        r#"UPDATE orders SET customer = '{"name": "Jordan Web", "email": "j@example.com"}'
+           WHERE id = $1::uuid"#,
+    )
+    .bind(&web)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+
+    let mine = w.api.list(&format!("?relation_id={serena}")).await;
+    assert_eq!(ids(&mine), [hotel.as_str()]);
+    assert_eq!(mine["meta"]["total"], 1);
+    assert_eq!(mine["data"][0]["customer_name"], "Hotel Serena");
+    let all = w.api.list("").await;
+    let name_of = |id: &str| {
+        all["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|o| o["id"] == id)
+            .unwrap()["customer_name"]
+            .clone()
+    };
+    assert_eq!(name_of(&web), "Jordan Web");
+    let (s, res) = call(&w, Method::GET, "?relation_id=serena", None).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["relation_id"][0],
+        "The relation id must be a valid UUID."
+    );
+
+    // Another workspace: Ada's relation id finds nothing there.
+    let bob = w.api.as_new_owner("bob@example.com", "bobs").await;
+    let theirs = bob.list(&format!("?relation_id={serena}")).await;
+    assert_eq!(theirs["meta"]["total"], 0);
+}

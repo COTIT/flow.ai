@@ -1301,3 +1301,107 @@ async fn list_filters_by_sent_and_due_dates(pool: PgPool) {
         0
     );
 }
+
+/// `meta.open_totals`: what is still to be paid, per currency in minor units, over the whole
+/// filtered set (every page). Only payable invoices count (not credit notes; pending,
+/// awaiting_payment, awaiting_pos_payment, partially_paid), so drafts, paid and cancelled add 0.
+#[sqlx::test]
+async fn list_meta_sums_open_amounts_per_currency(pool: PgPool) {
+    let api = api(pool).await;
+    let (acme, _) = relation(&api, "Acme").await;
+    let (beta, _) = relation(&api, "Beta").await;
+    let tzs = api
+        .with_base("/currencies")
+        .create(
+            json!({ "name": "Shilling", "asset_type": "tzs", "decimals": 2,
+                    "default_currency": false, "active": true }),
+            "currency_id",
+        )
+        .await;
+    let invoice = |rel: String,
+                   status: &'static str,
+                   total: i64,
+                   paid: i64,
+                   credit: bool,
+                   currency: Option<String>| {
+        let api = &api;
+        async move {
+            let id = api
+                .create(json!({ "relation_id": rel }), "invoice_id")
+                .await;
+            sqlx::query(
+                "UPDATE invoices SET status = $2, subtotal = $3, total = $3, paid_total = $4,
+                        is_credit = $5, currency_id = coalesce($6::uuid, currency_id)
+                 WHERE id = $1::uuid",
+            )
+            .bind(&id)
+            .bind(status)
+            .bind(total)
+            .bind(paid)
+            .bind(credit)
+            .bind(currency)
+            .execute(&api.pool)
+            .await
+            .unwrap();
+            id
+        }
+    };
+    invoice(acme.clone(), "pending", 12_100, 2_100, false, None).await;
+    invoice(beta.clone(), "partially_paid", 5_000, 1_000, false, None).await;
+    invoice(
+        acme.clone(),
+        "awaiting_payment",
+        500_000,
+        0,
+        false,
+        Some(tzs),
+    )
+    .await;
+    invoice(acme.clone(), "draft", 999, 0, false, None).await;
+    invoice(acme.clone(), "pending", 3_000, 0, true, None).await;
+    invoice(acme.clone(), "cancelled", 7_000, 0, false, None).await;
+    invoice(acme.clone(), "paid", 4_000, 4_000, false, None).await;
+
+    let want = json!([
+        { "currency": { "code": "EUR", "decimals": 2 }, "open_minor": 14_000 },
+        { "currency": { "code": "TZS", "decimals": 2 }, "open_minor": 500_000 },
+    ]);
+    // Same totals on every page, and equal to the payable rows listed across the pages.
+    let mut summed: std::collections::BTreeMap<String, i64> = Default::default();
+    for page in 1..=4 {
+        let res = api.list(&format!("?page_size=2&page={page}")).await;
+        assert_eq!(res["meta"]["open_totals"], want, "page {page}");
+        for r in res["data"].as_array().unwrap() {
+            let payable = [
+                "pending",
+                "awaiting_payment",
+                "awaiting_pos_payment",
+                "partially_paid",
+            ]
+            .contains(&r["status"].as_str().unwrap())
+                && r["is_credit"] != json!(true);
+            if payable {
+                *summed
+                    .entry(r["money"]["currency"].as_str().unwrap().to_uppercase())
+                    .or_default() += r["money"]["open"].as_i64().unwrap();
+            }
+        }
+    }
+    assert_eq!(
+        summed.into_iter().collect::<Vec<_>>(),
+        [("EUR".to_owned(), 14_000), ("TZS".to_owned(), 500_000)]
+    );
+
+    assert_eq!(
+        api.list(&format!("?relation_id={beta}")).await["meta"]["open_totals"],
+        json!([{ "currency": { "code": "EUR", "decimals": 2 }, "open_minor": 4_000 }]),
+        "how much Beta owes"
+    );
+    assert_eq!(
+        api.list("?in_status=paid,draft").await["meta"]["open_totals"],
+        json!([])
+    );
+
+    let bob = api.as_new_owner("bob@example.com", "bobs").await;
+    assert_eq!(bob.list("").await["meta"]["open_totals"], json!([]));
+}

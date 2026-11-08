@@ -528,6 +528,7 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid, x: &Extras) -> Ord
         status: o.status,
         source: o.source,
         relation_id: o.relation_id,
+        customer_name: o.customer_name,
         currency_id: o.currency_id,
         currency: o.currency,
         decimals: o.decimals,

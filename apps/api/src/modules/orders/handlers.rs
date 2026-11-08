@@ -46,10 +46,10 @@ type OrderPath = Path<(String, String)>;
     operation_id = "orders_list", summary = "List orders",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
-        (status = 200, body = Paginated<OrderResource>, description = "One page of orders with lines, newest first"),
+        (status = 200, body = Paginated<OrderResource>, description = "One page of orders with lines, newest first; `meta.total` counts every match across pages, `meta.last_page` says how many pages"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `order.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = UnprocessableBody, description = "Unknown status filter, malformed `created_from`/`created_to`, or `created_to` not after `created_from`"),
+        (status = 422, body = UnprocessableBody, description = "Unknown status filter, malformed `relation_id`, `created_from` or `created_to`, or `created_to` not after `created_from`"),
     ),
     security(("bearer" = []))
 )]
@@ -65,6 +65,7 @@ pub async fn list(
     let mut r = Rules::default();
     let from = list::when(&mut r, "created_from", query.created_from.as_deref());
     let to = list::when(&mut r, "created_to", query.created_to.as_deref());
+    let relation_id = list::id(&mut r, "relation_id", query.relation_id.as_deref());
     r.into_result()?;
     let ws = access.workspace_id;
     let created_from = match from {
@@ -86,6 +87,7 @@ pub async fn list(
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
     let f = repo::ListFilter {
         status,
+        relation_id,
         created_from,
         created_to,
     };

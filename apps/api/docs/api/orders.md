@@ -41,7 +41,7 @@ Every order resource (get, list, each action's answer) lists the actions the API
 
 | Method | Path | Permission | Success |
 |---|---|---|---|
-| GET | `/orders?status=&created_from=&created_to=&page=&page_size=` | `order.list` | 200 page of orders with lines, newest first (see "List filters") |
+| GET | `/orders?status=&relation_id=&created_from=&created_to=&page=&page_size=` | `order.list` | 200 page of orders with lines, newest first (see "List filters") |
 | POST | `/orders` | `order.create` | 201 `{data:{order_id, number}}` |
 | GET | `/orders/{order}` | `order.view` | 200 `{data: order}` |
 | PATCH | `/orders/{order}` | `order.update` | 200 `{data: order}`; `lines`/`warehouse_id` on drafts only (else 409) |
@@ -60,6 +60,9 @@ Every write takes an optional `Idempotency-Key` (1–255 visible characters): a 
 ## List filters
 
 - `status`: one status (422 `The selected status is invalid.`).
+- `relation_id`: one customer's orders (422 `The relation id must be a valid UUID.`; another workspace's id finds nothing).
+- Each order carries `customer_name`: the relation's company name, else its alias, else the web customer's `customer.name`; null when none. Read in the same statement (also on show).
+- `meta.total` counts every match across pages and `meta.last_page` the pages, so one page of 50 is never the whole answer.
 - `created_from` (inclusive) and `created_to` (exclusive): an RFC 3339 time with offset, or a `YYYY-MM-DD` date. A date means local midnight starting that day in the workspace `general.timezone` setting (UTC when unset or not a zone Postgres knows). Yesterday's orders: `created_from=<yesterday>&created_to=<today>`.
 - 422 `The created from must be an RFC 3339 time or a YYYY-MM-DD date.` (same for `created_to`), and `The created to must be after created from.` on `created_to` when both are set and `to ≤ from`.
 - One statement on `orders_list_idx`; a date costs one extra statement to place it in the workspace zone.

@@ -332,8 +332,12 @@ pub struct ListQuery {
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
-    /// One status.
+    /// One status: `draft`, `awaiting_payment`, `open` (confirmed, not yet completed),
+    /// `completed`, `cancelled`, `partially_returned`, `returned`.
     pub status: Option<String>,
+    /// Only this customer's orders (relation id; `customer_name` shows the name).
+    #[param(value_type = Option<Uuid>)]
+    pub relation_id: Option<String>,
     /// Created at or after (inclusive). RFC 3339 time, or `YYYY-MM-DD` = local midnight
     /// starting that day in the workspace `general.timezone` (UTC when unset). Yesterday's
     /// orders: `created_from=<yesterday>&created_to=<today>`.
@@ -411,6 +415,9 @@ pub struct OrderResource {
     pub source: String,
     #[schema(required = true)]
     pub relation_id: Option<Uuid>,
+    /// The customer: relation company name or alias, else the web customer's name.
+    #[schema(required = true, example = "Hotel Serena")]
+    pub customer_name: Option<String>,
     pub currency_id: Uuid,
     #[schema(example = "EUR")]
     pub currency: String,

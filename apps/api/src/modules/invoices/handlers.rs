@@ -161,10 +161,14 @@ pub async fn list(
         page: Page::parse(q.page.as_deref(), q.page_size.as_deref()),
     };
     let (rows, total) = service::list(&state, access.workspace_id, &args).await?;
-    Ok(match limit {
-        Some(_) => Json(json!({ "data": rows })).into_response(),
-        None => Json(Paginated::new(rows, total, args.page)).into_response(),
-    })
+    if limit.is_some() {
+        return Ok(Json(json!({ "data": rows })).into_response());
+    }
+    let open_totals = service::open_totals(&state, access.workspace_id, &args.filter).await?;
+    let (data, meta) = Paginated::new(rows, total, args.page).into_parts();
+    let mut meta = serde_json::to_value(meta).map_err(|e| AppError::Internal(e.to_string()))?;
+    meta["open_totals"] = json!(open_totals);
+    Ok(Json(json!({ "data": data, "meta": meta })).into_response())
 }
 
 /// GET /invoices/{id}.

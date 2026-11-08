@@ -182,6 +182,8 @@ Newest first; `page` / `page_size` (50, max 100), or `limit` (1..100) for a plai
 | `on_account` | with `in_status`: those, or on-account invoices (`meta.on_account`) not paid, credited or cancelled |
 | `q` | ≤ 100 chars; matches the reference or the relation's name or alias (ILIKE). Laravel searched Meilisearch; the search batch replaces this |
 
+`meta.open_totals` (paged lists only, not with `limit`): `[{currency: {code, decimals}, open_minor}]`, the amount still to be paid on non-credit invoices in the listed set, every page, per currency, ordered by code. One grouped SQL sum of `total − paid_total` over the same filter, counting only `pending`, `awaiting_payment`, `awaiting_pos_payment` and `partially_paid` invoices that aren't credit notes; drafts, paid, cancelled and credit notes add 0. `?relation_id=X` answers what X owes. Empty array when nothing is owed.
+
 A malformed `sent_before` / `due_before` is 422 `The sent before must be an RFC 3339 time or a YYYY-MM-DD date.` (`due before` likewise).
 
 Rows (InvoiceIndexResource):
