@@ -16,6 +16,25 @@ pub async fn session(db: &PgPool, o: Owner, id: Uuid) -> Result<Session, AppErro
     repo::session(db, o, id).await?.ok_or(AppError::NotFound)
 }
 
+/// Session resource plus `identity`; `permissions` come from the request's access check.
+pub async fn session_with_identity(
+    db: &PgPool,
+    o: Owner,
+    id: Uuid,
+    permissions: Vec<String>,
+) -> Result<Value, AppError> {
+    let (session, workspaces, farm_roles) = repo::session_identity(db, o, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let mut value = session.resource();
+    value["identity"] = serde_json::json!({
+        "workspaces": workspaces,
+        "permissions": permissions,
+        "farm_roles": farm_roles,
+    });
+    Ok(value)
+}
+
 /// New assistant session owned by this login.
 pub async fn create_session(db: &PgPool, o: Owner, language: &str) -> Result<Value, AppError> {
     let id = repo::create_session(db, o, language).await?;

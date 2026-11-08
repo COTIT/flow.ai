@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `GET /workspace/{workspace}/assistant/sessions/{session}?with=identity` (`docs/api/assistant.md`; no migration) adds `identity` `{workspaces, permissions, farm_roles}` to the session, matching `/me/workspaces`, this workspace's `/me` permissions and `/farm/me` roles. Office's voice bridge can replace four round trips with one. The request runs three statements in total (token, membership, one session-and-identity read) and caches nothing. Any other `with` value returns 422. The plain `GET` is unchanged.
+
 - Assistant business drafts refuse exact PIN fields recursively before persistence, while ordinary pipeline, shipping and fingerprint fields retain their existing behavior. Till credential changes stay in secure forms.
 
 - Assistant app-key revocation accepts exact reviewed DELETE requests with native admin authorization; key issuance and credential paths keep their secure-form refusal. Revocation returns no credential and consumes approval once.

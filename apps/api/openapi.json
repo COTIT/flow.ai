@@ -34534,6 +34534,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Only `identity`.",
+            "in": "query",
+            "name": "with",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -34576,6 +34585,16 @@
               }
             },
             "description": "Unknown resource or another login/workspace"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid control input"
           },
           "429": {
             "content": {
@@ -34629,7 +34648,7 @@
             "bearer": []
           }
         ],
-        "summary": "Inspect only this login's session, including expired history.",
+        "summary": "Inspect only this login's session, including expired history; `with=identity` adds\n`/me/workspaces` ids, this workspace's `/me` permissions and `/farm/me` roles.",
         "tags": [
           "assistant"
         ]

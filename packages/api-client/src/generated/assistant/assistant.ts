@@ -28,6 +28,7 @@ import type {
   ActionInput,
   AdvanceInput,
   AssistantActionsListParams,
+  AssistantSessionsGetParams,
   AttachInput,
   BatchInput,
   CompleteInput,
@@ -1173,17 +1174,20 @@ export const useAssistantSessionsClose = <TError = ErrorType<MessageBody>,
       return useMutation(getAssistantSessionsCloseMutationOptions(options), queryClient);
     }
     /**
- * @summary Inspect only this login's session, including expired history.
+ * @summary Inspect only this login's session, including expired history; `with=identity` adds
+`/me/workspaces` ids, this workspace's `/me` permissions and `/farm/me` roles.
  */
 export const assistantSessionsGet = (
     workspace: string,
     session: string,
+    params?: AssistantSessionsGetParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
 
       return apiRequest<EnvelopeValue>(
-      {url: `/workspace/${workspace}/assistant/sessions/${session}`, method: 'GET', signal
+      {url: `/workspace/${workspace}/assistant/sessions/${session}`, method: 'GET',
+        params, signal
     },
       options);
     }
@@ -1192,24 +1196,26 @@ export const assistantSessionsGet = (
 
 
 export const getAssistantSessionsGetQueryKey = (workspace: string,
-    session: string,) => {
+    session: string,
+    params?: AssistantSessionsGetParams,) => {
     return [
-    `/workspace/${workspace}/assistant/sessions/${session}`
+    `/workspace/${workspace}/assistant/sessions/${session}`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getAssistantSessionsGetQueryOptions = <TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
-    session: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getAssistantSessionsGetQueryOptions = <TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    session: string,
+    params?: AssistantSessionsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getAssistantSessionsGetQueryKey(workspace,session);
+  const queryKey =  queryOptions?.queryKey ?? getAssistantSessionsGetQueryKey(workspace,session,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof assistantSessionsGet>>> = ({ signal }) => assistantSessionsGet(workspace,session, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof assistantSessionsGet>>> = ({ signal }) => assistantSessionsGet(workspace,session,params, requestOptions, signal);
 
 
 
@@ -1219,12 +1225,13 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type AssistantSessionsGetQueryResult = NonNullable<Awaited<ReturnType<typeof assistantSessionsGet>>>
-export type AssistantSessionsGetQueryError = ErrorType<MessageBody>
+export type AssistantSessionsGetQueryError = ErrorType<MessageBody | UnprocessableBody>
 
 
-export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody>>(
+export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    session: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>> & Pick<
+    session: string,
+    params: undefined |  AssistantSessionsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof assistantSessionsGet>>,
           TError,
@@ -1233,9 +1240,10 @@ export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assist
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody>>(
+export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    session: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>> & Pick<
+    session: string,
+    params?: AssistantSessionsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof assistantSessionsGet>>,
           TError,
@@ -1244,22 +1252,25 @@ export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assist
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody>>(
+export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    session: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    session: string,
+    params?: AssistantSessionsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Inspect only this login's session, including expired history.
+ * @summary Inspect only this login's session, including expired history; `with=identity` adds
+`/me/workspaces` ids, this workspace's `/me` permissions and `/farm/me` roles.
  */
 
-export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody>>(
+export function useAssistantSessionsGet<TData = Awaited<ReturnType<typeof assistantSessionsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    session: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    session: string,
+    params?: AssistantSessionsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantSessionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getAssistantSessionsGetQueryOptions(workspace,session,options)
+  const queryOptions = getAssistantSessionsGetQueryOptions(workspace,session,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

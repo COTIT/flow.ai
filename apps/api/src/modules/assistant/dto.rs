@@ -203,6 +203,27 @@ pub struct HistoryQuery {
     pub before: Option<i64>,
 }
 
+/// Session read options; `with=identity` adds the caller's access facts.
+#[derive(Deserialize, ToSchema, utoipa::IntoParams)]
+#[into_params(parameter_in=Query)]
+pub struct SessionQuery {
+    /// Only `identity`.
+    pub with: Option<String>,
+}
+impl SessionQuery {
+    /// True for `with=identity`; any other value is a 422.
+    pub fn identity(&self) -> Result<bool, crate::AppError> {
+        match self.with.as_deref() {
+            None => Ok(false),
+            Some("identity") => Ok(true),
+            Some(_) => Err(crate::AppError::field(
+                "with",
+                "The selected with is invalid.",
+            )),
+        }
+    }
+}
+
 /// Documented list envelope for bounded control records.
 #[derive(Serialize, ToSchema)]
 pub struct ControlListDoc {

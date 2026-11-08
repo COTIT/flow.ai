@@ -44,6 +44,11 @@ impl WorkspaceAccess {
         self.granted.is_admin()
     }
 
+    /// `/me` permission list for this workspace: grants sorted, then `workspace_owner`.
+    pub fn permissions(&self) -> Vec<String> {
+        self.granted.to_list()
+    }
+
     /// Same check as `Can<P>`, for a rule that only applies to some request bodies.
     pub fn allows(&self, name: &str) -> bool {
         self.granted.allows(name)

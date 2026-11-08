@@ -45,13 +45,20 @@ pub async fn create_session(
     ))
 }
 
-/// Inspect only this login's session, including expired history.
-#[utoipa::path(get,path="/workspace/{workspace}/assistant/sessions/{session}",tag="assistant",operation_id="assistant_sessions_get",params(("workspace"=Uuid,Path),("session"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Current owned control state")),security(("bearer"=[])))]
+/// Inspect only this login's session, including expired history; `with=identity` adds
+/// `/me/workspaces` ids, this workspace's `/me` permissions and `/farm/me` roles.
+#[utoipa::path(get,path="/workspace/{workspace}/assistant/sessions/{session}",tag="assistant",operation_id="assistant_sessions_get",params(("workspace"=Uuid,Path),("session"=Uuid,Path),SessionQuery),responses((status=200,body=Envelope<Value>,description="Current owned control state"),(status=422,body=UnprocessableBody,description="Invalid control input")),security(("bearer"=[])))]
 pub async fn get_session(
     State(s): State<AppState>,
     a: WorkspaceAccess,
     Path((_, id)): SessionPath,
+    Query(q): Query<SessionQuery>,
 ) -> Result<Data<Value>, AppError> {
+    if q.identity()? {
+        return Ok(Data(
+            service::session_with_identity(&s.db, owner(&a), id, a.permissions()).await?,
+        ));
+    }
     Ok(Data(
         service::session(&s.db, owner(&a), id).await?.resource(),
     ))
