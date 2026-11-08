@@ -1,0 +1,9 @@
+ThoughtLine: React Bits TypeScript + Tailwind source, fetched 2026-11-08:
+https://github.com/DavidHDev/react-bits/blob/main/src/ts-tailwind/Micro/ThoughtLine/ThoughtLine.tsx
+
+Copyright (c) 2026 David Haz. MIT + Commons Clause License Condition v1.0.
+Full license in LICENSE.md. Product embedding is allowed; selling or redistributing the components themselves is not.
+
+Office compatibility header `// @ts-nocheck` as on every file here.
+The only edit: `@hugeicons` replaced by a small lucide-react shim at the top (no new dependency; same call sites), marked `// Genesy edit:`.
+Customization lives in components/voice/ (props and the palette overrides in app/office.css).
