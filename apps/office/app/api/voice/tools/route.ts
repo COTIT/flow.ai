@@ -29,6 +29,7 @@ import {
 } from "@/lib/voice/batches"
 import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 import { narrate } from "@/lib/voice/narration"
+import { noteToolCall, trackGap, type GapScope } from "@/lib/voice/gaps"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -87,9 +88,12 @@ const batchStatusTool = {
 }
 /** Model bridge can propose operations and read status; it cannot approve or commit. */
 export function POST(request: Request) {
-  return withVoiceTracing("genesy_assistant_tools", () => handle(request))
+  const scope: GapScope = {}
+  return withVoiceTracing("genesy_assistant_tools", () =>
+    handle(request, scope).then((response) => trackGap(scope, response))
+  )
 }
-async function handle(request: Request) {
+async function handle(request: Request, scope: GapScope) {
   let releaseFile: (() => void) | undefined
   let language = "en"
   let isBatch = false
@@ -112,6 +116,18 @@ async function handle(request: Request) {
     if (!statusRequest && !session.conversation_id)
       throw new VoiceError("Conversation identity has not been bound.", 409)
     language = context.language ?? "en"
+    if (!statusRequest) {
+      scope.context = context
+      scope.operationId =
+        input.command === "execute"
+          ? String(input.operationId ?? "")
+          : undefined
+      scope.query = String(input.query ?? scope.operationId ?? "").replace(
+        /_/g,
+        " "
+      )
+      noteToolCall(context, scope.operationId)
+    }
     isBatch =
       input.operationId === BATCH_PREPARE_OPERATION ||
       input.operationId === BATCH_STATUS_OPERATION

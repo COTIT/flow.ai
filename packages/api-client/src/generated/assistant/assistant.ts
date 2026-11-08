@@ -34,6 +34,8 @@ import type {
   CompleteInput,
   ControlListDoc,
   EnvelopeValue,
+  FollowUpInput,
+  GapInput,
   MessageBody,
   PauseInput,
   ProposalInput,
@@ -221,6 +223,74 @@ export const useAssistantCleanupAck = <TError = ErrorType<MessageBody>,
         TContext
       > => {
       return useMutation(getAssistantCleanupAckMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Set one follow-up signal within 10 minutes of the gap; signature only, filtered by workspace.
+ */
+export const assistantGapsFollowUp = (
+    gap: string,
+    followUpInput: BodyType<FollowUpInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/assistant/gaps/${gap}/follow-up`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: followUpInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantGapsFollowUpMutationKey = () => ['assistantGapsFollowUp'] as const;
+
+export const getAssistantGapsFollowUpMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantGapsFollowUp>>, TError,AssistantGapsFollowUpMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantGapsFollowUp>>, TError,AssistantGapsFollowUpMutationVariables, TContext> => {
+
+const mutationKey = getAssistantGapsFollowUpMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantGapsFollowUp>>, AssistantGapsFollowUpMutationVariables> = (props) => {
+          const {gap,data} = props ?? {};
+
+          return  assistantGapsFollowUp(gap,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantGapsFollowUpMutationResult = NonNullable<Awaited<ReturnType<typeof assistantGapsFollowUp>>>
+    export type AssistantGapsFollowUpMutationBody = BodyType<FollowUpInput>
+    export type AssistantGapsFollowUpMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantGapsFollowUpMutationVariables = {gap: string;data: BodyType<FollowUpInput>}
+
+    /**
+ * @summary Set one follow-up signal within 10 minutes of the gap; signature only, filtered by workspace.
+ */
+export const useAssistantGapsFollowUp = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantGapsFollowUp>>, TError,AssistantGapsFollowUpMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantGapsFollowUp>>,
+        TError,
+        AssistantGapsFollowUpMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantGapsFollowUpMutationOptions(options), queryClient);
     }
     /**
  * @summary Persist exact bounded business draft, never approving model output.
@@ -1038,6 +1108,74 @@ export const useAssistantBatchesStart = <TError = ErrorType<MessageBody | Unproc
         TContext
       > => {
       return useMutation(getAssistantBatchesStartMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Record one gap for this workspace; Office bridge signature required.
+ */
+export const assistantGapsCreate = (
+    workspace: string,
+    gapInput: BodyType<GapInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/assistant/gaps`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: gapInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantGapsCreateMutationKey = () => ['assistantGapsCreate'] as const;
+
+export const getAssistantGapsCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantGapsCreate>>, TError,AssistantGapsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantGapsCreate>>, TError,AssistantGapsCreateMutationVariables, TContext> => {
+
+const mutationKey = getAssistantGapsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantGapsCreate>>, AssistantGapsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  assistantGapsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantGapsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof assistantGapsCreate>>>
+    export type AssistantGapsCreateMutationBody = BodyType<GapInput>
+    export type AssistantGapsCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantGapsCreateMutationVariables = {workspace: string;data: BodyType<GapInput>}
+
+    /**
+ * @summary Record one gap for this workspace; Office bridge signature required.
+ */
+export const useAssistantGapsCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantGapsCreate>>, TError,AssistantGapsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantGapsCreate>>,
+        TError,
+        AssistantGapsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantGapsCreateMutationOptions(options), queryClient);
     }
     /**
  * @summary Start login-bound session; task ownership uses same server-generated id.

@@ -330,6 +330,7 @@ pub async fn prune(db: &PgPool) -> Result<u64, sqlx::Error> {
     super::batch_repo::prune(db).await?;
     crate::modules::invoices::delivery_repo::prune(db).await?;
     super::retention::prune(db).await?;
+    super::gaps_repo::prune(db).await?;
     Ok(removed)
 }
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Voice gap ledger (`docs/api/assistant.md`; migration `assistant_gaps`): Office records each voice request the assistant could not finish (unsupported, refused, failed, cancelled, dropped) with domain, language, a catalog-word intent, tried tools and status, plus one follow-up (`rephrased`, or `used_ui` with the page pattern). Writes need the bridge signature; there is no read route, staff use `scripts/voice-gaps.sql` (cross-workspace output carries no workspace ids). Rows leave after 90 days.
+
 - Assistant batch prepare latency (no migration): boot `warm_up` now builds the assistant operation inventory (the OpenAPI spec walk behind `resolve_operation`), so the first proposal, batch or guarded dispatch after a deploy no longer pays for it. Local debug build, 10-step batch: 914 ms cold, of which 737 ms was that build; 154 ms warm. Debug-level `tracing` spans now cover batch create, each step's review-fact capture and the batch SQL. Measured per step: two statements, no N+1, no missing index.
 
 - `GET /workspace/{workspace}/assistant/sessions/{session}?with=identity` (`docs/api/assistant.md`; no migration) adds `identity` `{workspaces, permissions, farm_roles}` to the session, matching `/me/workspaces`, this workspace's `/me` permissions and `/farm/me` roles. Office's voice bridge can replace four round trips with one. The request runs three statements in total (token, membership, one session-and-identity read) and caches nothing. Any other `with` value returns 422. The plain `GET` is unchanged.

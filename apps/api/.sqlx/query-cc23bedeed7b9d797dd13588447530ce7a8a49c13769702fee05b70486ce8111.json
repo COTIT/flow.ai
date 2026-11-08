@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_gaps SET follow_up=$3,follow_up_route=$4\n         WHERE id=$1 AND workspace_id=$2 AND follow_up IS NULL AND created_at>now()-interval '10 minutes'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cc23bedeed7b9d797dd13588447530ce7a8a49c13769702fee05b70486ce8111"
+}

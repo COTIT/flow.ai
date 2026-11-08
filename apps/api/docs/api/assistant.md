@@ -103,3 +103,24 @@ Signed, bodyless operator endpoints `GET /v1/assistant/cleanup` and `POST /v1/as
 Pending business drafts live temporarily in PostgreSQL JSONB and can exist in database backups. They disappear on dispatch/cancel, become unreadable at expiry, and the minute sweep removes expired payloads. No raw chat or files belong in these drafts. Resolved action audit is deleted after 90 days. Unresolved claims stay until reconciliation establishes an outcome. Cleanup references stay until provider deletion is confirmed.
 
 After resolved action audit expires, hourly pruning deletes at most 100 cleaned sessions older than 90 days, only with no remaining actions or remote references. Checkpoint writes, blobs, checkpoints, upload metadata and session metadata leave in one transaction. Pending queued or unknown actions retain their context. Increase batch size or cadence before retirement exceeds 2400 sessions/day.
+
+## Gap ledger (developers only)
+
+Office records each voice request the assistant could not finish, so developers can see what to build next. Migration `assistant_gaps`. There is no read route: staff run `scripts/voice-gaps.sql` with `psql` on the server.
+
+`POST /v1/workspace/{workspace}/assistant/gaps` needs a staff bearer for the workspace plus the bridge signature. Body (unknown fields refused):
+
+| Field | Rule |
+|---|---|
+| `domain` | `^[a-z_]{1,40}$`, a catalog domain or `unknown` |
+| `language` | `en`, `nl` or `sw` |
+| `intent` | lowercase words, single spaces, at most 120 chars; no digits, capitals or punctuation. Office keeps only catalog words; `unknown` when fewer than two survive |
+| `tools` | at most 10 operation ids the agent tried (optional) |
+| `outcome` | `unsupported`, `refused`, `failed`, `cancelled` or `dropped` |
+| `http_status` | 400-599 (optional) |
+
+201 `{"data":{"id":"…"}}`. 422 on any rule. 403 unsigned, 503 bridge not configured, 404/403 for a token outside the workspace.
+
+`POST /v1/assistant/gaps/{gap}/follow-up` needs the bridge signature only (Office's page proxy has no staff bearer). Body `{"workspace_id","signal","route"?}`: `rephrased` (no route) or `used_ui` with a page pattern such as `/orders/[id]` (lowercase segments or `[id]`, no query, at most 80 chars). 200 `{"data":{"id","follow_up"}}`. 404 when the gap is not in that workspace. 409 when a follow-up is already set or the gap is older than 10 minutes.
+
+Rows are deleted 90 days after `created_at` by the hourly prune. Deleting a workspace deletes its gaps.

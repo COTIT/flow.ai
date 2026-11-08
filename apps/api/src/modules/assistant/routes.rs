@@ -1,6 +1,6 @@
 //! Assistant routes; control operations never enter model tool inventory.
 
-use super::{batch_handlers, handlers};
+use super::{batch_handlers, gaps, handlers};
 use crate::AppState;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -27,6 +27,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::reserve, handlers::uploads))
         .routes(routes!(handlers::complete))
         .routes(routes!(handlers::cancel_upload, handlers::upload))
+        .routes(routes!(gaps::create))
 }
 
 /// Signature-only internal cleanup, independent of user token lifetime.
@@ -34,4 +35,5 @@ pub fn public() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::cleanup_due))
         .routes(routes!(handlers::cleanup_ack))
+        .routes(routes!(gaps::follow_up))
 }
