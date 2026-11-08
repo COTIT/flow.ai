@@ -345,6 +345,25 @@ pub async fn list(
     Ok((rows.iter().map(|r| resource::index(r, &e)).collect(), total))
 }
 
+/// Amount still to be paid per currency over the list filter (payable invoices only).
+pub async fn open_totals(
+    state: &AppState,
+    workspace_id: Uuid,
+    f: &repo::ListFilter<'_>,
+) -> Result<Vec<super::dto::OpenTotal>, AppError> {
+    Ok(repo::open_totals(&state.db, workspace_id, f)
+        .await?
+        .into_iter()
+        .map(|r| super::dto::OpenTotal {
+            currency: super::dto::OpenTotalCurrency {
+                code: r.code,
+                decimals: r.decimals,
+            },
+            open_minor: r.open_minor,
+        })
+        .collect())
+}
+
 /// Laravel DeleteProduct guard: 422 while any line uses the product.
 pub async fn product_deletable(
     conn: &mut PgConnection,

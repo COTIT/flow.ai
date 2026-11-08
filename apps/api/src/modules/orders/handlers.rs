@@ -11,7 +11,8 @@ use crate::{
     AppState,
     error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
-        list::{Page, Paginated},
+        json::Rules,
+        list::{self, Page, Paginated},
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
@@ -23,8 +24,9 @@ use crate::{
             OrderResource, RefundCreated, RefundRequest, STATUSES, SalesSummary, SummaryQuery,
             UpdateOrderRequest,
         },
-        payments, service,
+        payments, repo, service,
     },
+    modules::settings,
 };
 
 permissions! {
@@ -44,10 +46,10 @@ type OrderPath = Path<(String, String)>;
     operation_id = "orders_list", summary = "List orders",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
-        (status = 200, body = Paginated<OrderResource>, description = "One page of orders with lines, newest first"),
+        (status = 200, body = Paginated<OrderResource>, description = "One page of orders with lines, newest first; `meta.total` counts every match across pages, `meta.last_page` says how many pages"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `order.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = UnprocessableBody, description = "Unknown status filter"),
+        (status = 422, body = UnprocessableBody, description = "Unknown status filter, malformed `relation_id`, `created_from` or `created_to`, or `created_to` not after `created_from`"),
     ),
     security(("bearer" = []))
 )]
@@ -60,15 +62,36 @@ pub async fn list(
     if status.is_some_and(|s| !STATUSES.contains(&s)) {
         return Err(AppError::field("status", "The selected status is invalid."));
     }
+    let mut r = Rules::default();
+    let from = list::when(&mut r, "created_from", query.created_from.as_deref());
+    let to = list::when(&mut r, "created_to", query.created_to.as_deref());
+    let relation_id = list::id(&mut r, "relation_id", query.relation_id.as_deref());
+    r.into_result()?;
+    let ws = access.workspace_id;
+    let created_from = match from {
+        Some(w) => Some(settings::service::instant(&state.db, ws, w).await?),
+        None => None,
+    };
+    let created_to = match to {
+        Some(w) => Some(settings::service::instant(&state.db, ws, w).await?),
+        None => None,
+    };
+    if let (Some(f), Some(t)) = (created_from, created_to)
+        && t <= f
+    {
+        return Err(AppError::field(
+            "created_to",
+            "The created to must be after created from.",
+        ));
+    }
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let (data, total) = service::list(
-        &state,
-        access.workspace_id,
+    let f = repo::ListFilter {
         status,
-        page.size,
-        page.offset(),
-    )
-    .await?;
+        relation_id,
+        created_from,
+        created_to,
+    };
+    let (data, total) = service::list(&state, ws, &f, page.size, page.offset()).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }
 

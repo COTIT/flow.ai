@@ -98,6 +98,8 @@ pub struct ListFilter<'a> {
     pub category: Option<Uuid>,
     pub ean13: Option<&'a str>,
     pub exclude: &'a [Uuid],
+    /// Stock-tracked products whose sellable stock is at most this (see `available_lte`).
+    pub available_lte: Option<rust_decimal::Decimal>,
     pub limit: i64,
     pub offset: i64,
 }
@@ -447,6 +449,12 @@ pub async fn list(
            AND ($5::text IS NULL OR lower(ean13) = lower($5))
            AND NOT (id = ANY($6))
            AND ($9::uuid IS NULL OR category_id = $9)
+           AND ($10::numeric IS NULL OR (has_stock AND (
+                SELECT coalesce(sum(s.stock_lvl - s.reserved), 0) FROM stocks s
+                LEFT JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id
+                WHERE s.workspace_id = $1 AND s.product_id = products.id AND s.deleted_at IS NULL
+                  AND (s.lot_id IS NULL OR (l.status = 'released'
+                       AND (l.expires_on IS NULL OR l.expires_on >= current_date)))) <= $10))
          ORDER BY id DESC
          LIMIT $7 OFFSET $8"#,
         workspace_id,
@@ -458,6 +466,7 @@ pub async fn list(
         f.limit,
         f.offset,
         f.category,
+        f.available_lte,
     )
     .fetch_all(db)
     .await?;
@@ -542,7 +551,13 @@ pub async fn count(
              AND ($4::uuid IS NULL OR supplier_relation_id = $4)
              AND ($5::text IS NULL OR lower(ean13) = lower($5))
              AND NOT (id = ANY($6))
-             AND ($7::uuid IS NULL OR category_id = $7)"#,
+             AND ($7::uuid IS NULL OR category_id = $7)
+           AND ($8::numeric IS NULL OR (has_stock AND (
+                SELECT coalesce(sum(s.stock_lvl - s.reserved), 0) FROM stocks s
+                LEFT JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id
+                WHERE s.workspace_id = $1 AND s.product_id = products.id AND s.deleted_at IS NULL
+                  AND (s.lot_id IS NULL OR (l.status = 'released'
+                       AND (l.expires_on IS NULL OR l.expires_on >= current_date)))) <= $8))"#,
         workspace_id,
         f.status,
         f.pattern,
@@ -550,6 +565,7 @@ pub async fn count(
         f.ean13,
         f.exclude,
         f.category,
+        f.available_lte,
     )
     .fetch_one(db)
     .await

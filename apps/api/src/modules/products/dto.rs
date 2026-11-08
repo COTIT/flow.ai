@@ -547,6 +547,11 @@ pub struct ListQuery {
     /// Warehouse for the `pos_*` fields; does not filter.
     #[param(value_type = Option<Uuid>)]
     pub warehouse_id: Option<String>,
+    /// Only stock-tracked products whose sellable stock is at most this. Sellable = Σ (level −
+    /// reserved) over all warehouses and lots, held, recalled or expired lots left out (the
+    /// shop's "sold out"). Out of stock: `available_lte=0`. Untracked products never match.
+    #[param(value_type = Option<String>, example = "0")]
+    pub available_lte: Option<String>,
 }
 
 /// GET one query: `warehouse_id` shapes the `pos_*` fields.

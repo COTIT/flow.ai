@@ -1172,3 +1172,236 @@ async fn a_relation_delete_waits_for_an_invoice_write(pool: PgPool) {
     let (status, res) = delete.await.unwrap();
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
 }
+
+/// `sent_before` / `due_before` (exclusive) with `in_status`: "unpaid older than 30 days" and
+/// "overdue". A plain date is local midnight in `general.timezone` (+03:00 here). Invoices
+/// without the date drop out once its filter is set.
+#[sqlx::test]
+async fn list_filters_by_sent_and_due_dates(pool: PgPool) {
+    let api = api(pool).await;
+    common::invoicing::settings(
+        &api,
+        json!({ "general": { "timezone": "Africa/Dar_es_Salaam" } }),
+    )
+    .await;
+    let (acme, _) = relation(&api, "Acme").await;
+    let invoice = |status: &'static str, sent: Option<&'static str>, due: Option<&'static str>| {
+        let api = &api;
+        let acme = &acme;
+        async move {
+            let id = api
+                .create(json!({ "relation_id": acme }), "invoice_id")
+                .await;
+            sqlx::query(
+                "UPDATE invoices SET status = $2, send_date = $3::timestamptz,
+                        due_date = $4::timestamptz WHERE id = $1::uuid",
+            )
+            .bind(&id)
+            .bind(status)
+            .bind(sent)
+            .bind(due)
+            .execute(&api.pool)
+            .await
+            .unwrap();
+            id
+        }
+    };
+    // Sent 22:30 UTC on 7 Oct = 8 Oct in Dar es Salaam; due 7 Nov 22:30 UTC = 8 Nov local.
+    let old = invoice(
+        "awaiting_payment",
+        Some("2026-10-07T22:30:00Z"),
+        Some("2026-11-07T22:30:00Z"),
+    )
+    .await;
+    let older_paid = invoice(
+        "paid",
+        Some("2026-09-01T10:00:00Z"),
+        Some("2026-10-01T10:00:00Z"),
+    )
+    .await;
+    let recent = invoice(
+        "partially_paid",
+        Some("2026-11-01T10:00:00Z"),
+        Some("2026-12-01T10:00:00Z"),
+    )
+    .await;
+    let draft = invoice("draft", None, None).await;
+    let ids = |v: &Value| -> Vec<String> {
+        let mut ids: Vec<String> = v["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["id"].as_str().unwrap().to_owned())
+            .collect();
+        ids.sort();
+        ids
+    };
+    let sorted = |mut v: Vec<String>| {
+        v.sort();
+        v
+    };
+    const UNPAID: &str = "in_status=pending,awaiting_payment,awaiting_pos_payment,partially_paid";
+
+    assert_eq!(
+        ids(&api.list(&format!("?{UNPAID}&sent_before=2026-10-09")).await),
+        [old.as_str()],
+        "unpaid, sent before 9 Oct"
+    );
+    assert_eq!(
+        ids(&api.list("?sent_before=2026-10-08").await),
+        [older_paid.as_str()],
+        "8 Oct local starts after 22:30 UTC on 7 Oct"
+    );
+    assert_eq!(
+        ids(&api.list("?sent_before=2026-10-07T22:30:00Z").await),
+        [older_paid.as_str()],
+        "exclusive"
+    );
+    let overdue_on_9th = api.list(&format!("?{UNPAID}&due_before=2026-11-09")).await;
+    assert_eq!(ids(&overdue_on_9th), [old.as_str()]);
+    assert_eq!(overdue_on_9th["meta"]["total"], 1);
+    assert!(
+        ids(&api.list(&format!("?{UNPAID}&due_before=2026-11-08")).await).is_empty(),
+        "due on the 8th local is not overdue on the 8th"
+    );
+    assert_eq!(
+        ids(&api.list("?due_before=2027-01-01").await),
+        sorted(vec![old.clone(), older_paid.clone(), recent.clone()]),
+        "the draft has no due date"
+    );
+    assert_eq!(
+        ids(&api.list("").await),
+        sorted(vec![old, older_paid, recent, draft]),
+        "no filter: everything"
+    );
+
+    for field in ["sent_before", "due_before"] {
+        let (s, res) = api
+            .call(
+                Method::GET,
+                &format!("?{field}=last-week"),
+                None,
+                &api.owner,
+            )
+            .await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+        assert_eq!(
+            res["errors"][field][0],
+            format!(
+                "The {} must be an RFC 3339 time or a YYYY-MM-DD date.",
+                field.replace('_', " ")
+            )
+        );
+    }
+
+    let bob = api.as_new_owner("bob@example.com", "bobs").await;
+    assert_eq!(
+        bob.list("?due_before=2030-01-01&sent_before=2030-01-01")
+            .await["meta"]["total"],
+        0
+    );
+}
+
+/// `meta.open_totals`: what is still to be paid, per currency in minor units, over the whole
+/// filtered set (every page). Only payable invoices count (not credit notes; pending,
+/// awaiting_payment, awaiting_pos_payment, partially_paid), so drafts, paid and cancelled add 0.
+#[sqlx::test]
+async fn list_meta_sums_open_amounts_per_currency(pool: PgPool) {
+    let api = api(pool).await;
+    let (acme, _) = relation(&api, "Acme").await;
+    let (beta, _) = relation(&api, "Beta").await;
+    let tzs = api
+        .with_base("/currencies")
+        .create(
+            json!({ "name": "Shilling", "asset_type": "tzs", "decimals": 2,
+                    "default_currency": false, "active": true }),
+            "currency_id",
+        )
+        .await;
+    let invoice = |rel: String,
+                   status: &'static str,
+                   total: i64,
+                   paid: i64,
+                   credit: bool,
+                   currency: Option<String>| {
+        let api = &api;
+        async move {
+            let id = api
+                .create(json!({ "relation_id": rel }), "invoice_id")
+                .await;
+            sqlx::query(
+                "UPDATE invoices SET status = $2, subtotal = $3, total = $3, paid_total = $4,
+                        is_credit = $5, currency_id = coalesce($6::uuid, currency_id)
+                 WHERE id = $1::uuid",
+            )
+            .bind(&id)
+            .bind(status)
+            .bind(total)
+            .bind(paid)
+            .bind(credit)
+            .bind(currency)
+            .execute(&api.pool)
+            .await
+            .unwrap();
+            id
+        }
+    };
+    invoice(acme.clone(), "pending", 12_100, 2_100, false, None).await;
+    invoice(beta.clone(), "partially_paid", 5_000, 1_000, false, None).await;
+    invoice(
+        acme.clone(),
+        "awaiting_payment",
+        500_000,
+        0,
+        false,
+        Some(tzs),
+    )
+    .await;
+    invoice(acme.clone(), "draft", 999, 0, false, None).await;
+    invoice(acme.clone(), "pending", 3_000, 0, true, None).await;
+    invoice(acme.clone(), "cancelled", 7_000, 0, false, None).await;
+    invoice(acme.clone(), "paid", 4_000, 4_000, false, None).await;
+
+    let want = json!([
+        { "currency": { "code": "EUR", "decimals": 2 }, "open_minor": 14_000 },
+        { "currency": { "code": "TZS", "decimals": 2 }, "open_minor": 500_000 },
+    ]);
+    // Same totals on every page, and equal to the payable rows listed across the pages.
+    let mut summed: std::collections::BTreeMap<String, i64> = Default::default();
+    for page in 1..=4 {
+        let res = api.list(&format!("?page_size=2&page={page}")).await;
+        assert_eq!(res["meta"]["open_totals"], want, "page {page}");
+        for r in res["data"].as_array().unwrap() {
+            let payable = [
+                "pending",
+                "awaiting_payment",
+                "awaiting_pos_payment",
+                "partially_paid",
+            ]
+            .contains(&r["status"].as_str().unwrap())
+                && r["is_credit"] != json!(true);
+            if payable {
+                *summed
+                    .entry(r["money"]["currency"].as_str().unwrap().to_uppercase())
+                    .or_default() += r["money"]["open"].as_i64().unwrap();
+            }
+        }
+    }
+    assert_eq!(
+        summed.into_iter().collect::<Vec<_>>(),
+        [("EUR".to_owned(), 14_000), ("TZS".to_owned(), 500_000)]
+    );
+
+    assert_eq!(
+        api.list(&format!("?relation_id={beta}")).await["meta"]["open_totals"],
+        json!([{ "currency": { "code": "EUR", "decimals": 2 }, "open_minor": 4_000 }]),
+        "how much Beta owes"
+    );
+    assert_eq!(
+        api.list("?in_status=paid,draft").await["meta"]["open_totals"],
+        json!([])
+    );
+
+    let bob = api.as_new_owner("bob@example.com", "bobs").await;
+    assert_eq!(bob.list("").await["meta"]["open_totals"], json!([]));
+}

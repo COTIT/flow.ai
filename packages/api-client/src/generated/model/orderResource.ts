@@ -37,6 +37,11 @@ export interface OrderResource {
      * @nullable
      */
   customer: OrderResourceCustomer;
+  /**
+     * The customer: relation company name or alias, else the web customer's name.
+     * @nullable
+     */
+  customer_name: string | null;
   decimals: number;
   /** @nullable */
   expires_at: string | null;

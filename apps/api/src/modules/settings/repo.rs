@@ -36,6 +36,27 @@ pub async fn section(
     Ok(v.flatten())
 }
 
+/// Local midnight starting `day` in the workspace `general.timezone`; UTC when unset or a name
+/// Postgres doesn't know.
+// shortcut: pg_timezone_names scans the zone list per call (~ms), cache names if lists get hot.
+pub async fn day_start(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    day: chrono::NaiveDate,
+) -> Result<chrono::DateTime<chrono::Utc>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT ($2::date::timestamp AT TIME ZONE coalesce(
+                      (SELECT z.name FROM pg_timezone_names z
+                       WHERE z.name = (SELECT s.data -> 'general' ->> 'timezone'
+                                       FROM settings s WHERE s.workspace_id = $1)),
+                      'UTC')) AS "at!""#,
+        workspace_id,
+        day,
+    )
+    .fetch_one(db)
+    .await
+}
+
 /// Replace the given top-level sections, creating the row on first use. One statement, so
 /// parallel first saves can't race (the loser of the insert merges into the winner's row).
 pub async fn merge(

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  coalesce((SELECT coalesce(nullif(r.company_name, ''), nullif(r.alias, ''))\n                            FROM relations r\n                            WHERE r.workspace_id = o.workspace_id AND r.id = o.relation_id),\n                           nullif(o.customer ->> 'name', '')) AS customer_name,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n             AND ($5::timestamptz IS NULL OR o.created_at >= $5)\n             AND ($6::timestamptz IS NULL OR o.created_at < $6)\n             AND ($7::uuid IS NULL OR o.relation_id = $7)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -237,6 +237,12 @@
       },
       {
         "ordinal": 22,
+        "name": "customer_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 23,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -247,7 +253,7 @@
         }
       },
       {
-        "ordinal": 23,
+        "ordinal": 24,
         "name": "confirmed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -258,7 +264,7 @@
         }
       },
       {
-        "ordinal": 24,
+        "ordinal": 25,
         "name": "picked_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -269,7 +275,7 @@
         }
       },
       {
-        "ordinal": 25,
+        "ordinal": 26,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -280,7 +286,7 @@
         }
       },
       {
-        "ordinal": 26,
+        "ordinal": 27,
         "name": "total_rows!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -291,7 +297,10 @@
         "Uuid",
         "Text",
         "Int8",
-        "Int8"
+        "Int8",
+        "Timestamptz",
+        "Timestamptz",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -317,6 +326,7 @@
       true,
       true,
       null,
+      null,
       false,
       true,
       true,
@@ -324,5 +334,5 @@
       null
     ]
   },
-  "hash": "c27aed04bf999fcf026a449deab904638d32acd9a30512467683a6ef35b84563"
+  "hash": "4423fbd5e20d005deef4f154855292dcb2c33ae17a1e536cd41dd35ff5e28e53"
 }
