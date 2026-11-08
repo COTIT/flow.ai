@@ -202,7 +202,7 @@ test("the attention answer groups what needs dealing with and hides sections the
       kind: "attention",
       sections: [
         { key: "orders", counts: { open: 9 }, items: [{ ...item, label: "ORD-0231", status: "open", at: "2026-11-01T08:00:00Z", money: { minor: 1000, decimals: 2, currency: "USD" }, href: `/orders/${uuid(1)}` }] },
-        { key: "stock", counts: { low: 2 }, items: [{ ...item, label: "AFM Stickers", detail: "Main", level: "0.00", href: `/products/${uuid(2)}` }] },
+        { key: "stock", counts: { negative: 1, out_of_stock: 2 }, items: [{ ...item, label: "AFM Stickers", detail: "Main", level: "0.00", href: `/products/${uuid(2)}` }] },
         { key: "webhooks", counts: { failed: 1 }, items: [{ ...item, label: "order.paid", detail: "timeout", attempts: 5 }] },
         { key: "lots", counts: { quarantined: 0, holds: 0 }, items: [] },
       ],
@@ -213,7 +213,10 @@ test("the attention answer groups what needs dealing with and hides sections the
   await expect(card.getByRole("region")).toHaveCount(3)
   await expect(card.getByRole("region", { name: r.sections.orders })).toContainText("Open 9")
   await expect(card.getByRole("link", { name: /ORD-0231/ })).toHaveAttribute("href", `/orders/${uuid(1)}`)
-  await expect(card.getByRole("region", { name: r.sections.stock })).toContainText("Level 0.00")
+  const stock = card.getByRole("region", { name: r.sections.stock })
+  await expect(stock).toContainText(`${r.counts.negative} 1`)
+  await expect(stock).toContainText(`${r.counts.out_of_stock} 2`)
+  await expect(stock).toContainText("Level 0.00")
   await expect(card.getByRole("region", { name: r.sections.webhooks })).toContainText("5 attempts")
   await expect(card.getByRole("region", { name: r.sections.lots })).toHaveCount(0)
   await card.scrollIntoViewIfNeeded()
@@ -255,7 +258,8 @@ test("a write review leads with before → after and folds the rest under More d
   voice.call("products_update")
   const diff = page.locator("[data-review-diff]")
   await expect(diff).toBeVisible()
-  await expect(diff.getByRole("term").first()).toHaveText("Price")
+  // Sentence case for every label, labelled or not.
+  await expect(diff.getByRole("term")).toHaveText(["Price", en.voice.reviewFields.purchase_price])
   await expect(diff.locator("del").first()).toHaveText("was $0.50")
   await expect(diff.locator("ins").first()).toHaveText("now $500.50")
   await expect(diff).toContainText("Up 100,000%")

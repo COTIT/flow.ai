@@ -1193,7 +1193,8 @@
       "order_unit": "Besteleenheid",
       "sale_unit": "Verkoopeenheid",
       "default": "Standaard",
-      "rate": "Tarief"
+      "rate": "Tarief",
+      "purchase_price": "Inkoopprijs"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1390,11 +1391,11 @@
         "draft": "Concept",
         "unpaid": "Onbetaald",
         "overdue": "Te laat",
-        "low": "Laag",
         "out_of_stock": "Uitverkocht",
         "quarantined": "Geblokkeerd",
         "holds": "Vastgehouden door bestellingen",
-        "failed": "Mislukt"
+        "failed": "Mislukt",
+        "negative": "Negatieve voorraad"
       },
       "attempts": "{count, plural, one {# poging} other {# pogingen}}",
       "level": "Niveau {level}",

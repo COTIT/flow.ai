@@ -159,7 +159,8 @@ describe("resultView", () => {
         },
         invoices: null,
         stock: {
-          low: 2,
+          negative: 1,
+          out_of_stock: 2,
           items: [{ product: { id: a, name: "AFM Stickers" }, warehouse: { id: b, name: "Main" }, level: "0.00" }],
         },
         till_shifts: { open: 1, items: [{ id: b, register: { id: a, name: "Front" }, opened_at: "2026-11-08T06:00:00Z" }] },
@@ -177,6 +178,7 @@ describe("resultView", () => {
       money: { minor: 1000, decimals: 2, currency: "USD" },
       href: "/orders/0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a50",
     })
+    expect(view.sections[1]!.counts).toEqual({ negative: 1, out_of_stock: 2 })
     expect(view.sections[1]!.items[0]).toMatchObject({ label: "AFM Stickers", detail: "Main", level: "0.00", href: `/products/${a}` })
     expect(view.sections[2]!.items[0]).toMatchObject({ label: "Front", at: "2026-11-08T06:00:00Z", href: null })
     expect(view.sections[3]).toEqual({ key: "lots", counts: { quarantined: 1, holds: 0 }, items: [] })

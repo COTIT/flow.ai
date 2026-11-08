@@ -3,6 +3,7 @@ import {
   attachmentProblem,
   mergeTranscript,
   outcomeForAgent,
+  fieldName,
   splitLinks,
   matchesIssuedConversation,
   referenceSize,
@@ -118,5 +119,13 @@ describe("record links", () => {
     expect(
       outcomeForAgent({ status: "completed", data: [1], view: { kind: "sales" } })
     ).toEqual({ status: "completed", data: [1] })
+  })
+})
+
+describe("field names without a label", () => {
+  it("read in sentence case, like the labelled ones", () => {
+    expect(fieldName("purchase_price")).toBe("Purchase price")
+    expect(fieldName("vatGroup")).toBe("Vat group")
+    expect(fieldName("stock_rows")).toBe("Stock rows")
   })
 })

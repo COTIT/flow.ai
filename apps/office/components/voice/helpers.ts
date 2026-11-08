@@ -39,6 +39,12 @@ export function splitLinks(text: string): { text: string; href?: string }[] {
   return parts
 }
 
+/** A field key without a label, in sentence case like the labelled ones: "purchase_price" → "Purchase price". */
+export function fieldName(key: string) {
+  const words = key.replaceAll("_", " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 /** What the agent hears about an outcome: record names, never links. */
 export function outcomeForAgent(outcome: {
   links?: { label: string | null; href: string }[]

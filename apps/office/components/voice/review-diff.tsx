@@ -6,6 +6,7 @@ import { ArrowRight, ChevronDown, TrendingDown, TrendingUp } from "lucide-react"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatShare } from "@genesy/ui/lib/format"
 import type { VoiceReview } from "@/lib/voice/client-contract"
+import { fieldName } from "./helpers"
 import { reviewSummary } from "./review-changes"
 
 /** The review card leads with what the API says matters: the record, warnings, impact counts and
@@ -52,7 +53,7 @@ export function ReviewDiff({ review, children }: { review: VoiceReview; children
             <ul className="flex flex-wrap gap-2">
               {summary.impact.map(({ key, count }) => (
                 <li key={key} className="rounded-full border border-(--hair) px-3 py-1 text-xs font-medium tabular-nums">
-                  {t.has(`impact.${key}`) ? t(`impact.${key}`) : key.replaceAll("_", " ")} {count}
+                  {t.has(`impact.${key}`) ? t(`impact.${key}`) : fieldName(key)} {count}
                 </li>
               ))}
             </ul>
@@ -65,7 +66,7 @@ export function ReviewDiff({ review, children }: { review: VoiceReview; children
               {summary.rows.map((row) => (
                 <div key={row.field} className="flex min-w-0 flex-col gap-1">
                   <dt className="text-sm font-medium">
-                    {labels.has(row.field) ? labels(row.field) : row.field.replaceAll("_", " ")}
+                    {labels.has(row.field) ? labels(row.field) : fieldName(row.field)}
                   </dt>
                   <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base break-all tabular-nums">
                     {row.before !== null ? (

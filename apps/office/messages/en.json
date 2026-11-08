@@ -1193,7 +1193,8 @@
       "order_unit": "Order unit",
       "sale_unit": "Sale unit",
       "default": "Default",
-      "rate": "Rate"
+      "rate": "Rate",
+      "purchase_price": "Purchase price"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -1390,11 +1391,11 @@
         "draft": "Draft",
         "unpaid": "Unpaid",
         "overdue": "Overdue",
-        "low": "Low",
         "out_of_stock": "Out of stock",
         "quarantined": "On hold",
         "holds": "Held by orders",
-        "failed": "Failed"
+        "failed": "Failed",
+        "negative": "Negative stock"
       },
       "attempts": "{count, plural, one {# attempt} other {# attempts}}",
       "level": "Level {level}",

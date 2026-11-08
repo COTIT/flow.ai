@@ -7,13 +7,14 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
 import type { Money, ResultView } from "@/lib/voice/views"
+import { fieldName } from "../helpers"
 import { SalesChart } from "./sales-chart"
 
 type Of<K extends ResultView["kind"]> = Extract<ResultView, { kind: K }>
 
 const CARD =
   "w-full max-w-[36rem] min-w-0 self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card p-4 text-sm"
-const humanize = (key: string) => key.replaceAll("_", " ")
+const humanize = fieldName
 
 function useLabels() {
   const t = useTranslations("voice")

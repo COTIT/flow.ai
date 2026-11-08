@@ -43,7 +43,12 @@ import {
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
-import { ATTACHMENT_ACCEPT, referenceSize, splitLinks } from "./helpers"
+import {
+  ATTACHMENT_ACCEPT,
+  fieldName,
+  referenceSize,
+  splitLinks,
+} from "./helpers"
 import { useVoice } from "./provider"
 import { HoldToTalk, VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
@@ -210,11 +215,7 @@ function Details({
             <dt className="text-xs text-muted-foreground">
               {labels.has(key)
                 ? labels(key)
-                : t("otherField", {
-                    name: key
-                      .replaceAll("_", " ")
-                      .replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
-                  })}
+                : t("otherField", { name: fieldName(key) })}
             </dt>
             <dd className="text-sm">
               {key === "summary" &&

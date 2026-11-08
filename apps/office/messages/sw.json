@@ -1193,7 +1193,8 @@
       "order_unit": "Kipimo cha kuagiza",
       "sale_unit": "Kipimo cha kuuza",
       "default": "Chaguo-msingi",
-      "rate": "Kiwango"
+      "rate": "Kiwango",
+      "purchase_price": "Bei ya kununua"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -1390,11 +1391,11 @@
         "draft": "Rasimu",
         "unpaid": "Hazijalipwa",
         "overdue": "Zimechelewa",
-        "low": "Chache",
         "out_of_stock": "Zimeisha",
         "quarantined": "Zimezuiwa",
         "holds": "Zimeshikiliwa na oda",
-        "failed": "Zimeshindwa"
+        "failed": "Zimeshindwa",
+        "negative": "Stoo hasi"
       },
       "attempts": "{count, plural, one {jaribio #} other {majaribio #}}",
       "level": "Kiwango {level}",
