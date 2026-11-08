@@ -7,11 +7,13 @@
     "e2e": "playwright test",
     "lint": "eslint --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "node --test stack/*.test.mjs",
+    "test": "node --test stack/*.test.mjs voice-probe/*.test.mjs",
     "stack:up": "node stack/up.mjs",
     "stack:down": "node stack/down.mjs",
     "stack:reset": "node stack/reset.mjs",
-    "stack:test": "node stack/test.mjs"
+    "stack:test": "node stack/test.mjs",
+    "voice-probe": "playwright test -c voice-probe/probe.config.ts && node voice-probe/report.mjs",
+    "voice-probe:coverage": "node voice-probe/coverage.mjs"
   },
   "devDependencies": {
     "@genesy/eslint-config": "workspace:*",
