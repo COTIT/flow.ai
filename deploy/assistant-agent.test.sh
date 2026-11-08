@@ -29,6 +29,16 @@ execute=next(tool for tool in template['clientTools'] if tool['name']=='execute_
 assert execute['force_pre_tool_speech'] is False,'one acknowledgement per user turn comes from the prompt, not a forced line before every tool call'
 assert 'once per user turn' in prompt and 'nothing between tool calls' in prompt,'agent must acknowledge once per turn, then stay quiet between tool calls'
 assert "language of the user's current message" in prompt,'narration and answer follow the language of the current message, not an earlier turn'
+assert '[Review honesty]' in prompt and '500 cents or $500?' in prompt,'review honesty block missing'
+assert 'I cancelled the card because you sent a new message' in prompt,'cancel-on-new-message line missing'
+assert 'Never answer a question about an open card by reading out its confirmation phrase' in prompt,'phrase echo guard missing'
+assert '[Discoverability]' in prompt and '[/Discoverability]' in prompt,'discoverability block missing'
+assert 'Each account is private' in prompt and 'supply link with consent' in prompt,'account privacy line missing'
+assert 'Till refunds are done on the till' in prompt and 'Kassaretouren gaan via de kassa' in prompt and 'Marejesho ya mauzo ya kaunta' in prompt,'till refund wording missing'
+assert 'meta.open_totals' in prompt and 'never add amounts yourself' in prompt,'owe rule must use backend totals'
+assert 'never revert anything by yourself' in prompt,'undo must be a new review card'
+assert 'meta.total for how many' in prompt,'counts must come from meta.total'
+assert '[File import]' in prompt and 'never copy prices yourself' in prompt,'file import block missing'
 for line in ['Ok, got that','just finalizing','please read and approve the card','Oké, begrepen','lees de kaart en keur hem goed','Sawa, nimeelewa','tafadhali soma kadi na uidhinishe']:
     assert line in prompt,'four-beat talk-back script missing: '+line
 assert 'call the same wait:true again' in prompt,'agent must keep waiting after a running progress result'
