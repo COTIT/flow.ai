@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   Paperclip,
+  Send,
   Trash2,
   X,
 } from "lucide-react"
@@ -34,6 +35,7 @@ import { VoiceActivity, VoiceThinking } from "./activity"
 import {
   displayReferences,
   displayText,
+  composerReady,
   internalFields,
   operationLabel,
   reviewRows,
@@ -274,7 +276,6 @@ export function VoiceConversation() {
   const locale = useLocale()
   const router = useRouter()
   const voice = useVoice()
-  const chosen = useRef<((names: string[]) => void) | null>(null)
   const [follow, setFollow] = useState(true)
   const log = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -396,50 +397,65 @@ export function VoiceConversation() {
                   {t("newMessages")}
                 </Button>
               ) : null}
-              {voice.connected && voice.textOnly ? (
+              {voice.connected ? (
                 <form
-                  className="flex min-w-0 flex-col gap-2"
+                  className="voice-composer flex min-w-0 flex-col gap-2"
                   onSubmit={(e) => e.preventDefault()}
+                  onPaste={(e) => {
+                    if (!e.clipboardData.files.length) return
+                    e.preventDefault()
+                    voice.choose(Array.from(e.clipboardData.files))
+                  }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault()
                     voice.choose(Array.from(e.dataTransfer.files))
                   }}
                 >
-                  <PromptBar
-                    placeholder={t("placeholder")}
-                    sources={[
-                      {
-                        key: "files",
-                        name: t("attach"),
-                        description: t("fileHint"),
-                        icon: Paperclip,
-                        attach: true,
-                      },
-                    ]}
-                    commands={[]}
-                    models={[]}
-                    efforts={[]}
-                    busy={voice.speaking}
-                    width={768}
-                    radius={18}
-                    background="color-mix(in srgb, var(--card) 85%, transparent)"
-                    color="var(--foreground)"
-                    menuBackground="var(--card)"
-                    sparkColor="var(--gold)"
-                    onSend={(text) => {
-                      voice.activity()
-                      void voice.send(text)
-                    }}
-                    onStop={() => voice.stopSpeaking()}
-                    onAttach={() =>
-                      new Promise<string[]>((resolve) => {
-                        chosen.current = resolve
-                        picker.current?.click()
-                      })
-                    }
-                    className="w-full"
-                  />
+                  {voice.textOnly ? (
+                    <PromptBar
+                      labels={{
+                        prompt: t("message"),
+                        add: t("addFiles"),
+                        sources: t("addFiles"),
+                        send: t("send"),
+                        stop: t("stopSpeaking"),
+                      }}
+                      ready={composerReady(voice.attachments)}
+                      placeholder={t("placeholder")}
+                      sources={[
+                        {
+                          key: "files",
+                          name: t("attach"),
+                          description: t("fileHint"),
+                          icon: Paperclip,
+                          attach: true,
+                        },
+                      ]}
+                      commands={[]}
+                      models={[]}
+                      efforts={[]}
+                      busy={voice.speaking}
+                      width={768}
+                      radius={18}
+                      background="color-mix(in srgb, var(--card) 85%, transparent)"
+                      color="var(--foreground)"
+                      menuBackground="var(--card)"
+                      sparkColor="var(--gold)"
+                      onSend={(text) => {
+                        voice.activity()
+                        return voice.send(text)
+                      }}
+                      onStop={() => voice.stopSpeaking()}
+                      // Chosen files show in our references list, not as bar chips.
+                      onAttach={() => picker.current?.click()}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t("micHint")}
+                    </p>
+                  )}
                   {voice.capturePaused ? (
                     <Notice variant="info" title={t("capturePaused")}>
                       {t("capturePausedHint")}
@@ -549,8 +565,6 @@ export function VoiceConversation() {
                       onChange={(e) => {
                         const files = Array.from(e.target.files ?? [])
                         voice.choose(files)
-                        chosen.current?.(files.map((f) => f.name))
-                        chosen.current = null
                         e.target.value = ""
                       }}
                     />
@@ -582,13 +596,26 @@ export function VoiceConversation() {
                         {t("takePhoto")}
                       </span>
                     </Button>
+                    {!voice.textOnly && composerReady(voice.attachments) ? (
+                      <Button
+                        className="min-h-11"
+                        type="button"
+                        disabled={voice.busy}
+                        onClick={() => void voice.send("")}
+                      >
+                        <Send aria-hidden />
+                        {t(voice.busy ? "working" : "send")}
+                      </Button>
+                    ) : null}
                   </div>
-                  <p
-                    id="voice-file-hint"
-                    className="text-xs text-muted-foreground"
-                  >
-                    {t("fileHint")}
-                  </p>
+                  {voice.textOnly ? (
+                    <p
+                      id="voice-file-hint"
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t("fileHint")}
+                    </p>
+                  ) : null}
                 </form>
               ) : (
                 <p className="text-sm text-muted-foreground">{t("micHint")}</p>
