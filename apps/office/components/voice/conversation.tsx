@@ -815,7 +815,7 @@ export function VoiceConversation() {
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="w-full gap-4 overflow-y-auto p-5 motion-reduce:transition-none sm:max-w-md"
+          className="dark theme-glass w-full gap-4 overflow-y-auto p-5 text-foreground motion-reduce:transition-none sm:max-w-md"
         >
           <SheetHeader className="p-0">
             <SheetTitle>{t("review")}</SheetTitle>
