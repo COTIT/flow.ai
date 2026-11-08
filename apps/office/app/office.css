@@ -158,3 +158,18 @@
   background: var(--background);
   border-color: var(--hair-2);
 }
+
+/* Overview on Magic Bento (wide screens; session B). The bento card draws the glass, so the card
+   inside it goes bare and fills it. Border width stays: same size as the plain grid, no shift. */
+.theme-glass .overview-bento [data-slot="card"] {
+  flex: 1;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* The vendor card is select-none; order numbers and names stay copyable. */
+.overview-bento .magic-bento__card {
+  user-select: text;
+}

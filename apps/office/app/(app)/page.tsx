@@ -55,6 +55,22 @@ import { useTillMoney } from "@/lib/till-money"
 import { customerName } from "./orders/shared"
 
 const CountUp = island(() => import("@/components/rb/CountUp"))
+const MagicBento = island(() => import("@/components/rb/MagicBento"))
+
+const WIDE = "(min-width: 64rem)"
+
+/** Room for the bento's four columns beside the sidebar (it folds below ~650 px); false on the server. */
+function useWide() {
+  return React.useSyncExternalStore(
+    (onChange) => {
+      const query = matchMedia(WIDE)
+      query.addEventListener("change", onChange)
+      return () => query.removeEventListener("change", onChange)
+    },
+    () => matchMedia(WIDE).matches,
+    () => false
+  )
+}
 
 /** The browser's local midnights: today, tomorrow, this Monday and the next. */
 function bounds() {
@@ -303,48 +319,26 @@ export default function OverviewPage() {
       ] as const
     ).some(([q, allowed]) => allowed && q.isPending)
 
-  return (
-    <>
-      <PageHead
-        eyebrow={new Intl.DateTimeFormat(locale, {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        }).format(new Date())}
-        title={t("overview.title")}
-        actions={
-          <>
-            <Link
-              href="/supply/transfers"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              {t("overview.receiveTransfer")}
-            </Link>
-            {show(may.products && may.changeProducts) ? (
-              <Link href="/lots?new=1" className={buttonVariants()}>
-                <Plus aria-hidden="true" />
-                {t("lots.new")}
-              </Link>
-            ) : null}
-          </>
-        }
-      />
-      {failed ? (
-        <LoadError
-          error={failed.error}
-          onRetry={() => all.forEach((q) => q.isError && void q.refetch())}
+  // One list for both grids: the plain 12-column one (server, phones, reduced motion) and the
+  // Magic Bento on wide screens. From lg up the plain spans equal the bento's, so the swap never shifts.
+  const cards = [
+    show(may.orders) && {
+      id: "kpi-orders",
+      colSpan: 1,
+      content: (
+        <Kpi
+          href="/orders?status=open"
+          icon={ShoppingBag}
+          tone="teal"
+          label={t("overview.ordersToPick")}
+          query={openOrders}
         />
-      ) : null}
-      <section className="grid grid-cols-12 gap-4 max-md:gap-3">
-        {show(may.orders) ? (
-          <Kpi
-            href="/orders?status=open"
-            icon={ShoppingBag}
-            tone="teal"
-            label={t("overview.ordersToPick")}
-            query={openOrders}
-          />
-        ) : null}
+      ),
+    },
+    {
+      id: "kpi-quarantine",
+      colSpan: 1,
+      content: (
         <Kpi
           href="/lots?status=quarantine"
           icon={Layers}
@@ -352,26 +346,38 @@ export default function OverviewPage() {
           label={t("overview.lotsInQuarantine")}
           query={quarantine}
         />
-        {show(may.stock) ? (
-          <Kpi
-            href="/stock/negative"
-            icon={Archive}
-            tone="red"
-            label={t("overview.belowZero")}
-            query={negative}
-          />
-        ) : null}
-        {show(may.till) ? (
-          <Kpi
-            href="/till/sales?mismatch=true"
-            icon={Calculator}
-            tone="slate"
-            label={t("overview.mismatches")}
-            query={mismatch}
-          />
-        ) : null}
-
-        {show(may.orders) ? (
+      ),
+    },
+    show(may.stock) && {
+      id: "kpi-negative",
+      colSpan: 1,
+      content: (
+        <Kpi
+          href="/stock/negative"
+          icon={Archive}
+          tone="red"
+          label={t("overview.belowZero")}
+          query={negative}
+        />
+      ),
+    },
+    show(may.till) && {
+      id: "kpi-mismatch",
+      colSpan: 1,
+      content: (
+        <Kpi
+          href="/till/sales?mismatch=true"
+          icon={Calculator}
+          tone="slate"
+          label={t("overview.mismatches")}
+          query={mismatch}
+        />
+      ),
+    },
+    show(may.orders) && {
+      id: "overview-recent",
+      colSpan: 3,
+      content: (
         <Tile
           id="overview-recent"
           title={t("overview.recentOrders")}
@@ -382,7 +388,7 @@ export default function OverviewPage() {
               <ChevronRight aria-hidden="true" />
             </GhostLink>
           }
-          span="col-span-8"
+          span="col-span-8 lg:col-span-9"
           flush
         >
           {/* Five rows' height whatever arrives, so the tiles below never move. */}
@@ -456,8 +462,12 @@ export default function OverviewPage() {
             )}
           </div>
         </Tile>
-        ) : null}
-
+      ),
+    },
+    {
+      id: "overview-attention",
+      colSpan: 1,
+      content: (
         <Tile
           id="overview-attention"
           title={t("overview.attention")}
@@ -468,10 +478,10 @@ export default function OverviewPage() {
               </Badge>
             ) : null
           }
-          span="col-span-4"
+          span="col-span-4 lg:col-span-3"
         >
           {/* From md up the rows scroll inside the card, so the row's height stays Recent orders'
-              whatever arrives and the tiles below never move. */}
+            whatever arrives and the tiles below never move. */}
           <div className="relative min-h-[206px] flex-1">
             <div className="md:absolute md:-inset-[3px] md:overflow-y-auto md:p-[3px]">
               {attentionPending ? (
@@ -507,8 +517,12 @@ export default function OverviewPage() {
             </div>
           </div>
         </Tile>
-
-        {show(may.till) ? (
+      ),
+    },
+    show(may.till) && {
+      id: "overview-till",
+      colSpan: 2,
+      content: (
         <Tile
           id="overview-till"
           title={t("overview.tillToday")}
@@ -517,7 +531,7 @@ export default function OverviewPage() {
               {t("till.tabs.shifts")}
             </GhostLink>
           }
-          span="col-span-4"
+          span="col-span-4 lg:col-span-6"
         >
           <div className="grid grid-cols-2 gap-2.5">
             <Metric label={t("overview.openShifts")}>
@@ -531,13 +545,17 @@ export default function OverviewPage() {
             {t("overview.tillNote")}
           </p>
         </Tile>
-        ) : null}
-
+      ),
+    },
+    {
+      id: "overview-lots",
+      colSpan: 1,
+      content: (
         <Tile
           id="overview-lots"
           title={t("overview.lotsByStatus")}
           action={<GhostLink href="/lots">{t("nav.lots")}</GhostLink>}
-          span="col-span-4"
+          span="col-span-4 lg:col-span-3"
         >
           <div className="flex flex-col gap-2">
             {(
@@ -563,14 +581,18 @@ export default function OverviewPage() {
             ))}
           </div>
         </Tile>
-
-        {/* The mockup's s-4 placeholder slot: the API's totals per currency, never summed. */}
-        {show(may.orders) ? (
+      ),
+    },
+    // The mockup's s-4 placeholder slot (Sales this week): the API's totals per currency, never summed.
+    show(may.orders) && {
+      id: "overview-week",
+      colSpan: 1,
+      content: (
         <Tile
           id="overview-week"
           title={t("overview.salesWeek")}
           action={<GhostLink href="/orders">{t("nav.orders")}</GhostLink>}
-          span="col-span-4"
+          span="col-span-4 lg:col-span-3"
         >
           {week.isPending ? (
             <>
@@ -608,8 +630,77 @@ export default function OverviewPage() {
             ))
           )}
         </Tile>
-        ) : null}
-      </section>
+      ),
+    },
+  ].filter((card) => card !== false)
+  const plain = (
+    <section className="grid grid-cols-12 gap-4 max-md:gap-3">
+      {cards.map((card) => (
+        <React.Fragment key={card.id}>{card.content}</React.Fragment>
+      ))}
+    </section>
+  )
+  const wide = useWide()
+
+  return (
+    <>
+      <PageHead
+        eyebrow={new Intl.DateTimeFormat(locale, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }).format(new Date())}
+        title={t("overview.title")}
+        actions={
+          <>
+            <Link
+              href="/supply/transfers"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("overview.receiveTransfer")}
+            </Link>
+            {show(may.products && may.changeProducts) ? (
+              <Link href="/lots?new=1" className={buttonVariants()}>
+                <Plus aria-hidden="true" />
+                {t("lots.new")}
+              </Link>
+            ) : null}
+          </>
+        }
+      />
+      {failed ? (
+        <LoadError
+          error={failed.error}
+          onRetry={() => all.forEach((q) => q.isError && void q.refetch())}
+        />
+      ) : null}
+      {wide ? (
+        <MagicBento
+          plain={plain}
+          items={cards}
+          className="overview-bento"
+          columns={4}
+          gap={16}
+          radius={18}
+          theme="dark"
+          glowColor="#efc977"
+          enableBorderGlow
+          enableSpotlight
+          spotlightRadius={320}
+          enableStars={false}
+          enableTilt={false}
+          enableMagnetism={false}
+          clickEffect
+          intro={false}
+          textAutoHide={false}
+          // The cards keep their own padding, and rows grow with them as in the plain grid.
+          style={
+            { "--mb-pad": "0px", gridAutoRows: "auto" } as React.CSSProperties
+          }
+        />
+      ) : (
+        plain
+      )}
     </>
   )
 }
