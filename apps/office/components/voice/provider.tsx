@@ -627,7 +627,7 @@ function Session({ children }: { children: ReactNode }) {
         turn.stop()
         turnEnd.current("answered", 0)
       } else if (command === "execute") {
-        setOutcome(result)
+        setOutcome({ ...result, operationId: String(body.operationId) })
         showLinks(result)
         if (result.reason && ["failed", "unknown"].includes(result.status))
           setError(t(`requestErrors.${result.reason}`))

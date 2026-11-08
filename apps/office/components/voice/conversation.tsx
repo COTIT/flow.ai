@@ -55,6 +55,8 @@ import { StrandsStatus } from "./strands-status"
 import { VoiceUnfinished } from "./unfinished"
 import { VoiceResult } from "./results"
 import { ReviewDiff } from "./review-diff"
+import { useVoiceTips, VoiceSuggestions } from "./suggestions"
+import type { Available } from "@/lib/voice/capabilities"
 
 function ReviewTitle({
   review,
@@ -240,11 +242,24 @@ function Details({
     </dl>
   )
 }
-export function VoiceConversation() {
+export function VoiceConversation({
+  capabilities = [],
+  from,
+}: {
+  capabilities?: Available[]
+  from?: string
+}) {
   const t = useTranslations("voice")
   const locale = useLocale()
   const router = useRouter()
   const voice = useVoice()
+  // Suggestion chips fill the text box (starting a text session if needed); they never send.
+  const tips = useVoiceTips(capabilities, from)
+  const [seed, setSeed] = useState<{ text: string }>()
+  const pick = (text: string) => {
+    setSeed({ text })
+    if (!voice.connected && !voice.starting) void voice.start(true)
+  }
   const [follow, setFollow] = useState(true)
   const log = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -394,6 +409,7 @@ export function VoiceConversation() {
                 <VoiceThinking />
               </div>
               <VoiceUnfinished />
+              <VoiceSuggestions items={tips.chips} onPick={pick} />
               {!follow ? (
                 <Button
                   variant="outline"
@@ -437,7 +453,8 @@ export function VoiceConversation() {
                       }}
                       ready={composerReady(voice.attachments)}
                       describedBy="voice-file-hint"
-                      placeholder={t("placeholder")}
+                      placeholder={tips.placeholder ?? t("placeholder")}
+                      seed={seed}
                       sources={[
                         {
                           key: "files",

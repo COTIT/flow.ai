@@ -622,4 +622,68 @@ it("refuses an unknown end reason without recording it", async () => {
   )
   expect(response.status).toBe(400)
   expect(mocks.failures.flat().join()).not.toContain("dropped")
+const discover = (query: string) =>
+  toolRequest(
+    request({
+      command: "discover",
+      query,
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+
+it("tells the agent not to promise a request Genesy cannot do", async () => {
+  const body = await (await discover("unsupported: weather tomorrow")).json()
+  expect(body.message).toBe(
+    "Recorded for review. Tell the user Genesy can't do this; never promise it later."
+  )
+})
+
+it("what-can-you-do lists curated capabilities the member may use, without logging a gap", async () => {
+  mocks.failures.length = 0
+  const body = await (await discover("capabilities")).json()
+  expect(body.tools).toEqual([])
+  expect(body.capabilities.groups.length).toBeGreaterThan(1)
+  expect(body.capabilities.pages).toContain("Office page")
+  mocks.authorize.mockResolvedValue({ ...context, permissions: ["order.list"] })
+  const limited = await (await discover("capabilities")).json()
+  expect(limited.capabilities.groups).toHaveLength(1)
+  expect(mocks.failures).toEqual([])
+})
+
+it("page questions discover the office page tool", async () => {
+  mocks.failures.length = 0
+  for (const query of [
+    "take me to where I change prices",
+    "office_page_open",
+  ]) {
+    const { tools } = await (await discover(query)).json()
+    expect(tools.map((tool: { id: string }) => tool.id)).toContain(
+      "office_page_open"
+    )
+  }
+  expect(mocks.failures).toEqual([])
+})
+
+it("opens an office page as a link row, refuses pages the member may not read", async () => {
+  const open = (args: unknown) =>
+    toolRequest(
+      request({
+        command: "execute",
+        workspaceId: context.workspaceId,
+        sessionId: "s1",
+        operationId: "office_page_open",
+        arguments: args,
+      })
+    )
+  const ok = await open({ page: "products" })
+  expect(ok.status).toBe(200)
+  expect(await ok.json()).toMatchObject({
+    status: "completed",
+    links: [{ label: "Products", href: "/products" }],
+  })
+  mocks.authorize.mockResolvedValue({ ...context, permissions: ["order.list"] })
+  expect((await open({ page: "app_keys" })).status).toBe(403)
+  expect((await open({ page: "/settings" })).status).toBe(400)
+  expect(mocks.execute).not.toHaveBeenCalled()
 })

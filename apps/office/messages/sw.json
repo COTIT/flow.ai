@@ -1440,6 +1440,181 @@
         "archive": "Itahifadhiwa kwenye kumbukumbu, si kufutwa."
       },
       "warningsTitle": "Kabla ya kuidhinisha"
+    },
+    "suggestions": "Mapendekezo",
+    "tryPrompt": "Jaribu: “{prompt}”",
+    "pagesHint": "Ninaweza pia kukufungulia ukurasa sahihi wa Office.",
+    "capabilityGroups": {
+      "invoices": "Ankara",
+      "orders": "Maagizo",
+      "products": "Bidhaa",
+      "stock": "Hisa",
+      "till": "Kaunta",
+      "settings": "Timu"
+    },
+    "capabilities": {
+      "open_invoices": {
+        "label": "Ankara zilizo wazi",
+        "prompt": "Ankara zipi bado hazijalipwa?"
+      },
+      "email_invoice": {
+        "label": "Tuma ankara kwa barua pepe",
+        "prompt": "Tuma ankara hii kwa mteja kwa barua pepe"
+      },
+      "resend_invoice": {
+        "label": "Tuma ankara tena",
+        "prompt": "Mtumie mteja ankara tena"
+      },
+      "record_payment": {
+        "label": "Rekodi malipo",
+        "prompt": "Rekodi malipo kwenye ankara"
+      },
+      "create_order": {
+        "label": "Unda agizo",
+        "prompt": "Unda agizo jipya"
+      },
+      "weekly_sales": {
+        "label": "Mauzo wiki hii",
+        "prompt": "Tumeuza kiasi gani wiki hii?"
+      },
+      "todays_orders": {
+        "label": "Maagizo ya leo",
+        "prompt": "Onyesha maagizo ya leo"
+      },
+      "invoice_order": {
+        "label": "Tengeneza ankara ya agizo",
+        "prompt": "Tengeneza ankara ya agizo hili"
+      },
+      "change_price": {
+        "label": "Badilisha bei",
+        "prompt": "Badilisha bei ya bidhaa"
+      },
+      "find_product": {
+        "label": "Tafuta bidhaa",
+        "prompt": "Tafuta bidhaa kwa jina"
+      },
+      "check_stock": {
+        "label": "Angalia hisa",
+        "prompt": "Tuna hisa kiasi gani ya bidhaa?"
+      },
+      "below_zero": {
+        "label": "Hisa chini ya sifuri",
+        "prompt": "Bidhaa zipi ziko chini ya sifuri?"
+      },
+      "add_stock": {
+        "label": "Ongeza hisa",
+        "prompt": "Ongeza hisa ya bidhaa hii"
+      },
+      "till_sales": {
+        "label": "Mauzo ya kaunta leo",
+        "prompt": "Onyesha mauzo ya kaunta ya leo"
+      },
+      "invite_colleague": {
+        "label": "Alika mwenzako",
+        "prompt": "Mwalike mwenzako kwenye timu"
+      },
+      "team_members": {
+        "label": "Wanatimu",
+        "prompt": "Nani yuko kwenye timu yangu?"
+      }
+    },
+    "pages": {
+      "overview": {
+        "name": "Muhtasari",
+        "purpose": "Muhtasari wa biashara wa leo"
+      },
+      "products": {
+        "name": "Bidhaa",
+        "purpose": "Orodha ya bidhaa: majina, bei na maelezo"
+      },
+      "product": {
+        "name": "Bidhaa moja",
+        "purpose": "Bidhaa moja: badilisha bei, saizi na maelezo"
+      },
+      "categories": {
+        "name": "Makundi",
+        "purpose": "Makundi ya bidhaa"
+      },
+      "stock": {
+        "name": "Hisa",
+        "purpose": "Kiasi cha hisa kwa kila bidhaa na mahali"
+      },
+      "stock_negative": {
+        "name": "Hisa chini ya sifuri",
+        "purpose": "Bidhaa zenye hisa chini ya sifuri"
+      },
+      "orders": {
+        "name": "Maagizo",
+        "purpose": "Maagizo yote"
+      },
+      "order": {
+        "name": "Agizo",
+        "purpose": "Agizo moja na mistari yake"
+      },
+      "invoices": {
+        "name": "Ankara",
+        "purpose": "Ankara zote na hali zake"
+      },
+      "invoice": {
+        "name": "Ankara moja",
+        "purpose": "Ankara moja: ituma, rekodi malipo"
+      },
+      "lots": {
+        "name": "Mafungu",
+        "purpose": "Mafungu ya mazao yaliyovunwa"
+      },
+      "lot": {
+        "name": "Fungu",
+        "purpose": "Fungu moja na historia yake"
+      },
+      "supply": {
+        "name": "Ugavi",
+        "purpose": "Ugavi kutoka kwa washirika"
+      },
+      "supply_links": {
+        "name": "Viungo vya ugavi",
+        "purpose": "Viungo na washirika"
+      },
+      "supply_transfers": {
+        "name": "Uhamisho wa ugavi",
+        "purpose": "Bidhaa zilizohamishwa kati ya washirika"
+      },
+      "till_sales": {
+        "name": "Mauzo ya kaunta",
+        "purpose": "Mauzo yaliyofanywa kaunta"
+      },
+      "till_shifts": {
+        "name": "Zamu za kaunta",
+        "purpose": "Zamu za kaunta na hesabu za fedha"
+      },
+      "till_registers": {
+        "name": "Rejista",
+        "purpose": "Rejista za kaunta na uunganishaji wake"
+      },
+      "till_users": {
+        "name": "Watumiaji wa kaunta",
+        "purpose": "Watu wanaoruhusiwa kutumia kaunta"
+      },
+      "till_vaults": {
+        "name": "Masanduku ya fedha",
+        "purpose": "Masanduku ya fedha taslimu"
+      },
+      "invites": {
+        "name": "Mialiko",
+        "purpose": "Alika wenzako kwenye eneo la kazi"
+      },
+      "app_keys": {
+        "name": "Funguo za programu",
+        "purpose": "Funguo za programu zilizounganishwa"
+      },
+      "webhooks": {
+        "name": "Webhooks",
+        "purpose": "Anwani za webhook za miunganisho"
+      },
+      "search": {
+        "name": "Tafuta",
+        "purpose": "Tafuta katika eneo lote la kazi"
+      }
     }
   }
 }

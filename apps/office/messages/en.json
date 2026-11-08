@@ -1440,6 +1440,181 @@
         "archive": "It will be archived, not deleted."
       },
       "warningsTitle": "Before you approve"
+    },
+    "suggestions": "Suggestions",
+    "tryPrompt": "Try: “{prompt}”",
+    "pagesHint": "I can also open the right Office page for you.",
+    "capabilityGroups": {
+      "invoices": "Invoices",
+      "orders": "Orders",
+      "products": "Products",
+      "stock": "Stock",
+      "till": "Till",
+      "settings": "Team"
+    },
+    "capabilities": {
+      "open_invoices": {
+        "label": "Open invoices",
+        "prompt": "Which invoices are still open?"
+      },
+      "email_invoice": {
+        "label": "Email an invoice",
+        "prompt": "Email this invoice to the customer"
+      },
+      "resend_invoice": {
+        "label": "Resend an invoice",
+        "prompt": "Send an invoice to the customer again"
+      },
+      "record_payment": {
+        "label": "Record a payment",
+        "prompt": "Record a payment on an invoice"
+      },
+      "create_order": {
+        "label": "Create an order",
+        "prompt": "Create a new order"
+      },
+      "weekly_sales": {
+        "label": "Sales this week",
+        "prompt": "How much did we sell this week?"
+      },
+      "todays_orders": {
+        "label": "Today's orders",
+        "prompt": "Show today's orders"
+      },
+      "invoice_order": {
+        "label": "Invoice an order",
+        "prompt": "Make the invoice for this order"
+      },
+      "change_price": {
+        "label": "Change a price",
+        "prompt": "Change the price of a product"
+      },
+      "find_product": {
+        "label": "Find a product",
+        "prompt": "Find a product by name"
+      },
+      "check_stock": {
+        "label": "Check stock",
+        "prompt": "How much stock do we have of a product?"
+      },
+      "below_zero": {
+        "label": "Stock below zero",
+        "prompt": "Which products are below zero?"
+      },
+      "add_stock": {
+        "label": "Add stock",
+        "prompt": "Add stock for this product"
+      },
+      "till_sales": {
+        "label": "Till sales today",
+        "prompt": "Show today's till sales"
+      },
+      "invite_colleague": {
+        "label": "Invite a colleague",
+        "prompt": "Invite a colleague to the team"
+      },
+      "team_members": {
+        "label": "Team members",
+        "prompt": "Who is in my team?"
+      }
+    },
+    "pages": {
+      "overview": {
+        "name": "Overview",
+        "purpose": "Today's summary of the business"
+      },
+      "products": {
+        "name": "Products",
+        "purpose": "Product list: names, prices and details"
+      },
+      "product": {
+        "name": "Product",
+        "purpose": "One product: change its price, sizes and details"
+      },
+      "categories": {
+        "name": "Categories",
+        "purpose": "Product categories"
+      },
+      "stock": {
+        "name": "Stock",
+        "purpose": "Stock levels per product and place"
+      },
+      "stock_negative": {
+        "name": "Stock below zero",
+        "purpose": "Products whose stock is below zero"
+      },
+      "orders": {
+        "name": "Orders",
+        "purpose": "All orders"
+      },
+      "order": {
+        "name": "Order",
+        "purpose": "One order and its lines"
+      },
+      "invoices": {
+        "name": "Invoices",
+        "purpose": "All invoices and their status"
+      },
+      "invoice": {
+        "name": "Invoice",
+        "purpose": "One invoice: send it, record payments"
+      },
+      "lots": {
+        "name": "Batches",
+        "purpose": "Batches of harvested produce"
+      },
+      "lot": {
+        "name": "Batch",
+        "purpose": "One batch and its history"
+      },
+      "supply": {
+        "name": "Supply",
+        "purpose": "Supply from partner workspaces"
+      },
+      "supply_links": {
+        "name": "Supply links",
+        "purpose": "Links with partner workspaces"
+      },
+      "supply_transfers": {
+        "name": "Supply transfers",
+        "purpose": "Goods moved between partner workspaces"
+      },
+      "till_sales": {
+        "name": "Till sales",
+        "purpose": "Sales made at the till"
+      },
+      "till_shifts": {
+        "name": "Till shifts",
+        "purpose": "Till shifts and cash counts"
+      },
+      "till_registers": {
+        "name": "Registers",
+        "purpose": "Till registers and their pairing"
+      },
+      "till_users": {
+        "name": "Till users",
+        "purpose": "People who may use the till"
+      },
+      "till_vaults": {
+        "name": "Vaults",
+        "purpose": "Cash vaults"
+      },
+      "invites": {
+        "name": "Invites",
+        "purpose": "Invite colleagues to the workspace"
+      },
+      "app_keys": {
+        "name": "App keys",
+        "purpose": "Keys for connected apps"
+      },
+      "webhooks": {
+        "name": "Webhooks",
+        "purpose": "Webhook endpoints for integrations"
+      },
+      "search": {
+        "name": "Search",
+        "purpose": "Search across the workspace"
+      }
     }
   }
 }

@@ -74,6 +74,8 @@ export interface PromptBarProps {
   describedBy?: string;
   /** Genesy edit: translated accessible names; English by default. */
   labels?: Partial<typeof DEFAULT_LABELS>;
+  /** Genesy edit: puts this text in the box and focuses it; a new object fills again. */
+  seed?: { text: string };
   /** Genesy edit: return false (or a promise of false) to keep the draft. */
   onSend?: (text: string, detail: PromptBarSendDetail) => void | boolean | Promise<boolean | void>;
   onStop?: () => void;
@@ -237,6 +239,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
   busy = false,
   ready = false,
   describedBy,
+  seed,
   labels: customLabels,
   onSend,
   onStop,
@@ -273,6 +276,11 @@ const PromptBar: React.FC<PromptBarProps> = ({
 
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<string[]>([]);
+  useEffect(() => {
+    if (!seed) return;
+    setDraft(seed.text);
+    inputRef.current?.focus();
+  }, [seed]);
   const [modelKey, setModelKey] = useState(defaultModel);
   const [plusOpen, setPlusOpen] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
