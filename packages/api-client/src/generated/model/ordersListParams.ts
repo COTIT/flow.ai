@@ -19,4 +19,15 @@ page_size?: number;
  * One status.
  */
 status?: string;
+/**
+ * Created at or after (inclusive). RFC 3339 time, or `YYYY-MM-DD` = local midnight
+ * starting that day in the workspace `general.timezone` (UTC when unset). Yesterday's
+ * orders: `created_from=<yesterday>&created_to=<today>`.
+ */
+created_from?: string;
+/**
+ * Created before (exclusive), same forms as `created_from`; must be after it. Today so
+ * far: `created_from=<today>`.
+ */
+created_to?: string;
 };

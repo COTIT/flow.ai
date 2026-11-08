@@ -627,7 +627,9 @@ pub struct ListQuery {
     pub limit: Option<String>,
     /// Only this status.
     pub status: Option<String>,
-    /// Comma-separated statuses (`draft`, `pending`, `paid`, ...).
+    /// Comma-separated statuses: `draft`, `planned`, `pending`, `awaiting_payment`,
+    /// `awaiting_pos_payment`, `partially_paid`, `paid`, `credited`, `cancelled`. Unpaid =
+    /// `pending,awaiting_payment,awaiting_pos_payment,partially_paid`.
     pub in_status: Option<String>,
     /// `1`/`0`: only credit notes, or only invoices.
     #[param(value_type = Option<bool>)]
@@ -635,6 +637,16 @@ pub struct ListQuery {
     /// `1`: only invoices put on account.
     #[param(value_type = Option<bool>)]
     pub on_account: Option<String>,
+    /// Sent (issued) before this, exclusive; unsent invoices drop out. RFC 3339 time, or
+    /// `YYYY-MM-DD` = local midnight starting that day in the workspace `general.timezone`
+    /// (UTC when unset). Unpaid older than 30 days: unpaid `in_status` +
+    /// `sent_before=<today minus 30 days>`.
+    #[param(value_type = Option<String>, example = "2026-10-09")]
+    pub sent_before: Option<String>,
+    /// Due before this, exclusive, same forms as `sent_before`; invoices without a due date
+    /// drop out. Overdue = unpaid `in_status` + `due_before=<today>`.
+    #[param(value_type = Option<String>, example = "2026-11-08")]
+    pub due_before: Option<String>,
 }
 
 impl Validate for CreateInvoiceRequest {

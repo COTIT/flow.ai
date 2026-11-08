@@ -1172,3 +1172,132 @@ async fn a_relation_delete_waits_for_an_invoice_write(pool: PgPool) {
     let (status, res) = delete.await.unwrap();
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
 }
+
+/// `sent_before` / `due_before` (exclusive) with `in_status`: "unpaid older than 30 days" and
+/// "overdue". A plain date is local midnight in `general.timezone` (+03:00 here). Invoices
+/// without the date drop out once its filter is set.
+#[sqlx::test]
+async fn list_filters_by_sent_and_due_dates(pool: PgPool) {
+    let api = api(pool).await;
+    common::invoicing::settings(
+        &api,
+        json!({ "general": { "timezone": "Africa/Dar_es_Salaam" } }),
+    )
+    .await;
+    let (acme, _) = relation(&api, "Acme").await;
+    let invoice = |status: &'static str, sent: Option<&'static str>, due: Option<&'static str>| {
+        let api = &api;
+        let acme = &acme;
+        async move {
+            let id = api
+                .create(json!({ "relation_id": acme }), "invoice_id")
+                .await;
+            sqlx::query(
+                "UPDATE invoices SET status = $2, send_date = $3::timestamptz,
+                        due_date = $4::timestamptz WHERE id = $1::uuid",
+            )
+            .bind(&id)
+            .bind(status)
+            .bind(sent)
+            .bind(due)
+            .execute(&api.pool)
+            .await
+            .unwrap();
+            id
+        }
+    };
+    // Sent 22:30 UTC on 7 Oct = 8 Oct in Dar es Salaam; due 7 Nov 22:30 UTC = 8 Nov local.
+    let old = invoice(
+        "awaiting_payment",
+        Some("2026-10-07T22:30:00Z"),
+        Some("2026-11-07T22:30:00Z"),
+    )
+    .await;
+    let older_paid = invoice(
+        "paid",
+        Some("2026-09-01T10:00:00Z"),
+        Some("2026-10-01T10:00:00Z"),
+    )
+    .await;
+    let recent = invoice(
+        "partially_paid",
+        Some("2026-11-01T10:00:00Z"),
+        Some("2026-12-01T10:00:00Z"),
+    )
+    .await;
+    let draft = invoice("draft", None, None).await;
+    let ids = |v: &Value| -> Vec<String> {
+        let mut ids: Vec<String> = v["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["id"].as_str().unwrap().to_owned())
+            .collect();
+        ids.sort();
+        ids
+    };
+    let sorted = |mut v: Vec<String>| {
+        v.sort();
+        v
+    };
+    const UNPAID: &str = "in_status=pending,awaiting_payment,awaiting_pos_payment,partially_paid";
+
+    assert_eq!(
+        ids(&api.list(&format!("?{UNPAID}&sent_before=2026-10-09")).await),
+        [old.as_str()],
+        "unpaid, sent before 9 Oct"
+    );
+    assert_eq!(
+        ids(&api.list("?sent_before=2026-10-08").await),
+        [older_paid.as_str()],
+        "8 Oct local starts after 22:30 UTC on 7 Oct"
+    );
+    assert_eq!(
+        ids(&api.list("?sent_before=2026-10-07T22:30:00Z").await),
+        [older_paid.as_str()],
+        "exclusive"
+    );
+    let overdue_on_9th = api.list(&format!("?{UNPAID}&due_before=2026-11-09")).await;
+    assert_eq!(ids(&overdue_on_9th), [old.as_str()]);
+    assert_eq!(overdue_on_9th["meta"]["total"], 1);
+    assert!(
+        ids(&api.list(&format!("?{UNPAID}&due_before=2026-11-08")).await).is_empty(),
+        "due on the 8th local is not overdue on the 8th"
+    );
+    assert_eq!(
+        ids(&api.list("?due_before=2027-01-01").await),
+        sorted(vec![old.clone(), older_paid.clone(), recent.clone()]),
+        "the draft has no due date"
+    );
+    assert_eq!(
+        ids(&api.list("").await),
+        sorted(vec![old, older_paid, recent, draft]),
+        "no filter: everything"
+    );
+
+    for field in ["sent_before", "due_before"] {
+        let (s, res) = api
+            .call(
+                Method::GET,
+                &format!("?{field}=last-week"),
+                None,
+                &api.owner,
+            )
+            .await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+        assert_eq!(
+            res["errors"][field][0],
+            format!(
+                "The {} must be an RFC 3339 time or a YYYY-MM-DD date.",
+                field.replace('_', " ")
+            )
+        );
+    }
+
+    let bob = api.as_new_owner("bob@example.com", "bobs").await;
+    assert_eq!(
+        bob.list("?due_before=2030-01-01&sent_before=2030-01-01")
+            .await["meta"]["total"],
+        0
+    );
+}

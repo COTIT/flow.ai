@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM products\n           WHERE workspace_id = $1 AND deleted_at IS NULL AND status = $2\n             AND ($3::text IS NULL OR name ILIKE $3 OR reference ILIKE $3\n                  OR reference_vendor ILIKE $3 OR ean13 ILIKE $3 OR barcode ILIKE $3\n                  OR product_nr_formatted ILIKE $3)\n             AND ($4::uuid IS NULL OR supplier_relation_id = $4)\n             AND ($5::text IS NULL OR lower(ean13) = lower($5))\n             AND NOT (id = ANY($6))\n             AND ($7::uuid IS NULL OR category_id = $7)\n           AND ($8::numeric IS NULL OR (has_stock AND (\n                SELECT coalesce(sum(s.stock_lvl - s.reserved), 0) FROM stocks s\n                LEFT JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id\n                WHERE s.workspace_id = $1 AND s.product_id = products.id AND s.deleted_at IS NULL\n                  AND (s.lot_id IS NULL OR (l.status = 'released'\n                       AND (l.expires_on IS NULL OR l.expires_on >= current_date)))) <= $8))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
+        "UuidArray",
+        "Uuid",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5ba56437d6b27acb07da7d12691e05f32df90b996641ffb74bd9a947547abe00"
+}

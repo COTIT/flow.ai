@@ -367,6 +367,98 @@ async fn list_pages_and_filters(pool: PgPool) {
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
 }
 
+/// Ids on a list page, in order.
+fn ids(res: &Value) -> Vec<String> {
+    res["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|o| o["id"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+async fn created_at(w: &W, id: &str, at: &str) {
+    sqlx::query("UPDATE orders SET created_at = $2::timestamptz WHERE id = $1::uuid")
+        .bind(id)
+        .bind(at)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+}
+
+/// `created_from` inclusive, `created_to` exclusive; a plain date is local midnight in the
+/// workspace `general.timezone` (Dar es Salaam, +03:00): 22:30 UTC on the 7th is the 8th there.
+#[sqlx::test]
+async fn list_filters_by_created_range_in_workspace_time(pool: PgPool) {
+    let w = world(pool).await;
+    common::invoicing::settings(
+        &w.api,
+        json!({ "general": { "timezone": "Africa/Dar_es_Salaam" } }),
+    )
+    .await;
+    let early = draft(&w, json!([line(&w.honey, "1")])).await;
+    let late = draft(&w, json!([line(&w.honey, "1")])).await;
+    created_at(&w, &early, "2026-11-07T20:00:00Z").await;
+    created_at(&w, &late, "2026-11-07T22:30:00Z").await;
+    let api = &w.api;
+    let list = |q: &'static str| api.list(q);
+
+    let day = list("?created_from=2026-11-08&created_to=2026-11-09").await;
+    assert_eq!(ids(&day), [late.as_str()]);
+    assert_eq!(day["meta"]["total"], 1);
+    assert_eq!(ids(&list("?created_to=2026-11-08").await), [early.as_str()]);
+    assert_eq!(
+        ids(&list("?created_from=2026-11-07T22:30:00Z").await),
+        [late.as_str()],
+        "from is inclusive"
+    );
+    assert_eq!(
+        ids(&list("?created_to=2026-11-07T22:30:00Z").await),
+        [early.as_str()],
+        "to is exclusive"
+    );
+    assert_eq!(
+        ids(&list("?created_from=2026-11-07T23:00:00%2B01:00&status=draft").await),
+        [late.as_str()],
+        "offset honoured, combines with status"
+    );
+
+    for (q, field, msg) in [
+        (
+            "?created_from=yesterday",
+            "created_from",
+            "The created from must be an RFC 3339 time or a YYYY-MM-DD date.",
+        ),
+        (
+            "?created_to=2026-13-01",
+            "created_to",
+            "The created to must be an RFC 3339 time or a YYYY-MM-DD date.",
+        ),
+        (
+            "?created_from=2026-11-09&created_to=2026-11-08",
+            "created_to",
+            "The created to must be after created from.",
+        ),
+    ] {
+        let (s, res) = call(&w, Method::GET, q, None).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+        assert_eq!(res["errors"][field][0], msg, "{q}");
+    }
+
+    // A time zone Postgres doesn't know falls back to UTC: 22:30 UTC stays on the 7th.
+    common::invoicing::settings(&w.api, json!({ "general": { "timezone": "Mars/Olympus" } })).await;
+    let utc = list("?created_from=2026-11-07&created_to=2026-11-08").await;
+    assert_eq!(ids(&utc), [late.clone(), early.clone()]);
+
+    // Another workspace sees none of Ada's orders in the same range.
+    let bob = w.api.as_new_owner("bob@example.com", "bobs").await;
+    let theirs = bob
+        .list("?created_from=2026-11-01&created_to=2026-11-30")
+        .await;
+    assert_eq!(theirs["meta"]["total"], 0);
+    assert!(ids(&theirs).is_empty());
+}
+
 #[sqlx::test]
 async fn idempotency_key_creates_once(pool: PgPool) {
     let w = world(pool).await;

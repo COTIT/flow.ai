@@ -302,11 +302,21 @@ pub async fn find(
     .await
 }
 
+/// List filter: one status, created in `[created_from, created_to)`.
+pub struct ListFilter<'a> {
+    /// One status.
+    pub status: Option<&'a str>,
+    /// Created at or after.
+    pub created_from: Option<DateTime<Utc>>,
+    /// Created before.
+    pub created_to: Option<DateTime<Utc>>,
+}
+
 /// A page of headers, newest first; `total` counts every match.
 pub async fn list(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    status: Option<&str>,
+    f: &ListFilter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<OrderRow>, i64), sqlx::Error> {
@@ -322,12 +332,16 @@ pub async fn list(
                   o.updated_at, count(*) OVER () AS "total_rows!"
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)
+             AND ($5::timestamptz IS NULL OR o.created_at >= $5)
+             AND ($6::timestamptz IS NULL OR o.created_at < $6)
            ORDER BY o.created_at DESC, o.id DESC
            LIMIT $3 OFFSET $4"#,
         workspace_id,
-        status,
+        f.status,
         limit,
         offset,
+        f.created_from,
+        f.created_to,
     )
     .fetch_all(db)
     .await?;
@@ -370,13 +384,17 @@ pub async fn list(
 pub async fn count(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    status: Option<&str>,
+    f: &ListFilter<'_>,
 ) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM orders
-           WHERE workspace_id = $1 AND ($2::text IS NULL OR status = $2)"#,
+           WHERE workspace_id = $1 AND ($2::text IS NULL OR status = $2)
+             AND ($3::timestamptz IS NULL OR created_at >= $3)
+             AND ($4::timestamptz IS NULL OR created_at < $4)"#,
         workspace_id,
-        status,
+        f.status,
+        f.created_from,
+        f.created_to,
     )
     .fetch_one(db)
     .await

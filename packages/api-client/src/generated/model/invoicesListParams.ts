@@ -32,7 +32,9 @@ limit?: number;
  */
 status?: string;
 /**
- * Comma-separated statuses (`draft`, `pending`, `paid`, ...).
+ * Comma-separated statuses: `draft`, `planned`, `pending`, `awaiting_payment`,
+ * `awaiting_pos_payment`, `partially_paid`, `paid`, `credited`, `cancelled`. Unpaid =
+ * `pending,awaiting_payment,awaiting_pos_payment,partially_paid`.
  */
 in_status?: string;
 /**
@@ -43,4 +45,16 @@ is_credit?: boolean;
  * `1`: only invoices put on account.
  */
 on_account?: boolean;
+/**
+ * Sent (issued) before this, exclusive; unsent invoices drop out. RFC 3339 time, or
+ * `YYYY-MM-DD` = local midnight starting that day in the workspace `general.timezone`
+ * (UTC when unset). Unpaid older than 30 days: unpaid `in_status` +
+ * `sent_before=<today minus 30 days>`.
+ */
+sent_before?: string;
+/**
+ * Due before this, exclusive, same forms as `sent_before`; invoices without a due date
+ * drop out. Overdue = unpaid `in_status` + `due_before=<today>`.
+ */
+due_before?: string;
 };

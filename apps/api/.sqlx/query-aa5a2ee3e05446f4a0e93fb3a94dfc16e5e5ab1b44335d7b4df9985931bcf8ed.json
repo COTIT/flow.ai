@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n             AND ($5::timestamptz IS NULL OR o.created_at >= $5)\n             AND ($6::timestamptz IS NULL OR o.created_at < $6)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -291,7 +291,9 @@
         "Uuid",
         "Text",
         "Int8",
-        "Int8"
+        "Int8",
+        "Timestamptz",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -324,5 +326,5 @@
       null
     ]
   },
-  "hash": "c27aed04bf999fcf026a449deab904638d32acd9a30512467683a6ef35b84563"
+  "hash": "aa5a2ee3e05446f4a0e93fb3a94dfc16e5e5ab1b44335d7b4df9985931bcf8ed"
 }

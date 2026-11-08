@@ -135,6 +135,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - `supplier_id` / `supplier_relation_id` (uuid)
   - `ean13` (exact)
   - `exclude_ids` (comma-separated, at most 100)
+  - `available_lte` (decimal text, Genesy addition): only stock-tracked products whose sellable stock is at most this. Sellable = Σ (`stock_lvl` − `reserved`) over every live stock row of the product, all warehouses and lots, lots that are held, recalled or expired left out: the shop's "sold out" rule. `available_lte=0` lists products out of stock (one empty lot beside a full one is not). Untracked products never match. Not a number: 422 `The available lte must be a number.` Note `total_available_stock` in the resource is Σ level without that subtraction.
 - **Paging:** `limit` / `per_page` / `page_size`, max 100.
 - **Order:** newest first.
 - **Laravel differences:** Laravel ignored `ean13`, `search`, `per_page` and `exclude_ids`. The RN app's barcode fallback `?ean13=X` relied on them and got an arbitrary product.

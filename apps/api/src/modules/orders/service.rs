@@ -700,13 +700,13 @@ pub async fn get(
 pub async fn list(
     state: &AppState,
     workspace_id: Uuid,
-    status: Option<&str>,
+    f: &repo::ListFilter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<OrderResource>, i64), AppError> {
-    let (rows, mut total) = repo::list(&state.db, workspace_id, status, limit, offset).await?;
+    let (rows, mut total) = repo::list(&state.db, workspace_id, f, limit, offset).await?;
     if rows.is_empty() && offset > 0 {
-        total = repo::count(&state.db, workspace_id, status).await?;
+        total = repo::count(&state.db, workspace_id, f).await?;
     }
     let ids: Vec<Uuid> = rows.iter().map(|o| o.id).collect();
     let all = repo::lines(&state.db, workspace_id, &ids).await?;

@@ -898,3 +898,117 @@ async fn bundle_children_only_for_bundles(pool: PgPool) {
         "physical ignored, empty list keeps children"
     );
 }
+
+/// `available_lte` is product level: Σ (level − reserved) over every live stock row of a
+/// stock-tracked product, held or expired lots left out (the shop's "sold out"). One empty lot
+/// beside a full one is not out of stock; untracked products never match.
+#[sqlx::test]
+async fn list_filters_by_product_availability(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let main = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Main" }), "warehouse_id")
+        .await;
+    let product = |name: &'static str, extra: Value| {
+        let api = &api;
+        async move {
+            let mut body = json!({ "name": name, "price": "5" });
+            body.as_object_mut()
+                .unwrap()
+                .extend(extra.as_object().unwrap().clone());
+            api.create(body, "product_id").await
+        }
+    };
+    let lots = api.with_base("/lots");
+    let lot_with = |product: String, code: &'static str, quantity: i64| {
+        let lots = &lots;
+        let main = &main;
+        async move {
+            let lot = lots
+                .create(json!({ "product_id": product, "code": code }), "id")
+                .await;
+            for q in [quantity.max(1), quantity - quantity.max(1)] {
+                if q == 0 {
+                    continue;
+                }
+                let (s, res) = lots
+                    .call(
+                        Method::POST,
+                        &format!("/{lot}/stock-mutations"),
+                        Some(json!({ "warehouse_id": main, "quantity": q, "reason": "count" })),
+                        &lots.owner,
+                    )
+                    .await;
+                assert_eq!(s, StatusCode::OK, "{res}");
+            }
+            lot
+        }
+    };
+    let sql = |q: &'static str, id: String| {
+        let pool = api.pool.clone();
+        async move {
+            sqlx::query(q).bind(id).execute(&pool).await.unwrap();
+        }
+    };
+
+    // Honey: lot A emptied to 0, lot B holds 10 → in stock.
+    let honey = product("Honey", json!({})).await;
+    lot_with(honey.clone(), "A", 0).await;
+    lot_with(honey.clone(), "B", 10).await;
+    // Wax: 3 on hand, all 3 reserved → available 0.
+    let wax = product("Wax", json!({})).await;
+    common::invoicing::stock(&api, &wax, &main, 3).await;
+    sql(
+        "UPDATE stocks SET reserved = 3 WHERE product_id = $1::uuid",
+        wax.clone(),
+    )
+    .await;
+    // Jam: tracked, never stocked.
+    let jam = product("Jam", json!({})).await;
+    // Tea: below zero.
+    let tea = product("Tea", json!({})).await;
+    common::invoicing::stock(&api, &tea, &main, 1).await;
+    sql(
+        "UPDATE stocks SET stock_lvl = -2 WHERE product_id = $1::uuid",
+        tea.clone(),
+    )
+    .await;
+    // Oil: 4 units, but only in a quarantined lot → nothing sellable.
+    let oil = product("Oil", json!({})).await;
+    let held = lot_with(oil.clone(), "Q", 4).await;
+    sql(
+        "UPDATE lots SET status = 'quarantine' WHERE id = $1::uuid",
+        held,
+    )
+    .await;
+    // Delivery: not stock-tracked.
+    product("Delivery", json!({ "has_stock": false })).await;
+
+    let mut out = ids(&api.list("?available_lte=0").await);
+    out.sort();
+    let mut want = vec![wax.clone(), jam.clone(), tea.clone(), oil.clone()];
+    want.sort();
+    assert_eq!(out, want);
+    let page = api.list("?available_lte=0&q=wa&page_size=1").await;
+    assert_eq!(ids(&page), [wax.as_str()], "combines with search");
+    assert_eq!(page["meta"]["total"], 1);
+    let mut ten = ids(&api.list("?available_lte=10").await);
+    ten.sort();
+    let mut want = vec![honey.clone(), wax, jam, tea, oil];
+    want.sort();
+    assert_eq!(ten, want, "boundary inclusive");
+    assert_eq!(api.list("?available_lte=-2.5").await["meta"]["total"], 0);
+
+    let (s, res) = api
+        .call(Method::GET, "?available_lte=none", None, &api.owner)
+        .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["available_lte"][0],
+        "The available lte must be a number."
+    );
+
+    // Another workspace sees none of Ada's products.
+    let bob = api.as_new_owner("bob@example.com", "bobs").await;
+    assert_eq!(bob.list("?available_lte=0").await["meta"]["total"], 0);
+}

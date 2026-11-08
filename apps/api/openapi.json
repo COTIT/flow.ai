@@ -68318,7 +68318,7 @@
             }
           },
           {
-            "description": "Comma-separated statuses (`draft`, `pending`, `paid`, ...).",
+            "description": "Comma-separated statuses: `draft`, `planned`, `pending`, `awaiting_payment`,\n`awaiting_pos_payment`, `partially_paid`, `paid`, `credited`, `cancelled`. Unpaid =\n`pending,awaiting_payment,awaiting_pos_payment,partially_paid`.",
             "in": "query",
             "name": "in_status",
             "required": false,
@@ -68342,6 +68342,26 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "Sent (issued) before this, exclusive; unsent invoices drop out. RFC 3339 time, or\n`YYYY-MM-DD` = local midnight starting that day in the workspace `general.timezone`\n(UTC when unset). Unpaid older than 30 days: unpaid `in_status` +\n`sent_before=<today minus 30 days>`.",
+            "example": "2026-10-09",
+            "in": "query",
+            "name": "sent_before",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Due before this, exclusive, same forms as `sent_before`; invoices without a due date\ndrop out. Overdue = unpaid `in_status` + `due_before=<today>`.",
+            "example": "2026-11-08",
+            "in": "query",
+            "name": "due_before",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -68414,7 +68434,7 @@
                 }
               }
             },
-            "description": "Malformed relation id, limit or status filter, or search text too long"
+            "description": "Malformed relation id, limit, status filter, `sent_before` or `due_before`, or search text too long"
           },
           "429": {
             "content": {
@@ -73238,6 +73258,26 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Created at or after (inclusive). RFC 3339 time, or `YYYY-MM-DD` = local midnight\nstarting that day in the workspace `general.timezone` (UTC when unset). Yesterday's\norders: `created_from=<yesterday>&created_to=<today>`.",
+            "example": "2026-11-07",
+            "in": "query",
+            "name": "created_from",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Created before (exclusive), same forms as `created_from`; must be after it. Today so\nfar: `created_from=<today>`.",
+            "example": "2026-11-08",
+            "in": "query",
+            "name": "created_to",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -73309,7 +73349,7 @@
                 }
               }
             },
-            "description": "Unknown status filter"
+            "description": "Unknown status filter, malformed `created_from`/`created_to`, or `created_to` not after `created_from`"
           },
           "429": {
             "content": {
@@ -75744,6 +75784,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Only stock-tracked products whose sellable stock is at most this. Sellable = Σ (level −\nreserved) over all warehouses and lots, held, recalled or expired lots left out (the\nshop's \"sold out\"). Out of stock: `available_lte=0`. Untracked products never match.",
+            "example": "0",
+            "in": "query",
+            "name": "available_lte",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -75815,7 +75865,7 @@
                 }
               }
             },
-            "description": "Search text too long, malformed `supplier_id` or `category_id`, or too many `exclude_ids`"
+            "description": "Search text too long, malformed `supplier_id`, `category_id` or `available_lte`, or too many `exclude_ids`"
           },
           "429": {
             "content": {

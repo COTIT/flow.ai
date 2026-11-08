@@ -673,6 +673,10 @@ pub struct ListFilter<'a> {
     pub on_account: bool,
     /// Escaped ILIKE pattern on reference and the relation's name or alias.
     pub search: Option<&'a str>,
+    /// `send_date` before this (exclusive); unsent invoices drop out.
+    pub sent_before: Option<chrono::DateTime<chrono::Utc>>,
+    /// `due_date` before this (exclusive); invoices without one drop out.
+    pub due_before: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// One page of live invoices, newest first, plus the total count when `count` (a short first
@@ -709,6 +713,8 @@ pub async fn list(
                      SELECT 1 FROM relations r
                      WHERE r.workspace_id = i.workspace_id AND r.id = i.relation_id
                        AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))
+             AND ($10::timestamptz IS NULL OR i.send_date < $10)
+             AND ($11::timestamptz IS NULL OR i.due_date < $11)
            ORDER BY i.created_at DESC, i.id DESC
            LIMIT $8 OFFSET $9"#,
         workspace_id,
@@ -720,6 +726,8 @@ pub async fn list(
         f.search,
         limit,
         offset,
+        f.sent_before,
+        f.due_before,
     )
     .fetch_all(db)
     .await?;
@@ -741,7 +749,9 @@ pub async fn list(
              AND ($7::text IS NULL OR i.reference ILIKE $7 OR EXISTS (
                      SELECT 1 FROM relations r
                      WHERE r.workspace_id = i.workspace_id AND r.id = i.relation_id
-                       AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))"#,
+                       AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))
+             AND ($8::timestamptz IS NULL OR i.send_date < $8)
+             AND ($9::timestamptz IS NULL OR i.due_date < $9)"#,
         workspace_id,
         f.relation_id,
         f.status,
@@ -749,6 +759,8 @@ pub async fn list(
         f.is_credit,
         f.on_account,
         f.search,
+        f.sent_before,
+        f.due_before,
     )
     .fetch_one(db)
     .await?;

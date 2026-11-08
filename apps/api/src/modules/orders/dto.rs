@@ -334,6 +334,15 @@ pub struct ListQuery {
     pub page_size: Option<String>,
     /// One status.
     pub status: Option<String>,
+    /// Created at or after (inclusive). RFC 3339 time, or `YYYY-MM-DD` = local midnight
+    /// starting that day in the workspace `general.timezone` (UTC when unset). Yesterday's
+    /// orders: `created_from=<yesterday>&created_to=<today>`.
+    #[param(value_type = Option<String>, example = "2026-11-07")]
+    pub created_from: Option<String>,
+    /// Created before (exclusive), same forms as `created_from`; must be after it. Today so
+    /// far: `created_from=<today>`.
+    #[param(value_type = Option<String>, example = "2026-11-08")]
+    pub created_to: Option<String>,
 }
 
 /// Create reply.
