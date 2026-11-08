@@ -4,7 +4,7 @@ import { defineConfig } from "@playwright/test"
 // Voice probe (README.md here): slow, paid and model-dependent, so never part of CI.
 // Only the main process clears the previous results; workers load this file too.
 if (!process.env.TEST_WORKER_INDEX)
-  rmSync(new URL("./out/latest/results", import.meta.url), { recursive: true, force: true })
+  rmSync(new URL(`./out/${process.env.VOICE_PROBE_BANK ?? "scenarios"}/results`, import.meta.url), { recursive: true, force: true })
 
 export default defineConfig({
   testDir: ".",

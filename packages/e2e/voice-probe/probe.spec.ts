@@ -12,14 +12,19 @@ type Scenario = {
   expect: { outcome: string; ops?: string[]; mention?: string; noTool?: boolean }
   gap?: string
   regression?: string
+  rapid?: boolean // send the next line ~1 s after the previous one, mid-turn
+  holdReview?: boolean // keep the review card open across turns (still never approved), cancel at the end
+  attach?: string[] // files relative to this folder, attached to the first line
+  setup?: { product?: string } // created through the API before the conversation (local stack only)
 }
 type Turn = { user: string; finished: string; ms: number }
 type ToolCall = { command?: string; operationId?: string; query?: string; http: number; status?: string }
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"))
-const scenarios: Scenario[] = read("./scenarios.json")
+const bank = process.env.VOICE_PROBE_BANK ?? "scenarios" // or "adversarial"
+const scenarios: Scenario[] = read(`./${bank}.json`)
 const catalog = read("../../../apps/office/lib/voice/catalog.generated.json")
-const results = new URL("./out/latest/results/", import.meta.url)
+const results = new URL(`./out/${bank}/results/`, import.meta.url)
 
 const only = process.env.VOICE_PROBE_ONLY?.split(",").filter(Boolean)
 const module = process.env.VOICE_PROBE_MODULE
@@ -115,7 +120,15 @@ async function transcript(page: Page) {
 }
 
 /** Waits until the turn is really over: not just quiet, but answered (or provably stuck). */
-async function finishTurn(page: Page, before: number, inflight: Set<Request>, state: { reviews: number; thinking: Set<string> }) {
+type ProbeState = { reviews: number; thinking: Set<string>; hold: boolean; held: boolean }
+
+async function cancelReview(page: Page) {
+  const approve = page.getByRole("button", { name: "Approve action" })
+  await page.getByRole("button", { name: "Cancel", exact: true }).first().click()
+  await expect(approve).toBeHidden({ timeout: 15_000 })
+}
+
+async function finishTurn(page: Page, before: number, inflight: Set<Request>, state: ProbeState) {
   const start = Date.now()
   let lastChange = Date.now()
   let lastKey = ""
@@ -126,13 +139,18 @@ async function finishTurn(page: Page, before: number, inflight: Set<Request>, st
     for (const block of thinkingText) for (const line of block.split("\n")) if (line.trim()) state.thinking.add(line.trim())
     const approve = page.getByRole("button", { name: "Approve action" })
     if (await approve.isVisible().catch(() => false)) {
-      state.reviews++
-      // Never approve: cancel the card the assistant proposed.
-      await page.getByRole("button", { name: "Cancel", exact: true }).first().click()
-      await expect(approve).toBeHidden({ timeout: 15_000 })
-      lastChange = Date.now()
-      continue
-    }
+      if (!state.held) state.reviews++
+      if (state.hold) {
+        // Leave it open so later lines can try to talk the agent into approving; it counts as the turn's answer.
+        state.held = true
+        if (Date.now() - lastChange > SETTLE && inflight.size === 0) return "answered"
+      } else {
+        // Never approve: cancel the card the assistant proposed.
+        await cancelReview(page)
+        lastChange = Date.now()
+        continue
+      }
+    } else state.held = false
     const busy = (await page.locator("[data-voice-activity]").getAttribute("aria-busy").catch(() => null)) === "true"
     const thinking = (await page.locator("[data-voice-thinking]").count()) > 0
     const rows = await transcript(page)
@@ -159,31 +177,52 @@ test.describe.configure({ mode: "serial" })
 
 for (const scenario of selected) {
   test(scenario.id, async ({ page }) => {
+    test.setTimeout(scenario.turns.length * (TURN_LIMIT + 15_000) + 90_000)
     test.skip(Boolean(staging) && scenario.as === "ruaha", "staging run uses one login (AFM)")
+    // RUAHA needs to be on the stack's assistant allowlist (VOICE_WORKSPACES=AFM,RUAHA).
+    test.skip(!staging && scenario.as === "ruaha" && process.env.VOICE_PROBE_RUAHA !== "1", "RUAHA not allowlisted")
     const attempts: string[] = []
     const calls: ToolCall[] = []
     const inflight = new Set<Request>()
-    const state = { reviews: 0, thinking: new Set<string>() }
+    const state: ProbeState = { reviews: 0, thinking: new Set<string>(), hold: Boolean(scenario.holdReview), held: false }
     await guardWrites(page, attempts)
     recordTools(page, calls, inflight)
 
     const office = await login(page, scenario.as ?? "afm")
+    if (scenario.setup?.product) {
+      test.skip(Boolean(staging), "setup writes data: local stack only")
+      const { apiAs, cred } = await import("../src/stack")
+      const owner = await apiAs(page.request, scenario.as === "ruaha" ? cred("office (RUAHA)", "admin") : cred("office (AFM)", "owner"))
+      await owner.post(owner.ws("/products"), { name: scenario.setup.product, price: "4.00" })
+    }
     await page.goto(`${office}/voice`)
     await page.getByRole("button", { name: "Use text instead" }).click()
     const box = page.getByRole("textbox", { name: "Message the assistant" })
     await expect(box).toBeVisible({ timeout: 30_000 })
 
     const turns: Turn[] = []
-    for (const line of scenario.turns) {
+    if (scenario.attach?.length)
+      await page
+        .locator('input[type="file"]')
+        .first()
+        .setInputFiles(scenario.attach.map((f) => new URL(f, import.meta.url).pathname))
+    for (const [i, line] of scenario.turns.entries()) {
       const before = (await transcript(page)).length
       const started = Date.now()
       await box.fill(line)
       await box.press("Enter")
+      if (scenario.rapid && i < scenario.turns.length - 1) {
+        await page.waitForTimeout(1_000)
+        turns.push({ user: line, finished: "answered", ms: Date.now() - started })
+        continue
+      }
       const finished = await finishTurn(page, before, inflight, state)
       turns.push({ user: line, finished, ms: Date.now() - started })
       if (finished !== "answered") break
     }
 
+    if (state.held && (await page.getByRole("button", { name: "Approve action" }).isVisible().catch(() => false)))
+      await cancelReview(page)
     const messages = await transcript(page)
     const alerts = (await page.locator('main [role="alert"]').allInnerTexts().catch(() => [])).filter(Boolean)
     const record = {

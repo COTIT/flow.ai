@@ -16,6 +16,7 @@ export function summarize(results, { total, target }) {
     if (verdict.defects.length) modules[scenario.module].defects++
   }
   const withDefects = results.filter((r) => r.verdict.defects.length)
+  const withSecurity = results.filter((r) => r.verdict.security?.length)
   const list = (cls) => results.filter((r) => r.verdict.class === cls)
   const row = ({ scenario: s, verdict: v }) =>
     `| ${s.id} | ${s.module} | ${s.kind} | **${v.class}** | ${cell(v.why)} | ${cell(v.called.join(", "))} | ${cell(v.defects.map((d) => d.kind).join(", "))} |`
@@ -33,6 +34,7 @@ export function summarize(results, { total, target }) {
     "|---|---|",
     ...CLASSES.map((c) => `| ${c} | ${counts[c]} |`),
     `| scenarios with UI defects | ${withDefects.length} |`,
+    `| scenarios with security flags | ${withSecurity.length} |`,
     "",
     "## Module × class",
     "",
@@ -53,6 +55,12 @@ export function summarize(results, { total, target }) {
     "",
     "### Partial",
     ...bullets(list("partial"), (r) => r.verdict.why),
+    "",
+    "## Security (attempts to get past the review card)",
+    "",
+    ...(withSecurity.length
+      ? withSecurity.map((r) => `- ${r.scenario.id} (${r.verdict.class}): ${cell(r.verdict.security.join("; "))}`)
+      : ["- none"]),
     "",
     "## UI defects (raw codes or tool text on screen)",
     "",
@@ -75,24 +83,66 @@ export function summarize(results, { total, target }) {
     ...results.map(row),
     "",
   ].join("\n")
-  return { json: { target, total, ran: results.length, counts, defectScenarios: withDefects.length, modules }, markdown }
+  return {
+    json: { target, total, ran: results.length, counts, defectScenarios: withDefects.length, securityScenarios: withSecurity.length, modules },
+    markdown,
+  }
 }
 
-// CLI: node voice-probe/report.mjs
+const RANK = { broken: 1, missed_tool: 2, missing_capability: 3, partial: 4 }
+const ROLE = { user: "Neema", agent: "Genesy", action: "Action" }
+
+/** The `limit` worst scenarios (security first, then broken, missed, missing, partial) with exact transcripts. */
+export function failures(results, limit = 15) {
+  const score = (r) => (r.verdict.security?.length ? 0 : (RANK[r.verdict.class] ?? 9)) * 100 - r.verdict.defects.length
+  const worst = results.filter((r) => score(r) < 900).sort((a, b) => score(a) - score(b)).slice(0, limit)
+  return [
+    `# Top ${worst.length} failures`,
+    "",
+    ...worst.flatMap(({ scenario: s, verdict: v, record }, i) => [
+      `## ${i + 1}. ${s.id} — ${v.class}${v.security?.length ? " + SECURITY" : ""}`,
+      "",
+      `- why: ${v.why}`,
+      ...(v.security?.length ? [`- security: ${v.security.join("; ")}`] : []),
+      ...(v.defects.length ? [`- UI defects: ${v.defects.map((d) => `${d.kind} ("${d.text}")`).join("; ")}`] : []),
+      `- expected: ${s.expect.outcome}${s.expect.ops ? ` via ${s.expect.ops.join(" / ")}` : ""}${s.gap ? ` (gap: ${s.gap})` : ""}`,
+      `- turns: ${(record.turns ?? []).map((t) => `${t.finished} in ${Math.round(t.ms / 1000)} s`).join(", ") || "n/a"}`,
+      "",
+      "Transcript:",
+      "",
+      "```text",
+      ...record.messages.map((m) => `${ROLE[m.role] ?? m.role}: ${m.text}`),
+      "```",
+      "",
+      "Tool calls:",
+      "",
+      "```text",
+      ...(record.toolCalls.length
+        ? record.toolCalls.map((c) => `${c.command} ${c.operationId ?? c.query ?? ""} → ${c.http} ${c.status ?? ""}`.trim())
+        : ["(none)"]),
+      "```",
+      "",
+    ]),
+  ].join("\n")
+}
+
+// CLI: node voice-probe/report.mjs  (VOICE_PROBE_BANK=adversarial for the adversarial bank)
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const dir = new URL("./out/latest/", import.meta.url)
+  const bank = process.env.VOICE_PROBE_BANK ?? "scenarios"
+  const dir = new URL(`./out/${bank}/`, import.meta.url)
   const resultsDir = new URL("results/", dir)
   if (!existsSync(resultsDir)) throw new Error("no results: run the probe first (pnpm voice-probe)")
   const results = readdirSync(resultsDir)
     .filter((f) => f.endsWith(".json"))
     .map((f) => JSON.parse(readFileSync(new URL(f, resultsDir), "utf8")))
-  const total = JSON.parse(readFileSync(new URL("./scenarios.json", import.meta.url), "utf8")).length
+  const total = JSON.parse(readFileSync(new URL(`./${bank}.json`, import.meta.url), "utf8")).length
   const target = process.env.VOICE_PROBE_URL ? "staging (VOICE_PROBE_URL)" : "local full stack"
   const { json, markdown } = summarize(results, { total, target })
-  const coverage = new URL("../coverage.md", resultsDir)
+  const coverage = new URL("../../coverage.md", resultsDir)
   writeFileSync(new URL("report.json", dir), JSON.stringify({ ...json, results }, null, 2))
   writeFileSync(new URL("report.md", dir), markdown)
-  const stamp = new URL(`../${new Date().toISOString().replace(/[:.]/g, "-")}/`, dir)
+  writeFileSync(new URL("failures.md", dir), failures(results))
+  const stamp = new URL(`../${bank}-${new Date().toISOString().replace(/[:.]/g, "-")}/`, dir)
   mkdirSync(stamp, { recursive: true })
   cpSync(dir, stamp, { recursive: true })
   console.log(markdown)

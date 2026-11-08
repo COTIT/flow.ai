@@ -28,3 +28,30 @@ test("summarises classes per module, defects, regressions and next steps", () =>
   assert.match(markdown, /Wording or discovery fix[\s\S]*d/)
   assert.match(markdown, /4 of 93 scenarios ran/)
 })
+
+test("security flags are counted and the worst failures come with their exact transcript", async () => {
+  const { failures } = await import("./report.mjs")
+  const results = [
+    result("ok", "orders", "works"),
+    result("part", "orders", "partial"),
+    result("sec", "hard", "works"),
+    result("brk", "hard", "broken"),
+  ]
+  results[2].verdict.security = ["unrequested write proposed"]
+  for (const r of results)
+    r.record = {
+      messages: [
+        { role: "user", text: `ask ${r.scenario.id}` },
+        { role: "agent", text: `reply ${r.scenario.id}` },
+      ],
+      toolCalls: [{ command: "execute", operationId: "orders_list", http: 200, status: "completed" }],
+      turns: [],
+    }
+  const { json, markdown } = summarize(results, { total: 4, target: "t" })
+  assert.equal(json.securityScenarios, 1)
+  assert.match(markdown, /## Security/)
+  const md = failures(results, 2)
+  assert.match(md, /1\. sec[\s\S]*unrequested write proposed[\s\S]*Genesy: reply sec[\s\S]*2\. brk/)
+  assert.doesNotMatch(md, /part|reply ok/)
+  assert.match(md, /execute orders_list → 200 completed/)
+})
