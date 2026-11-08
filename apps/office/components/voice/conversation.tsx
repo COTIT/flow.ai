@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import {
@@ -88,35 +88,45 @@ function ReviewTitle({
 /** The review card: every thing the agent will do, one row each, popping in one after another. */
 function ReviewList({ review }: { review: VoiceReview }) {
   const labels = useTranslations("voice.reviewFields")
-  const references = displayReferences(review.details)
-  const rows = (
-    review.kind === "batch" && review.steps?.length
-      ? review.steps.map((step, index) => ({
-          id: step.actionId,
-          icon: <ClipboardList aria-hidden className="size-4" />,
-          title: (
-            <>
-              {index + 1}. <ReviewTitle review={step} />
-            </>
-          ),
-          description: <Details value={step.details} />,
-        }))
-      : Object.entries(review.details)
-          .filter(([key]) => !internalFields.has(key))
-          .map(([key, value]) => ({
-            id: key,
-            title: labels.has(key) ? labels(key) : key,
-            description: (
-              <Details value={value} references={references} field={key} />
+  // The list measures its rows on mount; mount it once the sheet has slid into view.
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 320)
+    return () => clearTimeout(timer)
+  }, [review.ticket])
+  // Same array identity per review: a new array restarts the list's reveal animation.
+  const rows = useMemo(() => {
+    const references = displayReferences(review.details)
+    return (
+      review.kind === "batch" && review.steps?.length
+        ? review.steps.map((step, index) => ({
+            id: step.actionId,
+            icon: <ClipboardList aria-hidden className="size-4" />,
+            title: (
+              <>
+                {index + 1}. <ReviewTitle review={step} />
+              </>
             ),
+            description: <Details value={step.details} />,
           }))
-  ).filter(Boolean)
+        : Object.entries(review.details)
+            .filter(([key]) => !internalFields.has(key))
+            .map(([key, value]) => ({
+              id: key,
+              title: labels.has(key) ? labels(key) : key,
+              description: (
+                <Details value={value} references={references} field={key} />
+              ),
+            }))
+    ).filter(Boolean)
+  }, [review, labels])
   if (!rows.length) return <Details value={review.details} />
+  if (!ready) return null
   return (
     <AnimatedList
       items={rows}
       animation="pop"
-      stagger={70}
+      stagger={0.07}
       selectOnHover
       enableArrowNavigation={false}
       frame={false}
@@ -127,7 +137,7 @@ function ReviewList({ review }: { review: VoiceReview }) {
       radius={14}
       gap={8}
       width="100%"
-      maxHeight="none"
+      maxHeight={460}
       className="voice-review-list"
     />
   )
@@ -356,17 +366,25 @@ export function VoiceConversation() {
                       el.scrollHeight - el.scrollTop - el.clientHeight < 70
                     )
                 }}
-                className="flex max-h-[24dvh] min-h-12 min-w-0 flex-col gap-3 overflow-y-auto px-1 text-center"
+                className="flex max-h-[32dvh] min-h-12 min-w-0 flex-col gap-2 overflow-y-auto px-1"
               >
                 {voice.messages.length ? (
                   voice.messages.map((row) => (
-                    <div key={row.id} className="mx-auto w-full max-w-[65ch]">
-                      <p className="mb-1 text-xs font-semibold text-muted-foreground">
-                        {t(`roles.${row.role}`)}
-                      </p>
-                      <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
-                        {row.text}
-                      </p>
+                    <div
+                      key={row.id}
+                      data-role={row.role}
+                      className={
+                        row.role === "action"
+                          ? "max-w-[65ch] self-center rounded-full border border-(--hair) px-3 py-1 text-center text-xs text-muted-foreground"
+                          : row.role === "user"
+                            ? "max-w-[80%] self-end rounded-2xl rounded-br-md bg-(--gold) px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap text-black"
+                            : "max-w-[80%] self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap"
+                      }
+                    >
+                      <span className="sr-only">
+                        {t(`roles.${row.role}`)}:{" "}
+                      </span>
+                      {row.text}
                     </div>
                   ))
                 ) : (
@@ -390,7 +408,7 @@ export function VoiceConversation() {
                   {t("newMessages")}
                 </Button>
               ) : null}
-              {voice.connected ? (
+              {voice.connected && voice.textOnly ? (
                 <form
                   className="flex min-w-0 flex-col gap-2"
                   onSubmit={(e) => e.preventDefault()}

@@ -111,6 +111,10 @@ export function StrandsStatus() {
         colors={COLORS}
         count={3}
         glass
+        intensity={1.4}
+        saturation={1.3}
+        glow={1.2}
+        thickness={1.1}
         speed={working ? 1.6 : 1}
         energy={working ? 0.85 : speaking ? 0.7 : 0.45}
         listening={canListen && !speaking}
