@@ -6,6 +6,8 @@ const db = vi.hoisted(() => ({
   query: vi.fn(),
   end: vi.fn(),
 }))
+const warm = vi.hoisted(() => vi.fn())
+vi.mock("./checkpoint", () => ({ voiceCheckpointer: warm }))
 vi.mock("pg", () => ({
   default: {
     Client: class {
@@ -62,6 +64,7 @@ beforeEach(() => {
     "postgres://restricted:private@db/test"
   )
   vi.stubEnv("API_URL", "http://backend.test/v1")
+  warm.mockReset().mockResolvedValue(undefined)
   db.connect.mockResolvedValue(undefined)
   db.end.mockResolvedValue(undefined)
   db.query.mockResolvedValue({
@@ -223,4 +226,26 @@ it("shares in-flight probes and cached results across separately loaded route bu
   expect(JSON.stringify(cached)).not.toMatch(
     /provider-private|postgres|restricted:private/
   )
+})
+
+it("pre-connects the shared checkpoint pool once storage is ready", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url.endsWith("/llm/list")
+        ? Response.json(models())
+        : url.includes("/agents/")
+          ? Response.json(agent())
+          : Response.json({ status: "ok" })
+    )
+  )
+  warm.mockRejectedValueOnce(new Error("private pool failure"))
+  expect((await assistantReadiness(false)).ready).toBe(true)
+  expect(warm).toHaveBeenCalledOnce()
+  db.query.mockResolvedValue({
+    rows: [{ version: 5, restricted: false, checkpoint_access: true }],
+  })
+  warm.mockClear()
+  expect((await assistantReadiness(false)).ready).toBe(false)
+  expect(warm).not.toHaveBeenCalled()
 })

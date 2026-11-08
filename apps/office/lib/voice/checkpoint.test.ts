@@ -16,8 +16,8 @@ vi.mock("./tracing", () => ({
 vi.mock("pg", () => ({
   default: {
     Pool: class {
-      constructor() {
-        mocks.pool()
+      constructor(options: unknown) {
+        mocks.pool(options)
       }
       connect = mocks.connect
       query = mocks.query
@@ -77,4 +77,12 @@ it("traces advisory lock acquisition separately from the locked work", async () 
     expect(mocks.spans).toEqual(["checkpoint_lock"])
   })
   expect(mocks.connect).toHaveBeenCalledOnce()
+})
+
+it("keeps one checkpoint connection warm between assistant turns within the pool budget", async () => {
+  const { withVoiceThread } = await import("./checkpoint")
+  await withVoiceThread("s1", async () => undefined)
+  expect(mocks.pool).toHaveBeenCalledWith(
+    expect.objectContaining({ max: 4, min: 1, idleTimeoutMillis: 60000 })
+  )
 })

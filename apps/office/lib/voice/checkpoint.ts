@@ -24,7 +24,9 @@ async function checkpointPool(): Promise<pg.Pool> {
     shared.pool ??= new pg.Pool({
       connectionString,
       max: 4,
-      idleTimeoutMillis: 10000,
+      // One idle connection survives between voice turns; max stays inside the role budget.
+      min: 1,
+      idleTimeoutMillis: 60000,
       connectionTimeoutMillis: 5000,
       allowExitOnIdle: true,
     })
