@@ -128,3 +128,40 @@
     text-align: right;
   }
 }
+
+/* Vendored React Bits list and bento keep their own palettes inline; ours wins (glass tokens). */
+.theme-glass .voice-review-list,
+.theme-glass .magic-bento {
+  --al-tile: var(--glass) !important;
+  --al-tile-edge: var(--glass-border) !important;
+  --al-tile-highlight: rgb(255 255 255 / 8%) !important;
+  --al-tile-shadow: var(--glass-shadow) !important;
+  --al-well: var(--tint-warning) !important;
+  --al-ink: var(--foreground) !important;
+  --al-muted: var(--muted-foreground) !important;
+  --al-accent: var(--gold) !important;
+  --al-ring: var(--gold) !important;
+  --al-ring-fill: var(--tint-warning) !important;
+  --al-hover: brightness(1.08) !important;
+  --al-active: brightness(1.12) !important;
+  --mb-surface: var(--glass) !important;
+  --mb-edge: var(--glass-border) !important;
+  --mb-highlight: rgb(255 255 255 / 8%) !important;
+  --mb-shadow: var(--glass-shadow) !important;
+  --mb-tile: var(--glass-strong) !important;
+  --mb-tile-edge: var(--glass-border) !important;
+  --mb-tile-highlight: rgb(255 255 255 / 8%) !important;
+  --mb-tile-shadow: var(--glass-shadow) !important;
+  --mb-well: var(--field) !important;
+  --mb-well-edge: var(--field-border) !important;
+  --mb-ink: var(--foreground) !important;
+  --mb-muted: var(--muted-foreground) !important;
+  --mb-line: var(--hair) !important;
+  --mb-faint: var(--hair-2) !important;
+  --mb-accent-ink: var(--gold) !important;
+  --mb-secondary: var(--tint-success) !important;
+  --mb-secondary-ink: var(--tone-success) !important;
+}
+.theme-glass .voice-review-list [role="option"] > * > :first-child {
+  color: var(--muted-foreground);
+}
