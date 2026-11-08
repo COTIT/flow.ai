@@ -7,17 +7,9 @@ import {
   tools,
   ToolUnavailableError,
 } from "@/lib/voice/catalog"
-import {
-  authorizeVoice,
-  VoiceError,
-  voiceFailure,
-  voiceResponse,
-} from "@/lib/voice/server"
-import {
-  assistantRequest,
-  readAssistantSession,
-  requireAssistantSession,
-} from "@/lib/voice/bridge"
+import { VoiceError, voiceFailure, voiceResponse } from "@/lib/voice/server"
+import { assistantRequest } from "@/lib/voice/bridge"
+import { authorizeVoiceSession } from "@/lib/voice/identity"
 import {
   actionStatus,
   proposeAction,
@@ -109,20 +101,16 @@ async function handle(request: Request) {
         (input.operationId === BATCH_STATUS_OPERATION ||
           input.operationId === statusTool.id))
     if (!statusRequest) await requireAssistantAdmission()
-    const context = await withVoiceTracing("authorize", () =>
-      authorizeVoice(request, input.workspaceId)
+    const { context, session } = await authorizeVoiceSession(
+      request,
+      input.workspaceId,
+      input.sessionId,
+      statusRequest ? "read" : "live"
     )
     if (!statusRequest) await requireAssistantAdmission(context.workspaceId)
-    const session = await withVoiceTracing("session_lookup", () =>
-      statusRequest
-        ? readAssistantSession(context, input.sessionId)
-        : requireAssistantSession(context, input.sessionId)
-    )
     if (!statusRequest && !session.conversation_id)
       throw new VoiceError("Conversation identity has not been bound.", 409)
-    context.sessionId = session.id
-    context.language = session.language ?? "en"
-    language = context.language
+    language = context.language ?? "en"
     isBatch =
       input.operationId === BATCH_PREPARE_OPERATION ||
       input.operationId === BATCH_STATUS_OPERATION

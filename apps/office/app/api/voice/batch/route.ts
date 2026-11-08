@@ -1,9 +1,6 @@
-import { authorizeVoice, VoiceError, voiceResponse } from "@/lib/voice/server"
-import {
-  assistantRequest,
-  readAssistantSession,
-  requireAssistantSession,
-} from "@/lib/voice/bridge"
+import { VoiceError, voiceResponse } from "@/lib/voice/server"
+import { assistantRequest } from "@/lib/voice/bridge"
+import { authorizeVoiceSession } from "@/lib/voice/identity"
 import {
   batchFailure,
   proposeBatch,
@@ -36,19 +33,15 @@ async function handle(request: Request) {
       throw new VoiceError("Unknown fixed batch command.")
     if (["prepare", "restore"].includes(command))
       await requireAssistantAdmission()
-    const context = await withVoiceTracing("authorize", () =>
-      authorizeVoice(request, input.workspaceId)
+    const { context, session } = await authorizeVoiceSession(
+      request,
+      input.workspaceId,
+      input.sessionId,
+      ["prepare", "restore"].includes(command) ? "live" : "read"
     )
     if (["prepare", "restore"].includes(command))
       await requireAssistantAdmission(context.workspaceId)
-    const session = await withVoiceTracing("session_lookup", () =>
-      ["prepare", "restore"].includes(command)
-        ? requireAssistantSession(context, input.sessionId)
-        : readAssistantSession(context, input.sessionId)
-    )
-    context.sessionId = session.id
-    context.language = session.language ?? "en"
-    language = context.language
+    language = context.language ?? "en"
     if (command === "prepare") {
       if (!session.conversation_id)
         throw new VoiceError("Conversation identity has not been bound.", 409)

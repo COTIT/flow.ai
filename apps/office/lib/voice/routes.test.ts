@@ -12,6 +12,27 @@ const mocks = vi.hoisted(() => ({
   propose: vi.fn(),
   confirmBatch: vi.fn(),
   spans: [] as string[],
+  modes: [] as string[],
+}))
+vi.mock("./identity", () => ({
+  authorizeVoiceSession: async (
+    request: Request,
+    workspaceId: unknown,
+    sessionId: unknown,
+    mode: string
+  ) => {
+    mocks.modes.push(mode)
+    const context = await mocks.authorize(request, workspaceId)
+    const session = await mocks.session(context, sessionId)
+    return {
+      context: {
+        ...context,
+        sessionId: session.id,
+        language: session.language ?? "en",
+      },
+      session,
+    }
+  },
 }))
 vi.mock("./tracing", () => ({
   withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
@@ -79,6 +100,7 @@ const request = (value: unknown) =>
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.spans.length = 0
+  mocks.modes.length = 0
   vi.stubEnv("ASSISTANT_ENABLED", "true")
   vi.stubEnv("ASSISTANT_WORKSPACE_ALLOWLIST", context.workspaceId)
   vi.stubEnv("ASSISTANT_BRIDGE_SECRET", "a".repeat(32))
@@ -370,7 +392,7 @@ it("restores a fresh canonical review for the same owned unexpired JSON proposal
   expect(mocks.ledger.mock.calls.some((call) => call[2] === "POST")).toBe(false)
 })
 
-it("traces tool auth and session lookup as children of one request span", async () => {
+it("authorizes new tool work against a live session inside one request span", async () => {
   await toolRequest(
     request({
       command: "execute",
@@ -380,14 +402,11 @@ it("traces tool auth and session lookup as children of one request span", async 
       sessionId: "s1",
     })
   )
-  expect(mocks.spans.slice(0, 3)).toEqual([
-    "genesy_assistant_tools",
-    "authorize",
-    "session_lookup",
-  ])
+  expect(mocks.spans[0]).toBe("genesy_assistant_tools")
+  expect(mocks.modes).toEqual(["live"])
 })
 
-it("traces confirmation auth, session lookup and approval inside one request span", async () => {
+it("traces confirmation approval inside one request span against a live session", async () => {
   await confirmationRequest(
     request({
       workspaceId: context.workspaceId,
@@ -397,10 +416,6 @@ it("traces confirmation auth, session lookup and approval inside one request spa
       method: "click",
     })
   )
-  expect(mocks.spans).toEqual([
-    "genesy_assistant_confirm",
-    "authorize",
-    "session_lookup",
-    "approve",
-  ])
+  expect(mocks.spans).toEqual(["genesy_assistant_confirm", "approve"])
+  expect(mocks.modes).toEqual(["live"])
 })

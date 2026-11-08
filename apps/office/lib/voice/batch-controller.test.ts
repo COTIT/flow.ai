@@ -8,12 +8,9 @@ import {
 } from "./batch-controller"
 import { ToolUnavailableError } from "./catalog"
 
-it.each(["en", "nl", "sw"])(
-  "preserves unavailable batch preparation status in %s",
-  (language) => {
-    expect(batchFailure(new ToolUnavailableError(), language).status).toBe(501)
-  }
-)
+it.each(["en", "nl", "sw"])("preserves unavailable batch preparation status in %s", (language) => {
+  expect(batchFailure(new ToolUnavailableError(), language).status).toBe(501)
+})
 const ledger = vi.hoisted(() => vi.fn())
 vi.mock("./bridge", async (original) => ({
   ...(await original<typeof import("./bridge")>()),

@@ -1,10 +1,6 @@
-import {
-  authorizeVoice,
-  VoiceError,
-  voiceFailure,
-  voiceResponse,
-} from "@/lib/voice/server"
-import { assistantRequest, requireAssistantSession } from "@/lib/voice/bridge"
+import { VoiceError, voiceFailure, voiceResponse } from "@/lib/voice/server"
+import { assistantRequest } from "@/lib/voice/bridge"
+import { authorizeVoiceSession } from "@/lib/voice/identity"
 import {
   actionStatus,
   actionTransport,
@@ -37,17 +33,15 @@ async function handle(request: Request) {
     releaseFile = takeFilePermit(request)
     const { input, files } = await voiceInput(request)
     if (input.decision !== "cancel") await requireAssistantAdmission()
-    const context = await withVoiceTracing("authorize", () =>
-      authorizeVoice(request, input.workspaceId)
+    const { context, session } = await authorizeVoiceSession(
+      request,
+      input.workspaceId,
+      input.sessionId,
+      "live"
     )
     if (input.decision !== "cancel")
       await requireAssistantAdmission(context.workspaceId)
-    const session = await withVoiceTracing("session_lookup", () =>
-      requireAssistantSession(context, input.sessionId)
-    )
-    context.sessionId = session.id
-    context.language = session.language ?? "en"
-    language = context.language
+    language = context.language ?? "en"
     const secret = await voiceSetting("ASSISTANT_BRIDGE_SECRET")
     if (secret.length < 32)
       throw new VoiceError("Assistant confirmation is not configured.", 503)
@@ -62,14 +56,14 @@ async function handle(request: Request) {
           files,
           request.signal,
           async () => {
-            const fresh = await authorizeVoice(request, input.workspaceId)
+            const { context: fresh } = await authorizeVoiceSession(
+              request,
+              input.workspaceId,
+              session.id,
+              "live"
+            )
             await requireAssistantAdmission(fresh.workspaceId)
-            const active = await requireAssistantSession(fresh, session.id)
-            return {
-              ...fresh,
-              sessionId: active.id,
-              language: active.language ?? "en",
-            }
+            return fresh
           }
         )
       )
@@ -111,7 +105,7 @@ async function handle(request: Request) {
         !matchesSpokenConfirmation(
           input.utterance,
           review.confirmationCode,
-          context.language
+          language
         )
       )
         throw new VoiceError(
