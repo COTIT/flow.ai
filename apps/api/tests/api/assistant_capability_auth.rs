@@ -450,7 +450,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         .collect();
     assert_eq!(
         selected.len(),
-        73,
+        74,
         "reviewed collection boundary count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -496,7 +496,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         let url = reqwest::Url::parse(&format!("http://127.0.0.1{}", case.uri)).unwrap();
         for (name, _) in url.query_pairs() {
             assert!(
-                matches!(name.as_ref(), "from" | "to"),
+                matches!(name.as_ref(), "from" | "to" | "compare_from" | "compare_to"),
                 "{}: unresolved resource query {name}",
                 case.id
             );
@@ -518,7 +518,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 73);
+    assert_eq!(exercised.len(), 74);
 }
 
 #[sqlx::test]

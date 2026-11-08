@@ -99,13 +99,13 @@ test("API collection-tenant fixture has no unresolved target and leaves no colle
   const { catalog, reviews } = await loadInputs()
   const fixture = JSON.parse(await readFile(new URL("../../../../apps/api/tests/fixtures/assistant_collection_tenant_operations.json", import.meta.url), "utf8"))
   assert.equal(fixture.scope, "known_live_workspace_collection_boundary_only")
-  assert.equal(fixture.collectionOperationIds.length, 73)
-  assert.equal(new Set(fixture.collectionOperationIds).size, 73)
+  assert.equal(fixture.collectionOperationIds.length, 74)
+  assert.equal(new Set(fixture.collectionOperationIds).size, 74)
   const isCollection = operation => ["execute", "secure_ui"].includes(operation.disposition) && operation.path.includes("{workspace}") && [...operation.path.matchAll(/\{([^}]+)\}/g)].every(match => match[1] === "workspace")
   for (const id of fixture.collectionOperationIds) {
     const operation = catalog.find(operation => operation.id === id)
     assert(operation && isCollection(operation), `Unreviewed collection ${id}`)
-    assert(!operation.parameters.some(parameter => parameter.in === "query" && parameter.required && !["from", "to"].includes(parameter.name)), `Unresolved required collection selector ${id}`)
+    assert(!operation.parameters.some(parameter => parameter.in === "query" && parameter.required && !["from", "to", "compare_from", "compare_to"].includes(parameter.name)), `Unresolved required collection selector ${id}`)
   }
   const covered = new Set(reviews.reviews.filter(review => review.id !== "safety-final-live-workspace-collection-matrix" && review.gates.cross_workspace).flatMap(review => review.operations))
   for (const id of fixture.collectionOperationIds) covered.add(id)

@@ -54,6 +54,7 @@
     "messages_office365_connection",
     "messages_office365_send",
     "orders_list",
+    "orders_sales_compare",
     "orders_top_customers",
     "price_corrections_create",
     "product_brands_create",
