@@ -70,6 +70,8 @@ export interface PromptBarProps {
   busy?: boolean;
   /** Genesy edit: arms Send without text, e.g. for files staged outside the bar. */
   ready?: boolean;
+  /** Genesy edit: id of the hint that describes the message box. */
+  describedBy?: string;
   /** Genesy edit: translated accessible names; English by default. */
   labels?: Partial<typeof DEFAULT_LABELS>;
   /** Genesy edit: return false (or a promise of false) to keep the draft. */
@@ -234,6 +236,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
   onEffortChange,
   busy = false,
   ready = false,
+  describedBy,
   labels: customLabels,
   onSend,
   onStop,
@@ -754,6 +757,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
           value={draft}
           placeholder={listening ? 'Listening…' : placeholder}
           aria-label={labels.prompt}
+          aria-describedby={describedBy}
           onChange={e => {
             setDraft(e.target.value);
             typing.current.energy = Math.min(1.6, typing.current.energy + 0.22);
@@ -778,8 +782,10 @@ const PromptBar: React.FC<PromptBarProps> = ({
               setModelOpen(false);
               setEffortOpen(false);
               setActive(0);
-              setPlusOpen(v => !v);
+              // Genesy edit: focus first; the textarea's onFocus closes menus, so focusing
+              // after the toggle shut the menu again whenever the box was not focused yet.
               focusInput();
+              setPlusOpen(v => !v);
             }}
           >
             <HugeiconsIcon icon={PlusSignIcon} size={16} strokeWidth={2} />

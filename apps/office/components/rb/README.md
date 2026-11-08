@@ -14,6 +14,7 @@ them otherwise; wrap them instead, so a later copy can replace them.
 review rows, text composer), not decoration, so the voice screen imports them directly instead of
 through `island`; each honours reduced motion itself. Source, date and edits per file:
 `ThoughtLine-notice.md`, `AnimatedList-notice.md`, `PromptBar-notice.md`. PromptBar carries one
-more edit than the others (translated labels, `ready`, keep the draft on a refused send), marked
+more edits than the others (translated labels, hint, `ready`, keep the draft on a refused send,
+"+" menu focus order), marked
 `// Genesy edit:` in the file. Their palettes are overridden in `app/office.css` under the voice
 comments.

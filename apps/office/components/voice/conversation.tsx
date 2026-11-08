@@ -144,6 +144,7 @@ function Details({
   const t = useTranslations("voice")
   const labels = useTranslations("voice.reviewFields")
   const references = supplied ?? displayReferences(value)
+  if (field === "workspace") return <span>{t("currentWorkspace")}</span>
   if (value == null) return <span>—</span>
   if (
     typeof value === "string" &&
@@ -212,12 +213,10 @@ function Details({
                   })}
             </dt>
             <dd className="text-sm">
-              {key === "workspace" ? (
-                t("currentWorkspace")
-              ) : key === "summary" &&
-                taskMetadata &&
-                typeof (value as Record<string, unknown>).operation ===
-                  "string" ? (
+              {key === "summary" &&
+              taskMetadata &&
+              typeof (value as Record<string, unknown>).operation ===
+                "string" ? (
                 <ReviewTitle
                   review={{
                     summary: String(item),
@@ -401,6 +400,11 @@ export function VoiceConversation() {
                 <form
                   className="voice-composer flex min-w-0 flex-col gap-2"
                   onSubmit={(e) => e.preventDefault()}
+                  onKeyDown={(e) => {
+                    // Escape that closed the composer's menu must not close the assistant too.
+                    if (e.key === "Escape" && e.defaultPrevented)
+                      e.stopPropagation()
+                  }}
                   onPaste={(e) => {
                     if (!e.clipboardData.files.length) return
                     e.preventDefault()
@@ -422,6 +426,7 @@ export function VoiceConversation() {
                         stop: t("stopSpeaking"),
                       }}
                       ready={composerReady(voice.attachments)}
+                      describedBy="voice-file-hint"
                       placeholder={t("placeholder")}
                       sources={[
                         {
