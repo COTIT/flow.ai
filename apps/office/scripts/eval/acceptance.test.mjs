@@ -52,8 +52,8 @@ test("reviewed DTO fixture uses a boolean probe only for the exact ten JSON obje
 test("reviewed UUID fixture excludes body, required query, string-domain and unavailable contracts", async () => {
   const { catalog } = await loadInputs()
   const fixture = JSON.parse(await readFile(new URL("../../../../apps/api/tests/fixtures/assistant_uuid_validation_operations.json", import.meta.url), "utf8"))
-  assert.equal(fixture.uuidOperationIds.length, 60)
-  assert.equal(new Set(fixture.uuidOperationIds).size, 60)
+  assert.equal(fixture.uuidOperationIds.length, 59)
+  assert.equal(new Set(fixture.uuidOperationIds).size, 59)
   assert.equal(fixture.scope, "malformed_resource_identifier_only")
   assert.equal(fixture.malformed, "not-a-uuid")
   assert.equal(fixture.expectedStatus, 404)

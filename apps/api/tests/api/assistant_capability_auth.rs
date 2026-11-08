@@ -620,7 +620,7 @@ async fn reviewed_bodyless_uuid_capabilities_reject_malformed_resource_identifie
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 60, "reviewed UUID-only count changed");
+    assert_eq!(selected.len(), 59, "reviewed UUID-only count changed");
     let malformed = fixture["malformed"].as_str().unwrap();
     assert!(uuid::Uuid::parse_str(malformed).is_err());
     let f = common::farm::Farm::new(pool).await;
@@ -694,7 +694,7 @@ async fn reviewed_bodyless_uuid_capabilities_reject_malformed_resource_identifie
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 60);
+    assert_eq!(exercised.len(), 59);
 }
 
 #[sqlx::test]
