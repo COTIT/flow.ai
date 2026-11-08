@@ -149,7 +149,40 @@ export function apiEnv(state) {
     PRIVATE_RATE_LIMIT_BURST: "10000",
     PRIVATE_IP_RATE_LIMIT_BURST: "100000",
     INVITES_PER_HOUR: "10000",
+    ...(state.voice ? { ASSISTANT_BRIDGE_SECRET: state.voice.bridgeSecret } : {}),
   }
+}
+
+/** Office's restricted checkpoint login on the stack (deploy/assistant-role.sql, environment "local"). */
+export const CHECKPOINT_ROLE = "assistant_checkpoint_local"
+
+/**
+ * `VOICE=1 stack:up`: Office's voice assistant on, for these workspaces only. The provider key and
+ * agent id come from the caller's env (ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID) and are never stored.
+ */
+export function voiceEnv(state, workspaces) {
+  if (!state.voice) return {}
+  return {
+    ASSISTANT_ENABLED: "true",
+    ASSISTANT_WORKSPACE_ALLOWLIST: workspaces.join(","),
+    ASSISTANT_BRIDGE_SECRET: state.voice.bridgeSecret,
+    ASSISTANT_CHECKPOINT_URL: `postgres://${CHECKPOINT_ROLE}:${state.voice.checkpointPassword}@127.0.0.1:${PORTS.postgres}/${DB}`,
+    LANGSMITH_TRACING: "false",
+  }
+}
+
+/** After migrations: the checkpoint role and grants, then its login password (inside the container). */
+export function voiceRole(state) {
+  const sql = readFileSync(join(ROOT, "deploy/assistant-role.sql"), "utf8")
+  run("docker", [
+    "exec", "-i", CONTAINER, "psql", "-U", "postgres", "-d", DB, "-v", "ON_ERROR_STOP=1", "-q",
+    "-v", `checkpoint_role=${CHECKPOINT_ROLE}`, "-v", "checkpoint_mode=bootstrap", "-f", "-",
+  ], { input: sql, stdio: ["pipe", "ignore", "inherit"] })
+  // Hex only, so it is safe inside the quoted literal.
+  run("docker", ["exec", "-i", CONTAINER, "psql", "-U", "postgres", "-d", DB, "-v", "ON_ERROR_STOP=1", "-q", "-f", "-"], {
+    input: `ALTER ROLE ${CHECKPOINT_ROLE} LOGIN PASSWORD '${state.voice.checkpointPassword}';`,
+    stdio: ["pipe", "ignore", "inherit"],
+  })
 }
 
 export const apiBin = () =>
