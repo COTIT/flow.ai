@@ -26,7 +26,9 @@ export function contentSecurityPolicy(
     `img-src 'self' blob: data:${files ? ` ${files}` : ""}`,
     "font-src 'self'",
     `connect-src 'self'${voice ? " https://api.elevenlabs.io wss://api.elevenlabs.io" : ""}${dev ? " ws:" : ""}`,
-    ...(voice ? ["worker-src 'self' blob:", "media-src 'self' blob:"] : []),
+    // The app's own service worker (/sw.js); 'strict-dynamic' above would otherwise block it.
+    `worker-src 'self'${voice ? " blob:" : ""}`,
+    ...(voice ? ["media-src 'self' blob:"] : []),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

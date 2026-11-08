@@ -47,3 +47,8 @@ export function projectsFor(
     use: { ...use, baseURL },
   }))
 }
+
+/** The project without service workers: one would route page requests past page.route mocks. */
+export function blockServiceWorkers(p: Project): Project {
+  return { ...p, use: { ...p.use, serviceWorkers: "block" } }
+}

@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test"
 
 import { APP_KEY, FILES_ORIGIN, MOCK_ORIGIN, PORT_OFFSET } from "./mock/fixtures.mjs"
-import { projectsFor, viewports } from "./src/projects"
+import { blockServiceWorkers, projectsFor, viewports } from "./src/projects"
 
 const ci = Boolean(process.env.CI)
 const shopPort = 3200 + PORT_OFFSET
@@ -27,13 +27,15 @@ export default defineConfig({
   use: { trace: "on-first-retry" },
   projects: [
     ...projectsFor("shop", { testDir: "tests/shop", baseURL: shop }),
-    ...projectsFor("office", { testDir: "tests/office", baseURL: office }),
-    // The PWA's service worker would route page requests past page.route, so mockApi needs it off.
-    ...projectsFor("field", { testDir: "tests/field", baseURL: field }).map((p) => ({
-      ...p,
-      use: { ...p.use, serviceWorkers: "block" as const },
-    })),
-    ...projectsFor("till", { testDir: "tests/till", baseURL: till, tablets: true }),
+    // A service worker would route page requests past page.route, so mocked specs run without one;
+    // the *-pwa projects run with it, to prove the home-screen app and its offline start.
+    ...projectsFor("office", { testDir: "tests/office", baseURL: office }).map(blockServiceWorkers),
+    ...projectsFor("office-pwa", { testDir: "tests/office-pwa", baseURL: office }),
+    ...projectsFor("field", { testDir: "tests/field", baseURL: field }).map(blockServiceWorkers),
+    ...projectsFor("till", { testDir: "tests/till", baseURL: till, tablets: true }).map(
+      blockServiceWorkers
+    ),
+    ...projectsFor("till-pwa", { testDir: "tests/till-pwa", baseURL: till, tablets: true }),
     ...projectsFor("landing", { testDir: "tests/landing", baseURL: landing }),
     // The shared checks themselves (tap targets, layout shift, motion), on inline pages.
     { name: "helpers", testDir: "tests/helpers", use: viewports.desktop },

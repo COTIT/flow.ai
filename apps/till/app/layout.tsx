@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { NextIntlClientProvider } from "next-intl"
 import { getLocale } from "next-intl/server"
 import { headers } from "next/headers"
@@ -6,14 +6,19 @@ import { headers } from "next/headers"
 import "@genesy/ui/globals.css"
 import "./till.css"
 import { QueryProvider } from "@genesy/api-client/query-provider"
+import { ServiceWorker } from "@genesy/ui/components/service-worker"
 import { fontSans } from "@genesy/ui/lib/fonts"
+import { pwaMetadata, pwaViewport } from "@genesy/ui/lib/pwa"
 import { cn } from "@genesy/ui/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TillProvider } from "@/components/till-provider"
 
 export const metadata: Metadata = {
   title: "Genesy Till",
+  ...pwaMetadata("Till"),
 }
+
+export const viewport: Viewport = pwaViewport
 
 export default async function RootLayout({
   children,
@@ -37,6 +42,7 @@ export default async function RootLayout({
             </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
+        <ServiceWorker />
       </body>
     </html>
   )

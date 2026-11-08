@@ -19,6 +19,11 @@ describe("contentSecurityPolicy", () => {
     expect(directive(csp, "connect-src")).toBe("connect-src 'self'")
   })
 
+  // 'strict-dynamic' drops 'self' from script-src, which a service worker falls back to.
+  it("lets the app register its own service worker, and nothing else", () => {
+    expect(directive(csp, "worker-src")).toBe("worker-src 'self'")
+  })
+
   it("runs only scripts carrying this response's nonce (and what they load)", () => {
     expect(directive(csp, "script-src")).toBe(
       "script-src 'self' 'nonce-abc123' 'strict-dynamic'"

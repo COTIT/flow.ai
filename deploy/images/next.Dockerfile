@@ -16,7 +16,7 @@ WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,id=genesy-pnpm-store,target=/pnpm-store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir /pnpm-store
-# office, till and landing have no public/ folder; an empty one keeps the COPY below uniform.
+# An app without a public/ folder (landing) gets an empty one, so the COPY below stays uniform.
 RUN pnpm --filter "@genesy/${APP}" build && mkdir -p "apps/${APP}/public"
 
 FROM ${NODE_IMAGE} AS runtime

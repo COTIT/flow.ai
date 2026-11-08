@@ -689,7 +689,9 @@
     "noAccess": "Huna ruhusa ya kuona hili",
     "noAccessText": "Muombe msimamizi wa akaunti hii akupe ruhusa.",
     "crashed": "Kuna tatizo kwenye ukurasa huu.",
-    "crashedText": "Jaribu tena. Likiendelea, tuambie ulichokuwa ukifanya."
+    "crashedText": "Jaribu tena. Likiendelea, tuambie ulichokuwa ukifanya.",
+    "offline": "Huna mtandao",
+    "offlineText": "Angalia muunganisho wako, kisha jaribu tena."
   },
   "done": {
     "productSaved": "Bidhaa imehifadhiwa.",

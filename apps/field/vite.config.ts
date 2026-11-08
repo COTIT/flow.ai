@@ -32,6 +32,12 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#F5F3E5',
         theme_color: '#1d70b7',
+        // Rendered by packages/e2e/scripts/make-app-icons.mjs; Android needs 192 + 512 to offer an install.
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
     }),
   ],
