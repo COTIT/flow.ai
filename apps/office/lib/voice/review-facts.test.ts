@@ -111,3 +111,38 @@ it("formats requested order prices without changing the exact backend request", 
     )
   ).toContain("1250 minor units")
 })
+
+it("formats before → after money changes exactly, per change's own currency", () => {
+  expect(
+    reviewFacts(
+      {
+        version: 1,
+        operation_id: "products_update",
+        facts: {
+          kind: "product",
+          changes: [
+            {
+              field: "price",
+              currency: { code: "USD", decimals: 2 },
+              before_minor: 50,
+              after_minor: 50050,
+              change_bp: 10000000,
+              warning: "large_change",
+            },
+            // Sub-cent: exact decimal strings, never rounded to the currency's decimals.
+            { field: "cost", currency: { code: "USD", decimals: 2 }, before: "0.005", after: "0.0075" },
+            { field: "name", before: "Stickers", after: "AFM Stickers" },
+          ],
+        },
+      },
+      "products_update",
+      "en"
+    )
+  ).toMatchObject({
+    changes: [
+      { field: "price", currency: "USD", before: "$0.50", after: "$500.50", change_bp: 10000000, warning: "large_change" },
+      { field: "cost", currency: "USD", before: "0.005", after: "0.0075" },
+      { field: "name", before: "Stickers", after: "AFM Stickers" },
+    ],
+  })
+})

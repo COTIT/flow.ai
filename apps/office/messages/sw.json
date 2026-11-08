@@ -1011,7 +1011,8 @@
       "user": "Wewe",
       "agent": "Genesy",
       "action": "Kitendo",
-      "link": "Kiungo"
+      "link": "Kiungo",
+      "result": "Matokeo"
     },
     "fileStates": {
       "selected": "Imechaguliwa · haijatumwa",
@@ -1182,7 +1183,17 @@
       "count": "Idadi",
       "state": "Hali",
       "method": "Njia",
-      "operation": "Kitendo"
+      "operation": "Kitendo",
+      "gross_price": "Bei pamoja na VAT",
+      "wholesale_price": "Bei ya jumla",
+      "supplier_wholesale_price": "Bei ya jumla ya msambazaji",
+      "impact_on_price": "Marekebisho ya bei",
+      "impact_on_wholesale_price": "Marekebisho ya bei ya jumla",
+      "vat_group": "Kundi la VAT",
+      "order_unit": "Kipimo cha kuagiza",
+      "sale_unit": "Kipimo cha kuuza",
+      "default": "Chaguo-msingi",
+      "rate": "Kiwango"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -1313,6 +1324,102 @@
     "currentWorkspace": "Eneo la kazi la sasa",
     "yes": "Ndiyo",
     "no": "Hapana",
-    "otherField": "Sehemu: {name}"
+    "otherField": "{name}",
+    "results": {
+      "salesTitle": "Mauzo",
+      "source": {
+        "till": "Mauzo ya kaunta",
+        "office": "Mauzo ya ofisi",
+        "storefront": "Mauzo ya duka la mtandaoni",
+        "all": "Mauzo yote"
+      },
+      "period": "{from} hadi {to}",
+      "orders": "{count, plural, one {oda #} other {oda #}}",
+      "refunded": "Zilizorejeshwa",
+      "gross": "Mauzo",
+      "periodColumn": "Kipindi",
+      "currency": "Sarafu",
+      "showTable": "Onyesha kama jedwali",
+      "showChart": "Onyesha kama chati",
+      "noSales": "Hakuna mauzo katika kipindi hiki",
+      "noSalesHint": "Hakuna kilichouzwa kati ya tarehe hizi.",
+      "resources": {
+        "orders": "Oda",
+        "invoices": "Ankara",
+        "products": "Bidhaa",
+        "lots": "Makundi"
+      },
+      "empty": {
+        "orders": "Hakuna oda zilizopatikana",
+        "invoices": "Hakuna ankara zilizopatikana",
+        "products": "Hakuna bidhaa zilizopatikana",
+        "lots": "Hakuna makundi yaliyopatikana"
+      },
+      "emptyHint": "Hakuna kinacholingana na swali hili kwa sasa.",
+      "showing": "Inaonyesha {shown} kati ya {total}",
+      "openAll": "Fungua zote kwenye Office",
+      "inStock": "{count} zipo stoo",
+      "originTitle": "Kinatoka wapi",
+      "materials": "Viungo",
+      "noOrigin": "Bado hakuna taarifa za asili",
+      "noOriginHint": "Ziongeze kwenye pasipoti ya kundi.",
+      "trailTitle": "Historia ya kundi",
+      "noTrail": "Bado hakuna historia",
+      "noTrailHint": "Mabadiliko ya kundi hili yataonekana hapa.",
+      "events": {
+        "created": "Imeundwa",
+        "updated": "Imesasishwa",
+        "status_changed": "Hali imebadilika",
+        "passport_published": "Pasipoti imechapishwa",
+        "passport_unpublished": "Pasipoti imeondolewa"
+      },
+      "by": "na {name}",
+      "attentionTitle": "Yanahitaji umakini",
+      "allClear": "Hakuna kinachohitaji umakini wako",
+      "allClearHint": "Hakuna mambo wazi katika sehemu unazoweza kuona.",
+      "sections": {
+        "orders": "Oda",
+        "invoices": "Ankara",
+        "stock": "Stoo",
+        "till_shifts": "Zamu za kaunta zilizo wazi",
+        "lots": "Makundi",
+        "webhooks": "Webhook zilizoshindwa"
+      },
+      "counts": {
+        "open": "Wazi",
+        "draft": "Rasimu",
+        "unpaid": "Hazijalipwa",
+        "overdue": "Zimechelewa",
+        "low": "Chache",
+        "out_of_stock": "Zimeisha",
+        "quarantined": "Zimezuiwa",
+        "holds": "Zimeshikiliwa na oda",
+        "failed": "Zimeshindwa"
+      },
+      "attempts": "{count, plural, one {jaribio #} other {majaribio #}}",
+      "level": "Kiwango {level}",
+      "opened": "Ilifunguliwa {date}",
+      "diffTitle": "Kinachobadilika",
+      "was": "ilikuwa",
+      "now": "sasa",
+      "up": "Juu {share}",
+      "down": "Chini {share}",
+      "moreDetails": "Maelezo zaidi",
+      "fewerDetails": "Maelezo machache",
+      "largeChange": "Haya ni mabadiliko makubwa sana. Kagua thamani mpya kabla ya kuidhinisha.",
+      "nameUnavailable": "jina halipatikani",
+      "recordLine": "{type}: {label}",
+      "impactTitle": "Hii pia inagusa",
+      "impact": {
+        "orders": "Oda",
+        "contacts": "Mawasiliano",
+        "variants": "Saizi",
+        "stock_rows": "Mistari ya stoo"
+      },
+      "effect": {
+        "archive": "Itahifadhiwa kwenye kumbukumbu, si kufutwa."
+      },
+      "warningsTitle": "Kabla ya kuidhinisha"
+    }
   }
 }

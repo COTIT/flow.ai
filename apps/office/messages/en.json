@@ -1011,7 +1011,8 @@
       "user": "You",
       "agent": "Genesy",
       "action": "Action",
-      "link": "Link"
+      "link": "Link",
+      "result": "Result"
     },
     "fileStates": {
       "selected": "Selected · not sent",
@@ -1182,7 +1183,17 @@
       "count": "Count",
       "state": "State",
       "method": "Method",
-      "operation": "Operation"
+      "operation": "Operation",
+      "gross_price": "Price incl. VAT",
+      "wholesale_price": "Wholesale price",
+      "supplier_wholesale_price": "Supplier wholesale price",
+      "impact_on_price": "Price adjustment",
+      "impact_on_wholesale_price": "Wholesale price adjustment",
+      "vat_group": "VAT group",
+      "order_unit": "Order unit",
+      "sale_unit": "Sale unit",
+      "default": "Default",
+      "rate": "Rate"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -1313,6 +1324,102 @@
     "currentWorkspace": "Current workspace",
     "yes": "Yes",
     "no": "No",
-    "otherField": "Field: {name}"
+    "otherField": "{name}",
+    "results": {
+      "salesTitle": "Sales",
+      "source": {
+        "till": "Till sales",
+        "office": "Office sales",
+        "storefront": "Shop sales",
+        "all": "All sales"
+      },
+      "period": "{from} until {to}",
+      "orders": "{count, plural, one {# order} other {# orders}}",
+      "refunded": "Refunded",
+      "gross": "Sales",
+      "periodColumn": "Period",
+      "currency": "Currency",
+      "showTable": "Show as table",
+      "showChart": "Show as chart",
+      "noSales": "No sales in this period",
+      "noSalesHint": "Nothing was sold between these dates.",
+      "resources": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "products": "Products",
+        "lots": "Lots"
+      },
+      "empty": {
+        "orders": "No orders found",
+        "invoices": "No invoices found",
+        "products": "No products found",
+        "lots": "No lots found"
+      },
+      "emptyHint": "Nothing matches this question right now.",
+      "showing": "Showing {shown} of {total}",
+      "openAll": "Open all in Office",
+      "inStock": "{count} in stock",
+      "originTitle": "Where it comes from",
+      "materials": "Ingredients",
+      "noOrigin": "No origin details yet",
+      "noOriginHint": "Add them on the lot's passport.",
+      "trailTitle": "Lot history",
+      "noTrail": "No history yet",
+      "noTrailHint": "Changes to this lot will show here.",
+      "events": {
+        "created": "Created",
+        "updated": "Updated",
+        "status_changed": "Status changed",
+        "passport_published": "Passport published",
+        "passport_unpublished": "Passport unpublished"
+      },
+      "by": "by {name}",
+      "attentionTitle": "Needs attention",
+      "allClear": "Nothing needs your attention",
+      "allClearHint": "No open items in the sections you can see.",
+      "sections": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "stock": "Stock",
+        "till_shifts": "Open till shifts",
+        "lots": "Lots",
+        "webhooks": "Failed webhooks"
+      },
+      "counts": {
+        "open": "Open",
+        "draft": "Draft",
+        "unpaid": "Unpaid",
+        "overdue": "Overdue",
+        "low": "Low",
+        "out_of_stock": "Out of stock",
+        "quarantined": "On hold",
+        "holds": "Held by orders",
+        "failed": "Failed"
+      },
+      "attempts": "{count, plural, one {# attempt} other {# attempts}}",
+      "level": "Level {level}",
+      "opened": "Opened {date}",
+      "diffTitle": "What changes",
+      "was": "was",
+      "now": "now",
+      "up": "Up {share}",
+      "down": "Down {share}",
+      "moreDetails": "More details",
+      "fewerDetails": "Fewer details",
+      "largeChange": "This is a very large change. Check the new value before approving.",
+      "nameUnavailable": "name not available",
+      "recordLine": "{type}: {label}",
+      "impactTitle": "This also affects",
+      "impact": {
+        "orders": "Orders",
+        "contacts": "Contacts",
+        "variants": "Sizes",
+        "stock_rows": "Stock rows"
+      },
+      "effect": {
+        "archive": "It will be archived, not deleted."
+      },
+      "warningsTitle": "Before you approve"
+    }
   }
 }

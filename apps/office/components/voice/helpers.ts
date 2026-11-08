@@ -1,4 +1,5 @@
 import { failureReason } from "@/lib/voice/client-contract"
+import type { ResultView } from "@/lib/voice/views"
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_ATTACHMENTS = 10
 export const ATTACHMENT_ACCEPT =
@@ -10,8 +11,10 @@ export function requestFailureKey(status: number) {
 }
 export type TranscriptRow = {
   id: string
-  role: "user" | "agent" | "action" | "link"
+  role: "user" | "agent" | "action" | "link" | "result"
   text: string
+  /** Charts or cards a "result" row shows. */
+  views?: ResultView[]
   /** Office page a "link" row opens. */
   href?: string
 }
@@ -41,7 +44,9 @@ export function outcomeForAgent(outcome: {
   links?: { label: string | null; href: string }[]
   [field: string]: unknown
 }) {
+  // The picture is for the screen only; the agent keeps `data`.
   const { links, ...rest } = outcome
+  delete rest.view
   const records = links?.flatMap((link) => (link.label ? [link.label] : []))
   return records?.length ? { ...rest, records } : rest
 }

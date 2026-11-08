@@ -1011,7 +1011,8 @@
       "user": "Jij",
       "agent": "Genesy",
       "action": "Actie",
-      "link": "Link"
+      "link": "Link",
+      "result": "Resultaat"
     },
     "fileStates": {
       "selected": "Gekozen · niet verzonden",
@@ -1182,7 +1183,17 @@
       "count": "Aantal",
       "state": "Status",
       "method": "Methode",
-      "operation": "Bewerking"
+      "operation": "Bewerking",
+      "gross_price": "Prijs incl. btw",
+      "wholesale_price": "Groothandelsprijs",
+      "supplier_wholesale_price": "Groothandelsprijs leverancier",
+      "impact_on_price": "Prijsaanpassing",
+      "impact_on_wholesale_price": "Aanpassing groothandelsprijs",
+      "vat_group": "Btw-groep",
+      "order_unit": "Besteleenheid",
+      "sale_unit": "Verkoopeenheid",
+      "default": "Standaard",
+      "rate": "Tarief"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1313,6 +1324,102 @@
     "currentWorkspace": "Huidige werkruimte",
     "yes": "Ja",
     "no": "Nee",
-    "otherField": "Veld: {name}"
+    "otherField": "{name}",
+    "results": {
+      "salesTitle": "Verkoop",
+      "source": {
+        "till": "Kassaverkoop",
+        "office": "Office-verkoop",
+        "storefront": "Webwinkelverkoop",
+        "all": "Alle verkoop"
+      },
+      "period": "{from} tot {to}",
+      "orders": "{count, plural, one {# bestelling} other {# bestellingen}}",
+      "refunded": "Terugbetaald",
+      "gross": "Verkoop",
+      "periodColumn": "Periode",
+      "currency": "Valuta",
+      "showTable": "Als tabel tonen",
+      "showChart": "Als grafiek tonen",
+      "noSales": "Geen verkoop in deze periode",
+      "noSalesHint": "Tussen deze datums is niets verkocht.",
+      "resources": {
+        "orders": "Bestellingen",
+        "invoices": "Facturen",
+        "products": "Producten",
+        "lots": "Partijen"
+      },
+      "empty": {
+        "orders": "Geen bestellingen gevonden",
+        "invoices": "Geen facturen gevonden",
+        "products": "Geen producten gevonden",
+        "lots": "Geen partijen gevonden"
+      },
+      "emptyHint": "Er past nu niets bij deze vraag.",
+      "showing": "{shown} van {total} getoond",
+      "openAll": "Alles openen in Office",
+      "inStock": "{count} op voorraad",
+      "originTitle": "Waar het vandaan komt",
+      "materials": "Ingrediënten",
+      "noOrigin": "Nog geen herkomstgegevens",
+      "noOriginHint": "Voeg ze toe in het paspoort van de partij.",
+      "trailTitle": "Geschiedenis van de partij",
+      "noTrail": "Nog geen geschiedenis",
+      "noTrailHint": "Wijzigingen aan deze partij verschijnen hier.",
+      "events": {
+        "created": "Aangemaakt",
+        "updated": "Bijgewerkt",
+        "status_changed": "Status gewijzigd",
+        "passport_published": "Paspoort gepubliceerd",
+        "passport_unpublished": "Paspoort offline gehaald"
+      },
+      "by": "door {name}",
+      "attentionTitle": "Vraagt aandacht",
+      "allClear": "Niets vraagt je aandacht",
+      "allClearHint": "Geen open punten in de onderdelen die je kunt zien.",
+      "sections": {
+        "orders": "Bestellingen",
+        "invoices": "Facturen",
+        "stock": "Voorraad",
+        "till_shifts": "Open kassadiensten",
+        "lots": "Partijen",
+        "webhooks": "Mislukte webhooks"
+      },
+      "counts": {
+        "open": "Open",
+        "draft": "Concept",
+        "unpaid": "Onbetaald",
+        "overdue": "Te laat",
+        "low": "Laag",
+        "out_of_stock": "Uitverkocht",
+        "quarantined": "Geblokkeerd",
+        "holds": "Vastgehouden door bestellingen",
+        "failed": "Mislukt"
+      },
+      "attempts": "{count, plural, one {# poging} other {# pogingen}}",
+      "level": "Niveau {level}",
+      "opened": "Geopend {date}",
+      "diffTitle": "Wat er verandert",
+      "was": "was",
+      "now": "nu",
+      "up": "Omhoog {share}",
+      "down": "Omlaag {share}",
+      "moreDetails": "Meer details",
+      "fewerDetails": "Minder details",
+      "largeChange": "Dit is een heel grote wijziging. Controleer de nieuwe waarde voordat je goedkeurt.",
+      "nameUnavailable": "naam niet beschikbaar",
+      "recordLine": "{type}: {label}",
+      "impactTitle": "Dit raakt ook",
+      "impact": {
+        "orders": "Bestellingen",
+        "contacts": "Contacten",
+        "variants": "Maten",
+        "stock_rows": "Voorraadregels"
+      },
+      "effect": {
+        "archive": "Het wordt gearchiveerd, niet verwijderd."
+      },
+      "warningsTitle": "Voordat je goedkeurt"
+    }
   }
 }

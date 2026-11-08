@@ -114,5 +114,9 @@ describe("record links", () => {
       })
     ).toEqual({ status: "completed", records: ["ORD-0229"] })
     expect(outcomeForAgent({ status: "failed" })).toEqual({ status: "failed" })
+    // The picture is for the screen; the agent keeps the data it already gets.
+    expect(
+      outcomeForAgent({ status: "completed", data: [1], view: { kind: "sales" } })
+    ).toEqual({ status: "completed", data: [1] })
   })
 })
