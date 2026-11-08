@@ -31,6 +31,16 @@ describe("voice tool boundary", () => {
     ).toContain("teams_list")
   })
 
+  it("finds why a webhook failed and what a member can see", () => {
+    const failed = discoverTools("why did the webhook fail", ["workspace_owner"])[0]!
+    expect(failed.id).toBe("webhooks_deliveries")
+    expect(failed.write).toBe(false)
+    expect(discoverTools("webhooks_deliveries", ["user.get"])).toEqual([])
+    expect(
+      discoverTools("what can member see permissions", ["workspace_owner"])[0]?.id
+    ).toBe("users_get")
+  })
+
   it("offers member removal to admins only, as a reviewed write", () => {
     const tool = discoverTools("remove member access", ["workspace_owner"])[0]!
     expect(tool.id).toBe("users_remove")

@@ -231,3 +231,168 @@ async fn a_workspace_holds_at_most_10_endpoints(pool: PgPool) {
             .contains("at most 10")
     );
 }
+
+// ================= delivery history
+
+/// A delivery of a `stock.changed` event to `endpoint`, `secs` seconds old.
+async fn delivery(
+    pool: &PgPool,
+    ws: &str,
+    endpoint: &str,
+    secs: i32,
+    status: &str,
+    error: Option<&str>,
+) {
+    sqlx::query(
+        "WITH e AS (
+           INSERT INTO webhook_events (workspace_id, type, payload, created_at)
+           VALUES ($1::uuid, 'stock.changed', '{}'::jsonb, now() - make_interval(secs => $3))
+           RETURNING id)
+         INSERT INTO webhook_deliveries
+           (workspace_id, event_id, endpoint_id, status, attempts, last_status, last_error, created_at)
+         SELECT $1::uuid, e.id, $2::uuid, $4, 5, CASE WHEN $4 = 'delivered' THEN 200 END, $5,
+                now() - make_interval(secs => $3)
+         FROM e",
+    )
+    .bind(ws)
+    .bind(endpoint)
+    .bind(secs)
+    .bind(status)
+    .bind(error)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+#[sqlx::test]
+async fn deliveries_say_why_a_webhook_failed_newest_first_without_secrets(pool: PgPool) {
+    let api = Api::new(pool.clone(), "/webhook-endpoints").await;
+    let created = create(&api).await;
+    let id = created["id"].as_str().unwrap();
+    let secret = created["secret"].as_str().unwrap();
+    delivery(&pool, &api.ws, id, 7200, "delivered", None).await;
+    let err = "error sending request for url (https://shop.example.com/hooks?token=s3cr3t): connection refused";
+    delivery(&pool, &api.ws, id, 60, "failed", Some(err)).await;
+
+    let (status, res) = api
+        .call(Method::GET, &format!("/{id}/deliveries"), None, &api.owner)
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let rows = res["data"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    let failed = &rows[0];
+    assert_eq!(failed["status"], "failed");
+    assert_eq!(failed["attempts"], 5);
+    assert_eq!(failed["last_status"], Value::Null);
+    assert_eq!(failed["event_type"], "stock.changed");
+    assert!(failed["event_id"].is_string() && failed["created_at"].is_string());
+    let error = failed["last_error"].as_str().unwrap();
+    assert!(
+        error.contains("connection refused") && error.contains("https://shop.example.com/hooks"),
+        "{error}"
+    );
+    assert!(!error.contains("s3cr3t"), "query string kept: {error}");
+    assert_eq!(rows[1]["status"], "delivered");
+    assert_eq!(rows[1]["last_status"], 200);
+    assert_eq!(res["meta"]["total"], 2);
+    let text = res.to_string();
+    assert!(!text.contains(secret) && !text.contains("whsec_") && !text.contains("s3cr3t"));
+}
+
+#[sqlx::test]
+async fn deliveries_filter_by_status(pool: PgPool) {
+    let api = Api::new(pool.clone(), "/webhook-endpoints").await;
+    let id = create(&api).await["id"].as_str().unwrap().to_owned();
+    delivery(&pool, &api.ws, &id, 120, "delivered", None).await;
+    delivery(
+        &pool,
+        &api.ws,
+        &id,
+        60,
+        "failed",
+        Some("endpoint answered 500 Internal Server Error"),
+    )
+    .await;
+
+    let (status, res) = api
+        .call(
+            Method::GET,
+            &format!("/{id}/deliveries?status=failed"),
+            None,
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        res["data"][0]["last_error"],
+        "endpoint answered 500 Internal Server Error"
+    );
+
+    let (status, res) = api
+        .call(
+            Method::GET,
+            &format!("/{id}/deliveries?status=lost"),
+            None,
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+}
+
+#[sqlx::test]
+async fn deliveries_are_for_admins_of_this_workspace_only(pool: PgPool) {
+    let api = Api::new(pool.clone(), "/webhook-endpoints").await;
+    let id = create(&api).await["id"].as_str().unwrap().to_owned();
+    delivery(&pool, &api.ws, &id, 60, "failed", Some("boom")).await;
+    let path = format!("/{id}/deliveries");
+    let bob = member_with(
+        &api.app,
+        &pool,
+        &api.ws,
+        "bob@example.com",
+        &["workspace.get"],
+    )
+    .await;
+    let other = api.as_new_owner("eve@example.com", "evil").await;
+    let theirs = create(&other).await["id"].as_str().unwrap().to_owned();
+
+    assert_eq!(
+        api.call(Method::GET, &path, None, &bob).await.0,
+        StatusCode::FORBIDDEN
+    );
+    // Eve's workspace does not reach Ada's endpoint, and Ada's does not reach Eve's.
+    assert_eq!(
+        other.call(Method::GET, &path, None, &other.owner).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        api.call(
+            Method::GET,
+            &format!("/{theirs}/deliveries"),
+            None,
+            &api.owner
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        api.call(Method::GET, "/nope/deliveries", None, &api.owner)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        api.call(
+            Method::GET,
+            "/00000000-0000-7000-8000-000000000000/deliveries",
+            None,
+            &api.owner
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+}

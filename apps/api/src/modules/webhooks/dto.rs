@@ -1,4 +1,4 @@
-//! Webhook endpoint request/response bodies.
+//! Webhook endpoint request/response bodies, plus the delivery history read.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -7,8 +7,12 @@ use utoipa::{IntoParams, PartialSchema, ToSchema, openapi::RefOr, openapi::schem
 use uuid::Uuid;
 
 use crate::{
+    error::AppError,
     http::json::{Rules, Validate, is_url, present},
-    modules::webhooks::{events::EVENTS, repo::EndpointPatch, repo::EndpointRow},
+    modules::webhooks::{
+        events::EVENTS,
+        repo::{DeliveryRow, EndpointPatch, EndpointRow},
+    },
     openapi::string_enum,
 };
 
@@ -110,6 +114,86 @@ pub struct ListQuery {
     pub page_size: Option<String>,
 }
 
+/// GET deliveries query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct DeliveriesQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
+    pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
+    pub page_size: Option<String>,
+    /// Only deliveries in this state: `pending`, `delivered` or `failed`.
+    pub status: Option<String>,
+}
+
+impl DeliveriesQuery {
+    /// The status filter; anything outside the three states is 422.
+    pub fn status(&self) -> Result<Option<&str>, AppError> {
+        match self.status.as_deref() {
+            None => Ok(None),
+            Some(s @ ("pending" | "delivered" | "failed")) => Ok(Some(s)),
+            Some(_) => Err(AppError::field("status", "The selected status is invalid.")),
+        }
+    }
+}
+
+/// One event sent (or being sent) to an endpoint: its outcome and why it failed.
+#[derive(Serialize, ToSchema)]
+pub struct WebhookDeliveryResource {
+    id: Uuid,
+    event_id: Uuid,
+    /// Event type, e.g. `stock.changed`.
+    event_type: String,
+    /// `pending` (retrying), `delivered`, or `failed` (gave up after the last attempt).
+    status: String,
+    attempts: i32,
+    /// HTTP status of the last answer; null when no answer came.
+    #[schema(required = true)]
+    last_status: Option<i16>,
+    /// Why the last attempt failed. URL query strings are cut, since they may carry tokens.
+    #[schema(required = true)]
+    last_error: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    #[schema(required = true)]
+    delivered_at: Option<DateTime<Utc>>,
+}
+
+impl From<DeliveryRow> for WebhookDeliveryResource {
+    fn from(d: DeliveryRow) -> Self {
+        Self {
+            id: d.id,
+            event_id: d.event_id,
+            event_type: d.event_type,
+            status: d.status,
+            attempts: d.attempts,
+            last_status: d.last_status,
+            last_error: d.last_error.as_deref().map(strip_queries),
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+            delivered_at: d.delivered_at,
+        }
+    }
+}
+
+/// `(https://h/p?token=x):` -> `(https://h/p):` in each word holding a URL.
+fn strip_queries(text: &str) -> String {
+    text.split(' ')
+        .map(|word| match (word.find("://"), word.find('?')) {
+            (Some(scheme), Some(q)) if q > scheme => {
+                let end = word[q..]
+                    .find([')', '"', '\'', ','])
+                    .map_or(word.len(), |i| q + i);
+                format!("{}{}", &word[..q], &word[end..])
+            }
+            _ => word.to_owned(),
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// POST /webhook-endpoints.
 #[derive(Deserialize, ToSchema)]
 #[schema(description = "New endpoint. `url` must be https.")]
@@ -196,5 +280,26 @@ impl Validate for UpdateEndpointRequest {
             description: r.patch_opt_text("description", self.description, DESCRIPTION_MAX),
             active: self.active.and_then(|a| r.boolean("active", &a)),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_queries;
+
+    #[test]
+    fn strip_queries_cuts_url_queries_only() {
+        assert_eq!(
+            strip_queries(
+                "error sending request for url (https://h.io/p?token=s3cr3t&a=1): refused"
+            ),
+            "error sending request for url (https://h.io/p): refused"
+        );
+        assert_eq!(strip_queries("https://h.io/p?x=1"), "https://h.io/p");
+        assert_eq!(
+            strip_queries("why? endpoint answered 500"),
+            "why? endpoint answered 500"
+        );
+        assert_eq!(strip_queries("endpoint inactive"), "endpoint inactive");
     }
 }

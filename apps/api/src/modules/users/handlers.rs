@@ -67,7 +67,8 @@ pub async fn members(
 /// GET /v1/workspace/{workspace}/users/{user} -> `{data:{...}}`.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/users/{user}", tag = "users",
-    operation_id = "users_get", summary = "Get a workspace member",
+    operation_id = "users_get",
+    summary = "Get a member: their teams (roles) and effective permissions, i.e. what they can see and do",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("user" = Uuid, Path, description = "User id"),

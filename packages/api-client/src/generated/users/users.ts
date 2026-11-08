@@ -409,7 +409,7 @@ export const useUsersRemove = <TError = ErrorType<MessageBody>,
       return useMutation(getUsersRemoveMutationOptions(options), queryClient);
     }
     /**
- * @summary Get a workspace member
+ * @summary Get a member: their teams (roles) and effective permissions, i.e. what they can see and do
  */
 export const usersGet = (
     workspace: string,
@@ -486,7 +486,7 @@ export function useUsersGet<TData = Awaited<ReturnType<typeof usersGet>>, TError
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Get a workspace member
+ * @summary Get a member: their teams (roles) and effective permissions, i.e. what they can see and do
  */
 
 export function useUsersGet<TData = Awaited<ReturnType<typeof usersGet>>, TError = ErrorType<MessageBody>>(

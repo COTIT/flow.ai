@@ -13854,6 +13854,37 @@
     },
     "confirmationFields": []
   },
+  "webhooks_deliveries": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/webhook-endpoints/{endpoint}/deliveries",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/webhooks/handlers.rs#deliveries",
+        "apps/api/src/modules/webhooks/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "webhooks_update": {
     "method": "PATCH",
     "path": "/workspace/{workspace}/webhook-endpoints/{endpoint}",
