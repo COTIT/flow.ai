@@ -7,6 +7,9 @@ import {
   type PreparedAction,
 } from "./catalog"
 import { readBounded } from "./bridge"
+import { recordLinks, type RecordLink } from "./links"
+import { failureReason } from "./client-contract"
+import { noteVoiceFailure } from "./tracing"
 import { voiceSetting } from "./settings"
 
 export type VoiceContext = {
@@ -26,6 +29,13 @@ export type Outcome = {
   data?: unknown
   message?: string
   actionId?: string
+  /** Office pages of the records a completed write created or changed. */
+  links?: RecordLink[]
+  /** Why it did not complete: a `failureReason` key, for the agent and monitoring. */
+  reason?: string
+  httpStatus?: number
+  /** Request fields the backend refused. */
+  fields?: string[]
 }
 
 const mailOutcomes: Record<string, Pick<Outcome, "status" | "message">> = {
@@ -230,12 +240,7 @@ export async function callBackend(
         "The backend returned an unreadable result. Check Office before repeating a write.",
     }
   }
-  if (!response.ok)
-    return {
-      status: action.write ? "unknown" : "failed",
-      data,
-      message: `The backend returned ${response.status}.`,
-    }
+  if (!response.ok) return refused(action, response.status, data)
   try {
     validateToolResponse(
       action.operationId,
@@ -373,7 +378,7 @@ export async function callBackend(
           message:
             "Some requested team permissions were not applied. Review the receipt before continuing.",
         }
-      if (receipt.status === "applied") return { status: "completed", data }
+      if (receipt.status === "applied") return completed(action, data)
     }
     return {
       status: "unknown",
@@ -381,7 +386,33 @@ export async function callBackend(
         "The team request was processed, but its permission changes could not be verified. Check the team before repeating.",
     }
   }
-  return { status: "completed", data }
+  return completed(action, data)
+}
+
+/** A refused call, in words the agent can pass on; never the raw status alone. */
+function refused(action: PreparedAction, httpStatus: number, data: unknown) {
+  const body =
+    data && typeof data === "object" ? (data as Record<string, unknown>) : {}
+  const fields =
+    body.errors && typeof body.errors === "object"
+      ? Object.keys(body.errors).slice(0, 10)
+      : []
+  return {
+    status: action.write ? "unknown" : "failed",
+    data,
+    reason: failureReason(httpStatus),
+    httpStatus,
+    message:
+      typeof body.message === "string" && body.message.trim()
+        ? body.message.slice(0, 200)
+        : "The request was refused.",
+    ...(fields.length ? { fields } : {}),
+  } satisfies Outcome
+}
+
+function completed(action: PreparedAction, data: unknown): Outcome {
+  const links = recordLinks(action, data)
+  return { status: "completed", data, ...(links.length ? { links } : {}) }
 }
 
 export function voiceResponse(data: unknown, status = 200) {
@@ -396,11 +427,15 @@ export function voiceFailure(error: unknown) {
     error instanceof VoiceError || error instanceof ToolUnavailableError
       ? error
       : undefined
+  const status = known?.status ?? 503
+  const reason = failureReason(status)
+  noteVoiceFailure(reason, status)
   return voiceResponse(
     {
       message:
         known?.message ?? "The voice service could not complete this request.",
+      reason,
     },
-    known?.status ?? 503
+    status
   )
 }

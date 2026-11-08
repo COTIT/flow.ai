@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl"
 import {
   Camera,
   ClipboardList,
+  ExternalLink,
   FileText,
   Paperclip,
   Send,
@@ -42,7 +43,7 @@ import {
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
-import { ATTACHMENT_ACCEPT, referenceSize } from "./helpers"
+import { ATTACHMENT_ACCEPT, referenceSize, splitLinks } from "./helpers"
 import { useVoice } from "./provider"
 import { HoldToTalk, VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
@@ -322,24 +323,55 @@ export function VoiceConversation() {
                 className="flex max-h-[32dvh] min-h-12 min-w-0 flex-col gap-2 overflow-y-auto px-1"
               >
                 {voice.messages.length ? (
-                  voice.messages.map((row) => (
-                    <div
-                      key={row.id}
-                      data-role={row.role}
-                      className={
-                        row.role === "action"
-                          ? "max-w-[65ch] self-center rounded-full border border-(--hair) px-3 py-1 text-center text-xs text-muted-foreground"
-                          : row.role === "user"
-                            ? "max-w-[80%] self-end rounded-2xl rounded-br-md bg-(--gold) px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap text-black"
-                            : "max-w-[80%] self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap"
-                      }
-                    >
-                      <span className="sr-only">
-                        {t(`roles.${row.role}`)}:{" "}
-                      </span>
-                      {row.text}
-                    </div>
-                  ))
+                  voice.messages.map((row) =>
+                    row.role === "link" && row.href ? (
+                      <a
+                        key={row.id}
+                        data-role="link"
+                        href={row.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t("openRecordNamed", { name: row.text })}
+                        className="inline-flex min-h-11 max-w-[80%] items-center gap-2 self-start rounded-2xl rounded-bl-md border border-(--gold) px-4 py-2 text-sm font-medium break-all text-foreground underline-offset-4 transition-transform duration-100 hover:underline focus-visible:ring-2 focus-visible:ring-(--gold) focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none"
+                      >
+                        {row.text}
+                        <ExternalLink aria-hidden className="size-4 shrink-0" />
+                      </a>
+                    ) : (
+                      <div
+                        key={row.id}
+                        data-role={row.role}
+                        className={
+                          row.role === "action"
+                            ? "max-w-[65ch] self-center rounded-full border border-(--hair) px-3 py-1 text-center text-xs text-muted-foreground"
+                            : row.role === "user"
+                              ? "max-w-[80%] self-end rounded-2xl rounded-br-md bg-(--gold) px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap text-black"
+                              : "max-w-[80%] self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap"
+                        }
+                      >
+                        <span className="sr-only">
+                          {t(`roles.${row.role}`)}:{" "}
+                        </span>
+                        {row.role === "agent"
+                          ? splitLinks(row.text).map((part, i) =>
+                              part.href ? (
+                                <a
+                                  key={i}
+                                  href={part.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-medium underline underline-offset-4"
+                                >
+                                  {part.text}
+                                </a>
+                              ) : (
+                                part.text
+                              )
+                            )
+                          : row.text}
+                      </div>
+                    )
+                  )
                 ) : (
                   <div className="m-auto max-w-sm text-center">
                     <p className="font-medium">{t("welcome")}</p>

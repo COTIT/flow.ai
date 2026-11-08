@@ -56,6 +56,17 @@ The assistant overlay supplies runtime secret files; credentials never enter Doc
 
 Stage with the same 384 MiB Office limit used in staging and the 512 MiB production ceiling. Before wider enablement, check concurrent bounded uploads, task requests and shutdown during an active request; confirm no OOM restart, no lost checkpoint acknowledgment and no duplicate business action. Readiness alone does not prove these load properties.
 
+## Monitoring failed requests
+
+Every voice request that fails carries labels on its LangSmith trace (project from `LANGSMITH_PROJECT`, default `genesy-office-assistant`). Inputs, outputs and record data stay hidden. Filter runs by metadata:
+
+- `failure_reason`: `invalid`, `forbidden`, `missing`, `conflict`, `expired`, `size`, `format`, `busy`, `unverified`, `unavailable` or `unsupported`.
+- `failure_category`: `user_fixable` (a refusal the user can correct), `platform_error` (`unverified`/`unavailable`: worth a bug check) or `out_of_scope_candidate` (`unsupported`).
+- `http_status`: the backend status, when there was one.
+- `unsupported_query`: only on `unsupported`, the agent's short phrase for what was asked (at most 120 characters), e.g. "book a delivery truck for Friday". The agent sends it as `discover_genesy_tools` query `unsupported: <request>` when no Genesy tool fits. Review these to decide whether it is a gap Genesy should cover or outside its scope.
+
+The agent explains each failure to the user in one plain sentence from the result's `reason`, `message` and `fields`; the Office chat shows the matching localized `requestErrors` text. After a completed create or update of an order, invoice, product or lot, the result carries `links` (record number or name and its Office page); the chat shows them as links that open in a new tab, and the agent hears only the record names.
+
 ## Rollback and recovery
 
 First set `ASSISTANT_ENABLED=false`. Restart the affected services through the reviewed deployment procedure to stop new sessions. Keep provider cleanup credentials until all outstanding remote deletion attempts finish. Preserve ledgers and checkpoints. Existing native invoice delivery jobs continue while assistant admission is disabled, so retain the Rust invoice worker and its mail/PDF configuration too.

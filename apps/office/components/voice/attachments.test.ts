@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import {
   attachmentProblem,
   mergeTranscript,
+  outcomeForAgent,
+  splitLinks,
   matchesIssuedConversation,
   referenceSize,
   taskPresentation,
@@ -83,5 +85,34 @@ describe("temporary voice references", () => {
       "user-2",
       "agent-3",
     ])
+  })
+})
+
+describe("record links", () => {
+  it("turns only office and https markdown links into links", () => {
+    expect(
+      splitLinks(
+        "Created [ORD-0229](/orders/abc). See [docs](https://genesy.app/x) not [bad](javascript:alert(1))."
+      )
+    ).toEqual([
+      { text: "Created " },
+      { text: "ORD-0229", href: "/orders/abc" },
+      { text: ". See " },
+      { text: "docs", href: "https://genesy.app/x" },
+      { text: " not [bad](javascript:alert(1))." },
+    ])
+    expect(splitLinks("plain")).toEqual([{ text: "plain" }])
+  })
+  it("tells the agent record names, never the links", () => {
+    expect(
+      outcomeForAgent({
+        status: "completed",
+        links: [
+          { label: "ORD-0229", href: "/orders/a" },
+          { label: null, href: "/orders/b" },
+        ],
+      })
+    ).toEqual({ status: "completed", records: ["ORD-0229"] })
+    expect(outcomeForAgent({ status: "failed" })).toEqual({ status: "failed" })
   })
 })

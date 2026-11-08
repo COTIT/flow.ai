@@ -27,7 +27,7 @@ import {
   BATCH_PREPARE_OPERATION,
   BATCH_STATUS_OPERATION,
 } from "@/lib/voice/batches"
-import { withVoiceTracing } from "@/lib/voice/tracing"
+import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 import { narrate } from "@/lib/voice/narration"
 export const runtime = "nodejs"
 
@@ -118,6 +118,35 @@ async function handle(request: Request) {
     if (input.command === "discover") {
       if (files.size) throw new VoiceError("Discovery does not accept files.")
       const query = String(input.query ?? "")
+      // The agent reports a request no tool can do as "unsupported: <short request>".
+      const unsupported = /^unsupported:\s*(.+)/is.exec(query)?.[1]
+      if (unsupported) {
+        noteVoiceFailure("unsupported", undefined, unsupported)
+        return voiceResponse({
+          tools: [],
+          reason: "unsupported",
+          message:
+            "Recorded for review. Tell the user Genesy can't do this yet.",
+        })
+      }
+      const found = discoverTools(query, context.permissions)
+      if (
+        !found.length &&
+        ![
+          BATCH_PREPARE_OPERATION,
+          BATCH_STATUS_OPERATION,
+          statusTool.id,
+        ].includes(query) &&
+        !/batch|ordered|bulk|several|status|task|pending|last/i.test(query)
+      ) {
+        // Logged for review: a real gap in Genesy, or a request outside its scope.
+        noteVoiceFailure("unsupported", undefined, query)
+        return voiceResponse({
+          tools: [],
+          reason: "unsupported",
+          message: "No Genesy tool matches this request. Nothing was changed.",
+        })
+      }
       return voiceResponse({
         tools:
           query === BATCH_PREPARE_OPERATION
@@ -127,7 +156,7 @@ async function handle(request: Request) {
               : query === statusTool.id
                 ? [statusTool]
                 : [
-                    ...discoverTools(query, context.permissions),
+                    ...found,
                     ...(/batch|ordered|bulk|several/i.test(query)
                       ? [batchPrepareTool, batchStatusTool]
                       : []),
@@ -235,15 +264,22 @@ async function handle(request: Request) {
       throw new VoiceError("Unknown assistant command.")
     const operationId = String(input.operationId ?? "")
     const operation = getOperation(operationId)
-    if (!operation || !["execute", "secure_ui"].includes(operation.disposition))
+    if (
+      !operation ||
+      !["execute", "secure_ui"].includes(operation.disposition)
+    ) {
       // Guessed IDs get permitted candidates so the model can retry without a discovery turn.
+      const candidates = discoverTools(operationId, context.permissions)
+      if (!candidates.length) noteVoiceFailure("unsupported", 400, operationId)
       return voiceResponse(
         {
           message: "This operation is not exposed to the assistant.",
-          candidates: discoverTools(operationId, context.permissions),
+          candidates,
+          ...(candidates.length ? {} : { reason: "unsupported" }),
         },
         400
       )
+    }
     if (!isToolAllowed(operation, context.permissions))
       throw new VoiceError("You do not have permission for this action.", 403)
     if (operation.disposition === "secure_ui") {

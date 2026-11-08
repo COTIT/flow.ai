@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   transport: vi.fn(),
   propose: vi.fn(),
   confirmBatch: vi.fn(),
+  failures: [] as unknown[][],
   spans: [] as string[],
   modes: [] as string[],
 }))
@@ -35,6 +36,7 @@ vi.mock("./identity", () => ({
   },
 }))
 vi.mock("./tracing", () => ({
+  noteVoiceFailure: (...args: unknown[]) => mocks.failures.push(args),
   withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
     mocks.spans.push(name)
     return action()
@@ -536,4 +538,24 @@ it("discovery returns the top match's full input schema so execute can follow on
   )
   expect(tools.length).toBeGreaterThan(1)
   for (const rest of tools.slice(1)) expect(rest.parameters).toEqual([])
+})
+
+it("logs a request no tool can do, with the agent's short phrase, and changes nothing", async () => {
+  mocks.failures.length = 0
+  const response = await toolRequest(
+    request({
+      command: "discover",
+      query: "unsupported:  book a delivery truck for Friday",
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  expect(await response.json()).toMatchObject({
+    tools: [],
+    reason: "unsupported",
+  })
+  expect(mocks.failures).toEqual([
+    ["unsupported", undefined, "book a delivery truck for Friday"],
+  ])
+  expect(mocks.execute).not.toHaveBeenCalled()
 })

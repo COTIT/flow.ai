@@ -1010,7 +1010,8 @@
     "roles": {
       "user": "Jij",
       "agent": "Genesy",
-      "action": "Actie"
+      "action": "Actie",
+      "link": "Link"
     },
     "fileStates": {
       "selected": "Gekozen · niet verzonden",
@@ -1184,6 +1185,7 @@
       "operation": "Bewerking"
     },
     "requestErrors": {
+      "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
       "invalid": "Controleer de gevraagde gegevens en maak daarna een nieuw voorstel. Controleer onzekere acties in Office voordat je ze herhaalt.",
       "expired": "Je sessie is verlopen. Meld je opnieuw aan om de vastgelegde taak te controleren.",
       "forbidden": "Je hebt geen toestemming voor deze actie. Controleer je toegang in Office.",
@@ -1307,6 +1309,7 @@
     "closeAssistant": "Assistent sluiten",
     "recordReference": "Geselecteerde verwijzing {number}",
     "openRecord": "Record openen",
+    "openRecordNamed": "{name} openen in een nieuw tabblad",
     "currentWorkspace": "Huidige werkruimte",
     "yes": "Ja",
     "no": "Nee",

@@ -61,6 +61,7 @@ it.each(unavailable)(
     expect(response.status).toBe(501)
     expect(await response.json()).toEqual({
       message: "This capability is unavailable in the current backend.",
+      reason: "unavailable",
     })
   }
 )
