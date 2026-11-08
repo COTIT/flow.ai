@@ -31,6 +31,7 @@ pub fn requires_facts(operation: &str) -> bool {
 }
 
 /// Permission check precedes every invoice or contact read.
+#[tracing::instrument(name = "invoices_capture", level = "debug", skip_all)]
 pub async fn capture(
     conn: &mut PgConnection,
     owner: Owner,

@@ -11,6 +11,7 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 /// Capture direct mail under native write authority before reading its contact.
+#[tracing::instrument(name = "mail_recipients_capture", level = "debug", skip_all)]
 pub async fn capture(
     conn: &mut PgConnection,
     owner: Owner,

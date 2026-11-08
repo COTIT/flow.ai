@@ -59,6 +59,7 @@ pub async fn propose(db: &PgPool, o: Owner, input: ProposalInput) -> Result<Valu
 }
 
 /// Session lock is shared by standalone and atomic batch proposal creation.
+#[tracing::instrument(level = "debug", skip_all, fields(operation = %input.operation_id))]
 pub(super) async fn propose_locked(
     conn: &mut sqlx::PgConnection,
     o: Owner,
@@ -140,6 +141,7 @@ pub async fn history(
         .collect())
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub(super) async fn view_grants(
     db: &PgPool,
     o: Owner,
@@ -354,6 +356,7 @@ pub fn request_hash_raw(
 }
 
 /// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
     struct Operation {
         method: String,

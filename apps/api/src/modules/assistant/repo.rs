@@ -115,6 +115,7 @@ pub async fn session_identity(
 }
 
 /// Serialize quota and task-step allocation on one owned session row.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn lock_session(
     db: &mut PgConnection,
     o: Owner,
@@ -148,6 +149,7 @@ pub async fn attach(
 }
 
 /// Store bounded business draft; session lock makes step ordering stable.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn propose(
     db: &mut PgConnection,
     o: Owner,
@@ -387,6 +389,7 @@ fn projected_outcome(status: i32, evidence: &Value) -> (&'static str, bool) {
 }
 
 /// One bounded lookup for every ordered member; callers project read permissions once.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn batch_actions(
     db: impl PgExecutor<'_>,
     o: Owner,
