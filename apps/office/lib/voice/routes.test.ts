@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   transport: vi.fn(),
   propose: vi.fn(),
   confirmBatch: vi.fn(),
+  timeZone: vi.fn(),
   failures: [] as unknown[][],
   spans: [] as string[],
   modes: [] as string[],
@@ -69,7 +70,19 @@ vi.mock("./batches", async (original) => ({
   confirmBatch: mocks.confirmBatch,
 }))
 
+vi.mock("./time-zone", () => ({ workspaceTimeZone: mocks.timeZone }))
+vi.mock("./readiness", () => ({
+  assistantReadiness: async () => ({ ready: true }),
+}))
+vi.mock("./provider", () => ({
+  signedProviderSession: async () => ({
+    signedUrl: "wss://api.elevenlabs.io/v1/convai/conversation?x=1",
+    conversationId: "conv1",
+  }),
+}))
+
 import { POST as toolRequest } from "@/app/api/voice/tools/route"
+import { POST as sessionRequest } from "@/app/api/voice/session/route"
 import { POST as confirmationRequest } from "@/app/api/voice/confirm/route"
 
 const context = {
@@ -422,7 +435,7 @@ it("traces confirmation approval inside one request span against a live session"
   expect(mocks.modes).toEqual(["live"])
 })
 
-it("labels a lookup with its human step for the status line", async () => {
+it("labels a lookup with a step key, never the catalog description", async () => {
   const response = await toolRequest(
     request({
       command: "execute",
@@ -432,10 +445,11 @@ it("labels a lookup with its human step for the status line", async () => {
       sessionId: "s1",
     })
   )
-  expect(await response.json()).toMatchObject({
-    status: "completed",
-    steps: ["Checking: List orders"],
-  })
+  const body = await response.json()
+  expect(body).toMatchObject({ status: "completed", steps: ["checking"] })
+  expect(JSON.stringify(body.steps)).not.toContain(
+    catalog.getOperation("orders_list")!.summary
+  )
 })
 
 it("narrates a proposed change in the session language without exposing the challenge", async () => {
@@ -454,10 +468,9 @@ it("narrates a proposed change in the session language without exposing the chal
       sessionId: "s1",
     })
   )
-  const summary = catalog.getOperation("orders_create")!.summary
   expect(await response.json()).toMatchObject({
     status: "requires_confirmation",
-    steps: [`Controleren: ${summary}`, "Je controle voorbereiden"],
+    steps: ["checking", "preparing"],
     narration: "Dit ga ik doen. Lees de kaart en keur hem goed.",
   })
 })
@@ -474,7 +487,7 @@ it("labels approved execution as running then finalizing", async () => {
   )
   expect(await response.json()).toMatchObject({
     status: "completed",
-    steps: ["Running it now", "Finalizing"],
+    steps: ["running", "finalizing"],
   })
 })
 
@@ -558,4 +571,55 @@ it("logs a request no tool can do, with the agent's short phrase, and changes no
     ["unsupported", undefined, "book a delivery truck for Friday"],
   ])
   expect(mocks.execute).not.toHaveBeenCalled()
+})
+
+it("a new session carries the workspace time zone when the caller may read it", async () => {
+  mocks.timeZone.mockResolvedValue("Africa/Dar_es_Salaam")
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en" })
+  )
+  expect(await response.json()).toMatchObject({
+    sessionId: "a1",
+    conversationId: "conv1",
+    timeZone: "Africa/Dar_es_Salaam",
+  })
+})
+
+it("a new session leaves the time zone out when it cannot be read", async () => {
+  mocks.timeZone.mockResolvedValue(undefined)
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en" })
+  )
+  const body = await response.json()
+  expect(body.sessionId).toBe("a1")
+  expect(body).not.toHaveProperty("timeZone")
+})
+
+it("records a conversation the provider dropped as a failure for review", async () => {
+  mocks.failures.length = 0
+  const response = await sessionRequest(
+    request({
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      command: "dropped",
+      endedBy: "time_limit",
+    })
+  )
+  expect(response.status).toBe(200)
+  expect(mocks.spans).toEqual(["genesy_assistant_dropped"])
+  expect(mocks.failures).toEqual([["dropped_time_limit"]])
+})
+
+it("refuses an unknown end reason without recording it", async () => {
+  mocks.failures.length = 0
+  const response = await sessionRequest(
+    request({
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      command: "dropped",
+      endedBy: "user<script>",
+    })
+  )
+  expect(response.status).toBe(400)
+  expect(mocks.failures.flat().join()).not.toContain("dropped")
 })

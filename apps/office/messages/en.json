@@ -1313,6 +1313,22 @@
     "currentWorkspace": "Current workspace",
     "yes": "Yes",
     "no": "No",
-    "otherField": "Field: {name}"
+    "otherField": "Field: {name}",
+    "steps": {
+      "checking": "Looking it up",
+      "preparing": "Preparing your review",
+      "running": "Running it now",
+      "finalizing": "Finalizing"
+    },
+    "unfinished": {
+      "stalled": "I couldn't finish that answer.",
+      "ended_by_agent": "The assistant ended the conversation before finishing.",
+      "time_limit": "The conversation reached its time limit before I finished.",
+      "connection_lost": "The connection dropped before I finished.",
+      "progress": "{count, plural, =0 {No steps were finished.} one {# step was finished.} other {# steps were finished.}}",
+      "askAgain": "Ask again",
+      "continue": "Continue",
+      "continued": "New conversation. Earlier messages stay here; nothing was repeated. Ask again to go on."
+    }
   }
 }

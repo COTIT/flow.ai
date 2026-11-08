@@ -47,6 +47,7 @@ import { ATTACHMENT_ACCEPT, referenceSize, splitLinks } from "./helpers"
 import { useVoice } from "./provider"
 import { HoldToTalk, VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
+import { VoiceUnfinished } from "./unfinished"
 
 function ReviewTitle({
   review,
@@ -382,6 +383,7 @@ export function VoiceConversation() {
                 )}
                 <VoiceThinking />
               </div>
+              <VoiceUnfinished />
               {!follow ? (
                 <Button
                   variant="outline"
@@ -693,8 +695,10 @@ export function VoiceConversation() {
       </Dialog>
       <Sheet
         open={Boolean(voice.review)}
-        onOpenChange={(open) => {
-          if (!open && !voice.busy) void voice.confirm("cancel")
+        onOpenChange={(open, details) => {
+          // Only Esc cancels here; focus loss, resizes and stray clicks never do.
+          if (!open && !voice.busy && details.reason === "escape-key")
+            void voice.confirm("cancel")
         }}
       >
         <SheetContent

@@ -154,6 +154,8 @@ export function VoiceDesignPreview() {
       retryAttachment: async () => true,
       confirm: async (decision) =>
         setState(decision === "approve" ? "completed" : "listening"),
+      unfinished: null,
+      resume: noop,
     }
   }, [state, phase])
   return (

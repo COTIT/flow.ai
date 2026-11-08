@@ -13,6 +13,8 @@ import { signedProviderSession } from "@/lib/voice/provider"
 import { voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
 import { assistantReadiness } from "@/lib/voice/readiness"
+import { workspaceTimeZone } from "@/lib/voice/time-zone"
+import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 export const runtime = "nodejs"
 
 /** Allocate and bind provider identity before returning signed access to the browser. */
@@ -40,8 +42,22 @@ export async function POST(request: Request) {
       )
       return voiceResponse({ status: "active" })
     }
+    if (input.command === "dropped") {
+      // The provider closed the conversation on its own: record it for review, never as completed.
+      const kind = String(input.endedBy)
+      if (!["ended_by_agent", "time_limit", "connection_lost"].includes(kind))
+        throw new VoiceError("Invalid end reason.")
+      await requireAssistantSession(context, input.sessionId)
+      return voiceResponse(
+        await withVoiceTracing("genesy_assistant_dropped", async () => {
+          noteVoiceFailure(`dropped_${kind}`)
+          return { status: "recorded" }
+        })
+      )
+    }
     if (!(await assistantReadiness()).ready)
       throw new VoiceError("Assistant configuration is not ready.", 503)
+    const timeZone = await workspaceTimeZone(context)
     const session = await assistantRequest<AssistantSession>(
       context,
       "/sessions",
@@ -57,7 +73,11 @@ export async function POST(request: Request) {
         { conversation_id: provider.conversationId },
         true
       )
-      return voiceResponse({ ...provider, sessionId: session.id })
+      return voiceResponse({
+        ...provider,
+        sessionId: session.id,
+        ...(timeZone ? { timeZone } : {}),
+      })
     } catch (error) {
       await assistantRequest(
         context,

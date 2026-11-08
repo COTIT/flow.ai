@@ -26,7 +26,9 @@ assert 'assistant_batch_prepare' in prompt and 'assistant_batch_status' in promp
 assert 'two through ten' in prompt and 'operationId' in prompt and 'arguments_json' in prompt,'agent batch arguments are unspecified'
 assert 'paused' in prompt and 'never resume' in prompt,'agent must stop paused batches without replay'
 execute=next(tool for tool in template['clientTools'] if tool['name']=='execute_genesy_tool')
-assert execute['force_pre_tool_speech'] is True,'agent must acknowledge before running a business tool'
+assert execute['force_pre_tool_speech'] is False,'one acknowledgement per user turn comes from the prompt, not a forced line before every tool call'
+assert 'once per user turn' in prompt and 'nothing between tool calls' in prompt,'agent must acknowledge once per turn, then stay quiet between tool calls'
+assert "language of the user's current message" in prompt,'narration and answer follow the language of the current message, not an earlier turn'
 for line in ['Ok, got that','just finalizing','please read and approve the card','Oké, begrepen','lees de kaart en keur hem goed','Sawa, nimeelewa','tafadhali soma kadi na uidhinishe']:
     assert line in prompt,'four-beat talk-back script missing: '+line
 assert 'call the same wait:true again' in prompt,'agent must keep waiting after a running progress result'
@@ -34,7 +36,8 @@ assert 'you may call execute_genesy_tool directly' in prompt and 'Effects still 
 assert 'You cannot approve actions yourself.' in prompt and 'Approval codes and exact confirmation phrases are private' in prompt,'approval rules changed'
 assert 'The top search result includes its full input schema' in prompt,'agent must execute after one search when the top match fits'
 turn=config['conversation_config']['turn']
-assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==60,'idle: one check-in after 20 s silence, end after 60 s'
+assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==180,'idle: one check-in after 20 s silence, end after 180 s'
+assert config['conversation_config']['conversation']['max_duration_seconds']==1800,'long tool chains need a 30-minute conversation limit'
 assert 'never the same line twice' in prompt and 'after the third check-in' in prompt,'idle check-in rule missing'
 assert 'Do not use audio tags' not in prompt and 'never read tags' not in prompt,'expressive audio tags stay allowed'
 assert set(config['conversation_config']['language_presets'])=={'nl','sw'}
