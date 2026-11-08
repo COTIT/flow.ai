@@ -180,7 +180,7 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
   }
 }
 
-test("reload recovers authenticated tasks without transcripts, files, or a provider reconnect", async ({
+test("reload shows no task log, transcript, files, or provider reconnect", async ({
   page,
   api: _api,
 }) => {
@@ -359,9 +359,9 @@ test("reload recovers authenticated tasks without transcripts, files, or a provi
     await page.evaluate(() => sessionStorage.getItem("genesy.voice.recovery"))
   ).toBe(JSON.stringify({ sessionId: "recovery-session", workspaceId: "w1" }))
   await page.reload()
-  await expect(
-    page.getByRole("heading", { name: en.voice.recoveryTitle })
-  ).toBeVisible()
+  // No "previous task activity" log after reload; nothing private comes back either.
+  await expect(page.getByRole("button", { name: en.voice.start })).toBeVisible()
+  await expect(page.getByText(en.voice.recoveryTitle)).toHaveCount(0)
   await expect(
     page.getByRole("dialog", { name: en.voice.review, exact: true })
   ).toHaveCount(0)
@@ -369,48 +369,11 @@ test("reload recovers authenticated tasks without transcripts, files, or a provi
     "Private conversation text"
   )
   await expect(page.getByText("private-reference.pdf")).toHaveCount(0)
-  await expect(
-    page.getByText("Check the previous invoice before repeating.")
-  ).toBeVisible()
-  const recoveredBatch = page
-    .getByRole("listitem")
-    .filter({ hasText: "Recovered ordered batch" })
-  await expect(recoveredBatch).toContainText("Verified first step")
-  await expect(recoveredBatch).toContainText("Unrun second step")
-  await expect(recoveredBatch).toContainText("Not run")
-  await expect(
-    recoveredBatch.getByRole("button", { name: en.voice.recoveryReview })
-  ).toHaveCount(0)
   expect(starts).toBe(1)
   expect(connections).toBe(1)
-  await page
-    .getByRole("button", { name: en.voice.recoveryReview, exact: true })
-    .click()
-  await expect(
-    page.getByRole("dialog", { name: en.voice.review, exact: true })
-  ).toContainText(en.voice.recoveredReviewHint)
-  await expect(
-    page.getByRole("dialog", { name: en.voice.review, exact: true })
-  ).toContainText("Saved server proposal")
-  expect(restores).toBe(1)
   expect(commits).toBe(0)
-  await page
-    .getByRole("button", { name: "Approve action", exact: true })
-    .click()
-  await expect.poll(() => commits).toBe(1)
-  await expect(page.getByRole("log")).toContainText(
-    en.voice.taskStates.completed
-  )
-  expect(connections).toBe(1)
+  expect(restores).toBe(0)
   await expectFits(page)
-  await page
-    .getByRole("button", { name: en.voice.recoveryClose, exact: true })
-    .click()
-  await expect
-    .poll(() =>
-      page.evaluate(() => sessionStorage.getItem("genesy.voice.recovery"))
-    )
-    .toBeNull()
 })
 
 test("microphone denial keeps the text connection and keyboard controls usable", async ({
@@ -1450,19 +1413,8 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
     await expect(page.getByRole("log")).toContainText(
       `Verified batch result: ${finalMessage}`
     )
-    await expect(
-      page
-        .getByRole("region", { name: en.voice.currentTask, exact: true })
-        .locator("[data-task-outcome]")
-        .first()
-    ).toHaveText(en.voice.taskStates[finalStatus])
-    await expect(
-      page.getByRole("region", { name: "Batch progress" })
-    ).toContainText("Reviewed step 3")
-    if (finalStatus !== "completed")
-      await expect(
-        page.getByRole("region", { name: "Batch progress" })
-      ).toContainText("Not run")
+    // Results speak in the chat; no task log under it.
+    await expect(page.locator("#voice-task")).toHaveCount(0)
     expect(approvals).toBe(1)
     expect(prepares).toBe(1)
     expect(userMessages).toBe(1)
@@ -1712,10 +1664,9 @@ for (const interruption of [
         page.getByRole("dialog", { name: en.voice.review, exact: true })
       ).toHaveCount(0)
     }
-    const progress = page.getByRole("region", { name: "Batch progress" })
-    await expect(progress).toContainText("First reviewed step")
-    await expect(progress).toContainText("Second reviewed step")
-    await expect(progress).toContainText("Not run")
+    await expect(
+      page.getByRole("region", { name: "Batch progress" })
+    ).toHaveCount(0)
     expect(approvals).toBe(1)
     expect(prepares).toBe(2)
     await expectFits(page)
@@ -1923,6 +1874,10 @@ test("voice opens the microphone and audio worklets under the page security poli
   await openMenu(page)
   await page.getByRole("link", { name: "Voice assistant", exact: true }).click()
   await page.getByRole("button", { name: "Start voice conversation" }).click()
+  // Push-to-talk is the default; open mic keeps the mic live for the input-level checks and brings the mute button.
+  await page
+    .getByRole("button", { name: en.voice.openMic, exact: true })
+    .click()
   await expect(
     page.getByRole("button", { name: "End conversation" })
   ).toBeVisible()
@@ -1988,6 +1943,7 @@ test("voice opens the microphone and audio worklets under the page security poli
     page.getByRole("dialog", { name: en.voice.title, exact: true })
   ).toBeVisible()
   await page.getByRole("button", { name: "Resume voice", exact: true }).click()
+  // Open mic was chosen above; resuming keeps it.
   await expect(
     page.getByRole("button", { name: "Mute", exact: true })
   ).toBeVisible()
@@ -2241,7 +2197,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   expect(starts).toBe(1)
   await page.getByRole("button", { name: "Enable voice", exact: true }).click()
   await expect(
-    page.getByRole("button", { name: "Mute", exact: true })
+    page.getByRole("button", { name: en.voice.holdToTalk, exact: true }).first()
   ).toBeVisible()
   expect(starts).toBe(2)
   expect(connections).toBe(2)

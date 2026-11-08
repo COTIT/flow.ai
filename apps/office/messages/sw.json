@@ -955,6 +955,10 @@
     "listening": "Inasikiliza",
     "open": "Fungua mazungumzo",
     "mute": "Zima maikrofoni",
+    "holdToTalk": "Shikilia ili kuzungumza",
+    "talking": "Inasikiliza… achia kutuma",
+    "openMic": "Tumia maikrofoni wazi",
+    "pushToTalk": "Tumia bonyeza ili kuzungumza",
     "unmute": "Washa maikrofoni",
     "stopSpeaking": "Acha kuzungumza",
     "end": "Maliza mazungumzo",
@@ -1192,6 +1196,7 @@
       "unavailable": "Kitendaji hiki hakipatikani katika toleo hili. Hakuna kitendo kilichoanzishwa."
     },
     "activity": {
+      "holdToTalk": "Shikilia kitufe au Space ili kuzungumza",
       "idle": "Tayari unapokuwa tayari",
       "ready": "Tayari kwa ujumbe wako",
       "connecting": "Inaunganisha…",

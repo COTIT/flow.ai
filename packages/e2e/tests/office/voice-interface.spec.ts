@@ -68,10 +68,10 @@ async function nativeConversation(page: Page) {
           expects_response: true,
         },
       }),
-    reply: (message = "Here is the requested information.") =>
+    reply: (message = "Here is the requested information.", eventId = 20) =>
       emit({
         type: "agent_response",
-        agent_response_event: { agent_response: message, event_id: 20 },
+        agent_response_event: { agent_response: message, event_id: eventId },
       }),
   }
 }
@@ -185,13 +185,24 @@ for (const textOnly of [true, false]) {
     await expect(thinking).toContainText(en.voice.activity.executing)
     native.reply("I am checking the stock.")
     await expect(activity).toHaveAttribute("data-state", "executing")
+    await expect(thinking).toBeInViewport()
+    // The same "checking" line again before a second tool call shows once.
+    native.reply("I am checking the stock.", 21)
     release()
+    // The tool answered; the agent still owes its reply, so the row stays.
+    await expect(activity).toHaveAttribute("data-state", "thinking")
+    await expect(thinking).toBeInViewport()
+    native.reply("Cocoa has 2.00 in stock.", 22)
     await expect(activity).toHaveAttribute("data-state", "completed")
     await expect(thinking).toHaveCount(0)
     await expect(activity).not.toHaveClass(/\bsr-only\b/)
     await expect(
-      page.getByRole("region", { name: en.voice.currentTask, exact: true })
-    ).toContainText("Cocoa")
+      page.getByRole("log").getByText("I am checking the stock.")
+    ).toHaveCount(1)
+    // No result log under the chat: the agent's reply says it.
+    await expect(page.locator("#voice-task")).toHaveCount(0)
+    await expect(page.getByText("2.00", { exact: true })).toHaveCount(0)
+    await expect(page.getByText(en.voice.recoveryTitle)).toHaveCount(0)
     await expectFits(page)
     await page.getByRole("button", { name: en.voice.end, exact: true }).click()
   })
@@ -577,6 +588,18 @@ test("a long review keeps every row reachable by scrolling the sheet, none hidde
   expect(
     await list.evaluate((el) => el.scrollHeight - el.clientHeight)
   ).toBeLessThanOrEqual(1)
+  // A real wheel over the rows scrolls the sheet to the last row and the approval button.
+  await expect(rows.nth(11)).toHaveAttribute("data-state", /.+/)
+  const first = await rows.first().boundingBox()
+  await page.mouse.move(
+    first!.x + first!.width / 2,
+    first!.y + first!.height / 2
+  )
+  for (let i = 0; i < 10; i++) await page.mouse.wheel(0, 400)
+  await expect(rows.nth(11)).toBeInViewport()
+  await expect(
+    review.getByRole("button", { name: en.voice.approve, exact: true })
+  ).toBeInViewport()
   for (let i = 0; i < 12; i++) {
     const row = rows.nth(i)
     await row.scrollIntoViewIfNeeded()
@@ -600,4 +623,113 @@ test("a long review keeps every row reachable by scrolling the sheet, none hidde
     review.getByRole("button", { name: en.voice.approve, exact: true })
   ).toBeInViewport()
   await expectFits(page)
+})
+
+test("a long chat keeps the avatar, status, chat and composer apart, and thinking steps wrap", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route("**/api/voice/tools", async (route) => {
+    await gate
+    return route.fulfill({
+      json: {
+        status: "completed",
+        data: { name: "Cocoa" },
+        steps: [
+          "Checking: List products in every warehouse and market stall nearby",
+        ],
+      },
+    })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  for (let i = 0; i < 8; i++)
+    native.reply(
+      `Answer ${i}: a fairly long sentence about stock in Asheville warehouse, AFM store and the market stall.`,
+      100 + i
+    )
+  native.call()
+  const box = async (selector: string) =>
+    (await page.locator(selector).first().boundingBox())!
+  const apart = (a: { y: number; height: number }, b: { y: number }) =>
+    expect(a.y + a.height).toBeLessThanOrEqual(b.y + 1)
+  const orb = await box("[data-voice-orb]")
+  const log = await box('[role="log"]')
+  const composer = await box(".voice-composer")
+  apart(orb, log)
+  apart(log, composer)
+  const thinking = page.locator("[data-voice-thinking]")
+  await expect(thinking).toBeVisible()
+  release()
+  await expect(thinking).toContainText("market stall")
+  expect(
+    await thinking.evaluate((el) => {
+      const outer = el.getBoundingClientRect()
+      return [...el.querySelectorAll("*")].every((child) => {
+        const r = child.getBoundingClientRect()
+        return !r.width || r.right <= outer.right + 1
+      })
+    })
+  ).toBe(true)
+  await expectFits(page)
+})
+
+test("voice starts in push-to-talk: the mic opens only while held, and open mic is remembered", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  await nativeConversation(page)
+  await page.goto("/voice")
+  await page.getByRole("button", { name: en.voice.start, exact: true }).click()
+  const hold = page.getByRole("button", {
+    name: en.voice.holdToTalk,
+    exact: true,
+  })
+  const activity = page.locator("[data-voice-activity]")
+  await expect(hold).toBeVisible()
+  await expect(hold).toHaveAttribute("aria-pressed", "false")
+  await expect(activity).toHaveAttribute("data-state", "holdToTalk")
+  await expect(page.getByRole("button", { name: en.voice.mute })).toHaveCount(0)
+  const size = (await hold.boundingBox())!
+  expect(size.height).toBeGreaterThanOrEqual(44)
+  // Pointer hold opens the mic; release closes it again.
+  await hold.hover()
+  await page.mouse.down()
+  await expect(hold).toHaveAttribute("aria-pressed", "true")
+  await expect(activity).toHaveAttribute("data-state", "listening")
+  await page.mouse.up()
+  await expect(hold).toHaveAttribute("aria-pressed", "false")
+  await expect(activity).toHaveAttribute("data-state", "holdToTalk")
+  // Space works from anywhere outside text fields.
+  await page.locator("body").focus()
+  await page.keyboard.down("Space")
+  await expect(activity).toHaveAttribute("data-state", "listening")
+  await page.keyboard.up("Space")
+  await expect(activity).toHaveAttribute("data-state", "holdToTalk")
+  await expectFits(page)
+  await page
+    .getByRole("button", { name: en.voice.openMic, exact: true })
+    .click()
+  await expect(hold).toHaveCount(0)
+  await expect(activity).toHaveAttribute("data-state", "listening")
+  await expect(
+    page.getByRole("button", { name: en.voice.mute, exact: true })
+  ).toBeVisible()
+  await page.getByRole("button", { name: en.voice.end, exact: true }).click()
+  await page.reload()
+  await page.getByRole("button", { name: en.voice.start, exact: true }).click()
+  await expect(
+    page.getByRole("button", { name: en.voice.pushToTalk, exact: true })
+  ).toBeVisible()
+  await expect(hold).toHaveCount(0)
 })

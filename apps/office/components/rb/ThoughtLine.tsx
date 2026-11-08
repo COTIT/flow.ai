@@ -304,12 +304,12 @@ const ThoughtLine: React.FC<ThoughtLineProps> = ({
       )}
       {hasTrace ? (
         <div
-          className="grid w-0 min-w-full [grid-template-rows:0fr] [transition:grid-template-rows_var(--tl-settle)_cubic-bezier(0.23,1,0.32,1)] data-[open]:[grid-template-rows:1fr]"
+          className="grid min-w-full [grid-template-rows:0fr] [transition:grid-template-rows_var(--tl-settle)_cubic-bezier(0.23,1,0.32,1)] data-[open]:[grid-template-rows:1fr]"
           data-open={open ? '' : undefined}
           aria-hidden={!open}
         >
           <div className="min-h-0 overflow-x-visible overflow-y-clip">
-            <div className="flex w-max flex-col gap-[0.45em] pt-[0.6em] pb-[0.2em] pl-[1.6em] text-[0.875em] font-normal whitespace-nowrap">
+            <div className="flex max-w-full flex-col gap-[0.45em] pt-[0.6em] pb-[0.2em] pl-[1.6em] text-[0.875em] font-normal break-words">
               {steps.map((text, i) => {
                 const done = !isWorking || i < steps.length - 1;
                 return (

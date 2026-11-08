@@ -42,11 +42,10 @@ import {
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
-import { ATTACHMENT_ACCEPT, referenceSize, taskPresentation } from "./helpers"
+import { ATTACHMENT_ACCEPT, referenceSize } from "./helpers"
 import { useVoice } from "./provider"
-import { VoiceControls } from "./controls"
+import { HoldToTalk, VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
-import type { BatchProgress } from "./continuity"
 
 function ReviewTitle({
   review,
@@ -128,7 +127,8 @@ function ReviewList({ review }: { review: VoiceReview }) {
       width="100%"
       // Unbounded: the sheet body scrolls, so no row hides behind a list with no scrollbar.
       maxHeight="none"
-      className="voice-review-list"
+      // The list never scrolls itself; as a scroll box it would swallow the wheel meant for the sheet.
+      className="voice-review-list [&_[role=listbox]]:overflow-visible [&_[role=listbox]]:overscroll-auto"
     />
   )
 }
@@ -235,42 +235,6 @@ function Details({
     </dl>
   )
 }
-function BatchSteps({
-  steps,
-  state,
-}: {
-  steps: BatchProgress["steps"]
-  state?: string
-}) {
-  const t = useTranslations("voice")
-  return (
-    <ol className="flex min-w-0 flex-col gap-2">
-      {steps.map((step, index) => (
-        <li
-          key={step.data?.actionId ?? index}
-          className="border-b border-(--hair) py-3 last:border-0"
-        >
-          <p className="text-sm font-medium break-words">
-            {index + 1}.{" "}
-            <ReviewTitle
-              review={{
-                summary: step.data?.summary ?? t("currentTask"),
-                operationId: step.data?.operation,
-              }}
-            />
-          </p>
-          <p className="mt-1 text-sm" role="status">
-            {t(`taskStates.${taskPresentation(step.status, state)}`)}
-          </p>
-          {step.message ? (
-            <p className="mt-1 text-sm text-muted-foreground">{step.message}</p>
-          ) : null}
-        </li>
-      ))}
-    </ol>
-  )
-}
-
 export function VoiceConversation() {
   const t = useTranslations("voice")
   const locale = useLocale()
@@ -284,10 +248,11 @@ export function VoiceConversation() {
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [previewUnavailable, setPreviewUnavailable] = useState(false)
   const preview = voice.attachments.find((file) => file.key === previewKey)
+  // The thinking row is part of the log too; keep it in view when it appears or grows.
   useEffect(() => {
     const transcript = log.current
     if (follow && transcript) transcript.scrollTop = transcript.scrollHeight
-  }, [voice.messages, follow])
+  }, [voice.messages, voice.thinking, voice.requesting, voice.steps, follow])
   return (
     <Dialog
       open
@@ -331,7 +296,7 @@ export function VoiceConversation() {
             </Button>
           </header>
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8">
-            <div className="flex min-h-44 flex-1 flex-col items-center justify-center gap-4 py-4">
+            <div className="flex min-h-44 flex-[1_0_auto] flex-col items-center justify-center gap-4 py-4">
               <StrandsStatus />
               <VoiceActivity />
               {!voice.connected && !voice.starting && !voice.upgrading ? (
@@ -457,6 +422,8 @@ export function VoiceConversation() {
                       onAttach={() => picker.current?.click()}
                       className="w-full"
                     />
+                  ) : voice.micMode === "hold" && !voice.capturePaused ? (
+                    <HoldToTalk />
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       {t("micHint")}
@@ -627,149 +594,14 @@ export function VoiceConversation() {
                 <p className="text-sm text-muted-foreground">{t("micHint")}</p>
               )}
             </div>
-            <section
-              id="voice-task"
-              aria-label={t("currentTask")}
-              className="mx-auto mt-3 flex w-full max-w-3xl shrink-0 flex-col gap-3 text-sm"
-            >
-              {voice.outcome ? (
-                <div className="flex flex-col gap-2">
-                  <p data-task-outcome="" role="status" className="font-medium">
-                    {voice.outcome.handoff
-                      ? t("secureTitle")
-                      : t(
-                          `taskStates.${taskPresentation(voice.outcome.status)}`
-                        )}
-                  </p>
-                  <Details value={voice.outcome.data} />
-                </div>
-              ) : null}
-              {voice.outcome?.handoff?.route.startsWith("/voice/secure?") ? (
-                <Link
-                  className="inline-flex min-h-11 items-center text-sm font-medium underline"
-                  href={voice.outcome.handoff.route}
-                >
-                  {t("secureOpen")}
-                </Link>
-              ) : null}
-              {voice.batchProgress ? (
-                <section
-                  aria-label={t("batchProgress")}
-                  className="flex min-w-0 flex-col gap-3"
-                >
-                  <h2 className="text-sm font-semibold">
-                    {t("batchProgress")}
-                  </h2>
-                  {voice.batchProgress.summary ? (
-                    <p className="text-sm">{voice.batchProgress.summary}</p>
-                  ) : null}
-                  <BatchSteps
-                    steps={voice.batchProgress.steps}
-                    state={voice.batchProgress.state}
-                  />
-                  <Button
-                    className="min-h-11 self-start"
-                    variant="outline"
-                    onClick={() => void voice.refreshBatch()}
-                  >
-                    {t("recoveryRefresh")}
-                  </Button>
-                </section>
-              ) : null}
-              {voice.recovery && !voice.connected && !voice.starting ? (
-                <section
-                  aria-label={t("recoveryTitle")}
-                  className="flex min-w-0 flex-col gap-3 border-t border-(--hair) pt-4"
-                >
-                  <h2 className="text-sm font-semibold">
-                    {t("recoveryTitle")}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {t("recoveryHint")}
-                  </p>
-                  {voice.checkingRecovery ? (
-                    <p role="status" className="text-sm">
-                      {t("recoveryLoading")}
-                    </p>
-                  ) : null}
-                  {voice.recoveredTasks.length ? (
-                    <ul className="flex min-w-0 flex-col gap-3">
-                      {voice.recoveredTasks.map((task, index) => (
-                        <li
-                          key={
-                            task.data?.batchId ?? task.data?.actionId ?? index
-                          }
-                          className="min-w-0 border-b border-(--hair) py-3 last:border-0"
-                        >
-                          <p className="text-sm font-medium break-words">
-                            <ReviewTitle
-                              review={{
-                                summary: task.data?.summary ?? t("currentTask"),
-                                operationId: task.data?.operation,
-                              }}
-                            />
-                          </p>
-                          <p className="mt-1 text-sm" role="status">
-                            {t(`taskStates.${taskPresentation(task.status)}`)}
-                          </p>
-                          {task.message ? (
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              {task.message}
-                            </p>
-                          ) : null}
-                          {task.data?.kind === "batch" && task.data.steps ? (
-                            <BatchSteps
-                              steps={task.data.steps}
-                              state={task.data.state}
-                            />
-                          ) : null}
-                          {task.data?.recoverable &&
-                          (task.data?.batchId || task.data?.actionId) ? (
-                            <Button
-                              className="mt-2 min-h-11"
-                              variant="outline"
-                              disabled={voice.busy || voice.checkingRecovery}
-                              onClick={() =>
-                                void voice.restore(
-                                  (task.data!.batchId ?? task.data!.actionId)!,
-                                  task.data?.kind === "batch"
-                                    ? "batch"
-                                    : "action"
-                                )
-                              }
-                            >
-                              {t("recoveryReview")}
-                            </Button>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : !voice.checkingRecovery ? (
-                    <p className="text-sm text-muted-foreground">
-                      {t("recoveryEmpty")}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      className="min-h-11"
-                      variant="outline"
-                      disabled={voice.checkingRecovery || voice.busy}
-                      onClick={() => void voice.refreshRecovery()}
-                    >
-                      {t("recoveryRefresh")}
-                    </Button>
-                    <Button
-                      className="min-h-11"
-                      variant="ghost"
-                      disabled={voice.checkingRecovery || voice.busy}
-                      onClick={() => void voice.closeRecovery()}
-                    >
-                      {t("recoveryClose")}
-                    </Button>
-                  </div>
-                </section>
-              ) : null}
-            </section>
+            {voice.outcome?.handoff?.route.startsWith("/voice/secure?") ? (
+              <Link
+                className="mx-auto mt-3 inline-flex min-h-11 w-full max-w-3xl items-center text-sm font-medium underline"
+                href={voice.outcome.handoff.route}
+              >
+                {t("secureOpen")}
+              </Link>
+            ) : null}
             {voice.error ? (
               <p
                 role="alert"
@@ -836,9 +668,9 @@ export function VoiceConversation() {
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="dark w-full gap-0 overflow-y-auto bg-background p-0 text-foreground motion-reduce:transition-none sm:max-w-md"
+          className="dark w-full gap-0 overflow-hidden bg-background p-0 text-foreground motion-reduce:transition-none sm:max-w-md"
         >
-          <div className="theme-glass flex min-h-full flex-col gap-4 p-5">
+          <div className="theme-glass flex h-full min-h-0 flex-col gap-4 p-5">
             <SheetHeader className="p-0">
               <SheetTitle>{t("review")}</SheetTitle>
             </SheetHeader>

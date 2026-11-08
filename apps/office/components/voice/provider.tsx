@@ -113,6 +113,10 @@ type VoiceContextValue = {
   upgrade: () => Promise<void>
   end: () => Promise<void>
   toggleMute: () => void
+  /** "hold": the mic opens only while the talk button (or Space) is held. "open": always listening. */
+  micMode: MicMode
+  setMicMode: (mode: MicMode) => void
+  talk: (on: boolean) => void
   pauseCapture: () => void
   inputLevel: () => number
   /** Agent playback level 0..1 (SDK output analyser); drives the avatar while speaking. */
@@ -125,6 +129,8 @@ type VoiceContextValue = {
   retryAttachment: (key: string) => Promise<boolean>
   confirm: (decision: "approve" | "cancel") => Promise<void>
 }
+export type MicMode = "hold" | "open"
+const MIC_MODE_KEY = "genesy.voice.micMode"
 export const VoiceContext = createContext<VoiceContextValue | null>(null)
 export type { VoiceContextValue }
 export function useVoice() {
@@ -194,6 +200,15 @@ function Session({ children }: { children: ReactNode }) {
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
   const [progress, setProgress] = useState<VoiceProgress | null>(null)
+  const [micMode, setMicModeState] = useState<MicMode>(() => {
+    try {
+      return window.localStorage.getItem(MIC_MODE_KEY) === "open"
+        ? "open"
+        : "hold"
+    } catch {
+      return "hold" // No window (server render) or blocked storage.
+    }
+  })
   function updateFiles(next: Attachment[]) {
     files.current = next
     setAttachments(next)
@@ -432,6 +447,7 @@ function Session({ children }: { children: ReactNode }) {
     if (!statusRead && document.visibilityState !== "visible")
       return JSON.stringify({ status: "paused", message: t("recoveryHint") })
     if (!statusRead) preparing.current = before
+    let quiet = false // failed or awaiting review: no thinking row afterwards
     setToolRequests((count) => count + 1)
     setError("")
     try {
@@ -522,6 +538,8 @@ function Session({ children }: { children: ReactNode }) {
         return JSON.stringify(cancelled)
       }
       if (result.status === "requires_confirmation" && result.review) {
+        // The review card is the pending state now, not the thinking row.
+        quiet = true
         const data = result.data as { actionId?: string } | undefined
         pendingActionId.current = data?.actionId
         recordTask("action", data?.actionId, "awaiting_review")
@@ -579,6 +597,7 @@ function Session({ children }: { children: ReactNode }) {
           ...(e.hint.candidates ? { candidates: e.hint.candidates } : {}),
         })
       }
+      quiet = true
       if (active.current && before === generation.current) {
         setThinking(false)
         setError(e instanceof Error ? e.message : t("requestFailed"))
@@ -592,8 +611,11 @@ function Session({ children }: { children: ReactNode }) {
       })
     } finally {
       if (!statusRead && preparing.current === before) preparing.current = null
-      if (active.current && before === generation.current)
+      if (active.current && before === generation.current) {
         setToolRequests((count) => Math.max(0, count - 1))
+        // The agent always answers a tool result; show it working until that reply lands.
+        if (!quiet) setThinking(true)
+      }
     }
   }
   const conversation = useConversation({
@@ -1106,6 +1128,36 @@ function Session({ children }: { children: ReactNode }) {
       }
     }
   }
+  function holdMic(muted: boolean) {
+    try {
+      conversation.setMuted(muted)
+    } catch {
+      /* Text conversations have no microphone. */
+    }
+  }
+  // Push-to-talk starts closed: nothing reaches the agent until the user holds to talk.
+  useEffect(() => {
+    if (identityVerified && !textOnly && micMode === "hold")
+      if (!capturePausedRef.current) holdMic(true)
+    // holdMic reads the live conversation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identityVerified, textOnly, micMode])
+  function setMicMode(mode: MicMode) {
+    setMicModeState(mode)
+    try {
+      window.localStorage.setItem(MIC_MODE_KEY, mode)
+    } catch {
+      /* Storage may be blocked; the choice lasts this page only. */
+    }
+    if (mode === "open" && verified.current && !textOnly)
+      if (!capturePausedRef.current) holdMic(false)
+  }
+  function talk(on: boolean) {
+    if (micMode !== "hold" || !verified.current || textOnly) return
+    if (capturePausedRef.current) return
+    if (on) conversation.sendUserActivity()
+    holdMic(!on)
+  }
   function pauseCapture() {
     if (!verified.current || textOnly || capturePausedRef.current) return
     capturePausedRef.current = true
@@ -1463,6 +1515,9 @@ function Session({ children }: { children: ReactNode }) {
         start,
         upgrade,
         end,
+        micMode,
+        setMicMode,
+        talk,
         toggleMute: () =>
           capturePaused
             ? void upgrade(true)

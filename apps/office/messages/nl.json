@@ -955,6 +955,10 @@
     "listening": "Luistert",
     "open": "Gesprek openen",
     "mute": "Dempen",
+    "holdToTalk": "Houd ingedrukt om te praten",
+    "talking": "Luistert… loslaten om te versturen",
+    "openMic": "Open microfoon gebruiken",
+    "pushToTalk": "Indrukken om te praten gebruiken",
     "unmute": "Dempen opheffen",
     "stopSpeaking": "Stoppen met spreken",
     "end": "Gesprek beëindigen",
@@ -1192,6 +1196,7 @@
       "unavailable": "Deze functie is in deze versie niet beschikbaar. Er is geen actie gestart."
     },
     "activity": {
+      "holdToTalk": "Houd de knop of spatiebalk ingedrukt om te praten",
       "idle": "Klaar wanneer jij dat bent",
       "ready": "Klaar voor je bericht",
       "connecting": "Verbinden…",

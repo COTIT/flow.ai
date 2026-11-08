@@ -12,6 +12,11 @@ import {
 describe("assistant activity", () => {
   it("keeps a sent request pending until a reply, and distinguishes execution from approval", () => {
     expect(activityState({ connected: true, thinking: true })).toBe("thinking")
+    expect(activityState({ connected: true, muted: true })).toBe("muted")
+    expect(activityState({ connected: true, muted: true, hold: true })).toBe(
+      "holdToTalk"
+    )
+    expect(activityState({ connected: true, hold: true })).toBe("listening")
     expect(
       activityState({ connected: true, thinking: true, requesting: true })
     ).toBe("executing")
