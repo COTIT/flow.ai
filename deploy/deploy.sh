@@ -25,6 +25,9 @@ main() {
   esac
   exec 9> "$DIR/.deploy.lock"
   flock -n 9 || die "another deploy of $GENESY_ENV is running"
+  TIMING_START=$SECONDS TIMING_SHELL=$BASH_SUBSHELL TIMING_STEP=""
+  case "$action" in rollback | prune) TIMING_ACTION="$action" ;; *) TIMING_ACTION=deploy ;; esac
+  trap 'timing_exit "$?"' EXIT
   case "$action" in
     rollback) rollback "$@" ;;
     prune) prune ;;
@@ -39,6 +42,27 @@ state_write() { printf '%s\n' "$@" > "$STATE.new" && mv "$STATE.new" "$STATE"; }
 
 log() { echo "$(date -u +%FT%TZ) ${USER:-?} $GENESY_ENV $*" >> "$DIR/deploys.log"; }
 
+timing_begin() { TIMING_STEP="$1" TIMING_STEP_START=$SECONDS; }
+timing_event() {
+  local event="timing action=$TIMING_ACTION ref=${REF:-unknown} step=$1 elapsed_seconds=$2 status=$3"
+  echo "$event" >&2
+  log "$event"
+}
+timing_end() {
+  timing_event "$TIMING_STEP" "$((SECONDS - TIMING_STEP_START))" "${1:-ok}"
+  TIMING_STEP=""
+}
+timing_exit() {
+  local status=ok
+  [[ "$BASH_SUBSHELL" == "$TIMING_SHELL" ]] || return 0
+  (( $1 == 0 )) || status=failed
+  # Timing must preserve the command's exit status, even if writing its log fails.
+  trap - EXIT
+  set +e
+  [[ -z "$TIMING_STEP" ]] || timing_end "$status"
+  timing_event total "$((SECONDS - TIMING_START))" "$status"
+}
+
 release_fingerprint() {
   [[ -f "$ROOT/deploy/assistant-compatibility.json" ]] || return 0
   python3 - "$ROOT/deploy/assistant-compatibility.json" <<'PY'
@@ -51,10 +75,13 @@ PY
 # use_ref <sha>: check the commit out and make its full sha the image tag in the env file (CI
 # tags the GHCR images with the full sha).
 use_ref() {
+  timing_begin checkout
   git -C "$ROOT" checkout -q --detach "$1"
   REF="$(git -C "$ROOT" rev-parse HEAD)"
   { grep -v '^GENESY_REF=' "$ENV_FILE" || true; echo "GENESY_REF=$REF"; } > "$ENV_FILE.new"
-  cat "$ENV_FILE.new" > "$ENV_FILE" && rm "$ENV_FILE.new"   # cat keeps the file's 600 mode
+  cat "$ENV_FILE.new" > "$ENV_FILE"   # cat keeps the file's 600 mode
+  rm "$ENV_FILE.new"
+  timing_end
 }
 
 # images: pull the commit's CI-built images, or build them here (fallback). Sets UP for the
@@ -63,10 +90,14 @@ use_ref() {
 images() {
   case "$(env_value IMAGE_SOURCE)" in
     "" | pull)
+      timing_begin images-pull
       "${COMPOSE[@]}" pull
+      timing_end
       UP=(up -d --wait --wait-timeout 300 --no-build) ;;
     build)
+      timing_begin images-build
       "${COMPOSE[@]}" build
+      timing_end
       UP=(up -d --wait --wait-timeout 300) ;;
     *) die "IMAGE_SOURCE must be pull or build" ;;
   esac
@@ -75,6 +106,7 @@ images() {
 # health: every host answers (ops/lib.sh hosts_down; without DNS, every container is healthy).
 # Traefik needs a moment to see new containers: up to 12 tries, 5 s apart.
 health() {
+  timing_begin health
   local bad ok="all ${PUBLIC_HOSTS// /, } answer"
   [[ -z "${ROUTES_OFF:-}" ]] || ok="Traefik routes off (no DNS yet); checked container health only"
   for _ in $(seq 12); do
@@ -84,10 +116,11 @@ health() {
         "fetch('http://127.0.0.1:3000/api/voice/readiness',{signal:AbortSignal.timeout(5000)}).then(r=>process.exit(r.status===200?0:1),()=>process.exit(1))" \
         || bad=' office=assistant-not-ready'
     fi
-    [[ -z "$bad" ]] && { echo "health: $ok"; return 0; }
+    [[ -z "$bad" ]] && { echo "health: $ok"; timing_end; return 0; }
     sleep "${HEALTH_WAIT:-5}"
   done
   echo "health: failing:$bad" >&2
+  timing_end failed
   return 1
 }
 
@@ -107,10 +140,12 @@ deploy() {
   (( free_kb >= 5 * 1024 * 1024 )) || die "less than 5 GB free on $ROOT; prune first"
 
   if [[ -n "$bundle" ]]; then
+    timing_begin bundle-import
     git -C "$ROOT" bundle verify -q "$bundle" > /dev/null
     # Every head in the bundle; only the objects matter, cat-file finds the sha below.
     git -C "$ROOT" bundle list-heads "$bundle" | cut -d' ' -f2 \
       | xargs git -C "$ROOT" fetch -q "$bundle"
+    timing_end
   fi
   git -C "$ROOT" cat-file -e "$sha^{commit}" 2> /dev/null \
     || die "commit $sha is not in $ROOT; copy a bundle over and pass --bundle <file>"
@@ -121,16 +156,24 @@ deploy() {
   log "deploy $REF start (was ${was_live:-none})"
   images
 
+  timing_begin database-ready
   "${COMPOSE[@]}" up -d --wait db
   was_schema="$(schema_version)"
+  timing_end
   local dump
+  timing_begin backup
   dump="$(backup "pre-$REF")"
   [[ -n "$dump" ]] || die "backup printed no dump path"
+  timing_end
+  timing_begin migration
   "${COMPOSE[@]}" --profile "$MIGRATE_SVC" run --rm "$MIGRATE_SVC" migrate
   if [[ "$(env_value ASSISTANT_ENABLED)" == true ]]; then
     checkpoint_roles verify "${COMPOSE[@]}" exec -T db
   fi
+  timing_end
+  timing_begin startup
   "${COMPOSE[@]}" "${UP[@]}"
+  timing_end
 
   # A redeploy of the live commit keeps the recorded previous version.
   local previous="$was_live" previous_schema="$was_schema"
@@ -191,7 +234,9 @@ Rolling back needs --restore-db, which restores the pre-deploy dump and loses ev
   # fetches them again if someone pruned by hand.
   images
   (( restore )) && sudo -n "$OPS_LIB/restore.sh" "$GENESY_ENV" "$dump"
+  timing_begin startup
   "${COMPOSE[@]}" "${UP[@]}"
+  timing_end
   state_write "live=$REF" "live_schema=$(schema_version)" "previous=$live" \
     "previous_schema=$now_schema" "pre_deploy_dump=" "assistant_fingerprint=$fingerprint"
   health || { log "rollback to $REF unhealthy"; die "rolled back to $REF but it is unhealthy"; }
@@ -203,12 +248,13 @@ Rolling back needs --restore-db, which restores the pre-deploy dump and loses ev
 # the tag: `<sha>`, or `<sha>-staging` for staging's api/office/field); dangling images; build
 # cache above 10 GB (kept warm so a fallback build is quick).
 prune() {
+  timing_begin prune
   local keep="" env repo tag
   for env in production staging; do
     # The other env's state through its own setup; an env that isn't set up keeps nothing.
     keep+=" $( (env_setup "$env" && STATE="$DIR/.deploy-state" && state_get live && state_get previous) 2> /dev/null | tr '\n' ' ' || true)"
   done
-  [[ -n "${keep// /}" ]] || { echo "prune: no live version recorded anywhere, no tags removed"; return 0; }
+  [[ -n "${keep// /}" ]] || { echo "prune: no live version recorded anywhere, no tags removed"; timing_end; return 0; }
   for repo in $("${COMPOSE[@]}" config --images | grep -v @ | sed 's/:[^:/]*$//' | sort -u); do
     for tag in $(docker image ls --format '{{.Tag}}' "$repo"); do
       [[ " $keep " == *" ${tag%-staging} "* ]] || docker image rm "$repo:$tag" > /dev/null || true
@@ -217,6 +263,7 @@ prune() {
   docker image prune -f > /dev/null
   docker builder prune -f --max-used-space 10GB > /dev/null
   echo "prune: kept$(tr -s ' ' <<< "$keep")"
+  timing_end
 }
 
 main "$@"; exit

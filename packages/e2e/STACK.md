@@ -107,11 +107,16 @@ Postgres, API and five apps per worker). So:
 
 ## CI
 
-`stack-e2e` in `.github/workflows/ci.yml`: on main pushes and on PRs where `api` or `web`
-changed (the `changes` job), beside `api` and `web`, on a 2-core GitHub runner (host, not a
-container: it needs Docker). Caches the cargo registry + dependency build (crate cleaned out) and
-the pnpm store; Chromium installs each run. Fails on any failed step or spec; report, traces and
-`.stack/*/logs` are uploaded on failure. Not a gate for `images` yet.
+`stack-tests` runs two independent shards on standard public-repository `ubuntu-24.04`
+runners. Each job builds its own API and apps, starts an isolated database and file store,
+and executes `stack:test --shard=i/2` with two workers. Shard one checks that the discovered
+unsharded inventory equals the union of both shards before testing. Real expiry and cache
+propagation waits stay unchanged.
+
+`stack-e2e` collects both results and gates final image publication. Failed, cancelled or
+missing required results block release. Failure artifacts include the shard number and keep
+reports, traces and stack logs for seven days. Only shard one writes dependency caches;
+shard two restores them. The local gate runs the suite unsharded.
 
 ## Timings
 
@@ -129,7 +134,7 @@ Measured 2026-11-04 on a shared Mac (load average 45-85 from other builds, so sl
 | `stack:reset` | | 8 s |
 
 The seed is the slowest step once the API is built: it runs the whole demo through the debug
-build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 cores, idle).
+build (password hashing included). These historical measurements predate CI sharding. Warm shard timing must be measured on GitHub runners.
 
 ## Known bugs these specs carry (`test.fail`)
 

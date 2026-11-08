@@ -108,14 +108,34 @@ test("the screen shows its data", async ({ page }) => {
 
 ## CI runners and cost
 
-`.github/workflows/ci.yml` runs on GitHub-hosted runners (2-core `ubuntu-24.04`). The repo is private, so every minute is billed ($0.006/min, each job rounded up to a whole minute, $12 a month included on the Free plan). The spend cap is a budget in GitHub billing. What keeps the bill down:
+CI uses standard ubuntu-24.04 GitHub runners. Compute is free for this public repository; artifact and cache storage retain GitHub's plan limits. Peak parallel work is 17 jobs, below the Free plan's 20-job allowance. Other organization workflows can still queue these jobs.
 
-- **Skip what didn't change.** The `changes` job compares the commit with the last green `main` commit (`deploy/ci/changes.sh`, tested by `deploy/ci/changes.test.sh`). `api` runs only for `apps/api/`, `web` (checks, builds, e2e) only for web code or `apps/api/openapi.json`. Changing the workflow or `deploy/ci/` runs everything. A missing or unknown base runs everything.
-- **A newer push cancels the older run**, on `main` too.
-- **Images:** the two `images` jobs (api, web) build, scan and push only a group whose inputs changed. Otherwise they copy the last green commit's tags in the registry, so every green commit still has a full set of `ghcr.io/cotit/genesy-<app>:<sha>` tags.
-- **Caches:**
-  - Rust dependencies (one entry per `Cargo.lock`, saved from `main`), the pnpm store, `cargo-audit` and the Trivy DB (one a day) use the Actions cache.
-  - The API image's dependency layer is cached in GHCR (`genesy-buildcache`).
-  - Playwright browsers come in the job's container image.
+The changes job compares inputs with the last fully green main commit. Unknown bases run every check, and a newer push cancels the older run. Stable api, web and stack-e2e checks collect results from quality checks and every test shard. Failed, cancelled or missing required children block release.
+
+Browser tests run across eight jobs with three workers each. Each builds its own apps. Two full-stack jobs each own their database, file store and seed. API integration tests use two isolated Postgres instances and a deterministic partition of compiled test names. Migration prechecks run before each template is migrated. Other API targets run once. The local gate keeps the complete suite unsharded.
+
+Image preparation starts alongside checks: production API, staging API and web are separate producers. They push only ci-<run-id>-<attempt> candidates after smoke tests and vulnerability scans. The two images checks validate all producer manifests and publish commit-SHA tags by immutable digest after every gate passes. Unchanged image groups reuse digests from the last green commit. A partial publication is a failed release; always require a green main workflow before deploying.
+
+Clippy and test dependency caches have separate keys and one writer each. Stack caches remain separate. The web quality job writes the pnpm cache; browser shards only restore it. Both API image variants export their own GHCR layer caches. Project test results are not persisted as a shortcut around executing tests.
+
+Producer manifests last seven days. Failed-job reruns can reuse earlier successful producers from the same run and commit. Full reruns select the newest producer attempt. Missing or expired manifests require a full workflow rerun. Candidate cleanup is deferred because candidate and release tags can share the same package version.
 
 The old self-hosted runner on the VPS was removed on 2026-11-02; the VPS only pulls images and runs them.
+
+### Release timing
+
+The target is a median below ten minutes across three representative warm releases: web-only,
+API-only and combined changes. Measure CI from workflow creation through image publication,
+including runner queues. Add bundle creation/transfer and deployment execution; production
+includes staging first. Exclude only human waiting between manual promotions. Report each
+result and the maximum. Cold builds may take longer; a faster failed run is not a release.
+
+Each deployment writes timing events to stderr and `deploy/<env>/deploys.log`, including its
+final status. Keep backups, migration checks, health probes and pruning inside the measured
+execution. Before benchmarking production, configure its catalog app key and require the runtime
+scan to pass under the repository's reviewed vulnerability policy. Retain the existing zlib
+exceptions until a patched distroless rebuild is available, as recorded in `.trivyignore`. Production shop HTTP 500 is a failed
+health check even when its container reports healthy.
+
+To roll back the CI restructuring, revert its workflow/helper changes. Existing SHA tags,
+manual deploy commands and application/database rollback rules remain usable.

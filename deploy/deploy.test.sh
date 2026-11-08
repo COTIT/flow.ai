@@ -40,7 +40,8 @@ if [[ "$1" == compose ]]; then
         *'encode(checksum'*) cat "$T/applied" ;;
         *) cat "$T/schema" ;;
       esac ;;
-    run) [[ -n "${STUB_MIGRATE_TO:-}" ]] && echo "$STUB_MIGRATE_TO" > "$T/schema" ;;
+    run) [[ -z "${STUB_MIGRATE_FAIL:-}" ]] || exit 49
+      [[ -n "${STUB_MIGRATE_TO:-}" ]] && echo "$STUB_MIGRATE_TO" > "$T/schema" ;;
     ps) cat "$T/ps" 2> /dev/null ;;
   esac
   exit 0
@@ -86,6 +87,26 @@ grep -qx "GENESY_REF=$A" "$d/.env.production" || fail "GENESY_REF not set"
 [[ "$(state live)" == "$A" && -z "$(state previous)" ]] || fail "state after A: $(cat "$d/.deploy-state")"
 if grep -q "stripe.yml" "$CALLS"; then fail "stripe overlay without its key"; fi
 grep -q "$A deploy\|deploy $A ok" "$d/deploys.log" || fail "not logged"
+
+# Timing stays on stderr and in the log, including one total despite command substitutions.
+for step in checkout images-pull database-ready backup migration startup health prune total; do
+  grep -Eq "timing action=deploy ref=$A step=$step elapsed_seconds=[0-9]+ status=ok$" "$d/deploys.log" \
+    || fail "missing successful timing: $step"
+done
+[[ "$(grep -c 'step=total ' "$d/deploys.log")" = 1 ]] || fail "subshell wrote extra total timings"
+: > "$CALLS"
+bash "$HERE/deploy.sh" production "$A" > "$t/stdout" 2> "$t/stderr"
+if grep -q '^timing ' "$t/stdout"; then fail "timing contaminated command stdout"; fi
+grep -q 'step=total .*status=ok' "$t/stderr" || fail "total timing missing from stderr"
+[[ "$(state pre_deploy_dump)" == "/srv/genesy-backups/production/genesy-production-X-pre-$A.dump" ]] \
+  || fail "timing contaminated captured backup path"
+
+# A failing migration retains its original exit status and stops before application startup.
+if STUB_MIGRATE_FAIL=1 run "$A"; then fail "migration failure passed"; else status=$?; fi
+[[ "$status" = 49 ]] || fail "timing changed migration exit status: $status"
+grep -q 'step=migration .*status=failed' "$t/out" || fail "failed migration timing missing"
+grep -q 'step=total .*status=failed' "$t/out" || fail "failed total timing missing"
+if grep -q 'up -d --wait --wait-timeout' "$CALLS"; then fail "startup ran after failed migration"; fi
 
 # Second deploy with a migration: previous recorded with its schema and the pre-deploy dump.
 mkdir -p "$d/secrets" && touch "$d/secrets/stripe_secret_key"

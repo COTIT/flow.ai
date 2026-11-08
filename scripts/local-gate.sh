@@ -21,6 +21,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
+step "deployment helper tests"
+for t in "$ROOT"/deploy/*.test.sh "$ROOT"/deploy/*/*.test.sh; do run bash "$t"; done
+run python3 -B -m unittest discover -s "$ROOT/deploy/ci" -p 'test_*.py'
+
 if [[ -z "${SKIP_API:-}" ]]; then
   step "api"
   docker run -d --name "$PG" -p 127.0.0.1:54339:5432 --tmpfs /var/lib/postgresql \
@@ -45,6 +49,8 @@ if [[ -z "${SKIP_WEB:-}" ]]; then
   cd "$ROOT"
   run pnpm install --frozen-lockfile
   run pnpm turbo run generate:check --filter=@genesy/api-client --only --output-logs=errors-only
+  run pnpm --filter @genesy/office voice:check
+  run pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
   run pnpm turbo run typecheck lint test build --filter='!@genesy/api' --output-logs=errors-only
 fi
 
@@ -52,6 +58,7 @@ if [[ -z "${SKIP_E2E:-}" ]]; then
   step "e2e (fake API)"
   cd "$ROOT"
   run env E2E_PORT_OFFSET=95 VITE_FEATURE_RESOURCES=on pnpm turbo run e2e --output-logs=errors-only -- --workers=3
+  run pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
 fi
 
 if [[ -z "${SKIP_STACK:-}" ]]; then

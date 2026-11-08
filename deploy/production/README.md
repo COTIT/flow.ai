@@ -94,6 +94,17 @@ Back up `secrets/credentials_key` off the VPS, for example in the password manag
 
 ## Deploy from main (after CI is green)
 
+Image preparation runs alongside checks and pushes run-specific candidates. The existing
+`images` checks publish final commit tags only after every quality check, test shard and image
+producer succeeds. Deploy only a fully green main run. Failed-job reruns can reuse successful
+producer manifests from that same run; missing or expired manifests require a full rerun.
+Candidate tags are not deployable commit SHAs. Never deploy a partial publication.
+
+Deployment timings go to stderr and `deploy/production/deploys.log`. Include backup,
+migration, health and cleanup time when comparing releases. Human waiting between promotions
+is measured separately.
+
+
 Only deploy a commit whose `ci` workflow passed on `main`, including its two `images` jobs (api and web), which pushed `ghcr.io/cotit/genesy-<app>:<sha>`, and that staging already runs. The VPS can't reach GitHub's git, so the commit comes over in a git bundle:
 
 ```bash

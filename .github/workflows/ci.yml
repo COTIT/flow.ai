@@ -1,6 +1,6 @@
-# CI on GitHub-hosted runners (2-core ubuntu, billed per minute: README.md "CI runners and cost").
-# Every job is skipped when its inputs didn't change since the last green main commit
-# (deploy/ci/changes.sh). No deploy job here: the images jobs push, the VPS pulls.
+# Standard GitHub-hosted runners: public repo compute is free (README "CI runners and cost").
+# Checks skip unchanged inputs since the last green main commit (deploy/ci/changes.sh).
+# Image preparation reuses unchanged digests. Final images jobs publish; the VPS pulls.
 name: ci
 
 on:
@@ -63,9 +63,11 @@ jobs:
           bash deploy/ci/changes.sh "$base" HEAD | tee -a "$GITHUB_OUTPUT"
       # Seconds, and needs only bash, git, python3 and the docker CLI: cheaper here than in web.
       - name: Shell tests (deploy/)
-        run: for t in deploy/*.test.sh deploy/*/*.test.sh; do bash "$t"; done
+        run: |
+          for t in deploy/*.test.sh deploy/*/*.test.sh; do bash "$t"; done
+          python3 -B -m unittest discover -s deploy/ci -p 'test_*.py'
 
-  api:
+  api-quality:
     needs: changes
     if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-24.04
@@ -73,25 +75,7 @@ jobs:
     container:
       # Same image as apps/api/Dockerfile.
       image: rust:1.99-slim-trixie
-    services:
-      # Throwaway DB on the job's private network (no host port); removed with the job.
-      # Data in RAM and no crash safety: nothing here outlives the job.
-      postgres:
-        image: postgres:18-alpine
-        command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
-        env:
-          POSTGRES_PASSWORD: ci-only
-          # No SCRAM handshake per test connection (it runs in unoptimised test-build crypto).
-          POSTGRES_HOST_AUTH_METHOD: trust
-        # The full suite peaks at ~175 MB of RAM disk.
-        options: >-
-          --tmpfs /var/lib/postgresql:rw,size=1g
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
     env:
-      DATABASE_URL: postgres://postgres:ci-only@postgres:5432/postgres
       CARGO_TARGET_DIR: /ci-target
     defaults:
       run:
@@ -111,23 +95,13 @@ jobs:
             /usr/local/cargo/registry/index
             /usr/local/cargo/registry/cache
             /ci-target
-          key: api-deps-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}-rust1.99
-          restore-keys: api-deps-
+          key: api-clippy-rust1.99-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}
+          restore-keys: |
+            api-clippy-rust1.99-
+            api-deps-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}-rust1.99
       - run: rustup component add rustfmt clippy
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
-      # These two need an empty database, so they run before template1 is migrated.
-      - name: Migrations fill an empty database
-        run: cargo test --tests -- migrations_fill_an_empty_database migrate_fills_an_empty_database
-      # Every #[sqlx::test] DB is created from template1: migrated once here, each test clones
-      # it and sqlx finds nothing left to apply (instead of replaying every migration per test).
-      - name: Migrate template1 once
-        run: DATABASE_URL="${DATABASE_URL%/*}/template1" "$CARGO_TARGET_DIR/debug/genesy-360-api" migrate
-      - run: cargo test --no-fail-fast -- --skip migrations_fill_an_empty_database --skip migrate_fills_an_empty_database
-      - name: OpenAPI spec is fresh
-        run: cargo test --test openapi committed_spec
-      - name: No internal names in the spec
-        run: test "$(grep -ciE 'laravel|vimdesk' openapi.json)" = 0
       - name: Keep only dependencies in the cache
         if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         run: cargo clean -p genesy-360-api
@@ -156,9 +130,89 @@ jobs:
           path: /opt/ci-tools
           key: cargo-audit-0.22.2
 
-  web:
-    # Checks, unit tests, production builds, then the headless browser tests (packages/e2e)
-    # against those same builds and a mock API: one install and one build for both.
+  api-tests:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1]
+    container:
+      # Same image as apps/api/Dockerfile.
+      image: rust:1.99-slim-trixie
+    services:
+      # Throwaway DB on the job's private network (no host port); removed with the job.
+      # Data in RAM and no crash safety: nothing here outlives the job.
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_INITDB_ARGS: >-
+            --set fsync=off --set synchronous_commit=off
+            --set full_page_writes=off --set max_connections=200
+          # No SCRAM handshake per test connection (it runs in unoptimised test-build crypto).
+          POSTGRES_HOST_AUTH_METHOD: trust
+        # The full suite peaks at ~175 MB of RAM disk.
+        options: >-
+          --tmpfs /var/lib/postgresql:rw,size=1g
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:ci-only@postgres:5432/postgres
+      CARGO_TARGET_DIR: /ci-target
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 zstd > /dev/null
+      # Dependencies only (the crate itself is cleaned out before saving), so the entry changes only
+      # with Cargo.lock/Cargo.toml and stays ~1 GB of the repo's 10 GB.
+      - id: deps
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            /usr/local/cargo/registry/index
+            /usr/local/cargo/registry/cache
+            /ci-target
+          key: api-tests-rust1.99-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}
+          restore-keys: |
+            api-tests-rust1.99-
+            api-deps-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}-rust1.99
+      # Each shard verifies empty databases before migrating its own template1.
+      - name: Integration test shard
+        run: python3 ../../deploy/ci/api-shard.py ${{ matrix.shard }} 2
+      - name: Library, binary, OpenAPI and documentation tests
+        if: matrix.shard == 0
+        run: |
+          cargo test --lib --bins --test openapi --no-fail-fast
+          cargo test --doc
+      - name: OpenAPI spec is fresh
+        if: matrix.shard == 0
+        run: cargo test --test openapi committed_spec
+      - name: No internal names in the spec
+        if: matrix.shard == 0
+        run: test "$(grep -ciE 'laravel|vimdesk' openapi.json)" = 0
+      - name: Keep only dependencies in the cache
+        if: matrix.shard == 0 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+        run: cargo clean -p genesy-360-api
+      - if: matrix.shard == 0 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            /usr/local/cargo/registry/index
+            /usr/local/cargo/registry/cache
+            /ci-target
+          key: ${{ steps.deps.outputs.cache-primary-key }}
+
+  web-quality:
+    # Quality and development Strict Mode checks run once, beside browser shards.
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-24.04
@@ -203,15 +257,15 @@ jobs:
       - name: Checkpoint schema matches pinned saver
         run: pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
       - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
-      # Reuse the builds above and stream browser progress without Turbo's grouped log buffer.
-      - run: pnpm --filter @genesy/e2e e2e
+      - name: Browser shards cover the complete suite
+        run: pnpm --filter @genesy/e2e exec node verify-shards.mjs playwright.config.ts 8
       - name: Secure form survives development Strict Mode
         run: pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
       - name: Upload report and traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-quality
           path: |
             packages/e2e/playwright-report/
             packages/e2e/test-results/
@@ -224,15 +278,69 @@ jobs:
           path: /pnpm-store
           key: ${{ steps.store.outputs.cache-primary-key }}
 
-  stack-e2e:
-    # Headless browser tests against the whole stack (packages/e2e/STACK.md): the real API (debug
-    # build: fake payments), a seeded throwaway Postgres in Docker, all five apps built for it.
-    # Catches what the mock-API specs in `web` can't (permissions, cross-app flows, the seed).
-    # Release images wait for this job. Estimate: ~12 min warm, ~25 cold (STACK.md "Timings").
+  web-browser:
+    # Independent builds avoid a large build-artifact transfer on the critical path.
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    container:
+      # Same version as @playwright/test in packages/e2e; browsers come preinstalled.
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    env:
+      CI: "true"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      # The field app's equipment and catalogue screens sit behind a build-time release flag; e2e checks them.
+      VITE_FEATURE_RESOURCES: "on"
+    steps:
+      # Before checkout: without git it downloads a tarball, and generate:check needs git diff.
+      - run: |
+          if ! command -v git > /dev/null || ! command -v zstd > /dev/null; then
+            apt-get update -qq && apt-get install -y -qq --no-install-recommends git zstd > /dev/null
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The container runs as root on a checkout owned by the runner user; checkout marks it
+      # safe only in a temporary HOME, so git diff in generate:check would see no repository.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - id: store
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /pnpm-store
+          key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+      # The Playwright image's Node no longer ships corepack; install the pinned pnpm from package.json.
+      - run: npm install -g "pnpm@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
+      - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
+      - run: pnpm turbo run build --filter='!@genesy/api' --concurrency=2
+      - run: pnpm --filter @genesy/e2e e2e --shard=${{ matrix.shard }}/8 --workers=3
+      - name: Upload report and traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: |
+            packages/e2e/playwright-report/
+            packages/e2e/test-results/
+          retention-days: 7
+
+  stack-tests:
+    # Each shard has a complete isolated stack; real expiry and cache waits stay intact.
     needs: changes
     if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     env:
       CI: "true"
       NEXT_TELEMETRY_DISABLED: "1"
@@ -268,22 +376,30 @@ jobs:
       - run: pnpm install --frozen-lockfile --store-dir /home/runner/pnpm-store
       - run: pnpm --filter @genesy/e2e exec playwright install --with-deps chromium
       # Up, specs, down; any failed step, console error or failed request fails the job.
-      - run: pnpm --filter @genesy/e2e stack:test
+      - name: Full-stack test shard
+        run: |
+          trap 'pnpm --filter @genesy/e2e stack:down' EXIT
+          pnpm --filter @genesy/e2e stack:up
+          if [ "${{ matrix.shard }}" = 1 ]; then
+            pnpm --filter @genesy/e2e exec node verify-shards.mjs playwright.stack.config.ts 2
+          fi
+          pnpm --filter @genesy/e2e stack:test --shard=${{ matrix.shard }}/2
       - name: Upload report, traces and stack logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: stack-e2e-report
+          name: stack-e2e-report-${{ matrix.shard }}
+          include-hidden-files: true
           path: |
             packages/e2e/playwright-report/
             packages/e2e/test-results/
             packages/e2e/.stack/*/logs/
           retention-days: 7
       - name: Keep only dependencies in the cache
-        if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+        if: matrix.shard == 1 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         working-directory: apps/api
         run: cargo clean -p genesy-360-api
-      - if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+      - if: matrix.shard == 1 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -291,23 +407,72 @@ jobs:
             ~/.cargo/registry/cache
             /home/runner/stack-target
           key: ${{ steps.deps.outputs.cache-primary-key }}
-      - if: github.ref == 'refs/heads/main' && steps.store.outputs.cache-hit != 'true'
+      - if: matrix.shard == 1 && github.ref == 'refs/heads/main' && steps.store.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /home/runner/pnpm-store
           key: ${{ steps.store.outputs.cache-primary-key }}
 
-  images:
-    # Release images for the VPS, one tag set per green main commit, pulled by the deploy
-    # (deploy/*/README.md "Deploy"). Never for PRs: the only jobs that can push packages.
-    # Skipped checks (inputs unchanged) count as green; failed or cancelled checks block.
-    if: >-
-      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-      && needs.changes.result == 'success'
-      && (needs.api.result == 'success' || needs.api.result == 'skipped')
-      && (needs.web.result == 'success' || needs.web.result == 'skipped')
-      && (needs['stack-e2e'].result == 'success' || needs['stack-e2e'].result == 'skipped')
-    needs: [changes, api, web, stack-e2e]
+  api:
+    # Preserve required-check names; missing/failed children cannot become green through skips.
+    needs: [changes, api-quality, api-tests]
+    if: ${{ !cancelled() && needs.changes.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CHANGED: ${{ needs.changes.outputs.api == 'true' }}
+      RESULT_0: ${{ needs['api-quality'].result }}
+      RESULT_1: ${{ needs['api-tests'].result }}
+    steps:
+      - name: Every required check passed
+        run: |
+          if [ "$CHANGED" = true ]; then
+            [ "$RESULT_0" = success ] && [ "$RESULT_1" = success ]
+          else
+            [ "$CHANGED" = false ] && [ "$RESULT_0" = skipped ] && [ "$RESULT_1" = skipped ]
+          fi
+
+  web:
+    # Preserve required-check names; missing/failed children cannot become green through skips.
+    needs: [changes, web-quality, web-browser]
+    if: ${{ !cancelled() && needs.changes.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CHANGED: ${{ needs.changes.outputs.web == 'true' }}
+      RESULT_0: ${{ needs['web-quality'].result }}
+      RESULT_1: ${{ needs['web-browser'].result }}
+    steps:
+      - name: Every required check passed
+        run: |
+          if [ "$CHANGED" = true ]; then
+            [ "$RESULT_0" = success ] && [ "$RESULT_1" = success ]
+          else
+            [ "$CHANGED" = false ] && [ "$RESULT_0" = skipped ] && [ "$RESULT_1" = skipped ]
+          fi
+
+  stack-e2e:
+    # Preserve required-check names; missing/failed children cannot become green through skips.
+    needs: [changes, stack-tests]
+    if: ${{ !cancelled() && needs.changes.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CHANGED: ${{ needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' }}
+      RESULT_0: ${{ needs['stack-tests'].result }}
+    steps:
+      - name: Every required check passed
+        run: |
+          if [ "$CHANGED" = true ]; then
+            [ "$RESULT_0" = success ]
+          else
+            [ "$CHANGED" = false ] && [ "$RESULT_0" = skipped ]
+          fi
+
+  image-prepare:
+    # Candidates can build during checks, but only promotion creates deployable SHA tags.
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
@@ -316,23 +481,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - group: api
-            staging: api
-            production: api
-          # Staging has all five web apps (office and field as -staging); production adds its own two.
-          - group: web
-            staging: shop office till landing field
-            production: office field
+        producer: [api-production, api-staging, web]
     env:
-      GENESY_REF: ${{ github.sha }}
+      GENESY_REF: ci-${{ github.run_id }}-${{ github.run_attempt }}
       BASE: ${{ needs.changes.outputs.base }}
-      CHANGED: ${{ matrix.group == 'api' && needs.changes.outputs.img_api || needs.changes.outputs.img_web }}
-      GROUP: ${{ matrix.group }}
-      STAGING_SERVICES: ${{ matrix.staging }}
-      PRODUCTION_SERVICES: ${{ matrix.production }}
-      STAGING: deploy/staging/docker-compose.staging.yml
-      PRODUCTION: deploy/production/docker-compose.production.yml
+      CHANGED: ${{ matrix.producer == 'web' && needs.changes.outputs.img_web || needs.changes.outputs.img_api }}
+      PRODUCER: ${{ matrix.producer }}
       # The compose files need these to load; nothing is started here.
       TRAEFIK_NETWORK: unused
       TRAEFIK_ENTRYPOINT: unused
@@ -349,58 +503,19 @@ jobs:
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-      # Build args live in the compose files only.
-      - name: Image list
-        run: |
-          # shellcheck disable=SC2086 # service lists
-          { docker compose -f "$STAGING" config --images $STAGING_SERVICES
-            docker compose -f "$PRODUCTION" config --images $PRODUCTION_SERVICES
-          } | grep '^ghcr.io/cotit/' | sort -u > images.txt
-          cat images.txt
-      # Inputs unchanged since the last green commit: copy its tags in the registry (no pull, no
-      # build). Those images were scanned when built. Any tag missing there = build instead.
-      - id: retag
-        name: Retag unchanged images
-        run: |
-          mode=build
-          if [ "$CHANGED" = false ] && [ -n "$BASE" ]; then
-            mode=retag
-            while read -r img; do
-              docker buildx imagetools inspect "${img/:$GENESY_REF/:$BASE}" > /dev/null 2>&1 \
-                || { echo "missing ${img/:$GENESY_REF/:$BASE}, building instead"; mode=build; break; }
-            done < images.txt
-          fi
-          if [ "$mode" = retag ]; then
-            while read -r img; do
-              docker buildx imagetools create -t "$img" "${img/:$GENESY_REF/:$BASE}"
-              echo "retagged $img"
-            done < images.txt
-          fi
-          echo "mode=$mode" | tee -a "$GITHUB_OUTPUT"
-      # Pinned BuildKit in a container builder: needed to read and write the registry layer cache.
-      # Only the API's dependency layer is cached remotely (genesy-buildcache); the web images share
-      # their package download inside this job.
+      - id: plan
+        name: Resolve unchanged images or plan candidate build
+        run: python3 deploy/ci/images.py plan "$PRODUCER"
       - name: Build
-        if: steps.retag.outputs.mode == 'build'
+        if: steps.plan.outputs.mode == 'build'
         run: |
           docker buildx create --use --name genesy --driver docker-container \
             --driver-opt image=moby/buildkit:v0.34.0@sha256:b059f8d7226d0b326bc871af489a5dddf65e36af4d20d14251b072974d9ee87c
-          from=() to=()
-          if [ "$GROUP" = api ]; then
-            from=(--set "api.cache-from=type=registry,ref=ghcr.io/cotit/genesy-buildcache:api")
-            to=(--set "api.cache-to=type=registry,ref=ghcr.io/cotit/genesy-buildcache:api,mode=max,ignore-error=true")
-          fi
-          # Bake resolves compose paths from the current folder, so run it from the compose file's;
-          # the contexts sit above it (the repo root), which bake must be allowed to read.
-          # Production first: staging's API build reuses its dependency layer.
-          (cd "$(dirname "$PRODUCTION")" && docker buildx bake --allow "fs.read=$GITHUB_WORKSPACE" \
-            -f "$(basename "$PRODUCTION")" --load "${from[@]}" "${to[@]}" $PRODUCTION_SERVICES)
-          (cd "$(dirname "$STAGING")" && docker buildx bake --allow "fs.read=$GITHUB_WORKSPACE" \
-            -f "$(basename "$STAGING")" --load "${from[@]}" $STAGING_SERVICES)
+          python3 deploy/ci/images.py build "$PRODUCER"
       # Before the scan: the web images start (their own HEALTHCHECK turns healthy), and the Next
       # images carry no package managers (deploy/images/next.Dockerfile drops them).
       - name: Web images start, Next images have no package managers
-        if: steps.retag.outputs.mode == 'build' && matrix.group == 'web'
+        if: steps.plan.outputs.mode == 'build' && matrix.producer == 'web'
         run: |
           fail=0
           while read -r img; do
@@ -428,25 +543,25 @@ jobs:
           done < images.txt
           exit "$fail"
       - id: day
-        if: steps.retag.outputs.mode == 'build'
+        if: steps.plan.outputs.mode == 'build'
         run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
       # One vulnerability DB download a day instead of one per job (and fewer GHCR rate limits).
       - id: trivy-db
-        if: steps.retag.outputs.mode == 'build'
+        if: steps.plan.outputs.mode == 'build'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/trivy
           key: trivy-db-${{ steps.day.outputs.day }}
           restore-keys: trivy-db-
       - name: Install Trivy
-        if: steps.retag.outputs.mode == 'build'
+        if: steps.plan.outputs.mode == 'build'
         run: |
           wget -qO "$RUNNER_TEMP/trivy.tgz" "https://github.com/aquasecurity/trivy/releases/download/v$TRIVY_VERSION/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           echo "$TRIVY_SHA256  $RUNNER_TEMP/trivy.tgz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/trivy.tgz" -C "$RUNNER_TEMP" trivy
       # Every image of the group is scanned before any is pushed. Accepted findings: .trivyignore.
       - name: Scan (HIGH or CRITICAL with a fix fails) and write SBOMs
-        if: steps.retag.outputs.mode == 'build'
+        if: steps.plan.outputs.mode == 'build'
         run: |
           mkdir -p sbom
           fail=0
@@ -458,21 +573,75 @@ jobs:
             "$RUNNER_TEMP/trivy" image --image-src docker --format cyclonedx --output "sbom/$name.cdx.json" "$img"
           done < images.txt
           exit "$fail"
-      - if: steps.retag.outputs.mode == 'build' && steps.trivy-db.outputs.cache-hit != 'true'
+      - if: steps.plan.outputs.mode == 'build' && steps.trivy-db.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/trivy
           key: trivy-db-${{ steps.day.outputs.day }}
       - name: Upload SBOMs
-        if: steps.retag.outputs.mode == 'build' && (success() || failure())
+        if: steps.plan.outputs.mode == 'build' && (success() || failure())
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: sbom-${{ github.sha }}-${{ matrix.group }}
+          name: sbom-${{ github.sha }}-${{ matrix.producer }}-${{ github.run_attempt }}
           path: sbom/
           retention-days: 90
       - name: Push
-        if: steps.retag.outputs.mode == 'build'
-        run: while read -r img; do docker push -q "$img"; done < images.txt
+        if: steps.plan.outputs.mode == 'build'
+        run: |
+          while read -r img; do docker push -q "$img"; done < images.txt
+          python3 deploy/ci/images.py record "$PRODUCER"
+      - name: Upload successful producer manifest
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ github.run_id }}-${{ matrix.producer }}-${{ github.run_attempt }}
+          path: ${{ matrix.producer }}.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io || true
+
+  images:
+    # No final SHA tag exists until all tests and all candidate producers have succeeded.
+    if: >-
+      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.changes.result == 'success'
+      && needs.api.result == 'success' && needs.web.result == 'success'
+      && needs['stack-e2e'].result == 'success' && needs['image-prepare'].result == 'success'
+    needs: [changes, api, web, stack-e2e, image-prepare]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: api
+            staging: api
+            production: api
+          - group: web
+            staging: shop office till landing field
+            production: office field
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TRAEFIK_NETWORK: unused
+      TRAEFIK_ENTRYPOINT: unused
+      TRAEFIK_CERTRESOLVER: unused
+      MAIL_FROM: unused
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Log in to GHCR
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+      - name: Validate every producer and promote reviewed digests
+        run: python3 deploy/ci/images.py promote '${{ matrix.group }}'
       - name: Log out
         if: always()
         run: docker logout ghcr.io || true

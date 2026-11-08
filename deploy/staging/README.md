@@ -146,7 +146,18 @@ To rotate: write the new token into `~/.config/genesy/ghcr-token` on the VPS, ru
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`, including its two `images` jobs (api and web). They built, scanned and pushed this commit's images, or copied the tags of the last green commit when their inputs didn't change (`ghcr.io/cotit/genesy-<app>:<sha>`, with `-staging` for api, office and field); the VPS only pulls them. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main", "Rollback" and "Fallback: build on the VPS"); only the env name changes:
+Image preparation runs alongside checks and pushes run-specific candidates. The existing
+`images` checks publish final commit tags only after every quality check, test shard and image
+producer succeeds. Deploy only a fully green main run. Failed-job reruns can reuse successful
+producer manifests from that same run; missing or expired manifests require a full rerun.
+Candidate tags are not deployable commit SHAs. Never deploy a partial publication.
+
+Deployment timings go to stderr and `deploy/staging/deploys.log`. Include backup,
+migration, health and cleanup time when comparing releases. Human waiting between promotions
+is measured separately.
+
+
+Only deploy a commit whose `ci` workflow passed on `main`, including its two `images` jobs (api and web). They promoted this commit's reviewed image digests, or reused digests from the last green commit when inputs did not change (`ghcr.io/cotit/genesy-<app>:<sha>`, with `-staging` for api, office and field); the VPS only pulls them. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main", "Rollback" and "Fallback: build on the VPS"); only the env name changes:
 
 ```bash
 cd /srv/genesy-staging && deploy/deploy.sh staging <green-main-sha> --bundle /tmp/genesy.bundle
