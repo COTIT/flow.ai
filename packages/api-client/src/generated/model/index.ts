@@ -742,6 +742,8 @@ export * from './plotResource';
 export * from './priceCorrectionRequest';
 export * from './priceCorrectionRequestMeta';
 export * from './priceCorrectionsListParams';
+export * from './priceImportInput';
+export * from './priceRowInput';
 export * from './productBrandRequest';
 export * from './productBrandRequestMeta';
 export * from './productBrandsListParams';

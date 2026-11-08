@@ -27,6 +27,7 @@ import type {
 import { failureReason } from "@/lib/voice/client-contract"
 import {
   attachmentProblem,
+  sheetMime,
   matchesIssuedConversation,
   mergeTranscript,
   outcomeForAgent,
@@ -518,7 +519,7 @@ function Session({ children }: { children: ReactNode }) {
         request<VoiceOutcome>(
           batchPrepare ? "batch" : "tools",
           batchPrepare
-            ? { command: "prepare", calls: args?.calls }
+            ? { command: "prepare", calls: args?.calls, unclear: args?.unclear }
             : { command, ...body },
           "POST",
           references
@@ -1280,6 +1281,13 @@ function Session({ children }: { children: ReactNode }) {
       )
     try {
       const ids: string[] = []
+      const sheets: {
+        ordinal: number
+        handle: string
+        name: string
+        rows: number
+        columns: string[]
+      }[] = []
       const referenceMap: {
         ordinal: number
         handle: string
@@ -1297,7 +1305,7 @@ function Session({ children }: { children: ReactNode }) {
                 Authorization: `Bearer ${token}`,
                 "X-Workspace-Id": workspaceId ?? "",
                 "X-Voice-Session": session.current!.sessionId,
-                "Content-Type": file.file.type,
+                "Content-Type": sheetMime(file.file) ?? file.file.type,
                 "X-File-Name": encodeURIComponent(file.name),
               },
               body: file.file,
@@ -1327,6 +1335,16 @@ function Session({ children }: { children: ReactNode }) {
             return false
           }
         }
+        if (receipt.kind === "sheet") {
+          sheets.push({
+            ordinal: file.ordinal,
+            handle: receipt.id,
+            name: file.name,
+            rows: receipt.rows,
+            columns: receipt.columns,
+          })
+          continue
+        }
         ids.push(receipt.fileId)
         referenceMap.push({
           ordinal: file.ordinal,
@@ -1337,18 +1355,27 @@ function Session({ children }: { children: ReactNode }) {
       }
       if (before !== generation.current || !active.current) return false
       beginResponse()
-      if (ids.length) {
+      if (ids.length || sheets.length) {
         conversation.sendContextualUpdate(
           JSON.stringify({
             temporary_references: referenceMap,
+            ...(sheets.length
+              ? {
+                  shared_sheets: sheets,
+                  sheet_instruction:
+                    "You cannot read these sheets. For prices use assistant_import_prices with attachments.sheet set to the handle; Genesy reads and matches the rows.",
+                }
+              : {}),
             instruction:
               "Use the Genesy handle for business attachment operations. These references do not authorize a business write.",
           })
         )
-        conversation.sendMultimodalMessage({
-          text: text.trim() || t("attachmentRequest"),
-          fileIds: ids,
-        })
+        if (ids.length)
+          conversation.sendMultimodalMessage({
+            text: text.trim() || t("attachmentRequest"),
+            fileIds: ids,
+          })
+        else conversation.sendUserMessage(text.trim() || t("sheetRequest"))
         selected.forEach((file) => patch(file.key, { state: "submitted" }))
         add(
           "user",

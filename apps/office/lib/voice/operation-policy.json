@@ -14582,6 +14582,45 @@
     },
     "confirmationFields": []
   },
+  "assistant_price_import_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/sessions/{session}/price-import",
+    "disposition": "internal",
+    "reason": "Price-list row matching for the native assistant_import_prices flow; the model never calls it directly and it writes nothing.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": ["product.update"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal native session/control flow; never available to the model or secure business form",
+        "Workspace, user and exact login ownership; matches only this workspace's products"
+      ],
+      "authority": [
+        "apps/api/src/modules/assistant/handlers.rs#price_import",
+        "apps/api/src/modules/assistant/price_import.rs",
+        "apps/api/src/modules/assistant/service.rs",
+        "apps/api/src/modules/assistant/repo.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/modules/assistant/dto.rs",
+        "apps/api/src/modules/assistant/routes.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "assistant_batches_create": {
     "method": "POST",
     "path": "/workspace/{workspace}/assistant/batches",

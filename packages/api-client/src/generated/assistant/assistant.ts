@@ -36,6 +36,7 @@ import type {
   EnvelopeValue,
   MessageBody,
   PauseInput,
+  PriceImportInput,
   ProposalInput,
   SessionInput,
   UnprocessableBody,
@@ -1622,6 +1623,75 @@ export const useAssistantSessionsHeartbeat = <TError = ErrorType<MessageBody>,
         TContext
       > => {
       return useMutation(getAssistantSessionsHeartbeatMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Match price-list rows to this workspace's products; read only, review comes later as a batch.
+ */
+export const assistantPriceImportResolve = (
+    workspace: string,
+    session: string,
+    priceImportInput: BodyType<PriceImportInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/assistant/sessions/${session}/price-import`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: priceImportInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantPriceImportResolveMutationKey = () => ['assistantPriceImportResolve'] as const;
+
+export const getAssistantPriceImportResolveMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantPriceImportResolve>>, TError,AssistantPriceImportResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantPriceImportResolve>>, TError,AssistantPriceImportResolveMutationVariables, TContext> => {
+
+const mutationKey = getAssistantPriceImportResolveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantPriceImportResolve>>, AssistantPriceImportResolveMutationVariables> = (props) => {
+          const {workspace,session,data} = props ?? {};
+
+          return  assistantPriceImportResolve(workspace,session,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantPriceImportResolveMutationResult = NonNullable<Awaited<ReturnType<typeof assistantPriceImportResolve>>>
+    export type AssistantPriceImportResolveMutationBody = BodyType<PriceImportInput>
+    export type AssistantPriceImportResolveMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantPriceImportResolveMutationVariables = {workspace: string;session: string;data: BodyType<PriceImportInput>}
+
+    /**
+ * @summary Match price-list rows to this workspace's products; read only, review comes later as a batch.
+ */
+export const useAssistantPriceImportResolve = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantPriceImportResolve>>, TError,AssistantPriceImportResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantPriceImportResolve>>,
+        TError,
+        AssistantPriceImportResolveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantPriceImportResolveMutationOptions(options), queryClient);
     }
     /**
  * @summary Restore at most ten upload references belonging to this session and login.

@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   transport: vi.fn(),
   propose: vi.fn(),
   confirmBatch: vi.fn(),
+  proposeBatch: vi.fn(),
+  importPrices: vi.fn(),
   failures: [] as unknown[][],
   spans: [] as string[],
   modes: [] as string[],
@@ -67,6 +69,11 @@ vi.mock("./actions", async (original) => ({
 vi.mock("./batches", async (original) => ({
   ...(await original<typeof import("./batches")>()),
   confirmBatch: mocks.confirmBatch,
+  proposeBatch: mocks.proposeBatch,
+}))
+vi.mock("./file-import", async (original) => ({
+  ...(await original<typeof import("./file-import")>()),
+  importPrices: mocks.importPrices,
 }))
 
 import { POST as toolRequest } from "@/app/api/voice/tools/route"
@@ -558,4 +565,81 @@ it("logs a request no tool can do, with the agent's short phrase, and changes no
     ["unsupported", undefined, "book a delivery truck for Friday"],
   ])
   expect(mocks.execute).not.toHaveBeenCalled()
+})
+
+const discover = async (query: string) =>
+  (
+    await (
+      await toolRequest(
+        request({
+          command: "discover",
+          query,
+          workspaceId: context.workspaceId,
+          sessionId: "s1",
+        })
+      )
+    ).json()
+  ).tools.map((tool: { id: string }) => tool.id)
+
+it("discovers the price-list import only for staff who may change prices", async () => {
+  expect(await discover("update prices from excel price list")).toContain(
+    "assistant_import_prices"
+  )
+  expect(await discover("assistant_import_prices")).toEqual([
+    "assistant_import_prices",
+  ])
+  mocks.authorize.mockResolvedValue({ ...context, permissions: [] })
+  expect(await discover("import spreadsheet")).not.toContain(
+    "assistant_import_prices"
+  )
+})
+
+it("runs the price-list import with the shared files and refuses without permission", async () => {
+  mocks.importPrices.mockResolvedValue({ status: "requires_confirmation" })
+  const args = { attachments: { sheet: ["h"] }, fromRow: 51 }
+  const response = await execute("assistant_import_prices", args)
+  expect(await response.json()).toMatchObject({
+    status: "requires_confirmation",
+  })
+  expect(mocks.importPrices).toHaveBeenCalledWith(
+    args,
+    expect.objectContaining({ sessionId: "s1" }),
+    expect.any(Map)
+  )
+  mocks.authorize.mockResolvedValue({ ...context, permissions: [] })
+  expect((await execute("assistant_import_prices", args)).status).toBe(403)
+  expect(mocks.importPrices).toHaveBeenCalledOnce()
+})
+
+it("shows model-reported unclear lines on the card and never sends them as arguments", async () => {
+  mocks.propose.mockResolvedValue({
+    status: "requires_confirmation",
+    review: { details: {} },
+  })
+  const unclear = [{ line: 4, seen: "Sugar ?? kg" }]
+  const single = await (
+    await execute("orders_create", { body: orderBody, unclear })
+  ).json()
+  expect(mocks.propose.mock.calls[0]![0]).not.toHaveProperty("unclear")
+  expect(single.review.details.notIncluded).toEqual([
+    { line: 4, text: "Sugar ?? kg", reason: "unclear" },
+  ])
+  mocks.proposeBatch.mockResolvedValue({
+    status: "requires_confirmation",
+    review: { details: {} },
+  })
+  const calls = [
+    { operationId: "orders_create", arguments: { body: orderBody } },
+  ]
+  const batch = await (
+    await execute("assistant_batch_prepare", { calls, unclear })
+  ).json()
+  expect(mocks.proposeBatch.mock.calls[0]![0]).toEqual(calls)
+  expect(batch.review.details.notIncluded).toHaveLength(1)
+  const bad = await execute("assistant_batch_prepare", {
+    calls,
+    unclear: "x".repeat(5),
+  })
+  expect(bad.status).toBe(400)
+  expect(mocks.proposeBatch).toHaveBeenCalledOnce()
 })

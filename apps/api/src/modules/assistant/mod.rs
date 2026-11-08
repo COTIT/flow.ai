@@ -10,6 +10,7 @@ pub mod handlers;
 pub mod mail_recipients;
 pub mod preconditions;
 pub mod preconditions_repo;
+pub mod price_import;
 pub mod repo;
 pub mod retention;
 pub mod routes;

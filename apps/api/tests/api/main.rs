@@ -13,6 +13,7 @@ mod assistant_identity;
 mod assistant_mail_recipients;
 mod assistant_order_invoice_quotes;
 mod assistant_preconditions;
+mod assistant_price_import;
 mod assistant_product_quotes;
 mod assistant_retention;
 mod body_limits;

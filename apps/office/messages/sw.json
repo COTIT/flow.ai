@@ -1023,11 +1023,12 @@
       "failed": "Kupakia kumeshindwa"
     },
     "fileErrors": {
-      "type": "Chagua JPEG, PNG, WebP au PDF.",
+      "type": "Chagua JPEG, PNG, WebP, PDF, .xlsx au .csv.",
       "empty": "Faili hii haina maudhui.",
       "size": "Chagua faili isiyozidi MiB 10.",
       "count": "Kipindi kinakubali hadi faili 10.",
-      "rate": "Upakiaji mwingi sana. Subiri kabla ya kujaribu tena."
+      "rate": "Upakiaji mwingi sana. Subiri kabla ya kujaribu tena.",
+      "sheetSize": "Chagua jedwali lisilozidi MiB 2."
     },
     "secureJsonHint": "Mipangilio ya kina kama kitu cha JSON. Sehemu zilizojumuishwa tu hutumwa; seva hukagua kitendo.",
     "secureJsonInvalid": "Ingiza kitu au safu halali ya JSON.",
@@ -1315,6 +1316,23 @@
     "currentWorkspace": "Eneo la kazi la sasa",
     "yes": "Ndiyo",
     "no": "Hapana",
-    "otherField": "Sehemu: {name}"
+    "otherField": "Sehemu: {name}",
+    "sheetRequest": "Nimeshiriki jedwali. Niulize nifanye nini nalo.",
+    "sheetNoPreview": "Genesy husoma jedwali hili ukiomba; hakuna onyesho hapa.",
+    "importRows": "Safu {from}–{to} kati ya {total}",
+    "notIncluded": {
+      "title": "Hazijajumuishwa — kagua mistari hii",
+      "line": "Mstari {line}: ",
+      "reasons": {
+        "unclear": "haisomeki vizuri",
+        "not_found": "hakuna bidhaa yenye jina, namba au barcode hii",
+        "ambiguous": "bidhaa zaidi ya moja zinalingana",
+        "unreadable": "bei si namba ya kawaida",
+        "unclear_precision": "bei ina desimali nyingi kuliko sarafu yako",
+        "unchanged": "bei tayari ni ileile",
+        "duplicate": "bidhaa hii tayari iko kwenye orodha",
+        "other": "imeachwa"
+      }
+    }
   }
 }

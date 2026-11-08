@@ -14,6 +14,7 @@ import { attachmentType, ATTACHMENT_LIMIT } from "@/lib/voice/attachments"
 import { providerRequest } from "@/lib/voice/provider"
 import { takeFilePermit, voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
+import { readSheet, SHEET_LIMIT, sheetType, XLSX } from "@/lib/voice/sheet"
 export const runtime = "nodejs"
 
 /** Conversation-only file; ordinary permanent workspace storage is never used implicitly. */
@@ -38,6 +39,9 @@ export async function POST(request: Request) {
     const declared = (request.headers.get("Content-Type") ?? "")
       .split(";")[0]!
       .toLowerCase()
+    // Windows labels .csv as ms-excel; the bytes decide (sheetType).
+    if ([XLSX, "text/csv", "application/vnd.ms-excel"].includes(declared))
+      return voiceResponse(await shareSheet(request, context, session.id))
     if (
       !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(
         declared
@@ -120,6 +124,49 @@ export async function POST(request: Request) {
     return voiceFailure(error)
   } finally {
     releaseFile?.()
+  }
+}
+
+/** Price-list sheet: checked and kept by the browser; Genesy records only size and sha256. */
+async function shareSheet(
+  request: Request,
+  context: Awaited<ReturnType<typeof authorizeVoice>>,
+  session: string
+) {
+  if (Number(request.headers.get("Content-Length")) > SHEET_LIMIT)
+    throw new VoiceError("Spreadsheets must not exceed 2 MiB.", 413)
+  const bytes = await readBounded(request.body, SHEET_LIMIT)
+  const type = sheetType(bytes, request.headers.get("Content-Type") ?? "")
+  const sheet = readSheet(bytes, type)
+  const base = "/sessions/" + session + "/uploads"
+  const upload = await assistantRequest<{ id: string }>(context, base, "POST", {
+    media_type: type,
+    size_bytes: bytes.length,
+  })
+  try {
+    await assistantRequest(
+      context,
+      base + "/" + upload.id + "/complete",
+      "POST",
+      {
+        size_bytes: bytes.length,
+        media_type: type,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      },
+      true
+    )
+  } catch (error) {
+    await assistantRequest(context, base + "/" + upload.id, "DELETE").catch(
+      () => undefined
+    )
+    throw error
+  }
+  return {
+    id: upload.id,
+    kind: "sheet",
+    status: "uploaded",
+    rows: sheet.rows.length,
+    columns: sheet.columns,
   }
 }
 

@@ -521,11 +521,11 @@
       },
       "BatchInput": {
         "additionalProperties": false,
-        "description": "Exact ordered drafts; session binding is supplied once for the whole batch.",
+        "description": "Exact ordered drafts; session binding is supplied once for the whole batch.\nFifty covers one price-list import page; office keeps model-built batches at ten.",
         "properties": {
           "actions": {
             "items": {},
-            "maxItems": 10,
+            "maxItems": 50,
             "minItems": 2,
             "type": "array"
           },
@@ -2009,7 +2009,11 @@
         "description": "Provider file reference after upload; ownership comes from signed bridge.",
         "properties": {
           "file_id": {
-            "type": "string"
+            "description": "Provider file; absent exactly for csv/xlsx sheets, which never leave the browser.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "media_type": {
             "type": [
@@ -2031,9 +2035,6 @@
             ]
           }
         },
-        "required": [
-          "file_id"
-        ],
         "type": "object"
       },
       "Conditions": {
@@ -16252,6 +16253,49 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "PriceImportInput": {
+        "additionalProperties": false,
+        "description": "At most fifty rows per resolve, matching one import review.",
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PriceRowInput"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "type": "object"
+      },
+      "PriceRowInput": {
+        "additionalProperties": false,
+        "description": "One raw price-list row as written in the sheet; the API reads the price.",
+        "properties": {
+          "key": {
+            "description": "Product number, barcode or exact name.",
+            "type": "string"
+          },
+          "line": {
+            "description": "Sheet row number, shown back to the user.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "price": {
+            "description": "Price text exactly as written.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "key",
+          "price"
+        ],
         "type": "object"
       },
       "ProductBrandRequest": {
@@ -35227,6 +35271,168 @@
           }
         ],
         "summary": "Heartbeat cannot revive ended session or extend one-hour hard expiry.",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/workspace/{workspace}/assistant/sessions/{session}/price-import": {
+      "post": {
+        "operationId": "assistant_price_import_resolve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "session",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceImportInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Per-row status: matched, unchanged, duplicate, not_found, ambiguous, unreadable or unclear_precision"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `product.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Session belongs to another login or workspace"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Zero or more than fifty rows, or over-long cells"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Match price-list rows to this workspace's products; read only, review comes later as a batch.",
         "tags": [
           "assistant"
         ]

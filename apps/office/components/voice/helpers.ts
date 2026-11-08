@@ -1,8 +1,20 @@
 import { failureReason } from "@/lib/voice/client-contract"
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_ATTACHMENTS = 10
-export const ATTACHMENT_ACCEPT =
-  "image/jpeg,image/png,image/webp,application/pdf"
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+const MAX_SHEET_BYTES = 2 * 1024 * 1024
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+export const ATTACHMENT_ACCEPT = [...PHOTO_TYPES, XLSX, ".csv", ".xlsx"].join(
+  ","
+)
+
+/** Price-list sheet type by extension: browsers label .csv as "", text/csv or ms-excel. */
+export function sheetMime(file: { type: string; name?: string }) {
+  if (/\.csv$/i.test(file.name ?? "") || file.type === "text/csv")
+    return "text/csv"
+  if (/\.xlsx$/i.test(file.name ?? "") || file.type === XLSX) return XLSX
+  return null
+}
 
 /** HTTP status supplies safe guidance without exposing backend or provider diagnostics. */
 export function requestFailureKey(status: number) {
@@ -73,12 +85,14 @@ export function taskPresentation(status: string, batchState?: string) {
     : "unknown"
 }
 export function attachmentProblem(
-  file: { type: string; size: number },
+  file: { type: string; size: number; name?: string },
   count: number
 ) {
   if (count >= MAX_ATTACHMENTS) return "count"
-  if (!ATTACHMENT_ACCEPT.split(",").includes(file.type)) return "type"
+  const sheet = sheetMime(file)
+  if (!sheet && !PHOTO_TYPES.includes(file.type)) return "type"
   if (!file.size) return "empty"
+  if (sheet && file.size > MAX_SHEET_BYTES) return "sheetSize"
   if (file.size > MAX_ATTACHMENT_BYTES) return "size"
   return null
 }

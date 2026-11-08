@@ -27,6 +27,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::reserve, handlers::uploads))
         .routes(routes!(handlers::complete))
         .routes(routes!(handlers::cancel_upload, handlers::upload))
+        .routes(routes!(handlers::price_import))
 }
 
 /// Signature-only internal cleanup, independent of user token lifetime.

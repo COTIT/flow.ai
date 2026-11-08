@@ -108,6 +108,26 @@ it("prepares a private canonical batch after normal owner/session admission", as
     expect.any(Map)
   )
 })
+it("adds model-reported unclear lines to the batch card only", async () => {
+  mocks.propose.mockResolvedValue({
+    status: "requires_confirmation",
+    review: { details: {} },
+  })
+  const calls = [{ operationId: "warehouses_create", arguments: {} }]
+  const response = await POST(
+    request({
+      command: "prepare",
+      workspaceId: "w",
+      sessionId: "s",
+      calls,
+      unclear: [{ seen: "Beans ?? bags" }],
+    })
+  )
+  expect((await response.json()).review.details.notIncluded).toEqual([
+    { text: "Beans ?? bags", reason: "unclear" },
+  ])
+  expect(mocks.propose.mock.calls[0]![0]).toEqual(calls)
+})
 it.each(["approve", "start", "advance"])(
   "never exposes model-side %s authority",
   async (command) => {

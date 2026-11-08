@@ -1023,11 +1023,12 @@
       "failed": "Upload mislukt"
     },
     "fileErrors": {
-      "type": "Kies JPEG, PNG, WebP of PDF.",
+      "type": "Kies JPEG, PNG, WebP, PDF, .xlsx of .csv.",
       "empty": "Dit bestand is leeg.",
       "size": "Kies een bestand van maximaal 10 MiB.",
       "count": "Een sessie ondersteunt maximaal 10 bestanden.",
-      "rate": "Te veel uploads. Wacht voordat je opnieuw probeert."
+      "rate": "Te veel uploads. Wacht voordat je opnieuw probeert.",
+      "sheetSize": "Kies een spreadsheet van maximaal 2 MiB."
     },
     "secureJsonHint": "Geavanceerde configuratie als JSON-object. Alleen opgenomen velden worden verzonden; de server controleert de actie.",
     "secureJsonInvalid": "Voer een geldig JSON-object of een geldige array in.",
@@ -1315,6 +1316,23 @@
     "currentWorkspace": "Huidige werkruimte",
     "yes": "Ja",
     "no": "Nee",
-    "otherField": "Veld: {name}"
+    "otherField": "Veld: {name}",
+    "sheetRequest": "Ik heb een spreadsheet gedeeld. Vraag me wat ik ermee wil doen.",
+    "sheetNoPreview": "Genesy leest deze spreadsheet als je erom vraagt; hier is geen voorbeeld.",
+    "importRows": "Rijen {from}–{to} van {total}",
+    "notIncluded": {
+      "title": "Niet meegenomen — controleer deze regels",
+      "line": "Regel {line}: ",
+      "reasons": {
+        "unclear": "niet duidelijk leesbaar",
+        "not_found": "geen product met deze naam, dit nummer of deze barcode",
+        "ambiguous": "meer dan één product past",
+        "unreadable": "de prijs is geen gewoon getal",
+        "unclear_precision": "de prijs heeft meer decimalen dan je valuta",
+        "unchanged": "prijs is al hetzelfde",
+        "duplicate": "dit product staat al in de lijst",
+        "other": "weggelaten"
+      }
+    }
   }
 }
