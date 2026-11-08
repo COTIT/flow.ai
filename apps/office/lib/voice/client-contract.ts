@@ -1,3 +1,4 @@
+import type { ResultView } from "./views"
 /** Shared wire shapes. An uploaded file is not proof the model inspected it. */
 export type VoiceSession = {
   signedUrl: string
@@ -39,6 +40,8 @@ export type VoiceOutcome = {
   narration?: string
   /** Office pages of records a completed write created or changed; shown, never spoken. */
   links?: { label: string | null; href: string }[]
+  /** Chart or cards the server built from a read result; shown, never spoken. */
+  view?: ResultView
   /** Why it did not complete (`failureReason` key); the agent says it in plain words. */
   reason?: string
 }

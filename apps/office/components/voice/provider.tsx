@@ -41,6 +41,7 @@ import {
   type VoiceProgress,
 } from "./helpers"
 import { batchAttachmentReferences, voiceRequestBody } from "./multipart"
+import { withView } from "./results/rows"
 import {
   createOutcomeWait,
   readRecovery,
@@ -410,6 +411,10 @@ function Session({ children }: { children: ReactNode }) {
   function showLinks(outcome: VoiceOutcome) {
     for (const link of outcome.links ?? [])
       add("link", link.label ?? t("openRecord"), undefined, link.href)
+    // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
+    const view = outcome.view
+    if (view && active.current)
+      setMessages((rows) => withView(rows, view, crypto.randomUUID()))
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id

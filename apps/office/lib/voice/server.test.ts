@@ -504,3 +504,37 @@ it("passes a refused call on in words, with its reason and the refused fields", 
     fields: ["quantity", "warehouse_id"],
   })
 })
+
+it("attaches a picture to a schema-checked read result, built by the server", async () => {
+  const summary = {
+    from: "2026-11-07T00:00:00+03:00",
+    to: "2026-11-08T00:00:00+03:00",
+    source: "till",
+    currencies: [
+      { currency: "TZS", decimals: 0, gross_total: 1250000, refunded_total: 0, orders: 42 },
+    ],
+  }
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: summary })))
+  const result = await callBackend(
+    {
+      operationId: "orders_sales_summary",
+      summary: "Sales in a time range, per currency",
+      method: "GET",
+      path: "/workspace/w1/sales-summary?from=2026-11-07T00%3A00%3A00%2B03%3A00&to=2026-11-08T00%3A00%3A00%2B03%3A00&source=till",
+      write: false,
+      idempotent: true,
+    },
+    {
+      token: "staff",
+      workspaceId: "w1",
+      apiUrl: "https://api.test/v1",
+      permissions: [],
+      sessionId: "s1",
+    },
+    "a1"
+  )
+  expect(result).toMatchObject({
+    status: "completed",
+    view: { kind: "sales", rows: [{ currency: "TZS", gross: 1250000, orders: 42 }] },
+  })
+})

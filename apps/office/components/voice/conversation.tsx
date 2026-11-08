@@ -43,11 +43,18 @@ import {
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
-import { ATTACHMENT_ACCEPT, referenceSize, splitLinks } from "./helpers"
+import {
+  ATTACHMENT_ACCEPT,
+  fieldName,
+  referenceSize,
+  splitLinks,
+} from "./helpers"
 import { useVoice } from "./provider"
 import { HoldToTalk, VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
 import { VoiceUnfinished } from "./unfinished"
+import { VoiceResult } from "./results"
+import { ReviewDiff } from "./review-diff"
 
 function ReviewTitle({
   review,
@@ -209,11 +216,7 @@ function Details({
             <dt className="text-xs text-muted-foreground">
               {labels.has(key)
                 ? labels(key)
-                : t("otherField", {
-                    name: key
-                      .replaceAll("_", " ")
-                      .replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
-                  })}
+                : t("otherField", { name: fieldName(key) })}
             </dt>
             <dd className="text-sm">
               {key === "summary" &&
@@ -329,7 +332,10 @@ export function VoiceConversation() {
               >
                 {voice.messages.length ? (
                   voice.messages.map((row) =>
-                    row.role === "link" && row.href ? (
+                    // voice-rich-results: server-built picture for a read result.
+                    row.role === "result" && row.views ? (
+                      <VoiceResult key={row.id} views={row.views} />
+                    ) : row.role === "link" && row.href ? (
                       <a
                         key={row.id}
                         data-role="link"
@@ -718,7 +724,12 @@ export function VoiceConversation() {
               {voice.review ? <ReviewTitle review={voice.review} /> : null}
             </p>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {voice.review ? <ReviewList review={voice.review} /> : null}
+              {/* voice-rich-results: before → after diff on top, the rest under "More details". */}
+              {voice.review ? (
+                <ReviewDiff review={voice.review}>
+                  <ReviewList review={voice.review} />
+                </ReviewDiff>
+              ) : null}
             </div>
             <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
             {voice.recoveredReview ? (
