@@ -140,15 +140,13 @@ test("an admin removes a member who left: access ends at once, the list shows th
   })
   expect(joined.status(), "register").toBe(201)
   const token: string = (await joined.json()).data.access_token
-  const theirWorkspaces = async () =>
-    (
-      await (
-        await request.get(`${urls.api}/v1/me/workspaces`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      ).json()
-    ).data.map((w: { id: string }) => w.id)
-  expect(await theirWorkspaces()).toContain(id)
+  const theirWorkspaces = () =>
+    request.get(`${urls.api}/v1/me/workspaces`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  const before = await theirWorkspaces()
+  expect(before.status()).toBe(200)
+  expect((await before.json()).data.map((w: { id: string }) => w.id)).toContain(id)
 
   await page.goto(`${urls.office}/settings/members`)
   const row = page.getByRole("row").filter({ hasText: "Peter Leaver" })
@@ -162,5 +160,6 @@ test("an admin removes a member who left: access ends at once, the list shows th
     page.getByRole("status").filter({ hasText: "Peter Leaver no longer has access." })
   ).toBeVisible()
   await expect(row).toContainText("Removed")
-  expect(await theirWorkspaces()).not.toContain(id)
+  // This account was their only access, so their login ended with it.
+  expect((await theirWorkspaces()).status()).toBe(401)
 })
