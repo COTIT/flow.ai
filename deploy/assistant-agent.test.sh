@@ -25,6 +25,18 @@ prompt=agent['prompt']['prompt']
 assert 'assistant_batch_prepare' in prompt and 'assistant_batch_status' in prompt,'agent prompt missing fixed-batch preparation/status contract'
 assert 'two through ten' in prompt and 'operationId' in prompt and 'arguments_json' in prompt,'agent batch arguments are unspecified'
 assert 'paused' in prompt and 'never resume' in prompt,'agent must stop paused batches without replay'
+execute=next(tool for tool in template['clientTools'] if tool['name']=='execute_genesy_tool')
+assert execute['force_pre_tool_speech'] is True,'agent must acknowledge before running a business tool'
+for line in ['Ok, got that','just finalizing','please read and approve the card','Oké, begrepen','lees de kaart en keur hem goed','Sawa, nimeelewa','tafadhali soma kadi na uidhinishe']:
+    assert line in prompt,'four-beat talk-back script missing: '+line
+assert 'call the same wait:true again' in prompt,'agent must keep waiting after a running progress result'
+assert 'you may call execute_genesy_tool directly' in prompt and 'Effects still require discovering' in prompt,'direct lookup contract missing'
+assert 'You cannot approve actions yourself.' in prompt and 'Approval codes and exact confirmation phrases are private' in prompt,'approval rules changed'
+assert 'The top search result includes its full input schema' in prompt,'agent must execute after one search when the top match fits'
+turn=config['conversation_config']['turn']
+assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==60,'idle: one check-in after 20 s silence, end after 60 s'
+assert 'never the same line twice' in prompt and 'after the third check-in' in prompt,'idle check-in rule missing'
+assert 'Do not use audio tags' not in prompt and 'never read tags' not in prompt,'expressive audio tags stay allowed'
 assert set(config['conversation_config']['language_presets'])=={'nl','sw'}
 assert config['conversation_config']['conversation']['file_input']=={'enabled':True,'max_files_in_memory':10,'max_files_per_conversation':10}
 privacy=config['platform_settings']['privacy']
