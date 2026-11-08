@@ -34,7 +34,9 @@ import { VoiceActivity, VoiceThinking } from "./activity"
 import {
   displayReferences,
   displayText,
+  internalFields,
   operationLabel,
+  reviewRows,
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
@@ -43,23 +45,6 @@ import { useVoice } from "./provider"
 import { VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
 import type { BatchProgress } from "./continuity"
-
-const internalFields = new Set([
-  "actionId",
-  "batchId",
-  "sessionId",
-  "operationId",
-  "operation_id",
-  "ticket",
-  "confirmationCode",
-  "bodySha256",
-  "body_sha256",
-  "sha256",
-  "fingerprint",
-  "digest",
-  "httpStatus",
-  "recoverable",
-])
 
 function ReviewTitle({
   review,
@@ -97,28 +82,30 @@ function ReviewList({ review }: { review: VoiceReview }) {
   // Same array identity per review: a new array restarts the list's reveal animation.
   const rows = useMemo(() => {
     const references = displayReferences(review.details)
-    return (
-      review.kind === "batch" && review.steps?.length
-        ? review.steps.map((step, index) => ({
-            id: step.actionId,
+    return reviewRows(review).map((row) =>
+      row.kind === "step"
+        ? {
+            id: row.id,
             icon: <ClipboardList aria-hidden className="size-4" />,
             title: (
               <>
-                {index + 1}. <ReviewTitle review={step} />
+                {row.number}. <ReviewTitle review={row.step} />
               </>
             ),
-            description: <Details value={step.details} />,
-          }))
-        : Object.entries(review.details)
-            .filter(([key]) => !internalFields.has(key))
-            .map(([key, value]) => ({
-              id: key,
-              title: labels.has(key) ? labels(key) : key,
-              description: (
-                <Details value={value} references={references} field={key} />
-              ),
-            }))
-    ).filter(Boolean)
+            description: <Details value={row.step.details} />,
+          }
+        : {
+            id: row.id,
+            title: labels.has(row.key) ? labels(row.key) : row.key,
+            description: (
+              <Details
+                value={row.value}
+                references={references}
+                field={row.key}
+              />
+            ),
+          }
+    )
   }, [review, labels])
   if (!rows.length) return <Details value={review.details} />
   if (!ready) return null
