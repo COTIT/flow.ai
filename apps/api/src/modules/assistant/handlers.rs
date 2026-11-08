@@ -272,3 +272,19 @@ pub async fn upload(
             .ok_or(AppError::NotFound)?,
     ))
 }
+
+/// Match price-list rows to this workspace's products; read only, review comes later as a batch.
+#[utoipa::path(post,path="/workspace/{workspace}/assistant/sessions/{session}/price-import",tag="assistant",operation_id="assistant_price_import_resolve",params(("workspace"=Uuid,Path),("session"=Uuid,Path)),request_body=PriceImportInput,responses((status=200,body=Envelope<Value>,description="Per-row status: matched, unchanged, duplicate, not_found, ambiguous, unreadable or unclear_precision"),(status=403,body=MessageBody,description="Missing `product.update`"),(status=404,body=MessageBody,description="Session belongs to another login or workspace"),(status=422,body=UnprocessableBody,description="Zero or more than fifty rows, or over-long cells")),security(("bearer"=[])))]
+pub async fn price_import(
+    State(s): State<AppState>,
+    a: WorkspaceAccess,
+    Path((_, sid)): SessionPath,
+    ValidatedJson(i): ValidatedJson<PriceImportInput>,
+) -> Result<Data<Vec<Value>>, AppError> {
+    if !a.allows("product.update") {
+        return Err(AppError::Forbidden("This action is unauthorized."));
+    }
+    Ok(Data(
+        super::price_import::resolve(&s.db, owner(&a), sid, i).await?,
+    ))
+}

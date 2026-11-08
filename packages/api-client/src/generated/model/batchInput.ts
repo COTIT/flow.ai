@@ -8,11 +8,12 @@
 
 /**
  * Exact ordered drafts; session binding is supplied once for the whole batch.
+ * Fifty covers one price-list import page; office keeps model-built batches at ten.
  */
 export interface BatchInput {
   /**
      * @minItems 2
-     * @maxItems 10
+     * @maxItems 50
      */
   actions: unknown[];
   session_id: string;

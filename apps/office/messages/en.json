@@ -1043,11 +1043,12 @@
       "failed": "Upload failed"
     },
     "fileErrors": {
-      "type": "Choose JPEG, PNG, WebP or PDF.",
+      "type": "Choose JPEG, PNG, WebP, PDF, .xlsx or .csv.",
       "empty": "This file is empty.",
       "size": "Choose a file no larger than 10 MiB.",
       "count": "A session supports up to 10 files.",
-      "rate": "Too many uploads. Wait before trying again."
+      "rate": "Too many uploads. Wait before trying again.",
+      "sheetSize": "Choose a spreadsheet no larger than 2 MiB."
     },
     "secureJsonHint": "Advanced configuration as a JSON object. Only included fields are sent; the server validates the action.",
     "secureJsonInvalid": "Enter a valid JSON object or array.",
@@ -1642,6 +1643,23 @@
       "search": {
         "name": "Search",
         "purpose": "Search across the workspace"
+      }
+    },
+    "sheetRequest": "I shared a spreadsheet. Ask me what to do with it.",
+    "sheetNoPreview": "Genesy reads this spreadsheet when you ask; there is no preview here.",
+    "importRows": "Rows {from}–{to} of {total}",
+    "notIncluded": {
+      "title": "Not included — check these lines",
+      "line": "Line {line}: ",
+      "reasons": {
+        "unclear": "could not be read clearly",
+        "not_found": "no product with this name, number or barcode",
+        "ambiguous": "more than one product matches",
+        "unreadable": "the price is not a plain number",
+        "unclear_precision": "the price has more decimals than your currency",
+        "unchanged": "price is already the same",
+        "duplicate": "this product is already in the list",
+        "other": "left out"
       }
     }
   }

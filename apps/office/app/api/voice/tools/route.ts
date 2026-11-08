@@ -32,6 +32,13 @@ import { narrate } from "@/lib/voice/narration"
 import { describeCapabilities } from "@/lib/voice/capabilities.server"
 import { asksForPage, openPage, pageTool, PAGE_TOOL } from "@/lib/voice/pages"
 import { noteToolCall, trackGap, type GapScope } from "@/lib/voice/gaps"
+import {
+  importPrices,
+  importPricesTool,
+  IMPORT_PRICES_OPERATION,
+  notIncludedFromModel,
+  withNotIncluded,
+} from "@/lib/voice/file-import"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -68,6 +75,21 @@ const batchPrepareTool = {
           properties: {
             operationId: { type: "string" },
             arguments: { type: "object" },
+          },
+        },
+      },
+      unclear: {
+        type: "array",
+        maxItems: 20,
+        description:
+          "Lines in a shared photo or file you could not read clearly; shown to the user, never written.",
+        items: {
+          type: "object",
+          required: ["seen"],
+          properties: {
+            line: { type: "integer" },
+            seen: { type: "string", maxLength: 120 },
+            note: { type: "string", maxLength: 120 },
           },
         },
       },
@@ -157,8 +179,16 @@ async function handle(request: Request, scope: GapScope) {
           capabilities: describeCapabilities(context.permissions, language),
         })
       const found = discoverTools(query, context.permissions)
+      const canImport = isToolAllowed(
+        getOperation("products_update")!,
+        context.permissions
+      )
+      const wantsImport =
+        canImport &&
+        /import|price ?list|spreadsheet|excel|xlsx|csv|sheet/i.test(query)
       if (
         !found.length &&
+        !wantsImport &&
         ![
           BATCH_PREPARE_OPERATION,
           BATCH_STATUS_OPERATION,
@@ -184,16 +214,21 @@ async function handle(request: Request, scope: GapScope) {
               ? [batchStatusTool]
               : query === statusTool.id
                 ? [statusTool]
-                : [
-                    ...found,
-                    ...(manyRecords.test(query)
-                      ? [batchPrepareTool, batchStatusTool]
-                      : []),
-                    ...(/status|task|pending|last/i.test(query)
-                      ? [statusTool]
-                      : []),
-                    ...(asksForPage(query) ? [pageTool] : []),
-                  ],
+                : query === IMPORT_PRICES_OPERATION
+                  ? wantsImport
+                    ? [importPricesTool]
+                    : []
+                  : [
+                      ...(wantsImport ? [importPricesTool] : []),
+                      ...found,
+                      ...(manyRecords.test(query)
+                        ? [batchPrepareTool, batchStatusTool]
+                        : []),
+                      ...(/status|task|pending|last/i.test(query)
+                        ? [statusTool]
+                        : []),
+                      ...(asksForPage(query) ? [pageTool] : []),
+                    ],
         domains: [
           ...new Set(
             tools
@@ -212,10 +247,23 @@ async function handle(request: Request, scope: GapScope) {
     if (
       input.command === "execute" &&
       input.operationId === BATCH_PREPARE_OPERATION
-    )
+    ) {
+      const unclear = notIncludedFromModel(argumentsValue.unclear)
       return voiceResponse(
-        await proposeBatch(argumentsValue.calls, context, files)
+        withNotIncluded(
+          await proposeBatch(argumentsValue.calls, context, files),
+          unclear
+        )
       )
+    }
+    if (
+      input.command === "execute" &&
+      input.operationId === IMPORT_PRICES_OPERATION
+    ) {
+      if (!isToolAllowed(getOperation("products_update")!, context.permissions))
+        throw new VoiceError("You do not have permission for this action.", 403)
+      return voiceResponse(await importPrices(argumentsValue, context, files))
+    }
     if (
       input.command === "execute" &&
       input.operationId === BATCH_STATUS_OPERATION
@@ -329,11 +377,14 @@ async function handle(request: Request, scope: GapScope) {
         handoff: { route, operationId: operation.id },
       })
     }
+    // Lines the model could not read: shown on the card, never part of the request.
+    const { unclear: unclearValue, ...actionArguments } = argumentsValue
+    const unclear = operation.write ? notIncludedFromModel(unclearValue) : []
     let action
     try {
       action = prepareAction(
         operation.id,
-        input.arguments ?? {},
+        operation.write ? actionArguments : (input.arguments ?? {}),
         context.workspaceId
       )
     } catch (error) {
@@ -354,7 +405,7 @@ async function handle(request: Request, scope: GapScope) {
     if (action.write)
       return voiceResponse(
         narrate(
-          await proposeAction(action, context, files),
+          withNotIncluded(await proposeAction(action, context, files), unclear),
           "review",
           language
         )

@@ -30,6 +30,7 @@ import {
 import { voiceSetting } from "./settings"
 import { VoiceError, type VoiceContext } from "./server"
 import type { MultipartReview } from "./multipart"
+import { IMPORT_PAGE } from "./sheet"
 import type { VoiceOutcome, VoiceReviewStep } from "./client-contract"
 
 export const BATCH_PROTOCOL_VERSION = 1
@@ -62,7 +63,7 @@ function planOf(review: ReturnType<typeof verifyReview>): Plan {
     plan.version !== BATCH_PROTOCOL_VERSION ||
     !Array.isArray(plan.actions) ||
     plan.actions.length < 2 ||
-    plan.actions.length > 10 ||
+    plan.actions.length > IMPORT_PAGE ||
     !Array.isArray(plan.actionIds) ||
     plan.actionIds.length !== plan.actions.length ||
     typeof plan.fingerprint !== "string" ||
@@ -94,10 +95,16 @@ function allowed(action: PreparedAction, context: VoiceContext) {
 export async function proposeBatch(
   calls: unknown,
   context: VoiceContext,
-  files: Map<string, Blob>
+  files: Map<string, Blob>,
+  // Model-built batches stay at ten; a price-list import page passes fifty.
+  max = 10
 ): Promise<VoiceOutcome> {
-  if (!Array.isArray(calls) || calls.length < 2 || calls.length > 10)
-    throw new VoiceError("Choose two through ten exact actions.")
+  if (!Array.isArray(calls) || calls.length < 2 || calls.length > max)
+    throw new VoiceError(
+      max === 10
+        ? "Choose two through ten exact actions."
+        : `Choose two through ${max} exact actions.`
+    )
   const actions = calls.map((call: unknown) => {
     if (
       !call ||

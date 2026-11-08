@@ -10,7 +10,11 @@
  * Provider file reference after upload; ownership comes from signed bridge.
  */
 export interface CompleteInput {
-  file_id: string;
+  /**
+     * Provider file; absent exactly for csv/xlsx sheets, which never leave the browser.
+     * @nullable
+     */
+  file_id?: string | null;
   /** @nullable */
   media_type?: string | null;
   /** @nullable */

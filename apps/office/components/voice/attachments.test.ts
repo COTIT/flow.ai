@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   attachmentProblem,
+  sheetMime,
   mergeTranscript,
   outcomeForAgent,
   fieldName,
@@ -45,6 +46,27 @@ describe("temporary voice references", () => {
       "count"
     )
     expect(attachmentProblem({ type: "image/webp", size: 12 }, 0)).toBeNull()
+  })
+  it("accepts .xlsx and .csv price lists up to 2 MiB, whatever label the browser gives", () => {
+    const xlsx =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    expect(sheetMime({ type: "", name: "Prices.CSV" })).toBe("text/csv")
+    expect(sheetMime({ type: "application/vnd.ms-excel", name: "p.csv" })).toBe(
+      "text/csv"
+    )
+    expect(sheetMime({ type: "", name: "p.xlsx" })).toBe(xlsx)
+    expect(
+      sheetMime({ type: "application/vnd.ms-excel", name: "p.xls" })
+    ).toBeNull()
+    expect(sheetMime({ type: "image/png", name: "p.png" })).toBeNull()
+    const sheet = { type: "", name: "p.csv" }
+    expect(attachmentProblem({ ...sheet, size: 2 * 1024 * 1024 }, 0)).toBeNull()
+    expect(attachmentProblem({ ...sheet, size: 2 * 1024 * 1024 + 1 }, 0)).toBe(
+      "sheetSize"
+    )
+    expect(attachmentProblem({ type: "", name: "p.xls", size: 5 }, 0)).toBe(
+      "type"
+    )
   })
   it("replaces corrected response by stable event without deleting other turns", () => {
     const first = mergeTranscript([], {

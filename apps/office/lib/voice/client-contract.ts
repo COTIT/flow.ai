@@ -47,11 +47,16 @@ export type VoiceOutcome = {
   /** Client-only: the operation this execute result answered (picks the follow-up chip). */
   operationId?: string
 }
-export type VoiceAttachmentReceipt = {
-  id: string
-  fileId: string
-  status: "uploaded"
-}
+export type VoiceAttachmentReceipt =
+  | { id: string; fileId: string; status: "uploaded"; kind?: undefined }
+  /** Price-list sheet: kept by the browser, read by Genesy, never sent to the model. */
+  | {
+      id: string
+      kind: "sheet"
+      status: "uploaded"
+      rows: number
+      columns: string[]
+    }
 
 /** Plain-language failure reason by HTTP status; the key names a localized `requestErrors` text. */
 export function failureReason(status: number) {

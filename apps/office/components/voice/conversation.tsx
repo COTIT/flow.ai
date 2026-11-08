@@ -8,6 +8,7 @@ import {
   Camera,
   ClipboardList,
   ExternalLink,
+  FileSpreadsheet,
   FileText,
   Paperclip,
   Send,
@@ -40,6 +41,7 @@ import {
   internalFields,
   operationLabel,
   reviewRows,
+  notIncludedRows,
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
@@ -47,6 +49,7 @@ import {
   ATTACHMENT_ACCEPT,
   fieldName,
   referenceSize,
+  sheetMime,
   splitLinks,
 } from "./helpers"
 import { useVoice } from "./provider"
@@ -79,6 +82,37 @@ function ReviewTitle({
     <>
       {t(`operationActions.${action}`, { record: t(`resources.${resource}`) })}
     </>
+  )
+}
+
+/** Rows kept out of the review: the person fixes them in the file, nothing is guessed. */
+function NotIncluded({ review }: { review: VoiceReview }) {
+  const t = useTranslations("voice")
+  const rows = notIncludedRows(review)
+  const range = review.details.rows as
+    { from: number; to: number; total: number } | undefined
+  if (!rows.length && !range) return null
+  return (
+    <div className="mt-3 grid gap-2">
+      {range ? (
+        <p className="text-xs text-muted-foreground">
+          {t("importRows", range)}
+        </p>
+      ) : null}
+      {rows.length ? (
+        <Notice variant="warning" title={t("notIncluded.title")}>
+          <ul className="grid gap-1">
+            {rows.map((row, index) => (
+              <li key={index} className="break-words">
+                {row.line ? t("notIncluded.line", { line: row.line }) : null}
+                {row.text} — {t(`notIncluded.reasons.${row.reason}`)}
+                {row.note ? ` (${row.note})` : null}
+              </li>
+            ))}
+          </ul>
+        </Notice>
+      ) : null}
+    </div>
   )
 }
 
@@ -522,6 +556,11 @@ export function VoiceConversation({
                                 alt={t("preview", { number: file.ordinal })}
                                 className="size-14 shrink-0 rounded-xl object-cover"
                               />
+                            ) : sheetMime(file.file) ? (
+                              <FileSpreadsheet
+                                aria-hidden
+                                className="size-10 shrink-0"
+                              />
                             ) : (
                               <FileText
                                 aria-hidden
@@ -696,6 +735,8 @@ export function VoiceConversation({
               className="max-h-[60dvh] w-full rounded-xl object-contain"
               onError={() => setPreviewUnavailable(true)}
             />
+          ) : preview && sheetMime(preview.file) ? (
+            <Notice variant="info" title={t("sheetNoPreview")} />
           ) : preview?.file.type === "application/pdf" ? (
             <>
               <p className="text-sm text-muted-foreground">
@@ -747,6 +788,7 @@ export function VoiceConversation({
                   <ReviewList review={voice.review} />
                 </ReviewDiff>
               ) : null}
+              {voice.review ? <NotIncluded review={voice.review} /> : null}
             </div>
             <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
             {voice.recoveredReview ? (
