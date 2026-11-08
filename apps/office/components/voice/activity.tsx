@@ -1,10 +1,22 @@
 "use client"
 
-import { CircleCheck, CircleAlert, LoaderCircle } from "lucide-react"
+import { CircleCheck, CircleAlert } from "lucide-react"
 import { useTranslations } from "next-intl"
+import ThoughtLine from "@/components/rb/ThoughtLine"
 import { useVoice } from "./provider"
 import { activityState } from "./presentation"
 
+const PENDING = new Set([
+  "connecting",
+  "upgrading",
+  "thinking",
+  "executing",
+  "uploading",
+  "checking",
+])
+const ALERT = new Set(["failed", "unknown", "partial"])
+
+/** Status line: a breathing thought line with the task's steps while the agent works. */
 export function VoiceActivity({ compact = false }: { compact?: boolean }) {
   const voice = useVoice()
   const t = useTranslations("voice")
@@ -14,34 +26,51 @@ export function VoiceActivity({ compact = false }: { compact?: boolean }) {
     review: Boolean(voice.review),
     uploading: voice.attachments.some((file) => file.state === "uploading"),
   })
-  const pending = [
-    "connecting",
-    "upgrading",
-    "thinking",
-    "executing",
-    "uploading",
-    "checking",
-  ].includes(state)
+  const pending = PENDING.has(state)
+  const text = t(`activity.${state}`)
+  if (compact)
+    return (
+      <p
+        role="status"
+        aria-live="polite"
+        aria-busy={pending}
+        data-state={state}
+        className="flex min-h-6 items-center justify-center gap-2 text-sm font-medium"
+      >
+        {text}
+      </p>
+    )
   return (
-    <p
+    <div
       role="status"
       aria-live="polite"
       aria-busy={pending}
-      data-voice-activity={compact ? undefined : ""}
+      data-voice-activity=""
       data-state={state}
-      className={`flex min-h-6 items-center justify-center gap-2 text-sm ${compact ? "font-medium" : "text-muted-foreground"}`}
+      className="flex min-h-6 w-full max-w-md flex-col items-center justify-center text-sm text-muted-foreground"
     >
-      {pending ? (
-        <LoaderCircle
-          aria-hidden
-          className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
-        />
-      ) : state === "completed" ? (
-        <CircleCheck aria-hidden className="size-4 shrink-0" />
-      ) : ["failed", "unknown", "partial"].includes(state) ? (
-        <CircleAlert aria-hidden className="size-4 shrink-0" />
-      ) : null}
-      {t(`activity.${state}`)}
-    </p>
+      <ThoughtLine
+        label={text}
+        doneLabel={text}
+        working={pending}
+        steps={pending ? voice.steps : []}
+        showTimer={pending}
+        collapseOnSettle
+        glyph={
+          pending ? (
+            "sparkle"
+          ) : state === "completed" ? (
+            <CircleCheck aria-hidden className="size-4" />
+          ) : ALERT.has(state) ? (
+            <CircleAlert aria-hidden className="size-4" />
+          ) : (
+            "dot"
+          )
+        }
+        color="var(--muted-foreground)"
+        glyphColor="var(--gold)"
+        fontSize={14}
+      />
+    </div>
   )
 }

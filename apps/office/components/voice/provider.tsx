@@ -101,6 +101,10 @@ type VoiceContextValue = {
   toggleMute: () => void
   pauseCapture: () => void
   inputLevel: () => number
+  /** Agent playback level 0..1 (SDK output analyser); drives the avatar while speaking. */
+  outputLevel: () => number
+  /** Human progress labels for the current task, shown while thinking/executing. */
+  steps: string[]
   stopSpeaking: () => void
   send: (text: string) => Promise<boolean>
   activity: () => void
@@ -109,7 +113,8 @@ type VoiceContextValue = {
   retryAttachment: (key: string) => Promise<boolean>
   confirm: (decision: "approve" | "cancel") => Promise<void>
 }
-const VoiceContext = createContext<VoiceContextValue | null>(null)
+export const VoiceContext = createContext<VoiceContextValue | null>(null)
+export type { VoiceContextValue }
 export function useVoice() {
   const value = useContext(VoiceContext)
   if (!value) throw new Error("Voice controls require GenesyVoiceProvider")
@@ -1378,6 +1383,8 @@ function Session({ children }: { children: ReactNode }) {
             : conversation.setMuted(!conversation.isMuted),
         pauseCapture,
         inputLevel: conversation.getInputVolume,
+        outputLevel: conversation.getOutputVolume,
+        steps: [],
         stopSpeaking: () => conversation.sendUserActivity(),
         send,
         activity: () => conversation.sendUserActivity(),

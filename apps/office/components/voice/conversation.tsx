@@ -4,9 +4,17 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
-import { Camera, FileText, Paperclip, Send, Trash2, X } from "lucide-react"
+import {
+  Camera,
+  ClipboardList,
+  FileText,
+  Paperclip,
+  Trash2,
+  X,
+} from "lucide-react"
+import AnimatedList from "@/components/rb/AnimatedList"
+import PromptBar from "@/components/rb/PromptBar"
 import { Button } from "@genesy/ui/components/button"
-import { Textarea } from "@genesy/ui/components/textarea"
 import { Notice } from "@genesy/ui/components/notice"
 import {
   Dialog,
@@ -29,7 +37,7 @@ import {
   operationLabel,
   type DisplayReferences,
 } from "./presentation"
-import type { VoiceReviewStep } from "@/lib/voice/client-contract"
+import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
 import { ATTACHMENT_ACCEPT, referenceSize, taskPresentation } from "./helpers"
 import { useVoice } from "./provider"
 import { VoiceControls } from "./controls"
@@ -74,6 +82,54 @@ function ReviewTitle({
     <>
       {t(`operationActions.${action}`, { record: t(`resources.${resource}`) })}
     </>
+  )
+}
+
+/** The review card: every thing the agent will do, one row each, popping in one after another. */
+function ReviewList({ review }: { review: VoiceReview }) {
+  const labels = useTranslations("voice.reviewFields")
+  const references = displayReferences(review.details)
+  const rows = (
+    review.kind === "batch" && review.steps?.length
+      ? review.steps.map((step, index) => ({
+          id: step.actionId,
+          icon: <ClipboardList aria-hidden className="size-4" />,
+          title: (
+            <>
+              {index + 1}. <ReviewTitle review={step} />
+            </>
+          ),
+          description: <Details value={step.details} />,
+        }))
+      : Object.entries(review.details)
+          .filter(([key]) => !internalFields.has(key))
+          .map(([key, value]) => ({
+            id: key,
+            title: labels.has(key) ? labels(key) : key,
+            description: (
+              <Details value={value} references={references} field={key} />
+            ),
+          }))
+  ).filter(Boolean)
+  if (!rows.length) return <Details value={review.details} />
+  return (
+    <AnimatedList
+      items={rows}
+      animation="pop"
+      stagger={70}
+      selectOnHover
+      enableArrowNavigation={false}
+      frame={false}
+      showGradients={false}
+      displayScrollbar={false}
+      theme="dark"
+      accentColor="var(--gold)"
+      radius={14}
+      gap={8}
+      width="100%"
+      maxHeight="none"
+      className="voice-review-list"
+    />
   )
 }
 
@@ -221,7 +277,7 @@ export function VoiceConversation() {
   const locale = useLocale()
   const router = useRouter()
   const voice = useVoice()
-  const [draft, setDraft] = useState("")
+  const chosen = useRef<((names: string[]) => void) | null>(null)
   const [follow, setFollow] = useState(true)
   const log = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -230,10 +286,6 @@ export function VoiceConversation() {
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [previewUnavailable, setPreviewUnavailable] = useState(false)
   const preview = voice.attachments.find((file) => file.key === previewKey)
-  const staged = voice.attachments.some((file) => file.state !== "submitted")
-  const send = async () => {
-    if (await voice.send(draft)) setDraft("")
-  }
   useEffect(() => {
     const transcript = log.current
     if (follow && transcript) transcript.scrollTop = transcript.scrollHeight
@@ -341,38 +393,46 @@ export function VoiceConversation() {
               {voice.connected ? (
                 <form
                   className="flex min-w-0 flex-col gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    void send()
-                  }}
+                  onSubmit={(e) => e.preventDefault()}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault()
                     voice.choose(Array.from(e.dataTransfer.files))
                   }}
                 >
-                  <label
-                    htmlFor="voice-message"
-                    className="text-sm font-medium"
-                  >
-                    {t("message")}
-                  </label>
-                  <Textarea
-                    id="voice-message"
-                    rows={1}
-                    value={draft}
-                    onChange={(e) => {
-                      setDraft(e.target.value)
-                      voice.activity()
-                    }}
-                    onPaste={(e) => {
-                      if (e.clipboardData.files.length) {
-                        e.preventDefault()
-                        voice.choose(Array.from(e.clipboardData.files))
-                      }
-                    }}
+                  <PromptBar
                     placeholder={t("placeholder")}
-                    aria-describedby="voice-file-hint"
+                    sources={[
+                      {
+                        key: "files",
+                        name: t("attach"),
+                        description: t("fileHint"),
+                        icon: Paperclip,
+                        attach: true,
+                      },
+                    ]}
+                    commands={[]}
+                    models={[]}
+                    efforts={[]}
+                    busy={voice.speaking}
+                    width={768}
+                    radius={18}
+                    background="color-mix(in srgb, var(--card) 85%, transparent)"
+                    color="var(--foreground)"
+                    menuBackground="var(--card)"
+                    sparkColor="var(--gold)"
+                    onSend={(text) => {
+                      voice.activity()
+                      void voice.send(text)
+                    }}
+                    onStop={() => voice.stopSpeaking()}
+                    onAttach={() =>
+                      new Promise<string[]>((resolve) => {
+                        chosen.current = resolve
+                        picker.current?.click()
+                      })
+                    }
+                    className="w-full"
                   />
                   {voice.capturePaused ? (
                     <Notice variant="info" title={t("capturePaused")}>
@@ -481,7 +541,10 @@ export function VoiceConversation() {
                       className="hidden"
                       tabIndex={-1}
                       onChange={(e) => {
-                        voice.choose(Array.from(e.target.files ?? []))
+                        const files = Array.from(e.target.files ?? [])
+                        voice.choose(files)
+                        chosen.current?.(files.map((f) => f.name))
+                        chosen.current = null
                         e.target.value = ""
                       }}
                     />
@@ -503,18 +566,6 @@ export function VoiceConversation() {
                       type="button"
                       variant="outline"
                       disabled={voice.busy}
-                      onClick={() => picker.current?.click()}
-                    >
-                      <Paperclip aria-hidden />
-                      <span className="sr-only sm:not-sr-only">
-                        {t("attach")}
-                      </span>
-                    </Button>
-                    <Button
-                      className="min-h-11"
-                      type="button"
-                      variant="outline"
-                      disabled={voice.busy}
                       onClick={() => {
                         voice.pauseCapture()
                         camera.current?.click()
@@ -524,20 +575,6 @@ export function VoiceConversation() {
                       <span className="sr-only sm:not-sr-only">
                         {t("takePhoto")}
                       </span>
-                    </Button>
-                    <Button
-                      className="min-h-11"
-                      type="submit"
-                      disabled={voice.busy || (!draft.trim() && !staged)}
-                    >
-                      <Send aria-hidden />
-                      {t(
-                        voice.busy
-                          ? "working"
-                          : voice.attachments.some((f) => f.state === "failed")
-                            ? "retry"
-                            : "send"
-                      )}
                     </Button>
                   </div>
                   <p
@@ -769,25 +806,7 @@ export function VoiceConversation() {
             {voice.review ? <ReviewTitle review={voice.review} /> : null}
           </p>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <Details value={voice.review?.details} />
-            {voice.review?.kind === "batch" ? (
-              <ol
-                aria-label={t("batchSteps")}
-                className="mt-4 flex flex-col gap-4"
-              >
-                {voice.review.steps?.map((step, index) => (
-                  <li
-                    key={step.actionId}
-                    className="rounded-xl border border-(--hair) p-3"
-                  >
-                    <h3 className="mb-2 text-sm font-semibold">
-                      {index + 1}. <ReviewTitle review={step} />
-                    </h3>
-                    <Details value={step.details} />
-                  </li>
-                ))}
-              </ol>
-            ) : null}
+            {voice.review ? <ReviewList review={voice.review} /> : null}
           </div>
           <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
           {voice.recoveredReview ? (
