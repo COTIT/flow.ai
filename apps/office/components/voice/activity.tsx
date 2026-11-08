@@ -55,6 +55,8 @@ export function VoiceThinking() {
     <div
       data-voice-thinking=""
       aria-hidden="true"
+      // ThoughtLine's expand toggle is a button; keep it out of the tab order too.
+      inert
       className="max-w-[80%] self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm"
     >
       <ThoughtLine

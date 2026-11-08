@@ -530,3 +530,74 @@ test("the design preview route is not served by the production build", async ({
     0
   )
 })
+
+test("a long review keeps every row reachable by scrolling the sheet, none hidden in the list", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  const details = Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [`field_${i + 1}`, `Value ${i + 1}`])
+  )
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "long-action" },
+            review: {
+              ticket: "long-ticket",
+              operationId: "products_update",
+              method: "PATCH",
+              summary: "Update product",
+              details,
+              confirmationCode: "112233",
+              confirmationPhrase: "Confirm action 112233",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("products_update")
+  const review = page.getByRole("dialog", {
+    name: en.voice.review,
+    exact: true,
+  })
+  const rows = review.locator('.voice-review-list [role="option"]')
+  await expect(rows).toHaveCount(12)
+  // The list has no scrollbar of its own, so it must not clip rows; the sheet scrolls instead.
+  const list = review.locator('.voice-review-list [role="listbox"]')
+  expect(
+    await list.evaluate((el) => el.scrollHeight - el.clientHeight)
+  ).toBeLessThanOrEqual(1)
+  for (let i = 0; i < 12; i++) {
+    const row = rows.nth(i)
+    await row.scrollIntoViewIfNeeded()
+    await expect(row).toBeInViewport()
+    await expect(row).toContainText(`Value ${i + 1}`)
+    // Revealed, not left at the list's hidden pose.
+    await expect
+      .poll(() =>
+        row.evaluate((el) => {
+          let shown = 1
+          for (let node: Element | null = el; node; node = node.parentElement) {
+            shown *= Number(getComputedStyle(node).opacity)
+            if (node.getAttribute("role") === "listbox") break
+          }
+          return shown
+        })
+      )
+      .toBe(1)
+  }
+  await expect(
+    review.getByRole("button", { name: en.voice.approve, exact: true })
+  ).toBeInViewport()
+  await expectFits(page)
+})

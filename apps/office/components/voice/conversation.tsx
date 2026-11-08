@@ -126,7 +126,8 @@ function ReviewList({ review }: { review: VoiceReview }) {
       radius={14}
       gap={8}
       width="100%"
-      maxHeight={460}
+      // Unbounded: the sheet body scrolls, so no row hides behind a list with no scrollbar.
+      maxHeight="none"
       className="voice-review-list"
     />
   )
