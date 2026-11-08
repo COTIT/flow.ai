@@ -149,6 +149,7 @@ function Session({ children }: { children: ReactNode }) {
   const query = useQueryClient()
   const raw = useRawConversation()
   const session = useRef<VoiceSession | null>(null)
+  const shutdown = useRef<Promise<void> | null>(null)
   const active = useRef(true)
   const generation = useRef(0)
   const verified = useRef(false)
@@ -955,6 +956,11 @@ function Session({ children }: { children: ReactNode }) {
       nextOrdinal.current = 0
     }
     try {
+      if (shutdown.current) {
+        await shutdown.current
+        if (!active.current || before !== generation.current) return
+        shutdown.current = null
+      }
       if (recovered.current) await cleanup(recovered.current)
       if (!onlyText && !continuing) {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -995,44 +1001,54 @@ function Session({ children }: { children: ReactNode }) {
       }
     }
   }
-  async function end(preserve = false) {
-    await stopBatch("cancel")
+  function end(preserve = false): Promise<void> {
     if (!preserve) {
+      generation.current++
       continuation.current = false
       switching.current = false
       setUpgrading(false)
-    }
-    generation.current++
-    const old = session.current
-    session.current = null
-    pauseWaits()
-    if (old) remember({ sessionId: old.sessionId, workspaceId: workspaceId! })
-    verified.current = false
-    setIdentityVerified(false)
-    updateReview(null)
-    setStarting(false)
-    setBusy(false)
-    setThinking(false)
-    setToolRequests(0)
-    if (!preserve) setMessages([])
-    if (dispatching.current)
-      setOutcome({ status: "unknown", message: t("unknown") })
-    if (!preserve) {
+      setStarting(false)
+      setMessages([])
       files.current.forEach((file) => {
         if (file.preview) URL.revokeObjectURL(file.preview)
       })
       updateFiles([])
     }
-    // The React control returns void; await the raw SDK to stop capture before secure inputs.
-    if (raw) await raw.endSession()
-    conversation.endSession()
-    await cleanup(old)
-    if (old)
-      void loadRecovery({ sessionId: old.sessionId, workspaceId: workspaceId! })
-    if (old && !raw) {
-      setError(t("secureUnknown"))
-      throw new Error(t("secureUnknown"))
+    if (!shutdown.current) {
+      const old = session.current
+      // Every caller must await the original teardown, including its failure.
+      shutdown.current = (async () => {
+        await stopBatch("cancel")
+        generation.current++
+        session.current = null
+        pauseWaits()
+        if (old)
+          remember({ sessionId: old.sessionId, workspaceId: workspaceId! })
+        verified.current = false
+        setIdentityVerified(false)
+        updateReview(null)
+        setStarting(false)
+        setBusy(false)
+        setThinking(false)
+        setToolRequests(0)
+        if (dispatching.current)
+          setOutcome({ status: "unknown", message: t("unknown") })
+        // The React control returns void; await SDK capture teardown before secure inputs.
+        if (raw) await raw.endSession()
+        conversation.endSession()
+        await cleanup(old)
+        if (old)
+          void loadRecovery({
+            sessionId: old.sessionId,
+            workspaceId: workspaceId!,
+          })
+        if (old && !raw) {
+          setError(t("secureUnknown"))
+          throw new Error(t("secureUnknown"))
+        }
+      })()
     }
+    return shutdown.current
   }
   async function upgrade(recoverCapture = false) {
     if (
@@ -1065,6 +1081,7 @@ function Session({ children }: { children: ReactNode }) {
       )
         return
       await end(true)
+      if (!active.current || !switching.current) return
       updateFiles(
         files.current.map((file) => ({
           ...file,
