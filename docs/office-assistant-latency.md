@@ -1,6 +1,6 @@
 # Office assistant latency
 
-How long the Office voice assistant takes between a spoken request and its answer, measured on the local dev stack. Times come from LangSmith project `genesy-office-voice-dev` (inputs and outputs hidden). The ElevenLabs side (speech-to-text, model, text-to-speech) is in its own section below.
+How long the Office voice assistant takes between a request and its answer. The BEFORE numbers were measured on staging (https://staging-office.genesy.app/voice, AFM Shop, text mode) on 2026-11-08. Span times come from LangSmith project `genesy-office-voice-dev`, where staging sends its traces (inputs and outputs hidden). Route times come from the browser's resource timing for `/api/voice/*`. The ElevenLabs side (speech-to-text, model, text-to-speech) is in its own section below.
 
 ## Office side
 
@@ -25,11 +25,26 @@ Each voice route request is one root span with child spans:
 
 ### Before and after
 
-BEFORE = commit `c53025642` (spans only). AFTER = branch tip. Medians (p50) over the runs listed under Method.
+BEFORE = what staging runs today (`main`; only `genesy_assistant_review` / `_execute` / `_cancel` and their graph nodes are traced). AFTER = this branch once deployed to staging: **pending staging deploy**. The new child spans only exist after that deploy.
 
-| Span | Before | After |
+| Step | Before (staging) | After |
 | --- | --- | --- |
-| _pending measurement_ | | |
+| Lookup route `/api/voice/tools` execute (orders_list, products_list; n=3) | 464 / 470 / 486 ms | pending staging deploy |
+| of which `genesy_assistant_execute` (the Rust read) | 0.04–0.07 s | pending |
+| of which untraced: 3 `/me` GETs + session GET + route | ≈ 0.42 s | pending (target: 1 GET) |
+| Discover route (n=6) | 214–248 ms, median ≈ 230 ms | pending |
+| Proposal route (products_create; n=2) | 1.29 s / 1.86 s | pending |
+| of which `genesy_assistant_review` | 1.05 s / 1.12 s | pending (target ≤ 0.5 s) |
+| of which the graph run (`genesy_assistant_task`) | 0.85 s (node `await_review` 0.15 s, so ≈ 0.7 s is checkpoint writes) | pending |
+| of which lock + state read before the graph run | ≈ 0.2 s | pending |
+| of which untraced auth + session + draft + target lookup | ≈ 0.25–0.7 s | pending |
+| Cancel route (n=2) | **17.6 s** / 1.27 s | pending |
+| of which `genesy_assistant_cancel` | **17.28 s** (node `await_review` 16.67 s) / 1.03 s | pending |
+| Approve + execute | not measured on staging (no business writes approved); dev: ≈ 2.3 s = 0.95 s Rust + 0.49 s resume + ≈ 0.65 s checkpoint | pending |
+
+Read requests end to end (text mode, user message → agent answer): 7.6 s, 7.7 s, 8.0 s. Office's share was ≈ 0.93 s per request (two discovers + one execute); the other ≈ 6.7 s is four LLM turns. That matches the ElevenLabs section below.
+
+The 17 s cancel happened once in eight cancels today; the other seven took 1.0–1.13 s. All of its time sits inside the `await_review` node on resume, so the auth/session changes here will not explain it. The new `checkpoint_lock` / `checkpoint_state` spans and the warm pool should show whether a cold checkpoint connection is involved; that check is pending staging deploy.
 
 ### Changes
 
@@ -41,17 +56,24 @@ BEFORE = commit `c53025642` (spans only). AFTER = branch tip. Medians (p50) over
 
 Before, a read cost three tool calls (search, discover the exact operation, execute). Now the model may call a list/get operation directly. If its arguments are wrong, the reply carries the exact input schema; if the id is a guess, it carries up to 8 permitted candidates.
 
-| Fixture | Tool calls before | Tool calls after |
+| Fixture | Tool calls before (staging) | Tool calls after |
 | --- | --- | --- |
-| _pending measurement_ | | |
+| `orders-list-first-five` (n=2) | 3: discover, discover `orders_list`, execute | pending staging deploy (expected 1–2) |
+| `products-list-first-five` (n=1) | 3: discover, discover `products_list`, execute | pending staging deploy (expected 1–2) |
+| `native-product-create` up to the card (n=2) | 2–3: discover(s), then execute; once an extra `discover(assistant_task_status)` | pending staging deploy (expected 2) |
+
+The discover reply now carries the top match's full input schema, so a read can run after one search. The model may also call a list/get operation directly. Each removed tool call saves about one LLM turn (≈ 1.3 s) plus ≈ 0.23 s of route time.
 
 ### Method
 
-_Pending: local dev stack, text-only conversations in the browser, spans read back through the LangSmith API._
+Two staging conversations in text mode (6 requests): the first five orders, the first five products, a product creation up to the review card (cancelled), then the orders read again and a second creation (cancelled). No review was approved, so no business record was written. A page hook timestamped each provider WebSocket event, and the browser's resource timing gave each `/api/voice/*` route's duration. Span times were read in the LangSmith web UI. The local tracing key is ingest-only and cannot read runs.
 
 ### Not verified
 
-_Pending._
+- AFTER numbers: they need this branch deployed to staging.
+- Pre-tool speech: text mode plays no audio. On staging `force_pre_tool_speech` is still off, and that flag lives on a client tool shared by the Production, Staging and Development agents.
+- Approve + execute on staging: not run, to avoid business writes.
+- Cause of the single 17 s cancel.
 
 ## ElevenLabs side
 
