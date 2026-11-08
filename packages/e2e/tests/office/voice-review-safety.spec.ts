@@ -13,7 +13,12 @@ const reviews = [
       record: { type: "customer", label: "Kendall Moreau" },
       impact: { effect: "archive", orders: 2, contacts: 1 },
     },
-    shows: ["Kendall Moreau", "customer", en.voice.reviewFields.impact, en.voice.reviewFields.orders],
+    shows: [
+      "Kendall Moreau",
+      "customer",
+      en.voice.results.impactTitle,
+      en.voice.reviewFields.orders,
+    ],
   },
   {
     name: "a tenfold price change shows old and new price and a plain warning",
@@ -28,11 +33,25 @@ const reviews = [
       ],
       current: {
         kind: "product",
-        changes: [{ field: "price", currency: "USD", before: "$0.50", after: "$500.50", change_bp: 10000000 }],
+        changes: [
+          {
+            field: "price",
+            currency: "USD",
+            before: "$0.50",
+            after: "$500.50",
+            change_bp: 10000000,
+          },
+        ],
       },
       changes: { price: "500.5" },
     },
-    shows: ["AFM Stickers", "more than 10 times the current amount", "$0.50", "$500.50", en.voice.reviewFields.warnings],
+    shows: [
+      "AFM Stickers",
+      "more than 10 times the current amount",
+      "$0.50",
+      "$500.50",
+      en.voice.results.warningsTitle,
+    ],
   },
 ]
 
@@ -49,7 +68,8 @@ for (const review of reviews) {
         json: {
           sessionId: "safety-session",
           conversationId: "safety-conversation",
-          signedUrl: "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=test",
+          signedUrl:
+            "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=test",
         },
       })
     })
@@ -82,27 +102,36 @@ for (const review of reviews) {
       socket.onMessage((raw) => {
         const event = JSON.parse(String(raw))
         if (event.type === "conversation_initiation_client_data")
-          socket.send(JSON.stringify({
-            type: "conversation_initiation_metadata",
-            conversation_initiation_metadata_event: {
-              conversation_id: "safety-conversation",
-              agent_output_audio_format: "pcm_16000",
-              user_input_audio_format: "pcm_16000",
-            },
-          }))
+          socket.send(
+            JSON.stringify({
+              type: "conversation_initiation_metadata",
+              conversation_initiation_metadata_event: {
+                conversation_id: "safety-conversation",
+                agent_output_audio_format: "pcm_16000",
+                user_input_audio_format: "pcm_16000",
+              },
+            })
+          )
         if (event.type === "user_message")
-          socket.send(JSON.stringify({
-            type: "client_tool_call",
-            client_tool_call: {
-              tool_name: "execute_genesy_tool",
-              tool_call_id: "safety-prepare",
-              parameters: { operation_id: review.operationId, arguments_json: "{}" },
-            },
-          }))
+          socket.send(
+            JSON.stringify({
+              type: "client_tool_call",
+              client_tool_call: {
+                tool_name: "execute_genesy_tool",
+                tool_call_id: "safety-prepare",
+                parameters: {
+                  operation_id: review.operationId,
+                  arguments_json: "{}",
+                },
+              },
+            })
+          )
       })
     })
     await page.goto("/voice")
-    await page.getByRole("button", { name: en.voice.textInstead, exact: true }).click()
+    await page
+      .getByRole("button", { name: en.voice.textInstead, exact: true })
+      .click()
     await page.getByLabel(en.voice.message).fill(review.request)
     await page.getByRole("button", { name: en.voice.send, exact: true }).click()
     const card = page.getByRole("dialog", { name: en.voice.review })

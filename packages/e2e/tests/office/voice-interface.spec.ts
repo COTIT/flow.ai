@@ -378,6 +378,10 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
     })
     await expect(review).toBeVisible()
     await expect(review).toHaveAttribute("data-side", "right")
+    // Reviewed fields sit under "More details" (voice-rich-results); open it first.
+    await review
+      .getByText(messages.voice.results.moreDetails, { exact: true })
+      .click()
     // One row per reviewed field, in the order the server sent them; raw route ids stay off the card.
     const rows = review.locator('.voice-review-list [role="option"]')
     await expect(rows).toHaveCount(3)

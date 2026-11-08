@@ -70,7 +70,7 @@ export function VoiceSuggestions({
           key={item.id}
           type="button"
           onClick={() => onPick(t(`capabilities.${item.id}.prompt`))}
-          className={`min-h-11 rounded-full border border-(--hair) bg-card/60 px-4 py-2 text-sm text-foreground transition-transform duration-100 hover:border-(--gold) focus-visible:ring-2 focus-visible:ring-(--gold) focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none${i > 2 ? "max-sm:hidden" : ""}`}
+          className={`min-h-12 rounded-full border border-(--hair) bg-card/60 px-4 py-2 text-sm text-foreground transition-transform duration-100 hover:border-(--gold) focus-visible:ring-2 focus-visible:ring-(--gold) focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none${i > 2 ? " max-sm:hidden" : ""}`}
         >
           {t(`capabilities.${item.id}.label`)}
         </button>

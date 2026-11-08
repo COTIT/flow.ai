@@ -1095,11 +1095,9 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
       })
     ).toBeVisible()
     await expect(approval).toContainText(en.voice.currentWorkspace)
-    await expect(approval).toContainText(
-      en.voice.recordReference.replace("{number}", "2")
-    )
-    await expect(approval).toContainText(
-      en.voice.recordReference.replace("{number}", "3")
+    // Unnamed references are hidden (voice-write-safety); the card names its record instead.
+    await expect(approval).not.toContainText(
+      en.voice.recordReference.replace(" {number}", "")
     )
     await expectFits(page)
     const readsBeforeApproval = _api.callsTo("GET", "/me/workspaces").length
