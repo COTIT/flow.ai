@@ -6,6 +6,10 @@ import { defineConfig } from "@playwright/test"
 if (!process.env.TEST_WORKER_INDEX && process.env.VOICE_PROBE_RESUME !== "1")
   rmSync(new URL(`./out/${process.env.VOICE_PROBE_BANK ?? "scenarios"}/results`, import.meta.url), { recursive: true, force: true })
 
+// A fresh run (or a resume) tries the provider again.
+if (!process.env.TEST_WORKER_INDEX)
+  rmSync(new URL(`./out/${process.env.VOICE_PROBE_BANK ?? "scenarios"}/provider-stopped.txt`, import.meta.url), { force: true })
+
 export default defineConfig({
   testDir: ".",
   testMatch: "probe.spec.ts",

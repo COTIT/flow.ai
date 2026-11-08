@@ -25,6 +25,9 @@ const bank = process.env.VOICE_PROBE_BANK ?? "scenarios" // or "adversarial"
 const scenarios: Scenario[] = read(`./${bank}.json`)
 const catalog = read("../../../apps/office/lib/voice/catalog.generated.json")
 const results = new URL(`./out/${bank}/results/`, import.meta.url)
+// Written when the provider refuses new conversations (e.g. the agent's daily limit): the rest of the
+// bank is skipped, not graded, and a resumed run picks up from there. Workers restart, so a file, not a variable.
+const providerStop = new URL(`./out/${bank}/provider-stopped.txt`, import.meta.url)
 
 const only = process.env.VOICE_PROBE_ONLY?.split(",").filter(Boolean)
 const module = process.env.VOICE_PROBE_MODULE
@@ -33,7 +36,7 @@ const selected = scenarios.filter(
   (s) => (!only || only.includes(s.id)) && (!module || s.module === module)
 )
 
-const TURN_LIMIT = 150_000 // a turn that has not settled by then is broken, not slow
+const TURN_LIMIT = 90_000 // a turn that has not settled by then is broken, not slow
 const SETTLE = 3_000 // transcript unchanged this long, nothing busy → the turn is over
 const NARRATION_GRACE = 25_000 // after a "let me check…" line, how long a real answer may still take
 // Only these batch commands are allowed; there is no approve among them, and any new one is blocked.
@@ -188,6 +191,7 @@ for (const scenario of selected) {
     test.skip(Boolean(staging) && scenario.as === "ruaha", "staging run uses one login (AFM)")
     // RUAHA needs to be on the stack's assistant allowlist (VOICE_WORKSPACES=AFM,RUAHA).
     test.skip(!staging && scenario.as === "ruaha" && process.env.VOICE_PROBE_RUAHA !== "1", "RUAHA not allowlisted")
+    test.skip(existsSync(providerStop), "provider stopped taking conversations; resume later")
     const attempts: string[] = []
     const calls: ToolCall[] = []
     const inflight = new Set<Request>()
@@ -205,7 +209,13 @@ for (const scenario of selected) {
     await page.goto(`${office}/voice`)
     await page.getByRole("button", { name: "Use text instead" }).click()
     const box = page.getByRole("textbox", { name: "Message the assistant" })
-    await expect(box).toBeVisible({ timeout: 30_000 })
+    const failed = page.getByRole("alert").filter({ hasText: "The request could not be completed." })
+    await expect(box.or(failed).first()).toBeVisible({ timeout: 30_000 })
+    if (await failed.isVisible()) {
+      mkdirSync(results, { recursive: true })
+      writeFileSync(providerStop, `${new Date().toISOString()} ${scenario.id}: conversation refused at start\n`)
+      test.skip(true, "provider refused the conversation (daily limit?); not graded")
+    }
 
     const turns: Turn[] = []
     if (scenario.attach?.length)
