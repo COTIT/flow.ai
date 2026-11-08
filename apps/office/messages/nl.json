@@ -1182,7 +1182,15 @@
       "count": "Aantal",
       "state": "Status",
       "method": "Methode",
-      "operation": "Bewerking"
+      "operation": "Bewerking",
+      "impact": "Wat dit raakt",
+      "warnings": "Waarschuwingen",
+      "type": "Soort",
+      "orders": "Bestellingen",
+      "contacts": "Contactpersonen",
+      "variants": "Maten",
+      "stock_rows": "Voorraadlocaties met voorraad",
+      "effect": "Gevolg"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1255,7 +1263,8 @@
       "currencies": "valuta",
       "vat": "btw-groep",
       "workspace": "werkruimte",
-      "settings": "instelling"
+      "settings": "instelling",
+      "relations": "klant"
     },
     "operationActions": {
       "create": "{record} aanmaken",

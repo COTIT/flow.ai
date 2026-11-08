@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',r.id,'label',coalesce(\n            nullif(btrim(r.company_name),''),nullif(btrim(r.alias),''),\n            (SELECT nullif(btrim(concat_ws(' ',coalesce(c.first_name,c.salutation),c.middle_name,c.last_name)),'')\n             FROM contacts c WHERE c.workspace_id=$1 AND c.relation_id=r.id AND c.deleted_at IS NULL ORDER BY c.id LIMIT 1))) AS \"locked!\",\n          jsonb_build_object('effect','archive',\n            'orders',(SELECT count(*) FROM orders o WHERE o.workspace_id=$1 AND o.relation_id=r.id),\n            'contacts',(SELECT count(*) FROM contacts c WHERE c.workspace_id=$1 AND c.relation_id=r.id AND c.deleted_at IS NULL)) AS \"impact!\"\n        FROM relations r WHERE r.workspace_id=$1 AND r.id=$2 AND r.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "locked!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "impact!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "c57dc70ed4ef5a3c232c22c3b5bc8ca3fbee1b7951e664ce29ff7044a7197004"
+}

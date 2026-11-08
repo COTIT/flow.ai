@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',p.id,'label',p.name) AS \"locked!\",\n          jsonb_build_object('effect','archive',\n            'variants',(SELECT count(*) FROM product_variants v WHERE v.workspace_id=$1 AND v.product_id=p.id AND v.deleted_at IS NULL),\n            'stock_rows',(SELECT count(*) FROM stocks s WHERE s.workspace_id=$1 AND s.product_id=p.id AND s.deleted_at IS NULL AND s.stock_lvl<>0)) AS \"impact!\"\n        FROM products p WHERE p.workspace_id=$1 AND p.id=$2 AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "locked!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "impact!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "702f31bf9d39d9c78889a77ae4fb1d66686faff1909c371e0e5d05147d4d8383"
+}

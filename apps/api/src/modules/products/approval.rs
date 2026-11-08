@@ -8,7 +8,7 @@ use crate::{
         permissions, product_variants,
     },
 };
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
@@ -54,6 +54,7 @@ pub async fn capture(
     }
     let workspace = owner.workspace_id;
     let body = input.body.clone().unwrap_or_else(|| json!({}));
+    let mut current = None;
     let (kind, priced) = match operation {
         "products_create" => {
             let fields = preconditions::validated::<dto::CreateProductRequest>(body)?;
@@ -67,6 +68,7 @@ pub async fn capture(
                 .ok_or(AppError::NotFound)?;
             let row = if operation == "products_update" {
                 let fields = preconditions::validated::<dto::UpdateProductRequest>(body)?;
+                current = Some(product_quote(conn, workspace, &before).await?);
                 service::prepare_update(conn, workspace, &before, &fields).await?
             } else {
                 service::prepare_create(conn, workspace, &service::duplicate_fields(&before))
@@ -96,6 +98,7 @@ pub async fn capture(
                     )
                     .await?
                     .ok_or(AppError::NotFound)?;
+                    current = Some(variant_quote(conn, workspace, &product, &before).await?);
                     let row =
                         product_variants::service::prepare_update(&before, &fields, product.price)?;
                     variant_quote(conn, workspace, &product, &row).await?
@@ -111,8 +114,21 @@ pub async fn capture(
             ("product_variant", priced)
         }
     };
-    let review =
-        json!({"version":1,"operation_id":operation,"facts":{"kind":kind,"priced":priced}});
+    let mut facts = json!({"kind":kind,"priced":priced});
+    if let Some(before) = current {
+        // Variant quotes nest the row under `variant`; currency always comes from the parent product.
+        let (old, new, currency) = match kind {
+            "product" => (&before, &facts["priced"], &before["currency"]),
+            _ => (
+                &before["variant"],
+                &facts["priced"]["variant"],
+                &before["product"]["currency"],
+            ),
+        };
+        facts["changes"] = Value::from(changes(old, new, currency));
+        facts["before"] = before;
+    }
+    let review = json!({"version":1,"operation_id":operation,"facts":facts});
     if review.to_string().len() > 32768 {
         return Err(AppError::field(
             "body",
@@ -129,6 +145,78 @@ fn target(input: &ProposalInput, index: usize) -> Result<Uuid, AppError> {
         .nth(index)
         .and_then(|id| Uuid::parse_str(id).ok())
         .ok_or(AppError::NotFound)
+}
+/// Money fields shown as exact currency amounts on the review.
+const MONEY: [&str; 8] = [
+    "price",
+    "gross_price",
+    "original_price",
+    "wholesale_price",
+    "supplier_wholesale_price",
+    "original_wholesale_price",
+    "impact_on_price",
+    "impact_on_wholesale_price",
+];
+/// Money fields whose large relative change gets a warning.
+const WATCHED: [&str; 3] = ["price", "gross_price", "wholesale_price"];
+/// Warn at ten times up (+900%) or a 90% cut, in basis points.
+const UP_BP: i64 = 90_000;
+const DOWN_BP: i64 = -9_000;
+
+/// Fields that differ between current and proposed quote; money exact, ratio in signed basis points.
+fn changes(before: &Value, after: &Value, currency: &Value) -> Vec<Value> {
+    let (Some(old), Some(new)) = (before.as_object(), after.as_object()) else {
+        return Vec::new();
+    };
+    let decimals = currency["decimals"]
+        .as_u64()
+        .and_then(|d| u32::try_from(d).ok());
+    new.iter()
+        .filter(|(field, value)| !field.ends_with("_id") && old.get(*field) != Some(value))
+        .map(|(field, value)| {
+            let previous = old.get(field).unwrap_or(&Value::Null);
+            if !MONEY.contains(&field.as_str()) {
+                return json!({"field":field,"before":previous,"after":value});
+            }
+            let mut entry = json!({"field":field,"currency":{"code":currency["code"],"decimals":currency["decimals"]}});
+            match decimals.and_then(|d| Some((minor(previous, d)?, minor(value, d)?))) {
+                Some((b, a)) => {
+                    entry["before_minor"] = b;
+                    entry["after_minor"] = a;
+                }
+                None => {
+                    entry["before"] = previous.clone();
+                    entry["after"] = value.clone();
+                }
+            }
+            if let (Some(b), Some(a)) = (amount(previous), amount(value))
+                && b > Decimal::ZERO
+                && let Some(bp) = ((a - b) * Decimal::from(10_000) / b).trunc().to_i64()
+            {
+                entry["change_bp"] = bp.into();
+                if WATCHED.contains(&field.as_str()) && (bp >= UP_BP || bp <= DOWN_BP) {
+                    entry["warning"] = "large_change".into();
+                }
+            }
+            entry
+        })
+        .collect()
+}
+fn amount(value: &Value) -> Option<Decimal> {
+    value.as_str()?.parse().ok()
+}
+/// Integer minor units only when exact at currency decimals; null stays null.
+fn minor(value: &Value, decimals: u32) -> Option<Value> {
+    if value.is_null() {
+        return Some(Value::Null);
+    }
+    let scaled = amount(value)?.checked_mul(Decimal::from(10_i64.checked_pow(decimals)?))?;
+    scaled
+        .fract()
+        .is_zero()
+        .then(|| scaled.to_i64())
+        .flatten()
+        .map(Value::from)
 }
 fn decimal(value: Decimal) -> String {
     value.normalize().to_string()

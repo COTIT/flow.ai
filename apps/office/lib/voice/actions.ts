@@ -9,7 +9,7 @@ import { checkpointReview, createReview, verifyReview } from "./workflow"
 import { confirmationPhrase } from "./confirmation"
 import { withVoiceTracing } from "./tracing"
 import { reviewTarget } from "./review-target"
-import { reviewChanges, reviewFacts } from "./review-facts"
+import { reviewChanges, reviewFacts, reviewWarnings } from "./review-facts"
 import type {
   VoiceOutcome,
   VoiceReview,
@@ -220,11 +220,18 @@ export async function reviewStep(
   const target = await withVoiceTracing("review_target", () =>
     reviewTarget(action, context)
   )
-  const facts = reviewFacts(
+  const projected = reviewFacts(
     stored.review_facts,
     action.operationId,
     context.language ?? "en"
   )
+  // Impact sits beside the record on the card; the API's reviewed label names it when lookup could not.
+  const { impact, ...facts } = projected ?? {}
+  const locked = (projected?.locked ?? {}) as { label?: unknown }
+  const record = target.record as { label: unknown } | undefined
+  if (record && record.label == null && typeof locked.label === "string")
+    record.label = locked.label
+  const warnings = reviewWarnings(stored.review_facts, context.language ?? "en")
   return {
     actionId: stored.id,
     operationId: action.operationId,
@@ -233,7 +240,13 @@ export async function reviewStep(
     target: action.operationId.split("_").slice(0, -1).join(" "),
     details: {
       ...target,
-      ...(facts ? { current: facts } : {}),
+      ...(warnings.length ? { warnings } : {}),
+      // A delete's record and impact say it all; its locked snapshot would only repeat the id.
+      ...(impact
+        ? { impact }
+        : projected
+          ? { current: facts }
+          : {}),
       ...(action.body !== undefined
         ? {
             changes: reviewChanges(

@@ -107,9 +107,12 @@ pub(super) async fn propose_locked(
         Some(facts) => facts,
         None => match crate::modules::invoices::approval::capture(conn, o, &input).await? {
             Some(facts) => facts,
-            None => match super::mail_recipients::capture(conn, o, &input).await? {
+            None => match super::impact::capture(conn, o, &input).await? {
                 Some(facts) => facts,
-                None => super::preconditions::capture(conn, o, &input).await?,
+                None => match super::mail_recipients::capture(conn, o, &input).await? {
+                    Some(facts) => facts,
+                    None => super::preconditions::capture(conn, o, &input).await?,
+                },
             },
         },
     };
@@ -174,7 +177,7 @@ pub(super) fn public_review(
         Some("stock") => granted.allows("stock.list"),
         Some("product" | "product_variant") => granted.allows("product.view"),
         Some("invoice") => granted.allows("invoice.view"),
-        Some("mail" | "contact") => granted.allows("relation.view"),
+        Some("mail" | "contact" | "relation") => granted.allows("relation.view"),
         _ => false,
     };
     if !allowed {

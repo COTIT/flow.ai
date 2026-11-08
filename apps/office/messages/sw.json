@@ -1182,7 +1182,15 @@
       "count": "Idadi",
       "state": "Hali",
       "method": "Njia",
-      "operation": "Kitendo"
+      "operation": "Kitendo",
+      "impact": "Kinachoathiriwa",
+      "warnings": "Tahadhari",
+      "type": "Aina",
+      "orders": "Maagizo",
+      "contacts": "Watu wa mawasiliano",
+      "variants": "Saizi",
+      "stock_rows": "Maeneo ya hisa yenye hisa",
+      "effect": "Matokeo"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -1255,7 +1263,8 @@
       "currencies": "sarafu",
       "vat": "kundi la VAT",
       "workspace": "eneo la kazi",
-      "settings": "mpangilio"
+      "settings": "mpangilio",
+      "relations": "mteja"
     },
     "operationActions": {
       "create": "Unda {record}",

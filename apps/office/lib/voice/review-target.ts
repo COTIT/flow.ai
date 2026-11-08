@@ -8,6 +8,43 @@ import {
   type PreparedAction,
 } from "./catalog"
 import { callBackend, VoiceError, type VoiceContext } from "./server"
+import en from "../../messages/en.json"
+import nl from "../../messages/nl.json"
+import sw from "../../messages/sw.json"
+
+const resources: Record<string, Record<string, string>> = {
+  en: en.voice.resources,
+  nl: nl.voice.resources,
+  sw: sw.voice.resources,
+}
+/** A record's own name, first present in this order; blank counts as absent. */
+const labelFields = [
+  "name",
+  "title",
+  "company_name",
+  "alias",
+  "full_name",
+  "number",
+  "relation_nr",
+  "reference",
+]
+function recordLabel(record: Record<string, unknown>): string | null {
+  const contacts = (record.relationships as { contacts?: unknown } | undefined)
+    ?.contacts
+  const contact = Array.isArray(contacts) ? contacts[0] : undefined
+  const candidates = labelFields.flatMap((key) =>
+    key === "number"
+      ? [(contact as Record<string, unknown> | undefined)?.full_name, record[key]]
+      : [record[key]]
+  )
+  for (const value of candidates)
+    if (
+      (typeof value === "string" && value.trim()) ||
+      (typeof value === "number" && Number.isFinite(value))
+    )
+      return String(value).trim()
+  return null
+}
 
 /** Exact route identities remain visible even when a permitted display-name lookup fails. */
 export async function reviewTarget(
@@ -33,9 +70,19 @@ export async function reviewTarget(
     } else if (part !== actual[index])
       throw new VoiceError("This review target is invalid.", 409)
   })
+  // The resource is the path segment before the operation's last identity.
+  const segments = operation.path.split("/")
+  const last = segments.reduce(
+    (found, part, index) =>
+      part.startsWith("{") && part !== "{workspace}" ? index : found,
+    -1
+  )
+  const names = resources[context.language ?? "en"] ?? resources.en!
+  const type = names[segments[last - 1] ?? ""] ?? names.record!
   const details: Record<string, unknown> = {
     workspace: context.workspaceId,
     target,
+    record: { type, label: null },
   }
   const lookup = operationManifest
     .filter(
@@ -81,15 +128,10 @@ export async function reviewTarget(
       String(record.id) !== target[identity]
     )
       return details
-    const projected = Object.fromEntries(
-      Object.entries(record).filter(
-        ([key, value]) =>
-          ["id", "name", "title", "reference", "number"].includes(key) &&
-          (typeof value === "string" ||
-            (typeof value === "number" && Number.isFinite(value)))
-      )
-    )
-    return { ...details, record: projected }
+    return {
+      ...details,
+      record: { type, label: recordLabel(record as Record<string, unknown>) },
+    }
   } catch {
     return details
   }

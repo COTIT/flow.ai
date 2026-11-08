@@ -118,6 +118,11 @@ pub fn check_priced(workspace_id: Uuid, kind: &str, actual: &Value) -> Result<()
     check(workspace_id, kind, "priced", actual, false)
 }
 
+/// Compare reviewed delete impact counts under the delete's row lock.
+pub fn check_impact(workspace_id: Uuid, kind: &str, actual: &Value) -> Result<(), AppError> {
+    check(workspace_id, kind, "impact", actual, false)
+}
+
 /// Require proposed values for legacy-sensitive mutations while native callers remain unchanged.
 pub fn check_priced_required(
     workspace_id: Uuid,
