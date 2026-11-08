@@ -7,3 +7,6 @@ use in our product is allowed; selling or redistributing the components themselv
 Only the overview imports them, through `island` from @genesy/ui, so the code is fetched lazily
 and only when the user allows motion. The only change is a first line `// @ts-nocheck`. Do not edit
 them otherwise; wrap them instead, so a later copy can replace them.
+
+`MagicBento.tsx` (fetched 2026-11-08) also swaps `@hugeicons` for a lucide-react shim; see
+`MagicBento-notice.md`. The overview renders it on wide screens only, with the plain grid as fallback.
