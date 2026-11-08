@@ -71,6 +71,9 @@ const batchPrepareTool = {
     },
   },
 }
+// Requests about many records ("mark all ... delivered") also see the fixed-batch tool.
+const manyRecords = /batch|ordered|bulk|several|\b(all|every|each|multiple)\b/i
+
 const batchStatusTool = {
   id: BATCH_STATUS_OPERATION,
   summary:
@@ -137,7 +140,8 @@ async function handle(request: Request) {
           BATCH_STATUS_OPERATION,
           statusTool.id,
         ].includes(query) &&
-        !/batch|ordered|bulk|several|status|task|pending|last/i.test(query)
+        !manyRecords.test(query) &&
+        !/status|task|pending|last/i.test(query)
       ) {
         // Logged for review: a real gap in Genesy, or a request outside its scope.
         noteVoiceFailure("unsupported", undefined, query)
@@ -157,7 +161,7 @@ async function handle(request: Request) {
                 ? [statusTool]
                 : [
                     ...found,
-                    ...(/batch|ordered|bulk|several/i.test(query)
+                    ...(manyRecords.test(query)
                       ? [batchPrepareTool, batchStatusTool]
                       : []),
                     ...(/status|task|pending|last/i.test(query)
