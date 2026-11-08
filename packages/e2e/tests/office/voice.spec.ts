@@ -1384,21 +1384,21 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
         ) {
           const watched = JSON.parse(event.result)
           if (watched.status === "running") {
-              socket.send(
-                JSON.stringify({
-                  type: "client_tool_call",
-                  client_tool_call: {
-                    tool_name: "execute_genesy_tool",
-                    tool_call_id: "batch-watch-again",
-                    parameters: {
-                      operation_id: event.tool_call_id.startsWith("batch")
-                        ? "assistant_batch_status"
-                        : "assistant_task_status",
-                      arguments_json: JSON.stringify({ batchId, wait: true }),
-                    },
+            socket.send(
+              JSON.stringify({
+                type: "client_tool_call",
+                client_tool_call: {
+                  tool_name: "execute_genesy_tool",
+                  tool_call_id: "batch-watch-again",
+                  parameters: {
+                    operation_id: event.tool_call_id.startsWith("batch")
+                      ? "assistant_batch_status"
+                      : "assistant_task_status",
+                    arguments_json: JSON.stringify({ batchId, wait: true }),
                   },
-                })
-              )
+                },
+              })
+            )
             return
           }
           nativeResult = watched
@@ -2291,134 +2291,247 @@ test("text conversation survives navigation and shares a file without reconnecti
     .click()
 })
 
-test("secure handoff closes conversation before collecting credentials", async ({
-  page,
-  api: _api,
-}) => {
-  void _api
-  let ended = false
-  const outgoing: string[] = []
-  let submitted: unknown
-  await page.route("**/api/voice/session", (route) => {
-    if (
-      route.request().method() === "POST" &&
-      route.request().postDataJSON()?.command === "heartbeat"
-    )
-      return route.fulfill({ json: { status: "active" } })
-    if (route.request().method() === "DELETE") {
-      ended = true
-      return route.fulfill({ json: { status: "ended" } })
-    }
-    return route.fulfill({
-      json: {
-        sessionId: "secure-session",
-        conversationId: "secure-conv",
-        signedUrl:
-          "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=test",
-      },
+for (const shutdown of [
+  "handoff",
+  "manual",
+  "upgrade",
+  "failure",
+  "restart",
+  "restart-cancel",
+] as const) {
+  test(`secure handoff closes conversation before collecting credentials: ${shutdown}`, async ({
+    page,
+    api: _api,
+  }) => {
+    void _api
+    let ended = false
+    let closing = false
+    let releaseShutdown = () => {}
+    const shutdownGate = new Promise<void>((resolve) => {
+      releaseShutdown = resolve
     })
-  })
-  await page.routeWebSocket("wss://api.elevenlabs.io/**", (socket) => {
-    socket.onMessage((raw) => {
-      outgoing.push(String(raw))
-      if (JSON.parse(String(raw)).type === "user_message")
-        socket.send(
-          JSON.stringify({
-            type: "client_tool_call",
-            client_tool_call: {
-              tool_name: "execute_genesy_tool",
-              tool_call_id: "secure-call",
-              parameters: {
-                operation_id: "email_profiles_create",
-                arguments_json: "{}",
-              },
-            },
-          })
-        )
+    let descriptions = 0
+    let starts = 0
+    const outgoing: string[] = []
+    let submitted: unknown
+    await page.route("**/api/voice/session", async (route) => {
       if (
-        JSON.parse(String(raw)).type === "conversation_initiation_client_data"
+        route.request().method() === "POST" &&
+        route.request().postDataJSON()?.command === "heartbeat"
       )
-        socket.send(
-          JSON.stringify({
-            type: "conversation_initiation_metadata",
-            conversation_initiation_metadata_event: {
-              conversation_id: "secure-conv",
-              agent_output_audio_format: "pcm_16000",
-              user_input_audio_format: "pcm_16000",
-            },
-          })
-        )
-    })
-  })
-  await page.route("**/api/voice/tools", (route) =>
-    route.fulfill({
-      json: {
-        status: "secure_ui",
-        handoff: {
-          route: "/voice/secure?operation=email_profiles_create",
-          operationId: "email_profiles_create",
-        },
-      },
-    })
-  )
-  await page.route("**/api/voice/secure", (route) => {
-    const body = route.request().postDataJSON()
-    expect(ended).toBe(true)
-    if (body.command === "describe")
+        return route.fulfill({ json: { status: "active" } })
+      if (route.request().method() === "DELETE") {
+        closing = true
+        await shutdownGate
+        ended = true
+        return route.fulfill({ json: { status: "ended" } })
+      }
+      starts++
       return route.fulfill({
         json: {
-          id: "email_profiles_create",
-          summary: "Create email connection",
-          parameters: [],
-          body: {
-            type: "object",
-            required: ["name", "password"],
-            properties: {
-              name: { type: "string", title: "Connection name" },
-              password: { type: "string", title: "Connection password" },
-            },
+          sessionId: "secure-session",
+          conversationId: "secure-conv",
+          signedUrl:
+            "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=test",
+        },
+      })
+    })
+    await page.routeWebSocket("wss://api.elevenlabs.io/**", (socket) => {
+      socket.onMessage((raw) => {
+        outgoing.push(String(raw))
+        if (JSON.parse(String(raw)).type === "user_message")
+          socket.send(
+            JSON.stringify({
+              type: "client_tool_call",
+              client_tool_call: {
+                tool_name: "execute_genesy_tool",
+                tool_call_id: "secure-call",
+                parameters: {
+                  operation_id: "email_profiles_create",
+                  arguments_json: "{}",
+                },
+              },
+            })
+          )
+        if (
+          JSON.parse(String(raw)).type === "conversation_initiation_client_data"
+        )
+          socket.send(
+            JSON.stringify({
+              type: "conversation_initiation_metadata",
+              conversation_initiation_metadata_event: {
+                conversation_id: "secure-conv",
+                agent_output_audio_format: "pcm_16000",
+                user_input_audio_format: "pcm_16000",
+              },
+            })
+          )
+      })
+    })
+    await page.route("**/api/voice/tools", (route) =>
+      route.fulfill({
+        json: {
+          status: "secure_ui",
+          handoff: {
+            route: "/voice/secure?operation=email_profiles_create",
+            operationId: "email_profiles_create",
           },
         },
       })
-    submitted = body.arguments
-    return route.fulfill({
-      json: { status: "completed", data: { id: "connection-one" } },
+    )
+    await page.route("**/api/voice/secure", (route) => {
+      const body = route.request().postDataJSON()
+      expect(ended).toBe(true)
+      if (body.command === "describe") {
+        descriptions++
+        return route.fulfill({
+          json: {
+            id: "email_profiles_create",
+            summary: "Create email connection",
+            parameters: [],
+            body: {
+              type: "object",
+              required: ["name", "password"],
+              properties: {
+                name: { type: "string", title: "Connection name" },
+                password: { type: "string", title: "Connection password" },
+              },
+            },
+          },
+        })
+      }
+      submitted = body.arguments
+      return route.fulfill({
+        json: { status: "completed", data: { id: "connection-one" } },
+      })
     })
+    await page.goto("/voice")
+    if (shutdown === "failure") {
+      await page.evaluate(() => {
+        const close = WebSocket.prototype.close
+        WebSocket.prototype.close = function (...args) {
+          if (this.url.startsWith("wss://api.elevenlabs.io/"))
+            throw new Error("Simulated shutdown failure")
+          return close.apply(this, args)
+        }
+      })
+    }
+    await page
+      .getByRole("button", { name: "Use text instead", exact: true })
+      .click()
+    await expect(
+      page.getByRole("textbox", { name: "Message the assistant" })
+    ).toBeVisible()
+    await page
+      .getByRole("textbox", { name: "Message the assistant" })
+      .fill("Create an email connection")
+    await page.getByRole("button", { name: "Send", exact: true }).click()
+    const handoff = page.getByRole("link", {
+      name: "Open secure form",
+      exact: true,
+    })
+    await expect(handoff).toBeVisible()
+    try {
+      if (shutdown === "manual" || shutdown.startsWith("restart")) {
+        await page
+          .getByRole("button", { name: "End conversation", exact: true })
+          .last()
+          .click()
+        await expect.poll(() => closing).toBe(true)
+      }
+      if (shutdown === "upgrade") {
+        await page
+          .getByRole("button", { name: "Enable voice", exact: true })
+          .last()
+          .click()
+        await expect.poll(() => closing).toBe(true)
+      }
+      if (shutdown.startsWith("restart")) {
+        // Disconnect remounts these controls; dispatch avoids racing keyboard focus.
+        await page
+          .getByRole("button", { name: "Use text instead", exact: true })
+          .dispatchEvent("click")
+        await expect(
+          page.getByRole("button", { name: "Use text instead", exact: true })
+        ).toHaveCount(0)
+        expect(starts).toBe(1)
+        if (shutdown === "restart-cancel") {
+          await page
+            .getByRole("button", { name: "End conversation", exact: true })
+            .last()
+            .click()
+          await expect(
+            page.getByRole("button", { name: "Use text instead", exact: true })
+          ).toBeVisible()
+        }
+        releaseShutdown()
+        if (shutdown === "restart-cancel") {
+          await page
+            .getByRole("button", { name: "Use text instead", exact: true })
+            .dispatchEvent("click")
+        }
+        await expect.poll(() => starts).toBe(2)
+        await expect(page.getByLabel("Message the assistant")).toBeVisible()
+        await page
+          .getByLabel("Message the assistant")
+          .fill("Create an email connection")
+        await page.getByRole("button", { name: "Send", exact: true }).click()
+      }
+      await handoff.click()
+      if (shutdown === "failure") {
+        const failure = page
+          .getByRole("alert")
+          .filter({ hasText: "Simulated shutdown failure" })
+        await expect(failure).toBeVisible()
+        await expect(
+          page.getByLabel("Connection password", { exact: false })
+        ).toHaveCount(0)
+        await page
+          .getByRole("link", { name: en.voice.secureBack, exact: true })
+          .click()
+        await handoff.click()
+        await expect(failure).toBeVisible()
+        expect(descriptions).toBe(0)
+        return
+      }
+      await expect.poll(() => closing).toBe(true)
+      if (!shutdown.startsWith("restart")) {
+        await expect(
+          page.getByText(en.voice.secureLoading, { exact: true })
+        ).toBeVisible()
+        await expect(
+          page.getByLabel("Connection password", { exact: false })
+        ).toHaveCount(0)
+        expect(descriptions).toBe(0)
+      }
+    } finally {
+      releaseShutdown()
+    }
+    await page
+      .getByLabel("Connection name", { exact: false })
+      .fill("Office email")
+    await page
+      .getByLabel("Connection password", { exact: false })
+      .fill("ui-only-value")
+    await page
+      .getByRole("button", { name: "Submit action", exact: true })
+      .click()
+    await expect
+      .poll(() => submitted)
+      .toEqual({
+        path: {},
+        query: {},
+        body: { name: "Office email", password: "ui-only-value" },
+      })
+    expect(outgoing.join("\n")).not.toContain("ui-only-value")
+    await expect(
+      page.getByText('"id": "connection-one"', { exact: false })
+    ).toBeVisible()
+    await expectFits(page)
+    expect(descriptions).toBe(1)
+    expect(starts).toBe(shutdown.startsWith("restart") ? 2 : 1)
   })
-  await page.goto("/voice")
-  await page
-    .getByRole("button", { name: "Use text instead", exact: true })
-    .click()
-  await expect(
-    page.getByRole("textbox", { name: "Message the assistant" })
-  ).toBeVisible()
-  await page
-    .getByRole("textbox", { name: "Message the assistant" })
-    .fill("Create an email connection")
-  await page.getByRole("button", { name: "Send", exact: true }).click()
-  await page
-    .getByRole("link", { name: "Open secure form", exact: true })
-    .click()
-  await page
-    .getByLabel("Connection name", { exact: false })
-    .fill("Office email")
-  await page
-    .getByLabel("Connection password", { exact: false })
-    .fill("ui-only-value")
-  await page.getByRole("button", { name: "Submit action", exact: true }).click()
-  await expect
-    .poll(() => submitted)
-    .toEqual({
-      path: {},
-      query: {},
-      body: { name: "Office email", password: "ui-only-value" },
-    })
-  expect(outgoing.join("\n")).not.toContain("ui-only-value")
-  await expect(
-    page.getByText('"id": "connection-one"', { exact: false })
-  ).toBeVisible()
-  await expectFits(page)
-})
+}
 
 test("mismatched provider conversation cannot open business capabilities", async ({
   page,

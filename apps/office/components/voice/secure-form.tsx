@@ -357,29 +357,27 @@ function SecureForm({ operationId }: { operationId: string }) {
   useEffect(() => {
     alive.current = true
     let mounted = true
-    void end
-      .current()
-      .then(() => request("describe"))
-      .then((body: Descriptor) => {
-        if (!mounted) return
-        setDescriptor(body)
-        const path: Record<string, unknown> = {}
-        const query: Record<string, unknown> = {}
-        for (const parameter of body.parameters ?? [])
-          if (parameter.required && parameter.name !== "workspace")
-            (parameter.in === "path" ? path : query)[parameter.name] = initial(
-              parameter.schema
-            )
-        setValues({
-          path,
-          query,
-          ...(body.body ? { body: initial(body.body) } : {}),
-        })
+    void (async () => {
+      await end.current()
+      if (!mounted) return
+      const body: Descriptor = await request("describe")
+      if (!mounted) return
+      setDescriptor(body)
+      const path: Record<string, unknown> = {}
+      const query: Record<string, unknown> = {}
+      for (const parameter of body.parameters ?? [])
+        if (parameter.required && parameter.name !== "workspace")
+          (parameter.in === "path" ? path : query)[parameter.name] = initial(
+            parameter.schema
+          )
+      setValues({
+        path,
+        query,
+        ...(body.body ? { body: initial(body.body) } : {}),
       })
-      .catch((e: unknown) => {
-        if (mounted)
-          setError(e instanceof Error ? e.message : t("requestFailed"))
-      })
+    })().catch((e: unknown) => {
+      if (mounted) setError(e instanceof Error ? e.message : t("requestFailed"))
+    })
     return () => {
       mounted = false
       alive.current = false
