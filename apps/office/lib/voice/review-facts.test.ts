@@ -145,6 +145,8 @@ it("formats before → after money changes exactly, per change's own currency", 
       { field: "name", before: "Stickers", after: "AFM Stickers" },
     ],
   })
+})
+
 const priceUpdate = {
   version: 1,
   operation_id: "products_update",

@@ -195,6 +195,8 @@ export function discoverTools(
   // Words match as substrings, so short and filler words ("or" in "orders") would match everything.
   const terms = query
     .toLowerCase()
+    // Keep "to-do" as "todo" too: its parts alone are too short to count.
+    .replace(/(\p{L}+)-(\p{L}+)/gu, "$1$2 $1 $2")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .split(" ")
     .filter((term) => term.length > 2 && !fillerWords.has(term))

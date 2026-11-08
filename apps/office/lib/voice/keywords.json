@@ -213,19 +213,60 @@
     "sw": ["sahihisha", "rekebisha", "kosa", "uzito", "mavuno"]
   },
   "farm_passbook_balances": {
-    "en": ["owe", "owed", "owing", "debt", "debts", "unpaid", "outstanding", "payable", "farmers", "total", "pay", "balances"],
+    "en": [
+      "owe",
+      "owed",
+      "owing",
+      "debt",
+      "debts",
+      "unpaid",
+      "outstanding",
+      "payable",
+      "farmers",
+      "total",
+      "pay",
+      "balances"
+    ],
     "nl": ["schuldig", "schuld", "openstaand", "boeren", "totaal", "betalen"],
     "sw": ["deni", "madeni", "tunadaiwa", "wakulima", "jumla", "malipo", "lipa"]
   },
   "farm_passbook_consent": {
-    "en": ["consent", "agree", "agreed", "permission", "share", "sharing", "data", "farmer"],
+    "en": [
+      "consent",
+      "agree",
+      "agreed",
+      "permission",
+      "share",
+      "sharing",
+      "data",
+      "farmer"
+    ],
     "nl": ["toestemming", "delen", "gegevens", "boer"],
     "sw": ["ridhaa", "idhini", "kukubali", "taarifa", "mkulima"]
   },
   "farm_supply_quiet_farmers": {
-    "en": ["inactive", "quiet", "haven't", "not", "delivered", "stopped", "month", "since", "farmers", "missing"],
+    "en": [
+      "inactive",
+      "quiet",
+      "haven't",
+      "not",
+      "delivered",
+      "stopped",
+      "month",
+      "since",
+      "farmers",
+      "missing"
+    ],
     "nl": ["inactief", "niet", "geleverd", "maand", "sinds", "boeren"],
-    "sw": ["hawajaleta", "hajaleta", "hawajauza", "mwezi", "tangu", "wakulima", "kimya"]
+    "sw": [
+      "hawajaleta",
+      "hajaleta",
+      "hawajauza",
+      "mwezi",
+      "tangu",
+      "wakulima",
+      "kimya"
+    ]
   },
   "farm_passbook_give_consent": {
     "en": ["consent", "agree", "agreed", "share", "data", "farmer"],
@@ -300,5 +341,18 @@
     "en": ["called", "void", "cancel"],
     "nl": ["annuleer", "annuleren", "geannuleerd", "bestelling"],
     "sw": ["ghairi", "kughairi", "oda"]
+  },
+  "attention_summary": {
+    "en": [
+      "todo",
+      "to-do",
+      "agenda",
+      "today",
+      "urgent",
+      "overdue",
+      "attention"
+    ],
+    "nl": ["vandaag", "taken", "dringend", "achterstallig"],
+    "sw": ["leo", "kazi", "haraka"]
   }
 }

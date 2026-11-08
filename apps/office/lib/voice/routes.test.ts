@@ -650,6 +650,8 @@ it("refuses an unknown end reason without recording it", async () => {
   )
   expect(response.status).toBe(400)
   expect(mocks.failures.flat().join()).not.toContain("dropped")
+})
+
 const discover = (query: string) =>
   toolRequest(
     request({
@@ -752,7 +754,7 @@ it("does not offer the batch tool for words that merely contain 'all'", async ()
   )
 })
 
-const discover = async (query: string) =>
+const discoverIds = async (query: string) =>
   (
     await (
       await toolRequest(
@@ -767,14 +769,14 @@ const discover = async (query: string) =>
   ).tools.map((tool: { id: string }) => tool.id)
 
 it("discovers the price-list import only for staff who may change prices", async () => {
-  expect(await discover("update prices from excel price list")).toContain(
+  expect(await discoverIds("update prices from excel price list")).toContain(
     "assistant_import_prices"
   )
-  expect(await discover("assistant_import_prices")).toEqual([
+  expect(await discoverIds("assistant_import_prices")).toEqual([
     "assistant_import_prices",
   ])
   mocks.authorize.mockResolvedValue({ ...context, permissions: [] })
-  expect(await discover("import spreadsheet")).not.toContain(
+  expect(await discoverIds("import spreadsheet")).not.toContain(
     "assistant_import_prices"
   )
 })

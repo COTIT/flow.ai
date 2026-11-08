@@ -87,6 +87,9 @@ export const ROUTE_SEGMENTS = new Set([
   "vaults",
   "voice",
   "webhooks",
+  "members",
+  "offline",
+  "sw.js",
 ])
 
 /** Route pattern of an Office page; undefined for home, voice pages and route handlers. */
