@@ -10,6 +10,7 @@ Under `/v1/workspace/{workspace}/assistant/sessions`:
 
 - `POST` with `{language: "en" | "nl" | "sw"}` returns 201 `{data: session}`.
 - `GET /{session}` returns 200 `{data: session}`.
+- `GET /{session}?with=identity` returns 200 `{data: session + identity}`, where `identity` is `{workspaces: [uuid], permissions: [string], farm_roles: [string]}`. `workspaces` lists the same ids as `GET /v1/me/workspaces`, in the same order. `permissions` matches this workspace's entry in `GET /v1/me` (sorted grants, then `workspace_owner`). `farm_roles` holds every live farm role in this workspace that `GET /v1/farm/me` lists, ordered `admin`, `ops`, `field_officer`, `farmer`, or `[]` when there are none. Token, ownership and membership rules match the plain `GET` (401, 403 and 404 as above). Any other `with` value returns 422 `errors.with: ["The selected with is invalid."]`. Without `with`, the body is unchanged. The request costs three database statements however many workspaces, teams or roles the caller has: token, membership and one read for session plus identity. Nothing is cached, so a revoked token or removed member is refused on the next call.
 - `DELETE /{session}` closes it and returns its current resource.
 - `POST /{session}/heartbeat` refreshes `last_seen_at`. Send every 30 seconds. It cannot revive an ended session.
 - `POST /{session}/attach` with `{conversation_id}` requires bridge signature. Same reference repeats safely; replacement returns 409.

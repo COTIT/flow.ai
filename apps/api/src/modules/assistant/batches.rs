@@ -15,6 +15,7 @@ use uuid::Uuid;
 pub const BATCH_PROTOCOL_VERSION: i32 = 1;
 
 /// Atomically capture every exact request/material snapshot; none can execute yet.
+#[tracing::instrument(level = "debug", skip_all, fields(steps = draft.actions.len()))]
 pub async fn create(db: &PgPool, o: Owner, draft: BatchDraft) -> Result<Value, AppError> {
     let mut tx = db.begin().await?;
     let session = repo::lock_session(&mut tx, o, draft.session_id)
@@ -67,6 +68,7 @@ pub async fn create(db: &PgPool, o: Owner, draft: BatchDraft) -> Result<Value, A
 }
 
 /// Public batch state reuses the same per-operation read-permission projection.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn get(db: &PgPool, o: Owner, id: Uuid) -> Result<Value, AppError> {
     let row = batches::get(db, o, id).await?.ok_or(AppError::NotFound)?;
     let grants = service::view_grants(db, o).await?;

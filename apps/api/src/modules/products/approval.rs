@@ -28,6 +28,7 @@ pub fn requires_facts(operation: &str) -> bool {
 }
 
 /// Permission precedes every catalog read; public visibility is checked separately.
+#[tracing::instrument(name = "products_capture", level = "debug", skip_all)]
 pub async fn capture(
     conn: &mut PgConnection,
     owner: Owner,

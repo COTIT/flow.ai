@@ -66,7 +66,56 @@ pub async fn session(
     sqlx::query_as!(Session,r#"SELECT id,language,state,conversation_id,expires_at,last_seen_at,(state='active' AND expires_at>now() AND last_seen_at>now()-interval '15 minutes') AS "usable!" FROM assistant_sessions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4"#,o.workspace_id,o.user_id,o.login_id,id).fetch_optional(db).await
 }
 
+/// Owned session plus `/me/workspaces` ids and `/farm/me` roles here, one statement.
+pub async fn session_identity(
+    db: impl PgExecutor<'_>,
+    o: Owner,
+    id: Uuid,
+) -> Result<Option<(Session, Vec<Uuid>, Vec<String>)>, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"SELECT s.id, s.language, s.state, s.conversation_id, s.expires_at, s.last_seen_at,
+                  (s.state='active' AND s.expires_at>now() AND s.last_seen_at>now()-interval '15 minutes') AS "usable!",
+                  ARRAY(SELECT m.workspace_id FROM workspace_members m
+                        JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+                        WHERE m.user_id = s.user_id AND m.active
+                        ORDER BY m.created_at, m.workspace_id) AS "workspaces!",
+                  ARRAY(SELECT f.role FROM farm_memberships f
+                        JOIN workspaces w ON w.id = f.workspace_id AND w.deleted_at IS NULL
+                        WHERE f.user_id = s.user_id AND f.workspace_id = s.workspace_id
+                          AND f.revoked_at IS NULL
+                          AND (f.role = 'farmer' OR EXISTS (
+                                SELECT 1 FROM workspace_members wm
+                                WHERE wm.workspace_id = f.workspace_id AND wm.user_id = f.user_id AND wm.active))
+                        GROUP BY f.role
+                        ORDER BY array_position(ARRAY['admin','ops','field_officer','farmer'], f.role)) AS "farm_roles!"
+           FROM assistant_sessions s
+           WHERE s.workspace_id=$1 AND s.user_id=$2 AND s.login_id=$3 AND s.id=$4"#,
+        o.workspace_id,
+        o.user_id,
+        o.login_id,
+        id
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| {
+        (
+            Session {
+                id: r.id,
+                language: r.language,
+                state: r.state,
+                conversation_id: r.conversation_id,
+                expires_at: r.expires_at,
+                last_seen_at: r.last_seen_at,
+                usable: r.usable,
+            },
+            r.workspaces,
+            r.farm_roles,
+        )
+    }))
+}
+
 /// Serialize quota and task-step allocation on one owned session row.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn lock_session(
     db: &mut PgConnection,
     o: Owner,
@@ -100,6 +149,7 @@ pub async fn attach(
 }
 
 /// Store bounded business draft; session lock makes step ordering stable.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn propose(
     db: &mut PgConnection,
     o: Owner,
@@ -339,6 +389,7 @@ fn projected_outcome(status: i32, evidence: &Value) -> (&'static str, bool) {
 }
 
 /// One bounded lookup for every ordered member; callers project read permissions once.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn batch_actions(
     db: impl PgExecutor<'_>,
     o: Owner,

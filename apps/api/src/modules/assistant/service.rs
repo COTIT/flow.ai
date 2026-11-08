@@ -16,6 +16,25 @@ pub async fn session(db: &PgPool, o: Owner, id: Uuid) -> Result<Session, AppErro
     repo::session(db, o, id).await?.ok_or(AppError::NotFound)
 }
 
+/// Session resource plus `identity`; `permissions` come from the request's access check.
+pub async fn session_with_identity(
+    db: &PgPool,
+    o: Owner,
+    id: Uuid,
+    permissions: Vec<String>,
+) -> Result<Value, AppError> {
+    let (session, workspaces, farm_roles) = repo::session_identity(db, o, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let mut value = session.resource();
+    value["identity"] = serde_json::json!({
+        "workspaces": workspaces,
+        "permissions": permissions,
+        "farm_roles": farm_roles,
+    });
+    Ok(value)
+}
+
 /// New assistant session owned by this login.
 pub async fn create_session(db: &PgPool, o: Owner, language: &str) -> Result<Value, AppError> {
     let id = repo::create_session(db, o, language).await?;
@@ -40,6 +59,7 @@ pub async fn propose(db: &PgPool, o: Owner, input: ProposalInput) -> Result<Valu
 }
 
 /// Session lock is shared by standalone and atomic batch proposal creation.
+#[tracing::instrument(level = "debug", skip_all, fields(operation = %input.operation_id))]
 pub(super) async fn propose_locked(
     conn: &mut sqlx::PgConnection,
     o: Owner,
@@ -121,6 +141,7 @@ pub async fn history(
         .collect())
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub(super) async fn view_grants(
     db: &PgPool,
     o: Owner,
@@ -334,40 +355,57 @@ pub fn request_hash_raw(
     h.finalize().into()
 }
 
-/// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
-pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
-    struct Operation {
-        method: String,
-        path: String,
-        id: String,
-    }
-    static OPS: OnceLock<Result<Vec<Operation>, String>> = OnceLock::new();
-    let ops = OPS
-        .get_or_init(|| {
-            let spec = crate::openapi::spec()
-                .map_err(|_| "assistant operation inventory failed".to_owned())?;
-            let mut ops = Vec::new();
-            if let Some(paths) = spec["paths"].as_object() {
-                for (path, item) in paths {
-                    if let Some(item) = item.as_object() {
-                        for (method, op) in item {
-                            if op["security"]
-                                .as_array()
-                                .is_some_and(|ss| ss.iter().any(|s| s.get("bearer").is_some()))
-                                && let Some(id) = op["operationId"].as_str()
-                            {
-                                ops.push(Operation {
-                                    method: method.to_ascii_uppercase(),
-                                    path: format!("/v1{path}"),
-                                    id: id.to_owned(),
-                                });
-                            }
+/// One documented ordinary-bearer operation.
+struct Operation {
+    method: String,
+    path: String,
+    id: String,
+}
+static OPS: OnceLock<Result<Vec<Operation>, String>> = OnceLock::new();
+
+/// Inventory from the OpenAPI spec, built once per process.
+fn operations() -> &'static Result<Vec<Operation>, String> {
+    OPS.get_or_init(|| {
+        let spec = crate::openapi::spec()
+            .map_err(|_| "assistant operation inventory failed".to_owned())?;
+        let mut ops = Vec::new();
+        if let Some(paths) = spec["paths"].as_object() {
+            for (path, item) in paths {
+                if let Some(item) = item.as_object() {
+                    for (method, op) in item {
+                        if op["security"]
+                            .as_array()
+                            .is_some_and(|ss| ss.iter().any(|s| s.get("bearer").is_some()))
+                            && let Some(id) = op["operationId"].as_str()
+                        {
+                            ops.push(Operation {
+                                method: method.to_ascii_uppercase(),
+                                path: format!("/v1{path}"),
+                                id: id.to_owned(),
+                            });
                         }
                     }
                 }
             }
-            Ok(ops)
-        })
+        }
+        Ok(ops)
+    })
+}
+
+/// Build the inventory at boot; false when the spec could not be read.
+pub fn warm_operations() -> bool {
+    operations().is_ok()
+}
+
+/// True once the inventory is built.
+pub fn operations_ready() -> bool {
+    OPS.get().is_some()
+}
+
+/// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
+    let ops = operations()
         .as_ref()
         .map_err(|_| AppError::Internal("assistant operation inventory failed".into()))?;
     if path.contains("/assistant/")

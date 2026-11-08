@@ -22,6 +22,7 @@ export * from './appKeyResource';
 export * from './appKeyScope';
 export * from './appKeysListParams';
 export * from './assistantActionsListParams';
+export * from './assistantSessionsGetParams';
 export * from './attachInput';
 export * from './availableFields';
 export * from './availableFieldsFields';

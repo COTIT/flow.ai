@@ -53,6 +53,7 @@ pub async fn lock(
     sqlx::query_as!(Batch,r#"SELECT id,session_id,fingerprint,action_count,next_index,state,reason,expires_at,started_at,(expires_at<=clock_timestamp()) AS "expired!",coalesce(run_expires_at<=clock_timestamp(),false) AS "lease_expired!" FROM assistant_batches WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$4 FOR UPDATE"#,o.workspace_id,o.user_id,o.login_id,id).fetch_optional(conn).await
 }
 /// Proposed/approved or live running controllers block another pending review.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn active(db: impl PgExecutor<'_>, o: Owner, session: Uuid) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar!(r#"SELECT EXISTS(SELECT 1 FROM assistant_batches WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND session_id=$4 AND expires_at>clock_timestamp() AND (state IN ('proposed','approved') OR (state='running' AND run_expires_at>clock_timestamp()))) AS "active!""#,o.workspace_id,o.user_id,o.login_id,session).fetch_one(db).await
 }
@@ -76,6 +77,7 @@ pub async fn single_event_used(
     sqlx::query_scalar!(r#"SELECT EXISTS(SELECT 1 FROM assistant_actions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND session_id=$4 AND approval_event_sha256=$5) AS "used!""#,o.workspace_id,o.user_id,o.login_id,session,event).fetch_one(db).await
 }
 /// Insert only inside atomic proposal transaction.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn insert(
     db: impl PgExecutor<'_>,
     o: Owner,
@@ -86,6 +88,7 @@ pub async fn insert(
     sqlx::query_scalar!("INSERT INTO assistant_batches(workspace_id,user_id,login_id,session_id,action_count,fingerprint,expires_at) VALUES($1,$2,$3,$4,$5,$6,least($7,now()+interval '120 seconds')) RETURNING id",o.workspace_id,o.user_id,o.login_id,session,count,&[0u8;32][..],session_expiry).fetch_one(db).await
 }
 /// Membership/order never changes after proposal commit.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn link(
     db: impl PgExecutor<'_>,
     o: Owner,
@@ -96,6 +99,7 @@ pub async fn link(
     Ok(sqlx::query!("UPDATE assistant_actions SET batch_id=$4,batch_index=$6,state='batch_pending',expires_at=(SELECT expires_at FROM assistant_batches WHERE workspace_id=$1 AND id=$4) WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND id=$5 AND state='proposed' AND batch_id IS NULL",o.workspace_id,o.user_id,o.login_id,batch,action,index).execute(db).await?.rows_affected())
 }
 /// Bounded private binding snapshot; never returned before permission projection.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn bindings(
     db: impl PgExecutor<'_>,
     o: Owner,
@@ -104,6 +108,7 @@ pub async fn bindings(
     sqlx::query_as!(Binding,"SELECT id,operation_id,request_hash,review_facts,proposal FROM assistant_actions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND batch_id=$4 ORDER BY batch_index LIMIT 10",o.workspace_id,o.user_id,o.login_id,batch).fetch_all(db).await
 }
 /// Seal actor/login, exact requests/material facts and immutable ordering.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn seal(
     db: impl PgExecutor<'_>,
     o: Owner,
@@ -114,6 +119,7 @@ pub async fn seal(
     Ok(())
 }
 /// Unexpired standalone review cannot be silently absorbed into a batch.
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn standalone_pending(
     db: impl PgExecutor<'_>,
     o: Owner,

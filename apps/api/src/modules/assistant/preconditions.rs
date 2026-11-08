@@ -128,6 +128,7 @@ pub fn check_priced_required(
 }
 
 /// Capture safe domain facts before presenting an immutable approval draft.
+#[tracing::instrument(name = "preconditions_capture", level = "debug", skip_all)]
 pub async fn capture(
     conn: &mut PgConnection,
     owner: Owner,
