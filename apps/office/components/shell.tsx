@@ -215,7 +215,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             </p>
           ) : null}
           <Link
-            href={item.href}
+            href={
+              // The assistant suggests things for the page it was opened from.
+              item.href === "/voice" && pathname !== "/voice"
+                ? `/voice?from=${encodeURIComponent(pathname)}`
+                : item.href
+            }
             onClick={onNavigate}
             aria-current={item.href === active?.href ? "page" : undefined}
             className="group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-foreground outline-none hover:bg-(--glass-subtle) focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:shadow-[0_8px_18px_-10px_rgb(10_24_58/60%)] max-md:h-11"

@@ -29,6 +29,8 @@ import {
 } from "@/lib/voice/batches"
 import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 import { narrate } from "@/lib/voice/narration"
+import { describeCapabilities } from "@/lib/voice/capabilities.server"
+import { asksForPage, openPage, pageTool, PAGE_TOOL } from "@/lib/voice/pages"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -126,9 +128,15 @@ async function handle(request: Request) {
           tools: [],
           reason: "unsupported",
           message:
-            "Recorded for review. Tell the user Genesy can't do this yet.",
+            "Recorded for review. Tell the user Genesy can't do this; never promise it later.",
         })
       }
+      // "What can you do?": curated, permission-filtered capability list (capabilities.ts).
+      if (query === "capabilities")
+        return voiceResponse({
+          tools: [],
+          capabilities: describeCapabilities(context.permissions, language),
+        })
       const found = discoverTools(query, context.permissions)
       if (
         !found.length &&
@@ -137,6 +145,7 @@ async function handle(request: Request) {
           BATCH_STATUS_OPERATION,
           statusTool.id,
         ].includes(query) &&
+        !asksForPage(query) &&
         !/batch|ordered|bulk|several|status|task|pending|last/i.test(query)
       ) {
         // Logged for review: a real gap in Genesy, or a request outside its scope.
@@ -163,6 +172,7 @@ async function handle(request: Request) {
                     ...(/status|task|pending|last/i.test(query)
                       ? [statusTool]
                       : []),
+                    ...(asksForPage(query) ? [pageTool] : []),
                   ],
         domains: [
           ...new Set(
@@ -262,6 +272,12 @@ async function handle(request: Request) {
     }
     if (input.command !== "execute")
       throw new VoiceError("Unknown assistant command.")
+    if (input.operationId === PAGE_TOOL) {
+      if (files.size) throw new VoiceError("Office pages do not accept files.")
+      return voiceResponse(
+        openPage(argumentsValue, context.permissions, language)
+      )
+    }
     const operationId = String(input.operationId ?? "")
     const operation = getOperation(operationId)
     if (

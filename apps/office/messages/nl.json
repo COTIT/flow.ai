@@ -1313,6 +1313,181 @@
     "currentWorkspace": "Huidige werkruimte",
     "yes": "Ja",
     "no": "Nee",
-    "otherField": "Veld: {name}"
+    "otherField": "Veld: {name}",
+    "suggestions": "Suggesties",
+    "tryPrompt": "Probeer: “{prompt}”",
+    "pagesHint": "Ik kan ook de juiste Office-pagina voor je openen.",
+    "capabilityGroups": {
+      "invoices": "Facturen",
+      "orders": "Bestellingen",
+      "products": "Producten",
+      "stock": "Voorraad",
+      "till": "Kassa",
+      "settings": "Team"
+    },
+    "capabilities": {
+      "open_invoices": {
+        "label": "Openstaande facturen",
+        "prompt": "Welke facturen staan nog open?"
+      },
+      "email_invoice": {
+        "label": "Factuur mailen",
+        "prompt": "Mail deze factuur naar de klant"
+      },
+      "resend_invoice": {
+        "label": "Factuur opnieuw sturen",
+        "prompt": "Stuur een factuur opnieuw naar de klant"
+      },
+      "record_payment": {
+        "label": "Betaling vastleggen",
+        "prompt": "Leg een betaling vast op een factuur"
+      },
+      "create_order": {
+        "label": "Bestelling maken",
+        "prompt": "Maak een nieuwe bestelling"
+      },
+      "weekly_sales": {
+        "label": "Verkoop deze week",
+        "prompt": "Hoeveel hebben we deze week verkocht?"
+      },
+      "todays_orders": {
+        "label": "Bestellingen van vandaag",
+        "prompt": "Toon de bestellingen van vandaag"
+      },
+      "invoice_order": {
+        "label": "Bestelling factureren",
+        "prompt": "Maak de factuur voor deze bestelling"
+      },
+      "change_price": {
+        "label": "Prijs wijzigen",
+        "prompt": "Wijzig de prijs van een product"
+      },
+      "find_product": {
+        "label": "Product zoeken",
+        "prompt": "Zoek een product op naam"
+      },
+      "check_stock": {
+        "label": "Voorraad bekijken",
+        "prompt": "Hoeveel voorraad hebben we van een product?"
+      },
+      "below_zero": {
+        "label": "Voorraad onder nul",
+        "prompt": "Welke producten staan onder nul?"
+      },
+      "add_stock": {
+        "label": "Voorraad toevoegen",
+        "prompt": "Voeg voorraad toe voor dit product"
+      },
+      "till_sales": {
+        "label": "Kassaverkoop vandaag",
+        "prompt": "Toon de kassaverkoop van vandaag"
+      },
+      "invite_colleague": {
+        "label": "Collega uitnodigen",
+        "prompt": "Nodig een collega uit voor het team"
+      },
+      "team_members": {
+        "label": "Teamleden",
+        "prompt": "Wie zit er in mijn team?"
+      }
+    },
+    "pages": {
+      "overview": {
+        "name": "Overzicht",
+        "purpose": "Samenvatting van vandaag"
+      },
+      "products": {
+        "name": "Producten",
+        "purpose": "Productlijst: namen, prijzen en details"
+      },
+      "product": {
+        "name": "Product",
+        "purpose": "Eén product: prijs, maten en details wijzigen"
+      },
+      "categories": {
+        "name": "Categorieën",
+        "purpose": "Productcategorieën"
+      },
+      "stock": {
+        "name": "Voorraad",
+        "purpose": "Voorraad per product en plek"
+      },
+      "stock_negative": {
+        "name": "Voorraad onder nul",
+        "purpose": "Producten met voorraad onder nul"
+      },
+      "orders": {
+        "name": "Bestellingen",
+        "purpose": "Alle bestellingen"
+      },
+      "order": {
+        "name": "Bestelling",
+        "purpose": "Eén bestelling en haar regels"
+      },
+      "invoices": {
+        "name": "Facturen",
+        "purpose": "Alle facturen en hun status"
+      },
+      "invoice": {
+        "name": "Factuur",
+        "purpose": "Eén factuur: versturen, betalingen vastleggen"
+      },
+      "lots": {
+        "name": "Partijen",
+        "purpose": "Partijen geoogste producten"
+      },
+      "lot": {
+        "name": "Partij",
+        "purpose": "Eén partij en haar geschiedenis"
+      },
+      "supply": {
+        "name": "Aanvoer",
+        "purpose": "Aanvoer van partnerwerkruimtes"
+      },
+      "supply_links": {
+        "name": "Aanvoerkoppelingen",
+        "purpose": "Koppelingen met partnerwerkruimtes"
+      },
+      "supply_transfers": {
+        "name": "Aanvoeroverdrachten",
+        "purpose": "Goederen verplaatst tussen partnerwerkruimtes"
+      },
+      "till_sales": {
+        "name": "Kassaverkopen",
+        "purpose": "Verkopen aan de kassa"
+      },
+      "till_shifts": {
+        "name": "Kassadiensten",
+        "purpose": "Kassadiensten en kastellingen"
+      },
+      "till_registers": {
+        "name": "Kassa's",
+        "purpose": "Kassa's en hun koppeling"
+      },
+      "till_users": {
+        "name": "Kassagebruikers",
+        "purpose": "Mensen die de kassa mogen gebruiken"
+      },
+      "till_vaults": {
+        "name": "Kluizen",
+        "purpose": "Kluizen voor contant geld"
+      },
+      "invites": {
+        "name": "Uitnodigingen",
+        "purpose": "Collega's uitnodigen voor de werkruimte"
+      },
+      "app_keys": {
+        "name": "App-sleutels",
+        "purpose": "Sleutels voor gekoppelde apps"
+      },
+      "webhooks": {
+        "name": "Webhooks",
+        "purpose": "Webhook-adressen voor koppelingen"
+      },
+      "search": {
+        "name": "Zoeken",
+        "purpose": "Zoeken in de hele werkruimte"
+      }
+    }
   }
 }
