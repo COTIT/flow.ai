@@ -553,12 +553,28 @@ jobs:
           path: ~/.cache/trivy
           key: trivy-db-${{ steps.day.outputs.day }}
           restore-keys: trivy-db-
+      - id: trivy-tool
+        if: steps.plan.outputs.mode == 'build'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/trivy.tgz
+          key: trivy-tool-linux-amd64-${{ env.TRIVY_VERSION }}-${{ env.TRIVY_SHA256 }}
       - name: Install Trivy
         if: steps.plan.outputs.mode == 'build'
         run: |
-          wget -qO "$RUNNER_TEMP/trivy.tgz" "https://github.com/aquasecurity/trivy/releases/download/v$TRIVY_VERSION/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          if [ ! -f "$RUNNER_TEMP/trivy.tgz" ]; then
+            curl --ipv4 --fail --location --show-error --silent --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 60 --retry-max-time 180 \
+              --output "$RUNNER_TEMP/trivy.tgz" \
+              "https://github.com/aquasecurity/trivy/releases/download/v$TRIVY_VERSION/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          fi
           echo "$TRIVY_SHA256  $RUNNER_TEMP/trivy.tgz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/trivy.tgz" -C "$RUNNER_TEMP" trivy
+      - if: steps.plan.outputs.mode == 'build' && steps.trivy-tool.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/trivy.tgz
+          key: trivy-tool-linux-amd64-${{ env.TRIVY_VERSION }}-${{ env.TRIVY_SHA256 }}
       # Every image of the group is scanned before any is pushed. Accepted findings: .trivyignore.
       - name: Scan (HIGH or CRITICAL with a fix fails) and write SBOMs
         if: steps.plan.outputs.mode == 'build'
