@@ -117,8 +117,6 @@ type VoiceContextValue = {
   inputLevel: () => number
   /** Agent playback level 0..1 (SDK output analyser); drives the avatar while speaking. */
   outputLevel: () => number
-  /** Human progress labels for the current task, shown while thinking/executing. */
-  steps: string[]
   stopSpeaking: () => void
   send: (text: string) => Promise<boolean>
   activity: () => void
@@ -1455,7 +1453,6 @@ function Session({ children }: { children: ReactNode }) {
         pauseCapture,
         inputLevel: conversation.getInputVolume,
         outputLevel: conversation.getOutputVolume,
-        steps: [],
         stopSpeaking: () => conversation.sendUserActivity(),
         send,
         activity: () => conversation.sendUserActivity(),

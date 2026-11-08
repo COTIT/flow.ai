@@ -119,6 +119,8 @@ export function VoiceDesignPreview() {
       recoveredTasks: [],
       checkingRecovery: false,
       recoveredReview: false,
+      progress: null,
+      narration: "",
       steps:
         state === "thinking"
           ? ["Finding the product", "Checking current stock", "Preparing the review"].slice(
