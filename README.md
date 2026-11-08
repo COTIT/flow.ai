@@ -116,7 +116,7 @@ Browser tests run across eight jobs with three workers each. Each builds its own
 
 Image preparation starts alongside checks: production API, staging API and web are separate producers. They push only ci-<run-id>-<attempt> candidates after smoke tests and vulnerability scans. The two images checks validate all producer manifests and publish commit-SHA tags by immutable digest after every gate passes. Unchanged image groups reuse digests from the last green commit. A partial publication is a failed release; always require a green main workflow before deploying.
 
-Clippy and test dependency caches have separate keys and one writer each. Stack caches remain separate. The web quality job writes the pnpm cache; browser shards only restore it. Both API image variants export their own GHCR layer caches. Project test results are not persisted as a shortcut around executing tests.
+Clippy and test dependency caches have separate keys and one writer each. Stack caches remain separate. The web quality job writes the pnpm cache; browser shards only restore it. Both API image variants export their own GHCR layer caches. Trivy comes from its digest-pinned official container image; its binary SHA-256 is verified after extraction and every cache restore. Project test results are not persisted as a shortcut around executing tests.
 
 Producer manifests last seven days. Failed-job reruns can reuse earlier successful producers from the same run and commit. Full reruns select the newest producer attempt. Missing or expired manifests require a full workflow rerun. Candidate cleanup is deferred because candidate and release tags can share the same package version.
 

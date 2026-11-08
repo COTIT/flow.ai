@@ -493,7 +493,9 @@ jobs:
       TRAEFIK_CERTRESOLVER: unused
       MAIL_FROM: unused
       TRIVY_VERSION: 0.76.0
-      TRIVY_SHA256: e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
+      TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+      # Identical to the binary in the SHA-verified upstream release archive.
+      TRIVY_BINARY_SHA256: 1f889576636db0623539cb339df7d06c40ebf39e7919489eafa1160e29808f19
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -557,29 +559,28 @@ jobs:
         if: steps.plan.outputs.mode == 'build'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/trivy.tgz
-          key: trivy-tool-linux-amd64-${{ env.TRIVY_VERSION }}-${{ env.TRIVY_SHA256 }}
+          path: ${{ runner.temp }}/trivy
+          key: trivy-tool-linux-amd64-${{ env.TRIVY_VERSION }}-${{ env.TRIVY_BINARY_SHA256 }}
       - name: Install Trivy
         if: steps.plan.outputs.mode == 'build'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ ! -f "$RUNNER_TEMP/trivy.tgz" ]; then
+          if [ ! -f "$RUNNER_TEMP/trivy" ]; then
             for attempt in 1 2 3; do
-              if timeout 60 gh release download "v$TRIVY_VERSION" --repo aquasecurity/trivy \
-                --pattern "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-                --output "$RUNNER_TEMP/trivy.tgz" --clobber; then break; fi
+              if timeout 60 docker pull --platform linux/amd64 "$TRIVY_IMAGE"; then break; fi
               [ "$attempt" != 3 ] || exit 1
               sleep 2
             done
+            trivy_container="$(docker create --platform linux/amd64 "$TRIVY_IMAGE")"
+            trap 'docker rm -f "$trivy_container" > /dev/null' EXIT
+            docker cp "$trivy_container:/usr/local/bin/trivy" "$RUNNER_TEMP/trivy"
           fi
-          echo "$TRIVY_SHA256  $RUNNER_TEMP/trivy.tgz" | sha256sum -c -
-          tar -xzf "$RUNNER_TEMP/trivy.tgz" -C "$RUNNER_TEMP" trivy
+          echo "$TRIVY_BINARY_SHA256  $RUNNER_TEMP/trivy" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/trivy"
       - if: steps.plan.outputs.mode == 'build' && steps.trivy-tool.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/trivy.tgz
-          key: trivy-tool-linux-amd64-${{ env.TRIVY_VERSION }}-${{ env.TRIVY_SHA256 }}
+          path: ${{ runner.temp }}/trivy
+          key: trivy-tool-linux-amd64-${{ env.TRIVY_VERSION }}-${{ env.TRIVY_BINARY_SHA256 }}
       # Every image of the group is scanned before any is pushed. Accepted findings: .trivyignore.
       - name: Scan (HIGH or CRITICAL with a fix fails) and write SBOMs
         if: steps.plan.outputs.mode == 'build'
