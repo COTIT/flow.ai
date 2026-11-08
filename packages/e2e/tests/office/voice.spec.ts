@@ -894,6 +894,7 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
     let commits = 0
     let userMessages = 0
     let nativeResult: unknown
+    const interims: unknown[] = []
     const actionId = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
     const finalMessage =
       finalStatus === "completed"
@@ -1020,8 +1021,30 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
           )
         }
         if (event.type === "client_tool_result") {
-          if (event.tool_call_id === "watch-one") {
-            nativeResult = JSON.parse(event.result)
+          const watched = event.tool_call_id.startsWith("watch-one")
+            ? JSON.parse(event.result)
+            : undefined
+          if (watched?.status === "running") {
+            interims.push(watched)
+            socket.send(
+              JSON.stringify({
+                type: "client_tool_call",
+                client_tool_call: {
+                  tool_name: "execute_genesy_tool",
+                  tool_call_id: "watch-one-again",
+                  parameters: {
+                    operation_id: event.tool_call_id.startsWith("batch")
+                      ? "assistant_batch_status"
+                      : "assistant_task_status",
+                    arguments_json: JSON.stringify({ actionId, wait: true }),
+                  },
+                },
+              })
+            )
+            return
+          }
+          if (watched) {
+            nativeResult = watched
             expect(nativeResult).toMatchObject({
               status: finalStatus,
               message: finalMessage,
@@ -1030,7 +1053,7 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
               JSON.stringify({
                 type: "agent_response",
                 agent_response_event: {
-                  agent_response: `Recorded result: ${finalMessage}`,
+                  agent_response: `[happy] Recorded result: ${finalMessage}`,
                   event_id: 10,
                 },
               })
@@ -1136,6 +1159,19 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
     await expect.poll(() => nativeResult).toMatchObject({ status: finalStatus })
     await expect(page.getByRole("log")).toContainText(
       `Recorded result: ${finalMessage}`
+    )
+    // Expressive voice tags shape speech only; the transcript never shows them.
+    await expect(page.getByRole("log")).not.toContainText("[happy]")
+    // Approval releases the agent's wait so it can say it is finalizing.
+    expect(interims).toEqual(
+      approved
+        ? [
+            expect.objectContaining({
+              status: "running",
+              narration: expect.stringContaining("finalizing"),
+            }),
+          ]
+        : []
     )
     expect(userMessages).toBe(1)
     expect(commits).toBe(approved ? 1 : 0)
@@ -1344,9 +1380,28 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
         }
         if (
           event.type === "client_tool_result" &&
-          event.tool_call_id === "batch-watch"
+          event.tool_call_id.startsWith("batch-watch")
         ) {
-          nativeResult = JSON.parse(event.result)
+          const watched = JSON.parse(event.result)
+          if (watched.status === "running") {
+              socket.send(
+                JSON.stringify({
+                  type: "client_tool_call",
+                  client_tool_call: {
+                    tool_name: "execute_genesy_tool",
+                    tool_call_id: "batch-watch-again",
+                    parameters: {
+                      operation_id: event.tool_call_id.startsWith("batch")
+                        ? "assistant_batch_status"
+                        : "assistant_task_status",
+                      arguments_json: JSON.stringify({ batchId, wait: true }),
+                    },
+                  },
+                })
+              )
+            return
+          }
+          nativeResult = watched
           socket.send(
             JSON.stringify({
               type: "agent_response",
@@ -1367,6 +1422,14 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
     await page.getByRole("button", { name: "Send", exact: true }).click()
     const review = page.getByRole("dialog", { name: "Review action" })
     await expect(review).toBeVisible()
+    // One row per step, numbered in the reviewed order, none hidden.
+    const rows = review.locator('.voice-review-list [role="option"]')
+    await expect(rows).toHaveCount(3)
+    for (let i = 0; i < 3; i++) {
+      await expect(rows.nth(i)).toBeVisible()
+      await expect(rows.nth(i)).toContainText(`${i + 1}.`)
+      await expect(rows.nth(i)).toContainText(`Batch line ${i + 1}`)
+    }
     for (const value of [
       "Reviewed step 1",
       "Reviewed step 2",
@@ -2504,6 +2567,7 @@ test("only the final user transcript naming the current action code can approve"
   let prepare = 0
   let commits = 0
   let spokenOutcome: unknown
+  let lastActionId: unknown
   let emit: (event: Record<string, unknown>) => void = () => {
     throw new Error("conversation not connected")
   }
@@ -2614,6 +2678,22 @@ test("only the final user transcript naming the current action code can approve"
       if (event.type === "client_tool_result") {
         const result = JSON.parse(event.result)
         if (String(event.tool_call_id).startsWith("spoken-watch")) {
+          // Approval releases the wait with "running"; the agent waits again for the verified result.
+          if (result.status === "running")
+            emit({
+              type: "client_tool_call",
+              client_tool_call: {
+                tool_name: "execute_genesy_tool",
+                tool_call_id: `${event.tool_call_id}-again`,
+                parameters: {
+                  operation_id: "assistant_task_status",
+                  arguments_json: JSON.stringify({
+                    actionId: lastActionId,
+                    wait: true,
+                  }),
+                },
+              },
+            })
           if (["completed", "unknown"].includes(result.status)) {
             spokenOutcome = result
             emit({
@@ -2634,6 +2714,7 @@ test("only the final user transcript naming the current action code can approve"
           "status",
         ])
         expect(event.result).not.toContain("spoken-ticket")
+        lastActionId = result.actionId
         expect(event.result).not.toContain("Exact reviewed order")
         // Even an agent response containing the challenge cannot approve an action.
         emit({

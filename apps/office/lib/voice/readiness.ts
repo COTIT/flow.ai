@@ -3,6 +3,7 @@ import pg from "pg"
 import { assistantEnabled, assistantWorkspaces } from "./admission"
 import { readBounded } from "./bridge"
 import { voiceSetting } from "./settings"
+import { voiceCheckpointer } from "./checkpoint"
 
 type Check = "configuration" | "provider" | "checkpoint" | "backend"
 export type AssistantReadiness = {
@@ -200,6 +201,8 @@ async function inspect(): Promise<AssistantReadiness> {
     checks.provider = results[0].status === "fulfilled"
     checks.checkpoint = results[1].status === "fulfilled" && results[1].value
     checks.backend = results[2].status === "fulfilled" && results[2].value
+    // Warm the shared pool before the first review; failures stay private.
+    if (checks.checkpoint) await voiceCheckpointer().catch(() => undefined)
   } catch {
     /* Configuration details stay private; readiness returns booleans only. */
   }

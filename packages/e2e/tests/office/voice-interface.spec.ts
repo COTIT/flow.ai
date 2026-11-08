@@ -101,6 +101,9 @@ test("assistant opens as a full-screen overlay with plain transcripts and keyboa
     "data-animate",
     "false"
   )
+  // Reduced motion: no animated strands, the three still brand rings instead.
+  await expect(page.locator("[data-motion]")).toHaveCount(0)
+  await expect(overlay.locator("[data-voice-orb] > span")).toHaveCount(3)
   const orb = await overlay.locator("[data-voice-orb]").boundingBox()
   expect(Math.abs(orb!.x + orb!.width / 2 - viewport.width / 2)).toBeLessThan(1)
   await expect(
@@ -144,7 +147,13 @@ for (const textOnly of [true, false]) {
         exact: true,
       })
       .click()
-    await expect(page.getByLabel(en.voice.message)).toBeVisible()
+    // The composer is for text mode; voice mode keeps the camera for references.
+    await expect(page.getByLabel(en.voice.message)).toHaveCount(
+      textOnly ? 1 : 0
+    )
+    await expect(
+      page.getByRole("button", { name: en.voice.takePhoto, exact: true })
+    ).toBeVisible()
     if (textOnly) {
       await page.getByLabel(en.voice.message).fill("Check stock")
       await page
@@ -159,8 +168,13 @@ for (const textOnly of [true, false]) {
         },
       })
     const activity = page.locator("[data-voice-activity]")
+    const thinking = page.getByRole("log").locator("[data-voice-thinking]")
     await expect(activity).toHaveAttribute("data-state", "thinking")
     await expect(activity).toHaveAttribute("aria-busy", "true")
+    // While pending, the thinking line in the chat shows it; the status stays for screen readers.
+    await expect(activity).toHaveClass(/\bsr-only\b/)
+    await expect(thinking).toBeVisible()
+    await expect(thinking).toContainText(en.voice.activity.thinking)
     if (textOnly)
       await page.screenshot({
         path: testInfo.outputPath("assistant-thinking.png"),
@@ -168,10 +182,13 @@ for (const textOnly of [true, false]) {
       })
     native.call()
     await expect(activity).toHaveAttribute("data-state", "executing")
+    await expect(thinking).toContainText(en.voice.activity.executing)
     native.reply("I am checking the stock.")
     await expect(activity).toHaveAttribute("data-state", "executing")
     release()
     await expect(activity).toHaveAttribute("data-state", "completed")
+    await expect(thinking).toHaveCount(0)
+    await expect(activity).not.toHaveClass(/\bsr-only\b/)
     await expect(
       page.getByRole("region", { name: en.voice.currentTask, exact: true })
     ).toContainText("Cocoa")
@@ -339,6 +356,12 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
     })
     await expect(review).toBeVisible()
     await expect(review).toHaveAttribute("data-side", "right")
+    // One row per reviewed field, in the order the server sent them, none hidden.
+    const rows = review.locator('.voice-review-list [role="option"]')
+    await expect(rows).toHaveCount(4)
+    for (let i = 0; i < 4; i++) await expect(rows.nth(i)).toBeVisible()
+    await expect(rows.nth(2)).toContainText("Cocoa")
+    await expect(rows.nth(3)).toContainText("2.00")
     await expect(review).toContainText("Cocoa")
     await expect(review).toContainText("COC-01")
     await expect(review).toContainText("2.00")
@@ -376,3 +399,205 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
     await expectFits(page)
   })
 }
+
+test("text composer has only the message box, Attach and Send, and chat bubbles sit by role", async ({
+  page,
+  api,
+}) => {
+  emptyOverview(api)
+  const native = await nativeConversation(page)
+  native.onUserMessage(() => native.reply("Here is the stock."))
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  const box = page.getByRole("textbox", { name: en.voice.message, exact: true })
+  await expect(box).toBeVisible()
+  for (const name of ["Choose model", "Choose effort", "Dictate"])
+    await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0)
+  await page
+    .getByRole("button", { name: en.voice.addFiles, exact: true })
+    .click()
+  const menu = page.getByRole("listbox", {
+    name: en.voice.addFiles,
+    exact: true,
+  })
+  await expect(menu.getByRole("option")).toHaveCount(1)
+  await expect(menu.getByRole("option")).toContainText(en.voice.attach)
+  await page.keyboard.press("Escape")
+  await expect(menu).toHaveCount(0)
+  await expectFits(page)
+  await box.fill("Check stock")
+  await page.getByRole("button", { name: en.voice.send, exact: true }).click()
+  const log = page.getByRole("log")
+  const user = log.locator('[data-role="user"]').last()
+  const agent = log.locator('[data-role="agent"]').last()
+  await expect(user).toContainText("Check stock")
+  await expect(agent).toContainText("Here is the stock.")
+  await expect(box).toHaveValue("")
+  const area = (await log.boundingBox())!
+  const mine = (await user.boundingBox())!
+  const theirs = (await agent.boundingBox())!
+  // User on the right, assistant on the left (4 px log padding, no scrollbar room needed).
+  expect(area.x + area.width - (mine.x + mine.width)).toBeLessThan(12)
+  expect(mine.x - area.x).toBeGreaterThan(12)
+  expect(theirs.x - area.x).toBeLessThan(12)
+  await expectFits(page)
+  await page.getByRole("button", { name: en.voice.end, exact: true }).click()
+})
+
+test("with motion allowed the avatar is the bare animated strands, without the still rings", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  await page.goto("/voice")
+  const orb = page.locator("[data-voice-orb]")
+  await expect(orb.locator("[data-motion]")).toHaveCount(1)
+  await expect(orb.locator(":scope > span:not([data-motion])")).toHaveCount(0)
+  await expect(orb).toHaveCSS("background-image", "none")
+})
+
+// shortcut: needs sibling session C (tool responses carry `steps`, provider exposes them as
+// `voice.steps`); turn on once C is merged.
+test.fixme("thinking line lists the task steps while an approved task runs", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "steps-action" },
+            steps: ["Checking: products", "Preparing your review"],
+            review: {
+              ticket: "steps-ticket",
+              operationId: "products_update",
+              method: "PATCH",
+              summary: "Update product",
+              details: { quantity: "2.00" },
+              confirmationCode: "135790",
+              confirmationPhrase: "Confirm action 135790",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route("**/api/voice/confirm", async (route) => {
+    await gate
+    return route.fulfill({
+      json: { status: "completed", steps: ["Running it now", "Finalizing"] },
+    })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  native.call("products_update")
+  const review = page.getByRole("dialog", {
+    name: en.voice.review,
+    exact: true,
+  })
+  await review
+    .getByRole("button", { name: en.voice.approve, exact: true })
+    .click()
+  const thinking = page.getByRole("log").locator("[data-voice-thinking]")
+  await expect(thinking).toContainText("Running it now")
+  release()
+  await expect(thinking).toHaveCount(0)
+})
+
+test("the design preview route is not served by the production build", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  // The app shell streams first, so the status stays 200; the page itself is "not found".
+  await page.goto("/voice/design")
+  await expect(
+    page.getByText(en.states.pageNotFound, { exact: true })
+  ).toBeVisible()
+  await expect(page.locator("[data-design-switcher]")).toHaveCount(0)
+  await expect(page.getByRole("dialog", { name: en.voice.title })).toHaveCount(
+    0
+  )
+})
+
+test("a long review keeps every row reachable by scrolling the sheet, none hidden in the list", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  const details = Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [`field_${i + 1}`, `Value ${i + 1}`])
+  )
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "long-action" },
+            review: {
+              ticket: "long-ticket",
+              operationId: "products_update",
+              method: "PATCH",
+              summary: "Update product",
+              details,
+              confirmationCode: "112233",
+              confirmationPhrase: "Confirm action 112233",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("products_update")
+  const review = page.getByRole("dialog", {
+    name: en.voice.review,
+    exact: true,
+  })
+  const rows = review.locator('.voice-review-list [role="option"]')
+  await expect(rows).toHaveCount(12)
+  // The list has no scrollbar of its own, so it must not clip rows; the sheet scrolls instead.
+  const list = review.locator('.voice-review-list [role="listbox"]')
+  expect(
+    await list.evaluate((el) => el.scrollHeight - el.clientHeight)
+  ).toBeLessThanOrEqual(1)
+  for (let i = 0; i < 12; i++) {
+    const row = rows.nth(i)
+    await row.scrollIntoViewIfNeeded()
+    await expect(row).toBeInViewport()
+    await expect(row).toContainText(`Value ${i + 1}`)
+    // Revealed, not left at the list's hidden pose.
+    await expect
+      .poll(() =>
+        row.evaluate((el) => {
+          let shown = 1
+          for (let node: Element | null = el; node; node = node.parentElement) {
+            shown *= Number(getComputedStyle(node).opacity)
+            if (node.getAttribute("role") === "listbox") break
+          }
+          return shown
+        })
+      )
+      .toBe(1)
+  }
+  await expect(
+    review.getByRole("button", { name: en.voice.approve, exact: true })
+  ).toBeInViewport()
+  await expectFits(page)
+})

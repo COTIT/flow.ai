@@ -2170,3 +2170,10 @@ fn assistant_coverage_record_contains_only_operation_status_and_test_identity() 
             .is_none()
     );
 }
+
+/// Boot fills the assistant operation inventory: first proposal after deploy skips the spec build.
+#[tokio::test]
+async fn boot_warm_up_builds_assistant_operation_inventory() {
+    genesy_360_api::warm_up().await;
+    assert!(genesy_360_api::assistant_operations_ready());
+}

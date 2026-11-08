@@ -1,12 +1,22 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Mic } from "lucide-react"
-import { useMotionAllowed } from "@genesy/ui/components/island"
+import { island, useMotionAllowed } from "@genesy/ui/components/island"
 import { useVoice } from "./provider"
 import { voiceMotionActive } from "./motion"
 
-/** Lightweight brand rings keep request feedback responsive without a WebGL context. */
+// React Bits Strands (WebGL2) is fetched lazily; the brand rings below stay as the still version.
+const Strands = island(() => import("./strands"))
+const COLORS = ["#efc977", "#6fd6dd", "#f9dd8c"]
+const rings = (
+  <>
+    <span />
+    <span />
+    <span />
+  </>
+)
+
+/** Audio-reactive avatar: strands swell with the agent's voice, breathe while listening. */
 export function StrandsStatus() {
   const {
     connected,
@@ -15,6 +25,7 @@ export function StrandsStatus() {
     capturePaused,
     speaking,
     inputLevel,
+    outputLevel,
     thinking,
     requesting,
     busy,
@@ -22,6 +33,7 @@ export function StrandsStatus() {
   const element = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const [moving, setMoving] = useState(false)
+  const [level, setLevel] = useState(0)
   const lastInput = useRef<number | null>(null)
   const motionAllowed = useMotionAllowed()
   useEffect(() => {
@@ -52,11 +64,18 @@ export function StrandsStatus() {
     !textOnly &&
     !muted &&
     !capturePaused
+  const live = visible && motionAllowed && connected
   useEffect(() => {
-    if (!canListen) return
-    const sample = () => {
-      const now = Date.now()
-      if (inputLevel() > 0.015) lastInput.current = now
+    if (!live) return
+    let frame = 0
+    let last = 0
+    const sample = (now: number) => {
+      frame = requestAnimationFrame(sample)
+      if (now - last < 33) return // ~30 fps is plenty for the strands
+      last = now
+      const input = canListen ? inputLevel() : 0
+      if (input > 0.015) lastInput.current = Date.now()
+      setLevel(speaking ? outputLevel() : input)
       setMoving(
         voiceMotionActive(
           {
@@ -67,29 +86,56 @@ export function StrandsStatus() {
             speaking,
             lastInputAt: lastInput.current,
           },
-          now
+          Date.now()
         )
       )
     }
-    sample()
-    const timer = setInterval(sample, 200)
-    return () => clearInterval(timer)
-  }, [canListen, visible, connected, textOnly, muted, speaking, inputLevel])
+    frame = requestAnimationFrame(sample)
+    return () => cancelAnimationFrame(frame)
+  }, [
+    live,
+    canListen,
+    visible,
+    connected,
+    textOnly,
+    muted,
+    speaking,
+    inputLevel,
+    outputLevel,
+  ])
+  const working = thinking || requesting || busy
   return (
     <div
       ref={element}
       data-voice-orb=""
       aria-hidden="true"
       data-animate={visible && motionAllowed && !muted && !capturePaused}
-      data-active={
-        thinking || requesting || busy || speaking || (canListen && moving)
-      }
-      className="voice-orb relative mx-auto grid size-40 shrink-0 place-items-center rounded-full sm:size-56"
+      data-active={working || speaking || (canListen && moving)}
+      className="voice-orb relative mx-auto size-64 shrink-0 sm:size-80"
     >
-      <span />
-      <span />
-      <span />
-      <Mic className="relative size-7 text-foreground/80" />
+      {/* Off screen or in a hidden tab the GPU rests: the still rings stand in. */}
+      {visible ? (
+        <Strands
+          colors={COLORS}
+          count={3}
+          glass
+          intensity={1.4}
+          saturation={1.3}
+          glow={1.2}
+          thickness={1.1}
+          speed={working ? 1.6 : 1}
+          energy={working ? 0.85 : speaking ? 0.7 : 0.45}
+          listening={canListen && !speaking}
+          level={live && (speaking || canListen) ? level : undefined}
+          intro={false}
+          interactive={false}
+          clickPulse={false}
+          className="absolute inset-0"
+          plain={rings}
+        />
+      ) : (
+        rings
+      )}
     </div>
   )
 }

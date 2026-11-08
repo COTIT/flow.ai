@@ -1,12 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
-import { Camera, FileText, Paperclip, Send, Trash2, X } from "lucide-react"
+import {
+  Camera,
+  ClipboardList,
+  FileText,
+  Paperclip,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react"
+import AnimatedList from "@/components/rb/AnimatedList"
+import PromptBar from "@/components/rb/PromptBar"
 import { Button } from "@genesy/ui/components/button"
-import { Textarea } from "@genesy/ui/components/textarea"
 import { Notice } from "@genesy/ui/components/notice"
 import {
   Dialog,
@@ -22,36 +31,22 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@genesy/ui/components/sheet"
-import { VoiceActivity } from "./activity"
+import { VoiceActivity, VoiceThinking } from "./activity"
 import {
   displayReferences,
   displayText,
+  composerReady,
+  internalFields,
   operationLabel,
+  reviewRows,
   type DisplayReferences,
 } from "./presentation"
-import type { VoiceReviewStep } from "@/lib/voice/client-contract"
+import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
 import { ATTACHMENT_ACCEPT, referenceSize, taskPresentation } from "./helpers"
 import { useVoice } from "./provider"
 import { VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
 import type { BatchProgress } from "./continuity"
-
-const internalFields = new Set([
-  "actionId",
-  "batchId",
-  "sessionId",
-  "operationId",
-  "operation_id",
-  "ticket",
-  "confirmationCode",
-  "bodySha256",
-  "body_sha256",
-  "sha256",
-  "fingerprint",
-  "digest",
-  "httpStatus",
-  "recoverable",
-])
 
 function ReviewTitle({
   review,
@@ -77,6 +72,67 @@ function ReviewTitle({
   )
 }
 
+/** The review card: every thing the agent will do, one row each, popping in one after another. */
+function ReviewList({ review }: { review: VoiceReview }) {
+  const labels = useTranslations("voice.reviewFields")
+  // The list measures its rows on mount; mount it once the sheet has slid into view.
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 320)
+    return () => clearTimeout(timer)
+  }, [review.ticket])
+  // Same array identity per review: a new array restarts the list's reveal animation.
+  const rows = useMemo(() => {
+    const references = displayReferences(review.details)
+    return reviewRows(review).map((row) =>
+      row.kind === "step"
+        ? {
+            id: row.id,
+            icon: <ClipboardList aria-hidden className="size-4" />,
+            title: (
+              <>
+                {row.number}. <ReviewTitle review={row.step} />
+              </>
+            ),
+            description: <Details value={row.step.details} />,
+          }
+        : {
+            id: row.id,
+            title: labels.has(row.key) ? labels(row.key) : row.key,
+            description: (
+              <Details
+                value={row.value}
+                references={references}
+                field={row.key}
+              />
+            ),
+          }
+    )
+  }, [review, labels])
+  if (!rows.length) return <Details value={review.details} />
+  if (!ready) return null
+  return (
+    <AnimatedList
+      items={rows}
+      animation="pop"
+      stagger={0.07}
+      selectOnHover
+      enableArrowNavigation={false}
+      frame={false}
+      showGradients={false}
+      displayScrollbar={false}
+      theme="dark"
+      accentColor="var(--gold)"
+      radius={14}
+      gap={8}
+      width="100%"
+      // Unbounded: the sheet body scrolls, so no row hides behind a list with no scrollbar.
+      maxHeight="none"
+      className="voice-review-list"
+    />
+  )
+}
+
 function Details({
   value,
   references: supplied,
@@ -89,6 +145,7 @@ function Details({
   const t = useTranslations("voice")
   const labels = useTranslations("voice.reviewFields")
   const references = supplied ?? displayReferences(value)
+  if (field === "workspace") return <span>{t("currentWorkspace")}</span>
   if (value == null) return <span>—</span>
   if (
     typeof value === "string" &&
@@ -157,12 +214,10 @@ function Details({
                   })}
             </dt>
             <dd className="text-sm">
-              {key === "workspace" ? (
-                t("currentWorkspace")
-              ) : key === "summary" &&
-                taskMetadata &&
-                typeof (value as Record<string, unknown>).operation ===
-                  "string" ? (
+              {key === "summary" &&
+              taskMetadata &&
+              typeof (value as Record<string, unknown>).operation ===
+                "string" ? (
                 <ReviewTitle
                   review={{
                     summary: String(item),
@@ -221,7 +276,6 @@ export function VoiceConversation() {
   const locale = useLocale()
   const router = useRouter()
   const voice = useVoice()
-  const [draft, setDraft] = useState("")
   const [follow, setFollow] = useState(true)
   const log = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -230,10 +284,6 @@ export function VoiceConversation() {
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [previewUnavailable, setPreviewUnavailable] = useState(false)
   const preview = voice.attachments.find((file) => file.key === previewKey)
-  const staged = voice.attachments.some((file) => file.state !== "submitted")
-  const send = async () => {
-    if (await voice.send(draft)) setDraft("")
-  }
   useEffect(() => {
     const transcript = log.current
     if (follow && transcript) transcript.scrollTop = transcript.scrollHeight
@@ -304,17 +354,25 @@ export function VoiceConversation() {
                       el.scrollHeight - el.scrollTop - el.clientHeight < 70
                     )
                 }}
-                className="flex max-h-[24dvh] min-h-12 min-w-0 flex-col gap-3 overflow-y-auto px-1 text-center"
+                className="flex max-h-[32dvh] min-h-12 min-w-0 flex-col gap-2 overflow-y-auto px-1"
               >
                 {voice.messages.length ? (
                   voice.messages.map((row) => (
-                    <div key={row.id} className="mx-auto w-full max-w-[65ch]">
-                      <p className="mb-1 text-xs font-semibold text-muted-foreground">
-                        {t(`roles.${row.role}`)}
-                      </p>
-                      <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
-                        {row.text}
-                      </p>
+                    <div
+                      key={row.id}
+                      data-role={row.role}
+                      className={
+                        row.role === "action"
+                          ? "max-w-[65ch] self-center rounded-full border border-(--hair) px-3 py-1 text-center text-xs text-muted-foreground"
+                          : row.role === "user"
+                            ? "max-w-[80%] self-end rounded-2xl rounded-br-md bg-(--gold) px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap text-black"
+                            : "max-w-[80%] self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap"
+                      }
+                    >
+                      <span className="sr-only">
+                        {t(`roles.${row.role}`)}:{" "}
+                      </span>
+                      {row.text}
                     </div>
                   ))
                 ) : (
@@ -325,6 +383,7 @@ export function VoiceConversation() {
                     </p>
                   </div>
                 )}
+                <VoiceThinking />
               </div>
               {!follow ? (
                 <Button
@@ -340,10 +399,17 @@ export function VoiceConversation() {
               ) : null}
               {voice.connected ? (
                 <form
-                  className="flex min-w-0 flex-col gap-2"
-                  onSubmit={(e) => {
+                  className="voice-composer flex min-w-0 flex-col gap-2"
+                  onSubmit={(e) => e.preventDefault()}
+                  onKeyDown={(e) => {
+                    // Escape that closed the composer's menu must not close the assistant too.
+                    if (e.key === "Escape" && e.defaultPrevented)
+                      e.stopPropagation()
+                  }}
+                  onPaste={(e) => {
+                    if (!e.clipboardData.files.length) return
                     e.preventDefault()
-                    void send()
+                    voice.choose(Array.from(e.clipboardData.files))
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -351,29 +417,51 @@ export function VoiceConversation() {
                     voice.choose(Array.from(e.dataTransfer.files))
                   }}
                 >
-                  <label
-                    htmlFor="voice-message"
-                    className="text-sm font-medium"
-                  >
-                    {t("message")}
-                  </label>
-                  <Textarea
-                    id="voice-message"
-                    rows={1}
-                    value={draft}
-                    onChange={(e) => {
-                      setDraft(e.target.value)
-                      voice.activity()
-                    }}
-                    onPaste={(e) => {
-                      if (e.clipboardData.files.length) {
-                        e.preventDefault()
-                        voice.choose(Array.from(e.clipboardData.files))
-                      }
-                    }}
-                    placeholder={t("placeholder")}
-                    aria-describedby="voice-file-hint"
-                  />
+                  {voice.textOnly ? (
+                    <PromptBar
+                      labels={{
+                        prompt: t("message"),
+                        add: t("addFiles"),
+                        sources: t("addFiles"),
+                        send: t("send"),
+                        stop: t("stopSpeaking"),
+                      }}
+                      ready={composerReady(voice.attachments)}
+                      describedBy="voice-file-hint"
+                      placeholder={t("placeholder")}
+                      sources={[
+                        {
+                          key: "files",
+                          name: t("attach"),
+                          description: t("fileHint"),
+                          icon: Paperclip,
+                          attach: true,
+                        },
+                      ]}
+                      commands={[]}
+                      models={[]}
+                      efforts={[]}
+                      busy={voice.speaking}
+                      width={768}
+                      radius={18}
+                      background="color-mix(in srgb, var(--card) 85%, transparent)"
+                      color="var(--foreground)"
+                      menuBackground="var(--card)"
+                      sparkColor="var(--gold)"
+                      onSend={(text) => {
+                        voice.activity()
+                        return voice.send(text)
+                      }}
+                      onStop={() => voice.stopSpeaking()}
+                      // Chosen files show in our references list, not as bar chips.
+                      onAttach={() => picker.current?.click()}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t("micHint")}
+                    </p>
+                  )}
                   {voice.capturePaused ? (
                     <Notice variant="info" title={t("capturePaused")}>
                       {t("capturePausedHint")}
@@ -481,7 +569,8 @@ export function VoiceConversation() {
                       className="hidden"
                       tabIndex={-1}
                       onChange={(e) => {
-                        voice.choose(Array.from(e.target.files ?? []))
+                        const files = Array.from(e.target.files ?? [])
+                        voice.choose(files)
                         e.target.value = ""
                       }}
                     />
@@ -503,18 +592,6 @@ export function VoiceConversation() {
                       type="button"
                       variant="outline"
                       disabled={voice.busy}
-                      onClick={() => picker.current?.click()}
-                    >
-                      <Paperclip aria-hidden />
-                      <span className="sr-only sm:not-sr-only">
-                        {t("attach")}
-                      </span>
-                    </Button>
-                    <Button
-                      className="min-h-11"
-                      type="button"
-                      variant="outline"
-                      disabled={voice.busy}
                       onClick={() => {
                         voice.pauseCapture()
                         camera.current?.click()
@@ -525,27 +602,26 @@ export function VoiceConversation() {
                         {t("takePhoto")}
                       </span>
                     </Button>
-                    <Button
-                      className="min-h-11"
-                      type="submit"
-                      disabled={voice.busy || (!draft.trim() && !staged)}
-                    >
-                      <Send aria-hidden />
-                      {t(
-                        voice.busy
-                          ? "working"
-                          : voice.attachments.some((f) => f.state === "failed")
-                            ? "retry"
-                            : "send"
-                      )}
-                    </Button>
+                    {!voice.textOnly && composerReady(voice.attachments) ? (
+                      <Button
+                        className="min-h-11"
+                        type="button"
+                        disabled={voice.busy}
+                        onClick={() => void voice.send("")}
+                      >
+                        <Send aria-hidden />
+                        {t(voice.busy ? "working" : "send")}
+                      </Button>
+                    ) : null}
                   </div>
-                  <p
-                    id="voice-file-hint"
-                    className="text-xs text-muted-foreground"
-                  >
-                    {t("fileHint")}
-                  </p>
+                  {voice.textOnly ? (
+                    <p
+                      id="voice-file-hint"
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t("fileHint")}
+                    </p>
+                  ) : null}
                 </form>
               ) : (
                 <p className="text-sm text-muted-foreground">{t("micHint")}</p>
@@ -760,74 +836,58 @@ export function VoiceConversation() {
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="w-full gap-4 overflow-y-auto p-5 motion-reduce:transition-none sm:max-w-md"
+          className="dark w-full gap-0 overflow-y-auto bg-background p-0 text-foreground motion-reduce:transition-none sm:max-w-md"
         >
-          <SheetHeader className="p-0">
-            <SheetTitle>{t("review")}</SheetTitle>
-          </SheetHeader>
-          <p className="text-sm font-semibold">
-            {voice.review ? <ReviewTitle review={voice.review} /> : null}
-          </p>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <Details value={voice.review?.details} />
-            {voice.review?.kind === "batch" ? (
-              <ol
-                aria-label={t("batchSteps")}
-                className="mt-4 flex flex-col gap-4"
-              >
-                {voice.review.steps?.map((step, index) => (
-                  <li
-                    key={step.actionId}
-                    className="rounded-xl border border-(--hair) p-3"
-                  >
-                    <h3 className="mb-2 text-sm font-semibold">
-                      {index + 1}. <ReviewTitle review={step} />
-                    </h3>
-                    <Details value={step.details} />
-                  </li>
-                ))}
-              </ol>
+          <div className="theme-glass flex min-h-full flex-col gap-4 p-5">
+            <SheetHeader className="p-0">
+              <SheetTitle>{t("review")}</SheetTitle>
+            </SheetHeader>
+            <p className="text-sm font-semibold">
+              {voice.review ? <ReviewTitle review={voice.review} /> : null}
+            </p>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {voice.review ? <ReviewList review={voice.review} /> : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
+            {voice.recoveredReview ? (
+              <p className="text-sm text-muted-foreground">
+                {t("recoveredReviewHint")}
+              </p>
             ) : null}
+            {voice.review?.confirmationPhrase && !voice.recoveredReview ? (
+              <p className="text-sm">
+                {t("spokenHint")}{" "}
+                <strong className="font-semibold break-words">
+                  {voice.review.confirmationPhrase}
+                </strong>
+              </p>
+            ) : null}
+            <SheetFooter className="p-0">
+              <Button
+                className="min-h-11"
+                variant="outline"
+                disabled={voice.busy && voice.review?.kind !== "batch"}
+                onClick={() =>
+                  voice.busy && voice.review?.kind === "batch"
+                    ? void voice.stopBatch("cancel")
+                    : void voice.confirm("cancel")
+                }
+              >
+                {t(
+                  voice.busy && voice.review?.kind === "batch"
+                    ? "batchStop"
+                    : "cancel"
+                )}
+              </Button>
+              <Button
+                className="min-h-11"
+                disabled={voice.busy}
+                onClick={() => void voice.confirm("approve")}
+              >
+                {t(voice.busy ? "working" : "approve")}
+              </Button>
+            </SheetFooter>
           </div>
-          <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
-          {voice.recoveredReview ? (
-            <p className="text-sm text-muted-foreground">
-              {t("recoveredReviewHint")}
-            </p>
-          ) : null}
-          {voice.review?.confirmationPhrase && !voice.recoveredReview ? (
-            <p className="text-sm">
-              {t("spokenHint")}{" "}
-              <strong className="font-semibold break-words">
-                {voice.review.confirmationPhrase}
-              </strong>
-            </p>
-          ) : null}
-          <SheetFooter className="p-0">
-            <Button
-              className="min-h-11"
-              variant="outline"
-              disabled={voice.busy && voice.review?.kind !== "batch"}
-              onClick={() =>
-                voice.busy && voice.review?.kind === "batch"
-                  ? void voice.stopBatch("cancel")
-                  : void voice.confirm("cancel")
-              }
-            >
-              {t(
-                voice.busy && voice.review?.kind === "batch"
-                  ? "batchStop"
-                  : "cancel"
-              )}
-            </Button>
-            <Button
-              className="min-h-11"
-              disabled={voice.busy}
-              onClick={() => void voice.confirm("approve")}
-            >
-              {t(voice.busy ? "working" : "approve")}
-            </Button>
-          </SheetFooter>
         </SheetContent>
       </Sheet>
     </Dialog>

@@ -33,6 +33,10 @@ export type VoiceOutcome = {
   data?: unknown
   review?: VoiceReview
   handoff?: { route: string; operationId?: string }
+  /** Human status-line labels for work this request did. */
+  steps?: string[]
+  /** Line the agent may speak; never contains approval codes. */
+  narration?: string
 }
 export type VoiceAttachmentReceipt = {
   id: string

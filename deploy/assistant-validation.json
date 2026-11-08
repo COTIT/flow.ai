@@ -3,23 +3,25 @@
   "releaseGate": "pending",
   "releaseCommit": null,
   "imageDigest": null,
-  "observedAt": "2026-11-07T02:36:14.978447+00:00",
+  "observedAt": "2026-11-08T05:27:10.202694+00:00",
   "source": {
     "baseCommit": "ffcf5c8b8b8aad49862b97d1abafde2d97c7a69b",
     "workingTree": "uncommitted",
     "hostArtifactSource": "isolated temporary source snapshot; not a release image"
   },
   "provider": {
-    "observation": "Development prompt-only update for fixed-batch preparation/status; GET verified exact prompt and unchanged conversation/platform settings. No native session executed for this version.",
-    "versionId": "agtvrsn_6801m6sxseqgekd8wrnrrxg0j560",
+    "observation": "Development: prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in (agtvrsn_9201m6wpk981esws35nzq6pe4k9c), then the shared execute_genesy_tool swapped for a dev-only copy with identical name, description and schema and force_pre_tool_speech true (agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). A read-only GET verified the exact prompt, turn_timeout 20, silence_end_call_timeout 60 and the tool swap. A dashboard Preview text chat showed the pre-tool line \"Ok, got that, let me check it for you.\" just before the execute_genesy_tool call (orders_list called directly, without discovery); spoken audio was not checked. With explicit owner approval on 2026-11-08, the shared execute_genesy_tool used by Production and Staging was set to force pre-tool speech. A read-only GET showed force_pre_tool_speech true, pre_tool_speech force, and no other tool field changed. With owner approval, the Staging agent then got the template prompt, turn_timeout 20 and silence_end_call_timeout 60 (agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). A read-only GET showed exactly those three fields changed. The Production prompt and turn settings are unchanged.",
+    "versionId": "agtvrsn_2201m6wqvk9qevm82wx048yaw0hj",
     "template": "deploy/assistant-agent.template.json",
-    "templateSha256": "43a937b677d1b0aa92f8df7f666078749c5ff8b04e06be87a8c89c615e657aa4",
-    "stagingApplied": false,
+    "templateSha256": "4cac74438a5e2825a7f7a3b5d2ff2ed12ca1b0d65a618e6e8903d5afa04ff209",
+    "stagingApplied": true,
     "productionApplied": false,
     "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
     "productionProvisioned": true,
     "productionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
-    "temporaryIntegrationKeysReused": true
+    "temporaryIntegrationKeysReused": true,
+    "previousVersionId": "agtvrsn_9201m6wpk981esws35nzq6pe4k9c",
+    "stagingVersionId": "agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx"
   },
   "localEvidence": {
     "hostStandalone": {

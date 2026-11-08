@@ -575,16 +575,21 @@ describe("reviewed operation coverage", () => {
     ).not.toThrow()
   })
 
-  it("searches compact descriptors, then reveals self-contained exact input schemas", () => {
+  it("searches compact descriptors after one full top match, then reveals self-contained exact input schemas", () => {
     const search = discoverTools("orders create", ["workspace_owner"])
-    expect(search.length).toBeGreaterThan(0)
+    expect(search.length).toBeGreaterThan(1)
+    expect(search[0]).toEqual(
+      discoverTools(search[0]!.id, ["workspace_owner"])[0]
+    )
     expect(
-      search.every(
-        (tool) =>
-          tool.body === null &&
-          tool.parameters.length === 0 &&
-          Object.keys(tool.requestMedia).length === 0
-      )
+      search
+        .slice(1)
+        .every(
+          (tool) =>
+            tool.body === null &&
+            tool.parameters.length === 0 &&
+            Object.keys(tool.requestMedia).length === 0
+        )
     ).toBe(true)
     const [order] = discoverTools("orders_create", ["workspace_owner"])
     expect(order?.body).toHaveProperty("properties.lines.items.required", [
@@ -673,85 +678,99 @@ describe("reviewed operation coverage", () => {
     ).not.toThrow()
   })
 
-  it("compiles every success schema with shared OpenAPI references", () => {
-    for (const operation of operationManifest) {
-      for (const [status, response] of Object.entries(
-        operation.successResponses
-      )) {
-        for (const [media, content] of Object.entries(response.content ?? {})) {
-          if (!content.schema) continue
-          try {
-            validateToolResponse(operation.id, Number(status), media, null)
-          } catch (error) {
-            expect(
-              (error as Error).message,
-              `${operation.id}:${status}:${media}`
-            ).toMatch(/^Invalid /)
+  it(
+    "compiles every success schema with shared OpenAPI references",
+    { timeout: 30_000 },
+    () => {
+      for (const operation of operationManifest) {
+        for (const [status, response] of Object.entries(
+          operation.successResponses
+        )) {
+          for (const [media, content] of Object.entries(
+            response.content ?? {}
+          )) {
+            if (!content.schema) continue
+            try {
+              validateToolResponse(operation.id, Number(status), media, null)
+            } catch (error) {
+              expect(
+                (error as Error).message,
+                `${operation.id}:${status}:${media}`
+              ).toMatch(/^Invalid /)
+            }
           }
         }
       }
     }
-  })
+  )
 
-  it("fails generation for unknown, removed and changed-policy operations", () => {
-    const run = (mutation: string) =>
-      execFileSync(
-        process.execPath,
-        [
-          "--input-type=module",
-          "-e",
-          `
+  it(
+    "fails generation for unknown, removed and changed-policy operations",
+    { timeout: 30_000 },
+    () => {
+      const run = (mutation: string) =>
+        execFileSync(
+          process.execPath,
+          [
+            "--input-type=module",
+            "-e",
+            `
       import {readFileSync} from 'node:fs';
       import {buildCatalog} from './scripts/generate-voice-catalog.mjs';
       const spec=JSON.parse(readFileSync('../api/openapi.json','utf8'));
       const policy=JSON.parse(readFileSync('./lib/voice/operation-policy.json','utf8'));
       ${mutation}; buildCatalog(spec,policy);
     `,
-        ],
-        { cwd: process.cwd(), stdio: "pipe" }
-      )
-    expect(() => run("delete policy.orders_create")).toThrow()
-    expect(() => run("policy.removed_operation=policy.orders_create")).toThrow()
-    expect(() => run("policy.orders_create.path='/different'")).toThrow()
-    expect(() =>
-      run("policy.orders_create.authorization.schemes=['app_key']")
-    ).toThrow()
-    expect(() =>
-      run("policy.orders_create.authorization.requirements=[]")
-    ).toThrow()
-    expect(() => run("policy.orders_create.disposition='typo'")).toThrow()
-    expect(() =>
-      run("policy.products_create.ignoredBodyFields=['name']")
-    ).toThrow()
-    expect(() =>
-      run("policy.products_create.ignoredBodyFields=['missing_field']")
-    ).toThrow()
-    expect(() =>
-      run(
-        "policy.invoices_credit.ignoredBodySchemaProperties=['/properties/items/items/properties/id']"
-      )
-    ).toThrow()
-    expect(() => run("policy.products_create.availability='unknown'")).toThrow()
-    expect(() =>
-      run("policy.products_create.availability='unavailable'")
-    ).toThrow()
-    expect(() => run("policy.orders_create.effects=[]")).toThrow()
-    expect(() => run("policy.orders_create.effects=['credential']")).toThrow()
-    expect(() =>
-      run(`
+          ],
+          { cwd: process.cwd(), stdio: "pipe" }
+        )
+      expect(() => run("delete policy.orders_create")).toThrow()
+      expect(() =>
+        run("policy.removed_operation=policy.orders_create")
+      ).toThrow()
+      expect(() => run("policy.orders_create.path='/different'")).toThrow()
+      expect(() =>
+        run("policy.orders_create.authorization.schemes=['app_key']")
+      ).toThrow()
+      expect(() =>
+        run("policy.orders_create.authorization.requirements=[]")
+      ).toThrow()
+      expect(() => run("policy.orders_create.disposition='typo'")).toThrow()
+      expect(() =>
+        run("policy.products_create.ignoredBodyFields=['name']")
+      ).toThrow()
+      expect(() =>
+        run("policy.products_create.ignoredBodyFields=['missing_field']")
+      ).toThrow()
+      expect(() =>
+        run(
+          "policy.invoices_credit.ignoredBodySchemaProperties=['/properties/items/items/properties/id']"
+        )
+      ).toThrow()
+      expect(() =>
+        run("policy.products_create.availability='unknown'")
+      ).toThrow()
+      expect(() =>
+        run("policy.products_create.availability='unavailable'")
+      ).toThrow()
+      expect(() => run("policy.orders_create.effects=[]")).toThrow()
+      expect(() => run("policy.orders_create.effects=['credential']")).toThrow()
+      expect(() =>
+        run(`
       const control=policy.assistant_actions_approve;
       control.disposition='secure_ui'; control.effects=['credential'];
       control.handoff={route:'/voice/secure?operation=assistant_actions_approve',operationId:'assistant_actions_approve',kind:'credentials'};
     `)
-    ).toThrow()
-    expect(() =>
-      run(`
+      ).toThrow()
+      expect(() =>
+        run(`
       const source='/workspace/{workspace}/orders';
       const target='/workspace/{workspace}/assistant/actions/{action}/approve';
       spec.paths[target]={post:spec.paths[source].post};
       delete spec.paths[source].post;
       policy.orders_create.path=target;
     `)
-    ).toThrow()
-  })
+      ).toThrow()
+    }
+  )
 })

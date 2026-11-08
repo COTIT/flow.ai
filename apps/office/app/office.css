@@ -22,19 +22,6 @@
   backdrop-filter: none;
 }
 
-.voice-orb {
-  background:
-    radial-gradient(
-      circle at 35% 30%,
-      color-mix(in srgb, var(--gold) 18%, transparent),
-      transparent 65%
-    ),
-    radial-gradient(
-      circle at 65% 70%,
-      color-mix(in srgb, var(--teal) 28%, transparent),
-      transparent 65%
-    );
-}
 .voice-orb > span {
   position: absolute;
   inset: 3%;
@@ -126,5 +113,75 @@
     grid-column: 2;
     grid-row: 2;
     text-align: right;
+  }
+}
+
+/* Vendored React Bits list and bento keep their own palettes inline; ours wins (glass tokens). */
+.theme-glass .voice-review-list,
+.theme-glass .magic-bento {
+  --al-tile: var(--glass) !important;
+  --al-tile-edge: var(--glass-border) !important;
+  --al-tile-highlight: rgb(255 255 255 / 8%) !important;
+  --al-tile-shadow: var(--glass-shadow) !important;
+  --al-well: var(--tint-warning) !important;
+  --al-ink: var(--foreground) !important;
+  --al-muted: var(--muted-foreground) !important;
+  --al-accent: var(--gold) !important;
+  --al-ring: var(--gold) !important;
+  --al-ring-fill: var(--tint-warning) !important;
+  --al-hover: brightness(1.08) !important;
+  --al-active: brightness(1.12) !important;
+  --mb-surface: var(--glass) !important;
+  --mb-edge: var(--glass-border) !important;
+  --mb-highlight: rgb(255 255 255 / 8%) !important;
+  --mb-shadow: var(--glass-shadow) !important;
+  --mb-tile: var(--glass-strong) !important;
+  --mb-tile-edge: var(--glass-border) !important;
+  --mb-tile-highlight: rgb(255 255 255 / 8%) !important;
+  --mb-tile-shadow: var(--glass-shadow) !important;
+  --mb-well: var(--field) !important;
+  --mb-well-edge: var(--field-border) !important;
+  --mb-ink: var(--foreground) !important;
+  --mb-muted: var(--muted-foreground) !important;
+  --mb-line: var(--hair) !important;
+  --mb-faint: var(--hair-2) !important;
+  --mb-accent-ink: var(--gold) !important;
+  --mb-secondary: var(--tint-success) !important;
+  --mb-secondary-ink: var(--tone-success) !important;
+}
+.theme-glass .voice-review-list [role="option"] > * > :first-child {
+  color: var(--muted-foreground);
+}
+
+/* The review sheet is portaled outside the dark overlay; it keeps the overlay's dark glass. */
+.theme-glass [data-slot="sheet-content"].dark {
+  background: var(--background);
+  border-color: var(--hair-2);
+}
+
+/* Overview on Magic Bento (wide screens; session B). The bento card draws the glass, so the card
+   inside it goes bare and fills it. Border width stays: same size as the plain grid, no shift. */
+.theme-glass .overview-bento [data-slot="card"] {
+  flex: 1;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* The vendor card is select-none; order numbers and names stay copyable. */
+.overview-bento .magic-bento__card {
+  user-select: text;
+}
+
+/* Phones: the composer's 28 px buttons get an invisible 44 px tap area; nothing drawn changes. */
+@media (pointer: coarse), (max-width: 767px) {
+  .voice-composer .group button {
+    position: relative;
+  }
+  .voice-composer .group button::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
   }
 }

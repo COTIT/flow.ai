@@ -149,9 +149,57 @@ test.describe("reduced motion", () => {
     await expect(kpi("Products below zero")).toHaveAttribute("href", "/stock/negative")
     await expect(kpi("Till sales at other prices")).toHaveAttribute("href", "/till/sales?mismatch=true")
     await expectNoMotion(page)
+    await expect(page.locator(".magic-bento")).toHaveCount(0)
 
     await expect(page.getByRole("region", { name: "Sales this week" })).toBeVisible()
   })
+})
+
+const kpis: [string, string, string][] = [
+  ["Orders to pick", "12", "/orders?status=open"],
+  ["Batches in quarantine", "3", "/lots?status=quarantine"],
+  ["Products below zero", "4", "/stock/negative"],
+  ["Till sales at other prices", "2", "/till/sales?mismatch=true"],
+]
+const regions = ["Recent orders", "Needs attention", "Till today", "Batches by status", "Sales this week"]
+
+// The approved Magic Bento look: glow, spotlight and ripple need a cursor and room for four
+// columns, so wide screens get it; phones keep the plain grid (KPIs two per row).
+test("wide screens get the Magic Bento cards; phones keep the plain grid", async ({ page, api }) => {
+  overviewApi(api)
+  await page.goto("/")
+  const wide = (page.viewportSize()?.width ?? 0) >= 1024
+  const kpi = (name: string) => page.getByRole("link", { name: new RegExp(name) })
+  for (const [name, total, href] of kpis) {
+    await expect(kpi(name)).toContainText(total)
+    await expect(kpi(name)).toHaveAttribute("href", href)
+  }
+  const bento = page.locator(".overview-bento")
+  if (wide) {
+    await expect(bento).toBeVisible()
+    for (const [name] of kpis) await expect(bento.getByRole("link", { name: new RegExp(name) })).toBeVisible()
+    for (const name of regions) await expect(bento.getByRole("region", { name })).toBeVisible()
+    // Pointer over a card lights its glow layer (the engine writes --mb-hot on that card).
+    await kpi("Orders to pick").hover()
+    const card = bento.locator(".magic-bento__card").filter({ has: kpi("Orders to pick") })
+    await expect
+      .poll(() => card.evaluate((el) => Number(el.style.getPropertyValue("--mb-hot") || 0)))
+      .toBeGreaterThan(0)
+  } else {
+    await expect(bento).toHaveCount(0)
+    await expect(page.locator("[data-motion]").first()).toBeAttached()
+    const box = async (name: string) => (await kpi(name).boundingBox())!
+    const [a, b] = [await box("Orders to pick"), await box("Batches in quarantine")]
+    const main = (await page.locator("main").boundingBox())!
+    expect(Math.round(a.y), "two KPIs per row").toBe(Math.round(b.y))
+    expect(a.width).toBeLessThan(main.width / 2)
+    for (const name of regions) {
+      const tile = (await page.getByRole("region", { name }).boundingBox())!
+      expect(Math.round(tile.width), `${name} full width`).toBe(Math.round(main.width))
+    }
+    await expectTapTargets(page)
+  }
+  await expectNoHorizontalScroll(page)
 })
 
 test("the counts are read with page_size=1; days and weeks are the browser's own", async ({

@@ -1,9 +1,6 @@
-import { authorizeVoice, VoiceError, voiceResponse } from "@/lib/voice/server"
-import {
-  assistantRequest,
-  readAssistantSession,
-  requireAssistantSession,
-} from "@/lib/voice/bridge"
+import { VoiceError, voiceResponse } from "@/lib/voice/server"
+import { assistantRequest } from "@/lib/voice/bridge"
+import { authorizeVoiceSession } from "@/lib/voice/identity"
 import {
   batchFailure,
   proposeBatch,
@@ -14,10 +11,14 @@ import {
 import { takeFilePermit, voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
 import { cancelReview } from "@/lib/voice/workflow"
+import { withVoiceTracing } from "@/lib/voice/tracing"
 export const runtime = "nodejs"
 
 /** Model can prepare/read; only independent UI confirmation starts a fixed batch. */
-export async function POST(request: Request) {
+export function POST(request: Request) {
+  return withVoiceTracing("genesy_assistant_batch", () => handle(request))
+}
+async function handle(request: Request) {
   let release: (() => void) | undefined
   let language = "en"
   try {
@@ -32,15 +33,15 @@ export async function POST(request: Request) {
       throw new VoiceError("Unknown fixed batch command.")
     if (["prepare", "restore"].includes(command))
       await requireAssistantAdmission()
-    const context = await authorizeVoice(request, input.workspaceId)
+    const { context, session } = await authorizeVoiceSession(
+      request,
+      input.workspaceId,
+      input.sessionId,
+      ["prepare", "restore"].includes(command) ? "live" : "read"
+    )
     if (["prepare", "restore"].includes(command))
       await requireAssistantAdmission(context.workspaceId)
-    const session = ["prepare", "restore"].includes(command)
-      ? await requireAssistantSession(context, input.sessionId)
-      : await readAssistantSession(context, input.sessionId)
-    context.sessionId = session.id
-    context.language = session.language ?? "en"
-    language = context.language
+    language = context.language ?? "en"
     if (command === "prepare") {
       if (!session.conversation_id)
         throw new VoiceError("Conversation identity has not been bound.", 409)
