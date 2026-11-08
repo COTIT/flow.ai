@@ -320,7 +320,6 @@ async function handle(request: Request) {
         narrate(
           await proposeAction(action, context, files),
           "review",
-          action.summary,
           language
         )
       )
@@ -330,7 +329,6 @@ async function handle(request: Request) {
       narrate(
         await executeAction(action, context, randomUUID()),
         "lookup",
-        action.summary,
         language
       )
     )

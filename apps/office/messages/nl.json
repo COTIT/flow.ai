@@ -1315,6 +1315,23 @@
     "currentWorkspace": "Huidige werkruimte",
     "yes": "Ja",
     "no": "Nee",
-    "otherField": "Veld: {name}"
+    "otherField": "Veld: {name}",
+    "steps": {
+      "checking": "Opzoeken",
+      "preparing": "Je controle voorbereiden",
+      "running": "Bezig met uitvoeren",
+      "finalizing": "Afronden"
+    },
+    "unfinished": {
+      "stalled": "Ik kon dit antwoord niet afmaken.",
+      "ended_by_agent": "De assistent beëindigde het gesprek voordat het klaar was.",
+      "time_limit": "Het gesprek bereikte de tijdslimiet voordat ik klaar was.",
+      "connection_lost": "De verbinding viel weg voordat ik klaar was.",
+      "progress": "{count, plural, =0 {Er is nog geen stap afgerond.} one {# stap is afgerond.} other {# stappen zijn afgerond.}}",
+      "askAgain": "Opnieuw vragen",
+      "continue": "Doorgaan",
+      "continued": "Nieuw gesprek. Eerdere berichten blijven hier staan; er is niets herhaald. Vraag het opnieuw om verder te gaan."
+    },
+    "hiddenCancelled": "Ik heb de kaart geannuleerd omdat de pagina verborgen was. Zal ik hem opnieuw voorbereiden?"
   }
 }

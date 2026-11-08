@@ -1315,6 +1315,23 @@
     "currentWorkspace": "Eneo la kazi la sasa",
     "yes": "Ndiyo",
     "no": "Hapana",
-    "otherField": "Sehemu: {name}"
+    "otherField": "Sehemu: {name}",
+    "steps": {
+      "checking": "Inatafuta",
+      "preparing": "Inaandaa ukaguzi wako",
+      "running": "Inaendesha sasa",
+      "finalizing": "Inakamilisha"
+    },
+    "unfinished": {
+      "stalled": "Sikuweza kumaliza jibu hilo.",
+      "ended_by_agent": "Msaidizi alimaliza mazungumzo kabla ya kumaliza.",
+      "time_limit": "Mazungumzo yamefikia kikomo cha muda kabla sijamaliza.",
+      "connection_lost": "Muunganisho ulikatika kabla sijamaliza.",
+      "progress": "{count, plural, =0 {Hakuna hatua iliyokamilika.} one {Hatua # imekamilika.} other {Hatua # zimekamilika.}}",
+      "askAgain": "Uliza tena",
+      "continue": "Endelea",
+      "continued": "Mazungumzo mapya. Ujumbe wa awali unabaki hapa; hakuna kilichorudiwa. Uliza tena ili kuendelea."
+    },
+    "hiddenCancelled": "Nimeghairi kadi kwa sababu ukurasa ulifichwa. Nikuandalie tena?"
   }
 }

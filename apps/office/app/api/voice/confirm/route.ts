@@ -159,7 +159,6 @@ async function handle(request: Request) {
       narrate(
         await executeAction(review.action, context, review.id),
         "execute",
-        review.action.summary,
         language
       )
     )
