@@ -19,6 +19,7 @@ async function nativeConversation(page: Page) {
     throw new Error("Conversation not connected")
   }
   let onUserMessage = () => {}
+  const sent: { type?: string; [key: string]: unknown }[] = []
   await page.route("**/api/voice/session", (route) => {
     const body = route.request().postDataJSON()
     if (route.request().method() === "DELETE")
@@ -41,6 +42,7 @@ async function nativeConversation(page: Page) {
     emit = (event) => socket.send(JSON.stringify(event))
     socket.onMessage((raw) => {
       const event = JSON.parse(String(raw))
+      sent.push(event)
       if (event.type === "conversation_initiation_client_data")
         emit({
           type: "conversation_initiation_metadata",
@@ -54,6 +56,8 @@ async function nativeConversation(page: Page) {
     })
   })
   return {
+    /** Everything the page sent to the agent. */
+    sent,
     emit: (event: unknown) => emit(event),
     onUserMessage: (callback: () => void) => {
       onUserMessage = callback
@@ -732,4 +736,85 @@ test("voice starts in push-to-talk: the mic opens only while held, and open mic 
     page.getByRole("button", { name: en.voice.pushToTalk, exact: true })
   ).toBeVisible()
   await expect(hold).toHaveCount(0)
+})
+
+test("a created record shows as a link that opens in a new tab, and the agent hears only its name", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  const order = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
+  await page.route("**/api/voice/tools", (route) =>
+    route.fulfill({
+      json: {
+        status: "completed",
+        data: { id: order, number: "ORD-0229" },
+        links: [{ label: "ORD-0229", href: `/orders/${order}` }],
+      },
+    })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("orders_create")
+  const link = page
+    .getByRole("log")
+    .getByRole("link", { name: "Open ORD-0229 in a new tab", exact: true })
+  await expect(link).toBeVisible()
+  await expect(link).toHaveAttribute("target", "_blank")
+  await expect(link).toHaveAttribute("rel", /noopener/)
+  expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  const result = native.sent.find(
+    (event) => event.type === "client_tool_result"
+  )
+  expect(JSON.stringify(result)).toContain("ORD-0229")
+  expect(JSON.stringify(result)).not.toContain("/orders/")
+  await expectFits(page)
+  const [tab] = await Promise.all([
+    page.context().waitForEvent("page"),
+    link.click(),
+  ])
+  await tab.waitForLoadState()
+  // One login per browser: the new tab opens the order, not the sign-in page.
+  await expect(tab).toHaveURL(new RegExp(`/orders/${order}$`))
+  await tab.close()
+})
+
+test("a refused request shows a plain reason on screen and gives the agent the reason to explain", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  await page.route("**/api/voice/tools", (route) =>
+    route.fulfill({
+      json: {
+        status: "failed",
+        reason: "missing",
+        httpStatus: 404,
+        message: "Order not found.",
+      },
+    })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("orders_get")
+  await expect(page.getByRole("alert")).toHaveText(
+    en.voice.requestErrors.missing
+  )
+  await expect(page.getByText("404")).toHaveCount(0)
+  await expect
+    .poll(() =>
+      JSON.stringify(
+        native.sent.find((event) => event.type === "client_tool_result")
+      )
+    )
+    .toContain('\\"reason\\":\\"missing\\"')
+  await expectFits(page)
 })

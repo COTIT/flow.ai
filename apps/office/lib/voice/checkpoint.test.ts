@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   spans: [] as string[],
 }))
 vi.mock("./tracing", () => ({
+  noteVoiceFailure: () => {},
   withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
     mocks.spans.push(name)
     return action()

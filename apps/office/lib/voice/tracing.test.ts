@@ -214,3 +214,42 @@ it("exports only opaque action references and verified status alongside hidden b
   expect(exported).toContain("01950000-0000-7000-8000-000000000001")
   expect(exported).not.toMatch(/private-business-result|trace-private/)
 })
+
+it("labels failures for monitoring without exporting the refused data", async () => {
+  vi.resetModules()
+  vi.stubEnv("LANGSMITH_TRACING", "true")
+  vi.stubEnv("LANGSMITH_API_KEY", "trace-private")
+  vi.stubEnv("LANGSMITH_API_KEY_FILE", "")
+  const bodies: string[] = []
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (_url, options) => {
+      if (typeof options?.body === "string") bodies.push(options.body)
+      else if (options?.body instanceof Uint8Array)
+        bodies.push(new TextDecoder().decode(options.body))
+      return new Response(null, { status: 200 })
+    })
+  )
+  const { noteVoiceFailure, withVoiceTracing } = await import("./tracing")
+  await withVoiceTracing("assistant_refused", async () => ({
+    status: "failed",
+    reason: "invalid",
+    httpStatus: 422,
+    message: "private-refusal-detail",
+  }))
+  await withVoiceTracing("assistant_discover", async () => {
+    noteVoiceFailure("unsupported", undefined, "  book a\n delivery truck ")
+    return null
+  })
+  await vi.waitFor(() =>
+    expect(bodies.join("\n")).toContain(
+      '"unsupported_query":"book a delivery truck"'
+    )
+  )
+  const exported = bodies.join("\n")
+  expect(exported).toContain('"failure_reason":"invalid"')
+  expect(exported).toContain('"failure_category":"user_fixable"')
+  expect(exported).toContain('"http_status":422')
+  expect(exported).toContain('"failure_category":"out_of_scope_candidate"')
+  expect(exported).not.toContain("private-refusal-detail")
+})

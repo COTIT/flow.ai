@@ -1,3 +1,4 @@
+import { failureReason } from "@/lib/voice/client-contract"
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_ATTACHMENTS = 10
 export const ATTACHMENT_ACCEPT =
@@ -5,25 +6,44 @@ export const ATTACHMENT_ACCEPT =
 
 /** HTTP status supplies safe guidance without exposing backend or provider diagnostics. */
 export function requestFailureKey(status: number) {
-  const errors: Record<number, string> = {
-    400: "invalid",
-    401: "expired",
-    403: "forbidden",
-    404: "missing",
-    409: "conflict",
-    410: "conflict",
-    413: "size",
-    415: "format",
-    422: "invalid",
-    429: "busy",
-    501: "unavailable",
-  }
-  return `requestErrors.${errors[status] ?? "unverified"}`
+  return `requestErrors.${failureReason(status)}`
 }
 export type TranscriptRow = {
   id: string
-  role: "user" | "agent" | "action"
+  role: "user" | "agent" | "action" | "link"
   text: string
+  /** Office page a "link" row opens. */
+  href?: string
+}
+
+const SAFE_HREF =
+  /^(\/(products|orders|invoices|lots|stock|supply|till|settings)(\/|\?|$)|https:\/\/)/
+
+/** Splits "[label](url)" out of agent text; only office pages and https become links. */
+export function splitLinks(text: string): { text: string; href?: string }[] {
+  const parts: { text: string; href?: string }[] = []
+  let last = 0
+  for (const match of text.matchAll(
+    /\[([^\]\n]{1,120})\]\(([^)\s]{1,500})\)/g
+  )) {
+    const [whole, label, href] = match
+    if (!SAFE_HREF.test(href!)) continue
+    if (match.index > last) parts.push({ text: text.slice(last, match.index) })
+    parts.push({ text: label!, href })
+    last = match.index + whole.length
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) })
+  return parts
+}
+
+/** What the agent hears about an outcome: record names, never links. */
+export function outcomeForAgent(outcome: {
+  links?: { label: string | null; href: string }[]
+  [field: string]: unknown
+}) {
+  const { links, ...rest } = outcome
+  const records = links?.flatMap((link) => (link.label ? [link.label] : []))
+  return records?.length ? { ...rest, records } : rest
 }
 export function referenceSize(bytes: number, locale: string) {
   const unit = bytes >= 1024 * 1024 ? "MiB" : bytes >= 1024 ? "KiB" : "B"

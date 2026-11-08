@@ -24,10 +24,12 @@ import type {
   VoiceReview,
   VoiceSession,
 } from "@/lib/voice/client-contract"
+import { failureReason } from "@/lib/voice/client-contract"
 import {
   attachmentProblem,
   matchesIssuedConversation,
   mergeTranscript,
+  outcomeForAgent,
   progressOf,
   requestFailureKey,
   spokenText,
@@ -63,6 +65,7 @@ class VoiceRequestError extends Error {
       message?: string
       operation?: unknown
       candidates?: unknown
+      reason?: string
     }
   ) {
     super(message)
@@ -361,10 +364,17 @@ function Session({ children }: { children: ReactNode }) {
   function add(
     role: TranscriptRow["role"],
     text: string,
-    id = crypto.randomUUID()
+    id = crypto.randomUUID(),
+    href?: string
   ) {
     if (active.current)
-      setMessages((rows) => mergeTranscript(rows, { role, text, id }))
+      setMessages((rows) =>
+        mergeTranscript(rows, { role, text, id, ...(href ? { href } : {}) })
+      )
+  }
+  function showLinks(outcome: VoiceOutcome) {
+    for (const link of outcome.links ?? [])
+      add("link", link.label ?? t("openRecord"), undefined, link.href)
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id
@@ -478,11 +488,11 @@ function Session({ children }: { children: ReactNode }) {
           !["awaiting_review", "running"].includes(status.status)
         ) {
           recordTask(statusKind, actionId, status.status, owner)
-          return JSON.stringify(status)
+          return JSON.stringify(outcomeForAgent(status))
         }
         const key = statusKind === "batch" ? `batch:${actionId}` : actionId
         if (latestResult.current?.key === key)
-          return JSON.stringify(latestResult.current.result)
+          return JSON.stringify(outcomeForAgent(latestResult.current.result))
         let wait = waits.current.get(key)
         if (!wait) {
           wait = createOutcomeWait(status)
@@ -490,7 +500,7 @@ function Session({ children }: { children: ReactNode }) {
         }
         const result = await wait.result
         if (waits.current.get(key) === wait) waits.current.delete(key)
-        return JSON.stringify(result)
+        return JSON.stringify(outcomeForAgent(result))
       }
       const executionArgs = body.arguments
       const batchPrepare =
@@ -572,7 +582,12 @@ function Session({ children }: { children: ReactNode }) {
         reviewSession.current = null
         setRecoveredReview(false)
         updateReview(result.review)
-      } else if (command === "execute") setOutcome(result)
+      } else if (command === "execute") {
+        setOutcome(result)
+        showLinks(result)
+        if (result.reason && ["failed", "unknown"].includes(result.status))
+          setError(t(`requestErrors.${result.reason}`))
+      }
       // The model must not learn the challenge: its own speech can echo into ASR.
       if (result.status === "requires_confirmation" && result.review)
         return JSON.stringify({
@@ -584,7 +599,7 @@ function Session({ children }: { children: ReactNode }) {
             "Review the current Office card. The user may read its visible confirmation phrase or click approval. Do not claim completion.",
           ...(result.narration ? { narration: result.narration } : {}),
         })
-      return JSON.stringify(result)
+      return JSON.stringify(outcomeForAgent(result))
     } catch (e) {
       // A guessed lookup is retryable by the model; it is not a user-facing failure.
       if (e instanceof VoiceRequestError && e.hint) {
@@ -593,6 +608,7 @@ function Session({ children }: { children: ReactNode }) {
         return JSON.stringify({
           status: "failed",
           message: e.hint.message,
+          ...(e.hint.reason ? { reason: e.hint.reason } : {}),
           ...(e.hint.operation ? { operation: e.hint.operation } : {}),
           ...(e.hint.candidates ? { candidates: e.hint.candidates } : {}),
         })
@@ -607,6 +623,11 @@ function Session({ children }: { children: ReactNode }) {
       }
       return JSON.stringify({
         status: "failed",
+        // The agent explains this in plain words; the same text shows on screen.
+        reason:
+          e instanceof VoiceRequestError
+            ? failureReason(e.status)
+            : "unverified",
         message: e instanceof Error ? e.message : t("requestFailed"),
       })
     } finally {
@@ -1450,9 +1471,10 @@ function Session({ children }: { children: ReactNode }) {
       } else settle(pendingActionId.current, result)
       updateReview(null)
       add("action", t(`taskStates.${taskPresentation(result.status)}`))
+      showLinks(result)
       if (verified.current)
         conversation.sendContextualUpdate(
-          JSON.stringify({ trusted_action_outcome: result })
+          JSON.stringify({ trusted_action_outcome: outcomeForAgent(result) })
         )
       if (recoveredPointer) void loadRecovery(recoveredPointer)
     } catch (e) {

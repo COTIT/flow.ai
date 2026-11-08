@@ -464,3 +464,43 @@ it("forwards durable identity on writes and accepts a documented empty response"
     "s1"
   )
 })
+
+it("passes a refused call on in words, with its reason and the refused fields", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      Response.json(
+        {
+          message: "Quantity must be greater than zero.",
+          errors: { quantity: ["min"], warehouse_id: ["required"] },
+        },
+        { status: 422 }
+      )
+    )
+  )
+  const result = await callBackend(
+    {
+      operationId: "orders_create",
+      summary: "Create order",
+      method: "POST",
+      path: "/workspace/w1/orders",
+      write: true,
+      idempotent: false,
+    },
+    {
+      token: "staff",
+      workspaceId: "w1",
+      apiUrl: "https://api.test/v1",
+      permissions: [],
+      sessionId: "s1",
+    },
+    "a1"
+  )
+  expect(result).toMatchObject({
+    status: "unknown",
+    reason: "invalid",
+    httpStatus: 422,
+    message: "Quantity must be greater than zero.",
+    fields: ["quantity", "warehouse_id"],
+  })
+})

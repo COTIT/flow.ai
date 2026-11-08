@@ -1010,7 +1010,8 @@
     "roles": {
       "user": "Wewe",
       "agent": "Genesy",
-      "action": "Kitendo"
+      "action": "Kitendo",
+      "link": "Kiungo"
     },
     "fileStates": {
       "selected": "Imechaguliwa · haijatumwa",
@@ -1184,6 +1185,7 @@
       "operation": "Kitendo"
     },
     "requestErrors": {
+      "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
       "invalid": "Angalia taarifa zilizoombwa, kisha andaa pendekezo jipya. Angalia kitendo chenye matokeo yasiyojulikana katika Office kabla ya kukirudia.",
       "expired": "Kipindi chako kimeisha. Ingia tena ili kuangalia kazi iliyorekodiwa.",
       "forbidden": "Huna ruhusa ya kufanya kitendo hiki. Angalia ufikiaji wako katika Office.",
@@ -1307,6 +1309,7 @@
     "closeAssistant": "Funga msaidizi",
     "recordReference": "Rejeleo lililochaguliwa {number}",
     "openRecord": "Fungua rekodi",
+    "openRecordNamed": "Fungua {name} kwenye kichupo kipya",
     "currentWorkspace": "Eneo la kazi la sasa",
     "yes": "Ndiyo",
     "no": "Hapana",

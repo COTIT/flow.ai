@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 const spans = vi.hoisted(() => [] as string[])
 vi.mock("./tracing", () => ({
+  noteVoiceFailure: () => {},
   withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
     spans.push(name)
     return action()

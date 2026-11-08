@@ -1,6 +1,7 @@
 import "server-only"
 import { Client } from "langsmith"
 import { getCurrentRunTree, traceable } from "langsmith/traceable"
+import { failureCategory } from "./client-contract"
 import { voiceSetting } from "./settings"
 
 type TracingRuntime = {
@@ -123,6 +124,13 @@ export async function withVoiceTracing<T>(
       } catch {
         /* Status export is optional; the action result remains authoritative. */
       }
+      if ("reason" in value && typeof value.reason === "string")
+        noteVoiceFailure(
+          value.reason,
+          "httpStatus" in value && typeof value.httpStatus === "number"
+            ? value.httpStatus
+            : undefined
+        )
     }
     return value
   }
@@ -139,5 +147,30 @@ export async function withVoiceTracing<T>(
     })()
   } catch {
     return run()
+  }
+}
+
+/** Failure labels on the current trace, so failed requests can be filtered in LangSmith.
+ * Only fixed codes, an HTTP status and (for "unsupported") the agent's short search
+ * phrase are exported: never transcripts, record data or attachment content. */
+export function noteVoiceFailure(
+  reason: string,
+  httpStatus?: number,
+  unsupportedQuery?: string
+) {
+  if (!/^[a-z_]{1,32}$/.test(reason)) return
+  const metadata: Record<string, string | number> = {
+    failure_reason: reason,
+    failure_category: failureCategory(reason),
+  }
+  if (httpStatus && Number.isInteger(httpStatus))
+    metadata.http_status = httpStatus
+  const query = unsupportedQuery?.replace(/\s+/g, " ").trim().slice(0, 120)
+  if (reason === "unsupported" && query) metadata.unsupported_query = query
+  try {
+    const tree = getCurrentRunTree()
+    tree.metadata = { ...tree.metadata, ...metadata }
+  } catch {
+    /* No active trace: tracing is off or this runs outside a traced route. */
   }
 }

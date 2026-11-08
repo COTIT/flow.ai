@@ -3,26 +3,27 @@
   "releaseGate": "pending",
   "releaseCommit": null,
   "imageDigest": null,
-  "observedAt": "2026-11-08T06:01:37.960Z",
+  "observedAt": "2026-11-08T12:07:55.000Z",
   "source": {
     "baseCommit": "ffcf5c8b8b8aad49862b97d1abafde2d97c7a69b",
     "workingTree": "uncommitted",
     "hostArtifactSource": "isolated temporary source snapshot; not a release image"
   },
   "provider": {
-    "observation": "Development: prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in (agtvrsn_9201m6wpk981esws35nzq6pe4k9c), then the shared execute_genesy_tool swapped for a dev-only copy with identical name, description and schema and force_pre_tool_speech true (agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). A read-only GET verified the exact prompt, turn_timeout 20, silence_end_call_timeout 60 and the tool swap. A dashboard Preview text chat showed the pre-tool line \"Ok, got that, let me check it for you.\" just before the execute_genesy_tool call (orders_list called directly, without discovery); spoken audio was not checked. With explicit owner approval on 2026-11-08, the shared execute_genesy_tool used by Production and Staging was set to force pre-tool speech. A read-only GET showed force_pre_tool_speech true, pre_tool_speech force, and no other tool field changed. With owner approval, the Staging agent then got the template prompt, turn_timeout 20 and silence_end_call_timeout 60 (agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). A read-only GET showed exactly those three fields changed. With owner approval, the Production agent got the same prompt and turn settings (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33). A read-only GET showed those three fields changed, plus a server-filled widget.terms_html default.",
-    "versionId": "agtvrsn_2201m6wqvk9qevm82wx048yaw0hj",
+    "observation": "Development and Staging, 2026-11-08, owner-approved: system prompt only, adding the record-name rule after the Result beat (\"When a result lists records, say their names or numbers...\") and the plain-language failure paragraph with the \"unsupported: <request>\" discovery signal. Before editing, each agent's prompt hashed equal to the previous template prompt; after publishing, a reload read back a prompt equal to this template's prompt (7463 chars, same SHA-256). The publish review listed only the system prompt as changed. Development: agtvrsn_9401m6xgqeykevqtqmefgnw7zpap (was agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). Staging: agtvrsn_9801m6xgwc66fysscrb26cvpet64 (was agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). Production still runs the previous prompt (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33) until the owner approves. Previous record: Development: prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in (agtvrsn_9201m6wpk981esws35nzq6pe4k9c), then the shared execute_genesy_tool swapped for a dev-only copy with identical name, description and schema and force_pre_tool_speech true (agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). A read-only GET verified the exact prompt, turn_timeout 20, silence_end_call_timeout 60 and the tool swap. A dashboard Preview text chat showed the pre-tool line \"Ok, got that, let me check it for you.\" just before the execute_genesy_tool call (orders_list called directly, without discovery); spoken audio was not checked. With explicit owner approval on 2026-11-08, the shared execute_genesy_tool used by Production and Staging was set to force pre-tool speech. A read-only GET showed force_pre_tool_speech true, pre_tool_speech force, and no other tool field changed. With owner approval, the Staging agent then got the template prompt, turn_timeout 20 and silence_end_call_timeout 60 (agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). A read-only GET showed exactly those three fields changed. With owner approval, the Production agent got the same prompt and turn settings (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33). A read-only GET showed those three fields changed, plus a server-filled widget.terms_html default.",
+    "versionId": "agtvrsn_9401m6xgqeykevqtqmefgnw7zpap",
     "template": "deploy/assistant-agent.template.json",
-    "templateSha256": "4cac74438a5e2825a7f7a3b5d2ff2ed12ca1b0d65a618e6e8903d5afa04ff209",
+    "templateSha256": "dde672b3d1b2b69eddd158c7763c08bac4e5e2f129a446e959f1b2288c1baa89",
     "stagingApplied": true,
-    "productionApplied": true,
+    "productionApplied": false,
     "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
     "productionProvisioned": true,
     "productionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
     "temporaryIntegrationKeysReused": true,
-    "previousVersionId": "agtvrsn_9201m6wpk981esws35nzq6pe4k9c",
-    "stagingVersionId": "agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx",
-    "previousProductionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45"
+    "previousVersionId": "agtvrsn_2201m6wqvk9qevm82wx048yaw0hj",
+    "stagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
+    "previousProductionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
+    "previousStagingVersionId": "agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx"
   },
   "localEvidence": {
     "hostStandalone": {

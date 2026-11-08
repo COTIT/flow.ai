@@ -1010,7 +1010,8 @@
     "roles": {
       "user": "You",
       "agent": "Genesy",
-      "action": "Action"
+      "action": "Action",
+      "link": "Link"
     },
     "fileStates": {
       "selected": "Selected · not sent",
@@ -1184,6 +1185,7 @@
       "operation": "Operation"
     },
     "requestErrors": {
+      "unsupported": "Genesy can't do this yet. Nothing was changed.",
       "invalid": "Check the requested details, then prepare a fresh review. Check any uncertain action in Office before repeating it.",
       "expired": "Your session expired. Sign in again to check the recorded task.",
       "forbidden": "You do not have permission for this action. Check your access in Office.",
@@ -1307,6 +1309,7 @@
     "closeAssistant": "Close assistant",
     "recordReference": "Selected reference {number}",
     "openRecord": "Open record",
+    "openRecordNamed": "Open {name} in a new tab",
     "currentWorkspace": "Current workspace",
     "yes": "Yes",
     "no": "No",
