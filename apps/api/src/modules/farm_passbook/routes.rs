@@ -8,6 +8,11 @@ use crate::{AppState, modules::farm_passbook::handlers};
 pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::mine))
+        .routes(routes!(handlers::balances))
         .routes(routes!(handlers::of_person))
-        .routes(routes!(handlers::give_consent, handlers::withdraw_consent))
+        .routes(routes!(
+            handlers::get_consent,
+            handlers::give_consent,
+            handlers::withdraw_consent
+        ))
 }

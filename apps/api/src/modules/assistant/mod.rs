@@ -8,6 +8,7 @@ pub mod cleanup;
 pub mod dto;
 pub mod gaps;
 pub mod gaps_repo;
+pub mod farm_facts;
 pub mod handlers;
 pub mod impact;
 pub mod mail_recipients;

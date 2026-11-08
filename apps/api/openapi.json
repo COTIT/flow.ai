@@ -1012,6 +1012,33 @@
         ],
         "type": "object"
       },
+      "BalancesPage": {
+        "description": "A page of farmers owed money with the total owed per currency.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OwedResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "totals": {
+            "description": "Total owed per currency over every page, by currency code.",
+            "items": {
+              "$ref": "#/components/schemas/Money"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "totals"
+        ],
+        "type": "object"
+      },
       "BatchInput": {
         "additionalProperties": false,
         "description": "Exact ordered drafts; session binding is supplied once for the whole batch.",
@@ -14269,6 +14296,39 @@
         ],
         "type": "object"
       },
+      "OwedResource": {
+        "description": "A farmer with a positive passbook balance: money the co-op owes them.",
+        "properties": {
+          "balance": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Positive balance over every line."
+          },
+          "name": {
+            "description": "Given and family name.",
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "village": {
+            "description": "Village name.",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "name",
+          "village_id",
+          "village",
+          "balance"
+        ],
+        "type": "object"
+      },
       "Pack": {
         "description": "Kg of the parent used and units made: kg per unit = raw_kg / units.",
         "properties": {
@@ -15318,6 +15378,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/PueRequestResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_QuietFarmer": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/QuietFarmer"
             },
             "type": "array"
           },
@@ -20562,6 +20641,43 @@
           "invoices",
           "lots",
           "relations"
+        ],
+        "type": "object"
+      },
+      "QuietFarmer": {
+        "description": "A registered person whose last bought kg (a supply batch line) is before the asked day, or who never delivered.",
+        "properties": {
+          "last_delivery_at": {
+            "description": "When their kg was last bought; null = never.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Given and family name.",
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "village": {
+            "description": "Village name.",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "name",
+          "village_id",
+          "village",
+          "last_delivery_at"
         ],
         "type": "object"
       },
@@ -57744,9 +57860,184 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/passbook/balances": {
+      "get": {
+        "description": "Staff. Every farmer in the caller's villages (ops and admin: all) with a positive passbook balance, largest first, one row per farmer and currency, and `totals`: the sum owed per currency over every page. Summed in SQL in minor units. `village_id` narrows to one village.",
+        "operationId": "farm_passbook_balances",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only farmers living in this village.",
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalancesPage"
+                }
+              }
+            },
+            "description": "One page of farmers owed, with totals"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "A farmer"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed village id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What we owe farmers",
+        "tags": [
+          "farm_passbook"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/passbook/mine": {
       "get": {
-        "description": "The caller's own passbook lines, newest first, each with the balance in its currency after it.",
+        "description": "The caller's own passbook lines, newest first, each with the balance in its currency after it. `from` / `to` keep Tanzania days (inclusive); the balances still cover every line.",
         "operationId": "farm_passbook_mine",
         "parameters": [
           {
@@ -57777,6 +58068,24 @@
             "schema": {
               "format": "int64",
               "type": "integer"
+            }
+          },
+          {
+            "description": "First Tanzania day kept (`YYYY-MM-DD`, inclusive); blank = no bound.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last Tanzania day kept (`YYYY-MM-DD`, inclusive); blank = no bound.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -57830,6 +58139,16 @@
               }
             },
             "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Bad date, or `from` after `to`"
           },
           "429": {
             "content": {
@@ -59536,7 +59855,7 @@
     },
     "/workspace/{workspace}/farm/persons/{person}/passbook": {
       "get": {
-        "description": "Staff of the person's village, or the person. Newest first, each line with the balance after it.",
+        "description": "Staff of the person's village, or the person. Newest first, each line with the balance after it. `from` / `to` keep Tanzania days (inclusive), e.g. one month; the running balance and `balances` still count every line.",
         "operationId": "farm_passbook_person",
         "parameters": [
           {
@@ -59577,6 +59896,24 @@
             "schema": {
               "format": "int64",
               "type": "integer"
+            }
+          },
+          {
+            "description": "First Tanzania day kept (`YYYY-MM-DD`, inclusive); blank = no bound.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last Tanzania day kept (`YYYY-MM-DD`, inclusive); blank = no bound.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -59640,6 +59977,16 @@
               }
             },
             "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Bad date, or `from` after `to`"
           },
           "429": {
             "content": {
@@ -59838,6 +60185,149 @@
           }
         ],
         "summary": "Withdraw passport consent",
+        "tags": [
+          "farm_passbook"
+        ]
+      },
+      "get": {
+        "description": "The person or staff of their village. Whether the person agreed that the public lot page may name or picture them, when and by whom. Supply links never share names or photos; this flag is the only per-farmer consent.",
+        "operationId": "farm_passbook_consent",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ConsentResource"
+                }
+              }
+            },
+            "description": "Current consent"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Another farmer"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown person, or outside the caller's villages or workspace"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read passport consent",
         "tags": [
           "farm_passbook"
         ]
@@ -62138,6 +62628,191 @@
         "summary": "Move a PUE request",
         "tags": [
           "farm_pue"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/quiet-farmers": {
+      "get": {
+        "description": "Staff: registered persons in their villages (ops and admin: all) with no kg bought in a supply batch on or after Tanzania day `since` (default 30 days ago), or never. Never delivered first, then the oldest last delivery, with `last_delivery_at`. `village_id` narrows to one village. A delivery is a supply batch line; harvest figures don't count.",
+        "operationId": "farm_supply_quiet_farmers",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Tanzania day (`YYYY-MM-DD`): farmers with no bought kg on or after it. Default: 30\ndays before today.",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only farmers living in this village.",
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_QuietFarmer"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is a farmer, not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Bad `since`, malformed village id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Farmers who have not delivered",
+        "tags": [
+          "farm_supply"
         ]
       }
     },

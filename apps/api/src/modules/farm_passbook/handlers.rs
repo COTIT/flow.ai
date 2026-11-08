@@ -7,14 +7,14 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         farm::FarmAccess,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_passbook::{
-        dto::{ConsentResource, ListQuery, PassbookPage},
+        dto::{BalancesPage, BalancesQuery, ConsentResource, ListQuery, PassbookPage},
         service,
     },
 };
@@ -34,11 +34,12 @@ fn page(book: service::Passbook, page: Page) -> Json<PassbookPage> {
 #[utoipa::path(
     get, path = "/workspace/{workspace}/farm/passbook/mine", tag = "farm_passbook",
     operation_id = "farm_passbook_mine", summary = "My passbook",
-    description = "The caller's own passbook lines, newest first, each with the balance in its currency after it.",
+    description = "The caller's own passbook lines, newest first, each with the balance in its currency after it. `from` / `to` keep Tanzania days (inclusive); the balances still cover every line.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
         (status = 200, body = PassbookPage, description = "One page, with the balance per currency"),
         (status = 404, body = MessageBody, description = "Account is no registered person here, or no farm role"),
+        (status = 422, body = ValidationErrorBody, description = "Bad date, or `from` after `to`"),
     ),
     security(("bearer" = []))
 )]
@@ -48,8 +49,9 @@ pub async fn mine(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<PassbookPage>, AppError> {
     let p = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let days = service::days(query.from.as_deref(), query.to.as_deref())?;
     Ok(page(
-        service::mine(&state, &access, p.size, p.offset()).await?,
+        service::mine(&state, &access, days, p.size, p.offset()).await?,
         p,
     ))
 }
@@ -58,7 +60,7 @@ pub async fn mine(
 #[utoipa::path(
     get, path = "/workspace/{workspace}/farm/persons/{person}/passbook", tag = "farm_passbook",
     operation_id = "farm_passbook_person", summary = "A person's passbook",
-    description = "Staff of the person's village, or the person. Newest first, each line with the balance after it.",
+    description = "Staff of the person's village, or the person. Newest first, each line with the balance after it. `from` / `to` keep Tanzania days (inclusive), e.g. one month; the running balance and `balances` still count every line.",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("person" = Uuid, Path, description = "Person id"),
@@ -68,6 +70,7 @@ pub async fn mine(
         (status = 200, body = PassbookPage, description = "One page, with the balance per currency"),
         (status = 403, body = MessageBody, description = "Another farmer"),
         (status = 404, body = MessageBody, description = "Unknown person, or outside the caller's villages or workspace"),
+        (status = 422, body = ValidationErrorBody, description = "Bad date, or `from` after `to`"),
     ),
     security(("bearer" = []))
 )]
@@ -78,8 +81,62 @@ pub async fn of_person(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<PassbookPage>, AppError> {
     let p = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let rows = service::of_person(&state, &access, &person, p.size, p.offset()).await?;
+    let days = service::days(query.from.as_deref(), query.to.as_deref())?;
+    let rows = service::of_person(&state, &access, &person, days, p.size, p.offset()).await?;
     Ok(page(rows, p))
+}
+
+/// GET /farm/passbook/balances.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/passbook/balances", tag = "farm_passbook",
+    operation_id = "farm_passbook_balances", summary = "What we owe farmers",
+    description = "Staff. Every farmer in the caller's villages (ops and admin: all) with a positive passbook balance, largest first, one row per farmer and currency, and `totals`: the sum owed per currency over every page. Summed in SQL in minor units. `village_id` narrows to one village.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), BalancesQuery),
+    responses(
+        (status = 200, body = BalancesPage, description = "One page of farmers owed, with totals"),
+        (status = 403, body = MessageBody, description = "A farmer"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed village id"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn balances(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Query(query): Query<BalancesQuery>,
+) -> Result<Json<BalancesPage>, AppError> {
+    let p = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let village = query.village_id.as_deref();
+    let (rows, total, totals) = service::owed(&state, &access, village, p.size, p.offset()).await?;
+    let (data, meta) =
+        Paginated::new(rows.into_iter().map(Into::into).collect(), total, p).into_parts();
+    Ok(Json(BalancesPage { data, meta, totals }))
+}
+
+/// GET /farm/persons/{person}/passport-consent.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/persons/{person}/passport-consent", tag = "farm_passbook",
+    operation_id = "farm_passbook_consent", summary = "Read passport consent",
+    description = "The person or staff of their village. Whether the person agreed that the public lot page may name or picture them, when and by whom. Supply links never share names or photos; this flag is the only per-farmer consent.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("person" = Uuid, Path, description = "Person id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<ConsentResource>, description = "Current consent"),
+        (status = 403, body = MessageBody, description = "Another farmer"),
+        (status = 404, body = MessageBody, description = "Unknown person, or outside the caller's villages or workspace"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn get_consent(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Path((_, person)): Path<(String, String)>,
+) -> Result<Data<ConsentResource>, AppError> {
+    Ok(Data(
+        service::consent_of(&state, &access, &person).await?.into(),
+    ))
 }
 
 /// POST /farm/persons/{person}/passport-consent.

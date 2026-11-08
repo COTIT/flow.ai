@@ -1,0 +1,240 @@
+{
+  "farm_supply_create": {
+    "en": [
+      "farmer",
+      "farmers",
+      "delivered",
+      "deliveries",
+      "delivery",
+      "received",
+      "intake",
+      "kilograms",
+      "kilos",
+      "coffee",
+      "cherry",
+      "produce",
+      "bought",
+      "purchase",
+      "recorded"
+    ],
+    "nl": [
+      "boer",
+      "boeren",
+      "geleverd",
+      "levering",
+      "leveringen",
+      "ontvangen",
+      "kilo",
+      "koffie",
+      "inkoop",
+      "gekocht"
+    ],
+    "sw": [
+      "mkulima",
+      "wakulima",
+      "ameleta",
+      "wameleta",
+      "kuleta",
+      "kupokea",
+      "mapokezi",
+      "kilo",
+      "kahawa",
+      "mazao",
+      "kununua",
+      "ununuzi"
+    ]
+  },
+  "farm_supply_options": {
+    "en": ["farmer", "delivery", "harvests", "ready", "buy"],
+    "nl": ["boer", "levering", "oogst"],
+    "sw": ["mkulima", "mavuno", "kununua"]
+  },
+  "farm_supply_list": {
+    "en": [
+      "deliveries",
+      "delivered",
+      "delivery",
+      "history",
+      "farmers",
+      "bought"
+    ],
+    "nl": ["leveringen", "geleverd", "boeren"],
+    "sw": ["mapokezi", "wakulima", "historia"]
+  },
+  "farm_passbook_person": {
+    "en": [
+      "farmer",
+      "farmers",
+      "passbook",
+      "statement",
+      "balance",
+      "balances",
+      "owe",
+      "owed",
+      "owing",
+      "debt",
+      "unpaid",
+      "outstanding",
+      "payable",
+      "money"
+    ],
+    "nl": [
+      "boer",
+      "boeren",
+      "kasboek",
+      "saldo",
+      "schuldig",
+      "schuld",
+      "openstaand",
+      "afschrift"
+    ],
+    "sw": [
+      "mkulima",
+      "wakulima",
+      "daftari",
+      "deni",
+      "madeni",
+      "salio",
+      "taarifa",
+      "hesabu",
+      "tunadaiwa"
+    ]
+  },
+  "farm_payouts_create": {
+    "en": [
+      "pay",
+      "paying",
+      "payment",
+      "farmer",
+      "farmers",
+      "owe",
+      "owed",
+      "cash",
+      "payout"
+    ],
+    "nl": ["betalen", "betaling", "uitbetalen", "boer", "boeren"],
+    "sw": ["lipa", "kulipa", "malipo", "mkulima", "wakulima", "pesa", "taslimu"]
+  },
+  "farm_payouts_list": {
+    "en": ["paid", "payments", "farmer", "farmers"],
+    "nl": ["betaald", "betalingen", "boeren"],
+    "sw": ["malipo", "yaliyolipwa", "wakulima"]
+  },
+  "supply_chain_dispatch": {
+    "en": [
+      "transfer",
+      "transferring",
+      "send",
+      "ship",
+      "move",
+      "stock",
+      "branch",
+      "branches",
+      "bags",
+      "coffee",
+      "another",
+      "other",
+      "co-op",
+      "cooperative"
+    ],
+    "nl": [
+      "overdragen",
+      "overboeken",
+      "sturen",
+      "verzenden",
+      "filiaal",
+      "vestiging",
+      "zakken",
+      "koffie",
+      "andere"
+    ],
+    "sw": [
+      "peleka",
+      "kusafirisha",
+      "hamisha",
+      "tuma",
+      "tawi",
+      "matawi",
+      "mifuko",
+      "kahawa",
+      "lingine",
+      "ushirika"
+    ]
+  },
+  "farm_supply_dispatch_options": {
+    "en": ["transfer", "send", "branch"],
+    "nl": ["filiaal", "sturen"],
+    "sw": ["peleka", "tawi"]
+  },
+  "supply_links_grant": {
+    "en": [
+      "link",
+      "connect",
+      "partner",
+      "co-op",
+      "coop",
+      "cooperative",
+      "another",
+      "share",
+      "sharing",
+      "set up"
+    ],
+    "nl": ["koppelen", "koppeling", "partner", "coöperatie"],
+    "sw": ["unganisha", "kiungo", "ushirika", "mwingine", "shirikisha"]
+  },
+  "supply_links_list": {
+    "en": [
+      "links",
+      "partner",
+      "co-op",
+      "cooperative",
+      "share",
+      "sharing",
+      "agreed",
+      "data"
+    ],
+    "nl": ["koppelingen", "delen", "coöperatie"],
+    "sw": ["viungo", "ushirika", "kushiriki"]
+  },
+  "farm_records_harvest_reports_revise": {
+    "en": [
+      "correct",
+      "correction",
+      "fix",
+      "wrong",
+      "mistake",
+      "delivery",
+      "weight",
+      "kg",
+      "farmer",
+      "entered"
+    ],
+    "nl": ["corrigeren", "correctie", "fout", "gewicht", "oogst"],
+    "sw": ["sahihisha", "rekebisha", "kosa", "uzito", "mavuno"]
+  },
+  "farm_passbook_balances": {
+    "en": ["owe", "owed", "owing", "debt", "debts", "unpaid", "outstanding", "payable", "farmers", "total", "pay", "balances"],
+    "nl": ["schuldig", "schuld", "openstaand", "boeren", "totaal", "betalen"],
+    "sw": ["deni", "madeni", "tunadaiwa", "wakulima", "jumla", "malipo", "lipa"]
+  },
+  "farm_passbook_consent": {
+    "en": ["consent", "agree", "agreed", "permission", "share", "sharing", "data", "farmer"],
+    "nl": ["toestemming", "delen", "gegevens", "boer"],
+    "sw": ["ridhaa", "idhini", "kukubali", "taarifa", "mkulima"]
+  },
+  "farm_supply_quiet_farmers": {
+    "en": ["inactive", "quiet", "haven't", "not", "delivered", "stopped", "month", "since", "farmers", "missing"],
+    "nl": ["inactief", "niet", "geleverd", "maand", "sinds", "boeren"],
+    "sw": ["hawajaleta", "hajaleta", "hawajauza", "mwezi", "tangu", "wakulima", "kimya"]
+  },
+  "farm_passbook_give_consent": {
+    "en": ["consent", "agree", "agreed", "share", "data", "farmer"],
+    "nl": ["toestemming", "delen"],
+    "sw": ["ridhaa", "idhini", "kukubali"]
+  },
+  "farm_passbook_withdraw_consent": {
+    "en": ["consent", "withdraw", "stop", "sharing", "farmer"],
+    "nl": ["toestemming", "intrekken"],
+    "sw": ["ridhaa", "idhini", "kuondoa"]
+  }
+}

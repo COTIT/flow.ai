@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.code AS lot, p.name AS product,\n                  (SELECT coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name)\n                   FROM supply_links s JOIN workspaces w ON w.id = s.to_workspace_id\n                   WHERE s.id = $3 AND s.from_workspace_id = $1) AS partner,\n                  (SELECT name FROM warehouses WHERE workspace_id = $1 AND id = $4) AS warehouse\n           FROM lots l JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id\n           WHERE l.workspace_id = $1 AND l.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lot",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "partner",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "warehouse",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "317c24828c8aecdd948a1414cd56579fe8bae6b68145a920b65918d1c635108f"
+}

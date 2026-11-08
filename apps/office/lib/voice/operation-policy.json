@@ -5314,6 +5314,105 @@
     },
     "confirmationFields": []
   },
+  "farm_passbook_balances": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/passbook/balances",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_passbook/handlers.rs#balances",
+        "apps/api/src/modules/farm_passbook/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_passbook_consent": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/persons/{person}/passport-consent",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_passbook/handlers.rs#get_consent",
+        "apps/api/src/modules/farm_passbook/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_supply_quiet_farmers": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/quiet-farmers",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply/handlers.rs#quiet_farmers",
+        "apps/api/src/modules/farm_supply/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "farm_passbook_withdraw_consent": {
     "method": "DELETE",
     "path": "/workspace/{workspace}/farm/persons/{person}/passport-consent",

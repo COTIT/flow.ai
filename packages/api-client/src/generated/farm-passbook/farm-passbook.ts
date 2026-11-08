@@ -25,11 +25,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BalancesPage,
   EnvelopeConsentResource,
+  FarmPassbookBalancesParams,
   FarmPassbookMineParams,
   FarmPassbookPersonParams,
   MessageBody,
-  PassbookPage
+  PassbookPage,
+  ValidationErrorBody
 } from '../model';
 
 import { apiRequest } from '../../mutator';
@@ -56,7 +59,108 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 /**
- * The caller's own passbook lines, newest first, each with the balance in its currency after it.
+ * Staff. Every farmer in the caller's villages (ops and admin: all) with a positive passbook balance, largest first, one row per farmer and currency, and `totals`: the sum owed per currency over every page. Summed in SQL in minor units. `village_id` narrows to one village.
+ * @summary What we owe farmers
+ */
+export const farmPassbookBalances = (
+    workspace: string,
+    params?: FarmPassbookBalancesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<BalancesPage>(
+      {url: `/workspace/${workspace}/farm/passbook/balances`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmPassbookBalancesQueryKey = (workspace: string,
+    params?: FarmPassbookBalancesParams,) => {
+    return [
+    `/workspace/${workspace}/farm/passbook/balances`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFarmPassbookBalancesQueryOptions = <TData = Awaited<ReturnType<typeof farmPassbookBalances>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: FarmPassbookBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookBalances>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmPassbookBalancesQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmPassbookBalances>>> = ({ signal }) => farmPassbookBalances(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmPassbookBalances>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmPassbookBalancesQueryResult = NonNullable<Awaited<ReturnType<typeof farmPassbookBalances>>>
+export type FarmPassbookBalancesQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useFarmPassbookBalances<TData = Awaited<ReturnType<typeof farmPassbookBalances>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  FarmPassbookBalancesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookBalances>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPassbookBalances>>,
+          TError,
+          Awaited<ReturnType<typeof farmPassbookBalances>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPassbookBalances<TData = Awaited<ReturnType<typeof farmPassbookBalances>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmPassbookBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookBalances>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPassbookBalances>>,
+          TError,
+          Awaited<ReturnType<typeof farmPassbookBalances>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPassbookBalances<TData = Awaited<ReturnType<typeof farmPassbookBalances>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmPassbookBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookBalances>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary What we owe farmers
+ */
+
+export function useFarmPassbookBalances<TData = Awaited<ReturnType<typeof farmPassbookBalances>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmPassbookBalancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookBalances>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmPassbookBalancesQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * The caller's own passbook lines, newest first, each with the balance in its currency after it. `from` / `to` keep Tanzania days (inclusive); the balances still cover every line.
  * @summary My passbook
  */
 export const farmPassbookMine = (
@@ -84,7 +188,7 @@ export const getFarmPassbookMineQueryKey = (workspace: string,
     }
 
 
-export const getFarmPassbookMineQueryOptions = <TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmPassbookMineQueryOptions = <TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: FarmPassbookMineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookMine>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -104,10 +208,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmPassbookMineQueryResult = NonNullable<Awaited<ReturnType<typeof farmPassbookMine>>>
-export type FarmPassbookMineQueryError = ErrorType<MessageBody>
+export type FarmPassbookMineQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  FarmPassbookMineParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookMine>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -118,7 +222,7 @@ export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbo
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmPassbookMineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookMine>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -129,7 +233,7 @@ export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbo
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmPassbookMineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookMine>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -138,7 +242,7 @@ export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbo
  * @summary My passbook
  */
 
-export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbookMine>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmPassbookMineParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookMine>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -157,7 +261,7 @@ export function useFarmPassbookMine<TData = Awaited<ReturnType<typeof farmPassbo
 
 
 /**
- * Staff of the person's village, or the person. Newest first, each line with the balance after it.
+ * Staff of the person's village, or the person. Newest first, each line with the balance after it. `from` / `to` keep Tanzania days (inclusive), e.g. one month; the running balance and `balances` still count every line.
  * @summary A person's passbook
  */
 export const farmPassbookPerson = (
@@ -187,7 +291,7 @@ export const getFarmPassbookPersonQueryKey = (workspace: string,
     }
 
 
-export const getFarmPassbookPersonQueryOptions = <TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmPassbookPersonQueryOptions = <TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     person: string,
     params?: FarmPassbookPersonParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookPerson>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
@@ -208,10 +312,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmPassbookPersonQueryResult = NonNullable<Awaited<ReturnType<typeof farmPassbookPerson>>>
-export type FarmPassbookPersonQueryError = ErrorType<MessageBody>
+export type FarmPassbookPersonQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     person: string,
     params: undefined |  FarmPassbookPersonParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookPerson>>, TError, TData>> & Pick<
@@ -223,7 +327,7 @@ export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPass
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     person: string,
     params?: FarmPassbookPersonParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookPerson>>, TError, TData>> & Pick<
@@ -235,7 +339,7 @@ export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPass
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     person: string,
     params?: FarmPassbookPersonParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookPerson>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
@@ -245,7 +349,7 @@ export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPass
  * @summary A person's passbook
  */
 
-export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody>>(
+export function useFarmPassbookPerson<TData = Awaited<ReturnType<typeof farmPassbookPerson>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     person: string,
     params?: FarmPassbookPersonParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookPerson>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
@@ -331,6 +435,106 @@ export const useFarmPassbookWithdrawConsent = <TError = ErrorType<MessageBody>,
       return useMutation(getFarmPassbookWithdrawConsentMutationOptions(options), queryClient);
     }
     /**
+ * The person or staff of their village. Whether the person agreed that the public lot page may name or picture them, when and by whom. Supply links never share names or photos; this flag is the only per-farmer consent.
+ * @summary Read passport consent
+ */
+export const farmPassbookConsent = (
+    workspace: string,
+    person: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConsentResource>(
+      {url: `/workspace/${workspace}/farm/persons/${person}/passport-consent`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmPassbookConsentQueryKey = (workspace: string,
+    person: string,) => {
+    return [
+    `/workspace/${workspace}/farm/persons/${person}/passport-consent`
+    ] as const;
+    }
+
+
+export const getFarmPassbookConsentQueryOptions = <TData = Awaited<ReturnType<typeof farmPassbookConsent>>, TError = ErrorType<MessageBody>>(workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookConsent>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmPassbookConsentQueryKey(workspace,person);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmPassbookConsent>>> = ({ signal }) => farmPassbookConsent(workspace,person, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && person !== null && person !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmPassbookConsent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmPassbookConsentQueryResult = NonNullable<Awaited<ReturnType<typeof farmPassbookConsent>>>
+export type FarmPassbookConsentQueryError = ErrorType<MessageBody>
+
+
+export function useFarmPassbookConsent<TData = Awaited<ReturnType<typeof farmPassbookConsent>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookConsent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPassbookConsent>>,
+          TError,
+          Awaited<ReturnType<typeof farmPassbookConsent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPassbookConsent<TData = Awaited<ReturnType<typeof farmPassbookConsent>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookConsent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPassbookConsent>>,
+          TError,
+          Awaited<ReturnType<typeof farmPassbookConsent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPassbookConsent<TData = Awaited<ReturnType<typeof farmPassbookConsent>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookConsent>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read passport consent
+ */
+
+export function useFarmPassbookConsent<TData = Awaited<ReturnType<typeof farmPassbookConsent>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPassbookConsent>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmPassbookConsentQueryOptions(workspace,person,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * The person or staff of their village. Records that the public lot page may name or picture this person once the data-protection gate opens; nothing is shown before that.
  * @summary Record passport consent
  */

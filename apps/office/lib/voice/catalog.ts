@@ -3,6 +3,7 @@ import Ajv2020, { type ValidateFunction } from "ajv/dist/2020"
 import addFormats from "ajv-formats"
 import generated from "./catalog.generated.json"
 import schemas from "./catalog.schemas.generated.json"
+import keywords from "./keywords.json"
 
 type Schema = Record<string, unknown>
 export type Authorization = {
@@ -92,6 +93,12 @@ export const tools = operationManifest.filter(
 )
 const byId = new Map(operationManifest.map((op) => [op.id, op]))
 export const getOperation = (id: string): Tool | undefined => byId.get(id)
+// Trigger words (en/nl/sw) are matched by discovery only; never shown on screen.
+const triggerWords = new Map(
+  Object.entries(keywords as Record<string, Record<string, string[]>>).map(
+    ([id, words]) => [id, Object.values(words).flat().join(" ")]
+  )
+)
 
 /** Safe refusal for inventoried capabilities missing native backend behavior. */
 export class ToolUnavailableError extends Error {
@@ -191,7 +198,7 @@ export function discoverTools(
         score: terms.reduce(
           (score, term) =>
             score +
-            (`${tool.id} ${tool.domain} ${tool.summary}`
+            (`${tool.id} ${tool.domain} ${tool.summary} ${triggerWords.get(tool.id) ?? ""}`
               .replace(/[_-]/g, " ")
               .toLowerCase()
               .includes(term)

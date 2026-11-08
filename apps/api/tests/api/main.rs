@@ -11,6 +11,7 @@ mod assistant;
 mod assistant_batches;
 mod assistant_capability_auth;
 mod assistant_gaps;
+mod assistant_farm_facts;
 mod assistant_identity;
 mod assistant_mail_recipients;
 mod assistant_order_invoice_quotes;
