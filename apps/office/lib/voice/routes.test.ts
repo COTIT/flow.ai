@@ -519,3 +519,21 @@ it("suggests permitted candidates for a guessed operation id", async () => {
     denied.candidates.map((tool: { id: string }) => tool.id)
   ).not.toContain("orders_list")
 })
+
+it("discovery returns the top match's full input schema so execute can follow one search", async () => {
+  const response = await toolRequest(
+    request({
+      command: "discover",
+      query: "orders list",
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  const { tools } = await response.json()
+  expect(tools[0]).toMatchObject({ id: "orders_list" })
+  expect(tools[0].parameters.map((p: { name: string }) => p.name)).toContain(
+    "page_size"
+  )
+  expect(tools.length).toBeGreaterThan(1)
+  for (const rest of tools.slice(1)) expect(rest.parameters).toEqual([])
+})
