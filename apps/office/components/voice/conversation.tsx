@@ -30,7 +30,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@genesy/ui/components/sheet"
-import { VoiceActivity } from "./activity"
+import { VoiceActivity, VoiceThinking } from "./activity"
 import {
   displayReferences,
   displayText,
@@ -395,6 +395,7 @@ export function VoiceConversation() {
                     </p>
                   </div>
                 )}
+                <VoiceThinking />
               </div>
               {!follow ? (
                 <Button
@@ -815,56 +816,58 @@ export function VoiceConversation() {
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="dark theme-glass w-full gap-4 overflow-y-auto p-5 text-foreground motion-reduce:transition-none sm:max-w-md"
+          className="dark w-full gap-0 overflow-y-auto bg-background p-0 text-foreground motion-reduce:transition-none sm:max-w-md"
         >
-          <SheetHeader className="p-0">
-            <SheetTitle>{t("review")}</SheetTitle>
-          </SheetHeader>
-          <p className="text-sm font-semibold">
-            {voice.review ? <ReviewTitle review={voice.review} /> : null}
-          </p>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {voice.review ? <ReviewList review={voice.review} /> : null}
+          <div className="theme-glass flex min-h-full flex-col gap-4 p-5">
+            <SheetHeader className="p-0">
+              <SheetTitle>{t("review")}</SheetTitle>
+            </SheetHeader>
+            <p className="text-sm font-semibold">
+              {voice.review ? <ReviewTitle review={voice.review} /> : null}
+            </p>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {voice.review ? <ReviewList review={voice.review} /> : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
+            {voice.recoveredReview ? (
+              <p className="text-sm text-muted-foreground">
+                {t("recoveredReviewHint")}
+              </p>
+            ) : null}
+            {voice.review?.confirmationPhrase && !voice.recoveredReview ? (
+              <p className="text-sm">
+                {t("spokenHint")}{" "}
+                <strong className="font-semibold break-words">
+                  {voice.review.confirmationPhrase}
+                </strong>
+              </p>
+            ) : null}
+            <SheetFooter className="p-0">
+              <Button
+                className="min-h-11"
+                variant="outline"
+                disabled={voice.busy && voice.review?.kind !== "batch"}
+                onClick={() =>
+                  voice.busy && voice.review?.kind === "batch"
+                    ? void voice.stopBatch("cancel")
+                    : void voice.confirm("cancel")
+                }
+              >
+                {t(
+                  voice.busy && voice.review?.kind === "batch"
+                    ? "batchStop"
+                    : "cancel"
+                )}
+              </Button>
+              <Button
+                className="min-h-11"
+                disabled={voice.busy}
+                onClick={() => void voice.confirm("approve")}
+              >
+                {t(voice.busy ? "working" : "approve")}
+              </Button>
+            </SheetFooter>
           </div>
-          <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
-          {voice.recoveredReview ? (
-            <p className="text-sm text-muted-foreground">
-              {t("recoveredReviewHint")}
-            </p>
-          ) : null}
-          {voice.review?.confirmationPhrase && !voice.recoveredReview ? (
-            <p className="text-sm">
-              {t("spokenHint")}{" "}
-              <strong className="font-semibold break-words">
-                {voice.review.confirmationPhrase}
-              </strong>
-            </p>
-          ) : null}
-          <SheetFooter className="p-0">
-            <Button
-              className="min-h-11"
-              variant="outline"
-              disabled={voice.busy && voice.review?.kind !== "batch"}
-              onClick={() =>
-                voice.busy && voice.review?.kind === "batch"
-                  ? void voice.stopBatch("cancel")
-                  : void voice.confirm("cancel")
-              }
-            >
-              {t(
-                voice.busy && voice.review?.kind === "batch"
-                  ? "batchStop"
-                  : "cancel"
-              )}
-            </Button>
-            <Button
-              className="min-h-11"
-              disabled={voice.busy}
-              onClick={() => void voice.confirm("approve")}
-            >
-              {t(voice.busy ? "working" : "approve")}
-            </Button>
-          </SheetFooter>
         </SheetContent>
       </Sheet>
     </Dialog>

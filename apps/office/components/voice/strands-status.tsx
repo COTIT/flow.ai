@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Mic } from "lucide-react"
 import { island, useMotionAllowed } from "@genesy/ui/components/island"
 import { useVoice } from "./provider"
 import { voiceMotionActive } from "./motion"
@@ -105,7 +104,7 @@ export function StrandsStatus() {
       aria-hidden="true"
       data-animate={visible && motionAllowed && !muted && !capturePaused}
       data-active={working || speaking || (canListen && moving)}
-      className="voice-orb relative mx-auto grid size-44 shrink-0 place-items-center rounded-full sm:size-64"
+      className="voice-orb relative mx-auto size-64 shrink-0 sm:size-80"
     >
       <Strands
         colors={COLORS}
@@ -131,7 +130,6 @@ export function StrandsStatus() {
           </>
         }
       />
-      <Mic className="relative size-7 text-foreground/80" />
     </div>
   )
 }

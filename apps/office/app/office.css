@@ -22,19 +22,6 @@
   backdrop-filter: none;
 }
 
-.voice-orb {
-  background:
-    radial-gradient(
-      circle at 35% 30%,
-      color-mix(in srgb, var(--gold) 18%, transparent),
-      transparent 65%
-    ),
-    radial-gradient(
-      circle at 65% 70%,
-      color-mix(in srgb, var(--teal) 28%, transparent),
-      transparent 65%
-    );
-}
 .voice-orb > span {
   position: absolute;
   inset: 3%;
@@ -164,4 +151,10 @@
 }
 .theme-glass .voice-review-list [role="option"] > * > :first-child {
   color: var(--muted-foreground);
+}
+
+/* The review sheet is portaled outside the dark overlay; it keeps the overlay's dark glass. */
+.theme-glass [data-slot="sheet-content"].dark {
+  background: var(--background);
+  border-color: var(--hair-2);
 }
