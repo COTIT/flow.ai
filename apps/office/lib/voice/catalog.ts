@@ -173,6 +173,12 @@ function discoveryContract(tool: Tool, exact = false): Tool {
   }
 }
 
+const fillerWords = new Set(
+  "the and for with from our this that its are what which who how why does can into about any your their them they have has was were been not but".split(
+    " "
+  )
+)
+
 /** Search contracts on demand; secure flows resolve to an explicit native UI handoff. */
 export function discoverTools(
   query: string,
@@ -186,11 +192,12 @@ export function discoverTools(
   const exact = byId.get(query)
   if (exact)
     return allowed.includes(exact) ? [discoveryContract(exact, true)] : []
+  // Words match as substrings, so short and filler words ("or" in "orders") would match everything.
   const terms = query
     .toLowerCase()
-    .replace(/[_-]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(" ")
+    .filter((term) => term.length > 2 && !fillerWords.has(term))
   return (
     allowed
       .map((tool) => ({
