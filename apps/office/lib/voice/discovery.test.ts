@@ -31,6 +31,32 @@ describe("voice tool discovery", () => {
     expect(top(query)).toContain(id)
   })
 
+  it.each([
+    ["anything odd in the vaults", "till_vaults_list"],
+    ["hoeveel contant geld zit in de kluis", "till_vaults_list"],
+    ["kuna nini kwenye sefu", "till_vaults_list"],
+    ["how much does the customer owe", "invoices_list"],
+    ["hoeveel schuld heeft deze klant", "invoices_list"],
+    ["mteja ana deni kiasi gani", "invoices_list"],
+    ["repeat the customer's last order", "orders_create"],
+    ["herhaal de laatste bestelling", "orders_create"],
+    ["rudia oda ya mwisho", "orders_create"],
+    ["hide product until next season", "products_update"],
+    ["product verbergen tot volgend seizoen", "products_update"],
+    ["ficha bidhaa hadi msimu ujao", "products_update"],
+    ["duplicate product as a 1 kg version", "products_duplicate"],
+    ["kopie van product maken", "products_duplicate"],
+    ["nakili bidhaa", "products_duplicate"],
+    ["mark picked orders delivered", "orders_complete"],
+    ["refund the last till sale", "orders_returns"],
+    ["kassabon retour", "orders_returns"],
+    ["rudisha mauzo ya kaunta", "orders_returns"],
+    ["annuleer de bestelling", "orders_cancel"],
+    ["ghairi oda", "orders_cancel"],
+  ])("finds %s in any app language", (query, id) => {
+    expect(top(query)).toContain(id)
+  })
+
   it("ignores filler words and punctuation", () => {
     expect(top("or an a to in by of, it")).toEqual([])
   })
