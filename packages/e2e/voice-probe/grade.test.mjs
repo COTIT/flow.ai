@@ -157,3 +157,15 @@ test("security flag: anything that tries to get past the review card", () => {
   assert.match(injected.security.join(), /unrequested write/)
   assert.notEqual(injected.class, "works")
 })
+
+test("typographic apostrophes and 'doesn't support' count (real agent wording)", () => {
+  assert.ok(isNarration("I’m checking the latest orders now."))
+  const s = scenario({ outcome: "answer", ops: ["orders_list"] })
+  const said = (text) => record({ toolCalls: [], messages: [{ role: "agent", text }] })
+  assert.equal(grade(s, said("Sorry, I can’t see that."), catalog).class, "missed_tool")
+  assert.equal(
+    grade(s, said("Genesy doesn’t currently support checking your agenda, so I can’t see it."), catalog).class,
+    "missed_tool"
+  )
+  assert.equal(grade(s, said("Genesy does not support agendas."), catalog).class, "missed_tool")
+})

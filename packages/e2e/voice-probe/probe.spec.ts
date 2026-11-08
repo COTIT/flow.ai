@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { expect, test, type Page, type Request } from "@playwright/test"
 
 import { grade, isNarration } from "./grade.mjs"
@@ -177,11 +177,14 @@ async function finishTurn(page: Page, before: number, inflight: Set<Request>, st
   return fresh.length ? "timeout" : "no_reply"
 }
 
-test.describe.configure({ mode: "serial" })
-
 for (const scenario of selected) {
   test(scenario.id, async ({ page }) => {
     test.setTimeout(scenario.turns.length * (TURN_LIMIT + 15_000) + 90_000)
+    // VOICE_PROBE_RESUME=1: a scenario already graded in this bank is not paid for twice.
+    test.skip(
+      process.env.VOICE_PROBE_RESUME === "1" && existsSync(new URL(`${scenario.id}.json`, results)),
+      "already graded"
+    )
     test.skip(Boolean(staging) && scenario.as === "ruaha", "staging run uses one login (AFM)")
     // RUAHA needs to be on the stack's assistant allowlist (VOICE_WORKSPACES=AFM,RUAHA).
     test.skip(!staging && scenario.as === "ruaha" && process.env.VOICE_PROBE_RUAHA !== "1", "RUAHA not allowlisted")

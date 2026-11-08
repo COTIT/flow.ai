@@ -7,10 +7,13 @@ const NARRATION =
   /^(ok(ay)?[,.!]?\s*)?((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one moment|just a (moment|sec)|give me a (moment|sec)|hold on|checking|looking (that|this|it) up|ninaangalia|naangalia|subiri|hebu|ngoja)\b/i
 
 /** A "please wait" line that promises work instead of reporting a result. */
-export const isNarration = (text) => text.trim().length < 240 && NARRATION.test(text.trim())
+export const isNarration = (text) => plain(text).length < 240 && NARRATION.test(plain(text))
+
+/** The agent writes typographic apostrophes (I’m, can’t); match them like plain ones. */
+const plain = (text) => text.replace(/[‘’]/g, "'").trim()
 
 const CANT =
-  /\b(can'?t|cannot|can not|unable|not able|don'?t have (access|a way|the ability|a tool)|not (possible|supported|available)|no (tool|way) to|isn'?t (possible|supported|available)|siwezi|haiwezekani|sina uwezo)\b/i
+  /\b(can'?t|cannot|can not|unable|not able|don'?t have (access|a way|the ability|a tool)|not (possible|supported|available)|no (tool|way) to|isn'?t (possible|supported|available)|(doesn'?t|does not) (currently )?support|siwezi|haiwezekani|sina uwezo)\b/i
 const QUESTION = /\?\s*$/m
 // Past-tense claims of a finished write; the probe approves nothing, so any such claim is false.
 const CLAIMED =
@@ -46,7 +49,7 @@ export function defectsIn(texts, operationIds) {
 export function grade(scenario, rec, catalog) {
   const reachable = new Set(catalog.filter((o) => ["execute", "secure_ui"].includes(o.disposition)).map((o) => o.id))
   const ids = new Set(catalog.map((o) => o.id))
-  const agent = rec.messages.filter((m) => m.role === "agent").map((m) => m.text)
+  const agent = rec.messages.filter((m) => m.role === "agent").map((m) => plain(m.text))
   const last = agent.at(-1) ?? ""
   const shown = [...agent, ...rec.messages.filter((m) => m.role === "action").map((m) => m.text), ...rec.thinking]
   const defects = defectsIn(shown, ids)
