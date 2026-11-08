@@ -14925,5 +14925,82 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "assistant_gaps_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/gaps",
+    "disposition": "internal",
+    "reason": "Developer gap ledger is written by the Office bridge only; never a model tool.",
+    "authorization": {
+      "schemes": ["assistant_bridge", "bearer"],
+      "requirements": [
+        {
+          "assistant_bridge": [],
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace member bearer; row stored under that workspace only",
+        "Redacted catalog-word intent; no transcripts, names, numbers or record data",
+        "Timestamped HMAC bridge signature over exact method, path and body"
+      ],
+      "authority": [
+        "apps/api/src/modules/assistant/gaps.rs#create",
+        "apps/api/src/modules/assistant/gaps.rs",
+        "apps/api/src/modules/assistant/gaps_repo.rs",
+        "apps/api/src/modules/assistant/routes.rs",
+        "apps/api/src/http/assistant.rs"
+      ]
+    },
+    "effects": ["control"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_gaps_follow_up": {
+    "method": "POST",
+    "path": "/assistant/gaps/{gap}/follow-up",
+    "disposition": "internal",
+    "reason": "Developer gap ledger is written by the Office bridge only; never a model tool.",
+    "authorization": {
+      "schemes": ["assistant_bridge"],
+      "requirements": [
+        {
+          "assistant_bridge": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Gap id and workspace id must match; another workspace gets 404",
+        "One follow-up per gap within 10 minutes; route pattern only",
+        "Timestamped HMAC bridge signature over exact method, path and body"
+      ],
+      "authority": [
+        "apps/api/src/modules/assistant/gaps.rs#follow_up",
+        "apps/api/src/modules/assistant/gaps.rs",
+        "apps/api/src/modules/assistant/gaps_repo.rs",
+        "apps/api/src/modules/assistant/routes.rs",
+        "apps/api/src/http/assistant.rs"
+      ]
+    },
+    "effects": ["control"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }

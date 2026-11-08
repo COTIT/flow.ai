@@ -8338,6 +8338,77 @@
         "description": "Placeholder money figures until invoices are ported; keys depend on `lite`.",
         "type": "object"
       },
+      "FollowUpInput": {
+        "additionalProperties": false,
+        "description": "What happened after a gap: the user rephrased, or opened an Office page (route pattern only).",
+        "properties": {
+          "route": {
+            "description": "Required for `used_ui`: page pattern like `/orders/[id]`, no query string or record id.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signal": {
+            "description": "`rephrased` or `used_ui`.",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "Workspace owning the gap; the page proxy carries no staff bearer.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "signal"
+        ],
+        "type": "object"
+      },
+      "GapInput": {
+        "additionalProperties": false,
+        "description": "One failed or abandoned voice request; redacted catalog words, never transcripts or record data.",
+        "properties": {
+          "domain": {
+            "description": "Catalog domain, or `unknown`.",
+            "type": "string"
+          },
+          "http_status": {
+            "description": "Backend status of the failed call, 400-599.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "intent": {
+            "description": "Lowercase words separated by single spaces, at most 120 chars; `unknown` when redaction left too little.",
+            "type": "string"
+          },
+          "language": {
+            "description": "Session language: `en`, `nl` or `sw`.",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "`unsupported`, `refused`, `failed`, `cancelled` or `dropped`.",
+            "type": "string"
+          },
+          "tools": {
+            "description": "Operation ids the agent tried, at most 10.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "domain",
+          "language",
+          "intent",
+          "outcome"
+        ],
+        "type": "object"
+      },
       "GenerateVariantsRequest": {
         "description": "Create variants from option types: every given combination, at most 500.",
         "properties": {
@@ -28635,6 +28706,169 @@
         ]
       }
     },
+    "/assistant/gaps/{gap}/follow-up": {
+      "post": {
+        "operationId": "assistant_gaps_follow_up",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "gap",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowUpInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Gap with its follow-up"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace access or trusted bridge proof refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown resource or another login/workspace"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, expired, changed or consumed control"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid control input"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "assistant_bridge": []
+          }
+        ],
+        "summary": "Set one follow-up signal within 10 minutes of the gap; signature only, filtered by workspace.",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
     "/create-workspace": {
       "post": {
         "operationId": "auth_create_workspace",
@@ -34235,6 +34469,160 @@
           }
         ],
         "summary": "Claim one private request-bound controller.",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/workspace/{workspace}/assistant/gaps": {
+      "post": {
+        "operationId": "assistant_gaps_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GapInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Recorded gap id"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace access or trusted bridge proof refused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown resource or another login/workspace"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid control input"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "assistant_bridge": [],
+            "bearer": []
+          }
+        ],
+        "summary": "Record one gap for this workspace; Office bridge signature required.",
         "tags": [
           "assistant"
         ]

@@ -83,9 +83,9 @@ async fn unsigned_approval_and_conversation_attachment_are_refused(pool: PgPool)
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
 }
 
-const BRIDGE: &str = "assistant-test-bridge-secret-at-least-thirty-two-bytes";
+pub(crate) const BRIDGE: &str = "assistant-test-bridge-secret-at-least-thirty-two-bytes";
 
-fn signed_app(pool: PgPool) -> Router {
+pub(crate) fn signed_app(pool: PgPool) -> Router {
     let mut state = common::state(pool, genesy_360_api::mail::Mailer::capture().0);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
         genesy_360_api::AssistantSecret::new(BRIDGE.to_owned()).unwrap(),
@@ -93,7 +93,12 @@ fn signed_app(pool: PgPool) -> Router {
     genesy_360_api::build_app(state)
 }
 
-async fn signed(app: &Router, uri: &str, body: Value, token: &str) -> (StatusCode, Value) {
+pub(crate) async fn signed(
+    app: &Router,
+    uri: &str,
+    body: Value,
+    token: &str,
+) -> (StatusCode, Value) {
     let timestamp = chrono::Utc::now().timestamp().to_string();
     let message = format!(
         "{timestamp}\nPOST\n{uri}\n{}",

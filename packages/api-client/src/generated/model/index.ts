@@ -437,6 +437,8 @@ export * from './fileResourceAssociationDataItem';
 export * from './fileResourceMeta';
 export * from './filesListParams';
 export * from './financialSummary';
+export * from './followUpInput';
+export * from './gapInput';
 export * from './generatedVariants';
 export * from './generateVariantsRequest';
 export * from './generateVariantsRequestCombinationsItem';

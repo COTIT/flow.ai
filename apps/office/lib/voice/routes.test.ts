@@ -178,7 +178,9 @@ it("preserves unavailable preparation status without creating or dispatching a d
     expect(response.status).toBe(501)
     expect(mocks.propose).not.toHaveBeenCalled()
     expect(mocks.execute).not.toHaveBeenCalled()
-    expect(mocks.ledger).not.toHaveBeenCalled()
+    expect(
+      mocks.ledger.mock.calls.filter((call) => call[1] !== "/gaps")
+    ).toEqual([])
   } finally {
     prepare.mockRestore()
   }
@@ -243,6 +245,17 @@ it("removing rollout admission blocks writes but preserves owned status and canc
     "POST",
     { session_id: "s1" }
   )
+  expect(mocks.ledger).toHaveBeenCalledWith(
+    expect.anything(),
+    "/gaps",
+    "POST",
+    expect.objectContaining({
+      outcome: "cancelled",
+      domain: "orders",
+      tools: ["orders_create"],
+    }),
+    true
+  )
 })
 
 it("batch refresh rechecks rollout admission before another child can start", async () => {
@@ -306,7 +319,9 @@ it("model tools cannot commit or approve even with a copied review ticket", asyn
   )
   expect(response.status).toBe(400)
   expect(mocks.execute).not.toHaveBeenCalled()
-  expect(mocks.ledger).not.toHaveBeenCalled()
+  expect(mocks.ledger.mock.calls.filter((call) => call[1] !== "/gaps")).toEqual(
+    []
+  )
 })
 
 it("speech requires the exact localized action challenge and current action ownership", async () => {
@@ -571,6 +586,12 @@ it("logs a request no tool can do, with the agent's short phrase, and changes no
     ["unsupported", undefined, "book a delivery truck for Friday"],
   ])
   expect(mocks.execute).not.toHaveBeenCalled()
+  // Developer gap ledger: bridge-signed, redacted (no day name), cookie for the UI follow-up.
+  const gap = mocks.ledger.mock.calls.find((call) => call[1] === "/gaps")
+  expect(gap?.[2]).toBe("POST")
+  expect(gap?.[3]).toMatchObject({ outcome: "unsupported", language: "en" })
+  expect(gap?.[3].intent).not.toMatch(/friday/)
+  expect(gap?.[4]).toBe(true)
 })
 
 it("a new session carries the workspace time zone when the caller may read it", async () => {

@@ -74,7 +74,11 @@ export function failureReason(status: number) {
 /** Monitoring bucket: something Genesy may not cover, a refusal the user can fix, or a platform fault. */
 export function failureCategory(reason: string) {
   if (reason === "unsupported") return "out_of_scope_candidate"
-  if (reason === "unverified" || reason === "unavailable")
+  if (
+    reason === "unverified" ||
+    reason === "unavailable" ||
+    reason.startsWith("dropped_")
+  )
     return "platform_error"
   return "user_fixable"
 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM assistant_gaps WHERE created_at<now()-interval '90 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "58877efd14ffc3db855bd1e18b196103adce766596c60bdd9aed385897fc7251"
+}
