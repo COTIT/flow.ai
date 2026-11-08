@@ -3,15 +3,15 @@
   "releaseGate": "pending",
   "releaseCommit": null,
   "imageDigest": null,
-  "observedAt": "2026-11-08T04:40:39.816023+00:00",
+  "observedAt": "2026-11-08T04:51:06.307635+00:00",
   "source": {
     "baseCommit": "ffcf5c8b8b8aad49862b97d1abafde2d97c7a69b",
     "workingTree": "uncommitted",
     "hostArtifactSource": "isolated temporary source snapshot; not a release image"
   },
   "provider": {
-    "observation": "Development prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in. Applied in the dashboard and published. A read-only GET verified the exact prompt, turn_timeout 20 and silence_end_call_timeout 60; no other conversation_config change. Pending: execute_genesy_tool force_pre_tool_speech is true in the template but still false on the live tool. That tool is shared by the Production, Staging and Development agents, so the flag is flipped only at release with explicit owner approval. No native voice session was run for this version.",
-    "versionId": "agtvrsn_9201m6wpk981esws35nzq6pe4k9c",
+    "observation": "Development: prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in (agtvrsn_9201m6wpk981esws35nzq6pe4k9c), then the shared execute_genesy_tool swapped for a dev-only copy with identical name, description and schema and force_pre_tool_speech true (agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). A read-only GET verified the exact prompt, turn_timeout 20, silence_end_call_timeout 60 and the tool swap. A dashboard Preview text chat showed the pre-tool line \"Ok, got that, let me check it for you.\" just before the execute_genesy_tool call (orders_list called directly, without discovery); spoken audio was not checked. The shared execute_genesy_tool used by Production and Staging still reads false; it is flipped only at release with explicit owner approval.",
+    "versionId": "agtvrsn_2201m6wqvk9qevm82wx048yaw0hj",
     "template": "deploy/assistant-agent.template.json",
     "templateSha256": "4cac74438a5e2825a7f7a3b5d2ff2ed12ca1b0d65a618e6e8903d5afa04ff209",
     "stagingApplied": false,
@@ -20,7 +20,7 @@
     "productionProvisioned": true,
     "productionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
     "temporaryIntegrationKeysReused": true,
-    "previousVersionId": "agtvrsn_6801m6sxseqgekd8wrnrrxg0j560"
+    "previousVersionId": "agtvrsn_9201m6wpk981esws35nzq6pe4k9c"
   },
   "localEvidence": {
     "hostStandalone": {
