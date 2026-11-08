@@ -273,7 +273,11 @@ export function VoiceConversation() {
         overlayClassName="bg-black/75 motion-reduce:animate-none"
         className="dark top-0 left-0 translate-x-0 translate-y-0 text-foreground motion-reduce:animate-none"
       >
-        <div className="theme-glass flex h-full min-h-0 w-full flex-col">
+        {/* While a review card is open nothing behind it can be reached, so nothing cancels it by accident. */}
+        <div
+          inert={Boolean(voice.review)}
+          className="theme-glass flex h-full min-h-0 w-full flex-col"
+        >
           <header className="flex shrink-0 items-center justify-between gap-2 px-4 py-3 md:px-8">
             <DialogTitle className="min-w-0 flex-1 truncate text-base">
               {t("title")}

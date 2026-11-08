@@ -1329,6 +1329,7 @@
       "askAgain": "Uliza tena",
       "continue": "Endelea",
       "continued": "Mazungumzo mapya. Ujumbe wa awali unabaki hapa; hakuna kilichorudiwa. Uliza tena ili kuendelea."
-    }
+    },
+    "hiddenCancelled": "Nimeghairi kadi kwa sababu ukurasa ulifichwa. Nikuandalie tena?"
   }
 }

@@ -1079,3 +1079,128 @@ test("an open review card survives a resized window, focus loss and a stray clic
   await expect(card).toHaveCount(0)
   await expect.poll(() => decisions).toEqual(["cancel"])
 })
+
+test("while a review card is open the message box cannot be reached by pointer, keyboard or Tab", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "internal-action" },
+            review: {
+              ticket: "private-review-ticket",
+              operationId: "invoices_credit",
+              method: "POST",
+              summary: "Credit invoice 17",
+              details: { invoice: "17" },
+              confirmationCode: "123456",
+              confirmationPhrase: "Confirm action 123456",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  const box = page.getByLabel(en.voice.message)
+  await expect(box).toBeVisible()
+  native.call("invoices_credit")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review })
+  ).toBeVisible()
+  const focused = () =>
+    box.evaluate(
+      (el) =>
+        el === document.activeElement || el.contains(document.activeElement)
+    )
+  // Pointer: whatever sits on top of the box, it is not the box.
+  const rect = (await box.boundingBox())!
+  expect(
+    await page.evaluate(
+      ([x, y]) => {
+        const hit = document.elementFromPoint(x!, y!)
+        return Boolean(hit?.closest('[aria-label="Message the assistant"]'))
+      },
+      [rect.x + rect.width / 2, rect.y + rect.height / 2]
+    )
+  ).toBe(false)
+  await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2)
+  expect(await focused()).toBe(false)
+  // Script focus and Tab cycling never land in it either.
+  await box.evaluate((el) => (el as HTMLElement).focus())
+  expect(await focused()).toBe(false)
+  for (let i = 0; i < 15; i++) {
+    await page.keyboard.press("Tab")
+    expect(await focused()).toBe(false)
+  }
+  await page.keyboard.type("cancel it")
+  await page.keyboard.press("Enter")
+  expect(native.sent.filter((event) => event.type === "user_message")).toEqual(
+    []
+  )
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review })
+  ).toBeVisible()
+})
+
+test("a review cancelled because the page was hidden says so in the chat and offers to prepare it again", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  const decisions: string[] = []
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "internal-action" },
+            review: {
+              ticket: "private-review-ticket",
+              operationId: "invoices_credit",
+              method: "POST",
+              summary: "Credit invoice 17",
+              details: { invoice: "17" },
+              confirmationCode: "123456",
+              confirmationPhrase: "Confirm action 123456",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.route("**/api/voice/confirm", (route) => {
+    decisions.push(route.request().postDataJSON().decision)
+    return route.fulfill({ json: { status: "cancelled" } })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("invoices_credit")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review })
+  ).toBeVisible()
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      value: "hidden",
+      configurable: true,
+    })
+    document.dispatchEvent(new Event("visibilitychange"))
+  })
+  await expect.poll(() => decisions).toEqual(["cancel"])
+  await expect(
+    page.getByRole("log").getByText(en.voice.hiddenCancelled)
+  ).toBeVisible()
+  await expectFits(page)
+})

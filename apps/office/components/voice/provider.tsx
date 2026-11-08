@@ -1266,8 +1266,11 @@ function Session({ children }: { children: ReactNode }) {
       if (document.visibilityState !== "visible") {
         if (activeBatch.current) void stopBatch("pause")
         pauseCapture()
-        if (proposal.current && !dispatching.current && !activeBatch.current)
+        if (proposal.current && !dispatching.current && !activeBatch.current) {
+          // Security: a hidden page never keeps a live review open; say so plainly.
+          add("action", t("hiddenCancelled"))
           void confirm("cancel")
+        }
       }
     }
     document.addEventListener("visibilitychange", visibility)

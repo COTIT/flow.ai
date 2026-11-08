@@ -1329,6 +1329,7 @@
       "askAgain": "Ask again",
       "continue": "Continue",
       "continued": "New conversation. Earlier messages stay here; nothing was repeated. Ask again to go on."
-    }
+    },
+    "hiddenCancelled": "I cancelled the card because the page was hidden. Want me to prepare it again?"
   }
 }
