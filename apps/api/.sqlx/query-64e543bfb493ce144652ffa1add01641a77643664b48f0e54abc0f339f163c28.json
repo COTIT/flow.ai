@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH m AS (\n             UPDATE workspace_members SET active = false\n             WHERE workspace_id = $1 AND user_id = $2 AND active\n             RETURNING user_id\n           ), teams_left AS (\n             DELETE FROM team_members tm USING teams t, m\n             WHERE t.id = tm.team_id AND t.workspace_id = $1 AND tm.user_id = m.user_id\n           ), farm AS (\n             UPDATE farm_memberships f SET revoked_at = now() FROM m\n             WHERE f.workspace_id = $1 AND f.user_id = m.user_id AND f.revoked_at IS NULL\n           ), sessions AS (\n             UPDATE assistant_sessions s SET state = 'closed', closed_at = now() FROM m\n             WHERE s.workspace_id = $1 AND s.user_id = m.user_id AND s.state = 'active'\n           ), batches AS (\n             UPDATE assistant_batches b\n             SET state = 'cancelled', reason = 'authorization', finished_at = now() FROM m\n             WHERE b.workspace_id = $1 AND b.user_id = m.user_id\n               AND b.state IN ('proposed', 'approved')\n             RETURNING b.id\n           ), actions AS (\n             UPDATE assistant_actions a\n             SET state = 'cancelled', proposal = NULL, review_facts = '{}'::jsonb,\n                 finished_at = now(),\n                 batch_verdict = CASE WHEN a.batch_id IS NULL THEN NULL ELSE 'cancelled' END\n             FROM m\n             WHERE a.workspace_id = $1 AND a.user_id = m.user_id\n               AND ((a.batch_id IS NULL AND a.state IN ('proposed', 'approved'))\n                    OR (a.state = 'batch_pending' AND a.batch_id IN (SELECT id FROM batches)))\n           ), logins AS (\n             DELETE FROM access_tokens t USING m\n             WHERE t.user_id = m.user_id\n               AND NOT EXISTS (\n                 SELECT 1 FROM workspace_members o\n                 JOIN workspaces w ON w.id = o.workspace_id AND w.deleted_at IS NULL\n                 WHERE o.user_id = m.user_id AND o.active AND o.workspace_id <> $1)\n               AND NOT EXISTS (\n                 SELECT 1 FROM farm_memberships o\n                 WHERE o.user_id = m.user_id AND o.revoked_at IS NULL AND o.workspace_id <> $1)\n           )\n           SELECT count(*) AS \"n!\" FROM m",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "64e543bfb493ce144652ffa1add01641a77643664b48f0e54abc0f339f163c28"
+}

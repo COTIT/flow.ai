@@ -1,4 +1,5 @@
-//! "Who am I" rules: profile, per-workspace permissions, invites waiting for this user. No HTTP types.
+//! "Who am I" rules: profile, per-workspace permissions, invites waiting for this user, plus
+//! offboarding a member. No HTTP types.
 
 use std::collections::HashMap;
 
@@ -7,6 +8,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::workspace::NOT_ALLOWED,
     modules::{
         invites::repo::{self as invites, PendingInvite},
         permissions::model::Granted,
@@ -121,4 +123,37 @@ pub async fn member(
         .map(|t| t.team)
         .collect();
     Ok(MemberView { member, teams })
+}
+
+const REMOVE_SELF: &str = "You can't remove yourself from this workspace.";
+const REMOVE_OWNER: &str = "The workspace owner can't be removed.";
+
+/// Offboard `user` from this workspace: owner or `workspace_admin` only; not yourself, not
+/// the owner. Unknown, malformed, foreign or already removed = 404. History stays.
+pub async fn remove(
+    state: &AppState,
+    workspace_id: Uuid,
+    caller: Uuid,
+    caller_is_admin: bool,
+    user: &str,
+) -> Result<(), AppError> {
+    if !caller_is_admin {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let user_id = Uuid::parse_str(user).map_err(|_| AppError::NotFound)?;
+    if user_id == caller {
+        return Err(AppError::Conflict(REMOVE_SELF));
+    }
+    let member = users::find_member(&state.db, workspace_id, user_id)
+        .await?
+        .filter(|m| m.active)
+        .ok_or(AppError::NotFound)?;
+    if member.owner {
+        return Err(AppError::Conflict(REMOVE_OWNER));
+    }
+    // 0 = a concurrent removal won the race.
+    match users::offboard(&state.db, workspace_id, user_id).await? {
+        0 => Err(AppError::NotFound),
+        _ => Ok(()),
+    }
 }

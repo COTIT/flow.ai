@@ -59,6 +59,7 @@
     "supply": "Aanvoer",
     "overview": "Overzicht",
     "invites": "Uitnodigingen",
+    "members": "Leden",
     "categories": "Categorieën",
     "voice": "Spraakassistent"
   },
@@ -726,6 +727,7 @@
     "sizeAdded": "Maat toegevoegd.",
     "inviteSent": "Uitnodiging verstuurd naar {email}",
     "inviteWithdrawn": "Uitnodiging ingetrokken.",
+    "memberRemoved": "{name} heeft geen toegang meer.",
     "lotStockChanged": "Voorraad gewijzigd.",
     "invoice": {
       "sent": "Factuur verstuurd.",
@@ -859,6 +861,23 @@
       "accepted": "Geaccepteerd",
       "denied": "Afgewezen",
       "expired": "Verlopen"
+    }
+  },
+  "members": {
+    "title": "Leden",
+    "intro": "Mensen die in dit account werken. Verwijder iemand die vertrokken is: hun orders, facturen en geschiedenis blijven.",
+    "name": "Naam",
+    "team": "Team (rol)",
+    "status": "Status",
+    "actions": "Acties",
+    "empty": "Nog geen leden",
+    "remove": "Verwijderen",
+    "removeTitle": "Toegang van {name} verwijderen?",
+    "removeText": "Ze kunnen dit account niet meer openen en verlaten hun teams. Hun orders, facturen en geschiedenis blijven. Nodig ze opnieuw uit om toegang terug te geven.",
+    "statuses": {
+      "owner": "Eigenaar",
+      "active": "Actief",
+      "removed": "Verwijderd"
     }
   },
   "invite": {

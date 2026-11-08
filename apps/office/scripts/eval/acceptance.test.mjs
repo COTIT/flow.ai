@@ -26,7 +26,7 @@ test("API refusal fixture includes every eligible effectful ID without narrowing
   assert.deepEqual(fixture.effectOperationIds,
     catalog.filter(operation => ["execute", "secure_ui"].includes(operation.disposition) && operation.effects.length).map(operation => operation.id).sort())
   assert.equal(fixture.scope, "unapproved_action_refusal_only")
-  assert.equal(fixture.effectOperationIds.length, 218)
+  assert.equal(fixture.effectOperationIds.length, 219)
 })
 
 test("reviewed DTO fixture uses a boolean probe only for the exact ten JSON object contracts", async () => {
@@ -90,7 +90,7 @@ test("API restricted-role fixture pins every permission-protected eligible ID", 
   const { catalog } = await loadInputs()
   const fixture = JSON.parse(await readFile(new URL("../../../../apps/api/tests/fixtures/assistant_restricted_operations.json", import.meta.url), "utf8"))
   assert.equal(fixture.scope, "active_member_without_grants_only")
-  assert.equal(fixture.restrictedOperationIds.length, 264)
+  assert.equal(fixture.restrictedOperationIds.length, 266)
   assert.deepEqual(fixture.restrictedOperationIds,
     catalog.filter(operation => ["execute", "secure_ui"].includes(operation.disposition) && [...(operation.authorization.allOf ?? []), ...(operation.authorization.anyOf ?? [])].length).map(operation => operation.id).sort())
 })

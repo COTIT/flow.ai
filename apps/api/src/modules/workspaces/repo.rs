@@ -54,7 +54,7 @@ pub async fn find(
     .await
 }
 
-/// True when user has a membership row (active or not) in this workspace.
+/// True when user is an active member of this workspace (a removed member is not).
 pub async fn is_member(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -62,7 +62,7 @@ pub async fn is_member(
 ) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT EXISTS (
-             SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2
+             SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND active
            ) AS "exists!""#,
         workspace_id,
         user_id,
@@ -71,7 +71,7 @@ pub async fn is_member(
     .await
 }
 
-/// Add membership. Existing row left as is, so double accept is harmless.
+/// Add membership, or make a removed (inactive) one active again. Double accept is harmless.
 pub async fn add_member(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -79,7 +79,7 @@ pub async fn add_member(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO workspace_members (workspace_id, user_id) VALUES ($1, $2)
-         ON CONFLICT (workspace_id, user_id) DO NOTHING",
+         ON CONFLICT (workspace_id, user_id) DO UPDATE SET active = true",
         workspace_id,
         user_id,
     )
@@ -104,7 +104,7 @@ pub async fn active_workspace_ids(
     .await
 }
 
-/// True when live user with this email (any case) is in this workspace.
+/// True when live user with this email (any case) is an active member here (removed ones may be re-invited).
 pub async fn is_member_by_email(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -114,7 +114,8 @@ pub async fn is_member_by_email(
         r#"SELECT EXISTS (
              SELECT 1 FROM workspace_members m
              JOIN users u ON u.id = m.user_id
-             WHERE m.workspace_id = $1 AND lower(u.email) = lower($2) AND u.deleted_at IS NULL
+             WHERE m.workspace_id = $1 AND m.active
+               AND lower(u.email) = lower($2) AND u.deleted_at IS NULL
            ) AS "exists!""#,
         workspace_id,
         email,

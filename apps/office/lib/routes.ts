@@ -9,6 +9,7 @@ const routeRights: [prefix: string, right: string][] = [
   ["/settings/app-keys", "workspace_admin"],
   ["/settings/webhooks", "workspace_admin"],
   ["/settings/invites", "invite.list"],
+  ["/settings/members", "workspace_admin"],
   ["/search", "workspace.global-search"],
 ]
 

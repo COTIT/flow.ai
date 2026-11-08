@@ -541,6 +541,12 @@ fn group_a_operations_are_documented() {
             "200",
         ),
         (
+            "/workspace/{workspace}/users/{user}",
+            "delete",
+            "users_remove",
+            "204",
+        ),
+        (
             "/workspace/{workspace}/permissions",
             "get",
             "permissions_catalog",

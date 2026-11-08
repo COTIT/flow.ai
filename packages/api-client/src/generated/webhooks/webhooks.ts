@@ -29,9 +29,11 @@ import type {
   EnvelopeWebhookEndpointCreated,
   EnvelopeWebhookEndpointResource,
   MessageBody,
+  PaginatedWebhookDeliveryResource,
   PaginatedWebhookEndpointResource,
   UpdateEndpointRequest,
   ValidationErrorBody,
+  WebhooksDeliveriesParams,
   WebhooksListParams
 } from '../model';
 
@@ -460,3 +462,110 @@ export const useWebhooksUpdate = <TError = ErrorType<MessageBody | ValidationErr
       > => {
       return useMutation(getWebhooksUpdateMutationOptions(options), queryClient);
     }
+    /**
+ * @summary List a webhook endpoint's deliveries: why a webhook failed (status, attempts, last error)
+ */
+export const webhooksDeliveries = (
+    workspace: string,
+    endpoint: string,
+    params?: WebhooksDeliveriesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedWebhookDeliveryResource>(
+      {url: `/workspace/${workspace}/webhook-endpoints/${endpoint}/deliveries`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getWebhooksDeliveriesQueryKey = (workspace: string,
+    endpoint: string,
+    params?: WebhooksDeliveriesParams,) => {
+    return [
+    `/workspace/${workspace}/webhook-endpoints/${endpoint}/deliveries`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getWebhooksDeliveriesQueryOptions = <TData = Awaited<ReturnType<typeof webhooksDeliveries>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    endpoint: string,
+    params?: WebhooksDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof webhooksDeliveries>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getWebhooksDeliveriesQueryKey(workspace,endpoint,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof webhooksDeliveries>>> = ({ signal }) => webhooksDeliveries(workspace,endpoint,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && endpoint !== null && endpoint !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof webhooksDeliveries>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type WebhooksDeliveriesQueryResult = NonNullable<Awaited<ReturnType<typeof webhooksDeliveries>>>
+export type WebhooksDeliveriesQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useWebhooksDeliveries<TData = Awaited<ReturnType<typeof webhooksDeliveries>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    endpoint: string,
+    params: undefined |  WebhooksDeliveriesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof webhooksDeliveries>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof webhooksDeliveries>>,
+          TError,
+          Awaited<ReturnType<typeof webhooksDeliveries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWebhooksDeliveries<TData = Awaited<ReturnType<typeof webhooksDeliveries>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    endpoint: string,
+    params?: WebhooksDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof webhooksDeliveries>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof webhooksDeliveries>>,
+          TError,
+          Awaited<ReturnType<typeof webhooksDeliveries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWebhooksDeliveries<TData = Awaited<ReturnType<typeof webhooksDeliveries>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    endpoint: string,
+    params?: WebhooksDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof webhooksDeliveries>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List a webhook endpoint's deliveries: why a webhook failed (status, attempts, last error)
+ */
+
+export function useWebhooksDeliveries<TData = Awaited<ReturnType<typeof webhooksDeliveries>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    endpoint: string,
+    params?: WebhooksDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof webhooksDeliveries>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getWebhooksDeliveriesQueryOptions(workspace,endpoint,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+

@@ -96,7 +96,10 @@ pub async fn delete(
 /// POST /v1/workspace/{workspace}/invites -> 201 `{data:{invite_id}}`.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/invites", tag = "invites",
-    operation_id = "invites_send", summary = "Invite someone by email",
+    operation_id = "invites_send",
+    summary = "Invite someone by email, optionally into a team (role) such as Managers that sets their permissions",
+    description = "Pass `team_id` (from `teams_list`) to give the person that team's role and permissions when they accept. \
+        A removed member may be invited again; only this invite's team applies.",
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = SendInviteRequest,
     responses(

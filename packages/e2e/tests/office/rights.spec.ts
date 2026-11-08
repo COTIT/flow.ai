@@ -11,6 +11,7 @@ const routes: { path: string; read: string; right: string; menu?: string }[] = [
   { path: "/settings/app-keys", read: "/workspace/:ws/app-keys", right: "workspace_admin", menu: "App keys" },
   { path: "/settings/webhooks", read: "/workspace/:ws/webhook-endpoints", right: "workspace_admin", menu: "Webhooks" },
   { path: "/settings/invites", read: "/workspace/:ws/invites", right: "invite.list", menu: "Invites" },
+  { path: "/settings/members", read: "/workspace/:ws/users", right: "workspace_admin", menu: "Members" },
   { path: "/search?q=honey", read: "/workspace/:ws/quick-search", right: "workspace.global-search" },
 ]
 

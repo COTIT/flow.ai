@@ -65,6 +65,10 @@ Other members `403`, checked before the body is read; outsiders and other worksp
 
 The endpoint without its secret; lists newest first.
 
+### `GET …/webhook-endpoints/{endpoint}/deliveries?status&page&page_size`
+
+Delivery history: why a webhook failed. One row per event sent to this endpoint, newest first: `{id, event_id, event_type, status, attempts, last_status, last_error, created_at, updated_at, delivered_at}`. `status` is `pending` (still retrying), `delivered` or `failed` (gave up after the last attempt). `last_status` is the HTTP status of the last answer, null when none came. `last_error` has URL query strings cut, because they may carry tokens. No secret and no endpoint URL field. `?status=` filters to one state; any other value is `422`. An endpoint of another workspace, or a malformed id, is `404`. Rows go after 30 days with the prune.
+
 ### `PATCH …/webhook-endpoints/{endpoint}`
 
 Any of `url`, `events`, `description` (null clears), `active`. Returns the endpoint. `422` on invalid input.

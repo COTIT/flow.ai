@@ -34,6 +34,7 @@ const settings = [
   { path: "/settings/app-keys", api: "app-keys" },
   { path: "/settings/webhooks", api: "webhook-endpoints" },
   { path: "/settings/invites", api: "invites" },
+  { path: "/settings/members", api: "users" },
 ]
 
 for (const { path, api: list } of settings)

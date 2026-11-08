@@ -15463,6 +15463,25 @@
         ],
         "type": "object"
       },
+      "Paginated_WebhookDeliveryResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_WebhookEndpointResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -22440,7 +22459,7 @@
         "type": "object"
       },
       "SendInviteRequest": {
-        "description": "POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.\nInvite someone by email, optionally straight into a team.",
+        "description": "POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.\nInvite someone by email, optionally straight into a team (their role).",
         "properties": {
           "email": {
             "format": "email",
@@ -22448,7 +22467,7 @@
             "type": "string"
           },
           "team_id": {
-            "description": "Team the invitee joins on accepting.",
+            "description": "Team (role, e.g. Managers) the invitee joins on accepting; it sets their permissions.",
             "format": "uuid",
             "type": [
               "string",
@@ -28400,6 +28419,74 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "WebhookDeliveryResource": {
+        "description": "One event sent (or being sent) to an endpoint: its outcome and why it failed.",
+        "properties": {
+          "attempts": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "delivered_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "event_type": {
+            "description": "Event type, e.g. `stock.changed`.",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "last_error": {
+            "description": "Why the last attempt failed. URL query strings are cut, since they may carry tokens.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_status": {
+            "description": "HTTP status of the last answer; null when no answer came.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`pending` (retrying), `delivered`, or `failed` (gave up after the last attempt).",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "event_id",
+          "event_type",
+          "status",
+          "attempts",
+          "last_status",
+          "last_error",
+          "created_at",
+          "updated_at",
+          "delivered_at"
+        ],
         "type": "object"
       },
       "WebhookEndpointCreated": {
@@ -69066,6 +69153,7 @@
         ]
       },
       "post": {
+        "description": "Pass `team_id` (from `teams_list`) to give the person that team's role and permissions when they accept. A removed member may be invited again; only this invite's team applies.",
         "operationId": "invites_send",
         "parameters": [
           {
@@ -69232,7 +69320,7 @@
             "bearer": []
           }
         ],
-        "summary": "Invite someone by email",
+        "summary": "Invite someone by email, optionally into a team (role) such as Managers that sets their permissions",
         "tags": [
           "invites"
         ]
@@ -96595,7 +96683,7 @@
             "bearer": []
           }
         ],
-        "summary": "List teams",
+        "summary": "List teams (roles such as Managers) and the permissions each grants",
         "tags": [
           "teams"
         ]
@@ -97794,6 +97882,142 @@
       }
     },
     "/workspace/{workspace}/users/{user}": {
+      "delete": {
+        "description": "Owner or `workspace_admin` only. Access ends at once: the membership turns inactive, the person leaves this workspace's teams, loses farm roles here, and their assistant sessions here close. Orders, invoices and audit keep their name. Their login is deleted only when no other access is left. Invite them again to give access back; only the new invite's team applies.",
+        "operationId": "users_remove",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "User id of the member to remove",
+            "in": "path",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Access removed"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or caller is neither owner nor `workspace_admin`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or user, user not an active member here, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Removing yourself or the workspace owner"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a member's access to this workspace (offboard someone who left; keeps their history)",
+        "tags": [
+          "users"
+        ]
+      },
       "get": {
         "operationId": "users_get",
         "parameters": [
@@ -97931,7 +98155,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get a workspace member",
+        "summary": "Get a member: their teams (roles) and effective permissions, i.e. what they can see and do",
         "tags": [
           "users"
         ]
@@ -103565,6 +103789,189 @@
           }
         ],
         "summary": "Update a webhook endpoint",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/workspace/{workspace}/webhook-endpoints/{endpoint}/deliveries": {
+      "get": {
+        "operationId": "webhooks_deliveries",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Endpoint id",
+            "in": "path",
+            "name": "endpoint",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only deliveries in this state: `pending`, `delivered` or `failed`.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_WebhookDeliveryResource"
+                }
+              }
+            },
+            "description": "One page of deliveries, newest first"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or caller not a workspace admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or endpoint, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown status"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a webhook endpoint's deliveries: why a webhook failed (status, attempts, last error)",
         "tags": [
           "webhooks"
         ]
