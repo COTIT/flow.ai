@@ -1367,6 +1367,14 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
     await page.getByRole("button", { name: "Send", exact: true }).click()
     const review = page.getByRole("dialog", { name: "Review action" })
     await expect(review).toBeVisible()
+    // One row per step, numbered in the reviewed order, none hidden.
+    const rows = review.locator('.voice-review-list [role="option"]')
+    await expect(rows).toHaveCount(3)
+    for (let i = 0; i < 3; i++) {
+      await expect(rows.nth(i)).toBeVisible()
+      await expect(rows.nth(i)).toContainText(`${i + 1}.`)
+      await expect(rows.nth(i)).toContainText(`Batch line ${i + 1}`)
+    }
     for (const value of [
       "Reviewed step 1",
       "Reviewed step 2",
