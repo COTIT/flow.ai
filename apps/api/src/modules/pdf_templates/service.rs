@@ -119,6 +119,7 @@ pub async fn preview(
             description: None,
             meta: None,
             bytes: pdf.bytes,
+            expires_at: None,
         },
     )
     .await?;

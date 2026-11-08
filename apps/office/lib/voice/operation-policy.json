@@ -1,4 +1,129 @@
 {
+  "analytics_invoices_export": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/invoices-export",
+    "disposition": "execute",
+    "reason": "Workspace staff read: stores a 24 h CSV export file and returns a short-lived download link; backend rechecks invoice.list",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["invoice.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#invoices_export",
+        "apps/api/src/modules/analytics/service.rs",
+        "apps/api/src/modules/files/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "analytics_sales_compare": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/compare",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#compare",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "analytics_top_customers": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/top-customers",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list", "relation.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#top_customers",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "analytics_top_products": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/top-products",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#top_products",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "auth_create_workspace": {
     "method": "POST",
     "path": "/create-workspace",

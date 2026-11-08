@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Sales analytics and accountant export (`docs/api/analytics.md`; migration `files_expires_at`). The voice agent can now answer these; before, Genesy couldn't:
+  - `GET /workspace/{ws}/sales/top-customers` (`order.list` + `relation.list`) ranks customers per currency by gross cents. Till walk-ins are reported apart as `without_customer`.
+  - `GET /sales/top-products` (`order.list`) ranks best sellers; `by=variant` ranks each size apart.
+  - `GET /sales/compare` (`order.list`) gives both periods per currency, `gross_difference`, `orders_difference` and a signed `gross_change_bp`, left out when the base is 0. All computed in SQL.
+  - All three use the `sales-summary` sold rule. Each takes RFC 3339 or `YYYY-MM-DD` bounds; a date is local midnight in `general.timezone`, with UTC as the fallback. `limit` defaults to 5, max 20.
+  - `GET /invoices-export` (`invoice.list`) writes a CSV of numbered invoices dated in the range (credit notes and cancelled included), one row per line, with customer VAT number, VAT and totals. Money is exact decimal text from cents, and text cells are guarded against spreadsheet formulas. It is stored as a workspace file for 24 h and returns a 10-minute link; at most 10000 lines per export. New `files.expires_at` (server-set only): the file sweep now also removes stored files past it.
+
 - Assistant batch prepare latency (no migration): boot `warm_up` now builds the assistant operation inventory (the OpenAPI spec walk behind `resolve_operation`), so the first proposal, batch or guarded dispatch after a deploy no longer pays for it. Local debug build, 10-step batch: 914 ms cold, of which 737 ms was that build; 154 ms warm. Debug-level `tracing` spans now cover batch create, each step's review-fact capture and the batch SQL. Measured per step: two statements, no N+1, no missing index.
 
 - `GET /workspace/{workspace}/assistant/sessions/{session}?with=identity` (`docs/api/assistant.md`; no migration) adds `identity` `{workspaces, permissions, farm_roles}` to the session, matching `/me/workspaces`, this workspace's `/me` permissions and `/farm/me` roles. Office's voice bridge can replace four round trips with one. The request runs three statements in total (token, membership, one session-and-identity read) and caches nothing. Any other `with` value returns 422. The plain `GET` is unchanged.

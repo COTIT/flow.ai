@@ -128,6 +128,7 @@ pub(crate) async fn attach(
                     description: None,
                     meta: None,
                     bytes,
+                    expires_at: None,
                 },
             )
             .await
