@@ -91,11 +91,21 @@ pub struct AppState {
     pub signup_enabled: bool,
 }
 
-/// One-off boot work before serving (precomputes the login timing-equalizer hash).
+/// One-off boot work before serving: login timing-equalizer hash, assistant operation inventory.
 pub async fn warm_up() {
     if let Err(err) = modules::auth::password::warm_up().await {
         tracing::warn!(error = %err, "password warm-up failed; first unknown-email login is slower");
     }
+    // Spec build costs ~0.1-0.8 s; paid here, not by first assistant proposal or dispatch.
+    match tokio::task::spawn_blocking(modules::assistant::service::warm_operations).await {
+        Ok(true) => {}
+        _ => tracing::warn!("assistant operation inventory warm-up failed"),
+    }
+}
+
+/// True once the assistant operation inventory is built.
+pub fn assistant_operations_ready() -> bool {
+    modules::assistant::service::operations_ready()
 }
 
 /// Full router. One entry point so tests run same middleware stack as prod.

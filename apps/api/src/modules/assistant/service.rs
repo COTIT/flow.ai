@@ -355,41 +355,57 @@ pub fn request_hash_raw(
     h.finalize().into()
 }
 
-/// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
-    struct Operation {
-        method: String,
-        path: String,
-        id: String,
-    }
-    static OPS: OnceLock<Result<Vec<Operation>, String>> = OnceLock::new();
-    let ops = OPS
-        .get_or_init(|| {
-            let spec = crate::openapi::spec()
-                .map_err(|_| "assistant operation inventory failed".to_owned())?;
-            let mut ops = Vec::new();
-            if let Some(paths) = spec["paths"].as_object() {
-                for (path, item) in paths {
-                    if let Some(item) = item.as_object() {
-                        for (method, op) in item {
-                            if op["security"]
-                                .as_array()
-                                .is_some_and(|ss| ss.iter().any(|s| s.get("bearer").is_some()))
-                                && let Some(id) = op["operationId"].as_str()
-                            {
-                                ops.push(Operation {
-                                    method: method.to_ascii_uppercase(),
-                                    path: format!("/v1{path}"),
-                                    id: id.to_owned(),
-                                });
-                            }
+/// One documented ordinary-bearer operation.
+struct Operation {
+    method: String,
+    path: String,
+    id: String,
+}
+static OPS: OnceLock<Result<Vec<Operation>, String>> = OnceLock::new();
+
+/// Inventory from the OpenAPI spec, built once per process.
+fn operations() -> &'static Result<Vec<Operation>, String> {
+    OPS.get_or_init(|| {
+        let spec = crate::openapi::spec()
+            .map_err(|_| "assistant operation inventory failed".to_owned())?;
+        let mut ops = Vec::new();
+        if let Some(paths) = spec["paths"].as_object() {
+            for (path, item) in paths {
+                if let Some(item) = item.as_object() {
+                    for (method, op) in item {
+                        if op["security"]
+                            .as_array()
+                            .is_some_and(|ss| ss.iter().any(|s| s.get("bearer").is_some()))
+                            && let Some(id) = op["operationId"].as_str()
+                        {
+                            ops.push(Operation {
+                                method: method.to_ascii_uppercase(),
+                                path: format!("/v1{path}"),
+                                id: id.to_owned(),
+                            });
                         }
                     }
                 }
             }
-            Ok(ops)
-        })
+        }
+        Ok(ops)
+    })
+}
+
+/// Build the inventory at boot; false when the spec could not be read.
+pub fn warm_operations() -> bool {
+    operations().is_ok()
+}
+
+/// True once the inventory is built.
+pub fn operations_ready() -> bool {
+    OPS.get().is_some()
+}
+
+/// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
+    let ops = operations()
         .as_ref()
         .map_err(|_| AppError::Internal("assistant operation inventory failed".into()))?;
     if path.contains("/assistant/")
