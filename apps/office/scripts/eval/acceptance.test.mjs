@@ -90,7 +90,7 @@ test("API restricted-role fixture pins every permission-protected eligible ID", 
   const { catalog } = await loadInputs()
   const fixture = JSON.parse(await readFile(new URL("../../../../apps/api/tests/fixtures/assistant_restricted_operations.json", import.meta.url), "utf8"))
   assert.equal(fixture.scope, "active_member_without_grants_only")
-  assert.equal(fixture.restrictedOperationIds.length, 266)
+  assert.equal(fixture.restrictedOperationIds.length, 270)
   assert.deepEqual(fixture.restrictedOperationIds,
     catalog.filter(operation => ["execute", "secure_ui"].includes(operation.disposition) && [...(operation.authorization.allOf ?? []), ...(operation.authorization.anyOf ?? [])].length).map(operation => operation.id).sort())
 })
@@ -99,8 +99,8 @@ test("API collection-tenant fixture has no unresolved target and leaves no colle
   const { catalog, reviews } = await loadInputs()
   const fixture = JSON.parse(await readFile(new URL("../../../../apps/api/tests/fixtures/assistant_collection_tenant_operations.json", import.meta.url), "utf8"))
   assert.equal(fixture.scope, "known_live_workspace_collection_boundary_only")
-  assert.equal(fixture.collectionOperationIds.length, 68)
-  assert.equal(new Set(fixture.collectionOperationIds).size, 68)
+  assert.equal(fixture.collectionOperationIds.length, 73)
+  assert.equal(new Set(fixture.collectionOperationIds).size, 73)
   const isCollection = operation => ["execute", "secure_ui"].includes(operation.disposition) && operation.path.includes("{workspace}") && [...operation.path.matchAll(/\{([^}]+)\}/g)].every(match => match[1] === "workspace")
   for (const id of fixture.collectionOperationIds) {
     const operation = catalog.find(operation => operation.id === id)

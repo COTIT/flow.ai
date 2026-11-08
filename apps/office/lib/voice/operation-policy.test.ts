@@ -355,14 +355,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(458)
-    expect(tools).toHaveLength(375)
+    expect(operationManifest).toHaveLength(469)
+    expect(tools).toHaveLength(385)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(27)
+    ).toHaveLength(28)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
@@ -490,7 +490,7 @@ describe("reviewed operation coverage", () => {
     const internal = operationManifest.filter((operation) =>
       operation.id.startsWith("assistant_")
     )
-    expect(internal).toHaveLength(27)
+    expect(internal).toHaveLength(28)
     expect(
       internal
         .filter((operation) => operation.id.startsWith("assistant_batches_"))

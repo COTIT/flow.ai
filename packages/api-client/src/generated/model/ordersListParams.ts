@@ -16,8 +16,8 @@ page?: number;
  */
 page_size?: number;
 /**
- * One status: `draft`, `awaiting_payment`, `open` (confirmed, not yet completed),
- * `completed`, `cancelled`, `partially_returned`, `returned`.
+ * One status: `draft`, `awaiting_payment`, `open`, `completed`, `cancelled`,
+ * `partially_returned` or `returned`. Picked orders are still `open`.
  */
 status?: string;
 /**
