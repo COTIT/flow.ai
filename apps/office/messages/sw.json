@@ -59,6 +59,7 @@
     "supply": "Ugavi",
     "overview": "Muhtasari",
     "invites": "Mialiko",
+    "members": "Wanachama",
     "categories": "Makundi",
     "voice": "Msaidizi wa sauti"
   },
@@ -724,6 +725,7 @@
     "sizeAdded": "Saizi imeongezwa.",
     "inviteSent": "Mwaliko umetumwa kwa {email}",
     "inviteWithdrawn": "Mwaliko umeondolewa.",
+    "memberRemoved": "{name} hana tena ruhusa ya kuingia.",
     "lotStockChanged": "Akiba imebadilishwa.",
     "invoice": {
       "sent": "Ankara imetumwa.",
@@ -857,6 +859,23 @@
       "accepted": "Imekubaliwa",
       "denied": "Imekataliwa",
       "expired": "Imeisha muda"
+    }
+  },
+  "members": {
+    "title": "Wanachama",
+    "intro": "Watu wanaofanya kazi katika akaunti hii. Ondoa aliyeondoka: oda, ankara na historia yake vinabaki.",
+    "name": "Jina",
+    "team": "Timu (jukumu)",
+    "status": "Hali",
+    "actions": "Vitendo",
+    "empty": "Bado hakuna wanachama",
+    "remove": "Ondoa",
+    "removeTitle": "Ondoa ruhusa ya {name}?",
+    "removeText": "Hataweza tena kufungua akaunti hii na ataondolewa kwenye timu zake. Oda, ankara na historia yake vinabaki. Mwalike tena ili kumrudishia ruhusa.",
+    "statuses": {
+      "owner": "Mmiliki",
+      "active": "Hai",
+      "removed": "Ameondolewa"
     }
   },
   "invite": {

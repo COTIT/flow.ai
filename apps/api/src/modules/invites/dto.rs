@@ -20,12 +20,12 @@ pub const BAD_TEAM: &str = "The team id is an invalid id for the team domain.";
 
 /// POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.
 #[derive(Deserialize, ToSchema)]
-/// Invite someone by email, optionally straight into a team.
+/// Invite someone by email, optionally straight into a team (their role).
 pub struct SendInviteRequest {
     #[schema(value_type = String, format = Email, max_length = 255)]
     email: Option<String>,
     // Any JSON: a number or junk must be a `team_id` error, not a body parse error.
-    /// Team the invitee joins on accepting.
+    /// Team (role, e.g. Managers) the invitee joins on accepting; it sets their permissions.
     #[schema(value_type = Option<uuid::Uuid>)]
     team_id: Option<Value>,
 }

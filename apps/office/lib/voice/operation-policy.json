@@ -12854,6 +12854,37 @@
     },
     "confirmationFields": []
   },
+  "users_remove": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/users/{user}",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/users/handlers.rs#remove",
+        "apps/api/src/modules/users/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "warehouses_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/warehouses",

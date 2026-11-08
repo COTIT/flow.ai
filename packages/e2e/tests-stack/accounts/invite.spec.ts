@@ -42,7 +42,8 @@ async function ownWorkspace(request: APIRequestContext) {
   expect(link, "verification link").toBeTruthy()
   const verified = await request.get(link!, { maxRedirects: 0 })
   expect(verified.headers().location).toContain("email_verified=1")
-  return { name, owner: login(email, password) }
+  const id: string = (await r.json()).data.workspace_ids[0]
+  return { name, id, owner: login(email, password) }
 }
 
 test("an office invite reaches a new person, who joins and sees the account", async ({
@@ -110,4 +111,56 @@ test("an office invite reaches a new person, who joins and sees the account", as
   await expect(
     page.getByRole("row").filter({ hasText: invitee })
   ).toContainText("Accepted")
+})
+
+test("an admin removes a member who left: access ends at once, the list shows them removed", async ({
+  page,
+  request,
+}) => {
+  const { id, owner } = await ownWorkspace(request)
+  const invitee = `leaver-${unique()}@e2e.test`
+  await loginOffice(page, owner)
+  await page.goto(`${urls.office}/settings/invites`)
+  await page.getByRole("button", { name: "Invite someone" }).click()
+  await page.getByRole("dialog").getByLabel("Email").fill(invitee)
+  await page.getByRole("dialog").getByRole("button", { name: "Send invite" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: `Invite sent to ${invitee}` })
+  ).toBeVisible()
+  const code = (await mailTo(invitee)).match(/code=([0-9a-f]{64})/)?.[1]
+  expect(code, "invite code").toBeTruthy()
+  const joined = await request.post(`${urls.api}/v1/register`, {
+    data: {
+      first_name: "Peter",
+      last_name: "Leaver",
+      email: invitee,
+      password: `E2e!${unique()}Cc3`,
+      invite_code: code,
+    },
+  })
+  expect(joined.status(), "register").toBe(201)
+  const token: string = (await joined.json()).data.access_token
+  const theirWorkspaces = async () =>
+    (
+      await (
+        await request.get(`${urls.api}/v1/me/workspaces`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ).json()
+    ).data.map((w: { id: string }) => w.id)
+  expect(await theirWorkspaces()).toContain(id)
+
+  await page.goto(`${urls.office}/settings/members`)
+  const row = page.getByRole("row").filter({ hasText: "Peter Leaver" })
+  await expect(row).toContainText("Active")
+  await expect(
+    page.getByRole("row").filter({ hasText: "Ida Owner" }).getByRole("button", { name: "Remove" })
+  ).toHaveCount(0)
+  await row.getByRole("button", { name: "Remove" }).click()
+  await page.getByRole("alertdialog").getByRole("button", { name: "Remove" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Peter Leaver no longer has access." })
+  ).toBeVisible()
+  await expect(row).toContainText("Removed")
+  expect(await theirWorkspaces()).not.toContain(id)
 })

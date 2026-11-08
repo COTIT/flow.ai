@@ -194,6 +194,7 @@
     "till_users_create",
     "till_users_update",
     "till_vaults_create",
+    "users_remove",
     "vat_groups_create",
     "vat_groups_delete",
     "vat_groups_update",

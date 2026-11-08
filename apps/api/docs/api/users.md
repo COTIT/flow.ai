@@ -43,6 +43,27 @@ The body is `{"data": UserResource}`, in the same shape as `GET /v1/me`'s `data.
 
 An unknown or malformed id, or a user who isn't a member here, gives 404.
 
+## DELETE /v1/workspace/{workspace}/users/{user}
+
+Offboarding: ends a member's access to this workspace and keeps their history. Owner or `workspace_admin` only. No body. Success is `204` with no content.
+
+In one transaction:
+
+- the membership turns inactive (`active: false`). The row stays, so deals and warehouses that name them as agent or manager keep the link, and orders, invoices and audit keep their author;
+- they leave every team of this workspace;
+- their farm roles in this workspace are revoked (`revoked_at` set);
+- their assistant sessions here close and pending (`proposed` / `approved`) assistant actions and batches are cancelled;
+- their logins are deleted only when no active workspace membership and no live farm role is left anywhere. Otherwise their login keeps working in their other workspaces; this workspace refuses them on the next request, because every request re-reads the membership.
+
+Inviting them again (`POST /invites`, then accepting) makes the membership active again. Only the team in the new invite applies; old teams are not restored.
+
+| Status | When |
+|---|---|
+| 204 | Access removed |
+| 403 | Caller's membership is inactive, or caller is neither owner nor `workspace_admin` |
+| 404 | Unknown or malformed workspace or user, user not an active member here, caller not a member |
+| 409 | `You can't remove yourself from this workspace.` (checked first) or `The workspace owner can't be removed.` |
+
 ## Laravel differences
 
 - `permissions` covers only this workspace. Laravel listed every workspace of that user, which leaked other tenants' ids to an admin here. The detail page also hides the user's pending invites.

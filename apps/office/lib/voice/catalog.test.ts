@@ -22,6 +22,22 @@ describe("voice tool boundary", () => {
     expect(tool.body).toHaveProperty("properties.lines")
   })
 
+  it("finds the invite as the way to give someone a team role", () => {
+    expect(discoverTools("invite manager role", ["workspace_owner"])[0]?.id).toBe(
+      "invites_send"
+    )
+    expect(
+      discoverTools("team role permissions", ["workspace_owner"]).map((t) => t.id)
+    ).toContain("teams_list")
+  })
+
+  it("offers member removal to admins only, as a reviewed write", () => {
+    const tool = discoverTools("remove member access", ["workspace_owner"])[0]!
+    expect(tool.id).toBe("users_remove")
+    expect(tool.write).toBe(true)
+    expect(discoverTools("users_remove", ["user.get", "invite.delete"])).toEqual([])
+  })
+
   it("does not expose authentication or credential administration", () => {
     expect(() => prepareAction("auth_login", {}, workspace)).toThrow()
     expect(() => prepareAction("app_keys_create", {}, workspace)).toThrow()

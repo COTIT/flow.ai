@@ -77,7 +77,8 @@ pub async fn create(
 /// GET /users/teams -> `{data:[...], meta}`.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/users/teams", tag = "teams",
-    operation_id = "teams_list", summary = "List teams",
+    operation_id = "teams_list",
+    summary = "List teams (roles such as Managers) and the permissions each grants",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
         (status = 200, body = Paginated<TeamResource>, description = "One page of teams, each with its members"),

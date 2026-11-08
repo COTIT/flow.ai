@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workspace_members (workspace_id, user_id) VALUES ($1, $2)\n         ON CONFLICT (workspace_id, user_id) DO UPDATE SET active = true",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "88faace3c3ae0c1530387d02208e5e71c52caefc338328d0887889596ea3df1c"
+}

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Member offboarding (`docs/api/users.md`; no migration): `DELETE /workspace/{workspace}/users/{user}` (`users_remove`, owner or `workspace_admin`) ends a member's access in one transaction. The membership turns inactive so agent and manager links and all authored history stay. The person leaves this workspace's teams, loses farm roles here, and their assistant sessions here close with pending actions cancelled. Logins are deleted only when no other access is left. Removing yourself or the owner returns 409. Accepting a new invite reactivates the membership with only the invite's team. `invites_send` and `teams_list` summaries now say a team is the person's role, so voice tool search finds them.
+
 - Assistant batch prepare latency (no migration): boot `warm_up` now builds the assistant operation inventory (the OpenAPI spec walk behind `resolve_operation`), so the first proposal, batch or guarded dispatch after a deploy no longer pays for it. Local debug build, 10-step batch: 914 ms cold, of which 737 ms was that build; 154 ms warm. Debug-level `tracing` spans now cover batch create, each step's review-fact capture and the batch SQL. Measured per step: two statements, no N+1, no missing index.
 
 - `GET /workspace/{workspace}/assistant/sessions/{session}?with=identity` (`docs/api/assistant.md`; no migration) adds `identity` `{workspaces, permissions, farm_roles}` to the session, matching `/me/workspaces`, this workspace's `/me` permissions and `/farm/me` roles. Office's voice bridge can replace four round trips with one. The request runs three statements in total (token, membership, one session-and-identity read) and caches nothing. Any other `with` value returns 422. The plain `GET` is unchanged.

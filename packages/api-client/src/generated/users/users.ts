@@ -6,16 +6,20 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -338,6 +342,73 @@ export function useUsersList<TData = Awaited<ReturnType<typeof usersList>>, TErr
 
 
 /**
+ * Owner or `workspace_admin` only. Access ends at once: the membership turns inactive, the person leaves this workspace's teams, loses farm roles here, and their assistant sessions here close. Orders, invoices and audit keep their name. Their login is deleted only when no other access is left. Invite them again to give access back; only the new invite's team applies.
+ * @summary Remove a member's access to this workspace (offboard someone who left; keeps their history)
+ */
+export const usersRemove = (
+    workspace: string,
+    user: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<void>(
+      {url: `/workspace/${workspace}/users/${user}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+
+export const getUsersRemoveMutationKey = () => ['usersRemove'] as const;
+
+export const getUsersRemoveMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersRemove>>, TError,UsersRemoveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof usersRemove>>, TError,UsersRemoveMutationVariables, TContext> => {
+
+const mutationKey = getUsersRemoveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersRemove>>, UsersRemoveMutationVariables> = (props) => {
+          const {workspace,user} = props ?? {};
+
+          return  usersRemove(workspace,user,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersRemoveMutationResult = NonNullable<Awaited<ReturnType<typeof usersRemove>>>
+
+    export type UsersRemoveMutationError = ErrorType<MessageBody>
+    export type UsersRemoveMutationVariables = {workspace: string;user: string}
+
+    /**
+ * @summary Remove a member's access to this workspace (offboard someone who left; keeps their history)
+ */
+export const useUsersRemove = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersRemove>>, TError,UsersRemoveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersRemove>>,
+        TError,
+        UsersRemoveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUsersRemoveMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Get a workspace member
  */
 export const usersGet = (

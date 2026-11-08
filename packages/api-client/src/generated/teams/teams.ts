@@ -62,7 +62,7 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 /**
- * @summary List teams
+ * @summary List teams (roles such as Managers) and the permissions each grants
  */
 export const teamsList = (
     workspace: string,
@@ -140,7 +140,7 @@ export function useTeamsList<TData = Awaited<ReturnType<typeof teamsList>>, TErr
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary List teams
+ * @summary List teams (roles such as Managers) and the permissions each grants
  */
 
 export function useTeamsList<TData = Awaited<ReturnType<typeof teamsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(

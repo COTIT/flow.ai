@@ -221,6 +221,7 @@
     "till_vaults_list",
     "users_get",
     "users_list",
+    "users_remove",
     "vat_groups_create",
     "vat_groups_delete",
     "vat_groups_get",

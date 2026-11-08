@@ -3,6 +3,7 @@
 use axum::{
     Json,
     extract::{Path, Query, State},
+    http::StatusCode,
 };
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
         auth::AuthUser,
         list::{Page, Paginated, contains_pattern},
         response::{Data, Envelope, MessageBody},
-        workspace::{Can, permissions},
+        workspace::{Can, WorkspaceAccess, permissions},
     },
     modules::users::{
         dto::{MeResponse, MemberResource, MembersQuery, UserDetail, WorkspaceResource},
@@ -85,6 +86,37 @@ pub async fn member(
 ) -> Result<Data<UserDetail>, AppError> {
     let view = service::member(&state, access.workspace_id, &user).await?;
     Ok(Data(UserDetail::new(view, access.workspace_id)))
+}
+
+/// DELETE /v1/workspace/{workspace}/users/{user} -> 204.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/users/{user}", tag = "users",
+    operation_id = "users_remove",
+    summary = "Remove a member's access to this workspace (offboard someone who left; keeps their history)",
+    description = "Owner or `workspace_admin` only. Access ends at once: the membership turns inactive, \
+        the person leaves this workspace's teams, loses farm roles here, and their assistant sessions here close. \
+        Orders, invoices and audit keep their name. Their login is deleted only when no other access is left. \
+        Invite them again to give access back; only the new invite's team applies.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("user" = Uuid, Path, description = "User id of the member to remove"),
+    ),
+    responses(
+        (status = 204, description = "Access removed"),
+        (status = 403, body = MessageBody, description = "Inactive membership, or caller is neither owner nor `workspace_admin`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or user, user not an active member here, or caller not a member"),
+        (status = 409, body = MessageBody, description = "Removing yourself or the workspace owner"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn remove(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, user)): Path<(String, String)>,
+) -> Result<StatusCode, AppError> {
+    let admin = access.is_admin();
+    service::remove(&state, access.workspace_id, access.user_id, admin, &user).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// GET /v1/me -> `{data:{user:{...}}}`.

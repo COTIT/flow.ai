@@ -21755,7 +21755,7 @@
         "type": "object"
       },
       "SendInviteRequest": {
-        "description": "POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.\nInvite someone by email, optionally straight into a team.",
+        "description": "POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.\nInvite someone by email, optionally straight into a team (their role).",
         "properties": {
           "email": {
             "format": "email",
@@ -21763,7 +21763,7 @@
             "type": "string"
           },
           "team_id": {
-            "description": "Team the invitee joins on accepting.",
+            "description": "Team (role, e.g. Managers) the invitee joins on accepting; it sets their permissions.",
             "format": "uuid",
             "type": [
               "string",
@@ -67929,6 +67929,7 @@
         ]
       },
       "post": {
+        "description": "Pass `team_id` (from `teams_list`) to give the person that team's role and permissions when they accept. A removed member may be invited again; only this invite's team applies.",
         "operationId": "invites_send",
         "parameters": [
           {
@@ -68095,7 +68096,7 @@
             "bearer": []
           }
         ],
-        "summary": "Invite someone by email",
+        "summary": "Invite someone by email, optionally into a team (role) such as Managers that sets their permissions",
         "tags": [
           "invites"
         ]
@@ -95398,7 +95399,7 @@
             "bearer": []
           }
         ],
-        "summary": "List teams",
+        "summary": "List teams (roles such as Managers) and the permissions each grants",
         "tags": [
           "teams"
         ]
@@ -96597,6 +96598,142 @@
       }
     },
     "/workspace/{workspace}/users/{user}": {
+      "delete": {
+        "description": "Owner or `workspace_admin` only. Access ends at once: the membership turns inactive, the person leaves this workspace's teams, loses farm roles here, and their assistant sessions here close. Orders, invoices and audit keep their name. Their login is deleted only when no other access is left. Invite them again to give access back; only the new invite's team applies.",
+        "operationId": "users_remove",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "User id of the member to remove",
+            "in": "path",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Access removed"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or caller is neither owner nor `workspace_admin`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or user, user not an active member here, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Removing yourself or the workspace owner"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a member's access to this workspace (offboard someone who left; keeps their history)",
+        "tags": [
+          "users"
+        ]
+      },
       "get": {
         "operationId": "users_get",
         "parameters": [

@@ -8,13 +8,13 @@
 
 /**
  * POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.
- * Invite someone by email, optionally straight into a team.
+ * Invite someone by email, optionally straight into a team (their role).
  */
 export interface SendInviteRequest {
   /** @maxLength 255 */
   email: string;
   /**
-     * Team the invitee joins on accepting.
+     * Team (role, e.g. Managers) the invitee joins on accepting; it sets their permissions.
      * @nullable
      */
   team_id?: string | null;

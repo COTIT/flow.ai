@@ -59,6 +59,7 @@
     "supply": "Supply",
     "overview": "Overview",
     "invites": "Invites",
+    "members": "Members",
     "categories": "Categories",
     "voice": "Voice assistant"
   },
@@ -724,6 +725,7 @@
     "sizeAdded": "Size added.",
     "inviteSent": "Invite sent to {email}",
     "inviteWithdrawn": "Invite withdrawn.",
+    "memberRemoved": "{name} no longer has access.",
     "lotStockChanged": "Stock changed.",
     "invoice": {
       "sent": "Invoice sent.",
@@ -857,6 +859,23 @@
       "accepted": "Accepted",
       "denied": "Declined",
       "expired": "Expired"
+    }
+  },
+  "members": {
+    "title": "Members",
+    "intro": "People who work in this account. Remove someone who left: their orders, invoices and history stay.",
+    "name": "Name",
+    "team": "Team (role)",
+    "status": "Status",
+    "actions": "Actions",
+    "empty": "No members yet",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}'s access?",
+    "removeText": "They can no longer open this account and leave their teams. Their orders, invoices and history stay. Invite them again to give access back.",
+    "statuses": {
+      "owner": "Owner",
+      "active": "Active",
+      "removed": "Removed"
     }
   },
   "invite": {

@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   Truck,
   UserPlus,
+  Users,
   Zap,
   type LucideIcon,
 } from "lucide-react"
@@ -140,6 +141,12 @@ const items: Item[] = [
     match: "/settings/invites",
     label: "nav.invites",
     icon: UserPlus,
+  },
+  {
+    href: "/settings/members",
+    match: "/settings/members",
+    label: "nav.members",
+    icon: Users,
   },
 ]
 

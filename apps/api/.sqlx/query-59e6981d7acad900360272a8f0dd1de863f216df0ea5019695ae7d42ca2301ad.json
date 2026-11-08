@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT EXISTS (\n             SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2\n           ) AS \"exists!\"",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND active\n           ) AS \"exists!\"",
   "describe": {
     "columns": [
       {
@@ -20,5 +20,5 @@
       null
     ]
   },
-  "hash": "675817a91d9972b866cdeecb5602eda4bed9b6f8e6af11add500e78772e194d1"
+  "hash": "59e6981d7acad900360272a8f0dd1de863f216df0ea5019695ae7d42ca2301ad"
 }
