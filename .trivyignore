@@ -1,2 +1,11 @@
 # Findings accepted by the `images` job in .github/workflows/ci.yml.
 # One CVE id per line, each with a comment above it: why it is accepted and when to look again.
+
+# zlib1g 1:1.3.dfsg+really1.3.1-1+b1 in gcr.io/distroless/cc-debian13 (API runtime base).
+# The API binary links no zlib crate (apps/api/Cargo.lock has no libz-sys, flate2 or zlib-rs),
+# so our process never loads the library; it is unused baggage in the base image.
+# Debian fixed both in deb13u1 (DSA-6613-1, 2026-11-07), but the distroless `nonroot` tag still
+# resolves to the pinned digest on 2026-11-08, so no rebuilt base exists yet.
+# Look again when the distroless digest moves: bump apps/api/Dockerfile then and drop these lines.
+CVE-2026-76844
+CVE-2026-85091
