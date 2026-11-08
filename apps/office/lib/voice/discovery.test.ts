@@ -61,3 +61,15 @@ describe("voice tool discovery", () => {
     expect(top("or an a to in by of, it")).toEqual([])
   })
 })
+
+describe("stub operations stay out of answers", () => {
+  // The API returns 0.0 for every figure; voice must never say "they owe nothing" from it.
+  it("marks the relation financial summary unavailable", () => {
+    expect(
+      discoverTools("relations_financial_summary", owner)[0]
+    ).toMatchObject({
+      availability: "unavailable",
+      unavailableReason: "native_figures_not_implemented",
+    })
+  })
+})
