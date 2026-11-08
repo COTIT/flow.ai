@@ -53,6 +53,8 @@ export function grade(scenario, rec, catalog) {
   const last = agent.at(-1) ?? ""
   const shown = [...agent, ...rec.messages.filter((m) => m.role === "action").map((m) => m.text), ...rec.thinking]
   const defects = defectsIn(shown, ids)
+  if (rec.cancelFailures > 0)
+    defects.push({ kind: "review_card_unstable", text: `Cancel kept re-rendering; ${rec.cancelFailures} cancel attempt(s) failed` })
   const called = new Set(rec.toolCalls.filter((c) => c.command === "execute").map((c) => c.operationId))
   const expected = scenario.expect.ops ?? []
   const hit = expected.filter((op) => called.has(op))

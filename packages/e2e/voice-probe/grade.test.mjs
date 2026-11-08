@@ -169,3 +169,10 @@ test("typographic apostrophes and 'doesn't support' count (real agent wording)",
   )
   assert.equal(grade(s, said("Genesy does not support agendas."), catalog).class, "missed_tool")
 })
+
+test("a review card the probe could not cancel is a UI defect", () => {
+  const s = scenario({ outcome: "review", ops: ["orders_create"] }, { kind: "write" })
+  const r = grade(s, record({ reviews: 1, cancelFailures: 1 }), catalog)
+  assert.equal(r.class, "works")
+  assert.deepEqual(r.defects.map((d) => d.kind), ["review_card_unstable"])
+})

@@ -127,12 +127,22 @@ async function transcript(page: Page) {
 }
 
 /** Waits until the turn is really over: not just quiet, but answered (or provably stuck). */
-type ProbeState = { reviews: number; thinking: Set<string>; hold: boolean; held: boolean }
+type ProbeState = { reviews: number; thinking: Set<string>; hold: boolean; held: boolean; cancelFailures: number }
 
-async function cancelReview(page: Page) {
+/** Cancels the open review card; a card that keeps re-rendering is retried, then recorded, never approved. */
+async function cancelReview(page: Page, state: ProbeState) {
   const approve = page.getByRole("button", { name: "Approve action" })
-  await page.getByRole("button", { name: "Cancel", exact: true }).first().click()
-  await expect(approve).toBeHidden({ timeout: 15_000 })
+  // The Cancel inside the same card as Approve, not any other Cancel on the page.
+  const cancel = approve
+    .locator("xpath=ancestor::*[.//button[normalize-space()='Cancel']][1]")
+    .getByRole("button", { name: "Cancel", exact: true })
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (!(await approve.isVisible().catch(() => false))) return
+    await cancel.click({ timeout: 5_000 }).catch(() => {})
+    if (await approve.isHidden({ timeout: 0 }).catch(() => false)) return
+    await expect(approve).toBeHidden({ timeout: 5_000 }).catch(() => {})
+  }
+  if (await approve.isVisible().catch(() => false)) state.cancelFailures++
 }
 
 async function finishTurn(page: Page, before: number, inflight: Set<Request>, state: ProbeState) {
@@ -153,8 +163,9 @@ async function finishTurn(page: Page, before: number, inflight: Set<Request>, st
         if (Date.now() - lastChange > SETTLE && inflight.size === 0) return "answered"
       } else {
         // Never approve: cancel the card the assistant proposed.
-        await cancelReview(page)
+        await cancelReview(page, state)
         lastChange = Date.now()
+        if (state.cancelFailures) return "answered" // stuck card: stop waiting, the defect is recorded
         continue
       }
     } else state.held = false
@@ -196,7 +207,7 @@ for (const scenario of selected) {
     const attempts: string[] = []
     const calls: ToolCall[] = []
     const inflight = new Set<Request>()
-    const state: ProbeState = { reviews: 0, thinking: new Set<string>(), hold: Boolean(scenario.holdReview), held: false }
+    const state: ProbeState = { reviews: 0, thinking: new Set<string>(), hold: Boolean(scenario.holdReview), held: false, cancelFailures: 0 }
     await guardWrites(page, attempts)
     recordTools(page, calls, inflight)
 
@@ -245,7 +256,7 @@ for (const scenario of selected) {
     }
 
     if (state.held && (await page.getByRole("button", { name: "Approve action" }).isVisible().catch(() => false)))
-      await cancelReview(page)
+      await cancelReview(page, state)
     const messages = await transcript(page)
     const alerts = (await page.locator('main [role="alert"]').allInnerTexts().catch(() => [])).filter(Boolean)
     const record = {
@@ -255,6 +266,7 @@ for (const scenario of selected) {
       reviews: state.reviews,
       handoffs: calls.filter((c) => c.status === "handoff").length,
       approveAttempts: attempts.length,
+      cancelFailures: state.cancelFailures,
       alerts,
       thinking: [...state.thinking],
     }
