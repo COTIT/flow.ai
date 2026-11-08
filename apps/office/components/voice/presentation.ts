@@ -18,6 +18,7 @@ export const composerReady = (attachments: { state: string }[]) =>
 
 /** Keys the server needs but a person reviewing the action should never see. */
 export const internalFields = new Set([
+  "target",
   "actionId",
   "batchId",
   "sessionId",
@@ -161,6 +162,7 @@ const resources = [
   "farmer_groups",
   "workspaces",
   "warehouses",
+  "relations",
   "products",
   "categories",
   "invoices",

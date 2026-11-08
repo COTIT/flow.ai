@@ -1196,7 +1196,15 @@
       "sale_unit": "Sale unit",
       "default": "Default",
       "rate": "Rate",
-      "purchase_price": "Purchase price"
+      "purchase_price": "Purchase price",
+      "impact": "What this affects",
+      "warnings": "Warnings",
+      "type": "Type",
+      "orders": "Orders",
+      "contacts": "Contacts",
+      "variants": "Sizes",
+      "stock_rows": "Stock locations with stock",
+      "effect": "Effect"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -1269,7 +1277,8 @@
       "currencies": "currency",
       "vat": "VAT group",
       "workspace": "workspace",
-      "settings": "setting"
+      "settings": "setting",
+      "relations": "customer"
     },
     "operationActions": {
       "create": "Create {record}",

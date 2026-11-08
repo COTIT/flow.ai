@@ -1196,7 +1196,15 @@
       "sale_unit": "Verkoopeenheid",
       "default": "Standaard",
       "rate": "Tarief",
-      "purchase_price": "Inkoopprijs"
+      "purchase_price": "Inkoopprijs",
+      "impact": "Wat dit raakt",
+      "warnings": "Waarschuwingen",
+      "type": "Soort",
+      "orders": "Bestellingen",
+      "contacts": "Contactpersonen",
+      "variants": "Maten",
+      "stock_rows": "Voorraadlocaties met voorraad",
+      "effect": "Gevolg"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1269,7 +1277,8 @@
       "currencies": "valuta",
       "vat": "btw-groep",
       "workspace": "werkruimte",
-      "settings": "instelling"
+      "settings": "instelling",
+      "relations": "klant"
     },
     "operationActions": {
       "create": "{record} aanmaken",

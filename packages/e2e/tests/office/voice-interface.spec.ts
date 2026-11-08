@@ -345,7 +345,7 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
                 details: {
                   workspace: "01950000-0000-7000-8000-000000000009",
                   target: { product: id },
-                  record: { id, name: "Cocoa", reference: "COC-01" },
+                  record: { type: "product", label: "Cocoa" },
                   changes: {
                     quantity: "2.00",
                     total: "€1.25",
@@ -378,14 +378,13 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
     })
     await expect(review).toBeVisible()
     await expect(review).toHaveAttribute("data-side", "right")
-    // One row per reviewed field, in the order the server sent them, none hidden.
+    // One row per reviewed field, in the order the server sent them; raw route ids stay off the card.
     const rows = review.locator('.voice-review-list [role="option"]')
-    await expect(rows).toHaveCount(4)
-    for (let i = 0; i < 4; i++) await expect(rows.nth(i)).toBeVisible()
-    await expect(rows.nth(2)).toContainText("Cocoa")
-    await expect(rows.nth(3)).toContainText("2.00")
+    await expect(rows).toHaveCount(3)
+    for (let i = 0; i < 3; i++) await expect(rows.nth(i)).toBeVisible()
+    await expect(rows.nth(1)).toContainText("Cocoa")
+    await expect(rows.nth(2)).toContainText("2.00")
     await expect(review).toContainText("Cocoa")
-    await expect(review).toContainText("COC-01")
     await expect(review).toContainText("2.00")
     await expect(review).toContainText("€1.25")
     await expect(
