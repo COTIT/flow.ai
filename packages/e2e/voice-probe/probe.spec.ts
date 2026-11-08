@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { expect, test, type Page, type Request } from "@playwright/test"
 
+import { takeConversation } from "./budget.mjs"
 import { grade, isNarration } from "./grade.mjs"
 
 type Scenario = {
@@ -28,6 +29,9 @@ const results = new URL(`./out/${bank}/results/`, import.meta.url)
 // Written when the provider refuses new conversations (e.g. the agent's daily limit): the rest of the
 // bank is skipped, not graded, and a resumed run picks up from there. Workers restart, so a file, not a variable.
 const providerStop = new URL(`./out/${bank}/provider-stopped.txt`, import.meta.url)
+// Shared by both banks: one line per conversation opened, smoke and debug runs included.
+const ledger = new URL("./out/conversations.log", import.meta.url).pathname
+const budget = process.env.VOICE_PROBE_BUDGET ? Number(process.env.VOICE_PROBE_BUDGET) : undefined
 
 const only = process.env.VOICE_PROBE_ONLY?.split(",").filter(Boolean)
 const module = process.env.VOICE_PROBE_MODULE
@@ -204,6 +208,11 @@ for (const scenario of selected) {
       await owner.post(owner.ws("/products"), { name: scenario.setup.product, price: "4.00" })
     }
     await page.goto(`${office}/voice`)
+    if (!takeConversation(ledger, budget, `${bank}/${scenario.id}`)) {
+      mkdirSync(results, { recursive: true })
+      writeFileSync(providerStop, `${new Date().toISOString()} ${scenario.id}: conversation budget of ${budget} spent\n`)
+      test.skip(true, "conversation budget spent; not graded")
+    }
     await page.getByRole("button", { name: "Use text instead" }).click()
     const box = page.getByRole("textbox", { name: "Message the assistant" })
     const failed = page.getByRole("alert").filter({ hasText: "The request could not be completed." })

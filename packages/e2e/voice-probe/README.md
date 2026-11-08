@@ -20,6 +20,8 @@ pnpm --filter @genesy/e2e voice-probe:coverage                                  
 - Results are kept between runs and graded scenarios are skipped (each costs provider credit); `VOICE_PROBE_FRESH=1`
   starts over. Scenarios named in `VOICE_PROBE_ONLY` always run. The report re-grades every stored record with the
   current grader. If the provider refuses new conversations (agent daily limit), the rest of the bank is skipped.
+- `VOICE_PROBE_BUDGET=95`: stop (and mark the rest not graded) once `out/conversations.log` holds that many
+  conversations. Every conversation the probe opens is logged there, across both banks.
 - `VOICE_PROBE_ONLY=id,id`, `VOICE_PROBE_MODULE=orders`: run a subset. Debug with these, not with full runs.
 - `VOICE_WORKSPACES=AFM,RUAHA` on `stack:up` plus `VOICE_PROBE_RUAHA=1` runs the farm scenarios as the RUAHA admin.
 - Staging: `VOICE_PROBE_URL`, `VOICE_PROBE_EMAIL`, `VOICE_PROBE_PASSWORD`, set by a person. No other credential source.
