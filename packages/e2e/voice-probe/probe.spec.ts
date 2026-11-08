@@ -151,7 +151,11 @@ async function finishTurn(page: Page, before: number, inflight: Set<Request>, st
         continue
       }
     } else state.held = false
-    const busy = (await page.locator("[data-voice-activity]").getAttribute("aria-busy").catch(() => null)) === "true"
+    const activity = page.locator("[data-voice-activity]")
+    // "Waiting for your approval" counts as busy in the UI, but the agent's turn is over.
+    const busy =
+      (await activity.getAttribute("aria-busy").catch(() => null)) === "true" &&
+      (await activity.getAttribute("data-state").catch(() => null)) !== "awaiting_review"
     const thinking = (await page.locator("[data-voice-thinking]").count()) > 0
     const rows = await transcript(page)
     const key = JSON.stringify(rows)
