@@ -26,6 +26,8 @@
   "apps/api/src/modules/assistant/retention.rs": "e02361c7141a69fd8d3c2307fe73fae8603cbf7ba8543506797bc683b7fea0ef",
   "apps/api/src/modules/assistant/routes.rs": "073d423d4a26d0573a739a29482030e7329604b8b29e9e2df223af0ec4aff16a",
   "apps/api/src/modules/assistant/service.rs": "6606ddb66a0489a0a89b69c53d592df85ab1b41ea344d0edc95bb8562674fa9c",
+  "apps/api/src/modules/attention/handlers.rs": "afaa4f5b5aae9184ec19401477f04943a43cd5b56c7b361095a636a7e53e1ae2",
+  "apps/api/src/modules/attention/service.rs": "2e37793ecd9bbaece42fe3df7aa2fc9f3edd95492350d5aa4f76c88a55709986",
   "apps/api/src/modules/auth/handlers.rs": "bbd5f11896f4569c969e517a72746b61674423bacc2dabe87deda3d7225f49a4",
   "apps/api/src/modules/auth/service.rs": "a2697d6f31c7ec927901557d320fb4e3d1198d7401c7b03c760df1b3e02ed4e1",
   "apps/api/src/modules/cash/handlers.rs": "e894222375bb516cade1293bf34bb0eaff2212793242e8dc99207570ad4f7b23",
@@ -203,5 +205,5 @@
   "apps/api/src/modules/workspaces/handlers.rs": "9766a5f326a08ba1db481f15cfa6a6e00cdc8446f98761a5cdcac7fa5edf4297",
   "apps/api/src/modules/workspaces/service.rs": "6b8b6c901d71387f37a1c0eadbf237fd4d97b17953e48a512bbf36aaf74909f6",
   "apps/api/src/money.rs": "ec8929ded1c344ea115e88323e3d348017948219920c361d066deb656d5c3b1f",
-  "apps/api/src/openapi.rs": "7770ecb3fbd842d3dad038f67bbfc64cc13bba0ff30f4462c67290fb7e271c1a"
+  "apps/api/src/openapi.rs": "78f555bb1e6d711ef9d7f3d7b067806ee53c311ca749cc074ba0137191d0bcd1"
 }

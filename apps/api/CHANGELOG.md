@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `GET /workspace/{workspace}/attention` (`docs/api/attention.md`; migration `attention_indexes`, partial indexes only): one read-only "what do I deal with today" summary for office and the voice assistant. Counts plus the 5 oldest items for draft/open/awaiting orders; draft, unpaid and overdue invoices (overdue = due before local midnight in `general.timezone`, UTC fallback) with open money per currency in minor units; negative store stock and sold-out products (the storefront rule); open till shifts; quarantined lots and orders held on lots off sale; failed webhook deliveries. A section is null without its list permission. The `pay` rule's statuses are now `invoices::actions::PAYABLE`, shared by both.
+
 - Assistant batch prepare latency (no migration): boot `warm_up` now builds the assistant operation inventory (the OpenAPI spec walk behind `resolve_operation`), so the first proposal, batch or guarded dispatch after a deploy no longer pays for it. Local debug build, 10-step batch: 914 ms cold, of which 737 ms was that build; 154 ms warm. Debug-level `tracing` spans now cover batch create, each step's review-fact capture and the batch SQL. Measured per step: two statements, no N+1, no missing index.
 
 - `GET /workspace/{workspace}/assistant/sessions/{session}?with=identity` (`docs/api/assistant.md`; no migration) adds `identity` `{workspaces, permissions, farm_roles}` to the session, matching `/me/workspaces`, this workspace's `/me` permissions and `/farm/me` roles. Office's voice bridge can replace four round trips with one. The request runs three statements in total (token, membership, one session-and-identity read) and caches nothing. Any other `with` value returns 422. The plain `GET` is unchanged.

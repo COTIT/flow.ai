@@ -225,7 +225,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 390, "reviewed capability count changed");
+    assert_eq!(selected.len(), 391, "reviewed capability count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool);
     let mut exercised = BTreeSet::new();
@@ -246,7 +246,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         );
         assert!(exercised.insert(id));
     }
-    assert_eq!(exercised.len(), 390);
+    assert_eq!(exercised.len(), 391);
 }
 
 #[sqlx::test]
@@ -450,7 +450,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         .collect();
     assert_eq!(
         selected.len(),
-        67,
+        68,
         "reviewed collection boundary count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -518,7 +518,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 67);
+    assert_eq!(exercised.len(), 68);
 }
 
 #[sqlx::test]

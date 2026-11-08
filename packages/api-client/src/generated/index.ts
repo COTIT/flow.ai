@@ -1,5 +1,6 @@
 export * from './app-keys/app-keys';
 export * from './assistant/assistant';
+export * from './attention/attention';
 export * from './auth/auth';
 export * from './contacts/contacts';
 export * from './currencies/currencies';

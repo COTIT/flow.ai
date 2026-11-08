@@ -15,6 +15,7 @@ mod assistant_order_invoice_quotes;
 mod assistant_preconditions;
 mod assistant_product_quotes;
 mod assistant_retention;
+mod attention;
 mod body_limits;
 mod bootstrap;
 mod checkout;

@@ -15,6 +15,7 @@
     "app_keys_create",
     "app_keys_list",
     "app_keys_revoke",
+    "attention_summary",
     "contacts_create",
     "contacts_delete",
     "contacts_update",

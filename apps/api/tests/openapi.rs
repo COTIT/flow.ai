@@ -2177,3 +2177,8 @@ async fn boot_warm_up_builds_assistant_operation_inventory() {
     genesy_360_api::warm_up().await;
     assert!(genesy_360_api::assistant_operations_ready());
 }
+
+#[test]
+fn every_attention_operation_is_documented() {
+    assert_documented(&[("/attention", "get", "attention_summary", "200")]);
+}
