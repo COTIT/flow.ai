@@ -332,8 +332,8 @@ pub struct ListQuery {
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
-    /// One status: `draft`, `awaiting_payment`, `open` (confirmed, not yet completed),
-    /// `completed`, `cancelled`, `partially_returned`, `returned`.
+    /// One status: `draft`, `awaiting_payment`, `open`, `completed`, `cancelled`,
+    /// `partially_returned` or `returned`. Picked orders are still `open`.
     pub status: Option<String>,
     /// Only this customer's orders (relation id; `customer_name` shows the name).
     #[param(value_type = Option<Uuid>)]

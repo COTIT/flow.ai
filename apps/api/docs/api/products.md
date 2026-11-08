@@ -36,7 +36,7 @@ Shared rules (guard order, 404s, patch updates, list `meta`, money printing) are
 | `POST /` | `product.create` | `201 {data:{product_id}}` |
 | `POST /{id}` | `product.update` | `{"message":"ok"}` |
 | `DELETE /{id}` | `product.delete` | `{"data":{"message":"The Product has been deleted"}}` |
-| `POST /{id}/duplicate` | `product.duplicate` | `201 {data:{product_id}}` |
+| `POST /{id}/duplicate` | `product.duplicate` | `201 {data:{product_id}}`; exact copy, no body: for another size or name, copy then update the copy |
 | `GET /{id}/price-history` | `product.view` | `{data:[…], meta}`, `per_page` default 25 |
 | `GET /{id}/sale-statics` | `product.view` | zeros (no invoices yet) |
 | `GET /{id}/linked-products` | `product.view` | `{data:{products:[]}}` (links can't be created yet) |
@@ -91,7 +91,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
     - `description` ≤1500
   - **Enums:**
     - `type` is one of digital / multi_product_group / multi_product_set / physical / physical_second_chance / service / giftcard, default physical
-    - `status` is one of active / disabled / nla, default `active`. Laravel answered 500 without it.
+    - `status` is one of `active` (on sale), `disabled` (hidden from shop and till, kept) or `nla` (no longer available), default `active`. Laravel answered 500 without it.
     - Both are lowercased, with the error "The selected status: X is invalid."
     - `unit`, `warranty_*`
   - **Money:**

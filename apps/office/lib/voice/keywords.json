@@ -236,5 +236,69 @@
     "en": ["consent", "withdraw", "stop", "sharing", "farmer"],
     "nl": ["toestemming", "intrekken"],
     "sw": ["ridhaa", "idhini", "kuondoa"]
+  },
+  "till_vaults_list": {
+    "en": ["vault", "vaults", "safe", "cash", "odd", "balance"],
+    "nl": ["kluis", "kluizen", "contant", "geld", "saldo"],
+    "sw": ["sefu", "kasha", "pesa", "taslimu", "salio"]
+  },
+  "invoices_list": {
+    "en": [
+      "owe",
+      "owes",
+      "owed",
+      "owing",
+      "outstanding",
+      "unpaid",
+      "balance",
+      "debt",
+      "customer"
+    ],
+    "nl": [
+      "schuld",
+      "openstaand",
+      "onbetaald",
+      "saldo",
+      "klant",
+      "verschuldigd"
+    ],
+    "sw": ["deni", "anadaiwa", "haijalipwa", "salio", "mteja"]
+  },
+  "orders_create": {
+    "en": ["repeat", "again", "reorder", "same"],
+    "nl": ["herhaal", "herhalen", "opnieuw", "bestelling"],
+    "sw": ["rudia", "tena", "oda"]
+  },
+  "products_update": {
+    "en": ["hide", "unhide", "disable", "season", "rename", "move", "category"],
+    "nl": [
+      "verbergen",
+      "verberg",
+      "seizoen",
+      "hernoemen",
+      "categorie",
+      "product"
+    ],
+    "sw": ["ficha", "msimu", "jina", "kundi", "bidhaa"]
+  },
+  "products_duplicate": {
+    "en": ["duplicate", "copy", "version", "size", "clone"],
+    "nl": ["kopie", "kopieer", "kopiëren", "dupliceer", "versie", "product"],
+    "sw": ["nakala", "nakili", "toleo", "bidhaa"]
+  },
+  "orders_complete": {
+    "en": ["delivered", "deliver", "picked", "done", "finish"],
+    "nl": ["geleverd", "afronden", "klaar"],
+    "sw": ["imefikishwa", "fikisha", "kamilisha"]
+  },
+  "orders_returns": {
+    "en": ["return", "returned", "refund", "till", "counter", "sale", "back"],
+    "nl": ["retour", "terug", "teruggebracht", "kassa", "kassabon"],
+    "sw": ["rudisha", "marejesho", "kaunta", "mauzo"]
+  },
+  "orders_cancel": {
+    "en": ["called", "void", "cancel"],
+    "nl": ["annuleer", "annuleren", "geannuleerd", "bestelling"],
+    "sw": ["ghairi", "kughairi", "oda"]
   }
 }

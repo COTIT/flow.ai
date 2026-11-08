@@ -121,7 +121,8 @@ export interface ProductRequest {
   /** @nullable */
   short_description?: string | null;
   /**
-     * Default `active`.
+     * `active` (on sale), `disabled` (hidden from shop and till, kept, e.g. until next season)
+     * or `nla` (no longer available). Default `active`.
      * @nullable
      */
   status?: string | null;

@@ -708,3 +708,39 @@ it("opens an office page as a link row, refuses pages the member may not read", 
   expect((await open({ page: "/settings" })).status).toBe(400)
   expect(mocks.execute).not.toHaveBeenCalled()
 })
+
+it.each([
+  "mark all of today's open orders as completed",
+  "complete every open order",
+])(
+  "offers the fixed batch tool when the user means many records: %s",
+  async (query) => {
+    const response = await toolRequest(
+      request({
+        command: "discover",
+        query,
+        workspaceId: context.workspaceId,
+        sessionId: "s1",
+      })
+    )
+    const { tools } = await response.json()
+    expect(tools.map((tool: { id: string }) => tool.id)).toContain(
+      "assistant_batch_prepare"
+    )
+  }
+)
+
+it("does not offer the batch tool for words that merely contain 'all'", async () => {
+  const response = await toolRequest(
+    request({
+      command: "discover",
+      query: "install the small product catalog",
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  const { tools } = await response.json()
+  expect(tools.map((tool: { id: string }) => tool.id)).not.toContain(
+    "assistant_batch_prepare"
+  )
+})

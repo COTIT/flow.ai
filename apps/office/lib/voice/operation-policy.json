@@ -10845,7 +10845,9 @@
     "retry": {
       "mode": "reconcile_only"
     },
-    "confirmationFields": []
+    "confirmationFields": [],
+    "availability": "unavailable",
+    "unavailableReason": "native_figures_not_implemented"
   },
   "orders_sales_summary": {
     "method": "GET",

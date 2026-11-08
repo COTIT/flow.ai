@@ -547,6 +547,7 @@ export const useProductsUpdate = <TError = ErrorType<MessageBody | ValidationErr
       return useMutation(getProductsUpdateMutationOptions(options), queryClient);
     }
     /**
+ * An exact copy; takes no changes. For another size, name or price, copy first, then update the copy.
  * @summary Copy a product
  */
 export const productsDuplicate = (

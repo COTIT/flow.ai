@@ -327,7 +327,8 @@ pub async fn invoice(
 /// POST /orders/{order}/refunds -> 201 `{data:{refund_id, amount, status}}`.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/orders/{order}/refunds", tag = "orders",
-    operation_id = "orders_refund", summary = "Refund part of an online payment",
+    operation_id = "orders_refund", summary = "Refund part of an online (card or web) payment",
+    description = "Only an order paid online. A till sale paid at the counter has no online payment here (409); its money goes back on the till, and `orders_returns` records the goods coming back.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.")),
     request_body = RefundRequest,
     responses(

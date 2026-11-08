@@ -260,6 +260,7 @@ pub async fn delete(
 #[utoipa::path(
     post, path = "/workspace/{workspace}/products/{product}/duplicate", tag = "products",
     operation_id = "products_duplicate", summary = "Copy a product",
+    description = "An exact copy; takes no changes. For another size, name or price, copy first, then update the copy.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
     responses(
         (status = 201, body = Envelope<ProductCreated>, description = "Copied; returns the new id"),

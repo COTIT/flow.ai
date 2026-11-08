@@ -914,7 +914,8 @@ export const useOrdersPick = <TError = ErrorType<MessageBody | UnprocessableBody
       return useMutation(getOrdersPickMutationOptions(options), queryClient);
     }
     /**
- * @summary Refund part of an online payment
+ * Only an order paid online. A till sale paid at the counter has no online payment here (409); its money goes back on the till, and `orders_returns` records the goods coming back.
+ * @summary Refund part of an online (card or web) payment
  */
 export const ordersRefund = (
     workspace: string,
@@ -970,7 +971,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type OrdersRefundMutationVariables = {workspace: string;order: string;data: BodyType<RefundRequest>}
 
     /**
- * @summary Refund part of an online payment
+ * @summary Refund part of an online (card or web) payment
  */
 export const useOrdersRefund = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersRefund>>, TError,OrdersRefundMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
