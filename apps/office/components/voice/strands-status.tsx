@@ -8,6 +8,13 @@ import { voiceMotionActive } from "./motion"
 // React Bits Strands (WebGL2) is fetched lazily; the brand rings below stay as the still version.
 const Strands = island(() => import("./strands"))
 const COLORS = ["#efc977", "#6fd6dd", "#f9dd8c"]
+const rings = (
+  <>
+    <span />
+    <span />
+    <span />
+  </>
+)
 
 /** Audio-reactive avatar: strands swell with the agent's voice, breathe while listening. */
 export function StrandsStatus() {
@@ -106,30 +113,29 @@ export function StrandsStatus() {
       data-active={working || speaking || (canListen && moving)}
       className="voice-orb relative mx-auto size-64 shrink-0 sm:size-80"
     >
-      <Strands
-        colors={COLORS}
-        count={3}
-        glass
-        intensity={1.4}
-        saturation={1.3}
-        glow={1.2}
-        thickness={1.1}
-        speed={working ? 1.6 : 1}
-        energy={working ? 0.85 : speaking ? 0.7 : 0.45}
-        listening={canListen && !speaking}
-        level={live && (speaking || canListen) ? level : undefined}
-        intro={false}
-        interactive={false}
-        clickPulse={false}
-        className="absolute inset-0"
-        plain={
-          <>
-            <span />
-            <span />
-            <span />
-          </>
-        }
-      />
+      {/* Off screen or in a hidden tab the GPU rests: the still rings stand in. */}
+      {visible ? (
+        <Strands
+          colors={COLORS}
+          count={3}
+          glass
+          intensity={1.4}
+          saturation={1.3}
+          glow={1.2}
+          thickness={1.1}
+          speed={working ? 1.6 : 1}
+          energy={working ? 0.85 : speaking ? 0.7 : 0.45}
+          listening={canListen && !speaking}
+          level={live && (speaking || canListen) ? level : undefined}
+          intro={false}
+          interactive={false}
+          clickPulse={false}
+          className="absolute inset-0"
+          plain={rings}
+        />
+      ) : (
+        rings
+      )}
     </div>
   )
 }

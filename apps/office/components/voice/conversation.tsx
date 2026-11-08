@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   Paperclip,
+  Send,
   Trash2,
   X,
 } from "lucide-react"
@@ -34,7 +35,10 @@ import { VoiceActivity, VoiceThinking } from "./activity"
 import {
   displayReferences,
   displayText,
+  composerReady,
+  internalFields,
   operationLabel,
+  reviewRows,
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
@@ -43,23 +47,6 @@ import { useVoice } from "./provider"
 import { VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
 import type { BatchProgress } from "./continuity"
-
-const internalFields = new Set([
-  "actionId",
-  "batchId",
-  "sessionId",
-  "operationId",
-  "operation_id",
-  "ticket",
-  "confirmationCode",
-  "bodySha256",
-  "body_sha256",
-  "sha256",
-  "fingerprint",
-  "digest",
-  "httpStatus",
-  "recoverable",
-])
 
 function ReviewTitle({
   review,
@@ -97,28 +84,30 @@ function ReviewList({ review }: { review: VoiceReview }) {
   // Same array identity per review: a new array restarts the list's reveal animation.
   const rows = useMemo(() => {
     const references = displayReferences(review.details)
-    return (
-      review.kind === "batch" && review.steps?.length
-        ? review.steps.map((step, index) => ({
-            id: step.actionId,
+    return reviewRows(review).map((row) =>
+      row.kind === "step"
+        ? {
+            id: row.id,
             icon: <ClipboardList aria-hidden className="size-4" />,
             title: (
               <>
-                {index + 1}. <ReviewTitle review={step} />
+                {row.number}. <ReviewTitle review={row.step} />
               </>
             ),
-            description: <Details value={step.details} />,
-          }))
-        : Object.entries(review.details)
-            .filter(([key]) => !internalFields.has(key))
-            .map(([key, value]) => ({
-              id: key,
-              title: labels.has(key) ? labels(key) : key,
-              description: (
-                <Details value={value} references={references} field={key} />
-              ),
-            }))
-    ).filter(Boolean)
+            description: <Details value={row.step.details} />,
+          }
+        : {
+            id: row.id,
+            title: labels.has(row.key) ? labels(row.key) : row.key,
+            description: (
+              <Details
+                value={row.value}
+                references={references}
+                field={row.key}
+              />
+            ),
+          }
+    )
   }, [review, labels])
   if (!rows.length) return <Details value={review.details} />
   if (!ready) return null
@@ -155,6 +144,7 @@ function Details({
   const t = useTranslations("voice")
   const labels = useTranslations("voice.reviewFields")
   const references = supplied ?? displayReferences(value)
+  if (field === "workspace") return <span>{t("currentWorkspace")}</span>
   if (value == null) return <span>—</span>
   if (
     typeof value === "string" &&
@@ -223,12 +213,10 @@ function Details({
                   })}
             </dt>
             <dd className="text-sm">
-              {key === "workspace" ? (
-                t("currentWorkspace")
-              ) : key === "summary" &&
-                taskMetadata &&
-                typeof (value as Record<string, unknown>).operation ===
-                  "string" ? (
+              {key === "summary" &&
+              taskMetadata &&
+              typeof (value as Record<string, unknown>).operation ===
+                "string" ? (
                 <ReviewTitle
                   review={{
                     summary: String(item),
@@ -287,7 +275,6 @@ export function VoiceConversation() {
   const locale = useLocale()
   const router = useRouter()
   const voice = useVoice()
-  const chosen = useRef<((names: string[]) => void) | null>(null)
   const [follow, setFollow] = useState(true)
   const log = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -409,50 +396,71 @@ export function VoiceConversation() {
                   {t("newMessages")}
                 </Button>
               ) : null}
-              {voice.connected && voice.textOnly ? (
+              {voice.connected ? (
                 <form
-                  className="flex min-w-0 flex-col gap-2"
+                  className="voice-composer flex min-w-0 flex-col gap-2"
                   onSubmit={(e) => e.preventDefault()}
+                  onKeyDown={(e) => {
+                    // Escape that closed the composer's menu must not close the assistant too.
+                    if (e.key === "Escape" && e.defaultPrevented)
+                      e.stopPropagation()
+                  }}
+                  onPaste={(e) => {
+                    if (!e.clipboardData.files.length) return
+                    e.preventDefault()
+                    voice.choose(Array.from(e.clipboardData.files))
+                  }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault()
                     voice.choose(Array.from(e.dataTransfer.files))
                   }}
                 >
-                  <PromptBar
-                    placeholder={t("placeholder")}
-                    sources={[
-                      {
-                        key: "files",
-                        name: t("attach"),
-                        description: t("fileHint"),
-                        icon: Paperclip,
-                        attach: true,
-                      },
-                    ]}
-                    commands={[]}
-                    models={[]}
-                    efforts={[]}
-                    busy={voice.speaking}
-                    width={768}
-                    radius={18}
-                    background="color-mix(in srgb, var(--card) 85%, transparent)"
-                    color="var(--foreground)"
-                    menuBackground="var(--card)"
-                    sparkColor="var(--gold)"
-                    onSend={(text) => {
-                      voice.activity()
-                      void voice.send(text)
-                    }}
-                    onStop={() => voice.stopSpeaking()}
-                    onAttach={() =>
-                      new Promise<string[]>((resolve) => {
-                        chosen.current = resolve
-                        picker.current?.click()
-                      })
-                    }
-                    className="w-full"
-                  />
+                  {voice.textOnly ? (
+                    <PromptBar
+                      labels={{
+                        prompt: t("message"),
+                        add: t("addFiles"),
+                        sources: t("addFiles"),
+                        send: t("send"),
+                        stop: t("stopSpeaking"),
+                      }}
+                      ready={composerReady(voice.attachments)}
+                      describedBy="voice-file-hint"
+                      placeholder={t("placeholder")}
+                      sources={[
+                        {
+                          key: "files",
+                          name: t("attach"),
+                          description: t("fileHint"),
+                          icon: Paperclip,
+                          attach: true,
+                        },
+                      ]}
+                      commands={[]}
+                      models={[]}
+                      efforts={[]}
+                      busy={voice.speaking}
+                      width={768}
+                      radius={18}
+                      background="color-mix(in srgb, var(--card) 85%, transparent)"
+                      color="var(--foreground)"
+                      menuBackground="var(--card)"
+                      sparkColor="var(--gold)"
+                      onSend={(text) => {
+                        voice.activity()
+                        return voice.send(text)
+                      }}
+                      onStop={() => voice.stopSpeaking()}
+                      // Chosen files show in our references list, not as bar chips.
+                      onAttach={() => picker.current?.click()}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t("micHint")}
+                    </p>
+                  )}
                   {voice.capturePaused ? (
                     <Notice variant="info" title={t("capturePaused")}>
                       {t("capturePausedHint")}
@@ -562,8 +570,6 @@ export function VoiceConversation() {
                       onChange={(e) => {
                         const files = Array.from(e.target.files ?? [])
                         voice.choose(files)
-                        chosen.current?.(files.map((f) => f.name))
-                        chosen.current = null
                         e.target.value = ""
                       }}
                     />
@@ -595,13 +601,26 @@ export function VoiceConversation() {
                         {t("takePhoto")}
                       </span>
                     </Button>
+                    {!voice.textOnly && composerReady(voice.attachments) ? (
+                      <Button
+                        className="min-h-11"
+                        type="button"
+                        disabled={voice.busy}
+                        onClick={() => void voice.send("")}
+                      >
+                        <Send aria-hidden />
+                        {t(voice.busy ? "working" : "send")}
+                      </Button>
+                    ) : null}
                   </div>
-                  <p
-                    id="voice-file-hint"
-                    className="text-xs text-muted-foreground"
-                  >
-                    {t("fileHint")}
-                  </p>
+                  {voice.textOnly ? (
+                    <p
+                      id="voice-file-hint"
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t("fileHint")}
+                    </p>
+                  ) : null}
                 </form>
               ) : (
                 <p className="text-sm text-muted-foreground">{t("micHint")}</p>

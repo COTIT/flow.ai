@@ -68,7 +68,14 @@ export interface PromptBarProps {
   defaultEffort?: string;
   onEffortChange?: (effort: string) => void;
   busy?: boolean;
-  onSend?: (text: string, detail: PromptBarSendDetail) => void;
+  /** Genesy edit: arms Send without text, e.g. for files staged outside the bar. */
+  ready?: boolean;
+  /** Genesy edit: id of the hint that describes the message box. */
+  describedBy?: string;
+  /** Genesy edit: translated accessible names; English by default. */
+  labels?: Partial<typeof DEFAULT_LABELS>;
+  /** Genesy edit: return false (or a promise of false) to keep the draft. */
+  onSend?: (text: string, detail: PromptBarSendDetail) => void | boolean | Promise<boolean | void>;
   onStop?: () => void;
   onAttach?: () => string | string[] | void | Promise<string | string[] | void>;
   onDictate?: () => string | void | Promise<string | void>;
@@ -148,6 +155,8 @@ const DEFAULT_MODELS: PromptBarModel[] = [
   { key: 'nova-2', name: 'Nova 2', tag: 'Legacy' }
 ];
 const DEFAULT_EFFORTS = ['Low', 'Medium', 'High', 'Extra', 'Max'];
+// Genesy edit: accessible names, overridable by `labels`.
+const DEFAULT_LABELS = { prompt: 'Prompt', add: 'Add files and sources', sources: 'Sources', send: 'Send', stop: 'Stop' };
 
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const pathAt = (a: number[], b: number[], t: number) => {
@@ -226,6 +235,9 @@ const PromptBar: React.FC<PromptBarProps> = ({
   defaultEffort = '',
   onEffortChange,
   busy = false,
+  ready = false,
+  describedBy,
+  labels: customLabels,
   onSend,
   onStop,
   onAttach,
@@ -245,6 +257,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
   className = ''
 }) => {
   const reduce = useReducedMotion();
+  const labels = { ...DEFAULT_LABELS, ...customLabels };
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const glowRef = useRef<HTMLSpanElement>(null);
@@ -284,7 +297,8 @@ const PromptBar: React.FC<PromptBarProps> = ({
     return [];
   }, [open, query, sources, commands, models]);
   const cursor = Math.min(active, Math.max(0, list.length - 1));
-  const canSend = draft.trim().length > 0 || attachments.length > 0;
+  // Genesy edit: `ready` arms Send without text.
+  const canSend = draft.trim().length > 0 || attachments.length > 0 || ready;
   const armed = busy || canSend;
   const level = efforts[effortIndex] ?? '';
   const maxed = efforts.length > 1 && effortIndex === efforts.length - 1;
@@ -498,9 +512,12 @@ const PromptBar: React.FC<PromptBarProps> = ({
 
   const send = () => {
     if (!canSend || busy) return;
-    latest.current.onSend?.(draft.trim(), { attachments, model, effort: level });
-    setDraft('');
-    setAttachments([]);
+    // Genesy edit: keep the draft when onSend says false.
+    Promise.resolve(latest.current.onSend?.(draft.trim(), { attachments, model, effort: level })).then(sent => {
+      if (sent === false) return;
+      setDraft('');
+      setAttachments([]);
+    });
     setDismissed(false);
     closeMenus();
     focusInput();
@@ -584,7 +601,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
           className="absolute inset-x-0 bottom-[calc(100%+8px)] z-[2] origin-bottom rounded-xl p-1 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.35),0_1px_2px_rgba(0,0,0,0.08)] [animation:prompt-bar-pop_180ms_cubic-bezier(0.23,1,0.32,1)_both] [background:var(--pb-menu)] data-[kind=model]:right-auto data-[kind=model]:w-[200px] data-[kind=model]:origin-bottom-left data-[kind=effort]:right-auto data-[kind=effort]:w-[248px] data-[kind=effort]:origin-bottom-left data-[kind=effort]:px-3.5 data-[kind=effort]:pt-3 data-[kind=effort]:pb-3.5 motion-reduce:[animation:none]"
           role={open === 'effort' ? 'dialog' : 'listbox'}
           aria-label={
-            open === 'at' ? 'Sources' : open === 'slash' ? 'Commands' : open === 'model' ? 'Models' : 'Effort'
+            open === 'at' ? labels.sources : open === 'slash' ? 'Commands' : open === 'model' ? 'Models' : 'Effort'
           }
           data-kind={open}
         >
@@ -739,7 +756,8 @@ const PromptBar: React.FC<PromptBarProps> = ({
           rows={1}
           value={draft}
           placeholder={listening ? 'Listening…' : placeholder}
-          aria-label="Prompt"
+          aria-label={labels.prompt}
+          aria-describedby={describedBy}
           onChange={e => {
             setDraft(e.target.value);
             typing.current.energy = Math.min(1.6, typing.current.energy + 0.22);
@@ -756,7 +774,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
           <button
             type="button"
             className="inline-grid h-7 w-7 flex-none cursor-pointer touch-manipulation place-items-center rounded-lg border-0 bg-transparent p-0 outline-none select-none [color:color-mix(in_srgb,var(--pb-ink)_60%,transparent)] [font:inherit] [-webkit-tap-highlight-color:transparent] [transition:background-color_150ms_ease,color_150ms_ease,transform_160ms_cubic-bezier(0.23,1,0.32,1)] active:[transform:scale(0.94)] data-[on]:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] data-[on]:[color:var(--pb-ink)] motion-reduce:active:[transform:none] [@media(hover:hover)_and_(pointer:fine)]:hover:[background:color-mix(in_srgb,var(--pb-ink)_8%,transparent)] [@media(hover:hover)_and_(pointer:fine)]:hover:[color:var(--pb-ink)]"
-            aria-label="Add files and sources"
+            aria-label={labels.add}
             aria-expanded={plusOpen}
             data-on={plusOpen ? '' : undefined}
             onMouseDown={e => e.preventDefault()}
@@ -764,8 +782,10 @@ const PromptBar: React.FC<PromptBarProps> = ({
               setModelOpen(false);
               setEffortOpen(false);
               setActive(0);
-              setPlusOpen(v => !v);
+              // Genesy edit: focus first; the textarea's onFocus closes menus, so focusing
+              // after the toggle shut the menu again whenever the box was not focused yet.
               focusInput();
+              setPlusOpen(v => !v);
             }}
           >
             <HugeiconsIcon icon={PlusSignIcon} size={16} strokeWidth={2} />
@@ -839,7 +859,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
             type="button"
             className="relative inline-grid h-7 w-7 flex-none cursor-pointer touch-manipulation place-items-center rounded-lg border-0 p-0 outline-none select-none [background:color-mix(in_srgb,var(--pb-ink)_12%,var(--pb-bg))] [color:color-mix(in_srgb,var(--pb-ink)_55%,var(--pb-bg))] [font:inherit] [-webkit-tap-highlight-color:transparent] [transition:background-color_200ms_ease,color_200ms_ease,transform_160ms_cubic-bezier(0.23,1,0.32,1)] disabled:cursor-default data-[armed]:[background:var(--pb-ink)] data-[armed]:[color:var(--pb-bg)] data-[pressed]:[transform:scale(var(--pb-press))] motion-reduce:data-[pressed]:[transform:none]"
             disabled={!armed}
-            aria-label={busy ? 'Stop' : 'Send'}
+            aria-label={busy ? labels.stop : labels.send}
             data-armed={armed ? '' : undefined}
             data-pressed={pressed ? '' : undefined}
             onMouseDown={e => e.preventDefault()}

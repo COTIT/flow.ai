@@ -172,4 +172,14 @@
 /* The vendor card is select-none; order numbers and names stay copyable. */
 .overview-bento .magic-bento__card {
   user-select: text;
+/* Phones: the composer's 28 px buttons get an invisible 44 px tap area; nothing drawn changes. */
+@media (pointer: coarse), (max-width: 767px) {
+  .voice-composer .group button {
+    position: relative;
+  }
+  .voice-composer .group button::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
 }

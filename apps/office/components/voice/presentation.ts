@@ -1,4 +1,56 @@
+import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
 import { taskPresentation } from "./helpers"
+
+const PENDING = new Set([
+  "connecting",
+  "upgrading",
+  "thinking",
+  "executing",
+  "uploading",
+  "checking",
+])
+/** While pending, the thinking line in the chat speaks for the activity under the avatar. */
+export const activityPending = (state: string) => PENDING.has(state)
+
+/** Staged files can be sent without typing; files already sent cannot. */
+export const composerReady = (attachments: { state: string }[]) =>
+  attachments.some((file) => file.state !== "submitted")
+
+/** Keys the server needs but a person reviewing the action should never see. */
+export const internalFields = new Set([
+  "actionId",
+  "batchId",
+  "sessionId",
+  "operationId",
+  "operation_id",
+  "ticket",
+  "confirmationCode",
+  "bodySha256",
+  "body_sha256",
+  "sha256",
+  "fingerprint",
+  "digest",
+  "httpStatus",
+  "recoverable",
+])
+
+export type ReviewRow =
+  | { kind: "step"; id: string; number: number; step: VoiceReviewStep }
+  | { kind: "field"; id: string; key: string; value: unknown }
+
+/** One row per batch step in order, else one per reviewed field. */
+export function reviewRows(review: VoiceReview): ReviewRow[] {
+  if (review.kind === "batch" && review.steps?.length)
+    return review.steps.map((step, index) => ({
+      kind: "step",
+      id: step.actionId,
+      number: index + 1,
+      step,
+    }))
+  return Object.entries(review.details)
+    .filter(([key]) => !internalFields.has(key))
+    .map(([key, value]) => ({ kind: "field", id: key, key, value }))
+}
 
 /** Activity is independent of the send button and never infers a native write succeeded. */
 export function activityState(state: {

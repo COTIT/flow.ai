@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest"
 import {
+  activityPending,
   activityState,
+  composerReady,
   displayReferences,
   displayText,
   operationLabel,
+  reviewRows,
 } from "./presentation"
 
 describe("assistant activity", () => {
@@ -111,5 +114,81 @@ describe("readable approval presentation", () => {
       action: "update",
       resource: "record",
     })
+  })
+})
+
+describe("assistant screen split", () => {
+  it("shows the thinking line only while the assistant works", () => {
+    for (const state of [
+      "connecting",
+      "upgrading",
+      "thinking",
+      "executing",
+      "uploading",
+      "checking",
+    ])
+      expect(activityPending(state)).toBe(true)
+    for (const state of ["listening", "speaking", "awaiting_review", "failed"])
+      expect(activityPending(state)).toBe(false)
+  })
+  it("arms send for staged files and not for files already sent", () => {
+    expect(composerReady([])).toBe(false)
+    expect(composerReady([{ state: "submitted" }])).toBe(false)
+    expect(composerReady([{ state: "submitted" }, { state: "ready" }])).toBe(
+      true
+    )
+  })
+})
+
+describe("review rows", () => {
+  const base = {
+    ticket: "t",
+    summary: "Set stock",
+    confirmationCode: "1",
+    confirmationPhrase: "Approve",
+    expiresAt: "2026-11-08T00:00:00Z",
+  }
+  it("lists each reviewed field in order and hides internal fields", () => {
+    const rows = reviewRows({
+      ...base,
+      details: {
+        product: "Honey",
+        actionId: "a",
+        ticket: "secret",
+        quantity: 120,
+        bodySha256: "x",
+      },
+    })
+    expect(rows).toEqual([
+      { kind: "field", id: "product", key: "product", value: "Honey" },
+      { kind: "field", id: "quantity", key: "quantity", value: 120 },
+    ])
+  })
+  it("lists each batch step in order, numbered from one", () => {
+    const step = (actionId: string) => ({
+      actionId,
+      summary: actionId,
+      details: {},
+    })
+    const rows = reviewRows({
+      ...base,
+      kind: "batch",
+      details: { product: "ignored" },
+      steps: [step("a1"), step("a2"), step("a3")],
+    })
+    expect(rows.map((row) => [row.kind, row.id])).toEqual([
+      ["step", "a1"],
+      ["step", "a2"],
+      ["step", "a3"],
+    ])
+    expect(rows.map((row) => row.kind === "step" && row.number)).toEqual([
+      1, 2, 3,
+    ])
+  })
+  it("falls back to fields for a batch without steps, and to nothing when all fields are internal", () => {
+    expect(
+      reviewRows({ ...base, kind: "batch", steps: [], details: { a: 1 } })
+    ).toHaveLength(1)
+    expect(reviewRows({ ...base, details: { ticket: "x" } })).toEqual([])
   })
 })

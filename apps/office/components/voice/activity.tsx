@@ -4,16 +4,8 @@ import { CircleCheck, CircleAlert } from "lucide-react"
 import { useTranslations } from "next-intl"
 import ThoughtLine from "@/components/rb/ThoughtLine"
 import { useVoice } from "./provider"
-import { activityState } from "./presentation"
+import { activityPending, activityState } from "./presentation"
 
-const PENDING = new Set([
-  "connecting",
-  "upgrading",
-  "thinking",
-  "executing",
-  "uploading",
-  "checking",
-])
 const ALERT = new Set(["failed", "unknown", "partial"])
 
 function useActivity() {
@@ -24,7 +16,7 @@ function useActivity() {
     review: Boolean(voice.review),
     uploading: voice.attachments.some((file) => file.state === "uploading"),
   })
-  return { voice, state, pending: PENDING.has(state) }
+  return { voice, state, pending: activityPending(state) }
 }
 
 /** Short status under the avatar; while the agent works, the thinking line in the chat says it. */
