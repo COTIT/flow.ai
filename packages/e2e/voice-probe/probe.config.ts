@@ -2,8 +2,9 @@ import { rmSync } from "node:fs"
 import { defineConfig } from "@playwright/test"
 
 // Voice probe (README.md here): slow, paid and model-dependent, so never part of CI.
-// Only the main process clears the previous results (unless resuming); workers load this file too.
-if (!process.env.TEST_WORKER_INDEX && process.env.VOICE_PROBE_RESUME !== "1")
+// Results are kept by default (every graded scenario cost provider credit); VOICE_PROBE_FRESH=1 starts over.
+// Only the main process clears them; workers load this file too.
+if (!process.env.TEST_WORKER_INDEX && process.env.VOICE_PROBE_FRESH === "1")
   rmSync(new URL(`./out/${process.env.VOICE_PROBE_BANK ?? "scenarios"}/results`, import.meta.url), { recursive: true, force: true })
 
 // A fresh run (or a resume) tries the provider again.

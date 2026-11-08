@@ -144,7 +144,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const stopped = new URL("provider-stopped.txt", dir)
   // Scenarios after a provider refusal were skipped, not graded: say so instead of hiding the gap.
   const markdown = existsSync(stopped)
-    ? summary.markdown.replace("\n## Classes", `\n**Run stopped early:** ${readFileSync(stopped, "utf8").trim()}. The other scenarios were not graded; resume with VOICE_PROBE_RESUME=1.\n\n## Classes`)
+    ? summary.markdown.replace("\n## Classes", `\n**Run stopped early:** ${readFileSync(stopped, "utf8").trim()}. The other scenarios were not graded; run the probe again to resume.\n\n## Classes`)
     : summary.markdown
   const json = summary.json
   const coverage = new URL("../../coverage.md", resultsDir)
