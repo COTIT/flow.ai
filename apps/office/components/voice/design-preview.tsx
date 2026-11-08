@@ -139,6 +139,9 @@ export function VoiceDesignPreview() {
       upgrade: noop,
       end: async () => setState("idle"),
       toggleMute: () => {},
+      micMode: "open" as const,
+      setMicMode: () => {},
+      talk: () => {},
       pauseCapture: () => {},
       stopSpeaking: () => setState("listening"),
       send: async () => {

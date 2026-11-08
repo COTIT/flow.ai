@@ -62,9 +62,21 @@ export function attachmentProblem(
   if (file.size > MAX_ATTACHMENT_BYTES) return "size"
   return null
 }
+const sameLine = (a: string, b: string) =>
+  a.trim().replace(/\s+/g, " ").toLowerCase() ===
+  b.trim().replace(/\s+/g, " ").toLowerCase()
+
 export function mergeTranscript(rows: TranscriptRow[], row: TranscriptRow) {
   const index = rows.findIndex((item) => item.id === row.id)
-  if (index < 0) return [...rows.slice(-199), row]
+  if (index < 0) {
+    // The agent speaks its "checking" line before each tool call; one per user turn is enough.
+    if (row.role === "agent")
+      for (const item of [...rows].reverse()) {
+        if (item.role === "user") break
+        if (item.role === "agent" && sameLine(item.text, row.text)) return rows
+      }
+    return [...rows.slice(-199), row]
+  }
   return rows.map((item, i) => (i === index ? row : item))
 }
 

@@ -61,4 +61,27 @@ describe("temporary voice references", () => {
       { id: "user-2", role: "user", text: "No, 50" },
     ])
   })
+  it("drops an agent line repeated in the same turn, keeps it in a later turn", () => {
+    const line = { role: "agent" as const, text: "I'm checking the stock." }
+    let rows = mergeTranscript([], {
+      id: "user-1",
+      role: "user",
+      text: "Check it",
+    })
+    rows = mergeTranscript(rows, { ...line, id: "agent-1" })
+    rows = mergeTranscript(rows, {
+      ...line,
+      id: "agent-2",
+      text: " i'm checking the  stock. ",
+    })
+    expect(rows.map((row) => row.id)).toEqual(["user-1", "agent-1"])
+    rows = mergeTranscript(rows, { id: "user-2", role: "user", text: "Again" })
+    rows = mergeTranscript(rows, { ...line, id: "agent-3" })
+    expect(rows.map((row) => row.id)).toEqual([
+      "user-1",
+      "agent-1",
+      "user-2",
+      "agent-3",
+    ])
+  })
 })

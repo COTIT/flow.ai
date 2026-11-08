@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
-import { Mic, MicOff, PhoneOff, VolumeX } from "lucide-react"
+import { AudioLines, Mic, MicOff, PhoneOff, VolumeX } from "lucide-react"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { useVoice } from "./provider"
 import { VoiceActivity } from "./activity"
@@ -58,6 +59,30 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
         <Button
           className="min-h-11 min-w-11"
           variant="outline"
+          aria-label={t(voice.micMode === "hold" ? "openMic" : "pushToTalk")}
+          onClick={() =>
+            voice.setMicMode(voice.micMode === "hold" ? "open" : "hold")
+          }
+        >
+          {voice.micMode === "hold" ? (
+            <AudioLines aria-hidden />
+          ) : (
+            <Mic aria-hidden />
+          )}
+          {!compact ? (
+            <span className="sr-only sm:not-sr-only">
+              {t(voice.micMode === "hold" ? "openMic" : "pushToTalk")}
+            </span>
+          ) : null}
+        </Button>
+      ) : null}
+      {compact ? <HoldToTalk compact /> : null}
+      {voice.connected &&
+      !voice.textOnly &&
+      (voice.micMode === "open" || voice.capturePaused) ? (
+        <Button
+          className="min-h-11 min-w-11"
+          variant="outline"
           aria-label={t(
             voice.capturePaused
               ? "resumeVoice"
@@ -107,5 +132,88 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
         ) : null}
       </Button>
     </div>
+  )
+}
+
+const editable = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(target.tagName))
+
+/** Push-to-talk: the mic is open only while this is held (pointer, touch, or Space). */
+export function HoldToTalk({ compact = false }: { compact?: boolean }) {
+  const voice = useVoice()
+  const t = useTranslations("voice")
+  const [held, setHeld] = useState(false)
+  const shown =
+    voice.connected &&
+    !voice.textOnly &&
+    voice.micMode === "hold" &&
+    !voice.capturePaused
+  const press = (on: boolean) => {
+    setHeld(on)
+    voice.talk(on)
+  }
+  useEffect(() => {
+    if (!shown || compact) return
+    const down = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || event.repeat || editable(event.target))
+        return
+      event.preventDefault()
+      setHeld(true)
+      voice.talk(true)
+    }
+    const up = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || editable(event.target)) return
+      setHeld(false)
+      voice.talk(false)
+    }
+    const blur = () => {
+      setHeld(false)
+      voice.talk(false)
+    }
+    window.addEventListener("keydown", down)
+    window.addEventListener("keyup", up)
+    window.addEventListener("blur", blur)
+    return () => {
+      window.removeEventListener("keydown", down)
+      window.removeEventListener("keyup", up)
+      window.removeEventListener("blur", blur)
+    }
+  }, [shown, compact, voice])
+  if (!shown) return null
+  return (
+    <Button
+      type="button"
+      variant={held ? "default" : "outline"}
+      aria-pressed={held}
+      aria-label={t("holdToTalk")}
+      data-voice-hold=""
+      className={
+        compact
+          ? "min-h-11 min-w-11 touch-none transition-transform duration-100 select-none active:scale-[0.97] motion-reduce:transition-none"
+          : "min-h-14 w-full max-w-sm touch-none self-center transition-transform duration-100 select-none active:scale-[0.97] motion-reduce:transition-none sm:w-auto sm:px-8"
+      }
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId)
+        press(true)
+      }}
+      onPointerUp={() => press(false)}
+      onPointerCancel={() => press(false)}
+      onLostPointerCapture={() => held && press(false)}
+      onKeyDown={(event) => {
+        if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+          event.preventDefault()
+          press(true)
+        }
+      }}
+      onKeyUp={(event) => {
+        if (event.key === " " || event.key === "Enter") press(false)
+      }}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <Mic aria-hidden />
+      {compact ? null : t(held ? "talking" : "holdToTalk")}
+    </Button>
   )
 }

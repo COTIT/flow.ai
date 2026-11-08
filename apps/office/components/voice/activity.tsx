@@ -14,6 +14,7 @@ function useActivity() {
     ...voice,
     outcome: voice.outcome?.status,
     review: Boolean(voice.review),
+    hold: voice.micMode === "hold",
     uploading: voice.attachments.some((file) => file.state === "uploading"),
   })
   return { voice, state, pending: activityPending(state) }
@@ -57,7 +58,7 @@ export function VoiceThinking() {
       aria-hidden="true"
       // ThoughtLine's expand toggle is a button; keep it out of the tab order too.
       inert
-      className="max-w-[80%] self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm"
+      className="max-w-[80%] min-w-0 self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card px-4 py-2 text-sm break-words"
     >
       <ThoughtLine
         label={t(`activity.${state}`)}

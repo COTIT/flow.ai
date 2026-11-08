@@ -955,6 +955,10 @@
     "listening": "Listening",
     "open": "Open conversation",
     "mute": "Mute",
+    "holdToTalk": "Hold to talk",
+    "talking": "Listening… release to send",
+    "openMic": "Use open mic",
+    "pushToTalk": "Use push to talk",
     "unmute": "Unmute",
     "stopSpeaking": "Stop speaking",
     "end": "End conversation",
@@ -1192,6 +1196,7 @@
       "unavailable": "This function is not available in this version. No action was started."
     },
     "activity": {
+      "holdToTalk": "Hold the button or Space to talk",
       "idle": "Ready when you are",
       "ready": "Ready for your message",
       "connecting": "Connecting…",

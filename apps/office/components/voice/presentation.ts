@@ -68,6 +68,8 @@ export function activityState(state: {
   textOnly?: boolean
   capturePaused?: boolean
   muted?: boolean
+  /** Push-to-talk: a closed mic is the resting state, not a mute. */
+  hold?: boolean
   checkingRecovery?: boolean
 }) {
   if (state.error)
@@ -94,7 +96,7 @@ export function activityState(state: {
   if (state.checkingRecovery) return "checking"
   if (!state.connected) return "idle"
   if (state.capturePaused) return "capturePaused"
-  if (state.muted) return "muted"
+  if (state.muted) return state.hold ? "holdToTalk" : "muted"
   if (state.speaking) return "speaking"
   return state.textOnly ? "ready" : "listening"
 }
