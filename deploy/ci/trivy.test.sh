@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercise the workflow's actual installer with a fake download/extractor and real SHA checking.
+# Exercise the workflow's actual installer with a fake API download/extractor and real SHA checking.
 set -Eeuo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 t="$(mktemp -d)"
@@ -13,7 +13,7 @@ script = step.split("        run: |\n", 1)[1]
 print("\n".join(line[10:] for line in script.splitlines()))
 PY
 mkdir "$t/bin" "$t/runner"
-cat > "$t/bin/curl" <<'SH'
+cat > "$t/bin/gh" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$CALLS"
 [[ -z "${FAIL_DOWNLOAD:-}" ]] || exit 7
@@ -23,14 +23,17 @@ while (( $# )); do
 done
 exit 1
 SH
+printf '#!/usr/bin/env bash\necho "timeout $1" >> "$CALLS"\nshift\nexec "$@"\n' > "$t/bin/timeout"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$t/bin/sleep"
 printf '#!/usr/bin/env bash\necho extracted >> "$CALLS"\n' > "$t/bin/tar"
 chmod +x "$t/bin/"*
 export CALLS="$t/calls" RUNNER_TEMP="$t/runner" TRIVY_VERSION=0.76.0
 export TRIVY_SHA256="$(printf 'checked archive' | sha256sum | cut -d' ' -f1)"
 export PATH="$t/bin:$PATH"
 bash -e "$t/install.sh" > "$t/out"
-grep -q -- '--retry 3 --retry-all-errors' "$CALLS" || fail 'download has no bounded retry'
-grep -q -- '--connect-timeout 10 --max-time 60 --retry-max-time 180' "$CALLS" || fail 'download has no time limits'
+grep -q '^timeout 60$' "$CALLS" || fail 'download has no deadline'
+grep -q -- 'release download v0.76.0 --repo aquasecurity/trivy' "$CALLS" || fail 'download does not use official release API'
+grep -q -- '--clobber' "$CALLS" || fail 'partial downloads cannot be replaced'
 grep -q extracted "$CALLS" || fail 'verified archive was not extracted'
 : > "$CALLS"
 FAIL_DOWNLOAD=1 bash -e "$t/install.sh" > "$t/out"
@@ -43,4 +46,5 @@ rm "$RUNNER_TEMP/trivy.tgz"
 : > "$CALLS"
 if FAIL_DOWNLOAD=1 bash -e "$t/install.sh" > "$t/out" 2>&1; then fail 'failed download passed'; fi
 if grep -q extracted "$CALLS"; then fail 'failed download was extracted'; fi
+[[ "$(grep -c '^timeout ' "$CALLS")" = 3 ]] || fail 'download retry count is not bounded at three'
 echo 'trivy.test.sh: all passed'
