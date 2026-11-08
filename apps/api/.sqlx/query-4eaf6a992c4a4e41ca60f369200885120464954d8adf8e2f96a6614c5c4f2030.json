@@ -1,0 +1,119 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.invoice_number, i.invoice_appendix, i.status,\n                  coalesce(nullif(r.company_name, ''), nullif(r.alias, ''),\n                      (SELECT nullif(concat_ws(' ', c.first_name, c.middle_name, c.last_name), '')\n                       FROM contacts c\n                       WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id\n                         AND c.deleted_at IS NULL\n                       ORDER BY c.created_at, c.id LIMIT 1)) AS customer_name,\n                  i.due_date, coalesce(i.due_date < $3, false) AS \"overdue!\",\n                  i.total - i.paid_total AS \"open!\",\n                  upper(cu.asset_type) AS \"currency!\", cu.decimals\n           FROM invoices i\n           JOIN currencies cu ON cu.workspace_id = i.workspace_id AND cu.id = i.currency_id\n           LEFT JOIN relations r ON r.workspace_id = i.workspace_id AND r.id = i.relation_id\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL AND NOT i.is_credit\n             AND i.status = ANY($2)\n           ORDER BY i.due_date NULLS LAST, i.created_at, i.id\n           LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "invoice_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "invoice_appendix",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_appendix"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "customer_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "due_date",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "overdue!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "open!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      null,
+      true,
+      null,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "4eaf6a992c4a4e41ca60f369200885120464954d8adf8e2f96a6614c5c4f2030"
+}

@@ -3,6 +3,7 @@
   "scope": "known_live_workspace_collection_boundary_only",
   "collectionOperationIds": [
     "app_keys_create",
+    "attention_summary",
     "currencies_create",
     "custom_statuses_create",
     "custom_types_create",

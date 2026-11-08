@@ -15,6 +15,20 @@ describe("voice tool boundary", () => {
       )
     ).not.toThrow()
   })
+  it.each([
+    "what needs attention today",
+    "anything urgent",
+    "my to-do",
+    "overdue",
+    "wat moet ik vandaag doen",
+    "taken dringend",
+    "kazi za leo",
+    "nini cha haraka",
+  ])("picks the attention summary for %j", (query) => {
+    expect(discoverTools(query, ["cashregister.list"])[0]?.id).toBe(
+      "attention_summary"
+    )
+  })
   it("discovers business operations with their request schema", () => {
     const tool = discoverTools("orders_create", ["workspace_owner"])[0]!
     expect(tool.id).toBe("orders_create")

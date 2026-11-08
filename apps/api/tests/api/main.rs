@@ -17,6 +17,7 @@ mod assistant_preconditions;
 mod assistant_product_quotes;
 mod assistant_retention;
 mod assistant_review_safety;
+mod attention;
 mod body_limits;
 mod bootstrap;
 mod checkout;

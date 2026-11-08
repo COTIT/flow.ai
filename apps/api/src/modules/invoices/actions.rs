@@ -63,6 +63,9 @@ impl<'a> Facts<'a> {
     }
 }
 
+/// Statuses an invoice can still be paid in (the `Pay` rule; not for credit invoices).
+pub const PAYABLE: [&str; 2] = ["pending", "partially_paid"];
+
 /// Whether `action` passes on `f` now (status rules only, not permissions or bodies).
 pub fn allows(action: InvoiceAction, f: &Facts) -> bool {
     use InvoiceAction::*;
@@ -81,7 +84,7 @@ pub fn allows(action: InvoiceAction, f: &Facts) -> bool {
                     matches!(f.status, "paid" | "partially_paid")
                 }
         }
-        Pay => !f.is_credit && matches!(f.status, "pending" | "partially_paid"),
+        Pay => !f.is_credit && PAYABLE.contains(&f.status),
         MarkAsCredited => f.is_credit && f.status == "pending",
     }
 }

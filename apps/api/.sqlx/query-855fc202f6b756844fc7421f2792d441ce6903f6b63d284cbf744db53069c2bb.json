@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH tz AS (\n               SELECT coalesce((SELECT z.name FROM pg_timezone_names z\n                                WHERE z.name = (SELECT s.data -> 'general' ->> 'timezone'\n                                                FROM settings s WHERE s.workspace_id = $1)),\n                               'UTC') AS name)\n           SELECT ((now() AT TIME ZONE tz.name)::date::timestamp AT TIME ZONE tz.name) AS \"at!\"\n           FROM tz",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "855fc202f6b756844fc7421f2792d441ce6903f6b63d284cbf744db53069c2bb"
+}
