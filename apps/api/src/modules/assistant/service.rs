@@ -109,7 +109,10 @@ pub(super) async fn propose_locked(
             Some(facts) => facts,
             None => match super::mail_recipients::capture(conn, o, &input).await? {
                 Some(facts) => facts,
-                None => super::preconditions::capture(conn, o, &input).await?,
+                None => match super::farm_facts::capture(conn, o, &input).await? {
+                    Some(facts) => facts,
+                    None => super::preconditions::capture(conn, o, &input).await?,
+                },
             },
         },
     };
@@ -175,6 +178,9 @@ pub(super) fn public_review(
         Some("product" | "product_variant") => granted.allows("product.view"),
         Some("invoice") => granted.allows("invoice.view"),
         Some("mail" | "contact") => granted.allows("relation.view"),
+        // Farm roles aren't workspace permissions; farm_facts::capture refused callers
+        // without the operation's role before reading any name.
+        Some("farm_supply" | "harvest" | "dispatch" | "supply_link") => true,
         _ => false,
     };
     if !allowed {

@@ -45,8 +45,17 @@ describe("voice trigger words", () => {
       "correct the delivery weight of a farmer harvest",
       "farm_records_harvest_reports_revise",
     ],
+    ["how much do we owe farmers in total", "farm_passbook_balances"],
+    ["did the farmer agree to share data", "farm_passbook_consent"],
+    [
+      "farmers who haven't delivered in a month",
+      "farm_supply_quiet_farmers",
+    ],
     // sw
     ["mkulima ameleta kilo 200 za kahawa leo", "farm_supply_create"],
+    ["jumla ya deni la wakulima", "farm_passbook_balances"],
+    ["ridhaa ya mkulima kushiriki taarifa", "farm_passbook_consent"],
+    ["wakulima hawajaleta tangu mwezi", "farm_supply_quiet_farmers"],
     ["deni la mkulima daftari", "farm_passbook_person"],
     ["peleka kahawa tawi lingine", "supply_chain_dispatch"],
     ["unganisha na ushirika mwingine", "supply_links_grant"],

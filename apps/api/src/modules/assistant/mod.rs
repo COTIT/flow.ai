@@ -6,6 +6,7 @@ pub mod batch_repo;
 pub mod batches;
 pub mod cleanup;
 pub mod dto;
+pub mod farm_facts;
 pub mod handlers;
 pub mod mail_recipients;
 pub mod preconditions;

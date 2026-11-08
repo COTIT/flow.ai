@@ -4,11 +4,11 @@ Each registered farmer has a passbook: money lines in minor units of a workspace
 
 Money is `{minor, currency, decimals, currency_id}`, the same as vouchers.
 
-## `GET /v1/workspace/{workspace}/farm/passbook/mine?page&page_size`
+## `GET /v1/workspace/{workspace}/farm/passbook/mine?page&page_size&from&to`
 
 The caller's own lines, newest first. `404` when the account is not a registered person of the workspace.
 
-## `GET …/farm/persons/{person}/passbook?page&page_size`
+## `GET …/farm/persons/{person}/passbook?page&page_size&from&to`
 
 The person themself, or staff of the person's village (ops and admin: any village). Staff of another village or workspace get `404`; another farmer gets `403`.
 
@@ -18,6 +18,14 @@ Both passbook reads answer `{data: [lines], meta, balances}`. `balances` is the 
 - `kind`: `sale_credit`, `sale_reversal`, `payout` or `payout_void`.
 - `amount`: signed, credits positive, debits negative; never 0.
 - `balance_after`: the balance in that currency right after this line, summed over all lines before the page is cut. The first line of page 1 is the current balance.
+
+`from` and `to` (both optional, `YYYY-MM-DD`) keep lines created on those Tanzania days (Africa/Dar_es_Salaam), both ends included, e.g. `from=2026-10-01&to=2026-10-31` for October. A blank value means no bound. `meta.total` counts the kept lines. `balance_after` and `balances` still count every line, so they match the unfiltered passbook. `422` on a malformed date (`The from must be a date (YYYY-MM-DD).`) or `from` after `to` (`The to date must be on or after the from date.`).
+
+## `GET …/farm/passbook/balances?village_id&page&page_size`
+
+What the co-op owes farmers. Staff only (farmers `403`): field officers see the farmers living in their villages, ops and admin see everyone. `village_id` narrows the list to one village. A village outside the caller's gives `[]`, and a malformed id gives `422`.
+
+Answer: `{data: [{person_id, name, village_id, village, balance}], meta, totals}`. There is one row per farmer and currency with a positive balance over every line, largest first. Paid-up farmers (balance 0) and farmers in credit to the co-op are left out. `totals` is the sum per currency over every page, by currency code. SQL computes both sums in minor units.
 
 ## Credits at sale and debits on return (`farm_supply::sale`)
 
@@ -40,7 +48,7 @@ Both passbook reads answer `{data: [lines], meta, balances}`. `balances` is the 
 
 ## Passport consent
 
-`POST …/farm/persons/{person}/passport-consent` records consent, `DELETE` withdraws it. Both return `200 {"data": {person_id, consent, consent_at, consent_by}}`. Who may call them is the same as for the passbook. The farm audit trail logs each change.
+`GET …/farm/persons/{person}/passport-consent` reads it, `POST` records consent, `DELETE` withdraws it. All three return `200 {"data": {person_id, consent, consent_at, consent_by}}`. Who may call them is the same as for the passbook. The person must be live; a malformed id gives `404`. The farm audit trail logs each change.
 
 Consent is off by default. It records whether the public lot page may ever name or picture the person. Until the user confirms Tanzania PDPC registration and the cross-border transfer permit, the public page has no name or photo field at all, consent or not.
 

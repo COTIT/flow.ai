@@ -99,8 +99,8 @@ test("API collection-tenant fixture has no unresolved target and leaves no colle
   const { catalog, reviews } = await loadInputs()
   const fixture = JSON.parse(await readFile(new URL("../../../../apps/api/tests/fixtures/assistant_collection_tenant_operations.json", import.meta.url), "utf8"))
   assert.equal(fixture.scope, "known_live_workspace_collection_boundary_only")
-  assert.equal(fixture.collectionOperationIds.length, 67)
-  assert.equal(new Set(fixture.collectionOperationIds).size, 67)
+  assert.equal(fixture.collectionOperationIds.length, 69)
+  assert.equal(new Set(fixture.collectionOperationIds).size, 69)
   const isCollection = operation => ["execute", "secure_ui"].includes(operation.disposition) && operation.path.includes("{workspace}") && [...operation.path.matchAll(/\{([^}]+)\}/g)].every(match => match[1] === "workspace")
   for (const id of fixture.collectionOperationIds) {
     const operation = catalog.find(operation => operation.id === id)

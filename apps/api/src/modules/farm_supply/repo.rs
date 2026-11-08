@@ -1,11 +1,11 @@
 //! Supply batch SQL. Batches and shares are insert-only (a trigger refuses the rest).
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
-use crate::http::farm::Scope;
+use crate::{http::farm::Scope, modules::farm_supply::dto::QuietFarmer};
 
 /// A stored batch with its lot's codes.
 pub struct BatchRow {
@@ -695,4 +695,55 @@ pub async fn dispatch_warehouses(
     )
     .fetch_all(db)
     .await
+}
+
+/// Live persons in `scope` (and `village`) whose last bought kg is before Tanzania day `since`
+/// (default 30 days ago), or who never delivered: never first, then oldest delivery. One page
+/// and the count.
+pub async fn quiet_farmers(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    scope: &Scope,
+    village: Option<Uuid>,
+    since: Option<NaiveDate>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<QuietFarmer>, i64), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT p.id, p.given_name || ' ' || p.family_name AS "name!", p.village_id,
+                  v.name AS village, s.last AS "last?: DateTime<Utc>", count(*) OVER () AS "total!"
+           FROM farm_persons p
+           JOIN farm_villages v ON v.workspace_id = p.workspace_id AND v.id = p.village_id
+           LEFT JOIN LATERAL (
+               SELECT max(created_at) AS last FROM farm_supply_shares
+               WHERE person_id = p.id AND workspace_id = p.workspace_id
+           ) s ON true
+           WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
+             AND ($2 OR p.village_id = ANY($3)) AND ($4::uuid IS NULL OR p.village_id = $4)
+             AND (s.last IS NULL OR (s.last AT TIME ZONE 'Africa/Dar_es_Salaam')::date
+                  < coalesce($5::date, (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date - 30))
+           ORDER BY s.last ASC NULLS FIRST, 2, p.id
+           LIMIT $6 OFFSET $7"#,
+        workspace_id,
+        scope.all,
+        &scope.villages,
+        village,
+        since,
+        limit,
+        offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = rows.first().map_or(0, |r| r.total);
+    let rows = rows
+        .into_iter()
+        .map(|r| QuietFarmer {
+            person_id: r.id,
+            name: r.name,
+            village_id: r.village_id,
+            village: r.village,
+            last_delivery_at: r.last,
+        })
+        .collect();
+    Ok((rows, total))
 }

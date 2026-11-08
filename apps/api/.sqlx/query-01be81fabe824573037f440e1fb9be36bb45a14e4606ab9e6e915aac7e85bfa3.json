@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH owed AS (\n               SELECT e.person_id, e.currency_id, sum(e.amount)::bigint AS minor\n               FROM farm_passbook_entries e\n               JOIN farm_persons p ON p.workspace_id = e.workspace_id AND p.id = e.person_id\n               WHERE e.workspace_id = $1\n                 AND ($2 OR p.village_id = ANY($3)) AND ($4::uuid IS NULL OR p.village_id = $4)\n               GROUP BY e.person_id, e.currency_id\n               HAVING sum(e.amount) > 0\n           )\n           SELECT o.person_id AS \"person_id!\", p.given_name || ' ' || p.family_name AS \"name!\", p.village_id,\n                  v.name AS village, o.minor AS \"minor!\", c.asset_type AS currency, c.decimals,\n                  o.currency_id AS \"currency_id!\", count(*) OVER () AS \"total!\"\n           FROM owed o\n           JOIN farm_persons p ON p.workspace_id = $1 AND p.id = o.person_id\n           JOIN farm_villages v ON v.workspace_id = $1 AND v.id = p.village_id\n           JOIN currencies c ON c.workspace_id = $1 AND c.id = o.currency_id\n           ORDER BY o.minor DESC, 2, o.person_id\n           LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "person_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "person_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "village",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "currency_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "01be81fabe824573037f440e1fb9be36bb45a14e4606ab9e6e915aac7e85bfa3"
+}

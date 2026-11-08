@@ -1293,3 +1293,102 @@ async fn a_bought_batch_stocks_its_raw_lot_at_the_farm_store(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert!(res["errors"]["warehouse_id"].is_array(), "{res}");
 }
+
+#[sqlx::test]
+async fn quiet_farmers_are_those_with_no_bought_kg_since_a_day_or_ever(pool: PgPool) {
+    let w = world(pool).await;
+    let h = actual(&w.f, &w.baraka.cycles[0], "100").await;
+    let (status, res) = post(
+        &w,
+        &batch(
+            &w,
+            "ILU-M-07",
+            json!([{ "harvest_report_id": h, "kg": "40" }]),
+        ),
+        &w.f.ops,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let quiet = |res: &Value| -> Vec<(String, bool)> {
+        res["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| {
+                (
+                    r["person_id"].as_str().unwrap().to_owned(),
+                    r["last_delivery_at"].is_string(),
+                )
+            })
+            .collect()
+    };
+    let never = |p: &str| (p.to_owned(), false);
+
+    let res = w.f.list("/quiet-farmers?since=2000-01-01", &w.f.ops).await;
+    let got = quiet(&res);
+    assert_eq!(res["meta"]["total"], 4, "{res}");
+    assert!(
+        !got.iter().any(|(p, _)| *p == w.baraka.person),
+        "delivered after"
+    );
+    assert!(got.contains(&never(&w.c.joseph.person)));
+    assert!(res["data"][0]["name"].is_string());
+    assert!(res["data"][0]["village"].is_string());
+
+    let res = w.f.list("/quiet-farmers?since=2999-01-01", &w.f.ops).await;
+    assert_eq!(res["meta"]["total"], 5);
+    assert_eq!(
+        quiet(&res).last(),
+        Some(&(w.baraka.person.clone(), true)),
+        "never delivered first, then oldest delivery"
+    );
+
+    let res =
+        w.f.list(
+            &format!("/quiet-farmers?since=2999-01-01&village_id={}", w.f.mgama),
+            &w.f.ops,
+        )
+        .await;
+    assert_eq!(quiet(&res), [never(&w.c.joseph.person)]);
+    let res =
+        w.f.list("/quiet-farmers?since=2999-01-01", &w.f.officer_mga)
+            .await;
+    assert_eq!(
+        quiet(&res),
+        [never(&w.c.joseph.person)],
+        "own villages only"
+    );
+    let res =
+        w.f.list("/quiet-farmers?since=2999-01-01&page_size=2", &w.f.ops)
+            .await;
+    assert_eq!(res["data"].as_array().unwrap().len(), 2);
+
+    let res = w.f.list("/quiet-farmers", &w.f.ops).await;
+    assert_eq!(
+        res["meta"]["total"], 4,
+        "default: 30 days, Baraka delivered today"
+    );
+    for bad in ["?since=2026-13-01", "?since=2026-10-01&village_id=x"] {
+        let (status, res) =
+            w.f.call(Method::GET, &format!("/quiet-farmers{bad}"), None, &w.f.ops)
+                .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{bad}: {res}");
+    }
+    let farmer =
+        w.f.farmer_for("neema@ruaha.test", &w.f.ilundo, &w.c.neema.person)
+            .await;
+    let (status, _) =
+        w.f.call(
+            Method::GET,
+            "/quiet-farmers?since=2026-10-01",
+            None,
+            &farmer,
+        )
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    let other = Farm::new_named(w.f.pool.clone(), "else.test", "elsewhere-farm").await;
+    let res = other
+        .list("/quiet-farmers?since=2999-01-01", &other.ops)
+        .await;
+    assert_eq!(res["data"], json!([]), "another workspace sees none of it");
+}

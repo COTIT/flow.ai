@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH owed AS (\n               SELECT e.currency_id, sum(e.amount)::bigint AS minor\n               FROM farm_passbook_entries e\n               JOIN farm_persons p ON p.workspace_id = e.workspace_id AND p.id = e.person_id\n               WHERE e.workspace_id = $1\n                 AND ($2 OR p.village_id = ANY($3)) AND ($4::uuid IS NULL OR p.village_id = $4)\n               GROUP BY e.person_id, e.currency_id\n               HAVING sum(e.amount) > 0\n           )\n           SELECT sum(o.minor)::bigint AS \"minor!\", c.asset_type AS currency, c.decimals,\n                  o.currency_id AS \"currency_id!\"\n           FROM owed o\n           JOIN currencies c ON c.workspace_id = $1 AND c.id = o.currency_id\n           GROUP BY o.currency_id, c.asset_type, c.decimals\n           ORDER BY c.asset_type",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "currency_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8125e5d9e6fc79618c39baf8150921a49c360ed989c346f981697b9087519f4e"
+}

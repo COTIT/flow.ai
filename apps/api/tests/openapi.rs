@@ -1539,6 +1539,12 @@ fn every_farm_supply_operation_is_documented() {
             "201",
         ),
         (
+            "/farm/quiet-farmers",
+            "get",
+            "farm_supply_quiet_farmers",
+            "200",
+        ),
+        (
             "/farm/supply-batches/{batch}",
             "get",
             "farm_supply_get",
@@ -1551,6 +1557,18 @@ fn every_farm_supply_operation_is_documented() {
 fn every_farm_passbook_operation_is_documented() {
     assert_documented(&[
         ("/farm/passbook/mine", "get", "farm_passbook_mine", "200"),
+        (
+            "/farm/passbook/balances",
+            "get",
+            "farm_passbook_balances",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "get",
+            "farm_passbook_consent",
+            "200",
+        ),
         (
             "/farm/persons/{person}/passbook",
             "get",

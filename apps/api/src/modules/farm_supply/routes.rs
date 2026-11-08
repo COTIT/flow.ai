@@ -10,6 +10,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::list, handlers::create))
         .routes(routes!(handlers::options))
         .routes(routes!(handlers::dispatch_options))
+        .routes(routes!(handlers::quiet_farmers))
         .routes(routes!(handlers::raw_product))
         .routes(routes!(handlers::get))
 }

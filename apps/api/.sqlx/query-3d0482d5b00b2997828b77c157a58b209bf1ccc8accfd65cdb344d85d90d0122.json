@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.name AS village, cr.name_en AS crop, cu.asset_type AS currency, cu.decimals\n           FROM farm_villages v, farm_crops cr, currencies cu\n           WHERE v.workspace_id = $1 AND v.id = $2 AND cr.workspace_id = $1 AND cr.id = $3\n             AND cu.workspace_id = $1 AND cu.id = $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "village",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "crop",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_crops",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3d0482d5b00b2997828b77c157a58b209bf1ccc8accfd65cdb344d85d90d0122"
+}

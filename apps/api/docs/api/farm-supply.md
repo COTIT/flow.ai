@@ -80,3 +80,9 @@ It goes through the products service like `POST /products` (numbering, default v
 Staff only (farmers `403`). Field officers see their villages' batches; ops and admin see all. Lists are newest first. Another village's or workspace's batch is `404`.
 
 Batch: `{id, client_ref, village_id, crop_id, price_per_kg, currency_id, kg_total, lot: {id, code, public_code}, lines: [{harvest_report_id, person_id, kg}] (by harvest id), created_by, created_at}`.
+
+## `GET …/farm/quiet-farmers?since&village_id&page&page_size`
+
+Farmers who have not delivered since a day. Staff only (farmers `403`): field officers see the live persons registered in their villages, ops and admin see everyone. `since` (`YYYY-MM-DD`) is a Tanzania day; without it, 30 days before today. A person is listed when their last bought kg (a supply batch line, `farm_supply_shares`) was created before that day, or when they never delivered. Harvest figures don't count as deliveries. `village_id` narrows to one village.
+
+Row: `{person_id, name, village_id, village, last_delivery_at}`, where `last_delivery_at` is null for never. Persons who never delivered come first, then the oldest delivery, then by name. Paged `{data, meta}`. `422` on a malformed `since` (`The since must be a date (YYYY-MM-DD).`) or a malformed `village_id`.
