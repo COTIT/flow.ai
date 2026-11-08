@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest"
-import { progressOf, whenSlow } from "./helpers"
+import { progressOf, spokenText, whenSlow } from "./helpers"
 
 afterEach(() => vi.useRealTimers())
 
@@ -42,4 +42,13 @@ it("takes status, steps and narration from a server result", () => {
     steps: [],
     narration: "",
   })
+})
+
+it.each([
+  ["[happy] I am still here.", "I am still here."],
+  ["  [warmly] [excited]  Hallo, ik ben er nog.", "Hallo, ik ben er nog."],
+  ["Sawa. [laughs] Nimeelewa.", "Sawa. Nimeelewa."],
+  ["Order [ORD-12] has 2 lines [1].", "Order [ORD-12] has 2 lines [1]."],
+])("hides voice audio tags from displayed agent text: %s", (raw, shown) => {
+  expect(spokenText(raw)).toBe(shown)
 })

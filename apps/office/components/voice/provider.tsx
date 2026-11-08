@@ -30,6 +30,7 @@ import {
   mergeTranscript,
   progressOf,
   requestFailureKey,
+  spokenText,
   taskPresentation,
   whenSlow,
   type TranscriptRow,
@@ -710,7 +711,7 @@ function Session({ children }: { children: ReactNode }) {
       } else setThinking(false)
       add(
         source === "user" ? "user" : "agent",
-        message,
+        source === "user" ? message : spokenText(message),
         `${source}:${response_id ?? event_id}`
       )
     },

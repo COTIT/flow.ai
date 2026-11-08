@@ -1053,7 +1053,7 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
               JSON.stringify({
                 type: "agent_response",
                 agent_response_event: {
-                  agent_response: `Recorded result: ${finalMessage}`,
+                  agent_response: `[happy] Recorded result: ${finalMessage}`,
                   event_id: 10,
                 },
               })
@@ -1160,6 +1160,8 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
     await expect(page.getByRole("log")).toContainText(
       `Recorded result: ${finalMessage}`
     )
+    // Expressive voice tags shape speech only; the transcript never shows them.
+    await expect(page.getByRole("log")).not.toContainText("[happy]")
     // Approval releases the agent's wait so it can say it is finalizing.
     expect(interims).toEqual(
       approved

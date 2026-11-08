@@ -104,3 +104,11 @@ export async function whenSlow<T>(
     clearTimeout(timer)
   }
 }
+
+/** Expressive TTS tags ("[happy]") shape the voice only; the transcript shows the words. */
+export function spokenText(text: string) {
+  return text
+    .replace(/\s*\[[a-z][a-z _-]*\]\s*/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
