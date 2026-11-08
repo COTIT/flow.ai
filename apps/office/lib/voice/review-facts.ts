@@ -41,6 +41,8 @@ function project(
   const unit = currency(value, inherited)
   return Object.fromEntries(
     Object.entries(value).map(([key, amount]) => {
+      // A currency record reads as its code on the card, not as its own fields.
+      if (key === "currency" && unit && object(amount)) return [key, unit.code]
       if (!key.endsWith("_minor"))
         return [key, project(amount, locale, unit, depth + 1)]
       if (!unit || typeof amount !== "number" || !Number.isSafeInteger(amount))

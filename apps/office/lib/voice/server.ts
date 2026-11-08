@@ -85,8 +85,8 @@ export class VoiceError extends Error {
   }
 }
 
-/** Verify the current staff login and workspace on the authoritative backend. */
-export async function authorizeVoice(
+/** Validate request shape only; the backend still verifies the bearer. */
+export async function voiceBearer(
   request: Request,
   workspaceId: unknown
 ): Promise<VoiceContext> {
@@ -98,10 +98,22 @@ export async function authorizeVoice(
     !/^[a-zA-Z0-9-]{1,100}$/.test(workspaceId)
   )
     throw new VoiceError("Choose a workspace.")
-  const token = auth.slice(7)
   const apiUrl = (await voiceSetting("API_URL")) || "http://localhost:8080/v1"
+  return { token: auth.slice(7), workspaceId, permissions: [], apiUrl }
+}
+
+/** Verify the current staff login and workspace on the authoritative backend. */
+export async function authorizeVoice(
+  request: Request,
+  workspaceId: unknown
+): Promise<VoiceContext> {
+  return verifyLogin(await voiceBearer(request, workspaceId))
+}
+
+export async function verifyLogin(base: VoiceContext): Promise<VoiceContext> {
+  const { token, workspaceId, apiUrl } = base
   const options = {
-    headers: { Authorization: auth, Accept: "application/json" },
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     cache: "no-store" as const,
     redirect: "error" as const,
     signal: AbortSignal.timeout(15000),
@@ -133,16 +145,26 @@ export async function authorizeVoice(
     const account = (await farm.json()) as {
       data?: { memberships?: { workspace_id?: string; role?: string }[] }
     }
-    for (const entry of account.data?.memberships ?? []) {
-      if (
-        entry.workspace_id === workspaceId &&
-        entry.role &&
-        ["farmer", "field_officer", "ops", "admin"].includes(entry.role)
+    permissions.push(
+      ...farmGrants(
+        (account.data?.memberships ?? [])
+          .filter((entry) => entry.workspace_id === workspaceId)
+          .map((entry) => entry.role)
       )
-        permissions.push(`farm:${entry.role}`)
-    }
+    )
   }
-  return { token, workspaceId, permissions, apiUrl }
+  return { ...base, permissions }
+}
+
+/** Only known farm roles become claims; Rust rechecks resource scope. */
+export function farmGrants(roles: unknown[]): string[] {
+  return roles
+    .filter(
+      (role): role is string =>
+        typeof role === "string" &&
+        ["farmer", "field_officer", "ops", "admin"].includes(role)
+    )
+    .map((role) => `farm:${role}`)
 }
 
 /** No automatic retries: a timeout can occur after the backend applied a write. */

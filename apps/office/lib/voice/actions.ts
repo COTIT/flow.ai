@@ -7,6 +7,7 @@ import { VoiceError, type VoiceContext } from "./server"
 import { voiceSetting } from "./settings"
 import { checkpointReview, createReview, verifyReview } from "./workflow"
 import { confirmationPhrase } from "./confirmation"
+import { withVoiceTracing } from "./tracing"
 import { reviewTarget } from "./review-target"
 import { reviewChanges, reviewFacts } from "./review-facts"
 import type {
@@ -99,12 +100,14 @@ export async function proposeAction(
     session_id: context.sessionId,
     ...businessDraft(action, transport),
   }
-  const stored = await assistantRequest<StoredAction>(
-    context,
-    "/actions",
-    "POST",
-    value,
-    Boolean(transport)
+  const stored = await withVoiceTracing("propose", () =>
+    assistantRequest<StoredAction>(
+      context,
+      "/actions",
+      "POST",
+      value,
+      Boolean(transport)
+    )
   )
   return reviewAction(action, context, stored, transport?.reviewMetadata)
 }
@@ -172,16 +175,21 @@ async function reviewAction(
   const secret = await voiceSetting("ASSISTANT_BRIDGE_SECRET")
   if (secret.length < 32)
     throw new VoiceError("Assistant reviews are not configured.", 503)
-  const ticket = createReview(
-    action,
-    context,
-    secret,
-    context.sessionId!,
-    stored.id,
-    stored.expires_at,
-    multipart
-  )
-  const code = verifyReview(ticket, context, secret).confirmationCode
+  const { ticket, code } = await withVoiceTracing("review_ticket", async () => {
+    const ticket = createReview(
+      action,
+      context,
+      secret,
+      context.sessionId!,
+      stored.id,
+      stored.expires_at,
+      multipart
+    )
+    return {
+      ticket,
+      code: verifyReview(ticket, context, secret).confirmationCode,
+    }
+  })
   const review: VoiceReview = {
     operationId: step.operationId,
     method: step.method,
@@ -209,7 +217,9 @@ export async function reviewStep(
   multipart?: MultipartReview
 ): Promise<VoiceReviewStep> {
   const url = new URL(action.path, "https://genesis.invalid")
-  const target = await reviewTarget(action, context)
+  const target = await withVoiceTracing("review_target", () =>
+    reviewTarget(action, context)
+  )
   const facts = reviewFacts(
     stored.review_facts,
     action.operationId,

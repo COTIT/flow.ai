@@ -28,9 +28,13 @@ import {
   attachmentProblem,
   matchesIssuedConversation,
   mergeTranscript,
+  progressOf,
   requestFailureKey,
+  spokenText,
   taskPresentation,
+  whenSlow,
   type TranscriptRow,
+  type VoiceProgress,
 } from "./helpers"
 import { batchAttachmentReferences, voiceRequestBody } from "./multipart"
 import {
@@ -53,7 +57,13 @@ import {
 class VoiceRequestError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** Model-only retry hints: an exact lookup schema or candidate operations. */
+    readonly hint?: {
+      message?: string
+      operation?: unknown
+      candidates?: unknown
+    }
   ) {
     super(message)
   }
@@ -85,6 +95,10 @@ type VoiceContextValue = {
   review: VoiceReview | null
   outcome: VoiceOutcome | null
   batchProgress: BatchProgress | null
+  /** Talk-back stage of the current tool request or approval. */
+  progress: VoiceProgress | null
+  steps: string[]
+  narration: string
   error: string
   recovery: RecoveryPointer | null
   recoveredTasks: RecoveryTask[]
@@ -180,6 +194,7 @@ function Session({ children }: { children: ReactNode }) {
   const [textOnly, setTextOnly] = useState(false)
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
+  const [progress, setProgress] = useState<VoiceProgress | null>(null)
   function updateFiles(next: Attachment[]) {
     files.current = next
     setAttachments(next)
@@ -323,7 +338,8 @@ function Session({ children }: { children: ReactNode }) {
     if (!response.ok) {
       throw new VoiceRequestError(
         t(requestFailureKey(response.status)),
-        response.status
+        response.status,
+        value && (value.operation || value.candidates) ? value : undefined
       )
     }
     return value as T
@@ -472,16 +488,24 @@ function Session({ children }: { children: ReactNode }) {
             !Array.isArray(executionArgs)
           ? (executionArgs as Record<string, unknown>).attachments
           : undefined
-      const result = await request<VoiceOutcome>(
-        batchPrepare ? "batch" : "tools",
-        batchPrepare
-          ? { command: "prepare", calls: args?.calls }
-          : { command, ...body },
-        "POST",
-        references
+      if (command === "execute") setProgress(progressOf("checking"))
+      const result = await whenSlow(
+        request<VoiceOutcome>(
+          batchPrepare ? "batch" : "tools",
+          batchPrepare
+            ? { command: "prepare", calls: args?.calls }
+            : { command, ...body },
+          "POST",
+          references
+        ),
+        () => {
+          if (command === "execute" && before === generation.current)
+            setProgress(progressOf("preparing_review"))
+        }
       )
       if (!active.current || before !== generation.current)
         return JSON.stringify({ status: "cancelled" })
+      if (command === "execute") setProgress(progressOf("checking", result))
       if (
         result.status === "requires_confirmation" &&
         result.review &&
@@ -541,13 +565,27 @@ function Session({ children }: { children: ReactNode }) {
             : { actionId: pendingActionId.current }),
           message:
             "Review the current Office card. The user may read its visible confirmation phrase or click approval. Do not claim completion.",
+          ...(result.narration ? { narration: result.narration } : {}),
         })
       return JSON.stringify(result)
     } catch (e) {
+      // A guessed lookup is retryable by the model; it is not a user-facing failure.
+      if (e instanceof VoiceRequestError && e.hint) {
+        if (active.current && before === generation.current)
+          setProgress(progressOf("checking"))
+        return JSON.stringify({
+          status: "failed",
+          message: e.hint.message,
+          ...(e.hint.operation ? { operation: e.hint.operation } : {}),
+          ...(e.hint.candidates ? { candidates: e.hint.candidates } : {}),
+        })
+      }
       if (active.current && before === generation.current) {
         setThinking(false)
         setError(e instanceof Error ? e.message : t("requestFailed"))
         setOutcome({ status: statusRead ? "unknown" : "failed" })
+        if (command === "execute" && !statusRead)
+          setProgress(progressOf("failed"))
       }
       return JSON.stringify({
         status: "failed",
@@ -678,7 +716,7 @@ function Session({ children }: { children: ReactNode }) {
       } else setThinking(false)
       add(
         source === "user" ? "user" : "agent",
-        message,
+        source === "user" ? message : spokenText(message),
         `${source}:${response_id ?? event_id}`
       )
     },
@@ -914,6 +952,7 @@ function Session({ children }: { children: ReactNode }) {
     setCapturePaused(false)
     if (!continuing) {
       setOutcome(null)
+      setProgress(null)
       setMessages([])
       nextOrdinal.current = 0
     }
@@ -1281,29 +1320,57 @@ function Session({ children }: { children: ReactNode }) {
     setBusy(true)
     setError("")
     const before = generation.current
+    if (decision === "approve") {
+      setProgress(progressOf("running"))
+      // Release the agent's open status wait so it speaks now; its next wait gets the verified result.
+      const interim = {
+        status: "running",
+        narration:
+          "Approved in Office and running now. Tell the user you are just finalizing, then wait for the verified result again.",
+      }
+      const key =
+        current.kind === "batch"
+          ? `batch:${current.batchId}`
+          : pendingActionId.current
+      if (key) {
+        waits.current.get(key)?.finish(interim)
+        waits.current.delete(key)
+      }
+      if (verified.current && !recoveredPointer)
+        conversation.sendContextualUpdate(
+          JSON.stringify({ assistant_progress: interim })
+        )
+    }
     try {
-      const result = await request<VoiceOutcome>(
-        "confirm",
-        {
-          ticket: current.ticket,
-          ...(recoveredPointer
-            ? { sessionId: recoveredPointer.sessionId }
-            : {}),
-          decision,
-          method: speech ? "speech" : "click",
-          ...(speech
-            ? {
-                eventId: String(speech.eventId),
-                confirmationCode: current.confirmationCode,
-                utterance: speech.utterance,
-                locale: sessionLocale.current,
-              }
-            : {}),
-        },
-        "POST",
-        decision === "approve" ? current.attachments : undefined
+      const result = await whenSlow(
+        request<VoiceOutcome>(
+          "confirm",
+          {
+            ticket: current.ticket,
+            ...(recoveredPointer
+              ? { sessionId: recoveredPointer.sessionId }
+              : {}),
+            decision,
+            method: speech ? "speech" : "click",
+            ...(speech
+              ? {
+                  eventId: String(speech.eventId),
+                  confirmationCode: current.confirmationCode,
+                  utterance: speech.utterance,
+                  locale: sessionLocale.current,
+                }
+              : {}),
+          },
+          "POST",
+          decision === "approve" ? current.attachments : undefined
+        ),
+        () => {
+          if (decision === "approve" && before === generation.current)
+            setProgress(progressOf("finalizing"))
+        }
       )
       if (!active.current || before !== generation.current) return
+      setProgress(progressOf(result.status, result))
       setOutcome(result)
       if (current.kind === "batch" && current.batchId) {
         const owner =
@@ -1324,6 +1391,7 @@ function Session({ children }: { children: ReactNode }) {
     } catch (e) {
       if (active.current && before === generation.current) {
         updateReview(null)
+        setProgress(progressOf("unknown"))
         setOutcome({ status: "unknown", message: t("unknown") })
         settle(pendingActionId.current, {
           status: "unknown",
@@ -1364,6 +1432,9 @@ function Session({ children }: { children: ReactNode }) {
         review,
         outcome,
         batchProgress,
+        progress,
+        steps: progress?.steps ?? [],
+        narration: progress?.narration ?? "",
         error,
         recovery,
         recoveredTasks,

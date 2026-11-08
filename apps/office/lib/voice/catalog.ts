@@ -184,25 +184,28 @@ export function discoverTools(
     .replace(/[_-]/g, " ")
     .split(/\s+/)
     .filter(Boolean)
-  return allowed
-    .map((tool) => ({
-      tool,
-      score: terms.reduce(
-        (score, term) =>
-          score +
-          (`${tool.id} ${tool.domain} ${tool.summary}`
-            .replace(/[_-]/g, " ")
-            .toLowerCase()
-            .includes(term)
-            ? 1
-            : 0),
-        0
-      ),
-    }))
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-    .map(({ tool }) => discoveryContract(tool))
+  return (
+    allowed
+      .map((tool) => ({
+        tool,
+        score: terms.reduce(
+          (score, term) =>
+            score +
+            (`${tool.id} ${tool.domain} ${tool.summary}`
+              .replace(/[_-]/g, " ")
+              .toLowerCase()
+              .includes(term)
+              ? 1
+              : 0),
+          0
+        ),
+      }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      // Top match carries its full contract so execute can follow a single search.
+      .map(({ tool }, index) => discoveryContract(tool, index === 0))
+  )
 }
 
 const ajv = new Ajv2020({

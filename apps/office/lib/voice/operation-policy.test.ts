@@ -575,16 +575,21 @@ describe("reviewed operation coverage", () => {
     ).not.toThrow()
   })
 
-  it("searches compact descriptors, then reveals self-contained exact input schemas", () => {
+  it("searches compact descriptors after one full top match, then reveals self-contained exact input schemas", () => {
     const search = discoverTools("orders create", ["workspace_owner"])
-    expect(search.length).toBeGreaterThan(0)
+    expect(search.length).toBeGreaterThan(1)
+    expect(search[0]).toEqual(
+      discoverTools(search[0]!.id, ["workspace_owner"])[0]
+    )
     expect(
-      search.every(
-        (tool) =>
-          tool.body === null &&
-          tool.parameters.length === 0 &&
-          Object.keys(tool.requestMedia).length === 0
-      )
+      search
+        .slice(1)
+        .every(
+          (tool) =>
+            tool.body === null &&
+            tool.parameters.length === 0 &&
+            Object.keys(tool.requestMedia).length === 0
+        )
     ).toBe(true)
     const [order] = discoverTools("orders_create", ["workspace_owner"])
     expect(order?.body).toHaveProperty("properties.lines.items.required", [

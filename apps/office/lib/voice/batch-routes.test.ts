@@ -5,6 +5,34 @@ const mocks = vi.hoisted(() => ({
   ledger: vi.fn(),
   propose: vi.fn(),
   restore: vi.fn(),
+  spans: [] as string[],
+  modes: [] as string[],
+}))
+vi.mock("./identity", () => ({
+  authorizeVoiceSession: async (
+    request: Request,
+    workspaceId: unknown,
+    sessionId: unknown,
+    mode: string
+  ) => {
+    mocks.modes.push(mode)
+    const context = await mocks.authorize(request, workspaceId)
+    const session = await mocks.session(context, sessionId)
+    return {
+      context: {
+        ...context,
+        sessionId: session.id,
+        language: session.language ?? "en",
+      },
+      session,
+    }
+  },
+}))
+vi.mock("./tracing", () => ({
+  withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
+    mocks.spans.push(name)
+    return action()
+  },
 }))
 vi.mock("./server", async (original) => ({
   ...(await original<typeof import("./server")>()),
@@ -38,6 +66,8 @@ const request = (body: unknown) =>
   })
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.spans.length = 0
+  mocks.modes.length = 0
   vi.stubEnv("ASSISTANT_ENABLED", "true")
   vi.stubEnv("ASSISTANT_WORKSPACE_ALLOWLIST", ctx.workspaceId)
   mocks.authorize.mockResolvedValue({ ...ctx })
@@ -124,4 +154,12 @@ it("localizes stale batch errors using owned session language", async () => {
   expect((await response.json()).message).toBe(
     "Deze reeks is gewijzigd, gestopt of verlopen. Controleer de vastgelegde stappen en beoordeel een nieuwe reeks."
   )
+})
+
+it("reads batch lists inside one request span without requiring a live session", async () => {
+  await POST(
+    request({ command: "list", workspaceId: ctx.workspaceId, sessionId: "s" })
+  )
+  expect(mocks.spans).toEqual(["genesy_assistant_batch"])
+  expect(mocks.modes).toEqual(["read"])
 })

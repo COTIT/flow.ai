@@ -75,3 +75,40 @@ export function matchesIssuedConversation(
 ) {
   return Boolean(issued) && issued === connected
 }
+
+export type VoiceProgress = {
+  status: string
+  steps: string[]
+  narration: string
+}
+export function progressOf(
+  status: string,
+  result?: { status: string; steps?: string[]; narration?: string }
+): VoiceProgress {
+  return {
+    status: result?.status ?? status,
+    steps: result?.steps ?? [],
+    narration: result?.narration ?? "",
+  }
+}
+/** Truthful "still working" stage: fires only while the request is still in flight. */
+export async function whenSlow<T>(
+  work: Promise<T>,
+  onSlow: () => void,
+  ms = 800
+): Promise<T> {
+  const timer = setTimeout(onSlow, ms)
+  try {
+    return await work
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Expressive TTS tags ("[happy]") shape the voice only; the transcript shows the words. */
+export function spokenText(text: string) {
+  return text
+    .replace(/\s*\[[a-z][a-z _-]*\]\s*/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}

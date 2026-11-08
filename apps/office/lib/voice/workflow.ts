@@ -31,6 +31,8 @@ type Review = {
   confirmationCode: string
   multipart?: MultipartReview
 }
+const noPendingReview =
+  "This action has no pending review. Check its recorded status."
 const digest = (s: string) => createHash("sha256").update(s).digest("hex")
 
 /** Signed UI review contains no bearer and binds the backend's durable action identity. */
@@ -114,11 +116,14 @@ const State = Annotation.Root({
 function buildGraph(checkpointer: PostgresSaver) {
   return new StateGraph(State)
     .addNode("await_review", (state) => {
-      const approved = interrupt({
+      const decision = interrupt({
         actionId: state.actionId,
         operation: state.operation,
       })
-      return { status: approved === true ? "approved" : "cancelled" }
+      // Resume carries the reviewed action ID; anything else never approves.
+      return {
+        status: decision === state.actionId ? "approved" : "cancelled",
+      }
     })
     .addNode("execute_backend", async (state) => {
       const scope = execution.getStore()
@@ -175,7 +180,9 @@ export async function checkpointReview(
       const settings = config(context)
       await withVoiceThread(context.sessionId!, async () => {
         const workflow = await taskGraph()
-        const current = await workflow.getState(settings)
+        const current = await withVoiceTracing("checkpoint_state", () =>
+          workflow.getState(settings)
+        )
         if (
           current.tasks.some((task) => task.interrupts?.length) &&
           current.values.actionId !== actionId
@@ -207,7 +214,9 @@ export async function cancelReview(context: VoiceContext, actionId: string) {
       const settings = config(context)
       await withVoiceThread(context.sessionId!, async () => {
         const workflow = await taskGraph()
-        const state = await workflow.getState(settings)
+        const state = await withVoiceTracing("checkpoint_state", () =>
+          workflow.getState(settings)
+        )
         if (
           state.values.actionId === actionId &&
           state.tasks.some((task) => task.interrupts?.length)
@@ -245,19 +254,23 @@ export async function executeAction(
       const settings = config(context)
       return withVoiceThread(context.sessionId!, async () => {
         const workflow = await taskGraph()
-        const current = await workflow.getState(settings)
+        // Kept: a failed resume leaves its value pending, so mismatches must be refused before invoke.
+        const current = await withVoiceTracing("checkpoint_state", () =>
+          workflow.getState(settings)
+        )
         if (
           current.values.actionId !== actionId ||
           !current.tasks.some((task) => task.interrupts?.length)
         )
-          throw new VoiceError(
-            "This action has no pending review. Check its recorded status.",
-            409
-          )
+          throw new VoiceError(noPendingReview, 409)
         await execution.run(scope, () =>
-          workflow.invoke(new Command({ resume: true }), settings)
+          workflow.invoke(new Command({ resume: actionId }), {
+            ...settings,
+            durability: "async",
+          })
         )
-        return { ...scope.outcome!, actionId }
+        if (!scope.outcome) throw new VoiceError(noPendingReview, 409)
+        return { ...scope.outcome, actionId }
       })
     },
     { operation: action.operationId, actionId, sessionId: context.sessionId }

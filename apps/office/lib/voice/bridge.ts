@@ -138,7 +138,10 @@ export async function requireAssistantSession(
   context: VoiceContext,
   id: unknown
 ): Promise<AssistantSession> {
-  const session = await readAssistantSession(context, id)
+  return requireLive(await readAssistantSession(context, id))
+}
+
+export function requireLive(session: AssistantSession): AssistantSession {
   if (
     session.closed_at ||
     session.state !== "active" ||
