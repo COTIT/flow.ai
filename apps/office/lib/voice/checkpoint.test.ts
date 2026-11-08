@@ -5,6 +5,13 @@ const mocks = vi.hoisted(() => ({
   connect: vi.fn(),
   query: vi.fn(),
   release: vi.fn(),
+  spans: [] as string[],
+}))
+vi.mock("./tracing", () => ({
+  withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
+    mocks.spans.push(name)
+    return action()
+  },
 }))
 vi.mock("pg", () => ({
   default: {
@@ -23,6 +30,7 @@ beforeEach(() => {
     .__genesyVoiceCheckpoint
   vi.resetModules()
   vi.clearAllMocks()
+  mocks.spans.length = 0
   vi.stubEnv(
     "ASSISTANT_CHECKPOINT_URL",
     "postgres://test:test@127.0.0.1/isolated"
@@ -61,4 +69,12 @@ it("leaves pool capacity for checkpoint writes while two graph locks are held", 
   await Promise.all([first, second])
   await withVoiceThread("four", async () => undefined)
   expect(mocks.release).toHaveBeenCalledTimes(3)
+})
+
+it("traces advisory lock acquisition separately from the locked work", async () => {
+  const { withVoiceThread } = await import("./checkpoint")
+  await withVoiceThread("s1", async () => {
+    expect(mocks.spans).toEqual(["checkpoint_lock"])
+  })
+  expect(mocks.connect).toHaveBeenCalledOnce()
 })

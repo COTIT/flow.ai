@@ -8,6 +8,13 @@ import {
 } from "./workflow"
 import { voiceCheckpointer } from "./checkpoint"
 
+const spans = vi.hoisted(() => [] as string[])
+vi.mock("./tracing", () => ({
+  withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
+    spans.push(name)
+    return action()
+  },
+}))
 vi.mock("./checkpoint", async () => {
   const { MemorySaver } = await import("@langchain/langgraph")
   const saver = new MemorySaver()
@@ -132,4 +139,14 @@ it("batch checkpoint stores ordered references without private drafts or control
   expect(snapshot).not.toContain("batch-private-business-value")
   expect(snapshot).not.toContain("batch-private-controller-token")
   expect(snapshot).not.toContain(context.token)
+})
+
+it("traces checkpoint state reads inside the review span", async () => {
+  spans.length = 0
+  await checkpointReview(
+    action,
+    { ...context, sessionId: "session-spans" },
+    "action-spans"
+  )
+  expect(spans).toEqual(["genesy_assistant_review", "checkpoint_state"])
 })

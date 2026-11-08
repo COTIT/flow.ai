@@ -35,6 +35,7 @@ import {
   BATCH_PREPARE_OPERATION,
   BATCH_STATUS_OPERATION,
 } from "@/lib/voice/batches"
+import { withVoiceTracing } from "@/lib/voice/tracing"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -92,7 +93,10 @@ const batchStatusTool = {
   },
 }
 /** Model bridge can propose operations and read status; it cannot approve or commit. */
-export async function POST(request: Request) {
+export function POST(request: Request) {
+  return withVoiceTracing("genesy_assistant_tools", () => handle(request))
+}
+async function handle(request: Request) {
   let releaseFile: (() => void) | undefined
   let language = "en"
   let isBatch = false
@@ -105,11 +109,15 @@ export async function POST(request: Request) {
         (input.operationId === BATCH_STATUS_OPERATION ||
           input.operationId === statusTool.id))
     if (!statusRequest) await requireAssistantAdmission()
-    const context = await authorizeVoice(request, input.workspaceId)
+    const context = await withVoiceTracing("authorize", () =>
+      authorizeVoice(request, input.workspaceId)
+    )
     if (!statusRequest) await requireAssistantAdmission(context.workspaceId)
-    const session = statusRequest
-      ? await readAssistantSession(context, input.sessionId)
-      : await requireAssistantSession(context, input.sessionId)
+    const session = await withVoiceTracing("session_lookup", () =>
+      statusRequest
+        ? readAssistantSession(context, input.sessionId)
+        : requireAssistantSession(context, input.sessionId)
+    )
     if (!statusRequest && !session.conversation_id)
       throw new VoiceError("Conversation identity has not been bound.", 409)
     context.sessionId = session.id

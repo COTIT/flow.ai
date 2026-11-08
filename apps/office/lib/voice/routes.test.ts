@@ -11,6 +11,13 @@ const mocks = vi.hoisted(() => ({
   transport: vi.fn(),
   propose: vi.fn(),
   confirmBatch: vi.fn(),
+  spans: [] as string[],
+}))
+vi.mock("./tracing", () => ({
+  withVoiceTracing: async (name: string, action: () => Promise<unknown>) => {
+    mocks.spans.push(name)
+    return action()
+  },
 }))
 vi.mock("./server", async (original) => ({
   ...(await original<typeof import("./server")>()),
@@ -71,6 +78,7 @@ const request = (value: unknown) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.spans.length = 0
   vi.stubEnv("ASSISTANT_ENABLED", "true")
   vi.stubEnv("ASSISTANT_WORKSPACE_ALLOWLIST", context.workspaceId)
   vi.stubEnv("ASSISTANT_BRIDGE_SECRET", "a".repeat(32))
@@ -360,4 +368,39 @@ it("restores a fresh canonical review for the same owned unexpired JSON proposal
   })
   expect(mocks.execute).not.toHaveBeenCalled()
   expect(mocks.ledger.mock.calls.some((call) => call[2] === "POST")).toBe(false)
+})
+
+it("traces tool auth and session lookup as children of one request span", async () => {
+  await toolRequest(
+    request({
+      command: "execute",
+      operationId: "orders_create",
+      arguments: { body: orderBody },
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  expect(mocks.spans.slice(0, 3)).toEqual([
+    "genesy_assistant_tools",
+    "authorize",
+    "session_lookup",
+  ])
+})
+
+it("traces confirmation auth, session lookup and approval inside one request span", async () => {
+  await confirmationRequest(
+    request({
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      ticket: "ticket",
+      decision: "approve",
+      method: "click",
+    })
+  )
+  expect(mocks.spans).toEqual([
+    "genesy_assistant_confirm",
+    "authorize",
+    "session_lookup",
+    "approve",
+  ])
 })

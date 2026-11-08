@@ -175,7 +175,9 @@ export async function checkpointReview(
       const settings = config(context)
       await withVoiceThread(context.sessionId!, async () => {
         const workflow = await taskGraph()
-        const current = await workflow.getState(settings)
+        const current = await withVoiceTracing("checkpoint_state", () =>
+          workflow.getState(settings)
+        )
         if (
           current.tasks.some((task) => task.interrupts?.length) &&
           current.values.actionId !== actionId
@@ -207,7 +209,9 @@ export async function cancelReview(context: VoiceContext, actionId: string) {
       const settings = config(context)
       await withVoiceThread(context.sessionId!, async () => {
         const workflow = await taskGraph()
-        const state = await workflow.getState(settings)
+        const state = await withVoiceTracing("checkpoint_state", () =>
+          workflow.getState(settings)
+        )
         if (
           state.values.actionId === actionId &&
           state.tasks.some((task) => task.interrupts?.length)
@@ -245,7 +249,9 @@ export async function executeAction(
       const settings = config(context)
       return withVoiceThread(context.sessionId!, async () => {
         const workflow = await taskGraph()
-        const current = await workflow.getState(settings)
+        const current = await withVoiceTracing("checkpoint_state", () =>
+          workflow.getState(settings)
+        )
         if (
           current.values.actionId !== actionId ||
           !current.tasks.some((task) => task.interrupts?.length)

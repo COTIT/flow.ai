@@ -4,6 +4,7 @@ import pg from "pg"
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres"
 import { VoiceError } from "./server"
 import { voiceSetting } from "./settings"
+import { withVoiceTracing } from "./tracing"
 
 const runtime = globalThis as typeof globalThis & {
   __genesyVoiceCheckpoint?: {
@@ -61,30 +62,35 @@ export async function withVoiceThread<T>(
     )
   shared.writers++
   try {
-    const db = await checkpointPool()
-    const client = await db.connect()
     const lock = createHash("sha256")
       .update(`assistant:${sessionId}`)
       .digest()
       .readBigInt64BE()
       .toString()
-    let acquired = false
-    try {
-      const result = await client.query<{ locked: boolean }>(
-        "SELECT pg_try_advisory_lock($1::bigint) AS locked",
-        [lock]
-      )
-      acquired = result.rows[0]?.locked === true
-      if (!acquired)
-        throw new VoiceError(
-          "This assistant task is busy. Wait for its current step.",
-          409
+    const client = await withVoiceTracing("checkpoint_lock", async () => {
+      const db = await checkpointPool()
+      const connection = await db.connect()
+      try {
+        const result = await connection.query<{ locked: boolean }>(
+          "SELECT pg_try_advisory_lock($1::bigint) AS locked",
+          [lock]
         )
+        if (result.rows[0]?.locked !== true)
+          throw new VoiceError(
+            "This assistant task is busy. Wait for its current step.",
+            409
+          )
+        return connection
+      } catch (error) {
+        connection.release()
+        throw error
+      }
+    })
+    try {
       return await fn()
     } finally {
       try {
-        if (acquired)
-          await client.query("SELECT pg_advisory_unlock($1::bigint)", [lock])
+        await client.query("SELECT pg_advisory_unlock($1::bigint)", [lock])
       } finally {
         client.release()
       }

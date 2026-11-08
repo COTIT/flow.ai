@@ -22,10 +22,14 @@ import {
   confirmBatch,
   BATCH_PREPARE_OPERATION,
 } from "@/lib/voice/batches"
+import { withVoiceTracing } from "@/lib/voice/tracing"
 export const runtime = "nodejs"
 
 /** Trusted UI boundary; never registered as an ElevenLabs client tool. */
-export async function POST(request: Request) {
+export function POST(request: Request) {
+  return withVoiceTracing("genesy_assistant_confirm", () => handle(request))
+}
+async function handle(request: Request) {
   let releaseFile: (() => void) | undefined
   let language = "en"
   let isBatch = false
@@ -33,10 +37,14 @@ export async function POST(request: Request) {
     releaseFile = takeFilePermit(request)
     const { input, files } = await voiceInput(request)
     if (input.decision !== "cancel") await requireAssistantAdmission()
-    const context = await authorizeVoice(request, input.workspaceId)
+    const context = await withVoiceTracing("authorize", () =>
+      authorizeVoice(request, input.workspaceId)
+    )
     if (input.decision !== "cancel")
       await requireAssistantAdmission(context.workspaceId)
-    const session = await requireAssistantSession(context, input.sessionId)
+    const session = await withVoiceTracing("session_lookup", () =>
+      requireAssistantSession(context, input.sessionId)
+    )
     context.sessionId = session.id
     context.language = session.language ?? "en"
     language = context.language
@@ -140,15 +148,17 @@ export async function POST(request: Request) {
         bytes: transport.bytes,
         contentType: transport.contentType,
       }
-    await assistantRequest(
-      context,
-      "/actions/" + review.id + "/approve",
-      "POST",
-      {
-        session_id: session.id,
-        ...(approvalEvent ? { approval_event_sha256: approvalEvent } : {}),
-      },
-      true
+    await withVoiceTracing("approve", () =>
+      assistantRequest(
+        context,
+        "/actions/" + review.id + "/approve",
+        "POST",
+        {
+          session_id: session.id,
+          ...(approvalEvent ? { approval_event_sha256: approvalEvent } : {}),
+        },
+        true
+      )
     )
     return voiceResponse(await executeAction(review.action, context, review.id))
   } catch (error) {
