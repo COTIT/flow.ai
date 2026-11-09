@@ -92,7 +92,7 @@
   "apps/api/src/modules/farm_supply/handlers.rs": "2ed7dbcc6421f5babd652c1895b48b9a1d03d6686b220fdf5939e4ec9f401758",
   "apps/api/src/modules/farm_supply/service.rs": "83e50732a52adb0224780fd66c689ed5fb025de0abc70041d3bc60645059b0bc",
   "apps/api/src/modules/farm_supply_corrections/handlers.rs": "1749edc64c01d87c18cf60da224c880fbc854e49a08959660705d08f48eba96e",
-  "apps/api/src/modules/farm_supply_corrections/service.rs": "536f04bd9ee239b87102b3dce0290391e40e73a8661a7a3db0b518700b60f50d",
+  "apps/api/src/modules/farm_supply_corrections/service.rs": "4a4c64c840df24a4c258de6a9faa2d9ce41b5604502d41cb494cef46cdf5f7a9",
   "apps/api/src/modules/farm_surveys/handlers.rs": "0dffaeb50f614e512e095c693bb3b2e86f9235c7e7691577e33fc7da12c9429f",
   "apps/api/src/modules/farm_surveys/service.rs": "c36d4a3a454c7ec6a5ff14f5702baa390751bddd65d71e4a05f92fc57236d993",
   "apps/api/src/modules/farm_tower/handlers.rs": "0052273a6e37d6fdb1cd2802310891ef1b3fe10cd6f2568be5e951b297af39f0",

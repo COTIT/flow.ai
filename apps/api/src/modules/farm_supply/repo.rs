@@ -394,6 +394,23 @@ pub struct WeightRow {
     pub kg: Decimal,
 }
 
+/// Hold `batch_id` FOR SHARE until the transaction ends: a correction approval (FOR UPDATE)
+/// can't re-split the batch between this sale's weight read and its commit.
+pub async fn share_batch(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    batch_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "SELECT id FROM farm_supply_batches WHERE workspace_id = $1 AND id = $2 FOR SHARE",
+        workspace_id,
+        batch_id,
+    )
+    .fetch_optional(conn)
+    .await?;
+    Ok(())
+}
+
 /// Each farmer's effective kg in `batch_id` (shares plus approved corrections), by person id.
 pub async fn weights(
     conn: &mut PgConnection,

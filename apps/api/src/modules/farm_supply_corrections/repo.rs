@@ -40,6 +40,28 @@ pub async fn lock_batch(
     .await
 }
 
+/// The batch of the workspace inside `scope`, unlocked (approval locks stock before the batch).
+pub async fn find_batch(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    batch_id: Uuid,
+    scope: &Scope,
+) -> Result<Option<BatchLock>, sqlx::Error> {
+    sqlx::query_as!(
+        BatchLock,
+        r#"SELECT b.id, b.village_id, b.lot_id, l.code AS lot_code, l.product_id, b.currency_id
+           FROM farm_supply_batches b
+           JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id
+           WHERE b.workspace_id = $1 AND b.id = $2 AND ($3::bool OR b.village_id = ANY($4))"#,
+        workspace_id,
+        batch_id,
+        scope.all,
+        &scope.villages,
+    )
+    .fetch_optional(conn)
+    .await
+}
+
 /// The batch's currency `(id, code, decimals)`.
 pub async fn currency(
     conn: &mut PgConnection,

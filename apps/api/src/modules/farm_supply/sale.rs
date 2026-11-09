@@ -102,6 +102,8 @@ pub async fn on_sale(
         };
         let (raw, units) = l.pack.unwrap_or((Decimal::ONE, Decimal::ONE));
         let total = credit_total(l.price_per_kg, t.qty, raw, units).ok_or_else(overflow)?;
+        // After the order's stock locks, like a correction approval: no deadlock between them.
+        repo::share_batch(&mut *conn, l.root_workspace_id, l.batch_id).await?;
         let weights = repo::weights(&mut *conn, l.root_workspace_id, l.batch_id).await?;
         let amounts = shares(total, &weights)?;
         let attribution = NewAttribution {
@@ -148,6 +150,8 @@ pub async fn on_return(
             let Some(sale) = repo::sale_of(&mut *conn, sold_ws, order_id, lot).await? else {
                 continue;
             };
+            // Before reading what farmers hold: an approval's splits count in it.
+            repo::share_batch(&mut *conn, sale.workspace_id, sale.batch_id).await?;
             let (done_jars, done) =
                 repo::returned_so_far(&mut *conn, sold_ws, order_id, lot).await?;
             let jars = target_jars - done_jars;

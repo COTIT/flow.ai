@@ -118,4 +118,6 @@ Approve, one transaction, with every window checked again under the batch lock:
 4. One `supply_correction` passbook line per farmer whose money moved (their sum), with `correction_id`; the passbook read shows the correction's `reason`.
 5. `supply.corrected` (thin: `correction_id, batch_id, farmers, net_kg`).
 
+Concurrency: approval locks the raw lot's stock row first, then the batch row FOR UPDATE, in the order a sale takes them. Sale credits and return debits hold the batch row FOR SHARE from before they read the weights (and, for returns, what farmers hold) until they commit. A sale therefore either commits before the approval re-splits it, or waits and books by the corrected kg; neither order deadlocks.
+
 A farmer already paid out may go negative: payouts above the balance are already refused, so nothing more is paid until later credits cover it. Later sales split by the corrected kg; return debits count the splits. Committed harvest kg and the lot passport's farmer groups read effective kg (view `farm_supply_share_kg`).

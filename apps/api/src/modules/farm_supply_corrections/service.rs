@@ -101,9 +101,6 @@ async fn check_window(
 /// attribution to `split(total, kg)`. Every attribution's rows sum to 0.
 // shortcut: a return attribution is re-split by its own total; a later return evens out the
 // at most one minor unit this may leave (like partial returns already do).
-// shortcut: a sale committing while an approval runs keeps the old split (sales don't take the
-// batch lock: they lock stock first, so sharing it could deadlock); the batch's next approved
-// correction re-splits that sale too. Lock the batch in `on_sale` if this ever shows up.
 async fn resplit(
     conn: &mut PgConnection,
     ws: Uuid,
@@ -335,27 +332,15 @@ pub async fn decide(
         tx.commit().await?;
         return get_one(state, ws, id, &scope).await;
     }
-    let b = repo::lock_batch(&mut tx, ws, c.batch_id, &scope)
+    let b = repo::find_batch(&mut tx, ws, c.batch_id, &scope)
         .await?
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut tx, ws, &[id]).await?;
     let net: Decimal = lines.iter().map(|l| l.kg_delta).sum();
     let warehouse = check_window(&mut tx, ws, &b, net).await?;
-    let shares = repo::shares(&mut tx, ws, b.id).await?;
-    let mut up: BTreeMap<Uuid, Decimal> = BTreeMap::new();
-    for l in &lines {
-        if let Some(s) = shares.iter().find(|s| s.id == l.share_id) {
-            *up.entry(s.harvest_report_id).or_default() += l.kg_delta;
-        }
-    }
-    check_harvests(&mut tx, ws, &up).await?;
-    repo::decide(&mut tx, ws, &c, "approved", access.user_id).await?;
-    if repo::below_zero(&mut tx, ws, b.id).await? {
-        return Err(AppError::field(
-            "lines",
-            "A farmer's kg on a share would go below 0: an earlier correction changed it.",
-        ));
-    }
+    // Lock order of a sale: stock rows first, then the batch. A sale holds the batch FOR SHARE
+    // while it reads the weights and books its credit, so it either commits before the
+    // re-split below reads its attribution, or waits and splits by the corrected kg.
     if !net.is_zero() {
         let Some((warehouse_id, _)) = warehouse else {
             return Err(AppError::field("batch", SOLD_OUT));
@@ -382,6 +367,24 @@ pub async fn decide(
                 ));
             }
         }
+    }
+    let b = repo::lock_batch(&mut tx, ws, b.id, &scope)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let shares = repo::shares(&mut tx, ws, b.id).await?;
+    let mut up: BTreeMap<Uuid, Decimal> = BTreeMap::new();
+    for l in &lines {
+        if let Some(s) = shares.iter().find(|s| s.id == l.share_id) {
+            *up.entry(s.harvest_report_id).or_default() += l.kg_delta;
+        }
+    }
+    check_harvests(&mut tx, ws, &up).await?;
+    repo::decide(&mut tx, ws, &c, "approved", access.user_id).await?;
+    if repo::below_zero(&mut tx, ws, b.id).await? {
+        return Err(AppError::field(
+            "lines",
+            "A farmer's kg on a share would go below 0: an earlier correction changed it.",
+        ));
     }
     let splits = resplit(&mut tx, ws, b.id, &[]).await?;
     let farmers = per_person(&splits);
@@ -606,7 +609,7 @@ pub async fn review(
         all: true,
         villages: Vec::new(),
     };
-    let b = repo::lock_batch(&mut *conn, ws, batch_id, &all)
+    let b = repo::find_batch(&mut *conn, ws, batch_id, &all)
         .await?
         .ok_or(AppError::NotFound)?;
     let lines = plan(&mut *conn, ws, &b, input).await?;

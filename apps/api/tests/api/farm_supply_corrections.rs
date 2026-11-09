@@ -589,3 +589,209 @@ async fn a_voice_request_gets_a_review_card(pool: PgPool) {
         "native rules before the card: {res}"
     );
 }
+
+/// Test-only trigger: inserting a passbook line of the kind waits on advisory lock 7001.
+const PAUSE_CORRECTION: &str = "CREATE FUNCTION e2e_pause() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN PERFORM pg_advisory_xact_lock_shared(7001); RETURN NEW; END $$;
+    CREATE TRIGGER e2e_pause AFTER INSERT ON farm_passbook_entries
+        FOR EACH ROW WHEN (NEW.kind = 'supply_correction') EXECUTE FUNCTION e2e_pause();";
+const PAUSE_SALE: &str = "CREATE FUNCTION e2e_pause() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN PERFORM pg_advisory_xact_lock_shared(7001); RETURN NEW; END $$;
+    CREATE TRIGGER e2e_pause AFTER INSERT ON farm_passbook_entries
+        FOR EACH ROW WHEN (NEW.kind = 'sale_credit') EXECUTE FUNCTION e2e_pause();";
+
+/// Installs `trigger` and holds lock 7001 on its own connection, so the transaction that
+/// inserts the matching passbook line pauses right after it read the weights.
+async fn pause_on(
+    pool: &PgPool,
+    trigger: &'static str,
+) -> sqlx::pool::PoolConnection<sqlx::Postgres> {
+    sqlx::raw_sql(trigger).execute(pool).await.unwrap();
+    let mut holder = pool.acquire().await.unwrap();
+    sqlx::query("SELECT pg_advisory_lock(7001)")
+        .execute(&mut *holder)
+        .await
+        .unwrap();
+    holder
+}
+
+/// Waits until `n` backends of this database wait on a lock (5 s at most).
+async fn waiting(pool: &PgPool, n: i64) -> bool {
+    for _ in 0..100 {
+        let w: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM pg_stat_activity
+             WHERE datname = current_database() AND wait_event_type = 'Lock'",
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+        if w >= n {
+            return true;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+    false
+}
+
+/// Every attribution of the batch holds exactly `split(total, effective kg)` per farmer, and
+/// every correction's re-split of an attribution sums to 0.
+async fn splits_match_corrected_kg(f: &Farm, batch: &str) {
+    let weights: Vec<(String, rust_decimal::Decimal)> = sqlx::query_as(
+        "SELECT person_id::text, sum(kg) FROM farm_supply_share_kg WHERE batch_id = $1::uuid
+         GROUP BY person_id HAVING sum(kg) > 0 ORDER BY person_id",
+    )
+    .bind(batch)
+    .fetch_all(&f.pool)
+    .await
+    .unwrap();
+    let list: Vec<(String, i128)> = weights
+        .iter()
+        .map(|(p, kg)| {
+            use rust_decimal::prelude::ToPrimitive;
+            (
+                p.clone(),
+                (*kg * rust_decimal::Decimal::ONE_HUNDRED)
+                    .to_i128()
+                    .unwrap(),
+            )
+        })
+        .collect();
+    let attributions: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT id::text, total FROM farm_sale_attributions WHERE batch_id = $1::uuid",
+    )
+    .bind(batch)
+    .fetch_all(&f.pool)
+    .await
+    .unwrap();
+    assert!(attributions.len() >= 2, "the first sale and the racing one");
+    for (a, total) in attributions {
+        let held: Vec<(String, i64)> = sqlx::query_as(
+            "SELECT person_id::text, sum(amount)::bigint FROM (
+                 SELECT person_id, amount FROM farm_passbook_entries WHERE attribution_id = $1::uuid
+                 UNION ALL
+                 SELECT person_id, amount FROM farm_supply_correction_splits
+                 WHERE attribution_id = $1::uuid) x
+             GROUP BY person_id HAVING sum(amount) <> 0 ORDER BY person_id",
+        )
+        .bind(&a)
+        .fetch_all(&f.pool)
+        .await
+        .unwrap();
+        let want: Vec<(String, i64)> = list
+            .iter()
+            .zip(largest_remainder(total, &list))
+            .filter(|(_, m)| *m != 0)
+            .map(|((p, _), m)| (p.clone(), m))
+            .collect();
+        assert_eq!(held, want, "attribution {a} (total {total})");
+    }
+    let unbalanced: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM (SELECT 1 FROM farm_supply_correction_splits
+         GROUP BY correction_id, attribution_id HAVING sum(amount) <> 0) x",
+    )
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(unbalanced, 0);
+}
+
+/// A till sale of 1 jar on its own task.
+async fn sell_one(s: &Sold) -> tokio::task::JoinHandle<(StatusCode, Value)> {
+    let t = till(s).await;
+    let (app, ws, product) = (s.f.app.clone(), s.shop_ws.clone(), s.product.clone());
+    tokio::spawn(async move {
+        let body = json!({ "client_ref": client_ref(), "payment": { "method": "card" },
+                           "lines": [{ "product_id": product, "quantity": "1", "unit_price": 2400 }] });
+        common::send(
+            &app,
+            Method::POST,
+            &format!("/v1/workspace/{ws}/till/sales"),
+            Some(body),
+            Some(&t),
+        )
+        .await
+    })
+}
+
+/// The owner approves `id` on its own task.
+fn approve_later(f: &Farm, id: &str) -> tokio::task::JoinHandle<(StatusCode, Value)> {
+    let (app, url, owner) = (
+        f.app.clone(),
+        f.url(&format!("/supply-corrections/{id}/approve")),
+        f.owner.clone(),
+    );
+    tokio::spawn(async move { common::send(&app, Method::POST, &url, None, Some(&owner)).await })
+}
+
+#[sqlx::test]
+async fn a_sale_during_an_approval_waits_and_splits_by_the_corrected_kg(pool: PgPool) {
+    let s = sold(pool.clone(), false).await;
+    let b = batch(&s).await;
+    let id = filed(
+        &s.f,
+        &b.id,
+        json!([{ "share_id": b.shares[1].0, "kg": "20" }]),
+    )
+    .await;
+    // The approval stops after its re-split read, holding the batch.
+    let mut holder = pause_on(&pool, PAUSE_CORRECTION).await;
+    let approval = approve_later(&s.f, &id);
+    assert!(waiting(&pool, 1).await, "approval paused");
+    let sale = sell_one(&s).await;
+    assert!(waiting(&pool, 2).await, "the sale waits for the approval");
+    sqlx::query("SELECT pg_advisory_unlock_all()")
+        .execute(&mut *holder)
+        .await
+        .unwrap();
+    let (status, res) = approval.await.unwrap();
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let (status, res) = sale.await.unwrap();
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    splits_match_corrected_kg(&s.f, &b.id).await;
+}
+
+#[sqlx::test]
+async fn an_approval_during_a_sale_waits_and_re_splits_it(pool: PgPool) {
+    let s = sold(pool.clone(), false).await;
+    let b = batch(&s).await;
+    let id = filed(
+        &s.f,
+        &b.id,
+        json!([{ "share_id": b.shares[1].0, "kg": "20" }]),
+    )
+    .await;
+    // The sale stops after it read the old weights, holding its stock and the batch (shared).
+    let mut holder = pause_on(&pool, PAUSE_SALE).await;
+    let sale = sell_one(&s).await;
+    assert!(waiting(&pool, 1).await, "sale paused");
+    let approval = approve_later(&s.f, &id);
+    assert!(waiting(&pool, 2).await, "the approval waits for the sale");
+    sqlx::query("SELECT pg_advisory_unlock_all()")
+        .execute(&mut *holder)
+        .await
+        .unwrap();
+    let (status, res) = sale.await.unwrap();
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let (status, res) = approval.await.unwrap();
+    assert_eq!(status, StatusCode::OK, "{res}");
+    splits_match_corrected_kg(&s.f, &b.id).await;
+}
+
+/// Independent oracle of the credit split: floor of each share, leftover units to the largest
+/// remainders, ties to the smaller person id (the list is sorted by person id).
+fn largest_remainder(total: i64, weights: &[(String, i128)]) -> Vec<i64> {
+    let sum: i128 = weights.iter().map(|w| w.1).sum();
+    let t = i128::from(total);
+    let mut out: Vec<i128> = weights.iter().map(|w| (t * w.1).div_euclid(sum)).collect();
+    let mut left = t - out.iter().sum::<i128>();
+    let mut order: Vec<usize> = (0..weights.len()).collect();
+    order.sort_by_key(|&i| std::cmp::Reverse((t * weights[i].1).rem_euclid(sum)));
+    for i in order {
+        if left == 0 {
+            break;
+        }
+        out[i] += 1;
+        left -= 1;
+    }
+    out.into_iter().map(|v| v as i64).collect()
+}

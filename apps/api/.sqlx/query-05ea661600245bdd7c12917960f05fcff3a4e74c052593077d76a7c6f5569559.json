@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.village_id, b.lot_id, l.code AS lot_code, l.product_id, b.currency_id\n           FROM farm_supply_batches b\n           JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id\n           WHERE b.workspace_id = $1 AND b.id = $2 AND ($3::bool OR b.village_id = ANY($4))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "lot_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "currency_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "05ea661600245bdd7c12917960f05fcff3a4e74c052593077d76a7c6f5569559"
+}
