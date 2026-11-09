@@ -1,6 +1,17 @@
 # Correcting a bought farm delivery: design
 
-Status: design only, nothing built. The user decides the open points listed under "Decisions" before any build starts.
+Status: design only, nothing built. The user decided the open points on 2026-11-09 (see "Decided 2026-11-09"). The build will be its own task.
+
+## Decided 2026-11-09
+
+| # | Decision |
+|---|---|
+| D2-a | Ops or admin files a correction. A **different** ops or admin approves it (four eyes). Officers can't do either. |
+| D2-b | A share can be corrected until the raw lot is sold out or the season closes, whichever comes first. |
+| D2-c | If the farmer was already paid out, their balance goes negative and is recovered from future credits. The payout desk keeps refusing any payout above the balance. |
+| D2-d | The farmer is notified by a passbook line, with the reason, in the Field app. SMS comes later and needs a third-party provider. |
+| D2-e | Kg only. A wrong farmer is fixed as two deltas (−A, +B) in one approval. No price corrections. |
+| D2-f | A cut is refused when the lot has already been dispatched over a supply link. More generally, any cut larger than the raw lot's free stock is refused. |
 
 ## The problem
 
