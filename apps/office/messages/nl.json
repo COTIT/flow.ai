@@ -1301,6 +1301,7 @@
       "messages": "bericht",
       "webhooks": "webhook",
       "payments": "betaling",
+      "currency_rates": "wisselkoers",
       "currencies": "valuta",
       "vat": "btw-groep",
       "workspace": "werkruimte",

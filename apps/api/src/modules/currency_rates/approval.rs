@@ -41,6 +41,7 @@ pub async fn capture(
     let (from, to) = service::checked(conn, ws, &rate).await?;
     let previous = repo::in_force(&mut *conn, ws, from.id, to.id, rate.effective_on).await?;
     let before = previous.as_ref().map(|p| p.rate.normalize().to_string());
+    let since = previous.as_ref().map(|p| p.effective_on);
     let facts = json!({
         "kind": "currency_rate",
         "locked": {
@@ -50,7 +51,10 @@ pub async fn capture(
             "to": {"id": to.id, "name": to.code, "code": to.code, "decimals": to.decimals},
             "previous": previous.map(|p| json!({"rate": before, "effective_on": p.effective_on})),
         },
-        "changes": [{"field": "rate", "before": before, "after": rate.rate.normalize().to_string()}],
+        "changes": [
+            {"field": "rate", "before": before, "after": rate.rate.normalize().to_string()},
+            {"field": "effective_on", "before": since, "after": rate.effective_on},
+        ],
         "effective_on": rate.effective_on,
         "note": rate.note,
         "source": "workspace",

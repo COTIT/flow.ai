@@ -59,6 +59,8 @@ const reviews = [
     request: "Set the euro to shilling rate to 3000 from 1 November.",
     details: {
       workspace: "w1",
+      // actions.ts names the card's record from the facts' locked label.
+      record: { type: "record", label: "EUR → TZS" },
       current: {
         kind: "currency_rate",
         locked: {
@@ -77,7 +79,10 @@ const reviews = [
           },
           previous: { rate: "2900", effective_on: "2026-10-01" },
         },
-        changes: [{ field: "rate", before: "2900", after: "3000" }],
+        changes: [
+          { field: "rate", before: "2900", after: "3000" },
+          { field: "effective_on", before: "2026-10-01", after: "2026-11-01" },
+        ],
         effective_on: "2026-11-01",
         note: null,
         source: "workspace",
@@ -90,13 +95,13 @@ const reviews = [
       },
     },
     shows: [
+      en.voice.resources.currency_rates,
       "EUR → TZS",
       "2900",
       "3000",
+      "2026-10-01",
       "2026-11-01",
-      en.voice.reviewFields.from_currency_id,
       en.voice.reviewFields.effective_on,
-      en.voice.reviewFields.previous,
     ],
   },
 ]

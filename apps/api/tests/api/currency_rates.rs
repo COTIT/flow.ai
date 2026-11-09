@@ -681,7 +681,8 @@ async fn review_card_shows_pair_old_and_new_rate_and_day(pool: PgPool) {
                        "from": {"id": w.eur, "name": "EUR", "code": "EUR", "decimals": 2},
                        "to": {"id": tzs, "name": "TZS", "code": "TZS", "decimals": 0},
                        "previous": null},
-            "changes": [{"field": "rate", "before": null, "after": "2950.5"}],
+            "changes": [{"field": "rate", "before": null, "after": "2950.5"},
+                        {"field": "effective_on", "before": null, "after": "2026-11-01"}],
             "effective_on": "2026-11-01",
             "note": "bank board",
             "source": "workspace",
@@ -698,7 +699,8 @@ async fn review_card_shows_pair_old_and_new_rate_and_day(pool: PgPool) {
     );
     assert_eq!(
         facts["changes"],
-        json!([{"field": "rate", "before": "2900", "after": "3000"}])
+        json!([{"field": "rate", "before": "2900", "after": "3000"},
+               {"field": "effective_on", "before": "2026-10-01", "after": "2026-11-01"}])
     );
     // Back-dated before every rate: nothing before again.
     let (_, facts) = w.propose(&w.owner, body("2800", "2026-09-01")).await;

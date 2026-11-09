@@ -1301,6 +1301,7 @@
       "messages": "ujumbe",
       "webhooks": "webhook",
       "payments": "malipo",
+      "currency_rates": "kiwango cha kubadilisha",
       "currencies": "sarafu",
       "vat": "kundi la VAT",
       "workspace": "eneo la kazi",

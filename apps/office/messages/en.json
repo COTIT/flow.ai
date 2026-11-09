@@ -1301,6 +1301,7 @@
       "messages": "message",
       "webhooks": "webhook",
       "payments": "payment",
+      "currency_rates": "exchange rate",
       "currencies": "currency",
       "vat": "VAT group",
       "workspace": "workspace",
