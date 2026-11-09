@@ -9,7 +9,7 @@ Paths under `/v1/workspace/{workspace}`. Bearer token; a non-member gets 404, a 
 - Answers echo the resolved instants and `time_zone`, the zone the dates were read in.
 - A sale follows the same rule as `GET /sales-summary` (`orders.md`): an order now `open`, `completed`, `partially_returned` or `returned`, counted at `confirmed_at` (else `paid_at`, `completed_at`, `created_at`). `source` (`office`, `storefront`, `till`, blank = all) narrows it.
 
-## Top customers `GET /sales/top-customers?from&to&source&limit` (`order.list` + `relation.list`)
+## Top customers `GET /sales/top-customers?from&to&source&limit&product_id&variant_id` (`order.list` + `relation.list`)
 
 ```json
 { "data": { "from": "…", "to": "…", "time_zone": "UTC", "source": null,
@@ -21,9 +21,11 @@ Paths under `/v1/workspace/{workspace}`. Bearer token; a non-member gets 404, a 
 - `rows`: the top `limit` customers per currency (default 5, 1 to 20; else a 422), by the totals incl VAT of their orders, then name, then id.
 - `without_customer`: orders with no relation (till walk-ins), never ranked. Zeros when there are none.
 - `relation.list` is required as well because the answer names customers.
-- Every total comes three ways: `gross_total` (incl VAT), `net_total` (the orders' `subtotal`, excl VAT) and `vat_total` (gross − net), so gross = net + VAT exactly. The same holds in best sellers and compare.
+- `product_id` ("who buys the most honey") ranks by that product's lines only: totals are `line_excl + line_vat`, `net_total` = `line_excl`, `vat_total` = `line_vat`, `orders` the orders holding it; other products on the same orders are left out. `without_customer` follows the same filter. `variant_id` keeps one size (alone or with `product_id`). Not a UUID: 422 on that field. An id from another account finds nothing (`currencies: []`).
+- Every total comes three ways: `gross_total` (incl VAT), `net_total` (the orders' `subtotal`, excl VAT) and `vat_total` (the orders' stored `vat`; the pricing engine writes total = subtotal + VAT), so gross = net + VAT exactly. The same holds in best sellers and compare (compare reads VAT as gross − net). All before refunds.
+- Line VAT is rounded per line; order VAT once per rate. With a product filter, `vat_total` can differ from that product's share of order VAT by a cent per line.
 
-## Best sellers `GET /sales/top-products?from&to&source&limit&by&product_id` (`order.list`)
+## Best sellers `GET /sales/top-products?from&to&source&limit&by&product_id&variant_id` (`order.list`)
 
 ```json
 { "data": { "from": "…", "to": "…", "time_zone": "UTC", "source": null, "by": "product",
@@ -35,7 +37,7 @@ Paths under `/v1/workspace/{workspace}`. Bearer token; a non-member gets 404, a 
 
 - Ranked per currency by line totals incl VAT (`line_excl + line_vat`), then product id. `units` is the summed quantity (2 decimals), `lines` the order lines, `orders` the distinct orders.
 - `by=variant` ranks each variant apart: `variant` is `{id, sku}`, or null for lines without one. `title` is the line title as sold, so it names the size. Any other `by` is a 422.
-- `product_id` keeps one product's lines (all its variants), so "how much honey did we sell in October" is one row. Not a UUID: 422 on `product_id`. An id from another account finds nothing (`currencies: []`). `net_total` = `line_excl`, `vat_total` = `line_vat`.
+- `product_id` keeps one product's lines (all its variants), so "how much honey did we sell in October" is one row. `variant_id` keeps one size's lines. Not a UUID: 422 on `product_id`. An id from another account finds nothing (`currencies: []`). `net_total` = `line_excl`, `vat_total` = `line_vat`.
 
 ## Compare periods `GET /sales/compare?from&to&compare_from&compare_to&source` (`order.list`)
 

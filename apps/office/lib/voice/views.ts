@@ -31,7 +31,16 @@ export type ResultView =
       from: string
       to: string
       source: string | null
-      rows: { currency: string; decimals: number; gross: number; refunded: number; orders: number }[]
+      // net/vat: before refunds; null when the API sent no VAT split.
+      rows: {
+        currency: string
+        decimals: number
+        gross: number
+        net: number | null
+        vat: number | null
+        refunded: number
+        orders: number
+      }[]
     }
   | { kind: "records"; resource: Resource; total: number; href: string; rows: RecordRow[] }
   | {
@@ -171,7 +180,7 @@ export function resultView(operationId: string, response: unknown): ResultView |
         const currency = text(row.currency), decimals = int(row.decimals)
         const gross = int(row.gross_total), refunded = int(row.refunded_total), orders = int(row.orders)
         return currency && decimals !== null && gross !== null && refunded !== null && orders !== null
-          ? [{ currency, decimals, gross, refunded, orders }]
+          ? [{ currency, decimals, gross, net: int(row.net_total), vat: int(row.vat_total), refunded, orders }]
           : []
       }),
     }

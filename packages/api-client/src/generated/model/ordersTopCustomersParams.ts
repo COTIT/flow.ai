@@ -28,7 +28,12 @@ limit?: number;
  */
 by?: string;
 /**
- * top-products only: just this product (all its variants), e.g. "how much honey sold".
+ * Just this product's lines (all its variants): "how much honey sold" (top-products),
+ * "who buys the most honey" (top-customers).
  */
 product_id?: string;
+/**
+ * Just this variant's (size's) lines.
+ */
+variant_id?: string;
 };

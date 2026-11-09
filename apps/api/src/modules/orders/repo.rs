@@ -667,6 +667,7 @@ pub async fn sales_summary(
         CurrencySales,
         r#"SELECT upper(c.asset_type) AS "currency!", c.decimals, count(*) AS "orders!",
                   sum(o.total)::bigint AS "gross_total!",
+                  sum(o.subtotal)::bigint AS "net_total!", sum(o.vat)::bigint AS "vat_total!",
                   coalesce(sum(r.amount), 0)::bigint AS "refunded_total!"
            FROM orders o
            JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id

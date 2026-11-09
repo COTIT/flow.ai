@@ -30,7 +30,11 @@ describe("resultView", () => {
         to: "2026-11-08T00:00:00+03:00",
         source: "till",
         currencies: [
-          { currency: "TZS", decimals: 0, gross_total: 1250000, refunded_total: 0, orders: 42 },
+          {
+            currency: "TZS", decimals: 0, gross_total: 1250000, net_total: 1059322,
+            vat_total: 190678, refunded_total: 0, orders: 42,
+          },
+          // An older API without the VAT split still renders.
           { currency: "USD", decimals: 2, gross_total: 9900, refunded_total: 100, orders: 3 },
         ],
       },
@@ -41,8 +45,8 @@ describe("resultView", () => {
       to: "2026-11-08T00:00:00+03:00",
       source: "till",
       rows: [
-        { currency: "TZS", decimals: 0, gross: 1250000, refunded: 0, orders: 42 },
-        { currency: "USD", decimals: 2, gross: 9900, refunded: 100, orders: 3 },
+        { currency: "TZS", decimals: 0, gross: 1250000, net: 1059322, vat: 190678, refunded: 0, orders: 42 },
+        { currency: "USD", decimals: 2, gross: 9900, net: null, vat: null, refunded: 100, orders: 3 },
       ],
     })
   })

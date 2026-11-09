@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH g AS (\n               SELECT upper(c.asset_type) AS currency, c.decimals, o.relation_id,\n                      count(*) AS orders,\n                      sum(coalesce(l.net, o.subtotal))::bigint AS net,\n                      sum(coalesce(l.vat, o.vat))::bigint AS vat\n               FROM orders o\n               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n               -- Filtered: that product's lines of the order; no filter: no row, order totals.\n               LEFT JOIN LATERAL (\n                   SELECT sum(ol.line_excl) AS net, sum(ol.line_vat) AS vat\n                   FROM order_lines ol\n                   WHERE ol.workspace_id = o.workspace_id AND ol.order_id = o.id\n                     AND ($6::uuid IS NULL OR ol.product_id = $6)\n                     AND ($7::uuid IS NULL OR ol.product_variant_id = $7)\n                   HAVING count(*) > 0) l ON $6::uuid IS NOT NULL OR $7::uuid IS NOT NULL\n               WHERE o.workspace_id = $1\n                 AND (($6::uuid IS NULL AND $7::uuid IS NULL) OR l.net IS NOT NULL)\n                 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')\n                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2\n                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3\n                 AND ($4::text IS NULL OR o.source = $4)\n               GROUP BY 1, 2, 3),\n           r AS (\n               SELECT g.*, g.net + g.vat AS gross,\n                      coalesce(nullif(rel.company_name, ''), rel.alias, '') AS name,\n                      row_number() OVER (\n                          PARTITION BY g.currency, g.relation_id IS NULL\n                          ORDER BY g.net + g.vat DESC, coalesce(nullif(rel.company_name, ''), rel.alias, ''),\n                                   g.relation_id) AS rank\n               FROM g\n               LEFT JOIN relations rel ON rel.workspace_id = $1 AND rel.id = g.relation_id)\n           SELECT r.currency AS \"currency!\", r.decimals AS \"decimals!\", r.relation_id,\n                  r.name AS \"name!\", r.orders AS \"orders!\", r.gross AS \"gross_total!\",\n                  r.net AS \"net_total!\", r.vat AS \"vat_total!\"\n           FROM r\n           WHERE r.relation_id IS NULL OR r.rank <= $5\n           ORDER BY r.currency, r.relation_id IS NULL, r.rank",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "gross_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "net_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "vat_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Int8",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "3347a9a8737693d9302ac4450fe6d876516af94fe7ea4c46390927f8621e5c83"
+}

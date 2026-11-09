@@ -89,6 +89,15 @@ describe("voice trigger words", () => {
     ["weka kiwango cha kubadilisha fedha", "currency_rates_create"],
     ["reken dit om naar euro", "currency_rates_convert"],
     ["wisselkoers instellen voor de shilling", "currency_rates_create"],
+    // revenue excl VAT, top buyer of one product (v1 re-probe gaps)
+    ["what's our revenue this month, excluding VAT?", "orders_sales_summary"],
+    ["net sales ex VAT for October", "orders_sales_summary"],
+    ["omzet deze maand ex btw", "orders_sales_summary"],
+    ["mapato ya mwezi huu bila VAT", "orders_sales_summary"],
+    ["who buys the most cardamom", "orders_top_customers"],
+    ["who is our top customer for cardamom", "orders_top_customers"],
+    ["wie koopt de meeste kardemom", "orders_top_customers"],
+    ["nani ananunua iliki zaidi", "orders_top_customers"],
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
   })

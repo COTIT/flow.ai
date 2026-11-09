@@ -542,5 +542,41 @@
       "historia ya viwango",
       "kiwango cha sasa"
     ]
+  },
+  "orders_sales_summary": {
+    "en": [
+      "revenue",
+      "turnover",
+      "excluding",
+      "excl",
+      "ex vat",
+      "vat",
+      "net",
+      "takings",
+      "income"
+    ],
+    "nl": ["omzet", "exclusief", "excl", "ex btw", "btw", "netto", "inkomsten"],
+    "sw": ["mapato", "mauzo", "bila vat", "bila", "vat", "kodi"]
+  },
+  "orders_top_customers": {
+    "en": [
+      "buys",
+      "buyer",
+      "buyers",
+      "most",
+      "biggest",
+      "customer",
+      "customers"
+    ],
+    "nl": ["koopt", "kopen", "meeste", "grootste", "beste", "klant", "klanten"],
+    "sw": [
+      "ananunua",
+      "wananunua",
+      "mnunuzi",
+      "wanunuzi",
+      "zaidi",
+      "mteja",
+      "wateja"
+    ]
   }
 }

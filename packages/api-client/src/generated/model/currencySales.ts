@@ -14,6 +14,11 @@ export interface CurrencySales {
   decimals: number;
   /** Their totals incl VAT, minor units, before any refund or return. */
   gross_total: number;
+  /**
+     * Their stored subtotals (excl VAT, after line discounts), minor units, before refunds:
+     * revenue excluding VAT. `net_total + vat_total = gross_total`.
+     */
+  net_total: number;
   /** Orders sold in the range. */
   orders: number;
   /**
@@ -21,4 +26,6 @@ export interface CurrencySales {
      * Credit notes and cash handed back outside the API are not in it.
      */
   refunded_total: number;
+  /** Their stored VAT, minor units, before refunds. */
+  vat_total: number;
 }

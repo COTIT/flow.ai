@@ -16,7 +16,7 @@
   { "id": "orders-bulk-delivered", "module": "orders", "lang": "en", "kind": "write", "turns": ["Mark all of today's picked orders as delivered."], "expect": { "outcome": "review", "ops": ["orders_complete"] } },
   { "id": "orders-split", "module": "orders", "lang": "en", "kind": "write", "turns": ["Split the newest order into two deliveries."], "expect": { "outcome": "review" }, "gap": "no split-delivery operation" },
   { "id": "orders-discount", "module": "orders", "lang": "en", "kind": "write", "turns": ["Give Hollow Oak Bakery's latest order a 10% discount."], "expect": { "outcome": "review", "ops": ["orders_update", "discounts_create"] } },
-  { "id": "orders-top-customer", "module": "orders", "lang": "en", "kind": "read", "turns": ["Who is our top customer for Cardamom?"], "expect": { "outcome": "answer", "ops": ["orders_sales_summary", "products_sale_statics", "relations_financial_summary", "orders_top_customers"] } },
+  { "id": "orders-top-customer", "module": "orders", "lang": "en", "kind": "read", "turns": ["Who is our top customer for Cardamom?"], "expect": { "outcome": "answer", "ops": ["orders_top_customers"] } },
   { "id": "orders-undo", "module": "orders", "lang": "en", "kind": "write", "turns": ["Cancel our newest draft order.", "Wait, undo that."], "expect": { "outcome": "review", "ops": ["orders_cancel", "orders_delete"] } },
 
   { "id": "products-add", "module": "products", "lang": "en", "kind": "write", "turns": ["Add a new product, Ginger Tea, at 6 dollars 50."], "expect": { "outcome": "review", "ops": ["products_create"] } },
@@ -52,7 +52,7 @@
   { "id": "invoices-paid-cash", "module": "invoices", "lang": "en", "kind": "write", "turns": ["Brightwater Co-op paid their oldest open invoice in cash. Mark it paid."], "expect": { "outcome": "review", "ops": ["invoice_payments_create"] } },
   { "id": "invoices-partial", "module": "invoices", "lang": "en", "kind": "write", "turns": ["Pine Needle Market paid 20 dollars on their open invoice."], "expect": { "outcome": "review", "ops": ["invoice_payments_create"] } },
   { "id": "invoices-credit-note", "module": "invoices", "lang": "en", "kind": "write", "turns": ["Make a credit note for our last paid invoice."], "expect": { "outcome": "review", "ops": ["invoices_credit"] } },
-  { "id": "invoices-revenue-ex-vat", "module": "invoices", "lang": "en", "kind": "read", "turns": ["What's our revenue this month, excluding VAT?"], "expect": { "outcome": "answer", "ops": ["invoices_list", "orders_sales_summary"] } },
+  { "id": "invoices-revenue-ex-vat", "module": "invoices", "lang": "en", "kind": "read", "turns": ["What's our revenue this month, excluding VAT?"], "expect": { "outcome": "answer", "ops": ["orders_sales_summary"] } },
   { "id": "invoices-export", "module": "invoices", "lang": "en", "kind": "read", "turns": ["Export last month's invoices for our accountant."], "expect": { "outcome": "answer", "ops": ["invoices_list", "invoices_preview", "invoices_export"] } },
   { "id": "invoices-currency", "module": "invoices", "lang": "en", "kind": "read", "turns": ["What is our newest invoice total in Tanzanian shillings?"], "expect": { "outcome": "answer", "ops": ["currencies_list", "invoices_list"] } },
 
