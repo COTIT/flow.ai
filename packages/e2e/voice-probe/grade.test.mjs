@@ -176,3 +176,8 @@ test("a review card the probe could not cancel is a UI defect", () => {
   assert.equal(r.class, "works")
   assert.deepEqual(r.defects.map((d) => d.kind), ["review_card_unstable"])
 })
+
+test("rich result cards are checked for raw codes too", () => {
+  const rec = record({ messages: [{ role: "result", text: "Order 3f2b9c1e-1111-4222-8333-444455556666" }, { role: "agent", text: "Done looking." }] })
+  assert.deepEqual(grade(scenario({ outcome: "answer", ops: ["orders_list"] }), rec, catalog).defects.map((d) => d.kind), ["raw_uuid"])
+})

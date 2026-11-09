@@ -133,12 +133,17 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const resultsDir = new URL("results/", dir)
   if (!existsSync(resultsDir)) throw new Error("no results: run the probe first (pnpm voice-probe)")
   const catalog = JSON.parse(readFileSync(new URL("../../../apps/office/lib/voice/catalog.generated.json", import.meta.url), "utf8"))
+  const current = JSON.parse(readFileSync(new URL(`./${bank}.json`, import.meta.url), "utf8"))
   const results = readdirSync(resultsDir)
     .filter((f) => f.endsWith(".json"))
     .map((f) => JSON.parse(readFileSync(new URL(f, resultsDir), "utf8")))
     // Re-grade from the raw record, so results from before a grader fix are judged by today's rules.
-    .map((r) => ({ ...r, verdict: grade(r.scenario, r.record, catalog) }))
-  const total = JSON.parse(readFileSync(new URL(`./${bank}.json`, import.meta.url), "utf8")).length
+    // Today's expectations for each scenario (e.g. a newly accepted operation), not the copy saved with the result.
+    .map((r) => {
+      const scenario = current.find((s) => s.id === r.scenario.id) ?? r.scenario
+      return { ...r, scenario, verdict: grade(scenario, r.record, catalog) }
+    })
+  const total = current.length
   const target = process.env.VOICE_PROBE_URL ? "staging (VOICE_PROBE_URL)" : "local full stack"
   const summary = summarize(results, { total, target })
   const stopped = new URL("provider-stopped.txt", dir)
