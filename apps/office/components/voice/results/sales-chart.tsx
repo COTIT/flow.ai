@@ -61,6 +61,11 @@ export function SalesChart({ views }: { views: Sales[] }) {
                       </span>
                     </span>
                   </div>
+                  {row && row.net !== null ? (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {t("netBeforeRefunds", { amount: formatMoney(row.net, row.decimals, currency, locale) })}
+                    </span>
+                  ) : null}
                   <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="h-2.5 w-full">
                     <rect width="100" height="8" rx="4" className="fill-(--hair)" />
                     {row && row.gross > 0 ? (
@@ -78,6 +83,8 @@ export function SalesChart({ views }: { views: Sales[] }) {
           <tr>
             <th scope="col" className="py-1 pr-2 font-medium">{t("periodColumn")}</th>
             <th scope="col" className="py-1 pr-2 text-right font-medium">{t("gross")}</th>
+            <th scope="col" className="py-1 pr-2 text-right font-medium">{t("net")}</th>
+            <th scope="col" className="py-1 pr-2 text-right font-medium">{t("vat")}</th>
             <th scope="col" className="py-1 pr-2 text-right font-medium">{t("refunded")}</th>
             <th scope="col" className="py-1 text-right font-medium">{t("resources.orders")}</th>
           </tr>
@@ -88,6 +95,8 @@ export function SalesChart({ views }: { views: Sales[] }) {
               <tr key={`${currency}${label}`} className="border-t border-(--hair)">
                 <th scope="row" className="py-1 pr-2 font-normal">{label}</th>
                 <td className="py-1 pr-2 text-right">{row ? formatMoney(row.gross, row.decimals, currency, locale) : "—"}</td>
+                <td className="py-1 pr-2 text-right">{row && row.net !== null ? formatMoney(row.net, row.decimals, currency, locale) : "—"}</td>
+                <td className="py-1 pr-2 text-right">{row && row.vat !== null ? formatMoney(row.vat, row.decimals, currency, locale) : "—"}</td>
                 <td className="py-1 pr-2 text-right">{row ? formatMoney(row.refunded, row.decimals, currency, locale) : "—"}</td>
                 <td className="py-1 text-right">{row?.orders ?? 0}</td>
               </tr>
