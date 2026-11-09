@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM supply_transfers t\n               JOIN lots l ON l.workspace_id = t.from_workspace_id AND l.id = t.from_lot_id\n               WHERE t.from_workspace_id = $1 AND (l.id = $2 OR l.parent_lot_id = $2)) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "94965fbe5b568a12605e0da1a20152e1e6600f9a6ced02b20f039bafaa394e48"
+}

@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 
 /// Propose `operation` as `token`; (status, review facts or error body).
-async fn propose(
+pub(crate) async fn propose(
     f: &Farm,
     token: &str,
     operation: &str,

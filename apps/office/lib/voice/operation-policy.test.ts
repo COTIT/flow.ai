@@ -355,18 +355,32 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(478)
-    expect(tools).toHaveLength(393)
+    expect(operationManifest).toHaveLength(483)
+    expect(tools).toHaveLength(396)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(28)
+    ).toHaveLength(30)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
     ).toBe(true)
+  })
+
+  it("files delivery corrections by voice but leaves the four-eyes decision to the Office", () => {
+    const request = getOperation("farm_supply_correction_request")!
+    expect(request.disposition).toBe("execute")
+    expect(request.risk).toBe("high")
+    expect(request.retry).toEqual({ mode: "client_reference", field: "client_ref" })
+    for (const id of [
+      "farm_supply_correction_approve",
+      "farm_supply_correction_reject",
+    ]) {
+      expect(getOperation(id)?.disposition).toBe("internal")
+      expect(discoverTools(id, ["farm:ops", "farm:admin"])).toEqual([])
+    }
   })
 
   it("keeps device and secret flows out of executable tools", () => {

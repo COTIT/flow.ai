@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT x.person_id AS \"person_id!\", sum(x.amount)::bigint AS \"amount!\"\n           FROM farm_sale_attributions a\n           CROSS JOIN LATERAL (\n               SELECT e.person_id, e.amount FROM farm_passbook_entries e WHERE e.attribution_id = a.id\n               UNION ALL\n               SELECT c.person_id, c.amount FROM farm_supply_correction_splits c\n               WHERE c.attribution_id = a.id\n           ) x\n           WHERE a.sold_workspace_id = $1 AND a.order_id = $2 AND a.sold_lot_id = $3\n             AND a.kind = 'return'\n           GROUP BY x.person_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "person_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "b5dadd326e8614ae69a6adc7c966e3b50b0aa48dfda0679752c8ac2cc354d535"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id AS \"id!\", l.kind AS \"kind!\", l.amount AS \"amount!\",\n                  l.balance_after AS \"balance_after!\", l.currency_id AS \"currency_id!\",\n                  l.currency AS \"currency!\", l.decimals AS \"decimals!\",\n                  l.attribution_id, l.payout_id, l.created_at AS \"created_at!\"\n           FROM (\n               SELECT e.id, e.kind, e.amount,\n                      sum(e.amount) OVER (PARTITION BY e.currency_id ORDER BY e.created_at, e.id)::bigint\n                          AS balance_after,\n                      e.currency_id, c.asset_type AS currency, c.decimals, e.attribution_id,\n                      e.payout_id, e.created_at\n               FROM farm_passbook_entries e\n               JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id\n               WHERE e.workspace_id = $1 AND e.person_id = $2\n           ) l\n           WHERE ($3::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date >= $3)\n             AND ($4::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date <= $4)\n           ORDER BY l.created_at DESC, l.id DESC LIMIT $5 OFFSET $6",
+  "query": "SELECT l.id AS \"id!\", l.kind AS \"kind!\", l.amount AS \"amount!\",\n                  l.balance_after AS \"balance_after!\", l.currency_id AS \"currency_id!\",\n                  l.currency AS \"currency!\", l.decimals AS \"decimals!\",\n                  l.attribution_id, l.payout_id, l.correction_id, c.reason AS \"reason?\",\n                  l.created_at AS \"created_at!\"\n           FROM (\n               SELECT e.id, e.kind, e.amount,\n                      sum(e.amount) OVER (PARTITION BY e.currency_id ORDER BY e.created_at, e.id)::bigint\n                          AS balance_after,\n                      e.currency_id, c.asset_type AS currency, c.decimals, e.attribution_id,\n                      e.payout_id, e.correction_id, e.created_at\n               FROM farm_passbook_entries e\n               JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id\n               WHERE e.workspace_id = $1 AND e.person_id = $2\n           ) l\n           LEFT JOIN farm_supply_corrections c ON c.id = l.correction_id\n           WHERE ($3::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date >= $3)\n             AND ($4::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date <= $4)\n           ORDER BY l.created_at DESC, l.id DESC LIMIT $5 OFFSET $6",
   "describe": {
     "columns": [
       {
@@ -99,6 +99,28 @@
       },
       {
         "ordinal": 9,
+        "name": "correction_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "correction_id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "reason?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
         "name": "created_at!",
         "type_info": "Timestamptz",
         "origin": {
@@ -129,8 +151,10 @@
       false,
       true,
       true,
+      true,
+      false,
       false
     ]
   },
-  "hash": "0c364f9fa9716ddc21d5e8202f46a48d1758c7c5e5b035c2b525b2d35a60b611"
+  "hash": "f6ca264769e8f9e07d45a8b45465d9ba0b6ad750e003f3c37094ab8c314d113c"
 }

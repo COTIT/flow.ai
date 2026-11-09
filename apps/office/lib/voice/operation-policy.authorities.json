@@ -30,7 +30,7 @@
   "apps/api/src/modules/assistant/repo.rs": "f1a9f28ae67ed493123ddb50356ab50252c0ff8ce5e07226888ce3155ca70567",
   "apps/api/src/modules/assistant/retention.rs": "e02361c7141a69fd8d3c2307fe73fae8603cbf7ba8543506797bc683b7fea0ef",
   "apps/api/src/modules/assistant/routes.rs": "28806bb3bd620a2a25aaaf0fbf362305cd9972632158523fbd841f5083c138ba",
-  "apps/api/src/modules/assistant/service.rs": "4b9a1d82852107437e55f44d31e2aad0e692081657f64a9f971ce1149fcbfb02",
+  "apps/api/src/modules/assistant/service.rs": "f35a5c67e54aea6858bf574edc5c6a0aceaba3fd3ec2169b7e2da0a198c8c706",
   "apps/api/src/modules/attention/handlers.rs": "afaa4f5b5aae9184ec19401477f04943a43cd5b56c7b361095a636a7e53e1ae2",
   "apps/api/src/modules/attention/service.rs": "b584cb928540894bd12013cf1a74c29145e8e671337291a1f8f902e678c86b57",
   "apps/api/src/modules/auth/handlers.rs": "bbd5f11896f4569c969e517a72746b61674423bacc2dabe87deda3d7225f49a4",
@@ -91,6 +91,8 @@
   "apps/api/src/modules/farm_records/service.rs": "f220ac0dde5eb0e961acbb0ca4658060d4924c1e4fee861df3d43e50afd63ce6",
   "apps/api/src/modules/farm_supply/handlers.rs": "2ed7dbcc6421f5babd652c1895b48b9a1d03d6686b220fdf5939e4ec9f401758",
   "apps/api/src/modules/farm_supply/service.rs": "83e50732a52adb0224780fd66c689ed5fb025de0abc70041d3bc60645059b0bc",
+  "apps/api/src/modules/farm_supply_corrections/handlers.rs": "1749edc64c01d87c18cf60da224c880fbc854e49a08959660705d08f48eba96e",
+  "apps/api/src/modules/farm_supply_corrections/service.rs": "4a4c64c840df24a4c258de6a9faa2d9ce41b5604502d41cb494cef46cdf5f7a9",
   "apps/api/src/modules/farm_surveys/handlers.rs": "0dffaeb50f614e512e095c693bb3b2e86f9235c7e7691577e33fc7da12c9429f",
   "apps/api/src/modules/farm_surveys/service.rs": "c36d4a3a454c7ec6a5ff14f5702baa390751bddd65d71e4a05f92fc57236d993",
   "apps/api/src/modules/farm_tower/handlers.rs": "0052273a6e37d6fdb1cd2802310891ef1b3fe10cd6f2568be5e951b297af39f0",
@@ -214,5 +216,5 @@
   "apps/api/src/modules/workspaces/handlers.rs": "9766a5f326a08ba1db481f15cfa6a6e00cdc8446f98761a5cdcac7fa5edf4297",
   "apps/api/src/modules/workspaces/service.rs": "6b8b6c901d71387f37a1c0eadbf237fd4d97b17953e48a512bbf36aaf74909f6",
   "apps/api/src/money.rs": "ec8929ded1c344ea115e88323e3d348017948219920c361d066deb656d5c3b1f",
-  "apps/api/src/openapi.rs": "20a96d82d25b3ed847eaf8f48691dab7b01282db1b27d0d038cc69e64c1b0745"
+  "apps/api/src/openapi.rs": "41f78cc6dad4a4e670383cc64fc6c2deea5e974af17ed4f747ea755465a49dd8"
 }

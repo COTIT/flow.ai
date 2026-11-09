@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT e.person_id, sum(e.amount)::bigint AS \"amount!\"\n           FROM farm_sale_attributions a\n           JOIN farm_passbook_entries e ON e.attribution_id = a.id\n           WHERE a.sold_workspace_id = $1 AND a.order_id = $2 AND a.sold_lot_id = $3\n             AND a.kind = 'return'\n           GROUP BY e.person_id",
+  "query": "SELECT person_id, sum(amount)::bigint AS \"amount!\" FROM farm_passbook_entries\n           WHERE workspace_id = $1 AND currency_id = $2 AND person_id = ANY($3)\n           GROUP BY person_id",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       "Left": [
         "Uuid",
         "Uuid",
-        "Uuid"
+        "UuidArray"
       ]
     },
     "nullable": [
@@ -33,5 +33,5 @@
       null
     ]
   },
-  "hash": "d3a7baa9080f56804439104d72012fb1733534ac8bc6a93299193623ecf30de8"
+  "hash": "2c92c285435ae1a5f8402ab8304e70025ef86169282fd04534b7db5f0f8aae9d"
 }

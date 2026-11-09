@@ -61,6 +61,7 @@ export const ROUTE_SEGMENTS = new Set([
   "accept-invitation",
   "app-keys",
   "categories",
+  "corrections",
   "design",
   "healthz",
   "invites",

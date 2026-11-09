@@ -25,9 +25,11 @@ pub struct BatchRow {
 
 /// One share line.
 pub struct LineRow {
+    pub id: Uuid,
     pub batch_id: Uuid,
     pub harvest_report_id: Uuid,
     pub person_id: Uuid,
+    pub farmer_name: String,
     pub kg: Decimal,
 }
 
@@ -262,9 +264,12 @@ pub async fn lines(
 ) -> Result<Vec<LineRow>, sqlx::Error> {
     sqlx::query_as!(
         LineRow,
-        "SELECT batch_id, harvest_report_id, person_id, kg FROM farm_supply_shares
-         WHERE workspace_id = $1 AND batch_id = ANY($2)
-         ORDER BY batch_id, harvest_report_id",
+        r#"SELECT s.id, s.batch_id, s.harvest_report_id, s.person_id,
+                  concat_ws(' ', p.given_name, p.family_name) AS "farmer_name!", s.kg
+           FROM farm_supply_shares s
+           JOIN farm_persons p ON p.workspace_id = s.workspace_id AND p.id = s.person_id
+           WHERE s.workspace_id = $1 AND s.batch_id = ANY($2)
+           ORDER BY s.batch_id, s.harvest_report_id"#,
         workspace_id,
         batch_ids,
     )
@@ -291,8 +296,11 @@ pub async fn public_groups(
         r#"SELECT v.name AS village, count(DISTINCT s.person_id) AS "farmers!",
                   min(c.harvest_start) AS harvest_start, max(c.harvest_end) AS harvest_end
            FROM farm_supply_batches b
-           JOIN farm_supply_shares s ON s.batch_id = b.id
-           JOIN farm_villages v ON v.workspace_id = s.workspace_id AND v.id = s.village_id
+           -- Effective kg: a farmer whose kg were all moved away no longer counts.
+           JOIN (SELECT batch_id, village_id, person_id, harvest_report_id
+                 FROM farm_supply_share_kg WHERE workspace_id = $1
+                 GROUP BY 1, 2, 3, 4 HAVING sum(kg) > 0) s ON s.batch_id = b.id
+           JOIN farm_villages v ON v.workspace_id = b.workspace_id AND v.id = s.village_id
            JOIN farm_harvest_reports h ON h.id = s.harvest_report_id
            JOIN farm_crop_cycles c ON c.id = h.crop_cycle_id
            WHERE b.workspace_id = $1 AND b.lot_id = $2
@@ -386,7 +394,24 @@ pub struct WeightRow {
     pub kg: Decimal,
 }
 
-/// Each farmer's kg in `batch_id`, by person id.
+/// Hold `batch_id` FOR SHARE until the transaction ends: a correction approval (FOR UPDATE)
+/// can't re-split the batch between this sale's weight read and its commit.
+pub async fn share_batch(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    batch_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "SELECT id FROM farm_supply_batches WHERE workspace_id = $1 AND id = $2 FOR SHARE",
+        workspace_id,
+        batch_id,
+    )
+    .fetch_optional(conn)
+    .await?;
+    Ok(())
+}
+
+/// Each farmer's effective kg in `batch_id` (shares plus approved corrections), by person id.
 pub async fn weights(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -394,9 +419,10 @@ pub async fn weights(
 ) -> Result<Vec<WeightRow>, sqlx::Error> {
     sqlx::query_as!(
         WeightRow,
-        r#"SELECT person_id, village_id, sum(kg)::numeric(12,2) AS "kg!" FROM farm_supply_shares
+        r#"SELECT person_id AS "person_id!", village_id AS "village_id!",
+                  sum(kg)::numeric(12,2) AS "kg!" FROM farm_supply_share_kg
            WHERE workspace_id = $1 AND batch_id = $2
-           GROUP BY person_id, village_id ORDER BY person_id"#,
+           GROUP BY person_id, village_id HAVING sum(kg) > 0 ORDER BY person_id"#,
         workspace_id,
         batch_id,
     )
@@ -526,13 +552,19 @@ pub async fn returned_so_far(
     )
     .fetch_one(&mut *conn)
     .await?;
+    // Corrections re-split returns too (their splits rows): count them, or the next return drifts.
     let lines = sqlx::query!(
-        r#"SELECT e.person_id, sum(e.amount)::bigint AS "amount!"
+        r#"SELECT x.person_id AS "person_id!", sum(x.amount)::bigint AS "amount!"
            FROM farm_sale_attributions a
-           JOIN farm_passbook_entries e ON e.attribution_id = a.id
+           CROSS JOIN LATERAL (
+               SELECT e.person_id, e.amount FROM farm_passbook_entries e WHERE e.attribution_id = a.id
+               UNION ALL
+               SELECT c.person_id, c.amount FROM farm_supply_correction_splits c
+               WHERE c.attribution_id = a.id
+           ) x
            WHERE a.sold_workspace_id = $1 AND a.order_id = $2 AND a.sold_lot_id = $3
              AND a.kind = 'return'
-           GROUP BY e.person_id"#,
+           GROUP BY x.person_id"#,
         sold_workspace_id,
         order_id,
         lot_id,

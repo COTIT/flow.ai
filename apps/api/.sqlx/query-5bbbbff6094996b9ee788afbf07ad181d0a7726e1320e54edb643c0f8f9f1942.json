@@ -1,0 +1,127 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.village_id, c.batch_id, c.reason, c.requested_by, c.requested_at,\n                  d.decision AS \"decision?\", d.decided_by AS \"decided_by?\",\n                  d.decided_at AS \"decided_at?\"\n           FROM farm_supply_corrections c\n           LEFT JOIN farm_supply_correction_decisions d ON d.correction_id = c.id\n           WHERE c.workspace_id = $1 AND c.id = $2 AND ($3::bool OR c.village_id = ANY($4))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "batch_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "batch_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "requested_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "requested_by"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "requested_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "requested_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "decision?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_decisions",
+            "name": "decision"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "decided_by?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_decisions",
+            "name": "decided_by"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "decided_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_decisions",
+            "name": "decided_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5bbbbff6094996b9ee788afbf07ad181d0a7726e1320e54edb643c0f8f9f1942"
+}

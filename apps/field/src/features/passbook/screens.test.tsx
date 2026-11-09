@@ -19,7 +19,7 @@ const { MyPassbookScreen, MyPassbookCard, PersonPassbookSection } = await import
 const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'tzs' })
 const ok = <T,>(data: T) => ({ isLoading: false, error: null, data, refetch: vi.fn() })
 const notFound = { isLoading: false, error: { isAxiosError: true, response: { status: 404, data: { message: 'Not found.' } } }, data: undefined, refetch: vi.fn() }
-const credit = { id: 'l1', kind: 'sale_credit', amount: tzs(500000), balance_after: tzs(500000), attribution_id: null, payout_id: null, created_at: '2026-11-01T08:00:00Z' }
+const credit = { id: 'l1', kind: 'sale_credit', amount: tzs(500000), balance_after: tzs(500000), attribution_id: null, payout_id: null, correction_id: null, reason: null, created_at: '2026-11-01T08:00:00Z' }
 
 beforeEach(() => {
   vi.clearAllMocks()

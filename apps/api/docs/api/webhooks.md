@@ -13,6 +13,7 @@ The spec lists the names as enum `WebhookEvent`.
 | `order.created` | an order is created (office draft or web checkout) | `order_id, number, status, source, currency, subtotal, vat, total` (minor units). Never customer details. |
 | `lot.created` | a lot is created | `lot_id, product_id, code, public_code` |
 | `lot.status_changed` | a lot's status changes, by PATCH or because a lot it was packed from went off sale (one event per lot) | `lot_id, product_id, code, public_code, from, to` |
+| `supply.corrected` | an approved kg correction re-split a supply batch's credits; sent in the farm workspace only | `correction_id, batch_id, farmers` (count whose money moved), `net_kg` (decimal string). Each farmer's amount is in their passbook. |
 | `supply.source_status_changed` | a lot this workspace received (or is receiving) over a supply link changed status at the sender; sent in the receiving workspace only | `transfer_id, to_lot_id` (null until received), `from_lot_code, status` |
 | `passport.published` | a lot's passport is published (each new version) | `lot_id, product_id, public_code, version` |
 | `sale.attributed` | farmers of a supply lot were credited for a sale (`kind: sale`) or debited for a return (`kind: return`); sent in the farm workspace only | `attribution_id, kind, sold_workspace_id, order_number, sold_lot_id, batch_id, jars` (decimal string), `price_per_kg, currency_id, total` (minor units), `farmers` (count). Each farmer's amount is in their passbook. |

@@ -15647,5 +15647,180 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "farm_supply_correction_request": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/farm/supply-batches/{batch}/corrections",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative",
+        "FarmAccess::manages required; resource-specific checks still apply",
+        "Kg only; target kg per share and farmer; refused when raw lot sold out, dispatched cut, short free stock or over-commitment",
+        "Files a pending request only; a different ops/admin approves in the Office"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply_corrections/handlers.rs#create",
+        "apps/api/src/modules/farm_supply_corrections/service.rs"
+      ],
+      "roleAnyOf": ["ops", "admin"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "client_reference",
+      "field": "client_ref"
+    },
+    "confirmationFields": []
+  },
+  "farm_supply_correction_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/supply-corrections",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative",
+        "Staff role and applicable village scope required"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply_corrections/handlers.rs#list",
+        "apps/api/src/modules/farm_supply_corrections/service.rs"
+      ],
+      "roleAnyOf": ["field_officer", "ops", "admin"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_supply_correction_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/supply-corrections/{correction}",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative",
+        "Staff role and applicable village scope required"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply_corrections/handlers.rs#get",
+        "apps/api/src/modules/farm_supply_corrections/service.rs"
+      ],
+      "roleAnyOf": ["field_officer", "ops", "admin"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_supply_correction_approve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/farm/supply-corrections/{correction}/approve",
+    "disposition": "internal",
+    "reason": "Four-eyes approval of a farmer money and stock change stays in the Office corrections page; never by voice",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative",
+        "FarmAccess::manages required; resource-specific checks still apply",
+        "Four eyes: decider is not the requester (service + DB CHECK)"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply_corrections/handlers.rs#approve",
+        "apps/api/src/modules/farm_supply_corrections/service.rs"
+      ],
+      "roleAnyOf": ["ops", "admin"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "stock", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_supply_correction_reject": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/farm/supply-corrections/{correction}/reject",
+    "disposition": "internal",
+    "reason": "Four-eyes decision on a delivery correction stays in the Office corrections page; never by voice",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative",
+        "FarmAccess::manages required; resource-specific checks still apply",
+        "Four eyes: decider is not the requester (service + DB CHECK)"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply_corrections/handlers.rs#reject",
+        "apps/api/src/modules/farm_supply_corrections/service.rs"
+      ],
+      "roleAnyOf": ["ops", "admin"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }

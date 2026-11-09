@@ -79,10 +79,45 @@ It goes through the products service like `POST /products` (numbering, default v
 
 Staff only (farmers `403`). Field officers see their villages' batches; ops and admin see all. Lists are newest first. Another village's or workspace's batch is `404`.
 
-Batch: `{id, client_ref, village_id, crop_id, price_per_kg, currency_id, kg_total, lot: {id, code, public_code}, lines: [{harvest_report_id, person_id, kg}] (by harvest id), created_by, created_at}`.
+Batch: `{id, client_ref, village_id, crop_id, price_per_kg, currency_id, kg_total, lot: {id, code, public_code}, lines: [{share_id, harvest_report_id, person_id, farmer_name, kg}] (by harvest id; `kg` is the frozen bought figure, corrections show under `/farm/supply-corrections`), created_by, created_at}`.
 
 ## `GET …/farm/quiet-farmers?since&village_id&page&page_size`
 
 Farmers who have not delivered since a day. Staff only (farmers `403`): field officers see the live persons registered in their villages, ops and admin see everyone. `since` (`YYYY-MM-DD`) is a Tanzania day; without it, 30 days before today. A person is listed when their last bought kg (a supply batch line, `farm_supply_shares`) was created before that day, or when they never delivered. Harvest figures don't count as deliveries. `village_id` narrows to one village.
 
 Row: `{person_id, name, village_id, village, last_delivery_at}`, where `last_delivery_at` is null for never. Persons who never delivered come first, then the oldest delivery, then by name. Paged `{data, meta}`. `422` on a malformed `since` (`The since must be a date (YYYY-MM-DD).`) or a malformed `village_id`.
+
+## Corrections
+
+A bought delivery's kg are never edited. A correction is a request, a decision by a second person, and on approval new rows only. Kg only; a price is never corrected.
+
+### `POST …/farm/supply-batches/{batch}/corrections`
+
+ops or admin (officers and farmers `403`). Body `{client_ref, reason (1-500), lines: [{share_id, person_id?, kg}]}` with 1-50 lines. `kg` is the kg the farmer should have on that share line (0 or more, 2 decimals); `person_id` defaults to the share's farmer. A wrong farmer is two lines on one share: the share's farmer to less, the right farmer (a person of the batch's village) to more. The API stores the change against the current effective kg.
+
+`201` pending; the same `client_ref` and body replay `200`; another body or member under it `409`. `422`:
+- a share of another batch, a farmer outside the village, a line listed twice, a kg equal to the current one;
+- `batch`: the raw lot is sold out (no stock left in any warehouse);
+- `lines`: a cut (net kg below 0) when the raw lot or a lot packed from it was dispatched over a supply link, or a cut larger than the raw lot's free stock in its main warehouse;
+- `lines`: an increase past the harvest's figure (`over-commitment: …`, the batch create wording).
+
+The "season closed" window of D2-b is not enforced yet: it waits for a season-close feature.
+
+### `GET …/farm/supply-corrections?status&batch_id&page&page_size`, `GET …/farm/supply-corrections/{correction}`
+
+Staff of the batch's village (ops and admin: all). `status` is `pending`, `approved` or `rejected`. Correction: `{id, batch_id, village_id, status, reason, requested_by, requested_at, decided_by, decided_at, net_kg, lines: [{share_id, person_id, farmer_name, kg_delta, kg_before, kg_after}], farmers: [{person_id, name, change, balance_after}]}`. While pending, `kg_before`/`kg_after` and `farmers` preview the approval (money as `{minor, currency, decimals, currency_id}`; a negative `balance_after` means the farmer will owe the co-op). Once approved, `farmers` lists the posted passbook amounts and the kg fields are null. Rejected: no farmers.
+
+### `POST …/farm/supply-corrections/{correction}/approve`, `…/reject`
+
+ops or admin other than the requester (`403`; the schema also refuses it: `CHECK (decided_by <> requested_by)`). Decided once (`409`). Reject records the decision only.
+
+Approve, one transaction, with every window checked again under the batch lock:
+1. The decision row; effective kg per share and farmer must stay ≥ 0 (`422` when an earlier correction changed it).
+2. Net kg ≠ 0: one stock movement on the raw lot (`related_domain` `farm_supply_correction`, `is_correction`), floor = free stock.
+3. Every sale and return attribution of the batch is re-split with `credit::split` over the corrected kg. The difference with what each farmer holds for that attribution (passbook lines plus earlier splits) is stored per attribution in `farm_supply_correction_splits`; each attribution's rows sum to 0, so the batch's credited total never changes. More than 5,000 attributions: `422`.
+4. One `supply_correction` passbook line per farmer whose money moved (their sum), with `correction_id`; the passbook read shows the correction's `reason`.
+5. `supply.corrected` (thin: `correction_id, batch_id, farmers, net_kg`).
+
+Concurrency: approval locks the raw lot's stock row first, then the batch row FOR UPDATE, in the order a sale takes them. Sale credits and return debits hold the batch row FOR SHARE from before they read the weights (and, for returns, what farmers hold) until they commit. A sale therefore either commits before the approval re-splits it, or waits and books by the corrected kg; neither order deadlocks.
+
+A farmer already paid out may go negative: payouts above the balance are already refused, so nothing more is paid until later credits cover it. Later sales split by the corrected kg; return debits count the splits. Committed harvest kg and the lot passport's farmer groups read effective kg (view `farm_supply_share_kg`).
