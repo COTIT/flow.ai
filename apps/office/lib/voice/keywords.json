@@ -205,7 +205,6 @@
       "fix",
       "wrong",
       "mistake",
-      "delivery",
       "weight",
       "kg",
       "farmer",
@@ -578,5 +577,62 @@
       "mteja",
       "wateja"
     ]
+  },
+  "farm_supply_correction_request": {
+    "en": [
+      "correct",
+      "correction",
+      "corrected",
+      "fix",
+      "wrong",
+      "mistake",
+      "scale",
+      "reweigh",
+      "weighed",
+      "delivery",
+      "deliveries",
+      "kg",
+      "kilos",
+      "kilograms",
+      "farmer"
+    ],
+    "nl": [
+      "corrigeer",
+      "corrigeren",
+      "correctie",
+      "verbeter",
+      "fout",
+      "verkeerd",
+      "weegschaal",
+      "gewogen",
+      "levering",
+      "kilo",
+      "boer",
+      "naar"
+    ],
+    "sw": [
+      "rekebisha",
+      "sahihisha",
+      "marekebisho",
+      "kosa",
+      "makosa",
+      "mzani",
+      "uzito",
+      "uwasilishaji",
+      "kilo",
+      "mkulima"
+    ]
+  },
+  "farm_supply_correction_list": {
+    "en": [
+      "corrections",
+      "pending",
+      "waiting",
+      "approve",
+      "approval",
+      "review"
+    ],
+    "nl": ["correcties", "openstaand", "wachtend", "goedkeuren", "goedkeuring"],
+    "sw": ["marekebisho", "yanayosubiri", "idhini", "kuidhinisha"]
   }
 }

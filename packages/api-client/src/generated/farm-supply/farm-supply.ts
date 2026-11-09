@@ -26,16 +26,20 @@ import type {
 
 import type {
   CreateBatchRequest,
+  CreateSupplyCorrectionRequest,
   EnvelopeBatchResource,
   EnvelopeDispatchOptions,
   EnvelopeOptionsResource,
   EnvelopeRawProductCreated,
+  EnvelopeSupplyCorrectionResource,
+  FarmSupplyCorrectionListParams,
   FarmSupplyListParams,
   FarmSupplyOptionsParams,
   FarmSupplyQuietFarmersParams,
   MessageBody,
   PaginatedBatchResource,
   PaginatedQuietFarmer,
+  PaginatedSupplyCorrectionResource,
   RawProductRequest,
   ValidationErrorBody
 } from '../model';
@@ -696,3 +700,407 @@ export function useFarmSupplyGet<TData = Awaited<ReturnType<typeof farmSupplyGet
 
 
 
+/**
+ * ops or admin. Each line sets the kg one farmer should have on a share line of the batch (kg only, no price). A wrong farmer is two lines on one share. Pending until a different ops or admin approves it in the Office. Refused when the raw lot is sold out, when a cut meets a lot dispatched over a supply link or passes its free stock, and when an increase passes the harvest. The response previews each farmer's money change and balance after; a negative balance blocks payouts until later credits cover it. The same `client_ref` and body replay (200).
+ * @summary Request a kg correction of a batch
+ */
+export const farmSupplyCorrectionRequest = (
+    workspace: string,
+    batch: string,
+    createSupplyCorrectionRequest: BodyType<CreateSupplyCorrectionRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSupplyCorrectionResource>(
+      {url: `/workspace/${workspace}/farm/supply-batches/${batch}/corrections`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createSupplyCorrectionRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyCorrectionRequestMutationKey = () => ['farmSupplyCorrectionRequest'] as const;
+
+export const getFarmSupplyCorrectionRequestMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionRequest>>, TError,FarmSupplyCorrectionRequestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionRequest>>, TError,FarmSupplyCorrectionRequestMutationVariables, TContext> => {
+
+const mutationKey = getFarmSupplyCorrectionRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmSupplyCorrectionRequest>>, FarmSupplyCorrectionRequestMutationVariables> = (props) => {
+          const {workspace,batch,data} = props ?? {};
+
+          return  farmSupplyCorrectionRequest(workspace,batch,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmSupplyCorrectionRequestMutationResult = NonNullable<Awaited<ReturnType<typeof farmSupplyCorrectionRequest>>>
+    export type FarmSupplyCorrectionRequestMutationBody = BodyType<CreateSupplyCorrectionRequest>
+    export type FarmSupplyCorrectionRequestMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmSupplyCorrectionRequestMutationVariables = {workspace: string;batch: string;data: BodyType<CreateSupplyCorrectionRequest>}
+
+    /**
+ * @summary Request a kg correction of a batch
+ */
+export const useFarmSupplyCorrectionRequest = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionRequest>>, TError,FarmSupplyCorrectionRequestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmSupplyCorrectionRequest>>,
+        TError,
+        FarmSupplyCorrectionRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmSupplyCorrectionRequestMutationOptions(options), queryClient);
+    }
+    /**
+ * Staff: corrections of their villages (ops and admin: all), newest first, with each one's lines and money effect.
+ * @summary List supply corrections
+ */
+export const farmSupplyCorrectionList = (
+    workspace: string,
+    params?: FarmSupplyCorrectionListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedSupplyCorrectionResource>(
+      {url: `/workspace/${workspace}/farm/supply-corrections`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyCorrectionListQueryKey = (workspace: string,
+    params?: FarmSupplyCorrectionListParams,) => {
+    return [
+    `/workspace/${workspace}/farm/supply-corrections`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFarmSupplyCorrectionListQueryOptions = <TData = Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: FarmSupplyCorrectionListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmSupplyCorrectionListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSupplyCorrectionList>>> = ({ signal }) => farmSupplyCorrectionList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmSupplyCorrectionListQueryResult = NonNullable<Awaited<ReturnType<typeof farmSupplyCorrectionList>>>
+export type FarmSupplyCorrectionListQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useFarmSupplyCorrectionList<TData = Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  FarmSupplyCorrectionListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyCorrectionList>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyCorrectionList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyCorrectionList<TData = Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyCorrectionListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyCorrectionList>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyCorrectionList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyCorrectionList<TData = Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyCorrectionListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List supply corrections
+ */
+
+export function useFarmSupplyCorrectionList<TData = Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyCorrectionListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmSupplyCorrectionListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Get a supply correction
+ */
+export const farmSupplyCorrectionGet = (
+    workspace: string,
+    correction: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSupplyCorrectionResource>(
+      {url: `/workspace/${workspace}/farm/supply-corrections/${correction}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyCorrectionGetQueryKey = (workspace: string,
+    correction: string,) => {
+    return [
+    `/workspace/${workspace}/farm/supply-corrections/${correction}`
+    ] as const;
+    }
+
+
+export const getFarmSupplyCorrectionGetQueryOptions = <TData = Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    correction: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmSupplyCorrectionGetQueryKey(workspace,correction);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>> = ({ signal }) => farmSupplyCorrectionGet(workspace,correction, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && correction !== null && correction !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmSupplyCorrectionGetQueryResult = NonNullable<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>>
+export type FarmSupplyCorrectionGetQueryError = ErrorType<MessageBody>
+
+
+export function useFarmSupplyCorrectionGet<TData = Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    correction: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyCorrectionGet>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyCorrectionGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyCorrectionGet<TData = Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    correction: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyCorrectionGet>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyCorrectionGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyCorrectionGet<TData = Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    correction: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a supply correction
+ */
+
+export function useFarmSupplyCorrectionGet<TData = Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    correction: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyCorrectionGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmSupplyCorrectionGetQueryOptions(workspace,correction,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * ops or admin other than the requester. One transaction: the raw lot's stock moves by the net kg, past credits of the batch are re-split by the corrected kg (one `supply_correction` passbook line per farmer whose money moved; the batch total stays), and `supply.corrected` is sent. The windows are checked again.
+ * @summary Approve a supply correction
+ */
+export const farmSupplyCorrectionApprove = (
+    workspace: string,
+    correction: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSupplyCorrectionResource>(
+      {url: `/workspace/${workspace}/farm/supply-corrections/${correction}/approve`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyCorrectionApproveMutationKey = () => ['farmSupplyCorrectionApprove'] as const;
+
+export const getFarmSupplyCorrectionApproveMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionApprove>>, TError,FarmSupplyCorrectionApproveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionApprove>>, TError,FarmSupplyCorrectionApproveMutationVariables, TContext> => {
+
+const mutationKey = getFarmSupplyCorrectionApproveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmSupplyCorrectionApprove>>, FarmSupplyCorrectionApproveMutationVariables> = (props) => {
+          const {workspace,correction} = props ?? {};
+
+          return  farmSupplyCorrectionApprove(workspace,correction,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmSupplyCorrectionApproveMutationResult = NonNullable<Awaited<ReturnType<typeof farmSupplyCorrectionApprove>>>
+
+    export type FarmSupplyCorrectionApproveMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmSupplyCorrectionApproveMutationVariables = {workspace: string;correction: string}
+
+    /**
+ * @summary Approve a supply correction
+ */
+export const useFarmSupplyCorrectionApprove = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionApprove>>, TError,FarmSupplyCorrectionApproveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmSupplyCorrectionApprove>>,
+        TError,
+        FarmSupplyCorrectionApproveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmSupplyCorrectionApproveMutationOptions(options), queryClient);
+    }
+    /**
+ * ops or admin other than the requester. Records the decision; nothing else moves.
+ * @summary Reject a supply correction
+ */
+export const farmSupplyCorrectionReject = (
+    workspace: string,
+    correction: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSupplyCorrectionResource>(
+      {url: `/workspace/${workspace}/farm/supply-corrections/${correction}/reject`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyCorrectionRejectMutationKey = () => ['farmSupplyCorrectionReject'] as const;
+
+export const getFarmSupplyCorrectionRejectMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionReject>>, TError,FarmSupplyCorrectionRejectMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionReject>>, TError,FarmSupplyCorrectionRejectMutationVariables, TContext> => {
+
+const mutationKey = getFarmSupplyCorrectionRejectMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmSupplyCorrectionReject>>, FarmSupplyCorrectionRejectMutationVariables> = (props) => {
+          const {workspace,correction} = props ?? {};
+
+          return  farmSupplyCorrectionReject(workspace,correction,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmSupplyCorrectionRejectMutationResult = NonNullable<Awaited<ReturnType<typeof farmSupplyCorrectionReject>>>
+
+    export type FarmSupplyCorrectionRejectMutationError = ErrorType<MessageBody>
+    export type FarmSupplyCorrectionRejectMutationVariables = {workspace: string;correction: string}
+
+    /**
+ * @summary Reject a supply correction
+ */
+export const useFarmSupplyCorrectionReject = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyCorrectionReject>>, TError,FarmSupplyCorrectionRejectMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmSupplyCorrectionReject>>,
+        TError,
+        FarmSupplyCorrectionRejectMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmSupplyCorrectionRejectMutationOptions(options), queryClient);
+    }

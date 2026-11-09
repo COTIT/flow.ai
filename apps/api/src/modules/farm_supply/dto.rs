@@ -54,6 +54,8 @@ pub struct BatchLot {
 /// One farmer's kg from one harvest.
 #[derive(Serialize, ToSchema)]
 pub struct BatchLine {
+    /// The share line; a correction names it.
+    share_id: Uuid,
     harvest_report_id: Uuid,
     /// Credited farmer: the farm's primary manager when the batch was made.
     person_id: Uuid,
@@ -80,6 +82,7 @@ impl BatchResource {
             lines: lines
                 .into_iter()
                 .map(|l| BatchLine {
+                    share_id: l.id,
                     harvest_report_id: l.harvest_report_id,
                     person_id: l.person_id,
                     kg: format!("{:.2}", l.kg),

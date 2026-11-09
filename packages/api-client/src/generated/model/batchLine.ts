@@ -14,4 +14,6 @@ export interface BatchLine {
   kg: string;
   /** Credited farmer: the farm's primary manager when the batch was made. */
   person_id: string;
+  /** The share line; a correction names it. */
+  share_id: string;
 }

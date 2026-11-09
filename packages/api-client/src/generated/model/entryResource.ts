@@ -20,13 +20,23 @@ export interface EntryResource {
   attribution_id: string | null;
   /** Balance in this currency right after this line. */
   balance_after: Money;
+  /**
+     * The approved delivery correction behind a `supply_correction` line.
+     * @nullable
+     */
+  correction_id: string | null;
   created_at: string;
   id: string;
-  /** `sale_credit`, `sale_reversal`, `payout` or `payout_void`. */
+  /** `sale_credit`, `sale_reversal`, `payout`, `payout_void` or `supply_correction`. */
   kind: string;
   /**
      * The payout behind a payout line.
      * @nullable
      */
   payout_id: string | null;
+  /**
+     * Why the delivery was corrected (`supply_correction` lines only).
+     * @nullable
+     */
+  reason: string | null;
 }

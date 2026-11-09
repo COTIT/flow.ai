@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.name AS village, count(DISTINCT s.person_id) AS \"farmers!\",\n                  min(c.harvest_start) AS harvest_start, max(c.harvest_end) AS harvest_end\n           FROM farm_supply_batches b\n           -- Effective kg: a farmer whose kg were all moved away no longer counts.\n           JOIN (SELECT batch_id, village_id, person_id, harvest_report_id\n                 FROM farm_supply_share_kg WHERE workspace_id = $1\n                 GROUP BY 1, 2, 3, 4 HAVING sum(kg) > 0) s ON s.batch_id = b.id\n           JOIN farm_villages v ON v.workspace_id = b.workspace_id AND v.id = s.village_id\n           JOIN farm_harvest_reports h ON h.id = s.harvest_report_id\n           JOIN farm_crop_cycles c ON c.id = h.crop_cycle_id\n           WHERE b.workspace_id = $1 AND b.lot_id = $2\n           GROUP BY v.id, v.name\n           ORDER BY v.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "village",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "farmers!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "harvest_start",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "harvest_end",
+        "type_info": "Date",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a3e96667f0ae3851b68c60ae1629ff35af5c145fae81aa883694445a7e0283ec"
+}

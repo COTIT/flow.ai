@@ -39,6 +39,7 @@
     "farm_records_households_list",
     "farm_records_plots_list",
     "farm_records_register",
+    "farm_supply_correction_list",
     "farm_supply_quiet_farmers",
     "farm_surveys_eligibility",
     "farm_surveys_list",

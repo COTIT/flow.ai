@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, requested_by, request_hash FROM farm_supply_corrections\n         WHERE workspace_id = $1 AND client_ref = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "requested_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "requested_by"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "request_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_corrections",
+            "name": "request_hash"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ac2f48b0dda7410a5d215e89a7e00f2cfd2dfcb6a985e1145e8190c56ce4413d"
+}

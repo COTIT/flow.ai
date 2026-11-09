@@ -77,6 +77,7 @@
     "farm_records_plots_correct",
     "farm_records_plots_verify",
     "farm_records_register",
+    "farm_supply_correction_request",
     "farm_supply_create",
     "farm_supply_raw_product",
     "farm_surveys_add_question",

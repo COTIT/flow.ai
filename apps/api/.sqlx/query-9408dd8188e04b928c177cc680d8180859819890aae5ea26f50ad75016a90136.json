@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.correction_id, l.share_id, l.person_id,\n                  concat_ws(' ', p.given_name, p.family_name) AS \"name!\", l.kg_delta\n           FROM farm_supply_correction_lines l\n           JOIN farm_persons p ON p.workspace_id = l.workspace_id AND p.id = l.person_id\n           WHERE l.workspace_id = $1 AND l.correction_id = ANY($2)\n           ORDER BY l.correction_id, l.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "correction_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_lines",
+            "name": "correction_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "share_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_lines",
+            "name": "share_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "person_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_lines",
+            "name": "person_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "kg_delta",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_correction_lines",
+            "name": "kg_delta"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "9408dd8188e04b928c177cc680d8180859819890aae5ea26f50ad75016a90136"
+}

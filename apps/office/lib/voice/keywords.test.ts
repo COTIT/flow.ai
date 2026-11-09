@@ -102,6 +102,16 @@ describe("voice trigger words", () => {
     expect(top(query)).toContain(id)
   })
 
+  // A wrong delivery is a correction request, not a new purchase.
+  it.each([
+    "correct Gift's delivery to 40 kg",
+    "the scale was wrong, fix Juma's delivery to 35 kilos",
+    "corrigeer de levering van Gift naar 40 kilo",
+    "rekebisha uwasilishaji wa Gift kuwa kilo 40",
+  ])("puts the delivery correction first for %j", (query) => {
+    expect(top(query, 1)).toEqual(["farm_supply_correction_request"])
+  })
+
   // Same account, two warehouses: the in-account move wins over the cross-account supply transfer.
   it.each([
     "move 20 bags of maize from the main store to the shop",

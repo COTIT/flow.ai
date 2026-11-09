@@ -211,10 +211,37 @@ const warningText: Record<
   },
 }
 
+const owesText: Record<string, string> = {
+  en: "{name} will owe {amount} back. New payouts are blocked until later sales cover it.",
+  nl: "{name} moet {amount} terugbetalen. Nieuwe uitbetalingen zijn geblokkeerd tot latere verkopen dit dekken.",
+  sw: "{name} atadaiwa {amount}. Malipo mapya yamezuiwa hadi mauzo yajayo yalipe deni hili.",
+}
+
+/** A delivery correction that leaves a farmer below zero: who owes how much, in money words. */
+function owes(facts: Record<string, unknown>, locale: string): string[] {
+  const unit = currency(facts)
+  if (!unit || !Array.isArray(facts.farmers)) return []
+  return facts.farmers.flatMap((farmer) => {
+    if (!object(farmer)) return []
+    const after = farmer.balance_after_minor
+    if (typeof after !== "number" || !Number.isSafeInteger(after) || after >= 0)
+      return []
+    return [
+      (owesText[locale] ?? owesText.en!)
+        .replace("{name}", String(farmer.name ?? "—"))
+        .replace(
+          "{amount}",
+          formatMoney(-after, unit.decimals, unit.code, locale)
+        ),
+    ]
+  })
+}
+
 /** The API flags large money changes; this only words them for the card in the user's language. */
 export function reviewWarnings(snapshot: unknown, locale: string): string[] {
   const facts =
     object(snapshot) && object(snapshot.facts) ? snapshot.facts : undefined
+  if (facts?.kind === "supply_correction") return owes(facts, locale)
   if (!facts || !Array.isArray(facts.changes)) return []
   const text = warningText[locale] ?? warningText.en!
   return facts.changes.flatMap((change) => {

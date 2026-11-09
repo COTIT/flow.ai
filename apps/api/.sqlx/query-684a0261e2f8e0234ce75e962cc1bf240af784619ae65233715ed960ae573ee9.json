@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_passbook_entries (workspace_id, village_id, person_id, currency_id,\n                                            kind, amount, correction_id)\n         SELECT $1, $2, p, $3, 'supply_correction', m, $4\n         FROM unnest($5::uuid[], $6::bigint[]) AS t(p, m)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "684a0261e2f8e0234ce75e962cc1bf240af784619ae65233715ed960ae573ee9"
+}

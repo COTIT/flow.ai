@@ -17,6 +17,9 @@ pub struct EntryRow {
     pub decimals: i16,
     pub attribution_id: Option<Uuid>,
     pub payout_id: Option<Uuid>,
+    pub correction_id: Option<Uuid>,
+    /// The reason of the correction behind a `supply_correction` line.
+    pub reason: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -62,17 +65,19 @@ pub async fn entries(
         r#"SELECT l.id AS "id!", l.kind AS "kind!", l.amount AS "amount!",
                   l.balance_after AS "balance_after!", l.currency_id AS "currency_id!",
                   l.currency AS "currency!", l.decimals AS "decimals!",
-                  l.attribution_id, l.payout_id, l.created_at AS "created_at!"
+                  l.attribution_id, l.payout_id, l.correction_id, c.reason AS "reason?",
+                  l.created_at AS "created_at!"
            FROM (
                SELECT e.id, e.kind, e.amount,
                       sum(e.amount) OVER (PARTITION BY e.currency_id ORDER BY e.created_at, e.id)::bigint
                           AS balance_after,
                       e.currency_id, c.asset_type AS currency, c.decimals, e.attribution_id,
-                      e.payout_id, e.created_at
+                      e.payout_id, e.correction_id, e.created_at
                FROM farm_passbook_entries e
                JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id
                WHERE e.workspace_id = $1 AND e.person_id = $2
            ) l
+           LEFT JOIN farm_supply_corrections c ON c.id = l.correction_id
            WHERE ($3::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date >= $3)
              AND ($4::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date <= $4)
            ORDER BY l.created_at DESC, l.id DESC LIMIT $5 OFFSET $6"#,

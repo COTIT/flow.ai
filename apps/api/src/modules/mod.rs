@@ -30,6 +30,7 @@ pub mod farm_payouts;
 pub mod farm_pue;
 pub mod farm_records;
 pub mod farm_supply;
+pub mod farm_supply_corrections;
 pub mod farm_surveys;
 pub mod farm_tower;
 pub mod farm_villages;

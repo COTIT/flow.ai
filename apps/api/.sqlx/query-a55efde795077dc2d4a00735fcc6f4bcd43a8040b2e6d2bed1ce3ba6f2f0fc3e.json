@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_supply_correction_lines (workspace_id, village_id, correction_id,\n                                                   share_id, person_id, kg_delta)\n         SELECT $1, $2, $3, s, p, kg FROM unnest($4::uuid[], $5::uuid[], $6::numeric[]) AS t(s, p, kg)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a55efde795077dc2d4a00735fcc6f4bcd43a8040b2e6d2bed1ce3ba6f2f0fc3e"
+}

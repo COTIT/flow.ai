@@ -20,5 +20,6 @@ export const WebhookEvent = {
   productchanged: 'product.changed',
   saleattributed: 'sale.attributed',
   stockchanged: 'stock.changed',
+  supplycorrected: 'supply.corrected',
   supplysource_status_changed: 'supply.source_status_changed',
 } as const;
