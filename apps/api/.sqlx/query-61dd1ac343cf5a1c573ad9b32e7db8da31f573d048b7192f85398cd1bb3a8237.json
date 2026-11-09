@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, batch_id, harvest_report_id, person_id, kg FROM farm_supply_shares\n         WHERE workspace_id = $1 AND batch_id = ANY($2)\n         ORDER BY batch_id, harvest_report_id",
+  "query": "SELECT s.id, s.batch_id, s.harvest_report_id, s.person_id,\n                  concat_ws(' ', p.given_name, p.family_name) AS \"farmer_name!\", s.kg\n           FROM farm_supply_shares s\n           JOIN farm_persons p ON p.workspace_id = s.workspace_id AND p.id = s.person_id\n           WHERE s.workspace_id = $1 AND s.batch_id = ANY($2)\n           ORDER BY s.batch_id, s.harvest_report_id",
   "describe": {
     "columns": [
       {
@@ -49,6 +49,12 @@
       },
       {
         "ordinal": 4,
+        "name": "farmer_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
         "name": "kg",
         "type_info": "Numeric",
         "origin": {
@@ -70,8 +76,9 @@
       false,
       false,
       false,
+      null,
       false
     ]
   },
-  "hash": "c6b59dada5eb03ba16f2dc358908bea1e7ce47345e691daed4f0b2256ef6a668"
+  "hash": "61dd1ac343cf5a1c573ad9b32e7db8da31f573d048b7192f85398cd1bb3a8237"
 }

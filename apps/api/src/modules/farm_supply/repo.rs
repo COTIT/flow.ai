@@ -29,6 +29,7 @@ pub struct LineRow {
     pub batch_id: Uuid,
     pub harvest_report_id: Uuid,
     pub person_id: Uuid,
+    pub farmer_name: String,
     pub kg: Decimal,
 }
 
@@ -263,9 +264,12 @@ pub async fn lines(
 ) -> Result<Vec<LineRow>, sqlx::Error> {
     sqlx::query_as!(
         LineRow,
-        "SELECT id, batch_id, harvest_report_id, person_id, kg FROM farm_supply_shares
-         WHERE workspace_id = $1 AND batch_id = ANY($2)
-         ORDER BY batch_id, harvest_report_id",
+        r#"SELECT s.id, s.batch_id, s.harvest_report_id, s.person_id,
+                  concat_ws(' ', p.given_name, p.family_name) AS "farmer_name!", s.kg
+           FROM farm_supply_shares s
+           JOIN farm_persons p ON p.workspace_id = s.workspace_id AND p.id = s.person_id
+           WHERE s.workspace_id = $1 AND s.batch_id = ANY($2)
+           ORDER BY s.batch_id, s.harvest_report_id"#,
         workspace_id,
         batch_ids,
     )

@@ -1063,6 +1063,10 @@
       "BatchLine": {
         "description": "One farmer's kg from one harvest.",
         "properties": {
+          "farmer_name": {
+            "description": "The credited farmer's given and family name.",
+            "type": "string"
+          },
           "harvest_report_id": {
             "format": "uuid",
             "type": "string"
@@ -1086,6 +1090,7 @@
           "share_id",
           "harvest_report_id",
           "person_id",
+          "farmer_name",
           "kg"
         ],
         "type": "object"

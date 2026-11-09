@@ -79,7 +79,7 @@ It goes through the products service like `POST /products` (numbering, default v
 
 Staff only (farmers `403`). Field officers see their villages' batches; ops and admin see all. Lists are newest first. Another village's or workspace's batch is `404`.
 
-Batch: `{id, client_ref, village_id, crop_id, price_per_kg, currency_id, kg_total, lot: {id, code, public_code}, lines: [{share_id, harvest_report_id, person_id, kg}] (by harvest id; `kg` is the frozen bought figure, corrections show under `/farm/supply-corrections`), created_by, created_at}`.
+Batch: `{id, client_ref, village_id, crop_id, price_per_kg, currency_id, kg_total, lot: {id, code, public_code}, lines: [{share_id, harvest_report_id, person_id, farmer_name, kg}] (by harvest id; `kg` is the frozen bought figure, corrections show under `/farm/supply-corrections`), created_by, created_at}`.
 
 ## `GET …/farm/quiet-farmers?since&village_id&page&page_size`
 

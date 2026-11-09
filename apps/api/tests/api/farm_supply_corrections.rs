@@ -40,6 +40,7 @@ async fn batch(s: &Sold) -> Batch {
             l["harvest_report_id"].as_str().unwrap().to_owned(),
         )
     };
+    assert_eq!(b["lines"][0]["farmer_name"].as_str().map(str::is_empty), Some(false));
     Batch {
         id: b["id"].as_str().unwrap().to_owned(),
         raw: b["lot"]["id"].as_str().unwrap().to_owned(),

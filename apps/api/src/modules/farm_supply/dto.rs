@@ -59,6 +59,8 @@ pub struct BatchLine {
     harvest_report_id: Uuid,
     /// Credited farmer: the farm's primary manager when the batch was made.
     person_id: Uuid,
+    /// The credited farmer's given and family name.
+    farmer_name: String,
     #[schema(example = "250.00")]
     kg: String,
 }
@@ -85,6 +87,7 @@ impl BatchResource {
                     share_id: l.id,
                     harvest_report_id: l.harvest_report_id,
                     person_id: l.person_id,
+                    farmer_name: l.farmer_name,
                     kg: format!("{:.2}", l.kg),
                 })
                 .collect(),
