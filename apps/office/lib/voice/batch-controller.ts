@@ -38,6 +38,8 @@ const batchCopy = {
       "The fixed batch stopped. Remaining actions were not started; check each recorded step before preparing another review.",
     review: "Review the exact fixed batch in Office.",
     running: "The fixed batch is running. No remaining step is complete yet.",
+    next: (count: number) =>
+      `Done. ${count} more changes are left; they need their own review. Shall I prepare the next part?`,
   },
   nl: {
     summary: (count: number) => `Vaste reeks: ${count} acties`,
@@ -48,6 +50,8 @@ const batchCopy = {
     review: "Bekijk de exacte vaste reeks in Office.",
     running:
       "De vaste reeks wordt uitgevoerd. Resterende stappen zijn nog niet voltooid.",
+    next: (count: number) =>
+      `Klaar. Er zijn nog ${count} wijzigingen over; die krijgen een eigen beoordeling. Zal ik het volgende deel voorbereiden?`,
   },
   sw: {
     summary: (count: number) => `Kundi maalumu: hatua ${count}`,
@@ -57,6 +61,8 @@ const batchCopy = {
       "Kundi maalumu limesimama. Hatua zilizobaki hazijaanza; kagua kila hatua iliyorekodiwa kabla ya kuandaa ukaguzi mwingine.",
     review: "Kagua kundi maalumu halisi katika Office.",
     running: "Kundi maalumu linaendelea. Hatua zilizobaki bado hazijakamilika.",
+    next: (count: number) =>
+      `Imekamilika. Mabadiliko ${count} zaidi yamebaki; yanahitaji ukaguzi wake. Nikuandalie sehemu inayofuata?`,
   },
 }
 export function batchWords(language = "en") {

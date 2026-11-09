@@ -105,7 +105,9 @@ it("prepares a private canonical batch after normal owner/session admission", as
   expect(mocks.propose).toHaveBeenCalledWith(
     calls,
     expect.objectContaining(ctx),
-    expect.any(Map)
+    expect.any(Map),
+    25,
+    undefined
   )
 })
 it("adds model-reported unclear lines to the batch card only", async () => {

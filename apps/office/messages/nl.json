@@ -1648,6 +1648,7 @@
     "sheetRequest": "Ik heb een spreadsheet gedeeld. Vraag me wat ik ermee wil doen.",
     "sheetNoPreview": "Genesy leest deze spreadsheet als je erom vraagt; hier is geen voorbeeld.",
     "importRows": "Rijen {from}–{to} van {total}",
+    "moreParts": "Na deze beoordeling volgen nog {count} wijzigingen. Elk deel krijgt een eigen beoordeling.",
     "notIncluded": {
       "title": "Niet meegenomen — controleer deze regels",
       "line": "Regel {line}: ",

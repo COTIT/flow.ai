@@ -3,6 +3,7 @@ import { assistantRequest } from "@/lib/voice/bridge"
 import { authorizeVoiceSession } from "@/lib/voice/identity"
 import {
   batchFailure,
+  MODEL_BATCH_MAX,
   proposeBatch,
   restoreBatch,
   batchStatus,
@@ -49,7 +50,13 @@ async function handle(request: Request) {
       const unclear = notIncludedFromModel(input.unclear)
       return voiceResponse(
         withNotIncluded(
-          await proposeBatch(input.calls, context, files),
+          await proposeBatch(
+            input.calls,
+            context,
+            files,
+            MODEL_BATCH_MAX,
+            input.remaining
+          ),
           unclear
         )
       )

@@ -91,9 +91,14 @@ function NotIncluded({ review }: { review: VoiceReview }) {
   const rows = notIncludedRows(review)
   const range = review.details.rows as
     { from: number; to: number; total: number } | undefined
-  if (!rows.length && !range) return null
+  const remaining = review.details.remaining
+  const more = Number.isSafeInteger(remaining) ? (remaining as number) : 0
+  if (!rows.length && !range && !more) return null
   return (
     <div className="mt-3 grid gap-2">
+      {more ? (
+        <Notice variant="info" title={t("moreParts", { count: more })} />
+      ) : null}
       {range ? (
         <p className="text-xs text-muted-foreground">
           {t("importRows", range)}
