@@ -22,8 +22,9 @@ use crate::{
         farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices, lots, messages,
         orders, pdf_templates, permissions, price_corrections, pricing, product_brands,
         product_categories, product_images, product_variants, products, relations, sales_groups,
-        search, settings, shipment_methods, special_offers, stock, storage_locations, storefront,
-        supply_chain, supply_links, teams, till, till_catalog, till_sales,
+        scheduled_reports, search, settings, shipment_methods, special_offers, stock,
+        storage_locations, storefront, supply_chain, supply_links, teams, till, till_catalog,
+        till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -119,6 +120,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(farm_logins::routes::public())
         .merge(till::routes::public())
         .merge(orders::routes::public())
+        .merge(scheduled_reports::routes::public())
 }
 
 /// Documented routes that need a token. Modules move here from `build_app`'s plain list
@@ -136,6 +138,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(teams::routes::private())
         .merge(search::routes::private())
         .merge(attention::routes::private())
+        .merge(scheduled_reports::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())
         .merge(custom_statuses::routes::private())

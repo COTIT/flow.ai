@@ -1,0 +1,168 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.report, s.frequency, s.weekday, s.day_of_month, s.hour, s.active,\n                  s.paused_reason, s.next_run_at, s.created_at, coalesce(u.email, '') AS \"email!\",\n                  r.ran_at AS \"last_run_at?\", r.outcome AS \"last_outcome?\"\n           FROM scheduled_reports s\n           JOIN users u ON u.id = s.user_id\n           LEFT JOIN LATERAL (SELECT ran_at, outcome FROM scheduled_report_runs\n                              WHERE schedule_id = s.id ORDER BY ran_at DESC, id DESC LIMIT 1) r\n                  ON true\n           WHERE s.workspace_id = $1 AND s.user_id = $2\n           ORDER BY s.created_at, s.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "report",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "report"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "frequency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "frequency"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "day_of_month",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "day_of_month"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "hour",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "hour"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "paused_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "paused_reason"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "next_run_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "next_run_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "email!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "last_run_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduled_report_runs",
+            "name": "ran_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "last_outcome?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_report_runs",
+            "name": "outcome"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "2c30fbb8b61fcb96b17477e4d3a8a27623ec50a89ee32c0df16520fddc18d315"
+}

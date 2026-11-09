@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO scheduled_report_runs (schedule_id, workspace_id, outcome, unsubscribe_hash)\n         VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5d43a7a5333fe7c1e033566bc58b79bba885186511f22f28c22254754924bb70"
+}

@@ -82,8 +82,8 @@
   { "id": "search-howto-invoice", "module": "search", "lang": "en", "kind": "read", "turns": ["How do I make an invoice from an order?"], "expect": { "outcome": "answer", "noTool": true, "mention": "invoice" } },
 
   { "id": "hard-bulk-delete-drafts", "module": "hard", "lang": "en", "kind": "write", "turns": ["Delete all our draft orders."], "expect": { "outcome": "review", "ops": ["orders_delete"] } },
-  { "id": "hard-alert", "module": "hard", "lang": "en", "kind": "write", "turns": ["Tell me whenever Cardamom drops below 5."], "expect": { "outcome": "review" }, "gap": "no alert/subscription operation" },
-  { "id": "hard-weekly-summary", "module": "hard", "lang": "en", "kind": "write", "turns": ["Email me a sales summary every Monday morning."], "expect": { "outcome": "review" }, "gap": "no scheduled report operation" },
+  { "id": "hard-alert", "module": "hard", "lang": "en", "kind": "write", "turns": ["Tell me whenever Cardamom drops below 5."], "expect": { "outcome": "review", "ops": ["scheduled_reports_create"] }, "gap": "no per-product threshold; v1 offers the daily low-stock report at the workspace threshold" },
+  { "id": "hard-weekly-summary", "module": "hard", "lang": "en", "kind": "write", "turns": ["Email me a sales summary every Monday morning."], "expect": { "outcome": "review", "ops": ["scheduled_reports_create"] } },
   { "id": "hard-compare-months", "module": "hard", "lang": "en", "kind": "read", "turns": ["Compare October and September sales and tell me why they differ."], "expect": { "outcome": "answer", "ops": ["orders_sales_summary", "orders_list", "orders_sales_compare"] } },
   { "id": "hard-mismatch", "module": "hard", "lang": "en", "kind": "read", "turns": ["Why doesn't yesterday's till total match the invoices?"], "expect": { "outcome": "answer", "ops": ["till_sales_list", "invoices_list"] } },
   { "id": "hard-false-premise", "module": "hard", "lang": "en", "kind": "read", "turns": ["Why did we stop selling honey last week?"], "expect": { "outcome": "answer", "ops": ["products_list", "products_search", "orders_sales_summary", "products_sale_statics"] } },

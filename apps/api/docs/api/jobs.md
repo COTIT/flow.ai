@@ -109,7 +109,7 @@ How a tick works:
 |---|---|---|---|---|
 | `close_stuck_sends`, `prune`, `file_sweep` | none | `dedupe_key = schedule:<name>` | `{}` | the scheduler |
 | `invoice_delivery` | yes | `dedupe_key = invoice_delivery:<delivery>` | `{delivery_id}` only | invoice numbering/resend transaction |
-| `assistant_cleanup`, `invoice_delivery_sweep` | none | `dedupe_key = schedule:<name>` | `{}` | the scheduler |
+| `assistant_cleanup`, `invoice_delivery_sweep`, `scheduled_reports` | none | `dedupe_key = schedule:<name>` | `{}` | the scheduler |
 | `stock_seed` | yes | `concurrency_key = stock_seed:<ws>`, coalesced | `{after, done}` cursor | warehouse create, an update that turns a warehouse into a store or the main one, set-default |
 
 `stock_seed` chunks hold at most 50,000 stock rows: 5000 products, fewer when there are more than 10 target warehouses. Each chunk locks the products it updates in id order, then inserts the stock rows in (product, warehouse) order, the same order as `stock::repo::lock_all`.

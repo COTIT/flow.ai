@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH tz AS (\n               SELECT coalesce((SELECT z.name FROM pg_timezone_names z\n                                WHERE z.name = (SELECT s.data -> 'general' ->> 'timezone'\n                                                FROM settings s WHERE s.workspace_id = $1)),\n                               'UTC') AS name),\n           days AS (\n               SELECT (($6::timestamptz AT TIME ZONE tz.name)::date + d) AS day, tz.name\n               FROM tz, generate_series(0, 62) d),\n           slots AS (\n               SELECT day, (day + make_interval(hours => $5::int)) AT TIME ZONE name AS at\n               FROM days)\n           SELECT min(at) AS \"at!\" FROM slots\n           WHERE at > $6\n             AND ($2 = 'daily'\n                  OR ($2 = 'weekly' AND extract(isodow FROM day) = $3::int)\n                  OR ($2 = 'monthly' AND extract(day FROM day) = $4::int))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ec51d8dfeb748032429f3f5b2ee02706df6dd331f7f6a1928d9dc41d2347a816"
+}

@@ -47,10 +47,7 @@ describe("voice trigger words", () => {
     ],
     ["how much do we owe farmers in total", "farm_passbook_balances"],
     ["did the farmer agree to share data", "farm_passbook_consent"],
-    [
-      "farmers who haven't delivered in a month",
-      "farm_supply_quiet_farmers",
-    ],
+    ["farmers who haven't delivered in a month", "farm_supply_quiet_farmers"],
     // sw
     ["mkulima ameleta kilo 200 za kahawa leo", "farm_supply_create"],
     ["jumla ya deni la wakulima", "farm_passbook_balances"],
@@ -64,6 +61,18 @@ describe("voice trigger words", () => {
     ["boer heeft 200 kg koffie geleverd", "farm_supply_create"],
     ["hoeveel zijn we de boer schuldig", "farm_passbook_person"],
     ["koffie naar het andere filiaal sturen", "supply_chain_dispatch"],
+    // scheduled reports (v1 gap: recurring email, stock alert)
+    [
+      "every Monday morning send me a sales summary by email",
+      "scheduled_reports_create",
+    ],
+    ["tell me when eggs drop below 10 trays", "scheduled_reports_create"],
+    ["stop my weekly sales email", "scheduled_reports_update"],
+    ["stuur me elke maandag een verkoopoverzicht", "scheduled_reports_create"],
+    [
+      "kila Jumatatu asubuhi nitumie muhtasari wa mauzo kwa barua pepe",
+      "scheduled_reports_create",
+    ],
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
   })

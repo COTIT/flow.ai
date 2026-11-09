@@ -99,6 +99,7 @@ mod rate_limit;
 mod relations;
 mod request_timeouts;
 mod sales_groups;
+mod scheduled_reports;
 mod schema;
 mod searches;
 mod send_message;

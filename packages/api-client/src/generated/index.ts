@@ -48,6 +48,7 @@ export * from './product-variants/product-variants';
 export * from './products/products';
 export * from './relations/relations';
 export * from './sales-groups/sales-groups';
+export * from './scheduled-reports/scheduled-reports';
 export * from './search/search';
 export * from './settings/settings';
 export * from './shipment-methods/shipment-methods';

@@ -28,6 +28,7 @@ export const PAGES: { id: string; route: string; record?: true }[] = [
   { id: "till_users", route: "/till/users" },
   { id: "till_vaults", route: "/till/vaults" },
   { id: "invites", route: "/settings/invites" },
+  { id: "scheduled_reports", route: "/settings/scheduled-reports" },
   { id: "app_keys", route: "/settings/app-keys" },
   { id: "webhooks", route: "/settings/webhooks" },
   { id: "search", route: "/search" },

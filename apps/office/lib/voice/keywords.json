@@ -389,5 +389,91 @@
       "kwenda",
       "mifuko"
     ]
+  },
+  "scheduled_reports_create": {
+    "en": [
+      "every",
+      "weekly",
+      "daily",
+      "monthly",
+      "each",
+      "schedule",
+      "scheduled",
+      "recurring",
+      "remind",
+      "reminder",
+      "email",
+      "mail",
+      "alert",
+      "notify",
+      "morning",
+      "monday",
+      "summary",
+      "report",
+      "tell me when",
+      "drop",
+      "drops",
+      "below",
+      "low",
+      "runs out",
+      "running low",
+      "let me know"
+    ],
+    "nl": [
+      "elke",
+      "iedere",
+      "wekelijks",
+      "dagelijks",
+      "maandelijks",
+      "planning",
+      "herinner",
+      "herinnering",
+      "mail",
+      "e-mail",
+      "melding",
+      "ochtend",
+      "maandag",
+      "overzicht",
+      "rapport",
+      "laat me weten",
+      "zakt",
+      "onder",
+      "laag",
+      "bijna op"
+    ],
+    "sw": [
+      "kila",
+      "wiki",
+      "kila siku",
+      "kila mwezi",
+      "ratiba",
+      "nikumbushe",
+      "kumbusho",
+      "barua pepe",
+      "arifa",
+      "asubuhi",
+      "jumatatu",
+      "muhtasari",
+      "ripoti",
+      "niambie",
+      "ikipungua",
+      "chini ya",
+      "karibu kuisha"
+    ]
+  },
+  "scheduled_reports_list": {
+    "en": ["my schedules", "scheduled", "recurring", "reports", "emails"],
+    "nl": ["geplande", "rapporten", "mails"],
+    "sw": ["ratiba zangu", "zilizopangwa", "ripoti"]
+  },
+  "scheduled_reports_update": {
+    "en": ["pause", "resume", "stop", "restart", "scheduled", "emails"],
+    "nl": ["pauzeer", "pauzeren", "hervat", "hervatten", "stop", "geplande"],
+    "sw": ["sitisha", "endelea", "simamisha", "zilizopangwa"]
+  },
+  "scheduled_reports_delete": {
+    "en": ["delete", "remove", "cancel", "unsubscribe", "scheduled", "report"],
+    "nl": ["verwijder", "verwijderen", "annuleer", "afmelden", "geplande"],
+    "sw": ["futa", "ondoa", "ghairi", "zilizopangwa"]
   }
 }
