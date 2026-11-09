@@ -193,6 +193,7 @@
     "stock_negative",
     "stock_set_levels",
     "stock_set_requirements",
+    "stock_transfer",
     "stock_with_bins",
     "storage_locations_create",
     "storage_locations_delete",

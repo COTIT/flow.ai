@@ -1,5 +1,7 @@
 export type DiffRow = {
   field: string
+  /** The API's own name for the row (e.g. a warehouse), shown as is. */
+  label?: string
   before: string | null
   after: string
   /** Signed basis points from the API; null when it sent none (e.g. old value 0). */
@@ -30,6 +32,7 @@ export function reviewSummary(details: Obj) {
       if (typeof item.field !== "string" || after === null) return null
       rows.push({
         field: item.field,
+        ...(typeof item.label === "string" && item.label.trim() ? { label: item.label } : {}),
         before: shown(item.before, item.currency),
         after,
         change: Number.isSafeInteger(item.change_bp) ? (item.change_bp as number) : null,

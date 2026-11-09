@@ -39,6 +39,7 @@ Every write answers `{"message":"ok"}`.
 | `POST /products/{id}/set-stock-requirements` | `stock.set_stock_requirements` |
 | `DELETE /products/{id}/stocks?warehouse_id=&bin_id=` | `stock.set_stock_levels` (as in Laravel) |
 | `POST /products/{id}/move-stock-between-bins` | `stock.move` |
+| `POST /products/{id}/transfer-stock` | `stock.move` |
 
 ### `POST /products/{id}/stocks` (mutate)
 
@@ -114,6 +115,16 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
   - `bin_id_to`: "Source and target bins must be different." (null to null counts as the same)
   - `quantity`: "Insufficient stock available. Available: 3, Reserved: 0, Requested: 10", when level − reserved < quantity.
     - Laravel checked this before taking any lock; here it is checked under the row lock.
+
+### `POST /products/{id}/transfer-stock`
+
+Moves stock from one warehouse to another warehouse of the same workspace (warehouse-level rows only; bins stay with `move-stock-between-bins`). Another account is reached only through supply links (`supply-chain.md`).
+
+- **Body:** `warehouse_id_from`, `warehouse_id_to` (live warehouses of this workspace, different), `quantity` (decimal > 0, 2 places), `reason` (required, ≤ 255), `lot_id` (optional; a lot of this product, else the no-lot row).
+- **Rules:** one transaction. The lot row is locked first, then both stock rows in the shared lock order. The source never goes below what it has free (level − reserved), for every warehouse type, stores included. Recalled, quarantined or expired (`expires_on` before today) lots don't move. Both ledger rows carry the reason and the same `related_domain` `stock_transfer` / `related_id`.
+- **200:** `{data: {from: {warehouse: {id, name}, before, after}, to: {...}, lot: {id, code} | null}}`, levels as 2-place strings.
+- **Errors:** 403 without `stock.move`; 404 unknown product or another workspace; 409 `lot_recalled`, `lot_quarantined`, `lot_expired`; 422 per field: unknown warehouse or lot (another workspace's included), same warehouse twice (`warehouse_id_to` `Source and target warehouses must be different.`), product without stock tracking (`product`), `quantity` `Insufficient stock available. Available: x, Reserved: y, Requested: z`.
+- **Assistant review** (`stock_transfer`): facts `{kind: "stock_transfer", locked: {product, lot, from, to}, changes: [{field: "stock_from"|"stock_to", label: <warehouse name>, before, after}]}`. Levels are as of proposal; only `locked` is rechecked at approval, and the floor still refuses if stock dropped since. A transfer the route would refuse fails at proposal with a plain 422 and no review.
 
 ## Reads
 

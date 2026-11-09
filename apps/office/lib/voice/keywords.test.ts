@@ -67,4 +67,14 @@ describe("voice trigger words", () => {
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
   })
+
+  // Same account, two warehouses: the in-account move wins over the cross-account supply transfer.
+  it.each([
+    "move 20 bags of maize from the main store to the shop",
+    "transfer stock from the warehouse to the shop",
+    "verplaats 20 zakken mais van het hoofdmagazijn naar de winkel",
+    "hamisha mifuko 20 ya mahindi kutoka stoo kuu kwenda dukani",
+  ])("puts the in-account stock transfer first for %j", (query) => {
+    expect(top(query, 1)).toEqual(["stock_transfer"])
+  })
 })

@@ -26391,6 +26391,43 @@
         ],
         "type": "object"
       },
+      "TransferStockRequest": {
+        "description": "Body of `POST /products/{id}/transfer-stock`.",
+        "properties": {
+          "lot_id": {
+            "description": "Lot (batch) of this product to move; leave out for stock without a lot.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Decimal > 0.",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "warehouse_id_from": {
+            "description": "Warehouse the stock leaves; never goes below zero or under what orders hold.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "warehouse_id_to": {
+            "description": "Another warehouse of the same workspace.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id_from",
+          "warehouse_id_to",
+          "quantity",
+          "reason"
+        ],
+        "type": "object"
+      },
       "UnprocessableBody": {
         "anyOf": [
           {
@@ -85417,6 +85454,191 @@
         "summary": "Sync stock locations from an external service (no-op)",
         "tags": [
           "products"
+        ]
+      }
+    },
+    "/workspace/{workspace}/products/{product}/transfer-stock": {
+      "post": {
+        "description": "Takes the quantity from one warehouse and adds it to another warehouse of the same workspace in one transaction, keeping the lot. The source never goes below what it has free (level minus what orders hold). Both ledger rows share `related_domain` `stock_transfer` and one `related_id`.",
+        "operationId": "stock_transfer",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Product id",
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferStockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Both warehouses with their level before and after, and the lot"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `stock.move`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or product, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled`, `lot_quarantined` or `lot_expired`: the lot's stock may not move"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown warehouse or lot, same warehouse twice, or not enough free stock"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move stock from one warehouse to another",
+        "tags": [
+          "stock"
         ]
       }
     },

@@ -49,6 +49,23 @@ describe("reviewSummary", () => {
     })
   })
 
+  it("a stock transfer row keeps the API's warehouse name as its label", () => {
+    const summary = reviewSummary({
+      current: {
+        changes: [
+          { field: "stock_from", label: "Main store", before: "120", after: "100" },
+          { field: "stock_to", label: "Shop", before: "5", after: "25" },
+          { field: "price", label: "  ", after: "2" },
+        ],
+      },
+    })
+    expect(summary?.rows.map((row) => [row.label, row.before, row.after])).toEqual([
+      ["Main store", "120", "100"],
+      ["Shop", "5", "25"],
+      [undefined, null, "2"],
+    ])
+  })
+
   it("nothing the API listed means no summary: old values are never guessed", () => {
     expect(reviewSummary({ changes: { price: 500.5 } })).toBeNull()
     expect(reviewSummary({ record: { id: "x", name: "AFM Stickers" } })).toBeNull()

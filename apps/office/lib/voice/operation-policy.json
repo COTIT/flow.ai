@@ -10008,6 +10008,37 @@
     },
     "confirmationFields": ["quantity", "reason"]
   },
+  "stock_transfer": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/products/{product}/transfer-stock",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["stock.move"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/stock/handlers.rs#transfer",
+        "apps/api/src/modules/stock/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "stock"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": ["stock_with_bins", "stock_movements"],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": ["quantity", "reason"]
+  },
   "products_price_history": {
     "method": "GET",
     "path": "/workspace/{workspace}/products/{product}/price-history",

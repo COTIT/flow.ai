@@ -282,6 +282,30 @@ pub async fn locked(
     .await
 }
 
+/// The slot's `(level, reserved)` without a lock; zeros when it has no live row yet.
+pub async fn level(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    slot: Slot,
+) -> Result<(Decimal, Decimal), sqlx::Error> {
+    let row = sqlx::query!(
+        "SELECT stock_lvl, reserved FROM stocks
+         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3
+           AND bin_id IS NOT DISTINCT FROM $4 AND lot_id IS NOT DISTINCT FROM $5
+           AND deleted_at IS NULL",
+        workspace_id,
+        slot.product_id,
+        slot.warehouse_id,
+        slot.bin.map(|b| b.bin_id),
+        slot.lot_id,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map_or((Decimal::ZERO, Decimal::ZERO), |r| {
+        (r.stock_lvl, r.reserved)
+    }))
+}
+
 /// The slot's row under a lock, created with zeros when missing; `true` = this call created
 /// it. Two creators meet on `stocks_slot_unique`: the loser's insert does nothing and its
 /// second read waits for and locks the winner's row.
