@@ -5,6 +5,8 @@
     "app_keys_create",
     "attention_summary",
     "currencies_create",
+    "currency_rates_create",
+    "currency_rates_list",
     "custom_statuses_create",
     "custom_types_create",
     "deal_pipelines_create",
