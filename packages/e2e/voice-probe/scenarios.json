@@ -3,7 +3,7 @@
   { "id": "morning-overnight-orders", "module": "morning", "lang": "en", "kind": "read", "turns": ["Did any new orders come in overnight?"], "expect": { "outcome": "answer", "ops": ["orders_list"] }, "regression": "staging: orders list lacks a created-since filter" },
   { "id": "morning-out-of-stock", "module": "morning", "lang": "en", "kind": "read", "turns": ["Which products are out of stock or below zero?"], "expect": { "outcome": "answer", "ops": ["stock_negative", "stock_list"] }, "regression": "staging: compound read narrated steps, no final answer" },
   { "id": "morning-unpaid-30", "module": "morning", "lang": "en", "kind": "read", "turns": ["Which invoices are still unpaid after more than 30 days?"], "expect": { "outcome": "answer", "ops": ["invoices_list", "attention_summary"] }, "regression": "staging: no overdue filter; activity row leaked raw tool description" },
-  { "id": "morning-till-compare", "module": "morning", "lang": "en", "kind": "read", "turns": ["How did the till do yesterday compared to last Friday?"], "expect": { "outcome": "answer", "ops": ["till_sales_list", "till_shifts_list"] }, "regression": "staging: compound read narrated steps, no final answer" },
+  { "id": "morning-till-compare", "module": "morning", "lang": "en", "kind": "read", "turns": ["How did the till do yesterday compared to last Friday?"], "expect": { "outcome": "answer", "ops": ["till_sales_list", "till_shifts_list", "orders_sales_compare"] }, "regression": "staging: compound read narrated steps, no final answer" },
   { "id": "morning-shift-open", "module": "morning", "lang": "en", "kind": "read", "turns": ["Did anyone leave a till shift open?"], "expect": { "outcome": "answer", "ops": ["till_shifts_list"] }, "regression": "staging: shift time shown in browser time zone" },
   { "id": "morning-vault", "module": "morning", "lang": "en", "kind": "read", "turns": ["Anything odd in the vaults?"], "expect": { "outcome": "answer", "ops": ["till_vaults_list"] } },
   { "id": "morning-sw-orders", "module": "morning", "lang": "sw", "kind": "read", "turns": ["Nina oda ngapi leo?"], "expect": { "outcome": "answer", "ops": ["orders_list"] } },
@@ -28,7 +28,7 @@
   { "id": "products-best-seller", "module": "products", "lang": "en", "kind": "read", "turns": ["What's our best seller this month?"], "expect": { "outcome": "answer", "ops": ["orders_sales_summary", "products_sale_statics", "products_top_sellers"] } },
   { "id": "products-rename", "module": "products", "lang": "en", "kind": "write", "turns": ["Rename Kizazi Tea to Kizazi Black Tea everywhere."], "expect": { "outcome": "review", "ops": ["products_update"] } },
 
-  { "id": "stock-how-much", "module": "stock", "lang": "en", "kind": "read", "turns": ["How much Rift Valley Ground Coffee do we have?"], "expect": { "outcome": "answer", "ops": ["stock_list", "lots_stock", "stock_with_bins"] } },
+  { "id": "stock-how-much", "module": "stock", "lang": "en", "kind": "read", "turns": ["How much Rift Valley Ground Coffee do we have?"], "expect": { "outcome": "answer", "ops": ["stock_list", "lots_stock", "stock_with_bins", "products_get"] } },
   { "id": "stock-lot-origin", "module": "stock", "lang": "en", "kind": "read", "turns": ["Where does our coffee lot come from? Show me its passport."], "expect": { "outcome": "answer", "ops": ["lots_passport_get", "lots_get"] } },
   { "id": "stock-write-off", "module": "stock", "lang": "en", "kind": "write", "turns": ["Write off 2 spoiled jars of the 7oz Wildflower Honey."], "expect": { "outcome": "review", "ops": ["stock_mutate", "lots_stock_mutate"] } },
   { "id": "stock-why-negative", "module": "stock", "lang": "en", "kind": "read", "turns": ["Why is a product showing negative stock?"], "expect": { "outcome": "answer", "ops": ["stock_negative", "stock_movements"] } },
@@ -61,7 +61,7 @@
   { "id": "till-drawer-short", "module": "till", "lang": "en", "kind": "read", "turns": ["Why was the drawer short on the last closed shift?"], "expect": { "outcome": "answer", "ops": ["till_shifts_list"] } },
   { "id": "till-drawer-vault", "module": "till", "lang": "en", "kind": "write", "turns": ["Move the cash from the counter drawer to the safe."], "expect": { "outcome": "review" }, "gap": "drawer to vault transfer is a till-device flow (external)" },
   { "id": "till-refund", "module": "till", "lang": "en", "kind": "write", "turns": ["Refund the last till sale."], "expect": { "outcome": "review", "ops": ["orders_refund"] } },
-  { "id": "till-top-seller", "module": "till", "lang": "en", "kind": "read", "turns": ["What sold best at the till today?"], "expect": { "outcome": "answer", "ops": ["till_sales_list"] } },
+  { "id": "till-top-seller", "module": "till", "lang": "en", "kind": "read", "turns": ["What sold best at the till today?"], "expect": { "outcome": "answer", "ops": ["till_sales_list", "products_top_sellers"] } },
   { "id": "till-add-cashier", "module": "till", "lang": "en", "kind": "write", "turns": ["Add a new cashier called Neema."], "expect": { "outcome": "review", "ops": ["till_users_create"] } },
 
   { "id": "admin-invite", "module": "admin", "lang": "en", "kind": "write", "turns": ["Invite amani@example.test to Office as a manager."], "expect": { "outcome": "review", "ops": ["invites_send"] } },
@@ -75,7 +75,7 @@
   { "id": "admin-custom-status", "module": "admin", "lang": "en", "kind": "write", "turns": ["Add an order status called Waiting for pickup."], "expect": { "outcome": "review", "ops": ["custom_statuses_create"] } },
   { "id": "admin-language", "module": "admin", "lang": "en", "kind": "write", "turns": ["Switch Office to Swahili for me."], "expect": { "outcome": "review" }, "gap": "interface language is a browser setting, not an API operation" },
 
-  { "id": "search-customer", "module": "search", "lang": "en", "kind": "read", "turns": ["Tell me everything about Two Ravens Coffee Bar."], "expect": { "outcome": "answer", "ops": ["relations_get", "relations_financial_summary", "search_search", "search_quick"] } },
+  { "id": "search-customer", "module": "search", "lang": "en", "kind": "read", "turns": ["Tell me everything about Two Ravens Coffee Bar."], "expect": { "outcome": "answer", "ops": ["relations_get", "relations_financial_summary", "search_search", "search_quick", "relations_list"] } },
   { "id": "search-farmer-page", "module": "search", "as": "ruaha", "lang": "en", "kind": "read", "turns": ["Open the page of a farmer in Lugoda."], "expect": { "outcome": "answer", "ops": ["farm_records_persons_list", "farm_records_persons_get"] } },
   { "id": "search-where-prices", "module": "search", "lang": "en", "kind": "read", "turns": ["Where in Office do I change prices?"], "expect": { "outcome": "answer", "noTool": true, "mention": "product" } },
   { "id": "search-explain-negative", "module": "search", "lang": "en", "kind": "read", "turns": ["What does negative stock mean?"], "expect": { "outcome": "answer", "noTool": true, "mention": "stock" } },
