@@ -1232,7 +1232,9 @@
       "note": "Note",
       "previous": "Rate in force",
       "source": "Source",
-      "from": "From"
+      "from": "From",
+      "symbol": "Symbol",
+      "default_currency": "Default currency"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",

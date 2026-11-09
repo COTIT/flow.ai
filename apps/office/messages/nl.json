@@ -1232,7 +1232,9 @@
       "note": "Notitie",
       "previous": "Huidig tarief",
       "source": "Bron",
-      "from": "Van"
+      "from": "Van",
+      "symbol": "Symbool",
+      "default_currency": "Standaardvaluta"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",

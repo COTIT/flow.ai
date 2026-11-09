@@ -1232,7 +1232,9 @@
       "note": "Maelezo",
       "previous": "Kiwango kilichopo",
       "source": "Chanzo",
-      "from": "Kutoka"
+      "from": "Kutoka",
+      "symbol": "Alama",
+      "default_currency": "Sarafu chaguo-msingi"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",

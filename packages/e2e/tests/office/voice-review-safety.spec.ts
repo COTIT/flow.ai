@@ -10,6 +10,8 @@ type Review = {
   hides?: string[]
   /** Review fields beyond a single action's (method, batch kind and steps). */
   extra?: Record<string, unknown>
+  /** A create: every row is a new value, never struck-through old → new. */
+  newOnly?: boolean
 }
 
 // Review card data as the Office BFF builds it from API review facts (lib/voice/actions.ts).
@@ -142,6 +144,46 @@ const reviews: Review[] = [
       en.voice.reviewFields.effective_on,
     ],
   },
+  {
+    name: "creating a currency names it and lists code, symbol and decimals as new values",
+    operationId: "currencies_create",
+    request: "Add the euro as a currency with two decimals.",
+    extra: { method: "POST" },
+    newOnly: true,
+    details: {
+      workspace: "w1",
+      target: {},
+      // actions.ts names the record from the body-built facts (review-facts.ts createdFacts).
+      record: { type: "record", label: "Euro" },
+      current: {
+        kind: "currency",
+        locked: { label: "Euro" },
+        changes: [
+          { field: "code", before: null, after: "EUR" },
+          { field: "name", before: null, after: "Euro" },
+          { field: "symbol", before: null, after: "€" },
+          { field: "decimals", before: null, after: "2" },
+        ],
+      },
+      changes: {
+        asset_type: "EUR",
+        name: "Euro",
+        symbol_prefix: "€",
+        decimals: 2,
+        default_currency: false,
+        active: true,
+      },
+    },
+    shows: [
+      "Euro",
+      "EUR",
+      "€",
+      en.voice.reviewFields.code,
+      en.voice.reviewFields.symbol,
+      en.voice.reviewFields.decimals,
+    ],
+    hides: [en.voice.results.nameUnavailable],
+  },
 ]
 
 for (const review of reviews) {
@@ -233,6 +275,8 @@ for (const review of reviews) {
     await expect(card).not.toContainText("01950000")
     for (const text of review.hides ?? [])
       await expect(card).not.toContainText(text)
+    if (review.newOnly)
+      await expect(card.locator("[data-review-diff] del")).toHaveCount(0)
     await expectFits(page)
   })
 }

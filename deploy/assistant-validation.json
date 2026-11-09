@@ -3,7 +3,7 @@
   "releaseGate": "pending",
   "releaseCommit": null,
   "imageDigest": null,
-  "observedAt": "2026-11-09T10:29:42.000Z",
+  "observedAt": "2026-11-09T14:36:42.000Z",
   "source": {
     "baseCommit": "ffcf5c8b8b8aad49862b97d1abafde2d97c7a69b",
     "workingTree": "uncommitted",
@@ -11,26 +11,42 @@
   },
   "provider": {
     "observation": "Development and Staging, 2026-11-08, owner-approved: system prompt only, adding the record-name rule after the Result beat (\"When a result lists records, say their names or numbers...\") and the plain-language failure paragraph with the \"unsupported: <request>\" discovery signal. Before editing, each agent's prompt hashed equal to the previous template prompt; after publishing, a reload read back a prompt equal to this template's prompt (7463 chars, same SHA-256). The publish review listed only the system prompt as changed. Development: agtvrsn_9401m6xgqeykevqtqmefgnw7zpap (was agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). Staging: agtvrsn_9801m6xgwc66fysscrb26cvpet64 (was agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). Production still runs the previous prompt (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33) until the owner approves. Previous record: Development: prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in (agtvrsn_9201m6wpk981esws35nzq6pe4k9c), then the shared execute_genesy_tool swapped for a dev-only copy with identical name, description and schema and force_pre_tool_speech true (agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). A read-only GET verified the exact prompt, turn_timeout 20, silence_end_call_timeout 60 and the tool swap. A dashboard Preview text chat showed the pre-tool line \"Ok, got that, let me check it for you.\" just before the execute_genesy_tool call (orders_list called directly, without discovery); spoken audio was not checked. With explicit owner approval on 2026-11-08, the shared execute_genesy_tool used by Production and Staging was set to force pre-tool speech. A read-only GET showed force_pre_tool_speech true, pre_tool_speech force, and no other tool field changed. With owner approval, the Staging agent then got the template prompt, turn_timeout 20 and silence_end_call_timeout 60 (agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). A read-only GET showed exactly those three fields changed. With owner approval, the Production agent got the same prompt and turn settings (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33). A read-only GET showed those three fields changed, plus a server-filled widget.terms_html default.",
-    "versionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
+    "versionId": "agtvrsn_3601m70bttdef3btf4ynf00bjk68",
     "template": "deploy/assistant-agent.template.json",
-    "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
-    "stagingApplied": false,
-    "productionApplied": false,
+    "templateSha256": "c3b080a57080e467d2ce008c209333d2019375fdaf11376ca8e18af22a1ac4ac",
+    "stagingApplied": true,
+    "productionApplied": true,
     "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
     "productionProvisioned": true,
-    "productionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+    "productionVersionId": "agtvrsn_0701m706j49rejh84fmv8znezpa1",
     "temporaryIntegrationKeysReused": true,
-    "previousVersionId": "agtvrsn_7201m6zpgr41fmtayvp7py4svffy",
-    "stagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
-    "previousProductionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
-    "previousStagingVersionId": "agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx",
+    "previousVersionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
+    "stagingVersionId": "agtvrsn_5101m706hjy6fvcs268m08jr6dds",
+    "previousProductionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+    "previousStagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
     "applied": {
       "development": {
-        "versionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
-        "previousVersionId": "agtvrsn_7201m6zpgr41fmtayvp7py4svffy",
+        "versionId": "agtvrsn_3601m70bttdef3btf4ynf00bjk68",
+        "previousVersionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
+        "governedSha256": "2b10176db7699c6c66cca0f350bc2e0b2181ba6901ed0777f43f94f746ccadde",
+        "templateSha256": "c3b080a57080e467d2ce008c209333d2019375fdaf11376ca8e18af22a1ac4ac",
+        "observedAt": "2026-11-09T14:36:42.000Z",
+        "by": "deploy/assistant-agent.sh"
+      },
+      "staging": {
+        "versionId": "agtvrsn_5101m706hjy6fvcs268m08jr6dds",
+        "previousVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
         "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
         "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
-        "observedAt": "2026-11-09T10:29:42.000Z",
+        "observedAt": "2026-11-09T13:04:18.000Z",
+        "by": "deploy/assistant-agent.sh"
+      },
+      "production": {
+        "versionId": "agtvrsn_0701m706j49rejh84fmv8znezpa1",
+        "previousVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+        "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
+        "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
+        "observedAt": "2026-11-09T13:04:35.000Z",
         "by": "deploy/assistant-agent.sh"
       }
     }
@@ -148,7 +164,7 @@
     "paidMultilingualAcceptance": "Deferred by user scope correction: exhaustive model/capability benchmark not completed and not a gate for initial deployment.",
     "environmentAgentBindings": "Production agent matches verified development conversation/platform settings; private credentials and single-workspace allowlist prepared on server, admission disabled. Applying runtime configuration remains pending deployment.",
     "physicalDevices": "user-owned after production deployment: Android/Chrome and iPhone/Safari microphone, speaker and camera; not tested",
-    "agentTemplateAhead": "Template 91effc4a0173 is not yet published by deploy/assistant-agent.sh to: staging, production. Published and read back: development (agtvrsn_1001m6zxph32fntvnfhe49y2z9s8)."
+    "agentTemplateAhead": "Template c3b080a57080 is not yet published by deploy/assistant-agent.sh to: staging, production. Published and read back: development (agtvrsn_3601m70bttdef3btf4ynf00bjk68)."
   },
   "scopeCorrection": "User directed stop scope creep: finish existing implementation and queued checks; no added features, test matrices or exhaustive model benchmark."
 }
