@@ -1080,6 +1080,7 @@ export * from './trailEntryDetail';
 export * from './transferLot';
 export * from './transferRequest';
 export * from './transferResource';
+export * from './transferStockRequest';
 export * from './unprocessableBody';
 export * from './unsubscribed';
 export * from './unsubscribeRequest';
