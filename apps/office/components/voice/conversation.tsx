@@ -8,6 +8,7 @@ import {
   Camera,
   ClipboardList,
   ExternalLink,
+  FileSpreadsheet,
   FileText,
   Paperclip,
   Send,
@@ -40,13 +41,25 @@ import {
   internalFields,
   operationLabel,
   reviewRows,
+  notIncludedRows,
   type DisplayReferences,
 } from "./presentation"
 import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
-import { ATTACHMENT_ACCEPT, referenceSize, splitLinks } from "./helpers"
+import {
+  ATTACHMENT_ACCEPT,
+  fieldName,
+  referenceSize,
+  sheetMime,
+  splitLinks,
+} from "./helpers"
 import { useVoice } from "./provider"
 import { HoldToTalk, VoiceControls } from "./controls"
 import { StrandsStatus } from "./strands-status"
+import { VoiceUnfinished } from "./unfinished"
+import { VoiceResult } from "./results"
+import { ReviewDiff } from "./review-diff"
+import { useVoiceTips, VoiceSuggestions } from "./suggestions"
+import type { Available } from "@/lib/voice/capabilities"
 
 function ReviewTitle({
   review,
@@ -69,6 +82,37 @@ function ReviewTitle({
     <>
       {t(`operationActions.${action}`, { record: t(`resources.${resource}`) })}
     </>
+  )
+}
+
+/** Rows kept out of the review: the person fixes them in the file, nothing is guessed. */
+function NotIncluded({ review }: { review: VoiceReview }) {
+  const t = useTranslations("voice")
+  const rows = notIncludedRows(review)
+  const range = review.details.rows as
+    { from: number; to: number; total: number } | undefined
+  if (!rows.length && !range) return null
+  return (
+    <div className="mt-3 grid gap-2">
+      {range ? (
+        <p className="text-xs text-muted-foreground">
+          {t("importRows", range)}
+        </p>
+      ) : null}
+      {rows.length ? (
+        <Notice variant="warning" title={t("notIncluded.title")}>
+          <ul className="grid gap-1">
+            {rows.map((row, index) => (
+              <li key={index} className="break-words">
+                {row.line ? t("notIncluded.line", { line: row.line }) : null}
+                {row.text} — {t(`notIncluded.reasons.${row.reason}`)}
+                {row.note ? ` (${row.note})` : null}
+              </li>
+            ))}
+          </ul>
+        </Notice>
+      ) : null}
+    </div>
   )
 }
 
@@ -208,11 +252,7 @@ function Details({
             <dt className="text-xs text-muted-foreground">
               {labels.has(key)
                 ? labels(key)
-                : t("otherField", {
-                    name: key
-                      .replaceAll("_", " ")
-                      .replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
-                  })}
+                : t("otherField", { name: fieldName(key) })}
             </dt>
             <dd className="text-sm">
               {key === "summary" &&
@@ -236,11 +276,24 @@ function Details({
     </dl>
   )
 }
-export function VoiceConversation() {
+export function VoiceConversation({
+  capabilities = [],
+  from,
+}: {
+  capabilities?: Available[]
+  from?: string
+}) {
   const t = useTranslations("voice")
   const locale = useLocale()
   const router = useRouter()
   const voice = useVoice()
+  // Suggestion chips fill the text box (starting a text session if needed); they never send.
+  const tips = useVoiceTips(capabilities, from)
+  const [seed, setSeed] = useState<{ text: string }>()
+  const pick = (text: string) => {
+    setSeed({ text })
+    if (!voice.connected && !voice.starting) void voice.start(true)
+  }
   const [follow, setFollow] = useState(true)
   const log = useRef<HTMLDivElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -272,7 +325,11 @@ export function VoiceConversation() {
         overlayClassName="bg-black/75 motion-reduce:animate-none"
         className="dark top-0 left-0 translate-x-0 translate-y-0 text-foreground motion-reduce:animate-none"
       >
-        <div className="theme-glass flex h-full min-h-0 w-full flex-col">
+        {/* While a review card is open nothing behind it can be reached, so nothing cancels it by accident. */}
+        <div
+          inert={Boolean(voice.review)}
+          className="theme-glass flex h-full min-h-0 w-full flex-col"
+        >
           <header className="flex shrink-0 items-center justify-between gap-2 px-4 py-3 md:px-8">
             <DialogTitle className="min-w-0 flex-1 truncate text-base">
               {t("title")}
@@ -324,7 +381,10 @@ export function VoiceConversation() {
               >
                 {voice.messages.length ? (
                   voice.messages.map((row) =>
-                    row.role === "link" && row.href ? (
+                    // voice-rich-results: server-built picture for a read result.
+                    row.role === "result" && row.views ? (
+                      <VoiceResult key={row.id} views={row.views} />
+                    ) : row.role === "link" && row.href ? (
                       <a
                         key={row.id}
                         data-role="link"
@@ -382,6 +442,8 @@ export function VoiceConversation() {
                 )}
                 <VoiceThinking />
               </div>
+              <VoiceUnfinished />
+              <VoiceSuggestions items={tips.chips} onPick={pick} />
               {!follow ? (
                 <Button
                   variant="outline"
@@ -425,7 +487,8 @@ export function VoiceConversation() {
                       }}
                       ready={composerReady(voice.attachments)}
                       describedBy="voice-file-hint"
-                      placeholder={t("placeholder")}
+                      placeholder={tips.placeholder ?? t("placeholder")}
+                      seed={seed}
                       sources={[
                         {
                           key: "files",
@@ -492,6 +555,11 @@ export function VoiceConversation() {
                                 src={file.preview}
                                 alt={t("preview", { number: file.ordinal })}
                                 className="size-14 shrink-0 rounded-xl object-cover"
+                              />
+                            ) : sheetMime(file.file) ? (
+                              <FileSpreadsheet
+                                aria-hidden
+                                className="size-10 shrink-0"
                               />
                             ) : (
                               <FileText
@@ -667,6 +735,8 @@ export function VoiceConversation() {
               className="max-h-[60dvh] w-full rounded-xl object-contain"
               onError={() => setPreviewUnavailable(true)}
             />
+          ) : preview && sheetMime(preview.file) ? (
+            <Notice variant="info" title={t("sheetNoPreview")} />
           ) : preview?.file.type === "application/pdf" ? (
             <>
               <p className="text-sm text-muted-foreground">
@@ -693,8 +763,10 @@ export function VoiceConversation() {
       </Dialog>
       <Sheet
         open={Boolean(voice.review)}
-        onOpenChange={(open) => {
-          if (!open && !voice.busy) void voice.confirm("cancel")
+        onOpenChange={(open, details) => {
+          // Only Esc cancels here; focus loss, resizes and stray clicks never do.
+          if (!open && !voice.busy && details.reason === "escape-key")
+            void voice.confirm("cancel")
         }}
       >
         <SheetContent
@@ -710,7 +782,13 @@ export function VoiceConversation() {
               {voice.review ? <ReviewTitle review={voice.review} /> : null}
             </p>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {voice.review ? <ReviewList review={voice.review} /> : null}
+              {/* voice-rich-results: before → after diff on top, the rest under "More details". */}
+              {voice.review ? (
+                <ReviewDiff review={voice.review}>
+                  <ReviewList review={voice.review} />
+                </ReviewDiff>
+              ) : null}
+              {voice.review ? <NotIncluded review={voice.review} /> : null}
             </div>
             <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
             {voice.recoveredReview ? (

@@ -59,6 +59,7 @@
     "supply": "Ugavi",
     "overview": "Muhtasari",
     "invites": "Mialiko",
+    "members": "Wanachama",
     "categories": "Makundi",
     "voice": "Msaidizi wa sauti"
   },
@@ -726,6 +727,7 @@
     "sizeAdded": "Saizi imeongezwa.",
     "inviteSent": "Mwaliko umetumwa kwa {email}",
     "inviteWithdrawn": "Mwaliko umeondolewa.",
+    "memberRemoved": "{name} hana tena ruhusa ya kuingia.",
     "lotStockChanged": "Akiba imebadilishwa.",
     "invoice": {
       "sent": "Ankara imetumwa.",
@@ -859,6 +861,23 @@
       "accepted": "Imekubaliwa",
       "denied": "Imekataliwa",
       "expired": "Imeisha muda"
+    }
+  },
+  "members": {
+    "title": "Wanachama",
+    "intro": "Watu wanaofanya kazi katika akaunti hii. Ondoa aliyeondoka: oda, ankara na historia yake vinabaki.",
+    "name": "Jina",
+    "team": "Timu (jukumu)",
+    "status": "Hali",
+    "actions": "Vitendo",
+    "empty": "Bado hakuna wanachama",
+    "remove": "Ondoa",
+    "removeTitle": "Ondoa ruhusa ya {name}?",
+    "removeText": "Hataweza tena kufungua akaunti hii na ataondolewa kwenye timu zake. Oda, ankara na historia yake vinabaki. Mwalike tena ili kumrudishia ruhusa.",
+    "statuses": {
+      "owner": "Mmiliki",
+      "active": "Hai",
+      "removed": "Ameondolewa"
     }
   },
   "invite": {
@@ -1013,7 +1032,8 @@
       "user": "Wewe",
       "agent": "Genesy",
       "action": "Kitendo",
-      "link": "Kiungo"
+      "link": "Kiungo",
+      "result": "Matokeo"
     },
     "fileStates": {
       "selected": "Imechaguliwa · haijatumwa",
@@ -1023,11 +1043,12 @@
       "failed": "Kupakia kumeshindwa"
     },
     "fileErrors": {
-      "type": "Chagua JPEG, PNG, WebP au PDF.",
+      "type": "Chagua JPEG, PNG, WebP, PDF, .xlsx au .csv.",
       "empty": "Faili hii haina maudhui.",
       "size": "Chagua faili isiyozidi MiB 10.",
       "count": "Kipindi kinakubali hadi faili 10.",
-      "rate": "Upakiaji mwingi sana. Subiri kabla ya kujaribu tena."
+      "rate": "Upakiaji mwingi sana. Subiri kabla ya kujaribu tena.",
+      "sheetSize": "Chagua jedwali lisilozidi MiB 2."
     },
     "secureJsonHint": "Mipangilio ya kina kama kitu cha JSON. Sehemu zilizojumuishwa tu hutumwa; seva hukagua kitendo.",
     "secureJsonInvalid": "Ingiza kitu au safu halali ya JSON.",
@@ -1184,7 +1205,26 @@
       "count": "Idadi",
       "state": "Hali",
       "method": "Njia",
-      "operation": "Kitendo"
+      "operation": "Kitendo",
+      "gross_price": "Bei pamoja na VAT",
+      "wholesale_price": "Bei ya jumla",
+      "supplier_wholesale_price": "Bei ya jumla ya msambazaji",
+      "impact_on_price": "Marekebisho ya bei",
+      "impact_on_wholesale_price": "Marekebisho ya bei ya jumla",
+      "vat_group": "Kundi la VAT",
+      "order_unit": "Kipimo cha kuagiza",
+      "sale_unit": "Kipimo cha kuuza",
+      "default": "Chaguo-msingi",
+      "rate": "Kiwango",
+      "purchase_price": "Bei ya kununua",
+      "impact": "Kinachoathiriwa",
+      "warnings": "Tahadhari",
+      "type": "Aina",
+      "orders": "Maagizo",
+      "contacts": "Watu wa mawasiliano",
+      "variants": "Saizi",
+      "stock_rows": "Maeneo ya hisa yenye hisa",
+      "effect": "Matokeo"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -1257,7 +1297,8 @@
       "currencies": "sarafu",
       "vat": "kundi la VAT",
       "workspace": "eneo la kazi",
-      "settings": "mpangilio"
+      "settings": "mpangilio",
+      "relations": "mteja"
     },
     "operationActions": {
       "create": "Unda {record}",
@@ -1315,6 +1356,311 @@
     "currentWorkspace": "Eneo la kazi la sasa",
     "yes": "Ndiyo",
     "no": "Hapana",
-    "otherField": "Sehemu: {name}"
+    "otherField": "{name}",
+    "steps": {
+      "checking": "Inatafuta",
+      "preparing": "Inaandaa ukaguzi wako",
+      "running": "Inaendesha sasa",
+      "finalizing": "Inakamilisha"
+    },
+    "unfinished": {
+      "stalled": "Sikuweza kumaliza jibu hilo.",
+      "ended_by_agent": "Msaidizi alimaliza mazungumzo kabla ya kumaliza.",
+      "time_limit": "Mazungumzo yamefikia kikomo cha muda kabla sijamaliza.",
+      "connection_lost": "Muunganisho ulikatika kabla sijamaliza.",
+      "progress": "{count, plural, =0 {Hakuna hatua iliyokamilika.} one {Hatua # imekamilika.} other {Hatua # zimekamilika.}}",
+      "askAgain": "Uliza tena",
+      "continue": "Endelea",
+      "continued": "Mazungumzo mapya. Ujumbe wa awali unabaki hapa; hakuna kilichorudiwa. Uliza tena ili kuendelea."
+    },
+    "hiddenCancelled": "Nimeghairi kadi kwa sababu ukurasa ulifichwa. Nikuandalie tena?",
+    "results": {
+      "salesTitle": "Mauzo",
+      "source": {
+        "till": "Mauzo ya kaunta",
+        "office": "Mauzo ya ofisi",
+        "storefront": "Mauzo ya duka la mtandaoni",
+        "all": "Mauzo yote"
+      },
+      "period": "{from} hadi {to}",
+      "orders": "{count, plural, one {oda #} other {oda #}}",
+      "refunded": "Zilizorejeshwa",
+      "gross": "Mauzo",
+      "periodColumn": "Kipindi",
+      "currency": "Sarafu",
+      "showTable": "Onyesha kama jedwali",
+      "showChart": "Onyesha kama chati",
+      "noSales": "Hakuna mauzo katika kipindi hiki",
+      "noSalesHint": "Hakuna kilichouzwa kati ya tarehe hizi.",
+      "resources": {
+        "orders": "Oda",
+        "invoices": "Ankara",
+        "products": "Bidhaa",
+        "lots": "Makundi"
+      },
+      "empty": {
+        "orders": "Hakuna oda zilizopatikana",
+        "invoices": "Hakuna ankara zilizopatikana",
+        "products": "Hakuna bidhaa zilizopatikana",
+        "lots": "Hakuna makundi yaliyopatikana"
+      },
+      "emptyHint": "Hakuna kinacholingana na swali hili kwa sasa.",
+      "showing": "Inaonyesha {shown} kati ya {total}",
+      "openAll": "Fungua zote kwenye Office",
+      "inStock": "{count} zipo stoo",
+      "originTitle": "Kinatoka wapi",
+      "materials": "Viungo",
+      "noOrigin": "Bado hakuna taarifa za asili",
+      "noOriginHint": "Ziongeze kwenye pasipoti ya kundi.",
+      "trailTitle": "Historia ya kundi",
+      "noTrail": "Bado hakuna historia",
+      "noTrailHint": "Mabadiliko ya kundi hili yataonekana hapa.",
+      "events": {
+        "created": "Imeundwa",
+        "updated": "Imesasishwa",
+        "status_changed": "Hali imebadilika",
+        "passport_published": "Pasipoti imechapishwa",
+        "passport_unpublished": "Pasipoti imeondolewa"
+      },
+      "by": "na {name}",
+      "attentionTitle": "Yanahitaji umakini",
+      "allClear": "Hakuna kinachohitaji umakini wako",
+      "allClearHint": "Hakuna mambo wazi katika sehemu unazoweza kuona.",
+      "sections": {
+        "orders": "Oda",
+        "invoices": "Ankara",
+        "stock": "Stoo",
+        "till_shifts": "Zamu za kaunta zilizo wazi",
+        "lots": "Makundi",
+        "webhooks": "Webhook zilizoshindwa"
+      },
+      "counts": {
+        "open": "Wazi",
+        "draft": "Rasimu",
+        "unpaid": "Hazijalipwa",
+        "overdue": "Zimechelewa",
+        "out_of_stock": "Zimeisha",
+        "quarantined": "Zimezuiwa",
+        "holds": "Zimeshikiliwa na oda",
+        "failed": "Zimeshindwa",
+        "negative": "Stoo hasi"
+      },
+      "attempts": "{count, plural, one {jaribio #} other {majaribio #}}",
+      "level": "Kiwango {level}",
+      "opened": "Ilifunguliwa {date}",
+      "diffTitle": "Kinachobadilika",
+      "was": "ilikuwa",
+      "now": "sasa",
+      "up": "Juu {share}",
+      "down": "Chini {share}",
+      "moreDetails": "Maelezo zaidi",
+      "fewerDetails": "Maelezo machache",
+      "largeChange": "Haya ni mabadiliko makubwa sana. Kagua thamani mpya kabla ya kuidhinisha.",
+      "nameUnavailable": "jina halipatikani",
+      "recordLine": "{type}: {label}",
+      "impactTitle": "Hii pia inagusa",
+      "impact": {
+        "orders": "Oda",
+        "contacts": "Mawasiliano",
+        "variants": "Saizi",
+        "stock_rows": "Mistari ya stoo"
+      },
+      "effect": {
+        "archive": "Itahifadhiwa kwenye kumbukumbu, si kufutwa."
+      },
+      "warningsTitle": "Kabla ya kuidhinisha"
+    },
+    "suggestions": "Mapendekezo",
+    "tryPrompt": "Jaribu: “{prompt}”",
+    "pagesHint": "Ninaweza pia kukufungulia ukurasa sahihi wa Office.",
+    "capabilityGroups": {
+      "invoices": "Ankara",
+      "orders": "Maagizo",
+      "products": "Bidhaa",
+      "stock": "Hisa",
+      "till": "Kaunta",
+      "settings": "Timu"
+    },
+    "capabilities": {
+      "open_invoices": {
+        "label": "Ankara zilizo wazi",
+        "prompt": "Ankara zipi bado hazijalipwa?"
+      },
+      "email_invoice": {
+        "label": "Tuma ankara kwa barua pepe",
+        "prompt": "Tuma ankara hii kwa mteja kwa barua pepe"
+      },
+      "resend_invoice": {
+        "label": "Tuma ankara tena",
+        "prompt": "Mtumie mteja ankara tena"
+      },
+      "record_payment": {
+        "label": "Rekodi malipo",
+        "prompt": "Rekodi malipo kwenye ankara"
+      },
+      "create_order": {
+        "label": "Unda agizo",
+        "prompt": "Unda agizo jipya"
+      },
+      "weekly_sales": {
+        "label": "Mauzo wiki hii",
+        "prompt": "Tumeuza kiasi gani wiki hii?"
+      },
+      "todays_orders": {
+        "label": "Maagizo ya leo",
+        "prompt": "Onyesha maagizo ya leo"
+      },
+      "invoice_order": {
+        "label": "Tengeneza ankara ya agizo",
+        "prompt": "Tengeneza ankara ya agizo hili"
+      },
+      "change_price": {
+        "label": "Badilisha bei",
+        "prompt": "Badilisha bei ya bidhaa"
+      },
+      "find_product": {
+        "label": "Tafuta bidhaa",
+        "prompt": "Tafuta bidhaa kwa jina"
+      },
+      "check_stock": {
+        "label": "Angalia hisa",
+        "prompt": "Tuna hisa kiasi gani ya bidhaa?"
+      },
+      "below_zero": {
+        "label": "Hisa chini ya sifuri",
+        "prompt": "Bidhaa zipi ziko chini ya sifuri?"
+      },
+      "add_stock": {
+        "label": "Ongeza hisa",
+        "prompt": "Ongeza hisa ya bidhaa hii"
+      },
+      "till_sales": {
+        "label": "Mauzo ya kaunta leo",
+        "prompt": "Onyesha mauzo ya kaunta ya leo"
+      },
+      "invite_colleague": {
+        "label": "Alika mwenzako",
+        "prompt": "Mwalike mwenzako kwenye timu"
+      },
+      "team_members": {
+        "label": "Wanatimu",
+        "prompt": "Nani yuko kwenye timu yangu?"
+      }
+    },
+    "pages": {
+      "overview": {
+        "name": "Muhtasari",
+        "purpose": "Muhtasari wa biashara wa leo"
+      },
+      "products": {
+        "name": "Bidhaa",
+        "purpose": "Orodha ya bidhaa: majina, bei na maelezo"
+      },
+      "product": {
+        "name": "Bidhaa moja",
+        "purpose": "Bidhaa moja: badilisha bei, saizi na maelezo"
+      },
+      "categories": {
+        "name": "Makundi",
+        "purpose": "Makundi ya bidhaa"
+      },
+      "stock": {
+        "name": "Hisa",
+        "purpose": "Kiasi cha hisa kwa kila bidhaa na mahali"
+      },
+      "stock_negative": {
+        "name": "Hisa chini ya sifuri",
+        "purpose": "Bidhaa zenye hisa chini ya sifuri"
+      },
+      "orders": {
+        "name": "Maagizo",
+        "purpose": "Maagizo yote"
+      },
+      "order": {
+        "name": "Agizo",
+        "purpose": "Agizo moja na mistari yake"
+      },
+      "invoices": {
+        "name": "Ankara",
+        "purpose": "Ankara zote na hali zake"
+      },
+      "invoice": {
+        "name": "Ankara moja",
+        "purpose": "Ankara moja: ituma, rekodi malipo"
+      },
+      "lots": {
+        "name": "Mafungu",
+        "purpose": "Mafungu ya mazao yaliyovunwa"
+      },
+      "lot": {
+        "name": "Fungu",
+        "purpose": "Fungu moja na historia yake"
+      },
+      "supply": {
+        "name": "Ugavi",
+        "purpose": "Ugavi kutoka kwa washirika"
+      },
+      "supply_links": {
+        "name": "Viungo vya ugavi",
+        "purpose": "Viungo na washirika"
+      },
+      "supply_transfers": {
+        "name": "Uhamisho wa ugavi",
+        "purpose": "Bidhaa zilizohamishwa kati ya washirika"
+      },
+      "till_sales": {
+        "name": "Mauzo ya kaunta",
+        "purpose": "Mauzo yaliyofanywa kaunta"
+      },
+      "till_shifts": {
+        "name": "Zamu za kaunta",
+        "purpose": "Zamu za kaunta na hesabu za fedha"
+      },
+      "till_registers": {
+        "name": "Rejista",
+        "purpose": "Rejista za kaunta na uunganishaji wake"
+      },
+      "till_users": {
+        "name": "Watumiaji wa kaunta",
+        "purpose": "Watu wanaoruhusiwa kutumia kaunta"
+      },
+      "till_vaults": {
+        "name": "Masanduku ya fedha",
+        "purpose": "Masanduku ya fedha taslimu"
+      },
+      "invites": {
+        "name": "Mialiko",
+        "purpose": "Alika wenzako kwenye eneo la kazi"
+      },
+      "app_keys": {
+        "name": "Funguo za programu",
+        "purpose": "Funguo za programu zilizounganishwa"
+      },
+      "webhooks": {
+        "name": "Webhooks",
+        "purpose": "Anwani za webhook za miunganisho"
+      },
+      "search": {
+        "name": "Tafuta",
+        "purpose": "Tafuta katika eneo lote la kazi"
+      }
+    },
+    "sheetRequest": "Nimeshiriki jedwali. Niulize nifanye nini nalo.",
+    "sheetNoPreview": "Genesy husoma jedwali hili ukiomba; hakuna onyesho hapa.",
+    "importRows": "Safu {from}–{to} kati ya {total}",
+    "notIncluded": {
+      "title": "Hazijajumuishwa — kagua mistari hii",
+      "line": "Mstari {line}: ",
+      "reasons": {
+        "unclear": "haisomeki vizuri",
+        "not_found": "hakuna bidhaa yenye jina, namba au barcode hii",
+        "ambiguous": "bidhaa zaidi ya moja zinalingana",
+        "unreadable": "bei si namba ya kawaida",
+        "unclear_precision": "bei ina desimali nyingi kuliko sarafu yako",
+        "unchanged": "bei tayari ni ileile",
+        "duplicate": "bidhaa hii tayari iko kwenye orodha",
+        "other": "imeachwa"
+      }
+    }
   }
 }

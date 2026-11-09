@@ -138,17 +138,22 @@ impl Validate for UploadInput {
     fn validate(self, r: &mut Rules) -> Option<Self> {
         r.check(
             "media_type",
-            matches!(
-                self.media_type.as_str(),
-                "application/pdf" | "image/jpeg" | "image/png" | "image/webp"
-            ),
+            provider_media(&self.media_type) || is_sheet(&self.media_type),
             "This file type is not supported.",
         );
-        r.check(
-            "size_bytes",
-            (1..=10485760).contains(&self.size_bytes),
-            "Files must be between 1 byte and 10 MiB.",
-        );
+        if is_sheet(&self.media_type) {
+            r.check(
+                "size_bytes",
+                (1..=SHEET_LIMIT).contains(&self.size_bytes),
+                "Spreadsheets must be between 1 byte and 2 MiB.",
+            );
+        } else {
+            r.check(
+                "size_bytes",
+                (1..=10485760).contains(&self.size_bytes),
+                "Files must be between 1 byte and 10 MiB.",
+            );
+        }
         Some(self)
     }
 }
@@ -157,8 +162,9 @@ impl Validate for UploadInput {
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CompleteInput {
-    #[serde(alias = "provider_file_id")]
-    pub file_id: String,
+    /// Provider file; absent exactly for csv/xlsx sheets, which never leave the browser.
+    #[serde(alias = "provider_file_id", default)]
+    pub file_id: Option<String>,
     #[serde(default)]
     pub size_bytes: Option<i64>,
     #[serde(default)]
@@ -169,27 +175,98 @@ pub struct CompleteInput {
 impl Validate for CompleteInput {
     type Valid = Self;
     fn validate(self, r: &mut Rules) -> Option<Self> {
-        provider_id(r, "file_id", &self.file_id);
-        if self.size_bytes.is_some() || self.media_type.is_some() || self.sha256.is_some() {
+        let sheet = self.media_type.as_deref().is_some_and(is_sheet);
+        match (&self.file_id, sheet) {
+            (Some(id), false) => provider_id(r, "file_id", id),
+            (None, false) => r.add("file_id", "Use the provider file id."),
+            (Some(_), true) => r.add("file_id", "Spreadsheets are never sent to the provider."),
+            (None, true) => {}
+        }
+        if sheet || self.size_bytes.is_some() || self.media_type.is_some() || self.sha256.is_some()
+        {
+            let limit = if sheet { SHEET_LIMIT } else { 10485760 };
             r.check(
                 "size_bytes",
-                self.size_bytes.is_some_and(|n| (1..=10485760).contains(&n)),
-                "Files must be between 1 byte and 10 MiB.",
+                self.size_bytes.is_some_and(|n| (1..=limit).contains(&n)),
+                if sheet {
+                    "Spreadsheets must be between 1 byte and 2 MiB."
+                } else {
+                    "Files must be between 1 byte and 10 MiB."
+                },
             );
             r.check(
                 "media_type",
-                self.media_type.as_deref().is_some_and(|s| {
-                    matches!(
-                        s,
-                        "application/pdf" | "image/jpeg" | "image/png" | "image/webp"
-                    )
-                }),
+                self.media_type
+                    .as_deref()
+                    .is_some_and(|s| provider_media(s) || is_sheet(s)),
                 "This file type is not supported.",
             );
             r.check(
                 "sha256",
                 self.sha256.as_deref().is_some_and(valid_sha256),
                 "Use a lowercase SHA-256 digest.",
+            );
+        }
+        Some(self)
+    }
+}
+
+const SHEET_LIMIT: i64 = 2 * 1024 * 1024;
+fn provider_media(media: &str) -> bool {
+    matches!(
+        media,
+        "application/pdf" | "image/jpeg" | "image/png" | "image/webp"
+    )
+}
+/// Price-list sheets the office parses itself; they carry no provider file.
+pub fn is_sheet(media: &str) -> bool {
+    matches!(
+        media,
+        "text/csv" | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+}
+
+/// One raw price-list row as written in the sheet; the API reads the price.
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PriceRowInput {
+    /// Sheet row number, shown back to the user.
+    pub line: i32,
+    /// Product number, barcode or exact name.
+    pub key: String,
+    /// Price text exactly as written.
+    pub price: String,
+}
+/// At most fifty rows per resolve, matching one import review.
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PriceImportInput {
+    #[schema(min_items = 1, max_items = 50)]
+    pub rows: Vec<PriceRowInput>,
+}
+impl Validate for PriceImportInput {
+    type Valid = Self;
+    fn validate(self, r: &mut Rules) -> Option<Self> {
+        r.check(
+            "rows",
+            (1..=50).contains(&self.rows.len()),
+            "Send one through fifty rows.",
+        );
+        for (index, row) in self.rows.iter().enumerate() {
+            r.check(
+                &format!("rows.{index}.line"),
+                row.line >= 1,
+                "Use the sheet row number.",
+            );
+            r.check(
+                &format!("rows.{index}.key"),
+                row.key.chars().count() <= 255,
+                "Keep the product text to 255 characters.",
+            );
+            r.check(
+                &format!("rows.{index}.price"),
+                row.price.chars().count() <= 64,
+                "Keep the price text to 64 characters.",
             );
         }
         Some(self)

@@ -20,13 +20,17 @@ import {
 } from "@/lib/voice/batches"
 import { withVoiceTracing } from "@/lib/voice/tracing"
 import { narrate } from "@/lib/voice/narration"
+import { trackGap, type GapScope } from "@/lib/voice/gaps"
 export const runtime = "nodejs"
 
 /** Trusted UI boundary; never registered as an ElevenLabs client tool. */
 export function POST(request: Request) {
-  return withVoiceTracing("genesy_assistant_confirm", () => handle(request))
+  const scope: GapScope = {}
+  return withVoiceTracing("genesy_assistant_confirm", () =>
+    handle(request, scope).then((response) => trackGap(scope, response))
+  )
 }
-async function handle(request: Request) {
+async function handle(request: Request, scope: GapScope) {
   let releaseFile: (() => void) | undefined
   let language = "en"
   let isBatch = false
@@ -47,6 +51,11 @@ async function handle(request: Request) {
     if (secret.length < 32)
       throw new VoiceError("Assistant confirmation is not configured.", 503)
     const review = verifyReview(String(input.ticket ?? ""), context, secret)
+    Object.assign(scope, {
+      context,
+      operationId: review.action.operationId,
+      cancelled: input.decision === "cancel",
+    })
     if (review.action.operationId === BATCH_PREPARE_OPERATION) {
       isBatch = true
       return voiceResponse(
@@ -159,7 +168,6 @@ async function handle(request: Request) {
       narrate(
         await executeAction(review.action, context, review.id),
         "execute",
-        review.action.summary,
         language
       )
     )

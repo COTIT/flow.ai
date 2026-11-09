@@ -8,6 +8,7 @@ import {
 } from "./catalog"
 import { readBounded } from "./bridge"
 import { recordLinks, type RecordLink } from "./links"
+import { resultView, type ResultView } from "./views"
 import { failureReason } from "./client-contract"
 import { noteVoiceFailure } from "./tracing"
 import { voiceSetting } from "./settings"
@@ -31,6 +32,8 @@ export type Outcome = {
   actionId?: string
   /** Office pages of the records a completed write created or changed. */
   links?: RecordLink[]
+  /** A chart or cards for a read result; shown, never spoken. */
+  view?: ResultView
   /** Why it did not complete: a `failureReason` key, for the agent and monitoring. */
   reason?: string
   httpStatus?: number
@@ -412,7 +415,13 @@ function refused(action: PreparedAction, httpStatus: number, data: unknown) {
 
 function completed(action: PreparedAction, data: unknown): Outcome {
   const links = recordLinks(action, data)
-  return { status: "completed", data, ...(links.length ? { links } : {}) }
+  const view = action.write ? undefined : resultView(action.operationId, data)
+  return {
+    status: "completed",
+    data,
+    ...(links.length ? { links } : {}),
+    ...(view ? { view } : {}),
+  }
 }
 
 export function voiceResponse(data: unknown, status = 200) {

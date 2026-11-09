@@ -664,6 +664,7 @@ pub(super) async fn deliver_reserved(
                     description: None,
                     meta: None,
                     bytes: pdf.bytes,
+                    expires_at: None,
                 },
             )
             .await?;
@@ -745,6 +746,7 @@ pub(super) async fn render(
             description: None,
             meta: None,
             bytes: pdf.bytes,
+            expires_at: None,
         },
     )
     .await?;

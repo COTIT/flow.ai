@@ -245,6 +245,8 @@ pub struct OrderRow {
     pub invoice_id: Option<Uuid>,
     /// The linked invoice's status, read with the order (no order state of its own).
     pub invoice_status: Option<String>,
+    /// Relation company name or alias, else the web customer's name.
+    pub customer_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -263,6 +265,10 @@ pub async fn lock(
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,
                   (SELECT i.status FROM invoices i
                    WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,
+                  coalesce((SELECT coalesce(nullif(r.company_name, ''), nullif(r.alias, ''))
+                            FROM relations r
+                            WHERE r.workspace_id = o.workspace_id AND r.id = o.relation_id),
+                           nullif(o.customer ->> 'name', '')) AS customer_name,
                   o.created_at,
                   o.confirmed_at, o.picked_at,
                   o.updated_at
@@ -290,6 +296,10 @@ pub async fn find(
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,
                   (SELECT i.status FROM invoices i
                    WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,
+                  coalesce((SELECT coalesce(nullif(r.company_name, ''), nullif(r.alias, ''))
+                            FROM relations r
+                            WHERE r.workspace_id = o.workspace_id AND r.id = o.relation_id),
+                           nullif(o.customer ->> 'name', '')) AS customer_name,
                   o.created_at,
                   o.confirmed_at, o.picked_at,
                   o.updated_at
@@ -302,11 +312,23 @@ pub async fn find(
     .await
 }
 
+/// List filter: one status, created in `[created_from, created_to)`.
+pub struct ListFilter<'a> {
+    /// One status.
+    pub status: Option<&'a str>,
+    /// One customer.
+    pub relation_id: Option<Uuid>,
+    /// Created at or after.
+    pub created_from: Option<DateTime<Utc>>,
+    /// Created before.
+    pub created_to: Option<DateTime<Utc>>,
+}
+
 /// A page of headers, newest first; `total` counts every match.
 pub async fn list(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    status: Option<&str>,
+    f: &ListFilter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<OrderRow>, i64), sqlx::Error> {
@@ -317,17 +339,27 @@ pub async fn list(
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,
                   (SELECT i.status FROM invoices i
                    WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,
+                  coalesce((SELECT coalesce(nullif(r.company_name, ''), nullif(r.alias, ''))
+                            FROM relations r
+                            WHERE r.workspace_id = o.workspace_id AND r.id = o.relation_id),
+                           nullif(o.customer ->> 'name', '')) AS customer_name,
                   o.created_at,
                   o.confirmed_at, o.picked_at,
                   o.updated_at, count(*) OVER () AS "total_rows!"
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)
+             AND ($5::timestamptz IS NULL OR o.created_at >= $5)
+             AND ($6::timestamptz IS NULL OR o.created_at < $6)
+             AND ($7::uuid IS NULL OR o.relation_id = $7)
            ORDER BY o.created_at DESC, o.id DESC
            LIMIT $3 OFFSET $4"#,
         workspace_id,
-        status,
+        f.status,
         limit,
         offset,
+        f.created_from,
+        f.created_to,
+        f.relation_id,
     )
     .fetch_all(db)
     .await?;
@@ -359,6 +391,7 @@ pub async fn list(
             picked_at: r.picked_at,
             invoice_id: r.invoice_id,
             invoice_status: r.invoice_status,
+            customer_name: r.customer_name,
             created_at: r.created_at,
             updated_at: r.updated_at,
         })
@@ -370,13 +403,19 @@ pub async fn list(
 pub async fn count(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    status: Option<&str>,
+    f: &ListFilter<'_>,
 ) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM orders
-           WHERE workspace_id = $1 AND ($2::text IS NULL OR status = $2)"#,
+           WHERE workspace_id = $1 AND ($2::text IS NULL OR status = $2)
+             AND ($3::timestamptz IS NULL OR created_at >= $3)
+             AND ($4::timestamptz IS NULL OR created_at < $4)
+             AND ($5::uuid IS NULL OR relation_id = $5)"#,
         workspace_id,
-        status,
+        f.status,
+        f.created_from,
+        f.created_to,
+        f.relation_id,
     )
     .fetch_one(db)
     .await

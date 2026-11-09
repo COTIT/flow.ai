@@ -11,11 +11,12 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 /// Exact ordered drafts; session binding is supplied once for the whole batch.
+/// Fifty covers one price-list import page; office keeps model-built batches at ten.
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BatchInput {
     pub session_id: Uuid,
-    #[schema(min_items = 2, max_items = 10)]
+    #[schema(min_items = 2, max_items = 50)]
     pub actions: Vec<Value>,
 }
 /// Validated drafts, each carrying the same owner-bound session.
@@ -28,8 +29,8 @@ impl Validate for BatchInput {
     fn validate(self, r: &mut Rules) -> Option<BatchDraft> {
         r.check(
             "actions",
-            (2..=10).contains(&self.actions.len()),
-            "Choose two through ten exact actions.",
+            (2..=50).contains(&self.actions.len()),
+            "Choose two through fifty exact actions.",
         );
         r.check(
             "actions",
@@ -155,7 +156,7 @@ mod tests {
         ));
         assert!(!valid(json!({"session_id":session,"actions":[action()]})));
         assert!(!valid(
-            json!({"session_id":session,"actions":vec![action();11]})
+            json!({"session_id":session,"actions":vec![action();51]})
         ));
         let mut nested = action();
         nested["session_id"] = json!(session);

@@ -3,6 +3,7 @@ import Ajv2020, { type ValidateFunction } from "ajv/dist/2020"
 import addFormats from "ajv-formats"
 import generated from "./catalog.generated.json"
 import schemas from "./catalog.schemas.generated.json"
+import keywords from "./keywords.json"
 
 type Schema = Record<string, unknown>
 export type Authorization = {
@@ -92,6 +93,12 @@ export const tools = operationManifest.filter(
 )
 const byId = new Map(operationManifest.map((op) => [op.id, op]))
 export const getOperation = (id: string): Tool | undefined => byId.get(id)
+// Trigger words (en/nl/sw) are matched by discovery only; never shown on screen.
+const triggerWords = new Map(
+  Object.entries(keywords as Record<string, Record<string, string[]>>).map(
+    ([id, words]) => [id, Object.values(words).flat().join(" ")]
+  )
+)
 
 /** Safe refusal for inventoried capabilities missing native backend behavior. */
 export class ToolUnavailableError extends Error {
@@ -166,6 +173,12 @@ function discoveryContract(tool: Tool, exact = false): Tool {
   }
 }
 
+const fillerWords = new Set(
+  "the and for with from our this that its are what which who how why does can into about any your their them they have has was were been not but".split(
+    " "
+  )
+)
+
 /** Search contracts on demand; secure flows resolve to an explicit native UI handoff. */
 export function discoverTools(
   query: string,
@@ -179,11 +192,14 @@ export function discoverTools(
   const exact = byId.get(query)
   if (exact)
     return allowed.includes(exact) ? [discoveryContract(exact, true)] : []
+  // Words match as substrings, so short and filler words ("or" in "orders") would match everything.
   const terms = query
     .toLowerCase()
-    .replace(/[_-]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
+    // Keep "to-do" as "todo" too: its parts alone are too short to count.
+    .replace(/(\p{L}+)-(\p{L}+)/gu, "$1$2 $1 $2")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(" ")
+    .filter((term) => term.length > 2 && !fillerWords.has(term))
   return (
     allowed
       .map((tool) => ({
@@ -191,7 +207,7 @@ export function discoverTools(
         score: terms.reduce(
           (score, term) =>
             score +
-            (`${tool.id} ${tool.domain} ${tool.summary}`
+            (`${tool.id} ${tool.domain} ${tool.summary} ${triggerWords.get(tool.id) ?? ""}`
               .replace(/[_-]/g, " ")
               .toLowerCase()
               .includes(term)

@@ -2,6 +2,7 @@
 
 use super::dto::{CompleteInput, ProposalInput, UploadInput};
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::{PgConnection, PgExecutor, PgPool};
 use uuid::Uuid;
@@ -273,6 +274,7 @@ pub async fn reserve(
 }
 
 /// Complete or repeat same provider binding; late completion remains cleanup-visible.
+/// Sheets reserved as sheets complete without a provider file, nothing else does.
 pub async fn complete_upload(
     db: impl PgExecutor<'_>,
     workspace: Uuid,
@@ -281,7 +283,7 @@ pub async fn complete_upload(
     input: &CompleteInput,
     cleanup_only: bool,
 ) -> Result<Option<Value>, sqlx::Error> {
-    sqlx::query_scalar!(r#"UPDATE assistant_uploads SET file_id=$4,size_bytes=coalesce($5,size_bytes),media_type=coalesce($6,media_type),sha256=coalesce($7,sha256),state=CASE WHEN $8 OR state IN ('cancelled','cleanup_pending') OR created_at<=now()-interval '60 seconds' THEN 'cleanup_pending' ELSE 'uploaded' END WHERE workspace_id=$1 AND session_id=$2 AND id=$3 AND state IN ('reserved','uploaded','cancelled','cleanup_pending') AND (file_id IS NULL OR file_id=$4) RETURNING jsonb_build_object('id',id,'file_id',file_id,'state',state,'size_bytes',size_bytes,'media_type',media_type,'sha256',sha256) AS "data!""#,workspace,session,id,input.file_id,input.size_bytes,input.media_type,input.sha256,cleanup_only).fetch_optional(db).await
+    sqlx::query_scalar!(r#"UPDATE assistant_uploads SET file_id=$4,size_bytes=coalesce($5,size_bytes),media_type=coalesce($6,media_type),sha256=coalesce($7,sha256),state=CASE WHEN $8 OR state IN ('cancelled','cleanup_pending') OR created_at<=now()-interval '60 seconds' THEN 'cleanup_pending' ELSE 'uploaded' END WHERE workspace_id=$1 AND session_id=$2 AND id=$3 AND state IN ('reserved','uploaded','cancelled','cleanup_pending') AND (file_id IS NULL OR file_id=$4) AND ($4::text IS NULL)=(media_type IN ('text/csv','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) RETURNING jsonb_build_object('id',id,'file_id',file_id,'state',state,'size_bytes',size_bytes,'media_type',media_type,'sha256',sha256) AS "data!""#,workspace,session,id,input.file_id,input.size_bytes,input.media_type,input.sha256,cleanup_only).fetch_optional(db).await
 }
 
 /// Owned upload references and verified metadata; no bytes or names stored.
@@ -330,6 +332,7 @@ pub async fn prune(db: &PgPool) -> Result<u64, sqlx::Error> {
     super::batch_repo::prune(db).await?;
     crate::modules::invoices::delivery_repo::prune(db).await?;
     super::retention::prune(db).await?;
+    super::gaps_repo::prune(db).await?;
     Ok(removed)
 }
 
@@ -396,6 +399,44 @@ pub async fn batch_actions(
     id: Uuid,
 ) -> Result<Vec<Value>, sqlx::Error> {
     sqlx::query_scalar!(r#"SELECT jsonb_build_object('id',id,'session_id',session_id,'operation_id',operation_id,'step_index',step_index,'batch_id',batch_id,'batch_index',batch_index,'batch_verdict',batch_verdict,'state',CASE WHEN state IN ('proposed','approved','batch_pending') AND expires_at<=now() THEN 'expired' WHEN batch_verdict IS NOT NULL THEN batch_verdict WHEN batch_id IS NOT NULL AND state='completed' THEN 'unknown' WHEN state='batch_pending' THEN 'proposed' ELSE state END,'expires_at',expires_at,'request_hash',encode(request_hash,'hex'),'proposal',CASE WHEN state IN ('proposed','approved','batch_pending') AND expires_at>now() THEN proposal ELSE NULL END,'http_status',http_status,'finished_at',finished_at,'review_facts',CASE WHEN state IN ('proposed','approved','batch_pending') AND expires_at>now() THEN review_facts ELSE NULL END,'evidence',evidence) AS "data!" FROM assistant_actions WHERE workspace_id=$1 AND user_id=$2 AND login_id=$3 AND batch_id=$4 ORDER BY batch_index LIMIT 10"#,o.workspace_id,o.user_id,o.login_id,id).fetch_all(db).await
+}
+
+/// One product found for a row key; lower `rank` wins (number, barcode, name).
+#[derive(Debug)]
+pub struct PriceMatch {
+    pub ord: i64,
+    pub id: Uuid,
+    pub name: String,
+    pub price: Decimal,
+    pub decimals: i16,
+    pub rank: i32,
+}
+
+/// One query for all rows; workspace-bound, deleted products never match.
+// shortcut: name match scans the workspace's products per page of 50 rows, add an expression index if catalogues grow past ~10k.
+pub async fn price_matches(
+    db: impl PgExecutor<'_>,
+    workspace: Uuid,
+    raw: &[String],
+    norm: &[String],
+) -> Result<Vec<PriceMatch>, sqlx::Error> {
+    sqlx::query_as!(
+        PriceMatch,
+        r#"SELECT k.ord AS "ord!", p.id, p.name, p.price, c.decimals,
+                  (CASE WHEN lower(p.product_nr_formatted)=k.norm THEN 1 WHEN p.barcode=k.raw THEN 2 ELSE 3 END) AS "rank!"
+             FROM unnest($2::text[],$3::text[]) WITH ORDINALITY AS k(raw,norm,ord)
+             JOIN products p ON p.workspace_id=$1 AND p.deleted_at IS NULL AND k.raw<>''
+                  AND (lower(p.product_nr_formatted)=k.norm OR p.barcode=k.raw
+                       OR lower(regexp_replace(btrim(p.name),'\s+',' ','g'))=k.norm)
+             JOIN currencies c ON c.workspace_id=p.workspace_id AND c.id=p.currency_id
+            ORDER BY k.ord, 6, p.name COLLATE "C"
+            LIMIT 1000"#,
+        workspace,
+        raw,
+        norm
+    )
+    .fetch_all(db)
+    .await
 }
 
 #[cfg(test)]

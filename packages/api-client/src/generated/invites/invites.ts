@@ -387,7 +387,8 @@ export function useInvitesList<TData = Awaited<ReturnType<typeof invitesList>>, 
 
 
 /**
- * @summary Invite someone by email
+ * Pass `team_id` (from `teams_list`) to give the person that team's role and permissions when they accept. A removed member may be invited again; only this invite's team applies.
+ * @summary Invite someone by email, optionally into a team (role) such as Managers that sets their permissions
  */
 export const invitesSend = (
     workspace: string,
@@ -442,7 +443,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InvitesSendMutationVariables = {workspace: string;data: BodyType<SendInviteRequest>}
 
     /**
- * @summary Invite someone by email
+ * @summary Invite someone by email, optionally into a team (role) such as Managers that sets their permissions
  */
 export const useInvitesSend = <TError = ErrorType<MessageBody | ValidationErrorBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesSend>>, TError,InvitesSendMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}

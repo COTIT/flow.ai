@@ -30,7 +30,7 @@ pub async fn create(db: &PgPool, o: Owner, draft: BatchDraft) -> Result<Value, A
         ));
     }
     let count = i16::try_from(draft.actions.len())
-        .map_err(|_| AppError::field("actions", "Choose two through ten exact actions."))?;
+        .map_err(|_| AppError::field("actions", "Choose two through fifty exact actions."))?;
     let id = batches::insert(&mut *tx, o, draft.session_id, count, session.expires_at).await?;
     for (index, input) in draft.actions.into_iter().enumerate() {
         let child = service::propose_locked(&mut tx, o, input).await?;

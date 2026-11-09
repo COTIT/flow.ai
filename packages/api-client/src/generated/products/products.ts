@@ -30,6 +30,7 @@ import type {
   EnvelopeProductCreated,
   EnvelopeProductResource,
   EnvelopeSaleStatics,
+  EnvelopeTopProducts,
   EnvelopeVecProductImageResource,
   MessageBody,
   PaginatedProductPriceHistoryRow,
@@ -39,6 +40,7 @@ import type {
   ProductsGetParams,
   ProductsListParams,
   ProductsPriceHistoryParams,
+  ProductsTopSellersParams,
   ReplaceImagesRequest,
   ValidationErrorBody
 } from '../model';
@@ -545,6 +547,7 @@ export const useProductsUpdate = <TError = ErrorType<MessageBody | ValidationErr
       return useMutation(getProductsUpdateMutationOptions(options), queryClient);
     }
     /**
+ * An exact copy; takes no changes. For another size, name or price, copy first, then update the copy.
  * @summary Copy a product
  */
 export const productsDuplicate = (
@@ -1149,3 +1152,104 @@ export const useProductsSyncExternal = <TError = ErrorType<MessageBody>,
       > => {
       return useMutation(getProductsSyncExternalMutationOptions(options), queryClient);
     }
+    /**
+ * Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.
+ * @summary Best-selling products in a period (best sellers, top products)
+ */
+export const productsTopSellers = (
+    workspace: string,
+    params: ProductsTopSellersParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeTopProducts>(
+      {url: `/workspace/${workspace}/sales/top-products`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getProductsTopSellersQueryKey = (workspace: string,
+    params?: ProductsTopSellersParams,) => {
+    return [
+    `/workspace/${workspace}/sales/top-products`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getProductsTopSellersQueryOptions = <TData = Awaited<ReturnType<typeof productsTopSellers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: ProductsTopSellersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsTopSellers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsTopSellersQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsTopSellers>>> = ({ signal }) => productsTopSellers(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsTopSellers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProductsTopSellersQueryResult = NonNullable<Awaited<ReturnType<typeof productsTopSellers>>>
+export type ProductsTopSellersQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useProductsTopSellers<TData = Awaited<ReturnType<typeof productsTopSellers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: ProductsTopSellersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsTopSellers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsTopSellers>>,
+          TError,
+          Awaited<ReturnType<typeof productsTopSellers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsTopSellers<TData = Awaited<ReturnType<typeof productsTopSellers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: ProductsTopSellersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsTopSellers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsTopSellers>>,
+          TError,
+          Awaited<ReturnType<typeof productsTopSellers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsTopSellers<TData = Awaited<ReturnType<typeof productsTopSellers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: ProductsTopSellersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsTopSellers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Best-selling products in a period (best sellers, top products)
+ */
+
+export function useProductsTopSellers<TData = Awaited<ReturnType<typeof productsTopSellers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: ProductsTopSellersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsTopSellers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProductsTopSellersQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+

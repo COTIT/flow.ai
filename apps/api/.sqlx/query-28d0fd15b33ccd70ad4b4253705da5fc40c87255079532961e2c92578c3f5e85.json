@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM webhook_deliveries\n           WHERE workspace_id = $1 AND endpoint_id = $2 AND ($3::text IS NULL OR status = $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "28d0fd15b33ccd70ad4b4253705da5fc40c87255079532961e2c92578c3f5e85"
+}

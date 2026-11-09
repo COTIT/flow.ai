@@ -32,8 +32,10 @@ import type {
   EnvelopeRawProductCreated,
   FarmSupplyListParams,
   FarmSupplyOptionsParams,
+  FarmSupplyQuietFarmersParams,
   MessageBody,
   PaginatedBatchResource,
+  PaginatedQuietFarmer,
   RawProductRequest,
   ValidationErrorBody
 } from '../model';
@@ -143,6 +145,107 @@ export function useFarmSupplyDispatchOptions<TData = Awaited<ReturnType<typeof f
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getFarmSupplyDispatchOptionsQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Staff: registered persons in their villages (ops and admin: all) with no kg bought in a supply batch on or after Tanzania day `since` (default 30 days ago), or never. Never delivered first, then the oldest last delivery, with `last_delivery_at`. `village_id` narrows to one village. A delivery is a supply batch line; harvest figures don't count.
+ * @summary Farmers who have not delivered
+ */
+export const farmSupplyQuietFarmers = (
+    workspace: string,
+    params?: FarmSupplyQuietFarmersParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedQuietFarmer>(
+      {url: `/workspace/${workspace}/farm/quiet-farmers`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyQuietFarmersQueryKey = (workspace: string,
+    params?: FarmSupplyQuietFarmersParams,) => {
+    return [
+    `/workspace/${workspace}/farm/quiet-farmers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFarmSupplyQuietFarmersQueryOptions = <TData = Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: FarmSupplyQuietFarmersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmSupplyQuietFarmersQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>> = ({ signal }) => farmSupplyQuietFarmers(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmSupplyQuietFarmersQueryResult = NonNullable<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>>
+export type FarmSupplyQuietFarmersQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useFarmSupplyQuietFarmers<TData = Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  FarmSupplyQuietFarmersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyQuietFarmers>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyQuietFarmers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyQuietFarmers<TData = Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyQuietFarmersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyQuietFarmers>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyQuietFarmers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyQuietFarmers<TData = Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyQuietFarmersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Farmers who have not delivered
+ */
+
+export function useFarmSupplyQuietFarmers<TData = Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyQuietFarmersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyQuietFarmers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmSupplyQuietFarmersQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

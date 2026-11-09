@@ -1,6 +1,6 @@
 //! List helpers shared by index endpoints: Laravel paging params + `meta`, ILIKE escaping.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -106,6 +106,37 @@ pub fn time(r: &mut Rules, field: &str, v: Option<&str>) -> Option<DateTime<Utc>
     at.map(|t| t.with_timezone(&Utc))
 }
 
+/// Query time bound: an exact instant, or a calendar day that starts at local midnight in the
+/// workspace time zone (`settings::service::instant` resolves it).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum When {
+    At(DateTime<Utc>),
+    Day(NaiveDate),
+}
+
+/// Query `field` as an RFC 3339 time or a `YYYY-MM-DD` date; blank = None, anything else a 422.
+pub fn when(r: &mut Rules, field: &str, v: Option<&str>) -> Option<When> {
+    let v = v.map(str::trim).filter(|v| !v.is_empty())?;
+    let w = DateTime::parse_from_rfc3339(v)
+        .map(|t| When::At(t.with_timezone(&Utc)))
+        .or_else(|_| NaiveDate::parse_from_str(v, "%Y-%m-%d").map(When::Day))
+        .ok()
+        // Years far out pass chrono but overflow Postgres dates (a 500); no list needs them.
+        .filter(|w| {
+            let year = match w {
+                When::At(t) => t.year(),
+                When::Day(d) => d.year(),
+            };
+            (1900..=2200).contains(&year)
+        });
+    let msg = format!(
+        "The {} must be an RFC 3339 time or a YYYY-MM-DD date.",
+        field.replace('_', " ")
+    );
+    r.check(field, w.is_some(), msg);
+    w
+}
+
 /// Query `field` as an id; blank = None, anything else a 422 on `field`.
 pub fn id(r: &mut Rules, field: &str, v: Option<&str>) -> Option<Uuid> {
     let v = v.map(str::trim).filter(|v| !v.is_empty())?;
@@ -155,6 +186,33 @@ pub fn contains_pattern(q: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn when_reads_instants_and_days() {
+        let mut r = Rules::default();
+        let at = DateTime::parse_from_rfc3339("2026-11-07T22:30:00Z").unwrap();
+        assert_eq!(
+            when(&mut r, "x", Some("2026-11-08T01:30:00+03:00")),
+            Some(When::At(at.with_timezone(&Utc)))
+        );
+        assert_eq!(
+            when(&mut r, "x", Some(" 2026-11-08 ")),
+            NaiveDate::from_ymd_opt(2026, 11, 8).map(When::Day)
+        );
+        assert_eq!(when(&mut r, "x", Some("")), None);
+        assert!(r.into_result().is_ok());
+        for bad in [
+            "2026-02-30",
+            "08-11-2026",
+            "today",
+            "1899-12-31",
+            "+262142-01-01T00:00:00Z",
+        ] {
+            let mut r = Rules::default();
+            assert_eq!(when(&mut r, "x", Some(bad)), None, "{bad}");
+            assert!(r.into_result().is_err(), "{bad}");
+        }
+    }
 
     #[test]
     fn page_defaults_and_clamps() {

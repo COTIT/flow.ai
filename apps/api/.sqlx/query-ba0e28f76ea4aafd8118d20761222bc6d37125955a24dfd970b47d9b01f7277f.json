@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT k.ord AS \"ord!\", p.id, p.name, p.price, c.decimals,\n                  (CASE WHEN lower(p.product_nr_formatted)=k.norm THEN 1 WHEN p.barcode=k.raw THEN 2 ELSE 3 END) AS \"rank!\"\n             FROM unnest($2::text[],$3::text[]) WITH ORDINALITY AS k(raw,norm,ord)\n             JOIN products p ON p.workspace_id=$1 AND p.deleted_at IS NULL AND k.raw<>''\n                  AND (lower(p.product_nr_formatted)=k.norm OR p.barcode=k.raw\n                       OR lower(regexp_replace(btrim(p.name),'\\s+',' ','g'))=k.norm)\n             JOIN currencies c ON c.workspace_id=p.workspace_id AND c.id=p.currency_id\n            ORDER BY k.ord, 6, p.name COLLATE \"C\"\n            LIMIT 1000",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ord!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "price"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "rank!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "ba0e28f76ea4aafd8118d20761222bc6d37125955a24dfd970b47d9b01f7277f"
+}

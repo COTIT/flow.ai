@@ -1,8 +1,21 @@
 import { failureReason } from "@/lib/voice/client-contract"
+import type { ResultView } from "@/lib/voice/views"
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_ATTACHMENTS = 10
-export const ATTACHMENT_ACCEPT =
-  "image/jpeg,image/png,image/webp,application/pdf"
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+const MAX_SHEET_BYTES = 2 * 1024 * 1024
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+export const ATTACHMENT_ACCEPT = [...PHOTO_TYPES, XLSX, ".csv", ".xlsx"].join(
+  ","
+)
+
+/** Price-list sheet type by extension: browsers label .csv as "", text/csv or ms-excel. */
+export function sheetMime(file: { type: string; name?: string }) {
+  if (/\.csv$/i.test(file.name ?? "") || file.type === "text/csv")
+    return "text/csv"
+  if (/\.xlsx$/i.test(file.name ?? "") || file.type === XLSX) return XLSX
+  return null
+}
 
 /** HTTP status supplies safe guidance without exposing backend or provider diagnostics. */
 export function requestFailureKey(status: number) {
@@ -10,8 +23,10 @@ export function requestFailureKey(status: number) {
 }
 export type TranscriptRow = {
   id: string
-  role: "user" | "agent" | "action" | "link"
+  role: "user" | "agent" | "action" | "link" | "result"
   text: string
+  /** Charts or cards a "result" row shows. */
+  views?: ResultView[]
   /** Office page a "link" row opens. */
   href?: string
 }
@@ -36,12 +51,20 @@ export function splitLinks(text: string): { text: string; href?: string }[] {
   return parts
 }
 
+/** A field key without a label, in sentence case like the labelled ones: "purchase_price" → "Purchase price". */
+export function fieldName(key: string) {
+  const words = key.replaceAll("_", " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 /** What the agent hears about an outcome: record names, never links. */
 export function outcomeForAgent(outcome: {
   links?: { label: string | null; href: string }[]
   [field: string]: unknown
 }) {
+  // The picture is for the screen only; the agent keeps `data`.
   const { links, ...rest } = outcome
+  delete rest.view
   const records = links?.flatMap((link) => (link.label ? [link.label] : []))
   return records?.length ? { ...rest, records } : rest
 }
@@ -73,12 +96,14 @@ export function taskPresentation(status: string, batchState?: string) {
     : "unknown"
 }
 export function attachmentProblem(
-  file: { type: string; size: number },
+  file: { type: string; size: number; name?: string },
   count: number
 ) {
   if (count >= MAX_ATTACHMENTS) return "count"
-  if (!ATTACHMENT_ACCEPT.split(",").includes(file.type)) return "type"
+  const sheet = sheetMime(file)
+  if (!sheet && !PHOTO_TYPES.includes(file.type)) return "type"
   if (!file.size) return "empty"
+  if (sheet && file.size > MAX_SHEET_BYTES) return "sheetSize"
   if (file.size > MAX_ATTACHMENT_BYTES) return "size"
   return null
 }

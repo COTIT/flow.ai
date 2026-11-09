@@ -76,13 +76,7 @@ it("uses one authorized resource lookup and projects only safe identifying field
     operationId: "products_delete",
     method: "DELETE",
   })
-  expect(review.details.record).toEqual({
-    id: productA,
-    name: "Cocoa",
-    title: "Harvest",
-    reference: "COC-01",
-    number: 12,
-  })
+  expect(review.details.record).toEqual({ type: "product", label: "Cocoa" })
   expect(mocks.backend).toHaveBeenCalledTimes(1)
   expect(mocks.backend.mock.calls[0]![0]).toMatchObject({
     operationId: "products_get",
@@ -103,7 +97,7 @@ it("keeps bound IDs without reading when the staff member cannot view the resour
     workspace,
     target: { product: productA },
   })
-  expect(review.details.record).toBeUndefined()
+  expect(review.details.record).toEqual({ type: "product", label: null })
   expect(mocks.backend).not.toHaveBeenCalled()
 })
 it("does not attach a name from a mismatched backend resource", async () => {
@@ -112,7 +106,7 @@ it("does not attach a name from a mismatched backend resource", async () => {
     data: { data: { id: productB, name: "Wrong product" } },
   })
   const review = (await restoreReview(draft(productA), context)).review!
-  expect(review.details.record).toBeUndefined()
+  expect(review.details.record).toEqual({ type: "product", label: null })
 })
 it("includes every nested route identity in the review", async () => {
   const ids = {
@@ -151,5 +145,44 @@ it("keeps bound identities when a resource lookup throws", async () => {
     workspace,
     target: { product: productA },
   })
-  expect(review.details.record).toBeUndefined()
+  expect(review.details.record).toEqual({ type: "product", label: null })
+})
+
+it("names a customer by company, alias or first contact and its type in the user's language", async () => {
+  const relation = "01950000-0000-7000-8000-000000000007"
+  const action: StoredAction = {
+    ...draft(productA),
+    operation_id: "relations_delete",
+    proposal: { method: "DELETE", path: `/workspace/${workspace}/relations/${relation}` },
+  }
+  const staff = { ...context, permissions: ["workspace_admin"] }
+  for (const [record, label] of [
+    [{ company_name: "Acme BV", alias: "Acme" }, "Acme BV"],
+    [{ company_name: " ", alias: "Kendall" }, "Kendall"],
+    [{ company_name: null, alias: null, relationships: { contacts: [{ full_name: "Kendall Moreau" }] } }, "Kendall Moreau"],
+    [{ relation_nr: "C-0042" }, "C-0042"],
+  ] as const) {
+    mocks.backend.mockResolvedValueOnce({ status: "completed", data: { data: { id: relation, ...record } } })
+    const review = (await restoreReview(action, staff)).review!
+    expect(review.details.record).toEqual({ type: "customer", label })
+  }
+  mocks.backend.mockResolvedValueOnce({ status: "completed", data: { data: { id: relation, alias: "Kendall" } } })
+  const dutch = (await restoreReview(action, { ...staff, language: "nl" })).review!
+  expect(dutch.details.record).toEqual({ type: "klant", label: "Kendall" })
+})
+it("falls back to the API's reviewed delete label and lifts impact and warnings for the card", async () => {
+  const action: StoredAction = {
+    ...draft(productA),
+    review_facts: {
+      version: 1,
+      operation_id: "products_delete",
+      facts: { kind: "product", locked: { id: productA, label: "AFM Stickers" }, impact: { effect: "archive", variants: 2, stock_rows: 1 } },
+    },
+  }
+  const review = (await restoreReview(action, { ...context, permissions: ["product.delete"] })).review!
+  expect(review.details.record).toEqual({ type: "product", label: "AFM Stickers" })
+  expect(review.details.impact).toEqual({ effect: "archive", variants: 2, stock_rows: 1 })
+  // Record and impact already describe a delete; the raw locked snapshot would only repeat its id.
+  expect(review.details.current).toBeUndefined()
+  expect(review.details.warnings).toBeUndefined()
 })

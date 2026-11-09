@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT count(*) FROM lots\n                   WHERE workspace_id = $1 AND status = 'quarantine') AS \"quarantined!\",\n                  (SELECT count(DISTINCT r.related_id)\n                   FROM stock_reservations r\n                   JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n                   JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id\n                   WHERE r.workspace_id = $1 AND r.related_domain = 'order'\n                     AND l.status <> 'released') AS \"held_orders!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "quarantined!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "held_orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "b26eb34e9516fae4e796b38e7e3d3b86f8b26f961981b0b2bc71e6e0233b195d"
+}

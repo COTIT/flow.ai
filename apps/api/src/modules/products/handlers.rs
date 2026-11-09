@@ -56,7 +56,7 @@ fn created(id: Uuid) -> (StatusCode, Data<Value>) {
         (status = 200, body = Paginated<ProductDoc>, description = "One page of products, newest first"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Search text too long, malformed `supplier_id` or `category_id`, or too many `exclude_ids`"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long, malformed `supplier_id`, `category_id` or `available_lte`, or too many `exclude_ids`"),
     ),
     security(("bearer" = []))
 )]
@@ -109,6 +109,12 @@ pub async fn list(
         .filter(|s| !s.is_empty())
         .unwrap_or("active");
     let ean13 = q.ean13.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let available_lte = match q.available_lte.as_deref().map(str::trim) {
+        Some(s) if !s.is_empty() => Some(s.parse::<rust_decimal::Decimal>().map_err(|_| {
+            AppError::field("available_lte", "The available lte must be a number.")
+        })?),
+        _ => None,
+    };
     let filter = ListFilter {
         status,
         pattern: pattern.as_deref(),
@@ -116,6 +122,7 @@ pub async fn list(
         category,
         ean13,
         exclude: &exclude,
+        available_lte,
         limit: page.size,
         offset: page.offset(),
     };
@@ -253,6 +260,7 @@ pub async fn delete(
 #[utoipa::path(
     post, path = "/workspace/{workspace}/products/{product}/duplicate", tag = "products",
     operation_id = "products_duplicate", summary = "Copy a product",
+    description = "An exact copy; takes no changes. For another size, name or price, copy first, then update the copy.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
     responses(
         (status = 201, body = Envelope<ProductCreated>, description = "Copied; returns the new id"),

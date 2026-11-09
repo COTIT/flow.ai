@@ -41,7 +41,23 @@ Material order prices, existing order state and absolute stock before-values are
 
 Product creation, update and duplication also bind resolved currency/VAT metadata and native normalized prices. Variant creation, update and generation bind inherited product money and the exact resulting variant prices. Product values remain decimal text, including up to eight decimal places; they are not converted to invoice/order minor units. Native currency/VAT locks protect the comparison, and public facts require `product.view`. Generated sets retain a private full-material digest with count, five preview variants and an explicit omitted count. Invoice creation reuses native currency, selected contact, billing address, line defaults and pricing; its bounded summary uses the same private-digest rule as existing invoices.
 
+Farm and supply writes get display-only review facts (`assistant::farm_facts`). They name things for the approval card and bind nothing at execution, so the native handler still checks every rule. The caller must hold the operation's role, otherwise the proposal returns 403 before any name is read. An unknown village, crop, currency, harvest, link, warehouse or partner returns 422 on that field.
+- `farm_supply_create` (ops/admin): `{kind:"farm_supply", locked:{label:"<village> · <crop>"}, priced:{lines:[{farmer, kg}], kg_total, price_per_kg_minor, currency:{code, decimals}}}`. It shows no money total, because buying credits nobody: farmers are credited at sale.
+- `farm_records_harvest_reports_revise` (ops/admin, or an officer of the cycle's village): `{kind:"harvest", locked:{label:"<farmer> · <crop>", figure}, changes:[{field:"quantity_kg", before, after}], note:"The previous figure stays on record."}`. `before` is null when the cycle has no current figure of that kind.
+- `supply_chain_dispatch` (`product.update`, or farm ops/admin): `{kind:"dispatch", locked:{label:"<lot code>", product, partner, warehouse}, changes:[{field:"quantity", after}]}`.
+- `supply_links_grant` (`workspace_admin`): `{kind:"supply_link", locked:{label:"<partner display name>"}, fields, note:"Farmer names and photos stay off."}`. The caller's own workspace returns 422.
+
+Public review shows these kinds to the proposing owner without a workspace read permission, because farm roles are not workspace permissions.
+
 Audit evidence stores bounded typed receipts and HTTP meaning codes. Mail-server acceptance is `queued` with a resolved `finished_at`; it never proves inbox delivery. Blocked/no-recipient mail is `failed`, manual sending `partial`, ambiguous transport `unknown`. Invoice delivery waiting for its first attempt is `queued` with no `finished_at`. Its number already committed: manual/blocked/pre-transport failure is partial; accepted is resolved queued; ambiguous transport is unknown. Team permission changes retain only typed applied/partial status and counts. Partial changes are resolved partial outcomes and stop dependent batch steps. Variant generation reports applied/partial counts; skipped combinations are partial and stop the batch. Refund admission is queued until the native payment row verifies settlement. Its opaque refund id commits with the business row and action; the minute sweep maps verified refunded to completed and failed/canceled to failed, without provider calls or replay. A late HTTP finalizer cannot downgrade terminal proof, and settled children never restart paused batches. Refund audit keeps only id/status, without ambiguous raw amounts. Raw response bodies, provider errors, tokens, chat and file bytes are never copied into audit.
+
+## Review facts for risky writes
+
+`review_facts.facts` keeps `priced` / `locked` as the stages compared at execution. Extra keys are display facts.
+
+- `products_update`, `product_variants_update`: `before` is the current quote (same shape as `priced`; variants nest under `variant`). `changes` lists only fields that differ: `{field, before, after}`, or for money `{field, currency: {code, decimals}, before_minor, after_minor}` when both values are exact at the currency's decimals, else exact decimal strings `before` / `after`. A missing amount is `null`. `change_bp` (signed basis points, truncated) appears when the old amount is above zero. `warning: "large_change"` appears for `price`, `gross_price` or `wholesale_price` when `change_bp >= 90000` (ten times) or `<= -9000` (90% cut). Warnings never block.
+- `relations_delete`, `products_delete`: the proposal runs the native delete guard first. A refused delete returns the native `422` (for example `errors.relation_id[0]` "This relation cannot be deleted because it has invoices, orders, estimates, or work orders.") and stores no action. Allowed: `locked: {id, label}` (relation label: company name, else alias, else first contact's full name) and `impact: {effect: "archive", orders, contacts}` or `{effect: "archive", variants, stock_rows}`. Delete is a soft delete; `archive` means hidden, history kept. At execution the impact is recomputed under the row lock; any difference returns `409` and nothing is deleted.
+- Permission (`relation.delete`, `product.delete`, `product.update`) is checked before any read. Another workspace's id returns `404` with no facts.
 
 ## Fixed ordered batches
 
@@ -103,3 +119,24 @@ Signed, bodyless operator endpoints `GET /v1/assistant/cleanup` and `POST /v1/as
 Pending business drafts live temporarily in PostgreSQL JSONB and can exist in database backups. They disappear on dispatch/cancel, become unreadable at expiry, and the minute sweep removes expired payloads. No raw chat or files belong in these drafts. Resolved action audit is deleted after 90 days. Unresolved claims stay until reconciliation establishes an outcome. Cleanup references stay until provider deletion is confirmed.
 
 After resolved action audit expires, hourly pruning deletes at most 100 cleaned sessions older than 90 days, only with no remaining actions or remote references. Checkpoint writes, blobs, checkpoints, upload metadata and session metadata leave in one transaction. Pending queued or unknown actions retain their context. Increase batch size or cadence before retirement exceeds 2400 sessions/day.
+
+## Gap ledger (developers only)
+
+Office records each voice request the assistant could not finish, so developers can see what to build next. Migration `assistant_gaps`. There is no read route: staff run `scripts/voice-gaps.sql` with `psql` on the server.
+
+`POST /v1/workspace/{workspace}/assistant/gaps` needs a staff bearer for the workspace plus the bridge signature. Body (unknown fields refused):
+
+| Field | Rule |
+|---|---|
+| `domain` | `^[a-z_]{1,40}$`, a catalog domain or `unknown` |
+| `language` | `en`, `nl` or `sw` |
+| `intent` | lowercase words, single spaces, at most 120 chars; no digits, capitals or punctuation. Office keeps only catalog words; `unknown` when fewer than two survive |
+| `tools` | at most 10 operation ids the agent tried (optional) |
+| `outcome` | `unsupported`, `refused`, `failed`, `cancelled` or `dropped` |
+| `http_status` | 400-599 (optional) |
+
+201 `{"data":{"id":"…"}}`. 422 on any rule. 403 unsigned, 503 bridge not configured, 404/403 for a token outside the workspace.
+
+`POST /v1/assistant/gaps/{gap}/follow-up` needs the bridge signature only (Office's page proxy has no staff bearer). Body `{"workspace_id","signal","route"?}`: `rephrased` (no route) or `used_ui` with a page pattern such as `/orders/[id]` (lowercase segments or `[id]`, no query, at most 80 chars). 200 `{"data":{"id","follow_up"}}`. 404 when the gap is not in that workspace. 409 when a follow-up is already set or the gap is older than 10 minutes.
+
+Rows are deleted 90 days after `created_at` by the hourly prune. Deleting a workspace deletes its gaps.

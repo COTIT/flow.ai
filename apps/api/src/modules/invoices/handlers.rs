@@ -31,6 +31,7 @@ use crate::{
             service::{self, ListArgs},
         },
         messages::dto::SendMessageRequest,
+        settings,
     },
 };
 
@@ -80,7 +81,7 @@ const STATUSES: &[&str] = &[
         (status = 200, body = InvoiceListPage, description = "Invoices, newest first"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Malformed relation id, limit or status filter, or search text too long"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed relation id, limit, status filter, `sent_before` or `due_before`, or search text too long"),
     ),
     security(("bearer" = []))
 )]
@@ -128,8 +129,19 @@ pub async fn list(
             );
         }
     }
+    let sent_before = list::when(&mut r, "sent_before", q.sent_before.as_deref());
+    let due_before = list::when(&mut r, "due_before", q.due_before.as_deref());
     r.into_result()?;
     let search = list::search(q.q.as_deref())?;
+    let ws = access.workspace_id;
+    let sent_before = match sent_before {
+        Some(w) => Some(settings::service::instant(&state.db, ws, w).await?),
+        None => None,
+    };
+    let due_before = match due_before {
+        Some(w) => Some(settings::service::instant(&state.db, ws, w).await?),
+        None => None,
+    };
     let args = ListArgs {
         filter: ListFilter {
             relation_id,
@@ -142,15 +154,21 @@ pub async fn list(
                 .map(list::flag),
             on_account: q.on_account.as_deref().is_some_and(list::flag),
             search: search.as_deref(),
+            sent_before,
+            due_before,
         },
         limit,
         page: Page::parse(q.page.as_deref(), q.page_size.as_deref()),
     };
     let (rows, total) = service::list(&state, access.workspace_id, &args).await?;
-    Ok(match limit {
-        Some(_) => Json(json!({ "data": rows })).into_response(),
-        None => Json(Paginated::new(rows, total, args.page)).into_response(),
-    })
+    if limit.is_some() {
+        return Ok(Json(json!({ "data": rows })).into_response());
+    }
+    let open_totals = service::open_totals(&state, access.workspace_id, &args.filter).await?;
+    let (data, meta) = Paginated::new(rows, total, args.page).into_parts();
+    let mut meta = serde_json::to_value(meta).map_err(|e| AppError::Internal(e.to_string()))?;
+    meta["open_totals"] = json!(open_totals);
+    Ok(Json(json!({ "data": data, "meta": meta })).into_response())
 }
 
 /// GET /invoices/{id}.

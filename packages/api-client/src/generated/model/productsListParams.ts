@@ -16,7 +16,7 @@ q?: string;
  */
 search?: string;
 /**
- * Default `active`.
+ * `active`, `disabled` or `nla`. Default `active`.
  */
 status?: string;
 /**
@@ -59,4 +59,10 @@ exclude_ids?: string;
  * Warehouse for the `pos_*` fields; does not filter.
  */
 warehouse_id?: string;
+/**
+ * Only stock-tracked products whose sellable stock is at most this. Sellable = Σ (level −
+ * reserved) over all warehouses and lots, held, recalled or expired lots left out (the
+ * shop's "sold out"). Out of stock: `available_lte=0`. Untracked products never match.
+ */
+available_lte?: string;
 };

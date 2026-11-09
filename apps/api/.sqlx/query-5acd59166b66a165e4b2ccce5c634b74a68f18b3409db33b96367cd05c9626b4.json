@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT upper(c.asset_type) AS \"currency!\", c.decimals,\n                  sum(i.total - i.paid_total)::bigint AS \"amount!\"\n           FROM invoices i\n           JOIN currencies c ON c.workspace_id = i.workspace_id AND c.id = i.currency_id\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL AND NOT i.is_credit\n             AND i.status = ANY($2)\n           GROUP BY c.asset_type, c.decimals\n           ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "amount!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "5acd59166b66a165e4b2ccce5c634b74a68f18b3409db33b96367cd05c9626b4"
+}

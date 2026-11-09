@@ -14,24 +14,30 @@ test.use({
   },
 })
 
-async function nativeConversation(page: Page) {
+async function nativeConversation(page: Page, timeZone?: string) {
   let emit: (event: unknown) => void = () => {
     throw new Error("Conversation not connected")
   }
   let onUserMessage = () => {}
   const sent: { type?: string; [key: string]: unknown }[] = []
+  /** Session commands the page sent (start, heartbeat, dropped). */
+  const sessions: { command?: string; [key: string]: unknown }[] = []
   await page.route("**/api/voice/session", (route) => {
     const body = route.request().postDataJSON()
     if (route.request().method() === "DELETE")
       return route.fulfill({ json: { status: "ended" } })
+    sessions.push(body)
     if (body.command === "heartbeat")
       return route.fulfill({ json: { status: "active" } })
+    if (body.command === "dropped")
+      return route.fulfill({ json: { status: "recorded" } })
     return route.fulfill({
       json: {
         sessionId: "interface-session",
         conversationId: "interface-conversation",
         signedUrl:
           "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=test",
+        ...(timeZone ? { timeZone } : {}),
       },
     })
   })
@@ -58,6 +64,7 @@ async function nativeConversation(page: Page) {
   return {
     /** Everything the page sent to the agent. */
     sent,
+    sessions,
     emit: (event: unknown) => emit(event),
     onUserMessage: (callback: () => void) => {
       onUserMessage = callback
@@ -338,7 +345,7 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
                 details: {
                   workspace: "01950000-0000-7000-8000-000000000009",
                   target: { product: id },
-                  record: { id, name: "Cocoa", reference: "COC-01" },
+                  record: { type: "product", label: "Cocoa" },
                   changes: {
                     quantity: "2.00",
                     total: "€1.25",
@@ -371,14 +378,17 @@ for (const [locale, messages] of Object.entries({ en, nl, sw })) {
     })
     await expect(review).toBeVisible()
     await expect(review).toHaveAttribute("data-side", "right")
-    // One row per reviewed field, in the order the server sent them, none hidden.
+    // Reviewed fields sit under "More details" (voice-rich-results); open it first.
+    await review
+      .getByText(messages.voice.results.moreDetails, { exact: true })
+      .click()
+    // One row per reviewed field, in the order the server sent them; raw route ids stay off the card.
     const rows = review.locator('.voice-review-list [role="option"]')
-    await expect(rows).toHaveCount(4)
-    for (let i = 0; i < 4; i++) await expect(rows.nth(i)).toBeVisible()
-    await expect(rows.nth(2)).toContainText("Cocoa")
-    await expect(rows.nth(3)).toContainText("2.00")
+    await expect(rows).toHaveCount(3)
+    for (let i = 0; i < 3; i++) await expect(rows.nth(i)).toBeVisible()
+    await expect(rows.nth(1)).toContainText("Cocoa")
+    await expect(rows.nth(2)).toContainText("2.00")
     await expect(review).toContainText("Cocoa")
-    await expect(review).toContainText("COC-01")
     await expect(review).toContainText("2.00")
     await expect(review).toContainText("€1.25")
     await expect(
@@ -645,9 +655,8 @@ test("a long chat keeps the avatar, status, chat and composer apart, and thinkin
       json: {
         status: "completed",
         data: { name: "Cocoa" },
-        steps: [
-          "Checking: List products in every warehouse and market stall nearby",
-        ],
+        // Step keys become short localized labels; catalog text never shows.
+        steps: ["checking", "preparing"],
       },
     })
   })
@@ -674,7 +683,7 @@ test("a long chat keeps the avatar, status, chat and composer apart, and thinkin
   const thinking = page.locator("[data-voice-thinking]")
   await expect(thinking).toBeVisible()
   release()
-  await expect(thinking).toContainText("market stall")
+  await expect(thinking).toContainText(en.voice.steps.checking)
   expect(
     await thinking.evaluate((el) => {
       const outer = el.getBoundingClientRect()
@@ -816,5 +825,385 @@ test("a refused request shows a plain reason on screen and gives the agent the r
       )
     )
     .toContain('\\"reason\\":\\"missing\\"')
+  await expectFits(page)
+})
+
+const userMessages = (sent: { type?: string; text?: unknown }[]) =>
+  sent.filter((event) => event.type === "user_message").map((e) => e.text)
+
+test("a message typed while the agent is still answering waits for that answer, and steps show plain labels", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page, "Africa/Dar_es_Salaam")
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route("**/api/voice/tools", async (route) => {
+    await gate
+    return route.fulfill({
+      json: {
+        status: "completed",
+        data: [],
+        // A key the page does not know is dropped, never shown raw.
+        steps: [
+          "checking",
+          "List invoices (a page, or `limit` rows without `meta`)",
+        ],
+      },
+    })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  // The agent is told the workspace zone, so it never guesses the device's.
+  await expect
+    .poll(() =>
+      JSON.stringify(
+        native.sent.filter((event) => event.type === "contextual_update")
+      )
+    )
+    .toContain("Africa/Dar_es_Salaam")
+  await page
+    .getByLabel(en.voice.message)
+    .fill("Which products are out of stock?")
+  await page.getByRole("button", { name: en.voice.send, exact: true }).click()
+  // Before the agent starts, a quick follow-up still goes straight out and merges into the request.
+  await page.getByLabel(en.voice.message).fill("Or below zero.")
+  await page.getByRole("button", { name: en.voice.send, exact: true }).click()
+  await expect
+    .poll(() => userMessages(native.sent))
+    .toEqual(["Which products are out of stock?", "Or below zero."])
+  native.reply("I'm checking negative stock.")
+  native.call("stock_list")
+  const thinking = page.getByRole("log").locator("[data-voice-thinking]")
+  await expect(thinking).toBeVisible()
+  // The second question must not reach the agent while it still owes the first answer.
+  await page.getByLabel(en.voice.message).fill("And yesterday's till total?")
+  await page.getByRole("button", { name: en.voice.send, exact: true }).click()
+  await expect(
+    page.getByRole("log").getByText("And yesterday's till total?")
+  ).toBeVisible()
+  release()
+  await expect(thinking).toContainText(en.voice.steps.checking)
+  await expect(page.getByText("List invoices", { exact: false })).toHaveCount(0)
+  expect(userMessages(native.sent)).toEqual([
+    "Which products are out of stock?",
+    "Or below zero.",
+  ])
+  native.reply("No products are below zero.", 21)
+  // After the answer settles, the held question goes out on its own.
+  await expect
+    .poll(() => userMessages(native.sent))
+    .toEqual([
+      "Which products are out of stock?",
+      "Or below zero.",
+      "And yesterday's till total?",
+    ])
+  await expect(
+    page.getByRole("log").getByText("And yesterday's till total?")
+  ).toHaveCount(1)
+  native.reply("The till took 120,000 TZS yesterday.", 22)
+  await expect(page.locator("[data-voice-activity]")).not.toHaveAttribute(
+    "data-state",
+    "thinking"
+  )
+  await expectFits(page)
+})
+
+test("an agent that goes quiet mid-request ends with a plain 'couldn't finish' line and Ask again", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  await page.clock.install()
+  const native = await nativeConversation(page)
+  await page.route("**/api/voice/tools", (route) =>
+    route.fulfill({ json: { status: "completed", data: [] } })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  await page.getByLabel(en.voice.message).fill("Compare the till with Friday")
+  await page.getByRole("button", { name: en.voice.send, exact: true }).click()
+  native.reply("I'm checking yesterday's sales.")
+  native.call("till_sales_list")
+  await expect
+    .poll(() => native.sent.some((e) => e.type === "client_tool_result"))
+    .toBe(true)
+  await expect(page.locator("[data-voice-activity]")).toHaveAttribute(
+    "data-state",
+    "thinking"
+  )
+  // The agent never answers after its tool result.
+  await page.clock.fastForward(46000)
+  const line = page
+    .getByRole("log")
+    .getByText(en.voice.unfinished.stalled, { exact: false })
+  await expect(line).toBeVisible()
+  await expect(line).toContainText("1 step was finished.")
+  await expect(
+    page.getByRole("log").locator("[data-voice-thinking]")
+  ).toHaveCount(0)
+  const again = page.getByRole("button", {
+    name: en.voice.unfinished.askAgain,
+    exact: true,
+  })
+  await expect(again).toBeVisible()
+  await expectFits(page)
+  await again.click()
+  await expect
+    .poll(() => userMessages(native.sent))
+    .toEqual(["Compare the till with Friday", "Compare the till with Friday"])
+  await expect(again).toHaveCount(0)
+})
+
+test("the provider ending the call mid-request is a failure, never Completed, and Continue opens a new conversation", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  await page.route("**/api/voice/tools", (route) =>
+    route.fulfill({ json: { status: "completed", data: [] } })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  await page.getByLabel(en.voice.message).fill("Create an order for Mama Grace")
+  await page.getByRole("button", { name: en.voice.send, exact: true }).click()
+  native.reply("I'm finding the customer and products.")
+  native.call("relations_list")
+  // One lookup finished and its result reached the agent before the call ended.
+  await expect
+    .poll(() => native.sent.some((e) => e.type === "client_tool_result"))
+    .toBe(true)
+  native.emit({
+    type: "error",
+    error_event: {
+      error_type: "max_duration_exceeded",
+      message: "Maximum conversation duration exceeded",
+    },
+  })
+  const activity = page.locator("[data-voice-activity]")
+  await expect(activity).toHaveAttribute("data-state", "failed")
+  await expect(
+    page.getByRole("log").getByText(en.voice.unfinished.time_limit, {
+      exact: false,
+    })
+  ).toContainText("1 step was finished.")
+  await expect(page.getByText(en.voice.activity.completed)).toHaveCount(0)
+  await expect
+    .poll(() => native.sessions.filter((s) => s.command === "dropped"))
+    .toEqual([
+      expect.objectContaining({
+        endedBy: "time_limit",
+        sessionId: "interface-session",
+      }),
+    ])
+  await expectFits(page)
+  await page
+    .getByRole("button", { name: en.voice.unfinished.continue, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  await expect(
+    page.getByRole("log").getByText(en.voice.unfinished.continued)
+  ).toBeVisible()
+  // Earlier messages stay; nothing was sent again on the agent's behalf.
+  await expect(
+    page.getByRole("log").getByText("Create an order for Mama Grace")
+  ).toBeVisible()
+  await expect(
+    page.getByRole("button", {
+      name: en.voice.unfinished.continue,
+      exact: true,
+    })
+  ).toHaveCount(0)
+})
+
+test("an open review card survives a resized window, focus loss and a stray click; only an explicit action cancels it", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  const decisions: string[] = []
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "internal-action" },
+            review: {
+              ticket: "private-review-ticket",
+              operationId: "invoices_credit",
+              method: "POST",
+              summary: "Credit invoice 17",
+              details: { invoice: "17" },
+              confirmationCode: "123456",
+              confirmationPhrase: "Confirm action 123456",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.route("**/api/voice/confirm", (route) => {
+    decisions.push(route.request().postDataJSON().decision)
+    return route.fulfill({ json: { status: "cancelled" } })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("invoices_credit")
+  const card = page.getByRole("dialog", { name: en.voice.review })
+  await expect(card).toBeVisible()
+  const size = page.viewportSize()!
+  await page.setViewportSize({ width: size.width - 40, height: size.height })
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"))
+    ;(document.activeElement as HTMLElement | null)?.blur()
+  })
+  await page.mouse.click(5, 5)
+  await page.setViewportSize(size)
+  await expect(card).toBeVisible()
+  expect(decisions).toEqual([])
+  await page.keyboard.press("Escape")
+  await expect(card).toHaveCount(0)
+  await expect.poll(() => decisions).toEqual(["cancel"])
+})
+
+test("while a review card is open the message box cannot be reached by pointer, keyboard or Tab", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "internal-action" },
+            review: {
+              ticket: "private-review-ticket",
+              operationId: "invoices_credit",
+              method: "POST",
+              summary: "Credit invoice 17",
+              details: { invoice: "17" },
+              confirmationCode: "123456",
+              confirmationPhrase: "Confirm action 123456",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  const box = page.getByLabel(en.voice.message)
+  await expect(box).toBeVisible()
+  native.call("invoices_credit")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review })
+  ).toBeVisible()
+  const focused = () =>
+    box.evaluate(
+      (el) =>
+        el === document.activeElement || el.contains(document.activeElement)
+    )
+  // Pointer: whatever sits on top of the box, it is not the box.
+  const rect = (await box.boundingBox())!
+  expect(
+    await page.evaluate(
+      ([x, y]) => {
+        const hit = document.elementFromPoint(x!, y!)
+        return Boolean(hit?.closest('[aria-label="Message the assistant"]'))
+      },
+      [rect.x + rect.width / 2, rect.y + rect.height / 2]
+    )
+  ).toBe(false)
+  await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2)
+  expect(await focused()).toBe(false)
+  // Script focus and Tab cycling never land in it either.
+  await box.evaluate((el) => (el as HTMLElement).focus())
+  expect(await focused()).toBe(false)
+  for (let i = 0; i < 15; i++) {
+    await page.keyboard.press("Tab")
+    expect(await focused()).toBe(false)
+  }
+  await page.keyboard.type("cancel it")
+  await page.keyboard.press("Enter")
+  expect(native.sent.filter((event) => event.type === "user_message")).toEqual(
+    []
+  )
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review })
+  ).toBeVisible()
+})
+
+test("a review cancelled because the page was hidden says so in the chat and offers to prepare it again", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const native = await nativeConversation(page)
+  const decisions: string[] = []
+  await page.route("**/api/voice/tools", (route) =>
+    route.request().postDataJSON().command === "status"
+      ? route.fulfill({ json: { status: "completed", data: [] } })
+      : route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { actionId: "internal-action" },
+            review: {
+              ticket: "private-review-ticket",
+              operationId: "invoices_credit",
+              method: "POST",
+              summary: "Credit invoice 17",
+              details: { invoice: "17" },
+              confirmationCode: "123456",
+              confirmationPhrase: "Confirm action 123456",
+              expiresAt: new Date(Date.now() + 120000).toISOString(),
+            },
+          },
+        })
+  )
+  await page.route("**/api/voice/confirm", (route) => {
+    decisions.push(route.request().postDataJSON().decision)
+    return route.fulfill({ json: { status: "cancelled" } })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: en.voice.textInstead, exact: true })
+    .click()
+  await expect(page.getByLabel(en.voice.message)).toBeVisible()
+  native.call("invoices_credit")
+  await expect(
+    page.getByRole("dialog", { name: en.voice.review })
+  ).toBeVisible()
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", {
+      value: "hidden",
+      configurable: true,
+    })
+    document.dispatchEvent(new Event("visibilitychange"))
+  })
+  await expect.poll(() => decisions).toEqual(["cancel"])
+  await expect(
+    page.getByRole("log").getByText(en.voice.hiddenCancelled)
+  ).toBeVisible()
   await expectFits(page)
 })

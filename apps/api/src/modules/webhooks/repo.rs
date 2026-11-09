@@ -17,6 +17,58 @@ pub struct EndpointRow {
     pub updated_at: DateTime<Utc>,
 }
 
+/// A delivery with its event's type, for the history read.
+pub struct DeliveryRow {
+    pub id: Uuid,
+    pub event_id: Uuid,
+    pub event_type: String,
+    pub status: String,
+    pub attempts: i32,
+    pub last_status: Option<i16>,
+    pub last_error: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub delivered_at: Option<DateTime<Utc>>,
+}
+
+/// One page of an endpoint's deliveries, newest first, optionally one status, and the total.
+pub async fn deliveries(
+    db: &PgPool,
+    workspace_id: Uuid,
+    endpoint_id: Uuid,
+    status: Option<&str>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<DeliveryRow>, i64), sqlx::Error> {
+    let rows = sqlx::query_as!(
+        DeliveryRow,
+        "SELECT d.id, d.event_id, e.type AS event_type, d.status, d.attempts, d.last_status,
+                d.last_error, d.created_at, d.updated_at, d.delivered_at
+         FROM webhook_deliveries d
+         JOIN webhook_events e ON e.workspace_id = d.workspace_id AND e.id = d.event_id
+         WHERE d.workspace_id = $1 AND d.endpoint_id = $2 AND ($3::text IS NULL OR d.status = $3)
+         ORDER BY d.created_at DESC, d.id DESC
+         LIMIT $4 OFFSET $5",
+        workspace_id,
+        endpoint_id,
+        status,
+        limit,
+        offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM webhook_deliveries
+           WHERE workspace_id = $1 AND endpoint_id = $2 AND ($3::text IS NULL OR status = $3)"#,
+        workspace_id,
+        endpoint_id,
+        status,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
+}
+
 /// Fields of a new endpoint; `id` is chosen first so the secret can be sealed to it.
 pub struct NewEndpoint<'a> {
     pub id: Uuid,

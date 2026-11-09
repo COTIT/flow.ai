@@ -1,0 +1,131 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (\n               SELECT upper(c.asset_type) AS currency, c.decimals, o.total, o.subtotal,\n                      coalesce(r.amount, 0) AS refunded,\n                      t.at >= $2 AND t.at < $3 AS cur, t.at >= $4 AND t.at < $5 AS base\n               FROM orders o\n               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n               CROSS JOIN LATERAL (\n                   SELECT coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) AS at) t\n               LEFT JOIN LATERAL (\n                   SELECT sum(p.amount) AS amount FROM order_payments p\n                   WHERE p.workspace_id = o.workspace_id AND p.order_id = o.id\n                     AND p.kind = 'refund' AND p.status = 'refunded') r ON true\n               WHERE o.workspace_id = $1\n                 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')\n                 AND ((t.at >= $2 AND t.at < $3) OR (t.at >= $4 AND t.at < $5))\n                 AND ($6::text IS NULL OR o.source = $6)),\n           a AS (\n               SELECT currency, decimals,\n                      count(*) FILTER (WHERE cur) AS co,\n                      coalesce(sum(total) FILTER (WHERE cur), 0)::bigint AS cg,\n                      coalesce(sum(subtotal) FILTER (WHERE cur), 0)::bigint AS cn,\n                      coalesce(sum(refunded) FILTER (WHERE cur), 0)::bigint AS cr,\n                      count(*) FILTER (WHERE base) AS bo,\n                      coalesce(sum(total) FILTER (WHERE base), 0)::bigint AS bg,\n                      coalesce(sum(subtotal) FILTER (WHERE base), 0)::bigint AS bn,\n                      coalesce(sum(refunded) FILTER (WHERE base), 0)::bigint AS br\n               FROM s GROUP BY 1, 2)\n           SELECT currency AS \"currency!\", decimals AS \"decimals!\",\n                  co AS \"current_orders!\", cg AS \"current_gross!\", cn AS \"current_net!\",\n                  cr AS \"current_refunded!\",\n                  bo AS \"base_orders!\", bg AS \"base_gross!\", bn AS \"base_net!\",\n                  br AS \"base_refunded!\",\n                  cg - bg AS \"gross_difference!\", co - bo AS \"orders_difference!\",\n                  CASE WHEN bg <> 0 THEN round((cg - bg) * 10000::numeric / bg)::bigint END\n                      AS gross_change_bp,\n                  cn - bn AS \"net_difference!\",\n                  CASE WHEN bn <> 0 THEN round((cn - bn) * 10000::numeric / bn)::bigint END\n                      AS net_change_bp\n           FROM a ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "current_orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "current_gross!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "current_net!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "current_refunded!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "base_orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "base_gross!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "base_net!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "base_refunded!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "gross_difference!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "orders_difference!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "gross_change_bp",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "net_difference!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "net_change_bp",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "6c191253ba9892a01f3621987574fe34679fec2a933fd6bc205a9ff99d1d4a3b"
+}

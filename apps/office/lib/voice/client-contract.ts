@@ -1,3 +1,4 @@
+import type { ResultView } from "./views"
 /** Shared wire shapes. An uploaded file is not proof the model inspected it. */
 export type VoiceSession = {
   signedUrl: string
@@ -39,14 +40,23 @@ export type VoiceOutcome = {
   narration?: string
   /** Office pages of records a completed write created or changed; shown, never spoken. */
   links?: { label: string | null; href: string }[]
+  /** Chart or cards the server built from a read result; shown, never spoken. */
+  view?: ResultView
   /** Why it did not complete (`failureReason` key); the agent says it in plain words. */
   reason?: string
+  /** Client-only: the operation this execute result answered (picks the follow-up chip). */
+  operationId?: string
 }
-export type VoiceAttachmentReceipt = {
-  id: string
-  fileId: string
-  status: "uploaded"
-}
+export type VoiceAttachmentReceipt =
+  | { id: string; fileId: string; status: "uploaded"; kind?: undefined }
+  /** Price-list sheet: kept by the browser, read by Genesy, never sent to the model. */
+  | {
+      id: string
+      kind: "sheet"
+      status: "uploaded"
+      rows: number
+      columns: string[]
+    }
 
 /** Plain-language failure reason by HTTP status; the key names a localized `requestErrors` text. */
 export function failureReason(status: number) {
@@ -69,7 +79,11 @@ export function failureReason(status: number) {
 /** Monitoring bucket: something Genesy may not cover, a refusal the user can fix, or a platform fault. */
 export function failureCategory(reason: string) {
   if (reason === "unsupported") return "out_of_scope_candidate"
-  if (reason === "unverified" || reason === "unavailable")
+  if (
+    reason === "unverified" ||
+    reason === "unavailable" ||
+    reason.startsWith("dropped_")
+  )
     return "platform_error"
   return "user_fixable"
 }

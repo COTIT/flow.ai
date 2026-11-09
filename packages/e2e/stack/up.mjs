@@ -12,7 +12,7 @@ import { parseSeed } from "./seed.mjs"
 import {
   API_DIR, CONTAINER, DATABASE_URL, DB, DIR, E2E, FILES_BUCKET, FILES_CONTAINER, FILES_IMAGE, FILES_ORIGIN,
   LOGS, PORTS, ROOT, SEED, SEED_DB, URLS,
-  alive, apiBin, apiEnv, exec, psql, readState, run, start, startApi, startMail, stop, waitFor, workspaceIds, writeState,
+  alive, apiBin, apiEnv, exec, psql, readState, run, start, startApi, startMail, stop, voiceEnv, voiceRole, waitFor, workspaceIds, writeState,
 } from "./stack.mjs"
 
 const t0 = Date.now()
@@ -44,6 +44,12 @@ export async function up() {
     // The file store's key, random per stack (state.json is gitignored).
     files: { keyId: `GK${randomBytes(12).toString("hex")}`, secret: randomBytes(32).toString("hex") },
     pids: {},
+  }
+  if (process.env.VOICE === "1") {
+    if (!process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_AGENT_ID)
+      throw new Error("VOICE=1 needs ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID in the environment")
+    // Random per stack, like the keys above; the provider key itself is never written here.
+    state.voice = { bridgeSecret: randomBytes(32).toString("hex"), checkpointPassword: randomBytes(24).toString("hex") }
   }
   writeState(state)
 
@@ -125,6 +131,7 @@ export async function up() {
   state.pids.mail = startMail()
   writeState(state)
   run(apiBin(), ["migrate"], { env: { ...process.env, DATABASE_URL }, cwd: DIR })
+  if (state.voice) voiceRole(state)
   const seeded = spawnSync(apiBin(), ["seed-demo"], {
     // Tracing writes to stdout too: keep it off the printed table.
     env: { ...apiEnv(state), RUST_LOG: "error" }, cwd: DIR, encoding: "utf8" })
@@ -141,6 +148,15 @@ export async function up() {
   await waitFor("api", `${URLS.api}/healthz`)
   seed.workspaces = await workspaceIds(seed)
   writeFileSync(SEED, JSON.stringify(seed, null, 2))
+  // VOICE_WORKSPACES picks seeded accounts by name (default AFM); nothing else is allowlisted.
+  if (state.voice) {
+    const voiceIds = (process.env.VOICE_WORKSPACES ?? "AFM").split(",").map((name) => {
+      const id = seed.workspaces[name.trim()]
+      if (!id) throw new Error(`VOICE_WORKSPACES: no seeded workspace "${name}"`)
+      return id
+    })
+    Object.assign(apps.office.env, voiceEnv(state, voiceIds))
+  }
   lap("api up")
 
   await built

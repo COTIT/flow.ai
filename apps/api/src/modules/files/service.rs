@@ -33,6 +33,8 @@ pub struct NewFile<'a> {
     pub description: Option<&'a str>,
     pub meta: Option<&'a Value>,
     pub bytes: Vec<u8>,
+    /// The sweep deletes it after this; None keeps it.
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// The bucket, else 503.
@@ -105,6 +107,7 @@ pub(crate) async fn create_reserved(
             sha256: &sha256,
             meta: f.meta,
             uploaded_by: user_id,
+            expires_at: f.expires_at,
         },
     )
     .await?;

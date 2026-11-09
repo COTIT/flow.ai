@@ -1,4 +1,5 @@
-//! Webhook endpoint rules: admins only, secret generated here, sealed, shown once.
+//! Webhook endpoint rules: admins only, secret generated here, sealed, shown once; delivery
+//! history per endpoint.
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use uuid::Uuid;
@@ -11,7 +12,7 @@ use crate::{
         auth::token::PlainSecret,
         webhooks::{
             dto::NewEndpointInput,
-            repo::{self, EndpointPatch, EndpointRow, NewEndpoint},
+            repo::{self, DeliveryRow, EndpointPatch, EndpointRow, NewEndpoint},
         },
     },
 };
@@ -85,6 +86,19 @@ pub async fn list(
     offset: i64,
 ) -> Result<(Vec<EndpointRow>, i64), AppError> {
     Ok(repo::list(&state.db, workspace_id, limit, offset).await?)
+}
+
+/// One page of an endpoint's deliveries; an endpoint outside this workspace is 404.
+pub async fn deliveries(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    status: Option<&str>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<DeliveryRow>, i64), AppError> {
+    let endpoint = get(state, workspace_id, id).await?;
+    Ok(repo::deliveries(&state.db, workspace_id, endpoint.id, status, limit, offset).await?)
 }
 
 /// Apply a patch, else 404.

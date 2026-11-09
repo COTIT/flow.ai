@@ -353,6 +353,7 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
         return Err(AppError::NotFound);
     }
     invoices::service::product_deletable(&mut tx, workspace_id, id).await?;
+    crate::modules::assistant::impact::check(&mut tx, workspace_id, "product", id).await?;
     repo::soft_delete(&mut *tx, workspace_id, id).await?;
     events::product_changed(&mut tx, workspace_id, id, "deleted").await?;
     tx.commit().await?;

@@ -15,11 +15,51 @@ describe("voice tool boundary", () => {
       )
     ).not.toThrow()
   })
+  it.each([
+    "what needs attention today",
+    "anything urgent",
+    "my to-do",
+    "overdue",
+    "wat moet ik vandaag doen",
+    "taken dringend",
+    "kazi za leo",
+    "nini cha haraka",
+  ])("picks the attention summary for %j", (query) => {
+    expect(discoverTools(query, ["cashregister.list"])[0]?.id).toBe(
+      "attention_summary"
+    )
+  })
   it("discovers business operations with their request schema", () => {
     const tool = discoverTools("orders_create", ["workspace_owner"])[0]!
     expect(tool.id).toBe("orders_create")
     expect(tool.write).toBe(true)
     expect(tool.body).toHaveProperty("properties.lines")
+  })
+
+  it("finds the invite as the way to give someone a team role", () => {
+    expect(discoverTools("invite manager role", ["workspace_owner"])[0]?.id).toBe(
+      "invites_send"
+    )
+    expect(
+      discoverTools("team role permissions", ["workspace_owner"]).map((t) => t.id)
+    ).toContain("teams_list")
+  })
+
+  it("finds why a webhook failed and what a member can see", () => {
+    const failed = discoverTools("why did the webhook fail", ["workspace_owner"])[0]!
+    expect(failed.id).toBe("webhooks_deliveries")
+    expect(failed.write).toBe(false)
+    expect(discoverTools("webhooks_deliveries", ["user.get"])).toEqual([])
+    expect(
+      discoverTools("what can member see permissions", ["workspace_owner"])[0]?.id
+    ).toBe("users_get")
+  })
+
+  it("offers member removal to admins only, as a reviewed write", () => {
+    const tool = discoverTools("remove member access", ["workspace_owner"])[0]!
+    expect(tool.id).toBe("users_remove")
+    expect(tool.write).toBe(true)
+    expect(discoverTools("users_remove", ["user.get", "invite.delete"])).toEqual([])
   })
 
   it("does not expose authentication or credential administration", () => {

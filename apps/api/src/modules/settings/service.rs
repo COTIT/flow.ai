@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    http::json::human,
+    http::{json::human, list::When},
     modules::settings::{
         credentials::{BOUND, NO_KEY, PATHS, RE_ENTER},
         dto::{Change, SettingsUpdate},
@@ -279,4 +279,17 @@ fn php_falsy(v: &Value) -> bool {
         Value::Array(a) => a.is_empty(),
         Value::Object(o) => o.is_empty(),
     }
+}
+
+/// `when` as an instant: a day starts at local midnight in `general.timezone` (UTC when unset
+/// or unknown). Only a day reads the database.
+pub async fn instant(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    when: When,
+) -> Result<chrono::DateTime<chrono::Utc>, AppError> {
+    Ok(match when {
+        When::At(at) => at,
+        When::Day(day) => repo::day_start(db, workspace_id, day).await?,
+    })
 }

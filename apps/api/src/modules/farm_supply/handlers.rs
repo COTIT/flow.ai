@@ -1,4 +1,4 @@
-//! HTTP edge for /v1/workspace/{workspace}/farm/supply-batches.
+//! HTTP edge for /v1/workspace/{workspace}/farm/supply-batches, dispatch options and quiet farmers.
 
 use axum::{
     Json,
@@ -18,7 +18,7 @@ use crate::{
     modules::farm_supply::{
         dto::{
             BatchResource, CreateBatchRequest, DispatchOptions, ListQuery, OptionsQuery,
-            OptionsResource, RawProductCreated, RawProductRequest,
+            OptionsResource, QuietFarmer, QuietQuery, RawProductCreated, RawProductRequest,
         },
         service,
     },
@@ -168,4 +168,30 @@ pub async fn dispatch_options(
     access: FarmAccess,
 ) -> Result<Data<DispatchOptions>, AppError> {
     Ok(Data(service::dispatch_options(&state, &access).await?))
+}
+
+/// GET /farm/quiet-farmers -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/quiet-farmers", tag = "farm_supply",
+    operation_id = "farm_supply_quiet_farmers", summary = "Farmers who have not delivered",
+    description = "Staff: registered persons in their villages (ops and admin: all) with no kg bought in a supply batch on or after Tanzania day `since` (default 30 days ago), or never. Never delivered first, then the oldest last delivery, with `last_delivery_at`. `village_id` narrows to one village. A delivery is a supply batch line; harvest figures don't count.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), QuietQuery),
+    responses(
+        (status = 200, body = Paginated<QuietFarmer>, description = "One page"),
+        (status = 403, body = MessageBody, description = "Caller is a farmer, not staff"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Bad `since`, malformed village id"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn quiet_farmers(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Query(query): Query<QuietQuery>,
+) -> Result<Json<Paginated<QuietFarmer>>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (since, village) = (query.since.as_deref(), query.village_id.as_deref());
+    let (data, total) =
+        service::quiet_farmers(&state, &access, since, village, page.size, page.offset()).await?;
+    Ok(Json(Paginated::new(data, total, page)))
 }

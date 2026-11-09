@@ -45,6 +45,8 @@ function project(
       if (key === "currency" && unit && object(amount)) return [key, unit.code]
       if (!key.endsWith("_minor"))
         return [key, project(amount, locale, unit, depth + 1)]
+      // An absent old amount (e.g. no wholesale price yet) stays empty, never zero.
+      if (amount === null) return [key.slice(0, -6), null]
       if (!unit || typeof amount !== "number" || !Number.isSafeInteger(amount))
         throw new VoiceError("Review money cannot be displayed exactly.", 409)
       return [
@@ -133,3 +135,44 @@ export function reviewFacts(
     )
   return project(snapshot.facts, locale) as Record<string, unknown>
 }
+
+const warningText: Record<
+  string,
+  { up: string; down: string; fields: Record<string, string> }
+> = {
+  en: {
+    up: "{field} goes from {before} to {after}, more than 10 times the current amount. Check the amount and its unit.",
+    down: "{field} goes from {before} to {after}, less than a tenth of the current amount. Check the amount and its unit.",
+    fields: { price: "Price", gross_price: "Price incl. VAT", wholesale_price: "Wholesale price" },
+  },
+  nl: {
+    up: "{field} gaat van {before} naar {after}, meer dan 10 keer het huidige bedrag. Controleer het bedrag en de eenheid.",
+    down: "{field} gaat van {before} naar {after}, minder dan een tiende van het huidige bedrag. Controleer het bedrag en de eenheid.",
+    fields: { price: "Prijs", gross_price: "Prijs incl. btw", wholesale_price: "Groothandelsprijs" },
+  },
+  sw: {
+    up: "{field} inabadilika kutoka {before} hadi {after}, zaidi ya mara 10 ya kiasi cha sasa. Kagua kiasi na kipimo chake.",
+    down: "{field} inabadilika kutoka {before} hadi {after}, chini ya sehemu ya kumi ya kiasi cha sasa. Kagua kiasi na kipimo chake.",
+    fields: { price: "Bei", gross_price: "Bei pamoja na VAT", wholesale_price: "Bei ya jumla" },
+  },
+}
+
+/** The API flags large money changes; this only words them for the card in the user's language. */
+export function reviewWarnings(snapshot: unknown, locale: string): string[] {
+  const facts =
+    object(snapshot) && object(snapshot.facts) ? snapshot.facts : undefined
+  if (!facts || !Array.isArray(facts.changes)) return []
+  const text = warningText[locale] ?? warningText.en!
+  return facts.changes.flatMap((change) => {
+    if (!object(change) || change.warning !== "large_change") return []
+    const shown = project(change, locale) as Record<string, unknown>
+    const field = String(change.field)
+    return [
+      (Number(change.change_bp) < 0 ? text.down : text.up)
+        .replace("{field}", text.fields[field] ?? field.replaceAll("_", " "))
+        .replace("{before}", String(shown.before ?? "—"))
+        .replace("{after}", String(shown.after ?? "—")),
+    ]
+  })
+}
+

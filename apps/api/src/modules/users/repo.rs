@@ -264,6 +264,65 @@ pub async fn find_member(
     .await
 }
 
+/// Offboard `user_id` from `workspace_id` in one statement (atomic): membership inactive,
+/// out of this workspace's teams, farm roles here revoked, assistant work here closed, logins
+/// gone when no other access is left. Returns 0 when they were not an active member.
+pub async fn offboard(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<u64, sqlx::Error> {
+    // Every CTE sees the snapshot from before the statement, so "other access" skips this
+    // workspace instead of reading the updates made here.
+    sqlx::query_scalar!(
+        r#"WITH m AS (
+             UPDATE workspace_members SET active = false
+             WHERE workspace_id = $1 AND user_id = $2 AND active
+             RETURNING user_id
+           ), teams_left AS (
+             DELETE FROM team_members tm USING teams t, m
+             WHERE t.id = tm.team_id AND t.workspace_id = $1 AND tm.user_id = m.user_id
+           ), farm AS (
+             UPDATE farm_memberships f SET revoked_at = now() FROM m
+             WHERE f.workspace_id = $1 AND f.user_id = m.user_id AND f.revoked_at IS NULL
+           ), sessions AS (
+             UPDATE assistant_sessions s SET state = 'closed', closed_at = now() FROM m
+             WHERE s.workspace_id = $1 AND s.user_id = m.user_id AND s.state = 'active'
+           ), batches AS (
+             UPDATE assistant_batches b
+             SET state = 'cancelled', reason = 'authorization', finished_at = now() FROM m
+             WHERE b.workspace_id = $1 AND b.user_id = m.user_id
+               AND b.state IN ('proposed', 'approved')
+             RETURNING b.id
+           ), actions AS (
+             UPDATE assistant_actions a
+             SET state = 'cancelled', proposal = NULL, review_facts = '{}'::jsonb,
+                 finished_at = now(),
+                 batch_verdict = CASE WHEN a.batch_id IS NULL THEN NULL ELSE 'cancelled' END
+             FROM m
+             WHERE a.workspace_id = $1 AND a.user_id = m.user_id
+               AND ((a.batch_id IS NULL AND a.state IN ('proposed', 'approved'))
+                    OR (a.state = 'batch_pending' AND a.batch_id IN (SELECT id FROM batches)))
+           ), logins AS (
+             DELETE FROM access_tokens t USING m
+             WHERE t.user_id = m.user_id
+               AND NOT EXISTS (
+                 SELECT 1 FROM workspace_members o
+                 JOIN workspaces w ON w.id = o.workspace_id AND w.deleted_at IS NULL
+                 WHERE o.user_id = m.user_id AND o.active AND o.workspace_id <> $1)
+               AND NOT EXISTS (
+                 SELECT 1 FROM farm_memberships o
+                 WHERE o.user_id = m.user_id AND o.revoked_at IS NULL AND o.workspace_id <> $1)
+           )
+           SELECT count(*) AS "n!" FROM m"#,
+        workspace_id,
+        user_id,
+    )
+    .fetch_one(db)
+    .await
+    .map(|n| n as u64)
+}
+
 /// Live user as other resources embed them (source of Laravel UserEmailResource).
 pub struct UserRef {
     pub id: Uuid,

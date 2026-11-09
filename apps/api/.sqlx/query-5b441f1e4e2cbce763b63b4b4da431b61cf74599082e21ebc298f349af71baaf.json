@@ -1,0 +1,210 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id AS invoice_id, i.invoice_number AS \"number!\", i.invoice_appendix AS appendix,\n                  (i.send_date AT TIME ZONE $4)::date AS \"invoice_date!\",\n                  (i.due_date AT TIME ZONE $4)::date AS due_date,\n                  i.is_credit, i.status,\n                  coalesce(nullif(r.company_name, ''), r.alias, '') AS \"customer!\", r.vat_number,\n                  upper(c.asset_type) AS \"currency!\", c.decimals,\n                  l.title AS \"title?\", trim_scale(l.quantity)::text AS quantity,\n                  round(l.price * power(10::numeric, c.decimals))::bigint AS unit_price,\n                  trim_scale(l.vat)::text AS vat_rate,\n                  trim_scale(l.discount_percentage)::text AS discount,\n                  e.excl::bigint AS line_excl, round(e.excl * l.vat / 100)::bigint AS line_vat,\n                  i.subtotal AS invoice_excl, i.total AS invoice_total\n           FROM invoices i\n           JOIN relations r ON r.workspace_id = i.workspace_id AND r.id = i.relation_id\n           JOIN currencies c ON c.workspace_id = i.workspace_id AND c.id = i.currency_id\n           LEFT JOIN items l ON l.workspace_id = i.workspace_id AND l.invoice_id = i.id\n           LEFT JOIN LATERAL (\n               SELECT round(l.quantity * l.price * power(10::numeric, c.decimals)) AS gross) g ON true\n           LEFT JOIN LATERAL (\n               SELECT g.gross - round(g.gross * l.discount_percentage / 100) AS excl) e ON true\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL AND i.invoice_number IS NOT NULL\n             AND i.send_date >= $2 AND i.send_date < $3\n           ORDER BY i.invoice_number, l.position, l.id\n           LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "number!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "appendix",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_appendix"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "invoice_date!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_credit",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "is_credit"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "customer!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "vat_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "vat_number"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "title?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "quantity",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "unit_price",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "vat_rate",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "discount",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 16,
+        "name": "line_excl",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 17,
+        "name": "line_vat",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 18,
+        "name": "invoice_excl",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "subtotal"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "invoice_total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "total"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      null,
+      null,
+      false,
+      false,
+      null,
+      true,
+      null,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "5b441f1e4e2cbce763b63b4b4da431b61cf74599082e21ebc298f349af71baaf"
+}

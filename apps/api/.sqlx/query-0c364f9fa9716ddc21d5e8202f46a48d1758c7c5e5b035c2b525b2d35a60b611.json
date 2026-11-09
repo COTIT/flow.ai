@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id AS \"id!\", l.kind AS \"kind!\", l.amount AS \"amount!\",\n                  l.balance_after AS \"balance_after!\", l.currency_id AS \"currency_id!\",\n                  l.currency AS \"currency!\", l.decimals AS \"decimals!\",\n                  l.attribution_id, l.payout_id, l.created_at AS \"created_at!\"\n           FROM (\n               SELECT e.id, e.kind, e.amount,\n                      sum(e.amount) OVER (PARTITION BY e.currency_id ORDER BY e.created_at, e.id)::bigint\n                          AS balance_after,\n                      e.currency_id, c.asset_type AS currency, c.decimals, e.attribution_id,\n                      e.payout_id, e.created_at\n               FROM farm_passbook_entries e\n               JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id\n               WHERE e.workspace_id = $1 AND e.person_id = $2\n           ) l\n           WHERE ($3::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date >= $3)\n             AND ($4::date IS NULL OR (l.created_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date <= $4)\n           ORDER BY l.created_at DESC, l.id DESC LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "amount!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "balance_after!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "attribution_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "attribution_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "payout_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "payout_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "0c364f9fa9716ddc21d5e8202f46a48d1758c7c5e5b035c2b525b2d35a60b611"
+}

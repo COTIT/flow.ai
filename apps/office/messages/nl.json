@@ -59,6 +59,7 @@
     "supply": "Aanvoer",
     "overview": "Overzicht",
     "invites": "Uitnodigingen",
+    "members": "Leden",
     "categories": "Categorieën",
     "voice": "Spraakassistent"
   },
@@ -726,6 +727,7 @@
     "sizeAdded": "Maat toegevoegd.",
     "inviteSent": "Uitnodiging verstuurd naar {email}",
     "inviteWithdrawn": "Uitnodiging ingetrokken.",
+    "memberRemoved": "{name} heeft geen toegang meer.",
     "lotStockChanged": "Voorraad gewijzigd.",
     "invoice": {
       "sent": "Factuur verstuurd.",
@@ -859,6 +861,23 @@
       "accepted": "Geaccepteerd",
       "denied": "Afgewezen",
       "expired": "Verlopen"
+    }
+  },
+  "members": {
+    "title": "Leden",
+    "intro": "Mensen die in dit account werken. Verwijder iemand die vertrokken is: hun orders, facturen en geschiedenis blijven.",
+    "name": "Naam",
+    "team": "Team (rol)",
+    "status": "Status",
+    "actions": "Acties",
+    "empty": "Nog geen leden",
+    "remove": "Verwijderen",
+    "removeTitle": "Toegang van {name} verwijderen?",
+    "removeText": "Ze kunnen dit account niet meer openen en verlaten hun teams. Hun orders, facturen en geschiedenis blijven. Nodig ze opnieuw uit om toegang terug te geven.",
+    "statuses": {
+      "owner": "Eigenaar",
+      "active": "Actief",
+      "removed": "Verwijderd"
     }
   },
   "invite": {
@@ -1013,7 +1032,8 @@
       "user": "Jij",
       "agent": "Genesy",
       "action": "Actie",
-      "link": "Link"
+      "link": "Link",
+      "result": "Resultaat"
     },
     "fileStates": {
       "selected": "Gekozen · niet verzonden",
@@ -1023,11 +1043,12 @@
       "failed": "Upload mislukt"
     },
     "fileErrors": {
-      "type": "Kies JPEG, PNG, WebP of PDF.",
+      "type": "Kies JPEG, PNG, WebP, PDF, .xlsx of .csv.",
       "empty": "Dit bestand is leeg.",
       "size": "Kies een bestand van maximaal 10 MiB.",
       "count": "Een sessie ondersteunt maximaal 10 bestanden.",
-      "rate": "Te veel uploads. Wacht voordat je opnieuw probeert."
+      "rate": "Te veel uploads. Wacht voordat je opnieuw probeert.",
+      "sheetSize": "Kies een spreadsheet van maximaal 2 MiB."
     },
     "secureJsonHint": "Geavanceerde configuratie als JSON-object. Alleen opgenomen velden worden verzonden; de server controleert de actie.",
     "secureJsonInvalid": "Voer een geldig JSON-object of een geldige array in.",
@@ -1184,7 +1205,26 @@
       "count": "Aantal",
       "state": "Status",
       "method": "Methode",
-      "operation": "Bewerking"
+      "operation": "Bewerking",
+      "gross_price": "Prijs incl. btw",
+      "wholesale_price": "Groothandelsprijs",
+      "supplier_wholesale_price": "Groothandelsprijs leverancier",
+      "impact_on_price": "Prijsaanpassing",
+      "impact_on_wholesale_price": "Aanpassing groothandelsprijs",
+      "vat_group": "Btw-groep",
+      "order_unit": "Besteleenheid",
+      "sale_unit": "Verkoopeenheid",
+      "default": "Standaard",
+      "rate": "Tarief",
+      "purchase_price": "Inkoopprijs",
+      "impact": "Wat dit raakt",
+      "warnings": "Waarschuwingen",
+      "type": "Soort",
+      "orders": "Bestellingen",
+      "contacts": "Contactpersonen",
+      "variants": "Maten",
+      "stock_rows": "Voorraadlocaties met voorraad",
+      "effect": "Gevolg"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1257,7 +1297,8 @@
       "currencies": "valuta",
       "vat": "btw-groep",
       "workspace": "werkruimte",
-      "settings": "instelling"
+      "settings": "instelling",
+      "relations": "klant"
     },
     "operationActions": {
       "create": "{record} aanmaken",
@@ -1315,6 +1356,311 @@
     "currentWorkspace": "Huidige werkruimte",
     "yes": "Ja",
     "no": "Nee",
-    "otherField": "Veld: {name}"
+    "otherField": "{name}",
+    "steps": {
+      "checking": "Opzoeken",
+      "preparing": "Je controle voorbereiden",
+      "running": "Bezig met uitvoeren",
+      "finalizing": "Afronden"
+    },
+    "unfinished": {
+      "stalled": "Ik kon dit antwoord niet afmaken.",
+      "ended_by_agent": "De assistent beëindigde het gesprek voordat het klaar was.",
+      "time_limit": "Het gesprek bereikte de tijdslimiet voordat ik klaar was.",
+      "connection_lost": "De verbinding viel weg voordat ik klaar was.",
+      "progress": "{count, plural, =0 {Er is nog geen stap afgerond.} one {# stap is afgerond.} other {# stappen zijn afgerond.}}",
+      "askAgain": "Opnieuw vragen",
+      "continue": "Doorgaan",
+      "continued": "Nieuw gesprek. Eerdere berichten blijven hier staan; er is niets herhaald. Vraag het opnieuw om verder te gaan."
+    },
+    "hiddenCancelled": "Ik heb de kaart geannuleerd omdat de pagina verborgen was. Zal ik hem opnieuw voorbereiden?",
+    "results": {
+      "salesTitle": "Verkoop",
+      "source": {
+        "till": "Kassaverkoop",
+        "office": "Office-verkoop",
+        "storefront": "Webwinkelverkoop",
+        "all": "Alle verkoop"
+      },
+      "period": "{from} tot {to}",
+      "orders": "{count, plural, one {# bestelling} other {# bestellingen}}",
+      "refunded": "Terugbetaald",
+      "gross": "Verkoop",
+      "periodColumn": "Periode",
+      "currency": "Valuta",
+      "showTable": "Als tabel tonen",
+      "showChart": "Als grafiek tonen",
+      "noSales": "Geen verkoop in deze periode",
+      "noSalesHint": "Tussen deze datums is niets verkocht.",
+      "resources": {
+        "orders": "Bestellingen",
+        "invoices": "Facturen",
+        "products": "Producten",
+        "lots": "Partijen"
+      },
+      "empty": {
+        "orders": "Geen bestellingen gevonden",
+        "invoices": "Geen facturen gevonden",
+        "products": "Geen producten gevonden",
+        "lots": "Geen partijen gevonden"
+      },
+      "emptyHint": "Er past nu niets bij deze vraag.",
+      "showing": "{shown} van {total} getoond",
+      "openAll": "Alles openen in Office",
+      "inStock": "{count} op voorraad",
+      "originTitle": "Waar het vandaan komt",
+      "materials": "Ingrediënten",
+      "noOrigin": "Nog geen herkomstgegevens",
+      "noOriginHint": "Voeg ze toe in het paspoort van de partij.",
+      "trailTitle": "Geschiedenis van de partij",
+      "noTrail": "Nog geen geschiedenis",
+      "noTrailHint": "Wijzigingen aan deze partij verschijnen hier.",
+      "events": {
+        "created": "Aangemaakt",
+        "updated": "Bijgewerkt",
+        "status_changed": "Status gewijzigd",
+        "passport_published": "Paspoort gepubliceerd",
+        "passport_unpublished": "Paspoort offline gehaald"
+      },
+      "by": "door {name}",
+      "attentionTitle": "Vraagt aandacht",
+      "allClear": "Niets vraagt je aandacht",
+      "allClearHint": "Geen open punten in de onderdelen die je kunt zien.",
+      "sections": {
+        "orders": "Bestellingen",
+        "invoices": "Facturen",
+        "stock": "Voorraad",
+        "till_shifts": "Open kassadiensten",
+        "lots": "Partijen",
+        "webhooks": "Mislukte webhooks"
+      },
+      "counts": {
+        "open": "Open",
+        "draft": "Concept",
+        "unpaid": "Onbetaald",
+        "overdue": "Te laat",
+        "out_of_stock": "Uitverkocht",
+        "quarantined": "Geblokkeerd",
+        "holds": "Vastgehouden door bestellingen",
+        "failed": "Mislukt",
+        "negative": "Negatieve voorraad"
+      },
+      "attempts": "{count, plural, one {# poging} other {# pogingen}}",
+      "level": "Niveau {level}",
+      "opened": "Geopend {date}",
+      "diffTitle": "Wat er verandert",
+      "was": "was",
+      "now": "nu",
+      "up": "Omhoog {share}",
+      "down": "Omlaag {share}",
+      "moreDetails": "Meer details",
+      "fewerDetails": "Minder details",
+      "largeChange": "Dit is een heel grote wijziging. Controleer de nieuwe waarde voordat je goedkeurt.",
+      "nameUnavailable": "naam niet beschikbaar",
+      "recordLine": "{type}: {label}",
+      "impactTitle": "Dit raakt ook",
+      "impact": {
+        "orders": "Bestellingen",
+        "contacts": "Contacten",
+        "variants": "Maten",
+        "stock_rows": "Voorraadregels"
+      },
+      "effect": {
+        "archive": "Het wordt gearchiveerd, niet verwijderd."
+      },
+      "warningsTitle": "Voordat je goedkeurt"
+    },
+    "suggestions": "Suggesties",
+    "tryPrompt": "Probeer: “{prompt}”",
+    "pagesHint": "Ik kan ook de juiste Office-pagina voor je openen.",
+    "capabilityGroups": {
+      "invoices": "Facturen",
+      "orders": "Bestellingen",
+      "products": "Producten",
+      "stock": "Voorraad",
+      "till": "Kassa",
+      "settings": "Team"
+    },
+    "capabilities": {
+      "open_invoices": {
+        "label": "Openstaande facturen",
+        "prompt": "Welke facturen staan nog open?"
+      },
+      "email_invoice": {
+        "label": "Factuur mailen",
+        "prompt": "Mail deze factuur naar de klant"
+      },
+      "resend_invoice": {
+        "label": "Factuur opnieuw sturen",
+        "prompt": "Stuur een factuur opnieuw naar de klant"
+      },
+      "record_payment": {
+        "label": "Betaling vastleggen",
+        "prompt": "Leg een betaling vast op een factuur"
+      },
+      "create_order": {
+        "label": "Bestelling maken",
+        "prompt": "Maak een nieuwe bestelling"
+      },
+      "weekly_sales": {
+        "label": "Verkoop deze week",
+        "prompt": "Hoeveel hebben we deze week verkocht?"
+      },
+      "todays_orders": {
+        "label": "Bestellingen van vandaag",
+        "prompt": "Toon de bestellingen van vandaag"
+      },
+      "invoice_order": {
+        "label": "Bestelling factureren",
+        "prompt": "Maak de factuur voor deze bestelling"
+      },
+      "change_price": {
+        "label": "Prijs wijzigen",
+        "prompt": "Wijzig de prijs van een product"
+      },
+      "find_product": {
+        "label": "Product zoeken",
+        "prompt": "Zoek een product op naam"
+      },
+      "check_stock": {
+        "label": "Voorraad bekijken",
+        "prompt": "Hoeveel voorraad hebben we van een product?"
+      },
+      "below_zero": {
+        "label": "Voorraad onder nul",
+        "prompt": "Welke producten staan onder nul?"
+      },
+      "add_stock": {
+        "label": "Voorraad toevoegen",
+        "prompt": "Voeg voorraad toe voor dit product"
+      },
+      "till_sales": {
+        "label": "Kassaverkoop vandaag",
+        "prompt": "Toon de kassaverkoop van vandaag"
+      },
+      "invite_colleague": {
+        "label": "Collega uitnodigen",
+        "prompt": "Nodig een collega uit voor het team"
+      },
+      "team_members": {
+        "label": "Teamleden",
+        "prompt": "Wie zit er in mijn team?"
+      }
+    },
+    "pages": {
+      "overview": {
+        "name": "Overzicht",
+        "purpose": "Samenvatting van vandaag"
+      },
+      "products": {
+        "name": "Producten",
+        "purpose": "Productlijst: namen, prijzen en details"
+      },
+      "product": {
+        "name": "Product",
+        "purpose": "Eén product: prijs, maten en details wijzigen"
+      },
+      "categories": {
+        "name": "Categorieën",
+        "purpose": "Productcategorieën"
+      },
+      "stock": {
+        "name": "Voorraad",
+        "purpose": "Voorraad per product en plek"
+      },
+      "stock_negative": {
+        "name": "Voorraad onder nul",
+        "purpose": "Producten met voorraad onder nul"
+      },
+      "orders": {
+        "name": "Bestellingen",
+        "purpose": "Alle bestellingen"
+      },
+      "order": {
+        "name": "Bestelling",
+        "purpose": "Eén bestelling en haar regels"
+      },
+      "invoices": {
+        "name": "Facturen",
+        "purpose": "Alle facturen en hun status"
+      },
+      "invoice": {
+        "name": "Factuur",
+        "purpose": "Eén factuur: versturen, betalingen vastleggen"
+      },
+      "lots": {
+        "name": "Partijen",
+        "purpose": "Partijen geoogste producten"
+      },
+      "lot": {
+        "name": "Partij",
+        "purpose": "Eén partij en haar geschiedenis"
+      },
+      "supply": {
+        "name": "Aanvoer",
+        "purpose": "Aanvoer van partnerwerkruimtes"
+      },
+      "supply_links": {
+        "name": "Aanvoerkoppelingen",
+        "purpose": "Koppelingen met partnerwerkruimtes"
+      },
+      "supply_transfers": {
+        "name": "Aanvoeroverdrachten",
+        "purpose": "Goederen verplaatst tussen partnerwerkruimtes"
+      },
+      "till_sales": {
+        "name": "Kassaverkopen",
+        "purpose": "Verkopen aan de kassa"
+      },
+      "till_shifts": {
+        "name": "Kassadiensten",
+        "purpose": "Kassadiensten en kastellingen"
+      },
+      "till_registers": {
+        "name": "Kassa's",
+        "purpose": "Kassa's en hun koppeling"
+      },
+      "till_users": {
+        "name": "Kassagebruikers",
+        "purpose": "Mensen die de kassa mogen gebruiken"
+      },
+      "till_vaults": {
+        "name": "Kluizen",
+        "purpose": "Kluizen voor contant geld"
+      },
+      "invites": {
+        "name": "Uitnodigingen",
+        "purpose": "Collega's uitnodigen voor de werkruimte"
+      },
+      "app_keys": {
+        "name": "App-sleutels",
+        "purpose": "Sleutels voor gekoppelde apps"
+      },
+      "webhooks": {
+        "name": "Webhooks",
+        "purpose": "Webhook-adressen voor koppelingen"
+      },
+      "search": {
+        "name": "Zoeken",
+        "purpose": "Zoeken in de hele werkruimte"
+      }
+    },
+    "sheetRequest": "Ik heb een spreadsheet gedeeld. Vraag me wat ik ermee wil doen.",
+    "sheetNoPreview": "Genesy leest deze spreadsheet als je erom vraagt; hier is geen voorbeeld.",
+    "importRows": "Rijen {from}–{to} van {total}",
+    "notIncluded": {
+      "title": "Niet meegenomen — controleer deze regels",
+      "line": "Regel {line}: ",
+      "reasons": {
+        "unclear": "niet duidelijk leesbaar",
+        "not_found": "geen product met deze naam, dit nummer of deze barcode",
+        "ambiguous": "meer dan één product past",
+        "unreadable": "de prijs is geen gewoon getal",
+        "unclear_precision": "de prijs heeft meer decimalen dan je valuta",
+        "unchanged": "prijs is al hetzelfde",
+        "duplicate": "dit product staat al in de lijst",
+        "other": "weggelaten"
+      }
+    }
   }
 }

@@ -5,16 +5,22 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+mod analytics;
 mod app_keys;
 mod assistant;
 mod assistant_batches;
 mod assistant_capability_auth;
+mod assistant_farm_facts;
+mod assistant_gaps;
 mod assistant_identity;
 mod assistant_mail_recipients;
 mod assistant_order_invoice_quotes;
 mod assistant_preconditions;
+mod assistant_price_import;
 mod assistant_product_quotes;
 mod assistant_retention;
+mod assistant_review_safety;
+mod attention;
 mod body_limits;
 mod bootstrap;
 mod checkout;
@@ -72,6 +78,7 @@ mod lot_public;
 mod lot_stock;
 mod lots;
 mod me;
+mod member_removal;
 mod numbering;
 mod orders;
 mod payments;

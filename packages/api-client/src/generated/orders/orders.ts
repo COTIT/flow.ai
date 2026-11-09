@@ -29,12 +29,16 @@ import type {
   EnvelopeOrderCreated,
   EnvelopeOrderResource,
   EnvelopeRefundCreated,
+  EnvelopeSalesCompare,
   EnvelopeSalesSummary,
+  EnvelopeTopCustomers,
   LinesQuantityRequest,
   MessageBody,
   OrdersEventsParams,
   OrdersListParams,
+  OrdersSalesCompareParams,
   OrdersSalesSummaryParams,
+  OrdersTopCustomersParams,
   PaginatedOrderEventResource,
   PaginatedOrderResource,
   RefundRequest,
@@ -910,7 +914,8 @@ export const useOrdersPick = <TError = ErrorType<MessageBody | UnprocessableBody
       return useMutation(getOrdersPickMutationOptions(options), queryClient);
     }
     /**
- * @summary Refund part of an online payment
+ * Only an order paid online. A till sale paid at the counter has no online payment here (409); its money goes back on the till, and `orders_returns` records the goods coming back.
+ * @summary Refund part of an online (card or web) payment
  */
 export const ordersRefund = (
     workspace: string,
@@ -966,7 +971,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type OrdersRefundMutationVariables = {workspace: string;order: string;data: BodyType<RefundRequest>}
 
     /**
- * @summary Refund part of an online payment
+ * @summary Refund part of an online (card or web) payment
  */
 export const useOrdersRefund = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersRefund>>, TError,OrdersRefundMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
@@ -1137,6 +1142,208 @@ export function useOrdersSalesSummary<TData = Awaited<ReturnType<typeof ordersSa
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getOrdersSalesSummaryQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Sales of `[from, to)` against `[compare_from, compare_to)` per currency sold in either: both totals, `gross_difference`, `orders_difference` and `gross_change_bp` (signed basis points, 10000 = +100 %, absent when the base gross is 0). Same sold rule as `orders_sales_summary`. Bounds take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone); each period at most 366 days. Money in minor units.
+ * @summary Compare sales of two periods (compare periods, this vs last, change %)
+ */
+export const ordersSalesCompare = (
+    workspace: string,
+    params: OrdersSalesCompareParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSalesCompare>(
+      {url: `/workspace/${workspace}/sales/compare`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getOrdersSalesCompareQueryKey = (workspace: string,
+    params?: OrdersSalesCompareParams,) => {
+    return [
+    `/workspace/${workspace}/sales/compare`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getOrdersSalesCompareQueryOptions = <TData = Awaited<ReturnType<typeof ordersSalesCompare>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: OrdersSalesCompareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesCompare>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getOrdersSalesCompareQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof ordersSalesCompare>>> = ({ signal }) => ordersSalesCompare(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof ordersSalesCompare>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type OrdersSalesCompareQueryResult = NonNullable<Awaited<ReturnType<typeof ordersSalesCompare>>>
+export type OrdersSalesCompareQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useOrdersSalesCompare<TData = Awaited<ReturnType<typeof ordersSalesCompare>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesCompareParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesCompare>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersSalesCompare>>,
+          TError,
+          Awaited<ReturnType<typeof ordersSalesCompare>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersSalesCompare<TData = Awaited<ReturnType<typeof ordersSalesCompare>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesCompareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesCompare>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersSalesCompare>>,
+          TError,
+          Awaited<ReturnType<typeof ordersSalesCompare>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersSalesCompare<TData = Awaited<ReturnType<typeof ordersSalesCompare>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesCompareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesCompare>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Compare sales of two periods (compare periods, this vs last, change %)
+ */
+
+export function useOrdersSalesCompare<TData = Awaited<ReturnType<typeof ordersSalesCompare>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesCompareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesCompare>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getOrdersSalesCompareQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. Money in minor units.
+ * @summary Top customers by sales in a period (best customers, who bought the most)
+ */
+export const ordersTopCustomers = (
+    workspace: string,
+    params: OrdersTopCustomersParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeTopCustomers>(
+      {url: `/workspace/${workspace}/sales/top-customers`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getOrdersTopCustomersQueryKey = (workspace: string,
+    params?: OrdersTopCustomersParams,) => {
+    return [
+    `/workspace/${workspace}/sales/top-customers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getOrdersTopCustomersQueryOptions = <TData = Awaited<ReturnType<typeof ordersTopCustomers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: OrdersTopCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersTopCustomers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getOrdersTopCustomersQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof ordersTopCustomers>>> = ({ signal }) => ordersTopCustomers(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof ordersTopCustomers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type OrdersTopCustomersQueryResult = NonNullable<Awaited<ReturnType<typeof ordersTopCustomers>>>
+export type OrdersTopCustomersQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useOrdersTopCustomers<TData = Awaited<ReturnType<typeof ordersTopCustomers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersTopCustomersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersTopCustomers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersTopCustomers>>,
+          TError,
+          Awaited<ReturnType<typeof ordersTopCustomers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersTopCustomers<TData = Awaited<ReturnType<typeof ordersTopCustomers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersTopCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersTopCustomers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersTopCustomers>>,
+          TError,
+          Awaited<ReturnType<typeof ordersTopCustomers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersTopCustomers<TData = Awaited<ReturnType<typeof ordersTopCustomers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersTopCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersTopCustomers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Top customers by sales in a period (best customers, who bought the most)
+ */
+
+export function useOrdersTopCustomers<TData = Awaited<ReturnType<typeof ordersTopCustomers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersTopCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersTopCustomers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getOrdersTopCustomersQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

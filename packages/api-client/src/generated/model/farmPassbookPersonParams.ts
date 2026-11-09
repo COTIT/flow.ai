@@ -15,4 +15,12 @@ page?: number;
  * Default 50, max 100.
  */
 page_size?: number;
+/**
+ * First Tanzania day kept (`YYYY-MM-DD`, inclusive); blank = no bound.
+ */
+from?: string;
+/**
+ * Last Tanzania day kept (`YYYY-MM-DD`, inclusive); blank = no bound.
+ */
+to?: string;
 };

@@ -517,7 +517,7 @@ pub struct ListQuery {
     pub q: Option<String>,
     /// Same as `q` (used when `q` is absent).
     pub search: Option<String>,
-    /// Default `active`.
+    /// `active`, `disabled` or `nla`. Default `active`.
     pub status: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
@@ -547,6 +547,11 @@ pub struct ListQuery {
     /// Warehouse for the `pos_*` fields; does not filter.
     #[param(value_type = Option<Uuid>)]
     pub warehouse_id: Option<String>,
+    /// Only stock-tracked products whose sellable stock is at most this. Sellable = Σ (level −
+    /// reserved) over all warehouses and lots, held, recalled or expired lots left out (the
+    /// shop's "sold out"). Out of stock: `available_lte=0`. Untracked products never match.
+    #[param(value_type = Option<String>, example = "0")]
+    pub available_lte: Option<String>,
 }
 
 /// GET one query: `warehouse_id` shapes the `pos_*` fields.
@@ -594,7 +599,8 @@ pub struct ProductRequestDoc {
     /// Default `physical`.
     #[schema(rename = "type")]
     kind: Option<String>,
-    /// Default `active`.
+    /// `active` (on sale), `disabled` (hidden from shop and till, kept, e.g. until next season)
+    /// or `nla` (no longer available). Default `active`.
     status: Option<String>,
     has_stock: Option<bool>,
     is_serialized: Option<bool>,

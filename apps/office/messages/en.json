@@ -59,6 +59,7 @@
     "supply": "Supply",
     "overview": "Overview",
     "invites": "Invites",
+    "members": "Members",
     "categories": "Categories",
     "voice": "Voice assistant"
   },
@@ -726,6 +727,7 @@
     "sizeAdded": "Size added.",
     "inviteSent": "Invite sent to {email}",
     "inviteWithdrawn": "Invite withdrawn.",
+    "memberRemoved": "{name} no longer has access.",
     "lotStockChanged": "Stock changed.",
     "invoice": {
       "sent": "Invoice sent.",
@@ -859,6 +861,23 @@
       "accepted": "Accepted",
       "denied": "Declined",
       "expired": "Expired"
+    }
+  },
+  "members": {
+    "title": "Members",
+    "intro": "People who work in this account. Remove someone who left: their orders, invoices and history stay.",
+    "name": "Name",
+    "team": "Team (role)",
+    "status": "Status",
+    "actions": "Actions",
+    "empty": "No members yet",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}'s access?",
+    "removeText": "They can no longer open this account and leave their teams. Their orders, invoices and history stay. Invite them again to give access back.",
+    "statuses": {
+      "owner": "Owner",
+      "active": "Active",
+      "removed": "Removed"
     }
   },
   "invite": {
@@ -1013,7 +1032,8 @@
       "user": "You",
       "agent": "Genesy",
       "action": "Action",
-      "link": "Link"
+      "link": "Link",
+      "result": "Result"
     },
     "fileStates": {
       "selected": "Selected · not sent",
@@ -1023,11 +1043,12 @@
       "failed": "Upload failed"
     },
     "fileErrors": {
-      "type": "Choose JPEG, PNG, WebP or PDF.",
+      "type": "Choose JPEG, PNG, WebP, PDF, .xlsx or .csv.",
       "empty": "This file is empty.",
       "size": "Choose a file no larger than 10 MiB.",
       "count": "A session supports up to 10 files.",
-      "rate": "Too many uploads. Wait before trying again."
+      "rate": "Too many uploads. Wait before trying again.",
+      "sheetSize": "Choose a spreadsheet no larger than 2 MiB."
     },
     "secureJsonHint": "Advanced configuration as a JSON object. Only included fields are sent; the server validates the action.",
     "secureJsonInvalid": "Enter a valid JSON object or array.",
@@ -1184,7 +1205,26 @@
       "count": "Count",
       "state": "State",
       "method": "Method",
-      "operation": "Operation"
+      "operation": "Operation",
+      "gross_price": "Price incl. VAT",
+      "wholesale_price": "Wholesale price",
+      "supplier_wholesale_price": "Supplier wholesale price",
+      "impact_on_price": "Price adjustment",
+      "impact_on_wholesale_price": "Wholesale price adjustment",
+      "vat_group": "VAT group",
+      "order_unit": "Order unit",
+      "sale_unit": "Sale unit",
+      "default": "Default",
+      "rate": "Rate",
+      "purchase_price": "Purchase price",
+      "impact": "What this affects",
+      "warnings": "Warnings",
+      "type": "Type",
+      "orders": "Orders",
+      "contacts": "Contacts",
+      "variants": "Sizes",
+      "stock_rows": "Stock locations with stock",
+      "effect": "Effect"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -1257,7 +1297,8 @@
       "currencies": "currency",
       "vat": "VAT group",
       "workspace": "workspace",
-      "settings": "setting"
+      "settings": "setting",
+      "relations": "customer"
     },
     "operationActions": {
       "create": "Create {record}",
@@ -1315,6 +1356,311 @@
     "currentWorkspace": "Current workspace",
     "yes": "Yes",
     "no": "No",
-    "otherField": "Field: {name}"
+    "otherField": "{name}",
+    "steps": {
+      "checking": "Looking it up",
+      "preparing": "Preparing your review",
+      "running": "Running it now",
+      "finalizing": "Finalizing"
+    },
+    "unfinished": {
+      "stalled": "I couldn't finish that answer.",
+      "ended_by_agent": "The assistant ended the conversation before finishing.",
+      "time_limit": "The conversation reached its time limit before I finished.",
+      "connection_lost": "The connection dropped before I finished.",
+      "progress": "{count, plural, =0 {No steps were finished.} one {# step was finished.} other {# steps were finished.}}",
+      "askAgain": "Ask again",
+      "continue": "Continue",
+      "continued": "New conversation. Earlier messages stay here; nothing was repeated. Ask again to go on."
+    },
+    "hiddenCancelled": "I cancelled the card because the page was hidden. Want me to prepare it again?",
+    "results": {
+      "salesTitle": "Sales",
+      "source": {
+        "till": "Till sales",
+        "office": "Office sales",
+        "storefront": "Shop sales",
+        "all": "All sales"
+      },
+      "period": "{from} until {to}",
+      "orders": "{count, plural, one {# order} other {# orders}}",
+      "refunded": "Refunded",
+      "gross": "Sales",
+      "periodColumn": "Period",
+      "currency": "Currency",
+      "showTable": "Show as table",
+      "showChart": "Show as chart",
+      "noSales": "No sales in this period",
+      "noSalesHint": "Nothing was sold between these dates.",
+      "resources": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "products": "Products",
+        "lots": "Lots"
+      },
+      "empty": {
+        "orders": "No orders found",
+        "invoices": "No invoices found",
+        "products": "No products found",
+        "lots": "No lots found"
+      },
+      "emptyHint": "Nothing matches this question right now.",
+      "showing": "Showing {shown} of {total}",
+      "openAll": "Open all in Office",
+      "inStock": "{count} in stock",
+      "originTitle": "Where it comes from",
+      "materials": "Ingredients",
+      "noOrigin": "No origin details yet",
+      "noOriginHint": "Add them on the lot's passport.",
+      "trailTitle": "Lot history",
+      "noTrail": "No history yet",
+      "noTrailHint": "Changes to this lot will show here.",
+      "events": {
+        "created": "Created",
+        "updated": "Updated",
+        "status_changed": "Status changed",
+        "passport_published": "Passport published",
+        "passport_unpublished": "Passport unpublished"
+      },
+      "by": "by {name}",
+      "attentionTitle": "Needs attention",
+      "allClear": "Nothing needs your attention",
+      "allClearHint": "No open items in the sections you can see.",
+      "sections": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "stock": "Stock",
+        "till_shifts": "Open till shifts",
+        "lots": "Lots",
+        "webhooks": "Failed webhooks"
+      },
+      "counts": {
+        "open": "Open",
+        "draft": "Draft",
+        "unpaid": "Unpaid",
+        "overdue": "Overdue",
+        "out_of_stock": "Out of stock",
+        "quarantined": "On hold",
+        "holds": "Held by orders",
+        "failed": "Failed",
+        "negative": "Negative stock"
+      },
+      "attempts": "{count, plural, one {# attempt} other {# attempts}}",
+      "level": "Level {level}",
+      "opened": "Opened {date}",
+      "diffTitle": "What changes",
+      "was": "was",
+      "now": "now",
+      "up": "Up {share}",
+      "down": "Down {share}",
+      "moreDetails": "More details",
+      "fewerDetails": "Fewer details",
+      "largeChange": "This is a very large change. Check the new value before approving.",
+      "nameUnavailable": "name not available",
+      "recordLine": "{type}: {label}",
+      "impactTitle": "This also affects",
+      "impact": {
+        "orders": "Orders",
+        "contacts": "Contacts",
+        "variants": "Sizes",
+        "stock_rows": "Stock rows"
+      },
+      "effect": {
+        "archive": "It will be archived, not deleted."
+      },
+      "warningsTitle": "Before you approve"
+    },
+    "suggestions": "Suggestions",
+    "tryPrompt": "Try: “{prompt}”",
+    "pagesHint": "I can also open the right Office page for you.",
+    "capabilityGroups": {
+      "invoices": "Invoices",
+      "orders": "Orders",
+      "products": "Products",
+      "stock": "Stock",
+      "till": "Till",
+      "settings": "Team"
+    },
+    "capabilities": {
+      "open_invoices": {
+        "label": "Open invoices",
+        "prompt": "Which invoices are still open?"
+      },
+      "email_invoice": {
+        "label": "Email an invoice",
+        "prompt": "Email this invoice to the customer"
+      },
+      "resend_invoice": {
+        "label": "Resend an invoice",
+        "prompt": "Send an invoice to the customer again"
+      },
+      "record_payment": {
+        "label": "Record a payment",
+        "prompt": "Record a payment on an invoice"
+      },
+      "create_order": {
+        "label": "Create an order",
+        "prompt": "Create a new order"
+      },
+      "weekly_sales": {
+        "label": "Sales this week",
+        "prompt": "How much did we sell this week?"
+      },
+      "todays_orders": {
+        "label": "Today's orders",
+        "prompt": "Show today's orders"
+      },
+      "invoice_order": {
+        "label": "Invoice an order",
+        "prompt": "Make the invoice for this order"
+      },
+      "change_price": {
+        "label": "Change a price",
+        "prompt": "Change the price of a product"
+      },
+      "find_product": {
+        "label": "Find a product",
+        "prompt": "Find a product by name"
+      },
+      "check_stock": {
+        "label": "Check stock",
+        "prompt": "How much stock do we have of a product?"
+      },
+      "below_zero": {
+        "label": "Stock below zero",
+        "prompt": "Which products are below zero?"
+      },
+      "add_stock": {
+        "label": "Add stock",
+        "prompt": "Add stock for this product"
+      },
+      "till_sales": {
+        "label": "Till sales today",
+        "prompt": "Show today's till sales"
+      },
+      "invite_colleague": {
+        "label": "Invite a colleague",
+        "prompt": "Invite a colleague to the team"
+      },
+      "team_members": {
+        "label": "Team members",
+        "prompt": "Who is in my team?"
+      }
+    },
+    "pages": {
+      "overview": {
+        "name": "Overview",
+        "purpose": "Today's summary of the business"
+      },
+      "products": {
+        "name": "Products",
+        "purpose": "Product list: names, prices and details"
+      },
+      "product": {
+        "name": "Product",
+        "purpose": "One product: change its price, sizes and details"
+      },
+      "categories": {
+        "name": "Categories",
+        "purpose": "Product categories"
+      },
+      "stock": {
+        "name": "Stock",
+        "purpose": "Stock levels per product and place"
+      },
+      "stock_negative": {
+        "name": "Stock below zero",
+        "purpose": "Products whose stock is below zero"
+      },
+      "orders": {
+        "name": "Orders",
+        "purpose": "All orders"
+      },
+      "order": {
+        "name": "Order",
+        "purpose": "One order and its lines"
+      },
+      "invoices": {
+        "name": "Invoices",
+        "purpose": "All invoices and their status"
+      },
+      "invoice": {
+        "name": "Invoice",
+        "purpose": "One invoice: send it, record payments"
+      },
+      "lots": {
+        "name": "Batches",
+        "purpose": "Batches of harvested produce"
+      },
+      "lot": {
+        "name": "Batch",
+        "purpose": "One batch and its history"
+      },
+      "supply": {
+        "name": "Supply",
+        "purpose": "Supply from partner workspaces"
+      },
+      "supply_links": {
+        "name": "Supply links",
+        "purpose": "Links with partner workspaces"
+      },
+      "supply_transfers": {
+        "name": "Supply transfers",
+        "purpose": "Goods moved between partner workspaces"
+      },
+      "till_sales": {
+        "name": "Till sales",
+        "purpose": "Sales made at the till"
+      },
+      "till_shifts": {
+        "name": "Till shifts",
+        "purpose": "Till shifts and cash counts"
+      },
+      "till_registers": {
+        "name": "Registers",
+        "purpose": "Till registers and their pairing"
+      },
+      "till_users": {
+        "name": "Till users",
+        "purpose": "People who may use the till"
+      },
+      "till_vaults": {
+        "name": "Vaults",
+        "purpose": "Cash vaults"
+      },
+      "invites": {
+        "name": "Invites",
+        "purpose": "Invite colleagues to the workspace"
+      },
+      "app_keys": {
+        "name": "App keys",
+        "purpose": "Keys for connected apps"
+      },
+      "webhooks": {
+        "name": "Webhooks",
+        "purpose": "Webhook endpoints for integrations"
+      },
+      "search": {
+        "name": "Search",
+        "purpose": "Search across the workspace"
+      }
+    },
+    "sheetRequest": "I shared a spreadsheet. Ask me what to do with it.",
+    "sheetNoPreview": "Genesy reads this spreadsheet when you ask; there is no preview here.",
+    "importRows": "Rows {from}–{to} of {total}",
+    "notIncluded": {
+      "title": "Not included — check these lines",
+      "line": "Line {line}: ",
+      "reasons": {
+        "unclear": "could not be read clearly",
+        "not_found": "no product with this name, number or barcode",
+        "ambiguous": "more than one product matches",
+        "unreadable": "the price is not a plain number",
+        "unclear_precision": "the price has more decimals than your currency",
+        "unchanged": "price is already the same",
+        "duplicate": "this product is already in the list",
+        "other": "left out"
+      }
+    }
   }
 }

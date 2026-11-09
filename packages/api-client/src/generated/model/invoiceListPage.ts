@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { InvoiceIndexResource } from './invoiceIndexResource';
-import type { Meta } from './meta';
+import type { InvoiceListMeta } from './invoiceListMeta';
 
 /**
  * `GET /invoices`: a page with `meta`, or with `limit` up to that many rows and no `meta`.
  */
 export interface InvoiceListPage {
   data: InvoiceIndexResource[];
-  meta?: Meta;
+  meta?: InvoiceListMeta | null;
 }

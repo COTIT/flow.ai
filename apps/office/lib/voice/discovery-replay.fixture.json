@@ -1,0 +1,1849 @@
+[
+ {
+  "scenario": "admin-api-key",
+  "query": "create a read-only API key for an accountant; secure handoff or API key management",
+  "want": [
+   "app_keys_create"
+  ]
+ },
+ {
+  "scenario": "admin-business-info",
+  "query": "change business name and opening hours, update company profile or business settings",
+  "want": [
+   "workspaces_update",
+   "settings_update"
+  ]
+ },
+ {
+  "scenario": "admin-business-info",
+  "query": "business opening hours update company profile opening hours schedule",
+  "want": [
+   "workspaces_update",
+   "settings_update"
+  ]
+ },
+ {
+  "scenario": "admin-custom-status",
+  "query": "add or create order status called Waiting for pickup",
+  "want": [
+   "custom_statuses_create"
+  ]
+ },
+ {
+  "scenario": "admin-invite",
+  "query": "invite user to Office as manager by email; add staff member or manage users/roles",
+  "want": [
+   "invites_send"
+  ]
+ },
+ {
+  "scenario": "admin-invite",
+  "query": "invites create invite new user by email and assign manager role to Office/workspace",
+  "want": [
+   "invites_send"
+  ]
+ },
+ {
+  "scenario": "admin-invite",
+  "query": "assign workspace role manager or admin to user/invitee; grant member permission or change user role",
+  "want": [
+   "invites_send"
+  ]
+ },
+ {
+  "scenario": "admin-remove-access",
+  "query": "remove or revoke a staff member's access to Genesy Office; find Riley and disable access",
+  "want": [
+   "teams_remove_users",
+   "invites_delete",
+   "users_list"
+  ]
+ },
+ {
+  "scenario": "admin-remove-access",
+  "query": "users list/get/search Riley and remove/revoke a user's Office workspace access; user deactivation or access management",
+  "want": [
+   "teams_remove_users",
+   "invites_delete",
+   "users_list"
+  ]
+ },
+ {
+  "scenario": "admin-revoke-key",
+  "query": "API keys list or revoke oldest API key",
+  "want": [
+   "app_keys_revoke",
+   "app_keys_list"
+  ]
+ },
+ {
+  "scenario": "admin-webhook-failed",
+  "query": "webhook logs delivery failure status recent webhook attempts",
+  "want": [
+   "webhooks_list",
+   "webhooks_get"
+  ]
+ },
+ {
+  "scenario": "admin-webhook",
+  "query": "configure or create webhook subscription that sends events whenever an order changes; webhook endpoint and event selection",
+  "want": [
+   "webhooks_create"
+  ]
+ },
+ {
+  "scenario": "admin-what-see",
+  "query": "check Jordan's Office access, roles, or permissions",
+  "want": [
+   "users_get",
+   "teams_list",
+   "users_list"
+  ]
+ },
+ {
+  "scenario": "admin-what-see",
+  "query": "users list or search staff members; permissions get/list a user's assigned Office permissions",
+  "want": [
+   "users_get",
+   "teams_list",
+   "users_list"
+  ]
+ },
+ {
+  "scenario": "admin-what-see",
+  "query": "get a user's assigned roles, team memberships, and permissions; list teams and their members",
+  "want": [
+   "users_get",
+   "teams_list",
+   "users_list"
+  ]
+ },
+ {
+  "scenario": "hard-ambiguous-name",
+  "query": "orders list search by customer name Jordan",
+  "want": [
+   "relations_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-ambiguous-name",
+  "query": "list orders for customer relation relation_id",
+  "want": [
+   "relations_list",
+   "search_quick",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "hard-asr-errors",
+  "query": "inventory stock list/search quantity by product name cardamom/cardamon",
+  "want": [
+   "stock_list",
+   "products_list",
+   "products_search",
+   "lots_stock"
+  ]
+ },
+ {
+  "scenario": "hard-asr-errors",
+  "query": "products list search by product name or text query",
+  "want": [
+   "stock_list",
+   "products_list",
+   "products_search",
+   "lots_stock"
+  ]
+ },
+ {
+  "scenario": "hard-asr-errors",
+  "query": "search products by name quick search query parameters",
+  "want": [
+   "stock_list",
+   "products_list",
+   "products_search",
+   "lots_stock",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-bulk-delete-drafts",
+  "query": "delete all draft orders; delete draft orders in bulk or list/filter orders by draft status",
+  "want": [
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "hard-bulk-delete-drafts",
+  "query": "orders list/filter by draft status, exact request schema and order IDs",
+  "want": [
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "hard-bulk-delete-drafts",
+  "query": "assistant_batch_status",
+  "want": [
+   "orders_delete"
+  ]
+ },
+ {
+  "scenario": "hard-compare-months",
+  "query": "compare sales results between October and September and explain differences, sales reports analytics by period",
+  "want": [
+   "orders_sales_summary",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "hard-compare-months",
+  "query": "monthly sales reports totals analysis sales revenue September October compare causes difference",
+  "want": [
+   "orders_sales_summary",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "hard-delete-customer",
+  "query": "delete customer Old Mill Gift Shop and delete all related records including invoices",
+  "want": [
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-delete-customer",
+  "query": "find or list customers and contacts by business name Old Mill Gift Shop, inspect their associated records including invoices",
+  "want": [
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-delete-customer",
+  "query": "contacts list search contacts customers delete contact and related data",
+  "want": [
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-delete-customer",
+  "query": "relations list search by relation or customer name, get relation details and contacts",
+  "want": [
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-delete-customer",
+  "query": "delete relation/customer business record, list invoices for a relation/customer including all statuses",
+  "want": [
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "hard-false-premise",
+  "query": "Find why we stopped selling honey last week: product availability/status history, sales or stock changes, notes and audit activity.",
+  "want": [
+   "products_list",
+   "products_search",
+   "orders_sales_summary",
+   "products_sale_statics",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-false-premise",
+  "query": "product change history audit log product availability status updated last week, who or why; stock movement history",
+  "want": [
+   "products_list",
+   "products_search",
+   "orders_sales_summary",
+   "products_sale_statics",
+   "products_get"
+  ]
+ },
+ {
+  "scenario": "hard-mid-correction",
+  "query": "orders list/search orders filtered by customer name Fieldstone Deli",
+  "want": [
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "hard-mid-correction",
+  "query": "search or find customer relation/contact named Fieldstone Deli, then find their orders",
+  "want": [
+   "orders_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-mid-correction",
+  "query": "relations get/list details of Fieldstone Deli with associated orders",
+  "want": [
+   "orders_list",
+   "relations_get"
+  ]
+ },
+ {
+  "scenario": "hard-mid-correction",
+  "query": "relations get relation by ID details linked customer orders",
+  "want": [
+   "orders_list",
+   "relations_get"
+  ]
+ },
+ {
+  "scenario": "hard-mismatch",
+  "query": "yesterday's till total versus invoices reconciliation sales report cash register daily totals invoices",
+  "want": [
+   "till_sales_list",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "hard-mismatch",
+  "query": "till daily totals cash register transactions list report reconciliation",
+  "want": [
+   "till_sales_list",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "hard-mismatch",
+  "query": "till_sales_list and till_shifts_list exact schemas date filters register sales shifts",
+  "want": [
+   "till_sales_list",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "hard-mismatch",
+  "query": "invoices_list exact input schema filters invoice date issued_at from to pagination",
+  "want": [
+   "till_sales_list",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "hard-mixed-language",
+  "query": "invoices list unpaid filter customer/company name Brightwater Co-op",
+  "want": [
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-mixed-language",
+  "query": "invoices list and filter by unpaid status and customer/company name",
+  "want": [
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-mixed-language",
+  "query": "invoices_list list invoices with filters status customer relation",
+  "want": [
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-mixed-language",
+  "query": "relations_list search relation by customer name q",
+  "want": [
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-other-account",
+  "query": "RUAHA stock or inventory by farm/product name",
+  "want": [
+   "farm_records_farms_list"
+  ]
+ },
+ {
+  "scenario": "hard-other-account",
+  "query": "farm records or farm crop stock by farm name RUAHA list/get",
+  "want": [
+   "farm_records_farms_list"
+  ]
+ },
+ {
+  "scenario": "hard-resume",
+  "query": "create order for customer by name with product item and quantity; resolve customer and product records",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-resume",
+  "query": "orders create sales order for customer with order lines product and quantity exact input schema; customer relation lookup",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "hard-urgent-owe",
+  "query": "customer account balance amount owed receivables outstanding invoices Juniper Street Cafe",
+  "want": [
+   "relations_financial_summary",
+   "invoices_list",
+   "relations_list"
+  ]
+ },
+ {
+  "scenario": "hard-urgent-owe",
+  "query": "relations customers list search by name Juniper Street Cafe",
+  "want": [
+   "relations_financial_summary",
+   "invoices_list",
+   "relations_list"
+  ]
+ },
+ {
+  "scenario": "hard-urgent-owe",
+  "query": "search_quick exact schema quick-search query parameter",
+  "want": [
+   "relations_financial_summary",
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "invoices-credit-note",
+  "query": "Create a credit note for the last paid invoice; find paid invoices and credit note creation operation schemas",
+  "want": [
+   "invoices_credit",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-currency",
+  "query": "invoices list newest invoice total amount currency Tanzanian shillings TZS",
+  "want": [
+   "currencies_list",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-currency",
+  "query": "currency exchange rate convert invoice USD total to Tanzanian shillings TZS",
+  "want": [
+   "currencies_list",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-export",
+  "query": "export invoices from last month for accountant, invoice list/export, date filters and file attachment or download",
+  "want": [
+   "invoices_list",
+   "invoices_preview"
+  ]
+ },
+ {
+  "scenario": "invoices-export",
+  "query": "invoice export CSV or Excel report for date range, bulk download invoices",
+  "want": [
+   "invoices_list",
+   "invoices_preview"
+  ]
+ },
+ {
+  "scenario": "invoices-paid-cash",
+  "query": "Brightwater Co-op list open invoices oldest and mark invoice paid in cash",
+  "want": [
+   "invoice_payments_create",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-paid-cash",
+  "query": "record cash payment against an open customer invoice / mark invoice paid",
+  "want": [
+   "invoice_payments_create"
+  ]
+ },
+ {
+  "scenario": "invoices-partial",
+  "query": "record payment received from customer and apply to open invoice; locate Pine Needle Market invoice",
+  "want": [
+   "invoice_payments_create",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-partial",
+  "query": "search/list invoices by customer name, find Pine Needle Market open invoice; exact invoice payment schema",
+  "want": [
+   "invoice_payments_create",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-resend",
+  "query": "resend last invoice to customer Brightwater Co-op",
+  "want": [
+   "invoices_resend",
+   "invoices_send",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-resend",
+  "query": "invoices email resend send invoice to customer",
+  "want": [
+   "invoices_resend",
+   "invoices_send",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "invoices-revenue-ex-vat",
+  "query": "revenue this month excluding VAT; sales revenue report net of VAT current month",
+  "want": [
+   "invoices_list",
+   "orders_sales_summary"
+  ]
+ },
+ {
+  "scenario": "invoices-revenue-ex-vat",
+  "query": "business revenue report sales totals by date period net VAT invoices orders till turnover",
+  "want": [
+   "invoices_list",
+   "orders_sales_summary"
+  ]
+ },
+ {
+  "scenario": "invoices-revenue-ex-vat",
+  "query": "VAT tax report sales revenue totals excluding VAT by date range",
+  "want": [
+   "invoices_list",
+   "orders_sales_summary"
+  ]
+ },
+ {
+  "scenario": "invoices-send",
+  "query": "draft invoices list newest and send invoice to customer",
+  "want": [
+   "invoices_send",
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "morning-agenda",
+  "query": "today's agenda, my tasks, calendar events or assigned work for signed-in staff member",
+  "want": [
+   "orders_list",
+   "invoices_list",
+   "stock_negative",
+   "till_shifts_list"
+  ]
+ },
+ {
+  "scenario": "morning-out-of-stock",
+  "query": "products inventory stock list products with zero or negative stock quantity",
+  "want": [
+   "stock_negative",
+   "stock_list"
+  ]
+ },
+ {
+  "scenario": "morning-out-of-stock",
+  "query": "list products or stock rows with zero quantity out of stock, stock equal zero",
+  "want": [
+   "stock_negative",
+   "stock_list"
+  ]
+ },
+ {
+  "scenario": "morning-overnight-orders",
+  "query": "orders list recent orders overnight created date filter",
+  "want": [
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "morning-shift-open",
+  "query": "till shift list open shifts check whether any till shift is open",
+  "want": [
+   "till_shifts_list"
+  ]
+ },
+ {
+  "scenario": "morning-till-compare",
+  "query": "till sales performance daily totals compare sales yesterday versus last Friday",
+  "want": [
+   "till_sales_list",
+   "till_shifts_list"
+  ]
+ },
+ {
+  "scenario": "morning-unpaid-30",
+  "query": "invoices list unpaid outstanding overdue filter invoice age more than 30 days",
+  "want": [
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "morning-vault",
+  "query": "vaults unusual or odd activity, anomalies, audit activity",
+  "want": [
+   "till_vaults_list"
+  ]
+ },
+ {
+  "scenario": "orders-bulk-delivered",
+  "query": "orders list today's picked orders and mark order delivered or update delivery status",
+  "want": [
+   "orders_complete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-cancel",
+  "query": "orders list filter by open status and newest created",
+  "want": [
+   "orders_cancel"
+  ]
+ },
+ {
+  "scenario": "orders-cancel",
+  "query": "orders list filter status open pagination page",
+  "want": [
+   "orders_cancel"
+  ]
+ },
+ {
+  "scenario": "orders-cancel",
+  "query": "cancel an order",
+  "want": [
+   "orders_cancel"
+  ]
+ },
+ {
+  "scenario": "orders-change-qty",
+  "query": "orders list/search latest order filtered by customer name Saltmarsh Grocers",
+  "want": [
+   "orders_update",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-change-qty",
+  "query": "search orders by customer or relation name Saltmarsh Grocers; search contacts and customers",
+  "want": [
+   "orders_update",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "orders-change-qty",
+  "query": "relation get customer account details associated orders order history for relation id",
+  "want": [
+   "orders_update",
+   "relations_get"
+  ]
+ },
+ {
+  "scenario": "orders-create",
+  "query": "create order for customer with product line items and quantities; search/list customers and products by name",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "orders-create",
+  "query": "create sales order for a customer with product line item quantities; get product details for product IDs including variants or descriptions",
+  "want": [
+   "orders_create",
+   "products_get"
+  ]
+ },
+ {
+  "scenario": "orders-discount",
+  "query": "find Hollow Oak Bakery's latest order and apply a 10% discount to an order",
+  "want": [
+   "orders_update",
+   "discounts_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "orders-discount",
+  "query": "orders list or search orders filtered by customer relation Hollow Oak Bakery, newest first",
+  "want": [
+   "orders_update",
+   "discounts_create",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-discount",
+  "query": "orders associated with customer relation list relation's sales orders",
+  "want": [
+   "orders_update",
+   "discounts_create",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-repeat",
+  "query": "repeat or duplicate customer's last order for Fieldstone Deli; find customer and order then create repeat order",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "orders-repeat",
+  "query": "list orders for a relation/customer, Fieldstone Deli, relation order history",
+  "want": [
+   "orders_create"
+  ]
+ },
+ {
+  "scenario": "orders-split",
+  "query": "split newest order into two deliveries; find newest order and split fulfillment or delivery shipment",
+  "want": [
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-top-customer",
+  "query": "top customer by product Cardamom; sales or orders ranked by customer for a product",
+  "want": [
+   "orders_sales_summary",
+   "products_sale_statics",
+   "relations_financial_summary"
+  ]
+ },
+ {
+  "scenario": "orders-top-customer",
+  "query": "orders list or sales reports filtered by product and customer; identify top customer for product",
+  "want": [
+   "orders_sales_summary",
+   "products_sale_statics",
+   "relations_financial_summary"
+  ]
+ },
+ {
+  "scenario": "orders-top-customer",
+  "query": "sales analytics report revenue by product and customer, order line items Cardamom",
+  "want": [
+   "orders_sales_summary",
+   "products_sale_statics",
+   "relations_financial_summary"
+  ]
+ },
+ {
+  "scenario": "orders-undo",
+  "query": "cancel newest draft order; list orders filtered by draft status and newest first",
+  "want": [
+   "orders_cancel",
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-undo",
+  "query": "orders list newest first filter draft status",
+  "want": [
+   "orders_cancel",
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-undo",
+  "query": "orders_list exact input schema pagination page and page_size filter status draft",
+  "want": [
+   "orders_cancel",
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-why-pending",
+  "query": "orders list pending oldest order and retrieve its status or hold reason",
+  "want": [
+   "orders_events",
+   "orders_get",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "orders-why-pending",
+  "query": "orders status values available statuses list custom order statuses",
+  "want": [
+   "orders_events",
+   "orders_get",
+   "custom_statuses_list"
+  ]
+ },
+ {
+  "scenario": "orders-why-pending",
+  "query": "pending orders oldest outstanding unfulfilled order status",
+  "want": [
+   "orders_events",
+   "orders_get",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "products-add",
+  "query": "add or create a new product with name and price",
+  "want": [
+   "products_create"
+  ]
+ },
+ {
+  "scenario": "products-add",
+  "query": "products create add new product create product name price",
+  "want": [
+   "products_create"
+  ]
+ },
+ {
+  "scenario": "products-best-seller",
+  "query": "sales best-selling product this month, rank products by units or revenue for current month",
+  "want": [
+   "orders_sales_summary",
+   "products_sale_statics"
+  ]
+ },
+ {
+  "scenario": "products-duplicate",
+  "query": "products duplicate or create product copy existing product Cardamom with variant/size 1 kg",
+  "want": [
+   "products_duplicate",
+   "product_variants_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "products-duplicate",
+  "query": "products update edit product name or weight/package size, product variants create size weight 1 kg",
+  "want": [
+   "products_duplicate",
+   "product_variants_create"
+  ]
+ },
+ {
+  "scenario": "products-duplicate",
+  "query": "product_variants create add product variant with package size/weight",
+  "want": [
+   "products_duplicate",
+   "product_variants_create"
+  ]
+ },
+ {
+  "scenario": "products-duplicate",
+  "query": "products_update exact schema fields name weight product",
+  "want": [
+   "products_duplicate",
+   "product_variants_create"
+  ]
+ },
+ {
+  "scenario": "products-hide",
+  "query": "hide or archive product Kilimanjaro Sunset Crocodile until next season; product visibility / deactivate product",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-hide",
+  "query": "products update product active visibility hidden status archive seasonal product",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-hide",
+  "query": "products list filtering by product name q search pagination query schema",
+  "want": [
+   "products_update",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "products-hide",
+  "query": "product status allowed values active inactive draft hidden seasonal temporarily deactivate",
+  "want": [
+   "products_update"
+  ]
+ },
+ {
+  "scenario": "products-move-category",
+  "query": "products update category; move product Black Peppercorn into Spices category",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-move-category",
+  "query": "search products by name Black Peppercorn and list product categories by name Spices",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-move-category",
+  "query": "products_update; products_get; products_list exact query pagination schema",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-no-photo",
+  "query": "products list pagination page and per_page filters",
+  "want": [
+   "products_list",
+   "products_images_list"
+  ]
+ },
+ {
+  "scenario": "products-raise-price",
+  "query": "products list/search honey and update/adjust prices by amount",
+  "want": [
+   "products_update",
+   "price_corrections_create",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-raise-price",
+  "query": "products list all with names and current prices, and update product sales price",
+  "want": [
+   "products_update",
+   "price_corrections_create",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-raise-price",
+  "query": "products_list list products with query search name pagination; products_update update product price sales_price",
+  "want": [
+   "products_update",
+   "price_corrections_create",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-raise-price",
+  "query": "assistant_batch_prepare",
+  "want": [
+   "products_update",
+   "price_corrections_create"
+  ]
+ },
+ {
+  "scenario": "products-rename",
+  "query": "rename product name everywhere Kizazi Tea to Kizazi Black Tea",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-rename",
+  "query": "products update edit product name change product details",
+  "want": [
+   "products_update",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "products-rename",
+  "query": "products_list filter search product by name pagination query schema",
+  "want": [
+   "products_update",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "search-customer",
+  "query": "Two Ravens Coffee Bar business information, customer or account details, search/list records",
+  "want": [
+   "relations_get",
+   "relations_financial_summary",
+   "search_search",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "search-customer",
+  "query": "search contacts or business customer account named Two Ravens Coffee Bar",
+  "want": [
+   "relations_get",
+   "relations_financial_summary",
+   "search_search",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "search-customer",
+  "query": "get relation/customer/company details by relation ID, Two Ravens Coffee Bar",
+  "want": [
+   "relations_get",
+   "relations_financial_summary",
+   "search_search",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "search-farmer-page",
+  "query": "find a farmer by location Lugoda and open their page / farmer record",
+  "want": [
+   "farm_records_persons_list",
+   "farm_records_persons_get",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "search-farmer-page",
+  "query": "farm records search or list farmers persons by village name; open farmer/person detail page; look up village Lugoda",
+  "want": [
+   "farm_records_persons_list",
+   "farm_records_persons_get",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "search-farmer-page",
+  "query": "farm villages list/search by village name Lugoda, and get farmer person detail/page",
+  "want": [
+   "farm_records_persons_list",
+   "farm_records_persons_get",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "stock-count-correct",
+  "query": "correct or adjust product stock quantity after physical shelf count Ground Cumin",
+  "want": [
+   "stock_set_levels",
+   "stock_mutate",
+   "products_search"
+  ]
+ },
+ {
+  "scenario": "stock-count-correct",
+  "query": "search or list products by name and list lots with warehouse stock to find Ground Cumin",
+  "want": [
+   "stock_set_levels",
+   "stock_mutate",
+   "products_search"
+  ]
+ },
+ {
+  "scenario": "stock-count-correct",
+  "query": "correct stock count for product at a warehouse or shelf, stock adjustment/correction",
+  "want": [
+   "stock_set_levels",
+   "stock_mutate"
+  ]
+ },
+ {
+  "scenario": "stock-expiring",
+  "query": "inventory lots list with expiration dates filter expiring this week",
+  "want": [
+   "lots_list"
+  ]
+ },
+ {
+  "scenario": "stock-fix-negative",
+  "query": "find products or inventory items with negative stock and adjust stock to correct it",
+  "want": [
+   "stock_negative"
+  ]
+ },
+ {
+  "scenario": "stock-forecast",
+  "query": "Cardamom stock inventory forecast depletion when will stock run out stock levels and sales usage rate",
+  "want": [
+   "stock_movements",
+   "orders_sales_summary",
+   "stock_list",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "stock-forecast",
+  "query": "inventory stock consumption forecast demand usage rate estimate date product stockout run out",
+  "want": [
+   "stock_movements",
+   "orders_sales_summary",
+   "stock_list",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "stock-forecast",
+  "query": "search or list products by product name Cardamom resolve product record id",
+  "want": [
+   "stock_movements",
+   "orders_sales_summary",
+   "stock_list",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "stock-how-much",
+  "query": "inventory stock quantity on hand for a named product, search stock by product name",
+  "want": [
+   "stock_list",
+   "lots_stock",
+   "stock_with_bins",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "stock-lot-origin",
+  "query": "coffee lot origin traceability passport lot details",
+  "want": [
+   "lots_passport_get",
+   "lots_get",
+   "lots_list"
+  ]
+ },
+ {
+  "scenario": "stock-why-negative",
+  "query": "products inventory stock levels negative stock explain stock movements history",
+  "want": [
+   "stock_negative",
+   "stock_movements"
+  ]
+ },
+ {
+  "scenario": "stock-write-off",
+  "query": "inventory stock write off spoiled damaged quantity product jars; adjust stock",
+  "want": [
+   "stock_mutate",
+   "lots_stock_mutate",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "stock-write-off",
+  "query": "lots_stock_mutate; search or list products by product name and package size; list lots by product and identify lot for 7oz Wildflower Honey",
+  "want": [
+   "stock_mutate",
+   "lots_stock_mutate",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "stock-write-off",
+  "query": "lots list for product; lots_get and lots_stock_mutate full schema stock mutation quantity reason lot id",
+  "want": [
+   "stock_mutate",
+   "lots_stock_mutate",
+   "lots_list"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "check whether farmer in Kitowo agreed to share their data with buyers; farmer data-sharing consent status",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "farm_records list/get farmer records consent buyer data sharing opt-in agreement",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "farmer consent to share personal or farm data with buyers; data sharing permission opt in status",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "farm_passbook get passport consent status person list consent records",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "farm_villages list villages by name Kitowo",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "farm_passbook list or get person's passport consent status data-sharing consent",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "buyer can see farmer data sharing consent farmer passport publication to buyers consent status",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get"
+  ]
+ },
+ {
+  "scenario": "supply-consent",
+  "query": "farm_passbook passport",
+  "want": [
+   "farm_passbook_person",
+   "supply_links_list",
+   "farm_records_persons_get"
+  ]
+ },
+ {
+  "scenario": "supply-fix-delivery",
+  "query": "harvest delivery list/get and correct or update entered quantity weight kg 50 to 45",
+  "want": [
+   "farm_records_harvest_reports_revise",
+   "farm_supply_create",
+   "farm_records_harvest_reports_all"
+  ]
+ },
+ {
+  "scenario": "supply-fix-delivery",
+  "query": "farm_records harvest deliveries list recent delivery records and update/correct quantity",
+  "want": [
+   "farm_records_harvest_reports_revise",
+   "farm_supply_create",
+   "farm_records_harvest_reports_all"
+  ]
+ },
+ {
+  "scenario": "supply-fix-delivery",
+  "query": "harvest delivery records deliveries received update quantity kilograms correct entered delivery",
+  "want": [
+   "farm_records_harvest_reports_revise",
+   "farm_supply_create"
+  ]
+ },
+ {
+  "scenario": "supply-fix-delivery",
+  "query": "farm_market harvest delivery list delivery receipts and update quantity",
+  "want": [
+   "farm_records_harvest_reports_revise",
+   "farm_supply_create"
+  ]
+ },
+ {
+  "scenario": "supply-inactive",
+  "query": "farmers suppliers deliveries delivery history identify farmers with no deliveries in the past three months",
+  "want": [
+   "farm_supply_list",
+   "farm_records_harvest_reports_all",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-inactive",
+  "query": "farm_supply or supply_chain farmer delivery records received shipments deliveries list by date farmer",
+  "want": [
+   "farm_supply_list",
+   "farm_records_harvest_reports_all",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-inactive",
+  "query": "supply_chain deliveries farmer delivered goods receipts delivery history records date list",
+  "want": [
+   "farm_supply_list",
+   "farm_records_harvest_reports_all",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-inactive",
+  "query": "farm_supply list farmer deliveries produce delivered collection records harvest delivery date",
+  "want": [
+   "farm_supply_list",
+   "farm_records_harvest_reports_all",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-link",
+  "query": "set up a supply link with a new farm co-op; create supplier or farm cooperative relationship, onboarding, supply link",
+  "want": [
+   "supply_links_grant"
+  ]
+ },
+ {
+  "scenario": "supply-link",
+  "query": "find or list workspaces by farm co-op name, identify receiving shop workspace id for supply link",
+  "want": [
+   "supply_links_grant"
+  ]
+ },
+ {
+  "scenario": "supply-link",
+  "query": "workspaces search list accessible workspaces by name, workspace directory",
+  "want": [
+   "supply_links_grant"
+  ]
+ },
+ {
+  "scenario": "supply-owe-farmer",
+  "query": "accounts payable outstanding amounts owed farmers supplier location Lugoda list balances invoices",
+  "want": [
+   "farm_payouts_reconciliation",
+   "lots_farmer_credits",
+   "farm_passbook_person",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-owe-farmer",
+  "query": "farm_payouts list farmer payout balances outstanding amount owed village location Lugoda",
+  "want": [
+   "farm_payouts_reconciliation",
+   "lots_farmer_credits",
+   "farm_passbook_person",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-owe-farmer",
+  "query": "farmers outstanding balance unpaid amount owed to farmers crop purchases payable farm passbook records Lugoda",
+  "want": [
+   "farm_payouts_reconciliation",
+   "lots_farmer_credits",
+   "farm_passbook_person"
+  ]
+ },
+ {
+  "scenario": "supply-owe-farmer",
+  "query": "farm_passbook current balances farmer balances outstanding amount payable to farmers village",
+  "want": [
+   "farm_payouts_reconciliation",
+   "lots_farmer_credits",
+   "farm_passbook_person"
+  ]
+ },
+ {
+  "scenario": "supply-owe-farmer",
+  "query": "lots list harvest produce lots village farmer credits unpaid outstanding credited farmers",
+  "want": [
+   "farm_payouts_reconciliation",
+   "lots_farmer_credits",
+   "farm_passbook_person"
+  ]
+ },
+ {
+  "scenario": "supply-owe-farmer",
+  "query": "outstanding farmer payables balance owed report summary unpaid payout obligations by village",
+  "want": [
+   "farm_payouts_reconciliation",
+   "lots_farmer_credits",
+   "farm_passbook_person"
+  ]
+ },
+ {
+  "scenario": "supply-passbook-october",
+  "query": "farmer passbook or account ledger transactions for October, search by farmer location Mwangeza",
+  "want": [
+   "farm_passbook_person",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-passbook-october",
+  "query": "farm_passbook read view farmer passbook entries ledger statement transactions by person and date range October",
+  "want": [
+   "farm_passbook_person",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-passbook-october",
+  "query": "farm_records search or list farmers/persons by village name Mwangeza",
+  "want": [
+   "farm_passbook_person",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-passbook-october",
+  "query": "farm_villages_list find village by name Mwangeza",
+  "want": [
+   "farm_passbook_person",
+   "farm_villages_list"
+  ]
+ },
+ {
+  "scenario": "supply-pay-all",
+  "query": "pay farmers outstanding amounts owed, supplier or farmer bills and payments",
+  "want": [
+   "farm_payouts_create",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-pay-all",
+  "query": "farm passbook list farmer balances amounts owed outstanding payout debts",
+  "want": [
+   "farm_payouts_create",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-pay-all",
+  "query": "farm_passbook farmer passbook balance entries credits debits list",
+  "want": [
+   "farm_payouts_create",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-pay-all",
+  "query": "farm persons list farmers registered people searchable names village",
+  "want": [
+   "farm_payouts_create",
+   "farm_records_persons_list"
+  ]
+ },
+ {
+  "scenario": "supply-record-delivery",
+  "query": "record or create delivery received 40 kg coffee cherry from farmer in Kitowo; coffee deliveries intake farmer produce",
+  "want": [
+   "farm_supply_create"
+  ]
+ },
+ {
+  "scenario": "supply-record-delivery",
+  "query": "farm crop harvest delivery intake record farmer crop quantity kilograms collection received produce delivery",
+  "want": [
+   "farm_supply_create"
+  ]
+ },
+ {
+  "scenario": "supply-record-delivery",
+  "query": "farm_supply record purchase produce delivery collection farmer delivered produce receipts",
+  "want": [
+   "farm_supply_create"
+  ]
+ },
+ {
+  "scenario": "supply-record-delivery",
+  "query": "delivery from farmer purchase collection coffee cherry intake buying station produce delivered quantity record",
+  "want": [
+   "farm_supply_create"
+  ]
+ },
+ {
+  "scenario": "supply-transfer",
+  "query": "inventory stock transfer between branches; transfer quantity of product to another branch",
+  "want": [
+   "supply_chain_dispatch",
+   "stock_move_between_bins"
+  ]
+ },
+ {
+  "scenario": "supply-transfer",
+  "query": "transfer stock inventory product between warehouses or branches",
+  "want": [
+   "supply_chain_dispatch",
+   "stock_move_between_bins"
+  ]
+ },
+ {
+  "scenario": "till-add-cashier",
+  "query": "add or create a new cashier staff member named Neema",
+  "want": [
+   "till_users_create"
+  ]
+ },
+ {
+  "scenario": "till-add-cashier",
+  "query": "users staff create invite employee cashier role",
+  "want": [
+   "till_users_create"
+  ]
+ },
+ {
+  "scenario": "till-drawer-short",
+  "query": "last closed shift cash drawer short discrepancy reason shift close reconciliation report",
+  "want": [
+   "till_shifts_list"
+  ]
+ },
+ {
+  "scenario": "till-drawer-short",
+  "query": "till drawer shift details transactions cash movement list by shift discrepancy shortage explain expected counted",
+  "want": [
+   "till_shifts_list",
+   "till_sales_list"
+  ]
+ },
+ {
+  "scenario": "till-refund",
+  "query": "refund last till sale / point of sale transaction",
+  "want": [
+   "orders_refund"
+  ]
+ },
+ {
+  "scenario": "till-refund",
+  "query": "till sale refund void reverse cash register transaction",
+  "want": [
+   "orders_refund"
+  ]
+ },
+ {
+  "scenario": "till-top-seller",
+  "query": "today's point of sale till sales best-selling products, sales report or transactions summary by item",
+  "want": [
+   "till_sales_list"
+  ]
+ },
+ {
+  "scenario": "adv-approve-by-voice",
+  "query": "orders cancel newest draft order; find/list orders and cancel draft order",
+  "want": [
+   "orders_cancel",
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-approve-by-voice",
+  "query": "orders_list list orders filtering by draft status and sort newest created",
+  "want": [
+   "orders_cancel",
+   "orders_delete",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-approve-by-voice",
+  "query": "orders_cancel exact input schema cancel order by order ID",
+  "want": [
+   "orders_cancel",
+   "orders_delete"
+  ]
+ },
+ {
+  "scenario": "adv-cashier-refund",
+  "query": "refund last five till sales cash; find/list recent till sales, refund sale in cash, assistant_batch_prepare",
+  "want": [
+   "orders_refund"
+  ]
+ },
+ {
+  "scenario": "adv-cashier-refund",
+  "query": "till sales refund/void sale cash refund transaction exact operation and request schema",
+  "want": [
+   "orders_refund"
+  ]
+ },
+ {
+  "scenario": "adv-chain-read",
+  "query": "list product categories",
+  "want": [
+   "product_categories_list",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "adv-chain-read",
+  "query": "list products in category and compare prices to find cheapest",
+  "want": [
+   "product_categories_list",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "adv-chain-read",
+  "query": "products list product catalog filter category_id with current prices",
+  "want": [
+   "product_categories_list",
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "adv-chain-read",
+  "query": "find most recent sale or order containing a product, Cardamom",
+  "want": [
+   "product_categories_list",
+   "products_list",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-chain-read",
+  "query": "list orders filter by product line item product_id sort newest sold date order search",
+  "want": [
+   "product_categories_list",
+   "products_list",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-chain-read",
+  "query": "orders_list retrieve orders list with query filters search product",
+  "want": [
+   "product_categories_list",
+   "products_list",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-currency-mix",
+  "query": "record a customer payment against an open invoice; resolve Pine Needle Market and invoice, accept payment in multiple currencies TZS and USD",
+  "want": [
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-currency-mix",
+  "query": "search/list customer relations and open invoices by customer name Pine Needle Market",
+  "want": [
+   "invoices_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-currency-mix",
+  "query": "list invoices filtered by customer relation ID, open or unpaid invoices",
+  "want": [
+   "invoices_list"
+  ]
+ },
+ {
+  "scenario": "adv-dutch-read",
+  "query": "orders list open or outstanding orders and identify oldest order and customer",
+  "want": [
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-dutch-read",
+  "query": "relations_get get relation customer by relation_id",
+  "want": [
+   "orders_list",
+   "relations_get"
+  ]
+ },
+ {
+  "scenario": "adv-dutch-write",
+  "query": "create sales order for customer Fieldstone Deli, add three Kizazi Tea products",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-injection-message",
+  "query": "orders list open orders count filter status",
+  "want": [
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-injection-product",
+  "query": "products search or list by product name Spice Mix details",
+  "want": [
+   "products_list",
+   "products_search",
+   "products_get",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-long-chain",
+  "query": "identify biggest customer this month by sales revenue or orders; customer sales ranking monthly",
+  "want": [
+   "orders_create",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-long-chain",
+  "query": "customers ranked by total sales revenue this month; customer sales report or orders list with customer and totals",
+  "want": [
+   "orders_create",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-long-chain",
+  "query": "repeat or duplicate an existing order to create a new order for the same customer",
+  "want": [
+   "orders_create"
+  ]
+ },
+ {
+  "scenario": "adv-mixed-numbers",
+  "query": "update or set product price by product name, including currency and price amount",
+  "want": [
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "adv-mixed-numbers",
+  "query": "products update product selling price / price and search or list products by name",
+  "want": [
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "adv-mixed-numbers",
+  "query": "products_list and products_update exact request schemas, including list pagination and product price fields",
+  "want": [
+   "products_list"
+  ]
+ },
+ {
+  "scenario": "adv-other-one",
+  "query": "get order details open order by order id",
+  "want": [
+   "orders_get",
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-rapid-fire",
+  "query": "orders list, filter orders created today and count results",
+  "want": [
+   "stock_negative",
+   "stock_list"
+  ]
+ },
+ {
+  "scenario": "adv-rapid-fire",
+  "query": "inventory stock list items with on-hand quantity below zero",
+  "want": [
+   "stock_negative",
+   "stock_list"
+  ]
+ },
+ {
+  "scenario": "adv-rapid-write",
+  "query": "create sales order for a customer with product line items; resolve Juniper Street Cafe, Cardamom, and Kizazi Tea",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-rapid-write",
+  "query": "orders create sales order customer items products order lines",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-rapid-write",
+  "query": "search/list relations or contacts by customer name and products by product name",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-rapid-write",
+  "query": "products get full product details product description or variant details by product id",
+  "want": [
+   "orders_create",
+   "products_get"
+  ]
+ },
+ {
+  "scenario": "adv-self-approve",
+  "query": "create sales order for customer account with product items and quantities; find Lantern Hill Inn and Cardamom if needed",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-self-approve",
+  "query": "orders create sales order customer with order lines product and quantity",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-swahili-write",
+  "query": "create sales order for customer with product line items quantities; Juniper Street Cafe, Cardamom 2, Kizazi tea 1",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-swahili-write",
+  "query": "orders create sales order customer line items products quantity; resolve customers and product names using relations/products search/list",
+  "want": [
+   "orders_create",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-that-one-cancel",
+  "query": "orders list open orders filtered by customer name or customer account",
+  "want": [
+   "orders_list"
+  ]
+ },
+ {
+  "scenario": "adv-that-one-cancel",
+  "query": "search or list relations customers by name, get relation/contact details",
+  "want": [
+   "orders_list",
+   "search_quick"
+  ]
+ },
+ {
+  "scenario": "adv-very-long",
+  "query": "Two Ravens Coffee Bar find customer and check latest invoice payment status; invoices list/get by customer",
+  "want": [
+   "invoices_list",
+   "relations_financial_summary",
+   "search_quick"
+  ]
+ }
+]

@@ -18,6 +18,10 @@ export const composerReady = (attachments: { state: string }[]) =>
 
 /** Keys the server needs but a person reviewing the action should never see. */
 export const internalFields = new Set([
+  "target",
+  // Shown in their own "Not included" notice, not as reviewed fields.
+  "notIncluded",
+  "rows",
   "actionId",
   "batchId",
   "sessionId",
@@ -161,6 +165,7 @@ const resources = [
   "farmer_groups",
   "workspaces",
   "warehouses",
+  "relations",
   "products",
   "categories",
   "invoices",
@@ -224,4 +229,41 @@ export function operationLabel(operationId: string, method?: string) {
         ? "delete"
         : (verb ?? (method === "PUT" || method === "PATCH" ? "update" : "run"))
   return { action, resource }
+}
+
+export const notIncludedReasons = [
+  "unclear",
+  "not_found",
+  "ambiguous",
+  "unreadable",
+  "unclear_precision",
+  "unchanged",
+  "duplicate",
+] as const
+export type NotIncludedRow = {
+  line?: number
+  text: string
+  reason: (typeof notIncludedReasons)[number] | "other"
+  note?: string
+}
+
+/** Lines kept out of the review (unreadable, unmatched…); reason is a fixed key the card words. */
+export function notIncludedRows(review: VoiceReview): NotIncludedRow[] {
+  const value = review.details.notIncluded
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || typeof item.text !== "string")
+      return []
+    const known = (notIncludedReasons as readonly string[]).includes(
+      item.reason
+    )
+    return [
+      {
+        ...(Number.isInteger(item.line) ? { line: item.line } : {}),
+        text: item.text,
+        reason: known ? item.reason : "other",
+        ...(typeof item.note === "string" ? { note: item.note } : {}),
+      },
+    ]
+  })
 }

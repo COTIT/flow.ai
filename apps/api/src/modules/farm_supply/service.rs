@@ -18,7 +18,8 @@ use crate::{
         farm_supply::{
             dto::{
                 BatchResource, BuyableHarvest, DispatchLinkResource, DispatchLot, DispatchOptions,
-                DispatchWarehouse, NewBatch, OptionsResource, RawProduct, RawProductCreated,
+                DispatchWarehouse, NewBatch, OptionsResource, QuietFarmer, RawProduct,
+                RawProductCreated,
             },
             repo::{self, HarvestRow, NewBatchRow},
         },
@@ -504,4 +505,36 @@ pub async fn dispatch_options(
             })
             .collect(),
     })
+}
+
+/// GET /quiet-farmers: staff; persons in their villages with no bought kg since `since`
+/// (default: 30 Tanzania days ago).
+pub async fn quiet_farmers(
+    state: &AppState,
+    access: &FarmAccess,
+    since: Option<&str>,
+    village: Option<&str>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<QuietFarmer>, i64), AppError> {
+    if !access.is_staff() {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let since = match since.map(str::trim).filter(|d| !d.is_empty()) {
+        Some(d) => Some(
+            chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+                .map_err(|_| AppError::field("since", "The since must be a date (YYYY-MM-DD)."))?,
+        ),
+        None => None,
+    };
+    let village =
+        match village.filter(|v| !v.is_empty()) {
+            Some(v) => Some(Uuid::parse_str(v).map_err(|_| {
+                AppError::field("village_id", "The village id must be a valid UUID.")
+            })?),
+            None => None,
+        };
+    let scope = access.staff_scope();
+    let ws = access.workspace_id;
+    Ok(repo::quiet_farmers(&state.db, ws, &scope, village, since, limit, offset).await?)
 }

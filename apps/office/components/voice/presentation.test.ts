@@ -6,6 +6,7 @@ import {
   displayReferences,
   displayText,
   operationLabel,
+  notIncludedRows,
   reviewRows,
 } from "./presentation"
 
@@ -195,5 +196,27 @@ describe("review rows", () => {
       reviewRows({ ...base, kind: "batch", steps: [], details: { a: 1 } })
     ).toHaveLength(1)
     expect(reviewRows({ ...base, details: { ticket: "x" } })).toEqual([])
+  })
+  it("keeps rows left out of a review apart from the fields, with known reasons only", () => {
+    const review = {
+      ...base,
+      details: {
+        product: "Honey",
+        rows: { from: 1, to: 3, total: 3 },
+        notIncluded: [
+          { line: 4, text: "Maize", reason: "unreadable" },
+          { text: "Su?ar", reason: "unclear", note: "smudged" },
+          { line: 5, text: "x", reason: "<script>" },
+          "junk",
+        ],
+      },
+    }
+    expect(reviewRows(review).map((row) => row.id)).toEqual(["product"])
+    expect(notIncludedRows(review)).toEqual([
+      { line: 4, text: "Maize", reason: "unreadable" },
+      { text: "Su?ar", reason: "unclear", note: "smudged" },
+      { line: 5, text: "x", reason: "other" },
+    ])
+    expect(notIncludedRows({ ...base, details: {} })).toEqual([])
   })
 })

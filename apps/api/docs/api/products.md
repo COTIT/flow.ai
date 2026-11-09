@@ -36,7 +36,7 @@ Shared rules (guard order, 404s, patch updates, list `meta`, money printing) are
 | `POST /` | `product.create` | `201 {data:{product_id}}` |
 | `POST /{id}` | `product.update` | `{"message":"ok"}` |
 | `DELETE /{id}` | `product.delete` | `{"data":{"message":"The Product has been deleted"}}` |
-| `POST /{id}/duplicate` | `product.duplicate` | `201 {data:{product_id}}` |
+| `POST /{id}/duplicate` | `product.duplicate` | `201 {data:{product_id}}`; exact copy, no body: for another size or name, copy then update the copy |
 | `GET /{id}/price-history` | `product.view` | `{data:[…], meta}`, `per_page` default 25 |
 | `GET /{id}/sale-statics` | `product.view` | zeros (no invoices yet) |
 | `GET /{id}/linked-products` | `product.view` | `{data:{products:[]}}` (links can't be created yet) |
@@ -91,7 +91,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
     - `description` ≤1500
   - **Enums:**
     - `type` is one of digital / multi_product_group / multi_product_set / physical / physical_second_chance / service / giftcard, default physical
-    - `status` is one of active / disabled / nla, default `active`. Laravel answered 500 without it.
+    - `status` is one of `active` (on sale), `disabled` (hidden from shop and till, kept) or `nla` (no longer available), default `active`. Laravel answered 500 without it.
     - Both are lowercased, with the error "The selected status: X is invalid."
     - `unit`, `warranty_*`
   - **Money:**
@@ -135,6 +135,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - `supplier_id` / `supplier_relation_id` (uuid)
   - `ean13` (exact)
   - `exclude_ids` (comma-separated, at most 100)
+  - `available_lte` (decimal text, Genesy addition): only stock-tracked products whose sellable stock is at most this. Sellable = Σ (`stock_lvl` − `reserved`) over every live stock row of the product, all warehouses and lots, lots that are held, recalled or expired left out: the shop's "sold out" rule. `available_lte=0` lists products out of stock (one empty lot beside a full one is not). Untracked products never match. Not a number: 422 `The available lte must be a number.` Note `total_available_stock` in the resource is Σ level without that subtraction.
 - **Paging:** `limit` / `per_page` / `page_size`, max 100.
 - **Order:** newest first.
 - **Laravel differences:** Laravel ignored `ean13`, `search`, `per_page` and `exclude_ids`. The RN app's barcode fallback `?ean13=X` relied on them and got an arbitrary product.

@@ -103,6 +103,42 @@ pub struct ListQuery {
     pub page_size: Option<String>,
 }
 
+/// GET /farm/quiet-farmers query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct QuietQuery {
+    /// Tanzania day (`YYYY-MM-DD`): farmers with no bought kg on or after it. Default: 30
+    /// days before today.
+    #[param(value_type = Option<chrono::NaiveDate>)]
+    pub since: Option<String>,
+    /// Only farmers living in this village.
+    #[param(value_type = Option<Uuid>)]
+    pub village_id: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
+    pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
+    pub page_size: Option<String>,
+}
+
+/// A farmer with no delivery since the asked day.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "A registered person whose last bought kg (a supply batch line) is before the asked day, or who never delivered."
+)]
+pub struct QuietFarmer {
+    pub person_id: Uuid,
+    /// Given and family name.
+    pub name: String,
+    pub village_id: Uuid,
+    /// Village name.
+    pub village: String,
+    /// When their kg was last bought; null = never.
+    #[schema(required = true)]
+    pub last_delivery_at: Option<DateTime<Utc>>,
+}
+
 /// POST /farm/supply-batches.
 #[derive(Deserialize, ToSchema)]
 #[schema(description = "Buy verified actual harvests of one village and crop into a raw lot.")]

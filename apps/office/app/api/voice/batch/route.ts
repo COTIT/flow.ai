@@ -12,6 +12,7 @@ import { takeFilePermit, voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
 import { cancelReview } from "@/lib/voice/workflow"
 import { withVoiceTracing } from "@/lib/voice/tracing"
+import { notIncludedFromModel, withNotIncluded } from "@/lib/voice/file-import"
 export const runtime = "nodejs"
 
 /** Model can prepare/read; only independent UI confirmation starts a fixed batch. */
@@ -45,7 +46,13 @@ async function handle(request: Request) {
     if (command === "prepare") {
       if (!session.conversation_id)
         throw new VoiceError("Conversation identity has not been bound.", 409)
-      return voiceResponse(await proposeBatch(input.calls, context, files))
+      const unclear = notIncludedFromModel(input.unclear)
+      return voiceResponse(
+        withNotIncluded(
+          await proposeBatch(input.calls, context, files),
+          unclear
+        )
+      )
     }
     if (files.size)
       throw new VoiceError(

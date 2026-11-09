@@ -41,7 +41,8 @@ Every order resource (get, list, each action's answer) lists the actions the API
 
 | Method | Path | Permission | Success |
 |---|---|---|---|
-| GET | `/orders?status=&page=&page_size=` | `order.list` | 200 page of orders with lines, newest first |
+| GET | `/orders?status=&relation_id=&created_from=&created_to=&page=&page_size=` | `order.list` | 200 page of orders with lines, newest first (see "List filters") |
+| GET | `/orders?status=&page=&page_size=` | `order.list` | 200 page of orders with lines, newest first; `status` one of `draft`, `awaiting_payment`, `open`, `completed`, `cancelled`, `partially_returned`, `returned` (422 otherwise); picked orders are still `open` |
 | POST | `/orders` | `order.create` | 201 `{data:{order_id, number}}` |
 | GET | `/orders/{order}` | `order.view` | 200 `{data: order}` |
 | PATCH | `/orders/{order}` | `order.update` | 200 `{data: order}`; `lines`/`warehouse_id` on drafts only (else 409) |
@@ -51,11 +52,21 @@ Every order resource (get, list, each action's answer) lists the actions the API
 | POST | `/orders/{order}/complete` | `order.update` | 200; every stock line picked in full, else 409 |
 | POST | `/orders/{order}/cancel` | `order.update` | 200 |
 | POST | `/orders/{order}/returns` | `order.update` | 200; `{lines:[{line_id, quantity}], restock}`: quantity returned now, more than 0 and at most taken − returned; `restock` (default true) puts it back on the order's warehouse |
-| POST | `/orders/{order}/refunds` | `order.delete` | 201 `{data:{refund_id, amount, status}}`; `{amount}` in minor units, 1 to paid − refunds not failed (422 above); 409 when nothing paid is left to refund (`Nothing paid on this order is left to refund.`). See `payments.md`. |
+| POST | `/orders/{order}/refunds` | `order.delete` | 201 `{data:{refund_id, amount, status}}`; `{amount}` in minor units, 1 to paid − refunds not failed (422 above); 409 when nothing paid is left to refund (`Nothing paid on this order is left to refund.`). Online payments only: a till sale paid at the counter has none, so its money goes back on the till and `/returns` records the goods. See `payments.md`. |
 | GET | `/orders/{order}/events?page=&page_size=` | `order.view` | 200 page of the order's trail, newest first (see "Trail") |
 | POST | `/orders/{order}/invoice` | `order.update` | 200; one draft invoice of every line (open, completed or returned orders; 409 when already invoiced; 422 `relation_id` until the order has a relation). The invoice's lines move no stock: the order did. |
 
 Every write takes an optional `Idempotency-Key` (1–255 visible characters): a retry of the same request replays the first answer, another request under the key is a 422, another member's key is never theirs.
+
+## List filters
+
+- `status`: one status (422 `The selected status is invalid.`).
+- `relation_id`: one customer's orders (422 `The relation id must be a valid UUID.`; another workspace's id finds nothing).
+- Each order carries `customer_name`: the relation's company name, else its alias, else the web customer's `customer.name`; null when none. Read in the same statement (also on show).
+- `meta.total` counts every match across pages and `meta.last_page` the pages, so one page of 50 is never the whole answer.
+- `created_from` (inclusive) and `created_to` (exclusive): an RFC 3339 time with offset, or a `YYYY-MM-DD` date. A date means local midnight starting that day in the workspace `general.timezone` setting (UTC when unset or not a zone Postgres knows). Yesterday's orders: `created_from=<yesterday>&created_to=<today>`.
+- 422 `The created from must be an RFC 3339 time or a YYYY-MM-DD date.` (same for `created_to`), and `The created to must be after created from.` on `created_to` when both are set and `to ≤ from`.
+- One statement on `orders_list_idx`; a date costs one extra statement to place it in the workspace zone.
 
 ## Sales summary `GET /sales-summary?from&to&source` (`order.list`)
 

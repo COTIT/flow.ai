@@ -1,4 +1,129 @@
 {
+  "invoices_export": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/invoices-export",
+    "disposition": "execute",
+    "reason": "Workspace staff read: stores a 24 h CSV export file and returns a short-lived download link; backend rechecks invoice.list",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["invoice.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#invoices_export",
+        "apps/api/src/modules/analytics/service.rs",
+        "apps/api/src/modules/files/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "orders_sales_compare": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/compare",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#compare",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "orders_top_customers": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/top-customers",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list", "relation.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#top_customers",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "products_top_sellers": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/top-products",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#top_products",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "auth_create_workspace": {
     "method": "POST",
     "path": "/create-workspace",
@@ -5189,6 +5314,105 @@
     },
     "confirmationFields": []
   },
+  "farm_passbook_balances": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/passbook/balances",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_passbook/handlers.rs#balances",
+        "apps/api/src/modules/farm_passbook/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_passbook_consent": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/persons/{person}/passport-consent",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_passbook/handlers.rs#get_consent",
+        "apps/api/src/modules/farm_passbook/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "farm_supply_quiet_farmers": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/farm/quiet-farmers",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "farm",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "FarmAccess live roles, village/person scope; service checks authoritative"
+      ],
+      "authority": [
+        "apps/api/src/modules/farm_supply/handlers.rs#quiet_farmers",
+        "apps/api/src/modules/farm_supply/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "farm_passbook_withdraw_consent": {
     "method": "DELETE",
     "path": "/workspace/{workspace}/farm/persons/{person}/passport-consent",
@@ -10313,6 +10537,37 @@
     },
     "confirmationFields": []
   },
+  "attention_summary": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/attention",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#summary",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "relations_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/relations",
@@ -10590,7 +10845,9 @@
     "retry": {
       "mode": "reconcile_only"
     },
-    "confirmationFields": []
+    "confirmationFields": [],
+    "availability": "unavailable",
+    "unavailableReason": "native_figures_not_implemented"
   },
   "orders_sales_summary": {
     "method": "GET",
@@ -12854,6 +13111,37 @@
     },
     "confirmationFields": []
   },
+  "users_remove": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/users/{user}",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/users/handlers.rs#remove",
+        "apps/api/src/modules/users/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "warehouses_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/warehouses",
@@ -13823,6 +14111,37 @@
     },
     "confirmationFields": []
   },
+  "webhooks_deliveries": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/webhook-endpoints/{endpoint}/deliveries",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/webhooks/handlers.rs#deliveries",
+        "apps/api/src/modules/webhooks/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "webhooks_update": {
     "method": "PATCH",
     "path": "/workspace/{workspace}/webhook-endpoints/{endpoint}",
@@ -14582,6 +14901,45 @@
     },
     "confirmationFields": []
   },
+  "assistant_price_import_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/sessions/{session}/price-import",
+    "disposition": "internal",
+    "reason": "Price-list row matching for the native assistant_import_prices flow; the model never calls it directly and it writes nothing.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": ["product.update"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal native session/control flow; never available to the model or secure business form",
+        "Workspace, user and exact login ownership; matches only this workspace's products"
+      ],
+      "authority": [
+        "apps/api/src/modules/assistant/handlers.rs#price_import",
+        "apps/api/src/modules/assistant/price_import.rs",
+        "apps/api/src/modules/assistant/service.rs",
+        "apps/api/src/modules/assistant/repo.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/modules/assistant/dto.rs",
+        "apps/api/src/modules/assistant/routes.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "assistant_batches_create": {
     "method": "POST",
     "path": "/workspace/{workspace}/assistant/batches",
@@ -14918,6 +15276,83 @@
       ]
     },
     "effects": [],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_gaps_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/gaps",
+    "disposition": "internal",
+    "reason": "Developer gap ledger is written by the Office bridge only; never a model tool.",
+    "authorization": {
+      "schemes": ["assistant_bridge", "bearer"],
+      "requirements": [
+        {
+          "assistant_bridge": [],
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace member bearer; row stored under that workspace only",
+        "Redacted catalog-word intent; no transcripts, names, numbers or record data",
+        "Timestamped HMAC bridge signature over exact method, path and body"
+      ],
+      "authority": [
+        "apps/api/src/modules/assistant/gaps.rs#create",
+        "apps/api/src/modules/assistant/gaps.rs",
+        "apps/api/src/modules/assistant/gaps_repo.rs",
+        "apps/api/src/modules/assistant/routes.rs",
+        "apps/api/src/http/assistant.rs"
+      ]
+    },
+    "effects": ["control"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_gaps_follow_up": {
+    "method": "POST",
+    "path": "/assistant/gaps/{gap}/follow-up",
+    "disposition": "internal",
+    "reason": "Developer gap ledger is written by the Office bridge only; never a model tool.",
+    "authorization": {
+      "schemes": ["assistant_bridge"],
+      "requirements": [
+        {
+          "assistant_bridge": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Gap id and workspace id must match; another workspace gets 404",
+        "One follow-up per gap within 10 minutes; route pattern only",
+        "Timestamped HMAC bridge signature over exact method, path and body"
+      ],
+      "authority": [
+        "apps/api/src/modules/assistant/gaps.rs#follow_up",
+        "apps/api/src/modules/assistant/gaps.rs",
+        "apps/api/src/modules/assistant/gaps_repo.rs",
+        "apps/api/src/modules/assistant/routes.rs",
+        "apps/api/src/http/assistant.rs"
+      ]
+    },
+    "effects": ["control"],
     "risk": "write",
     "handoff": null,
     "reconciliation": [],

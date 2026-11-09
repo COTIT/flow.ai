@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { reviewChanges, reviewFacts } from "./review-facts"
+import { reviewChanges, reviewFacts, reviewWarnings } from "./review-facts"
 
 const snapshot = {
   version: 1,
@@ -110,4 +110,96 @@ it("formats requested order prices without changing the exact backend request", 
       )
     )
   ).toContain("1250 minor units")
+})
+
+it("formats before → after money changes exactly, per change's own currency", () => {
+  expect(
+    reviewFacts(
+      {
+        version: 1,
+        operation_id: "products_update",
+        facts: {
+          kind: "product",
+          changes: [
+            {
+              field: "price",
+              currency: { code: "USD", decimals: 2 },
+              before_minor: 50,
+              after_minor: 50050,
+              change_bp: 10000000,
+              warning: "large_change",
+            },
+            // Sub-cent: exact decimal strings, never rounded to the currency's decimals.
+            { field: "cost", currency: { code: "USD", decimals: 2 }, before: "0.005", after: "0.0075" },
+            { field: "name", before: "Stickers", after: "AFM Stickers" },
+          ],
+        },
+      },
+      "products_update",
+      "en"
+    )
+  ).toMatchObject({
+    changes: [
+      { field: "price", currency: "USD", before: "$0.50", after: "$500.50", change_bp: 10000000, warning: "large_change" },
+      { field: "cost", currency: "USD", before: "0.005", after: "0.0075" },
+      { field: "name", before: "Stickers", after: "AFM Stickers" },
+    ],
+  })
+})
+
+const priceUpdate = {
+  version: 1,
+  operation_id: "products_update",
+  facts: {
+    kind: "product",
+    before: { currency: { code: "USD", decimals: 2 }, price: "0.5" },
+    priced: { currency: { code: "USD", decimals: 2 }, price: "500.5" },
+    changes: [
+      {
+        field: "price",
+        currency: { code: "USD", decimals: 2 },
+        before_minor: 50,
+        after_minor: 50050,
+        change_bp: 10000000,
+        warning: "large_change",
+      },
+      {
+        field: "wholesale_price",
+        currency: { code: "USD", decimals: 2 },
+        before_minor: null,
+        after_minor: 100,
+      },
+      {
+        field: "gross_price",
+        currency: { code: "USD", decimals: 2 },
+        before: "0.505",
+        after: "0.1",
+        change_bp: -8019,
+      },
+    ],
+  },
+}
+
+it("formats exact before and after change amounts, keeping a missing old amount empty", () => {
+  const facts = reviewFacts(priceUpdate, "products_update", "en")!
+  expect(facts.changes).toEqual([
+    expect.objectContaining({ field: "price", before: "$0.50", after: "$500.50", change_bp: 10000000 }),
+    expect.objectContaining({ field: "wholesale_price", before: null, after: "$1.00" }),
+    expect.objectContaining({ field: "gross_price", before: "0.505", after: "0.1", change_bp: -8019 }),
+  ])
+})
+
+it("turns a large money change into a plain sentence per language, never a code", () => {
+  expect(reviewWarnings(priceUpdate, "en")).toEqual([
+    "Price goes from $0.50 to $500.50, more than 10 times the current amount. Check the amount and its unit.",
+  ])
+  const down = structuredClone(priceUpdate)
+  Object.assign(down.facts.changes[0]!, { before_minor: 50050, after_minor: 50, change_bp: -9990 })
+  expect(reviewWarnings(down, "en")[0]).toBe(
+    "Price goes from $500.50 to $0.50, less than a tenth of the current amount. Check the amount and its unit."
+  )
+  expect(reviewWarnings(priceUpdate, "nl")[0]).toMatch(/^Prijs gaat van .+500,50/)
+  expect(reviewWarnings(priceUpdate, "sw")[0]).toMatch(/^Bei /)
+  expect(JSON.stringify(reviewWarnings(priceUpdate, "en"))).not.toContain("large_change")
+  expect(reviewWarnings({ facts: {} }, "en")).toEqual([])
 })

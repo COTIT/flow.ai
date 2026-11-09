@@ -20,8 +20,8 @@ use crate::{
         app_keys::handlers::WorkspaceAdmin,
         webhooks::{
             dto::{
-                CreateEndpointRequest, ListQuery, UpdateEndpointRequest, WebhookEndpointCreated,
-                WebhookEndpointResource,
+                CreateEndpointRequest, DeliveriesQuery, ListQuery, UpdateEndpointRequest,
+                WebhookDeliveryResource, WebhookEndpointCreated, WebhookEndpointResource,
             },
             service,
         },
@@ -102,6 +102,45 @@ pub async fn get(
     Ok(Data(
         service::get(&state, access.workspace_id, &id).await?.into(),
     ))
+}
+
+/// GET /webhook-endpoints/{endpoint}/deliveries -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/webhook-endpoints/{endpoint}/deliveries", tag = "webhooks",
+    operation_id = "webhooks_deliveries",
+    summary = "List a webhook endpoint's deliveries: why a webhook failed (status, attempts, last error)",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("endpoint" = Uuid, Path, description = "Endpoint id"),
+        DeliveriesQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<WebhookDeliveryResource>, description = "One page of deliveries, newest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership, or caller not a workspace admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or endpoint, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown status"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn deliveries(
+    State(state): State<AppState>,
+    access: Can<WorkspaceAdmin>,
+    Path((_, id)): EndpointPath,
+    Query(query): Query<DeliveriesQuery>,
+) -> Result<Json<Paginated<WebhookDeliveryResource>>, AppError> {
+    let status = query.status()?;
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (rows, total) = service::deliveries(
+        &state,
+        access.workspace_id,
+        &id,
+        status,
+        page.size,
+        page.offset(),
+    )
+    .await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    Ok(Json(Paginated::new(data, total, page)))
 }
 
 /// PATCH /webhook-endpoints/{endpoint} -> the updated endpoint.

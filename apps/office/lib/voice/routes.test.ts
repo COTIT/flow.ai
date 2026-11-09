@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   transport: vi.fn(),
   propose: vi.fn(),
   confirmBatch: vi.fn(),
+  timeZone: vi.fn(),
+  proposeBatch: vi.fn(),
+  importPrices: vi.fn(),
   failures: [] as unknown[][],
   spans: [] as string[],
   modes: [] as string[],
@@ -67,9 +70,26 @@ vi.mock("./actions", async (original) => ({
 vi.mock("./batches", async (original) => ({
   ...(await original<typeof import("./batches")>()),
   confirmBatch: mocks.confirmBatch,
+  proposeBatch: mocks.proposeBatch,
+}))
+vi.mock("./file-import", async (original) => ({
+  ...(await original<typeof import("./file-import")>()),
+  importPrices: mocks.importPrices,
+}))
+
+vi.mock("./time-zone", () => ({ workspaceTimeZone: mocks.timeZone }))
+vi.mock("./readiness", () => ({
+  assistantReadiness: async () => ({ ready: true }),
+}))
+vi.mock("./provider", () => ({
+  signedProviderSession: async () => ({
+    signedUrl: "wss://api.elevenlabs.io/v1/convai/conversation?x=1",
+    conversationId: "conv1",
+  }),
 }))
 
 import { POST as toolRequest } from "@/app/api/voice/tools/route"
+import { POST as sessionRequest } from "@/app/api/voice/session/route"
 import { POST as confirmationRequest } from "@/app/api/voice/confirm/route"
 
 const context = {
@@ -165,7 +185,9 @@ it("preserves unavailable preparation status without creating or dispatching a d
     expect(response.status).toBe(501)
     expect(mocks.propose).not.toHaveBeenCalled()
     expect(mocks.execute).not.toHaveBeenCalled()
-    expect(mocks.ledger).not.toHaveBeenCalled()
+    expect(
+      mocks.ledger.mock.calls.filter((call) => call[1] !== "/gaps")
+    ).toEqual([])
   } finally {
     prepare.mockRestore()
   }
@@ -230,6 +252,17 @@ it("removing rollout admission blocks writes but preserves owned status and canc
     "POST",
     { session_id: "s1" }
   )
+  expect(mocks.ledger).toHaveBeenCalledWith(
+    expect.anything(),
+    "/gaps",
+    "POST",
+    expect.objectContaining({
+      outcome: "cancelled",
+      domain: "orders",
+      tools: ["orders_create"],
+    }),
+    true
+  )
 })
 
 it("batch refresh rechecks rollout admission before another child can start", async () => {
@@ -293,7 +326,9 @@ it("model tools cannot commit or approve even with a copied review ticket", asyn
   )
   expect(response.status).toBe(400)
   expect(mocks.execute).not.toHaveBeenCalled()
-  expect(mocks.ledger).not.toHaveBeenCalled()
+  expect(mocks.ledger.mock.calls.filter((call) => call[1] !== "/gaps")).toEqual(
+    []
+  )
 })
 
 it("speech requires the exact localized action challenge and current action ownership", async () => {
@@ -422,7 +457,7 @@ it("traces confirmation approval inside one request span against a live session"
   expect(mocks.modes).toEqual(["live"])
 })
 
-it("labels a lookup with its human step for the status line", async () => {
+it("labels a lookup with a step key, never the catalog description", async () => {
   const response = await toolRequest(
     request({
       command: "execute",
@@ -432,10 +467,11 @@ it("labels a lookup with its human step for the status line", async () => {
       sessionId: "s1",
     })
   )
-  expect(await response.json()).toMatchObject({
-    status: "completed",
-    steps: ["Checking: List orders"],
-  })
+  const body = await response.json()
+  expect(body).toMatchObject({ status: "completed", steps: ["checking"] })
+  expect(JSON.stringify(body.steps)).not.toContain(
+    catalog.getOperation("orders_list")!.summary
+  )
 })
 
 it("narrates a proposed change in the session language without exposing the challenge", async () => {
@@ -454,10 +490,9 @@ it("narrates a proposed change in the session language without exposing the chal
       sessionId: "s1",
     })
   )
-  const summary = catalog.getOperation("orders_create")!.summary
   expect(await response.json()).toMatchObject({
     status: "requires_confirmation",
-    steps: [`Controleren: ${summary}`, "Je controle voorbereiden"],
+    steps: ["checking", "preparing"],
     narration: "Dit ga ik doen. Lees de kaart en keur hem goed.",
   })
 })
@@ -474,7 +509,7 @@ it("labels approved execution as running then finalizing", async () => {
   )
   expect(await response.json()).toMatchObject({
     status: "completed",
-    steps: ["Running it now", "Finalizing"],
+    steps: ["running", "finalizing"],
   })
 })
 
@@ -558,4 +593,240 @@ it("logs a request no tool can do, with the agent's short phrase, and changes no
     ["unsupported", undefined, "book a delivery truck for Friday"],
   ])
   expect(mocks.execute).not.toHaveBeenCalled()
+  // Developer gap ledger: bridge-signed, redacted (no day name), cookie for the UI follow-up.
+  const gap = mocks.ledger.mock.calls.find((call) => call[1] === "/gaps")
+  expect(gap?.[2]).toBe("POST")
+  expect(gap?.[3]).toMatchObject({ outcome: "unsupported", language: "en" })
+  expect(gap?.[3].intent).not.toMatch(/friday/)
+  expect(gap?.[4]).toBe(true)
+})
+
+it("a new session carries the workspace time zone when the caller may read it", async () => {
+  mocks.timeZone.mockResolvedValue("Africa/Dar_es_Salaam")
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en" })
+  )
+  expect(await response.json()).toMatchObject({
+    sessionId: "a1",
+    conversationId: "conv1",
+    timeZone: "Africa/Dar_es_Salaam",
+  })
+})
+
+it("a new session leaves the time zone out when it cannot be read", async () => {
+  mocks.timeZone.mockResolvedValue(undefined)
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en" })
+  )
+  const body = await response.json()
+  expect(body.sessionId).toBe("a1")
+  expect(body).not.toHaveProperty("timeZone")
+})
+
+it("records a conversation the provider dropped as a failure for review", async () => {
+  mocks.failures.length = 0
+  const response = await sessionRequest(
+    request({
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      command: "dropped",
+      endedBy: "time_limit",
+    })
+  )
+  expect(response.status).toBe(200)
+  expect(mocks.spans).toEqual(["genesy_assistant_dropped"])
+  expect(mocks.failures).toEqual([["dropped_time_limit"]])
+})
+
+it("refuses an unknown end reason without recording it", async () => {
+  mocks.failures.length = 0
+  const response = await sessionRequest(
+    request({
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      command: "dropped",
+      endedBy: "user<script>",
+    })
+  )
+  expect(response.status).toBe(400)
+  expect(mocks.failures.flat().join()).not.toContain("dropped")
+})
+
+const discover = (query: string) =>
+  toolRequest(
+    request({
+      command: "discover",
+      query,
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+
+it("tells the agent not to promise a request Genesy cannot do", async () => {
+  const body = await (await discover("unsupported: weather tomorrow")).json()
+  expect(body.message).toBe(
+    "Recorded for review. Tell the user Genesy can't do this; never promise it later."
+  )
+})
+
+it("what-can-you-do lists curated capabilities the member may use, without logging a gap", async () => {
+  mocks.failures.length = 0
+  const body = await (await discover("capabilities")).json()
+  expect(body.tools).toEqual([])
+  expect(body.capabilities.groups.length).toBeGreaterThan(1)
+  expect(body.capabilities.pages).toContain("Office page")
+  mocks.authorize.mockResolvedValue({ ...context, permissions: ["order.list"] })
+  const limited = await (await discover("capabilities")).json()
+  expect(limited.capabilities.groups).toHaveLength(1)
+  expect(mocks.failures).toEqual([])
+})
+
+it("page questions discover the office page tool", async () => {
+  mocks.failures.length = 0
+  for (const query of [
+    "take me to where I change prices",
+    "office_page_open",
+  ]) {
+    const { tools } = await (await discover(query)).json()
+    expect(tools.map((tool: { id: string }) => tool.id)).toContain(
+      "office_page_open"
+    )
+  }
+  expect(mocks.failures).toEqual([])
+})
+
+it("opens an office page as a link row, refuses pages the member may not read", async () => {
+  const open = (args: unknown) =>
+    toolRequest(
+      request({
+        command: "execute",
+        workspaceId: context.workspaceId,
+        sessionId: "s1",
+        operationId: "office_page_open",
+        arguments: args,
+      })
+    )
+  const ok = await open({ page: "products" })
+  expect(ok.status).toBe(200)
+  expect(await ok.json()).toMatchObject({
+    status: "completed",
+    links: [{ label: "Products", href: "/products" }],
+  })
+  mocks.authorize.mockResolvedValue({ ...context, permissions: ["order.list"] })
+  expect((await open({ page: "app_keys" })).status).toBe(403)
+  expect((await open({ page: "/settings" })).status).toBe(400)
+  expect(mocks.execute).not.toHaveBeenCalled()
+})
+
+it.each([
+  "mark all of today's open orders as completed",
+  "complete every open order",
+])(
+  "offers the fixed batch tool when the user means many records: %s",
+  async (query) => {
+    const response = await toolRequest(
+      request({
+        command: "discover",
+        query,
+        workspaceId: context.workspaceId,
+        sessionId: "s1",
+      })
+    )
+    const { tools } = await response.json()
+    expect(tools.map((tool: { id: string }) => tool.id)).toContain(
+      "assistant_batch_prepare"
+    )
+  }
+)
+
+it("does not offer the batch tool for words that merely contain 'all'", async () => {
+  const response = await toolRequest(
+    request({
+      command: "discover",
+      query: "install the small product catalog",
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+    })
+  )
+  const { tools } = await response.json()
+  expect(tools.map((tool: { id: string }) => tool.id)).not.toContain(
+    "assistant_batch_prepare"
+  )
+})
+
+const discoverIds = async (query: string) =>
+  (
+    await (
+      await toolRequest(
+        request({
+          command: "discover",
+          query,
+          workspaceId: context.workspaceId,
+          sessionId: "s1",
+        })
+      )
+    ).json()
+  ).tools.map((tool: { id: string }) => tool.id)
+
+it("discovers the price-list import only for staff who may change prices", async () => {
+  expect(await discoverIds("update prices from excel price list")).toContain(
+    "assistant_import_prices"
+  )
+  expect(await discoverIds("assistant_import_prices")).toEqual([
+    "assistant_import_prices",
+  ])
+  mocks.authorize.mockResolvedValue({ ...context, permissions: [] })
+  expect(await discoverIds("import spreadsheet")).not.toContain(
+    "assistant_import_prices"
+  )
+})
+
+it("runs the price-list import with the shared files and refuses without permission", async () => {
+  mocks.importPrices.mockResolvedValue({ status: "requires_confirmation" })
+  const args = { attachments: { sheet: ["h"] }, fromRow: 51 }
+  const response = await execute("assistant_import_prices", args)
+  expect(await response.json()).toMatchObject({
+    status: "requires_confirmation",
+  })
+  expect(mocks.importPrices).toHaveBeenCalledWith(
+    args,
+    expect.objectContaining({ sessionId: "s1" }),
+    expect.any(Map)
+  )
+  mocks.authorize.mockResolvedValue({ ...context, permissions: [] })
+  expect((await execute("assistant_import_prices", args)).status).toBe(403)
+  expect(mocks.importPrices).toHaveBeenCalledOnce()
+})
+
+it("shows model-reported unclear lines on the card and never sends them as arguments", async () => {
+  mocks.propose.mockResolvedValue({
+    status: "requires_confirmation",
+    review: { details: {} },
+  })
+  const unclear = [{ line: 4, seen: "Sugar ?? kg" }]
+  const single = await (
+    await execute("orders_create", { body: orderBody, unclear })
+  ).json()
+  expect(mocks.propose.mock.calls[0]![0]).not.toHaveProperty("unclear")
+  expect(single.review.details.notIncluded).toEqual([
+    { line: 4, text: "Sugar ?? kg", reason: "unclear" },
+  ])
+  mocks.proposeBatch.mockResolvedValue({
+    status: "requires_confirmation",
+    review: { details: {} },
+  })
+  const calls = [
+    { operationId: "orders_create", arguments: { body: orderBody } },
+  ]
+  const batch = await (
+    await execute("assistant_batch_prepare", { calls, unclear })
+  ).json()
+  expect(mocks.proposeBatch.mock.calls[0]![0]).toEqual(calls)
+  expect(batch.review.details.notIncluded).toHaveLength(1)
+  const bad = await execute("assistant_batch_prepare", {
+    calls,
+    unclear: "x".repeat(5),
+  })
+  expect(bad.status).toBe(400)
+  expect(mocks.proposeBatch).toHaveBeenCalledOnce()
 })

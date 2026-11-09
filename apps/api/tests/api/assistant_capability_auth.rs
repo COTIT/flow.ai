@@ -225,7 +225,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 390, "reviewed capability count changed");
+    assert_eq!(selected.len(), 400, "reviewed capability count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool);
     let mut exercised = BTreeSet::new();
@@ -246,7 +246,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         );
         assert!(exercised.insert(id));
     }
-    assert_eq!(exercised.len(), 390);
+    assert_eq!(exercised.len(), 400);
 }
 
 #[sqlx::test]
@@ -258,7 +258,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 218, "reviewed effect count changed");
+    assert_eq!(selected.len(), 219, "reviewed effect count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool.clone());
     let (owner, workspace) =
@@ -366,7 +366,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 218);
+    assert_eq!(exercised.len(), 219);
 }
 
 #[sqlx::test]
@@ -385,7 +385,7 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
         .collect();
     assert_eq!(
         selected.len(),
-        264,
+        270,
         "reviewed permission-protected count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -433,7 +433,7 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 264);
+    assert_eq!(exercised.len(), 270);
 }
 
 #[sqlx::test]
@@ -450,7 +450,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         .collect();
     assert_eq!(
         selected.len(),
-        67,
+        74,
         "reviewed collection boundary count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -496,7 +496,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         let url = reqwest::Url::parse(&format!("http://127.0.0.1{}", case.uri)).unwrap();
         for (name, _) in url.query_pairs() {
             assert!(
-                matches!(name.as_ref(), "from" | "to"),
+                matches!(name.as_ref(), "from" | "to" | "compare_from" | "compare_to"),
                 "{}: unresolved resource query {name}",
                 case.id
             );
@@ -518,7 +518,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 67);
+    assert_eq!(exercised.len(), 74);
 }
 
 #[sqlx::test]
@@ -620,7 +620,7 @@ async fn reviewed_bodyless_uuid_capabilities_reject_malformed_resource_identifie
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 60, "reviewed UUID-only count changed");
+    assert_eq!(selected.len(), 59, "reviewed UUID-only count changed");
     let malformed = fixture["malformed"].as_str().unwrap();
     assert!(uuid::Uuid::parse_str(malformed).is_err());
     let f = common::farm::Farm::new(pool).await;
@@ -694,7 +694,7 @@ async fn reviewed_bodyless_uuid_capabilities_reject_malformed_resource_identifie
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 60);
+    assert_eq!(exercised.len(), 59);
 }
 
 #[sqlx::test]

@@ -11,5 +11,5 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::me))
         .routes(routes!(handlers::workspaces))
         .routes(routes!(handlers::members))
-        .routes(routes!(handlers::member))
+        .routes(routes!(handlers::member, handlers::remove))
 }

@@ -138,6 +138,7 @@ pub async fn create(
             description: upload.description.as_deref(),
             meta: upload.meta.as_ref(),
             bytes: upload.bytes,
+            expires_at: None,
         },
     )
     .await?;
