@@ -179,10 +179,30 @@ const fillerWords = new Set(
   )
 )
 
+/** Search words of a query. Words match as substrings, so short and filler words ("or" in "orders") would match everything. */
+export const queryTerms = (query: string) =>
+  query
+    .toLowerCase()
+    // Keep "to-do" as "todo" too: its parts alone are too short to count.
+    .replace(/(\p{L}+)-(\p{L}+)/gu, "$1$2 $1 $2")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(" ")
+    .filter((term) => term.length > 2 && !fillerWords.has(term))
+
+/** Extra trigger words per operation id; the gap triage tries proposals with them before writing keywords.json. */
+export type ExtraWords = Record<string, string[]>
+
+/** The text a query word must appear in for discovery to count it. */
+export const discoveryText = (tool: Tool, extra: ExtraWords = {}) =>
+  `${tool.id} ${tool.domain} ${tool.summary} ${triggerWords.get(tool.id) ?? ""} ${extra[tool.id]?.join(" ") ?? ""}`
+    .replace(/[_-]/g, " ")
+    .toLowerCase()
+
 /** Search contracts on demand; secure flows resolve to an explicit native UI handoff. */
 export function discoverTools(
   query: string,
-  permissions: string[] = []
+  permissions: string[] = [],
+  extra: ExtraWords = {}
 ): Tool[] {
   const allowed = operationManifest.filter(
     (tool) =>
@@ -192,30 +212,16 @@ export function discoverTools(
   const exact = byId.get(query)
   if (exact)
     return allowed.includes(exact) ? [discoveryContract(exact, true)] : []
-  // Words match as substrings, so short and filler words ("or" in "orders") would match everything.
-  const terms = query
-    .toLowerCase()
-    // Keep "to-do" as "todo" too: its parts alone are too short to count.
-    .replace(/(\p{L}+)-(\p{L}+)/gu, "$1$2 $1 $2")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .split(" ")
-    .filter((term) => term.length > 2 && !fillerWords.has(term))
+  const terms = queryTerms(query)
   return (
     allowed
-      .map((tool) => ({
-        tool,
-        score: terms.reduce(
-          (score, term) =>
-            score +
-            (`${tool.id} ${tool.domain} ${tool.summary} ${triggerWords.get(tool.id) ?? ""}`
-              .replace(/[_-]/g, " ")
-              .toLowerCase()
-              .includes(term)
-              ? 1
-              : 0),
-          0
-        ),
-      }))
+      .map((tool) => {
+        const text = discoveryText(tool, extra)
+        return {
+          tool,
+          score: terms.filter((term) => text.includes(term)).length,
+        }
+      })
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
