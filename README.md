@@ -77,6 +77,7 @@ pnpm turbo run e2e                                            # builds shop + of
 - Each test runs twice: desktop (1280 px) and phone (375 px). Chromium only.
 - The shop runs `next start` against a mock storefront API (`packages/e2e/mock/server.mjs`, 127.0.0.1:8199).
   The office runs `next start` and its browser calls are answered by `mockApi` (`page.route`). No database, no Docker.
+- The field build needs `VITE_FEATURE_RESOURCES=on` (CI sets it in `.github/workflows/ci.yml`), or its equipment, loans and requests tests fail: `VITE_FEATURE_RESOURCES=on pnpm turbo run build --filter=@genesy/field --force` (force, because turbo caches the flag-off build).
 - Two checkouts at once (e.g. two worktrees): give one `E2E_PORT_OFFSET=40` so its ports don't clash.
 - Debug: `pnpm --filter @genesy/e2e exec playwright test --ui` (or `--headed`, `-g "<test name>"`).
   CI uploads the HTML report and traces as the `playwright-report` artifact when the job fails.
