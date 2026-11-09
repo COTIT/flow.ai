@@ -48,6 +48,7 @@ assert 'Never ask the user for an ID, UUID or workspace id' in prompt,'agent mus
 assert 'Say field names as plain words' in prompt and 'never in backticks' in prompt,'field names must be spoken as plain words'
 assert 'granted by the farm co-op from its own Genesy account' in prompt and 'supply_links_accept' in prompt,'supply link explanation missing'
 assert 'farm_crops_list' in prompt and 'farm_supply_options for that village and crop' in prompt,'farmer delivery lookup order missing'
+assert 'If farm_supply_options lists no harvests, do not prepare farm_supply_create' in prompt and 'must be bought by another ops or admin member' in prompt,'empty harvest list must stop the delivery with a plain reason'
 assert 'do not prepare it yet: convert that part with currency_rates_convert' in prompt,'mixed-currency payment must be converted and asked first'
 assert 'end with one direct question' in prompt,'missing or mismatched file must end in a question'
 assert 'never revert anything by yourself' in prompt,'undo must be a new review card'
