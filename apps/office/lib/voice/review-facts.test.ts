@@ -1,5 +1,10 @@
 import { expect, it } from "vitest"
-import { reviewChanges, reviewFacts, reviewWarnings } from "./review-facts"
+import {
+  createdFacts,
+  reviewChanges,
+  reviewFacts,
+  reviewWarnings,
+} from "./review-facts"
 
 const snapshot = {
   version: 1,
@@ -271,4 +276,43 @@ it("words a scheduled report request: report name, schedule around the hour in t
     schedule: "Kila siku karibu 06:00 (UTC)",
     recipient: "Wewe tu, kwa barua pepe yako ya kuingia",
   })
+})
+
+it("words a new currency as new values: code, name, symbol and decimals", () => {
+  expect(
+    createdFacts(
+      "currencies_create",
+      {
+        asset_type: "tzs",
+        name: "Tanzanian shilling",
+        symbol_suffix: "TSh",
+        decimals: 0,
+        default_currency: false,
+      },
+      "en"
+    )
+  ).toEqual({
+    kind: "currency",
+    locked: { label: "Tanzanian shilling" },
+    changes: [
+      { field: "code", before: null, after: "TZS" },
+      { field: "name", before: null, after: "Tanzanian shilling" },
+      { field: "symbol", before: null, after: "TSh" },
+      { field: "decimals", before: null, after: "0" },
+    ],
+  })
+  expect(
+    createdFacts(
+      "currencies_create",
+      {
+        asset_type: "EUR",
+        name: "Euro",
+        symbol_prefix: "€",
+        decimals: 2,
+        default_currency: true,
+      },
+      "nl"
+    )?.changes
+  ).toContainEqual({ field: "default_currency", before: null, after: "Ja" })
+  expect(createdFacts("products_create", { name: "A" }, "en")).toBeUndefined()
 })

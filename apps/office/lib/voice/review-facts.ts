@@ -145,6 +145,40 @@ export function reviewChanges(
   }
 }
 
+const yes: Record<string, string> = {
+  en: en.voice.yes,
+  nl: nl.voice.yes,
+  sw: sw.voice.yes,
+}
+/** A create the API sends no facts for: the exact body to be sent, as new values on the card. */
+export function createdFacts(
+  operationId: string,
+  body: unknown,
+  locale: string
+): Record<string, unknown> | undefined {
+  if (operationId !== "currencies_create" || !object(body)) return undefined
+  const symbol = [body.symbol_prefix, body.symbol_suffix]
+    .filter((part) => typeof part === "string" && part.trim())
+    .join(" ")
+  const rows: [string, unknown][] = [
+    ["code", String(body.asset_type).toUpperCase()],
+    ["name", body.name],
+    ["symbol", symbol || undefined],
+    ["decimals", String(body.decimals)],
+    [
+      "default_currency",
+      body.default_currency === true ? (yes[locale] ?? yes.en) : undefined,
+    ],
+  ]
+  return {
+    kind: "currency",
+    locked: { label: body.name },
+    changes: rows
+      .filter(([, after]) => after !== undefined)
+      .map(([field, after]) => ({ field, before: null, after })),
+  }
+}
+
 /** Display immutable backend facts; hidden fields stay private and minor units stay exact. */
 export function reviewFacts(
   snapshot: unknown,

@@ -115,3 +115,43 @@ it("products_create review shows the proposed name and prices next to the curren
     },
   })
 })
+
+it("currencies_create review names the new currency and lists what will be created", async () => {
+  const { reviewStep } = await import("./actions")
+  const workspace = "01950000-0000-7000-8000-000000000009"
+  const { prepareAction } = await import("./catalog")
+  const { reviewTarget } =
+    await vi.importActual<typeof import("./review-target")>("./review-target")
+  mocks.target.mockImplementation(reviewTarget)
+  const body = {
+    asset_type: "EUR",
+    name: "Euro",
+    symbol_prefix: "€",
+    decimals: 2,
+    default_currency: false,
+    active: true,
+  }
+  const step = await reviewStep(
+    prepareAction("currencies_create", { body }, workspace),
+    { ...context, workspaceId: workspace },
+    {
+      id: "01950000-0000-7000-8000-000000000002",
+      session_id: "s1",
+      operation_id: "currencies_create",
+      state: "proposed",
+      expires_at: new Date(Date.now() + 60000).toISOString(),
+    }
+  )
+  expect(step.details).toMatchObject({
+    record: { label: "Euro" },
+    current: {
+      changes: [
+        { field: "code", before: null, after: "EUR" },
+        { field: "name", before: null, after: "Euro" },
+        { field: "symbol", before: null, after: "€" },
+        { field: "decimals", before: null, after: "2" },
+      ],
+    },
+    changes: body,
+  })
+})
