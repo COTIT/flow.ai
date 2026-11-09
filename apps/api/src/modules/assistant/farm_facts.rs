@@ -128,7 +128,7 @@ async fn supply(
     .ok_or_else(|| invalid("village_id"))?;
     let ids: Vec<Uuid> = b.lines.iter().map(|(h, _)| *h).collect();
     let farmers = sqlx::query!(
-        r#"SELECT h.id, concat_ws(' ', mp.given_name, mp.family_name) AS "farmer!"
+        r#"SELECT h.id AS "id!", concat_ws(' ', mp.given_name, mp.family_name) AS "farmer!"
            FROM farm_harvest_reports h
            JOIN farm_crop_cycles c ON c.workspace_id = h.workspace_id AND c.id = h.crop_cycle_id
            JOIN farm_plots pl ON pl.workspace_id = c.workspace_id AND pl.id = c.plot_id

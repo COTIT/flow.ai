@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.id AS \"id!\", concat_ws(' ', mp.given_name, mp.family_name) AS \"farmer!\"\n           FROM farm_harvest_reports h\n           JOIN farm_crop_cycles c ON c.workspace_id = h.workspace_id AND c.id = h.crop_cycle_id\n           JOIN farm_plots pl ON pl.workspace_id = c.workspace_id AND pl.id = c.plot_id\n           LEFT JOIN farm_managers m ON m.farm_id = pl.farm_id AND m.is_primary\n           LEFT JOIN farm_persons mp ON mp.id = m.person_id\n           WHERE h.workspace_id = $1 AND h.id = ANY($2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "farmer!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "30c6f717326702a066d14b5de28c72eef6796e0031591cccc6069d009ca51b5c"
+}
