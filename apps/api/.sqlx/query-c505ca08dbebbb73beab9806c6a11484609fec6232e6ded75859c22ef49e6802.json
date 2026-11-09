@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE scheduled_reports SET active = false, paused_reason = 'access_lost', updated_at = now()\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c505ca08dbebbb73beab9806c6a11484609fec6232e6ded75859c22ef49e6802"
+}

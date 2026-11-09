@@ -1,6 +1,45 @@
 import "server-only"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { VoiceError } from "./server"
+import { timingWords, type ScheduleTiming } from "../scheduled-reports"
+import en from "../../messages/en.json"
+import nl from "../../messages/nl.json"
+import sw from "../../messages/sw.json"
+
+const scheduledText: Record<string, typeof en.scheduled> = {
+  en: en.scheduled,
+  nl: nl.scheduled,
+  sw: sw.scheduled,
+}
+
+/** A scheduled report request in words: which report, when (in the workspace zone), to whom. */
+function scheduledWords(
+  body: Record<string, unknown>,
+  locale: string,
+  zone?: string
+) {
+  const text = scheduledText[locale] ?? scheduledText.en!
+  const timing: ScheduleTiming = {
+    frequency: String(body.frequency),
+    weekday: typeof body.weekday === "number" ? body.weekday : null,
+    day_of_month:
+      typeof body.day_of_month === "number" ? body.day_of_month : null,
+    hour: typeof body.hour === "number" ? body.hour : 0,
+  }
+  const words = timingWords(timing, locale)
+  const pattern =
+    text.every[words.key.split(".").pop() as keyof typeof text.every]
+  const sentence = pattern
+    .replace("{day}", words.values.day)
+    .replace("{time}", words.values.time)
+  return {
+    report:
+      text.reports[String(body.report) as keyof typeof text.reports] ??
+      String(body.report),
+    schedule: `${sentence} (${zone ?? "UTC"})`,
+    recipient: text.onlyYou,
+  }
+}
 
 type Currency = { code: string; decimals: number }
 function object(value: unknown): value is Record<string, unknown> {
@@ -62,8 +101,11 @@ export function reviewChanges(
   body: unknown,
   snapshot: unknown,
   operationId: string,
-  locale: string
+  locale: string,
+  zone?: string
 ): unknown {
+  if (operationId === "scheduled_reports_create" && object(body))
+    return scheduledWords(body, locale, zone)
   if (
     !operationId.startsWith("orders_") ||
     !object(body) ||
@@ -143,17 +185,29 @@ const warningText: Record<
   en: {
     up: "{field} goes from {before} to {after}, more than 10 times the current amount. Check the amount and its unit.",
     down: "{field} goes from {before} to {after}, less than a tenth of the current amount. Check the amount and its unit.",
-    fields: { price: "Price", gross_price: "Price incl. VAT", wholesale_price: "Wholesale price" },
+    fields: {
+      price: "Price",
+      gross_price: "Price incl. VAT",
+      wholesale_price: "Wholesale price",
+    },
   },
   nl: {
     up: "{field} gaat van {before} naar {after}, meer dan 10 keer het huidige bedrag. Controleer het bedrag en de eenheid.",
     down: "{field} gaat van {before} naar {after}, minder dan een tiende van het huidige bedrag. Controleer het bedrag en de eenheid.",
-    fields: { price: "Prijs", gross_price: "Prijs incl. btw", wholesale_price: "Groothandelsprijs" },
+    fields: {
+      price: "Prijs",
+      gross_price: "Prijs incl. btw",
+      wholesale_price: "Groothandelsprijs",
+    },
   },
   sw: {
     up: "{field} inabadilika kutoka {before} hadi {after}, zaidi ya mara 10 ya kiasi cha sasa. Kagua kiasi na kipimo chake.",
     down: "{field} inabadilika kutoka {before} hadi {after}, chini ya sehemu ya kumi ya kiasi cha sasa. Kagua kiasi na kipimo chake.",
-    fields: { price: "Bei", gross_price: "Bei pamoja na VAT", wholesale_price: "Bei ya jumla" },
+    fields: {
+      price: "Bei",
+      gross_price: "Bei pamoja na VAT",
+      wholesale_price: "Bei ya jumla",
+    },
   },
 }
 
@@ -175,4 +229,3 @@ export function reviewWarnings(snapshot: unknown, locale: string): string[] {
     ]
   })
 }
-

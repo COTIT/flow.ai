@@ -76,7 +76,7 @@ async fn world(pool: PgPool) -> W {
 /// One line: product, variant, quantity, excl and VAT cents.
 struct L<'a>(&'a str, Option<&'a str>, &'a str, i64, i64);
 
-/// An order sold (`confirmed_at`) at `at`; total = sum of its lines.
+/// An order sold (`confirmed_at`) at `at`; subtotal, VAT and total = sums of its lines.
 #[allow(clippy::too_many_arguments)]
 async fn order(
     w: &W,
@@ -90,9 +90,9 @@ async fn order(
     let total: i64 = lines.iter().map(|l| l.3 + l.4).sum();
     let id: String = sqlx::query_scalar(
         "INSERT INTO orders (workspace_id, number, status, source, relation_id, currency_id,
-                             warehouse_id, subtotal, total, confirmed_at)
+                             warehouse_id, subtotal, vat, total, confirmed_at)
          VALUES ($1::uuid, gen_random_uuid()::text, $2, $3, $4::uuid, $5::uuid, $6::uuid, $7, $8,
-                 $9::timestamptz)
+                 $9, $10::timestamptz)
          RETURNING id::text",
     )
     .bind(&w.api.ws)
@@ -102,6 +102,7 @@ async fn order(
     .bind(currency)
     .bind(&w.warehouse)
     .bind(lines.iter().map(|l| l.3).sum::<i64>())
+    .bind(lines.iter().map(|l| l.4).sum::<i64>())
     .bind(total)
     .bind(at)
     .fetch_one(&w.api.pool)
@@ -272,6 +273,121 @@ async fn top_customers_rank_per_currency(pool: PgPool) {
         "till walk-in is not office"
     );
     assert_eq!(d["source"], "office");
+}
+
+/// "Who buys the most honey?": with `product_id` customers rank by that product's line totals
+/// (other products on the same orders left out); `variant_id` narrows to one size.
+#[sqlx::test]
+async fn top_customers_filter_by_product_and_variant(pool: PgPool) {
+    let w = world(pool).await;
+    october(&w).await;
+    let d = owner_get(
+        &w,
+        &format!("/sales/top-customers?{OCT}&product_id={}", w.honey),
+    )
+    .await;
+    assert_eq!(
+        d["currencies"],
+        json!([
+            { "currency": "EUR", "decimals": 2,
+              "rows": [
+                  { "relation": { "id": w.beta, "name": "Beta Shop" }, "orders": 1, "gross_total": 1500, "net_total": 1350, "vat_total": 150 },
+                  { "relation": { "id": w.alpha, "name": "Alpha Farm" }, "orders": 1, "gross_total": 1000, "net_total": 900, "vat_total": 100 },
+              ],
+              "without_customer": { "orders": 0, "gross_total": 0, "net_total": 0, "vat_total": 0 } },
+            { "currency": "USD", "decimals": 2,
+              "rows": [ { "relation": { "id": w.alpha, "name": "Alpha Farm" }, "orders": 1, "gross_total": 700, "net_total": 630, "vat_total": 70 } ],
+              "without_customer": { "orders": 0, "gross_total": 0, "net_total": 0, "vat_total": 0 } },
+        ]),
+        "beta's wax line is not honey: {d}"
+    );
+    let d = owner_get(
+        &w,
+        &format!("/sales/top-customers?{OCT}&product_id={}", w.wax),
+    )
+    .await;
+    let eur = &d["currencies"][0];
+    assert_eq!(
+        eur["rows"][0]["relation"]["name"], "Alpha Farm",
+        "tie: by name"
+    );
+    assert_eq!(eur["rows"][1]["gross_total"], 500);
+    assert_eq!(
+        eur["without_customer"],
+        json!({ "orders": 1, "gross_total": 300, "net_total": 270, "vat_total": 30 })
+    );
+    assert_eq!(
+        d["currencies"].as_array().unwrap().len(),
+        1,
+        "no wax in USD"
+    );
+
+    // A zero-VAT 250 g size, sold to Beta.
+    let size: String = sqlx::query_scalar(
+        "INSERT INTO product_variants (workspace_id, product_id, sku)
+         VALUES ($1::uuid, $2::uuid, 'HON-250') RETURNING id::text",
+    )
+    .bind(&w.api.ws)
+    .bind(&w.honey)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    order(
+        &w,
+        "2026-10-09T10:00:00Z",
+        Some(&w.beta),
+        &w.eur,
+        "completed",
+        "office",
+        &[L(&w.honey, Some(&size), "1", 4000, 0)],
+    )
+    .await;
+    let d = owner_get(
+        &w,
+        &format!(
+            "/sales/top-customers?{OCT}&product_id={}&variant_id={size}",
+            w.honey
+        ),
+    )
+    .await;
+    assert_eq!(
+        d["currencies"],
+        json!([{ "currency": "EUR", "decimals": 2,
+                 "rows": [ { "relation": { "id": w.beta, "name": "Beta Shop" }, "orders": 1, "gross_total": 4000, "net_total": 4000, "vat_total": 0 } ],
+                 "without_customer": { "orders": 0, "gross_total": 0, "net_total": 0, "vat_total": 0 } }]),
+        "{d}"
+    );
+    let d = owner_get(
+        &w,
+        &format!("/sales/top-customers?{OCT}&product_id={}", w.honey),
+    )
+    .await;
+    assert_eq!(
+        d["currencies"][0]["rows"][0],
+        json!({ "relation": { "id": w.beta, "name": "Beta Shop" }, "orders": 2, "gross_total": 5500, "net_total": 5350, "vat_total": 150 }),
+        "all sizes together"
+    );
+    let d = owner_get(
+        &w,
+        &format!(
+            "/sales/top-products?{OCT}&product_id={}&variant_id={size}",
+            w.honey
+        ),
+    )
+    .await;
+    assert_eq!(
+        d["currencies"][0]["rows"][0]["gross_total"], 4000,
+        "top-products too"
+    );
+
+    // Another workspace's product finds nothing here.
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let jam = eve
+        .with_base("/products")
+        .create(json!({ "name": "Jam", "price": "1" }), "product_id")
+        .await;
+    let d = owner_get(&w, &format!("/sales/top-customers?{OCT}&product_id={jam}")).await;
+    assert_eq!(d["currencies"], json!([]));
 }
 
 #[sqlx::test]
@@ -518,6 +634,14 @@ async fn analytics_refuse_bad_queries(pool: PgPool) {
             "/sales/top-products?from=2026-10-01&to=2026-11-01&product_id=honey",
             "product_id",
         ),
+        (
+            "/sales/top-customers?from=2026-10-01&to=2026-11-01&product_id=honey",
+            "product_id",
+        ),
+        (
+            "/sales/top-customers?from=2026-10-01&to=2026-11-01&variant_id=x",
+            "variant_id",
+        ),
     ] {
         let (s, res) = get(&w.api, &w.api.owner, &w.api.ws, path).await;
         assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{path}: {res}");
@@ -538,6 +662,7 @@ async fn analytics_stay_inside_the_workspace_and_its_permissions(pool: PgPool) {
     let eve = w.api.as_new_owner("eve@example.com", "evil").await;
     for path in [
         format!("/sales/top-customers?{OCT}"),
+        format!("/sales/top-customers?{OCT}&product_id={}", w.honey),
         format!("/sales/top-products?{OCT}"),
         format!("/sales/compare?{OCT}&compare_from=2026-09-01&compare_to=2026-10-01"),
         format!("/invoices-export?{OCT}"),

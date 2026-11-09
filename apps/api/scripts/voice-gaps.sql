@@ -5,6 +5,8 @@
 -- One workspace's rows:
 --   psql "$DATABASE_URL" -v workspace=<uuid> -f apps/api/scripts/voice-gaps.sql
 -- Other window: add -v days=7
+-- Triage input for `pnpm --filter @genesy/office voice:triage` (one JSON array, one row per gap):
+--   psql "$DATABASE_URL" -At -v triage=1 -v days=7 -f apps/api/scripts/voice-gaps.sql
 
 \if :{?days}
 \else
@@ -17,6 +19,16 @@ FROM assistant_gaps
 WHERE workspace_id = :'workspace' AND created_at > now() - make_interval(days => :days)
 ORDER BY created_at DESC
 LIMIT 500;
+\elif :{?triage}
+-- `ws` is a per-run number (salted with now()), never a workspace id: it only counts distinct accounts.
+SELECT coalesce(json_agg(g), '[]')
+FROM (
+  SELECT domain, language, intent, outcome, http_status,
+         tools[cardinality(tools)] AS tool, follow_up, follow_up_route,
+         dense_rank() OVER (ORDER BY md5(workspace_id::text || now()::text)) AS ws
+  FROM assistant_gaps
+  WHERE created_at > now() - make_interval(days => :days)
+) g;
 \else
 -- What to build next: biggest clusters first. `workspaces` = how many accounts hit it.
 SELECT domain, outcome, intent,

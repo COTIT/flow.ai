@@ -130,7 +130,12 @@ it("formats before → after money changes exactly, per change's own currency", 
               warning: "large_change",
             },
             // Sub-cent: exact decimal strings, never rounded to the currency's decimals.
-            { field: "cost", currency: { code: "USD", decimals: 2 }, before: "0.005", after: "0.0075" },
+            {
+              field: "cost",
+              currency: { code: "USD", decimals: 2 },
+              before: "0.005",
+              after: "0.0075",
+            },
             { field: "name", before: "Stickers", after: "AFM Stickers" },
           ],
         },
@@ -140,7 +145,14 @@ it("formats before → after money changes exactly, per change's own currency", 
     )
   ).toMatchObject({
     changes: [
-      { field: "price", currency: "USD", before: "$0.50", after: "$500.50", change_bp: 10000000, warning: "large_change" },
+      {
+        field: "price",
+        currency: "USD",
+        before: "$0.50",
+        after: "$500.50",
+        change_bp: 10000000,
+        warning: "large_change",
+      },
       { field: "cost", currency: "USD", before: "0.005", after: "0.0075" },
       { field: "name", before: "Stickers", after: "AFM Stickers" },
     ],
@@ -183,9 +195,23 @@ const priceUpdate = {
 it("formats exact before and after change amounts, keeping a missing old amount empty", () => {
   const facts = reviewFacts(priceUpdate, "products_update", "en")!
   expect(facts.changes).toEqual([
-    expect.objectContaining({ field: "price", before: "$0.50", after: "$500.50", change_bp: 10000000 }),
-    expect.objectContaining({ field: "wholesale_price", before: null, after: "$1.00" }),
-    expect.objectContaining({ field: "gross_price", before: "0.505", after: "0.1", change_bp: -8019 }),
+    expect.objectContaining({
+      field: "price",
+      before: "$0.50",
+      after: "$500.50",
+      change_bp: 10000000,
+    }),
+    expect.objectContaining({
+      field: "wholesale_price",
+      before: null,
+      after: "$1.00",
+    }),
+    expect.objectContaining({
+      field: "gross_price",
+      before: "0.505",
+      after: "0.1",
+      change_bp: -8019,
+    }),
   ])
 })
 
@@ -194,12 +220,55 @@ it("turns a large money change into a plain sentence per language, never a code"
     "Price goes from $0.50 to $500.50, more than 10 times the current amount. Check the amount and its unit.",
   ])
   const down = structuredClone(priceUpdate)
-  Object.assign(down.facts.changes[0]!, { before_minor: 50050, after_minor: 50, change_bp: -9990 })
+  Object.assign(down.facts.changes[0]!, {
+    before_minor: 50050,
+    after_minor: 50,
+    change_bp: -9990,
+  })
   expect(reviewWarnings(down, "en")[0]).toBe(
     "Price goes from $500.50 to $0.50, less than a tenth of the current amount. Check the amount and its unit."
   )
-  expect(reviewWarnings(priceUpdate, "nl")[0]).toMatch(/^Prijs gaat van .+500,50/)
+  expect(reviewWarnings(priceUpdate, "nl")[0]).toMatch(
+    /^Prijs gaat van .+500,50/
+  )
   expect(reviewWarnings(priceUpdate, "sw")[0]).toMatch(/^Bei /)
-  expect(JSON.stringify(reviewWarnings(priceUpdate, "en"))).not.toContain("large_change")
+  expect(JSON.stringify(reviewWarnings(priceUpdate, "en"))).not.toContain(
+    "large_change"
+  )
   expect(reviewWarnings({ facts: {} }, "en")).toEqual([])
+})
+
+it("words a scheduled report request: report name, schedule around the hour in the zone, only you", () => {
+  const body = {
+    report: "sales_summary",
+    frequency: "weekly",
+    weekday: 1,
+    hour: 7,
+  }
+  expect(
+    reviewChanges(
+      body,
+      undefined,
+      "scheduled_reports_create",
+      "en",
+      "Africa/Nairobi"
+    )
+  ).toEqual({
+    report: "Sales summary",
+    schedule: "Every Monday around 07:00 (Africa/Nairobi)",
+    recipient: "Only you, at your login email",
+  })
+  expect(
+    reviewChanges(
+      { report: "stock", frequency: "daily", hour: 6 },
+      undefined,
+      "scheduled_reports_create",
+      "sw",
+      undefined
+    )
+  ).toEqual({
+    report: "Hisa ndogo",
+    schedule: "Kila siku karibu 06:00 (UTC)",
+    recipient: "Wewe tu, kwa barua pepe yako ya kuingia",
+  })
 })

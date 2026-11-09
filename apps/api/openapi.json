@@ -2993,6 +2993,64 @@
         ],
         "type": "object"
       },
+      "Conversion": {
+        "description": "A converted amount. Always say it uses the workspace's own rate as of `rate_effective_on`; Genesy fetches no market rates.",
+        "properties": {
+          "amount_minor": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "converted_minor": {
+            "description": "Minor units of `to`, rounded half up once.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "from": {
+            "$ref": "#/components/schemas/SideResource"
+          },
+          "rate": {
+            "description": "The stored rate used (exact decimal text; for `inverse` it is the `to` → `from` rate).",
+            "example": "2950.5",
+            "type": "string"
+          },
+          "rate_effective_on": {
+            "description": "Day the rate took effect; null for `same`.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rounding": {
+            "description": "Always `half_up`.",
+            "example": "half_up",
+            "type": "string"
+          },
+          "source": {
+            "description": "Always `workspace`: a rate staff entered.",
+            "example": "workspace",
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/SideResource"
+          }
+        },
+        "required": [
+          "amount_minor",
+          "from",
+          "to",
+          "converted_minor",
+          "rate",
+          "rate_effective_on",
+          "direction",
+          "rounding",
+          "source"
+        ],
+        "type": "object"
+      },
       "CorrectionCreated": {
         "description": "Create response.",
         "properties": {
@@ -3861,6 +3919,43 @@
         ],
         "type": "object"
       },
+      "CreateRateRequest": {
+        "description": "New rate: 1 major unit of `from` = `rate` major units of `to`. Rates are never edited; a newer rate for the same day replaces it.",
+        "properties": {
+          "effective_on": {
+            "description": "First day the rate applies (`YYYY-MM-DD`); not after today.",
+            "format": "date",
+            "type": "string"
+          },
+          "from_currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rate": {
+            "description": "Positive decimal, at most 8 decimals, at most 1000000000.",
+            "example": "2950.5",
+            "type": "string"
+          },
+          "to_currency_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_currency_id",
+          "to_currency_id",
+          "rate",
+          "effective_on"
+        ],
+        "type": "object"
+      },
       "CreateRegisterRequest": {
         "description": "New register. The warehouse must be a store; the currency defaults to the main one.",
         "properties": {
@@ -3917,6 +4012,46 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "CreateScheduledReportRequest": {
+        "description": "POST body: which report and when. No recipient field: it is always you.",
+        "properties": {
+          "day_of_month": {
+            "description": "1 to 28; required for monthly, refused otherwise.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/ScheduledReportFrequency"
+          },
+          "hour": {
+            "description": "Local hour 0 to 23 in the workspace time zone (\"morning\" = 7).",
+            "example": 7,
+            "format": "int64",
+            "type": "integer"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ScheduledReportKind"
+          },
+          "weekday": {
+            "description": "ISO weekday 1 (Monday) to 7 (Sunday); required for weekly, refused otherwise.",
+            "example": 1,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "report",
+          "frequency",
+          "hour"
         ],
         "type": "object"
       },
@@ -4566,6 +4701,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "net_total": {
+            "description": "Their stored subtotals (excl VAT, after line discounts), minor units, before refunds:\nrevenue excluding VAT. `net_total + vat_total = gross_total`.",
+            "format": "int64",
+            "type": "integer"
+          },
           "orders": {
             "description": "Orders sold in the range.",
             "format": "int64",
@@ -4575,6 +4715,11 @@
             "description": "Provider refunds of those orders that went through (status `refunded`), minor units.\nCredit notes and cash handed back outside the API are not in it.",
             "format": "int64",
             "type": "integer"
+          },
+          "vat_total": {
+            "description": "Their stored VAT, minor units, before refunds.",
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -4582,6 +4727,8 @@
           "decimals",
           "orders",
           "gross_total",
+          "net_total",
+          "vat_total",
           "refunded_total"
         ],
         "type": "object"
@@ -5195,6 +5342,15 @@
           "opportunity"
         ],
         "type": "object"
+      },
+      "Direction": {
+        "description": "How the rate was applied.",
+        "enum": [
+          "same",
+          "direct",
+          "inverse"
+        ],
+        "type": "string"
       },
       "DiscountCreated": {
         "description": "Create response.",
@@ -6157,6 +6313,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ContactCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Conversion": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Conversion"
           }
         },
         "required": [
@@ -7245,6 +7413,18 @@
         ],
         "type": "object"
       },
+      "Envelope_RateCreated": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RateCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_RawProductCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7436,6 +7616,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SalesSummary"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_ScheduledReport": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduledReport"
           }
         },
         "required": [
@@ -7772,6 +7964,18 @@
         ],
         "type": "object"
       },
+      "Envelope_Unsubscribed": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Unsubscribed"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_UserDetail": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7969,6 +8173,21 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/RedemptionTotal"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_ScheduledReport": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledReport"
             },
             "type": "array"
           }
@@ -15411,6 +15630,25 @@
         ],
         "type": "object"
       },
+      "Paginated_RateResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RateResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_Redemption": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -20876,6 +21114,63 @@
         ],
         "type": "object"
       },
+      "RateCreated": {
+        "description": "Create response: the new row's id.",
+        "properties": {
+          "currency_rate_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency_rate_id"
+        ],
+        "type": "object"
+      },
+      "RateResource": {
+        "description": "A workspace exchange rate: 1 `from` = `rate` `to` from `effective_on` on.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "effective_on": {
+            "format": "date",
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/SideResource"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rate": {
+            "description": "Exact decimal text.",
+            "example": "2950.5",
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/SideResource"
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "to",
+          "rate",
+          "effective_on",
+          "note",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "RawProduct": {
         "description": "A product a raw lot may be of.",
         "properties": {
@@ -22853,6 +23148,144 @@
         ],
         "type": "object"
       },
+      "ScheduledReport": {
+        "description": "A scheduled report: mailed only to `email` (your own login), around `hour` local time in `time_zone` (runs every 5 minutes).",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "day_of_month": {
+            "description": "1 to 28; monthly only.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "email": {
+            "description": "The only recipient: the owner's login email.",
+            "type": "string"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/ScheduledReportFrequency"
+          },
+          "hour": {
+            "description": "Local hour, 0 to 23.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "last_outcome": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledReportOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_run_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_run_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "paused_reason": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledReportPause"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "report": {
+            "$ref": "#/components/schemas/ScheduledReportKind"
+          },
+          "time_zone": {
+            "description": "Workspace time zone the hour is read in (`general.timezone`, UTC when unset).",
+            "example": "Africa/Nairobi",
+            "type": "string"
+          },
+          "weekday": {
+            "description": "ISO weekday 1 (Monday) to 7 (Sunday); weekly only.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "report",
+          "frequency",
+          "weekday",
+          "day_of_month",
+          "hour",
+          "time_zone",
+          "active",
+          "paused_reason",
+          "next_run_at",
+          "email",
+          "last_run_at",
+          "last_outcome",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "ScheduledReportFrequency": {
+        "description": "How often: every day, one weekday a week, or one day (1-28) a month.",
+        "enum": [
+          "daily",
+          "weekly",
+          "monthly"
+        ],
+        "type": "string"
+      },
+      "ScheduledReportKind": {
+        "description": "Report mailed: `sales_summary` (sales of the past day, 7 days or month; needs `order.list`), `attention` (today's to-do, sections by your permissions), `overdue_invoices` (needs `invoice.list`; only sent when something is overdue), `stock` (sold out or at/below the low-stock threshold; needs `stock.list`; only sent when something is low).",
+        "enum": [
+          "sales_summary",
+          "attention",
+          "overdue_invoices",
+          "stock"
+        ],
+        "type": "string"
+      },
+      "ScheduledReportOutcome": {
+        "description": "What the last run did.",
+        "enum": [
+          "sent",
+          "skipped_empty",
+          "paused_access",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "ScheduledReportPause": {
+        "description": "Why it is paused: `user` (you paused it), `access_lost` (you lost the report's permission or left the workspace), `unsubscribed` (the link in a mail).",
+        "enum": [
+          "user",
+          "access_lost",
+          "unsubscribed"
+        ],
+        "type": "string"
+      },
       "SearchRow": {
         "description": "One row in the chosen domain's list shape (as that domain's list route returns it).",
         "type": "object"
@@ -23614,6 +24047,29 @@
           "created_at",
           "last_updated_at",
           "meta"
+        ],
+        "type": "object"
+      },
+      "SideResource": {
+        "description": "A currency inside a rate or a conversion.",
+        "properties": {
+          "code": {
+            "description": "ISO 4217 code, upper case.",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "decimals"
         ],
         "type": "object"
       },
@@ -26391,6 +26847,43 @@
         ],
         "type": "object"
       },
+      "TransferStockRequest": {
+        "description": "Body of `POST /products/{id}/transfer-stock`.",
+        "properties": {
+          "lot_id": {
+            "description": "Lot (batch) of this product to move; leave out for stock without a lot.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Decimal > 0.",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "warehouse_id_from": {
+            "description": "Warehouse the stock leaves; never goes below zero or under what orders hold.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "warehouse_id_to": {
+            "description": "Another warehouse of the same workspace.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id_from",
+          "warehouse_id_to",
+          "quantity",
+          "reason"
+        ],
+        "type": "object"
+      },
       "UnprocessableBody": {
         "anyOf": [
           {
@@ -26401,6 +26894,31 @@
           }
         ],
         "description": "Invalid input (`errors` lists fields), or a business rule refused the request (`message` only)"
+      },
+      "UnsubscribeRequest": {
+        "description": "Public unsubscribe body: the token from a report mail.",
+        "properties": {
+          "token": {
+            "description": "`token` from the mail's unsubscribe link.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "Unsubscribed": {
+        "description": "Unsubscribe reply: which report stopped.",
+        "properties": {
+          "report": {
+            "$ref": "#/components/schemas/ScheduledReportKind"
+          }
+        },
+        "required": [
+          "report"
+        ],
+        "type": "object"
       },
       "UpdateContactRequest": {
         "description": "Changes to a contact, same rules as create. Leave a field out to keep it, send null to clear it (`first_name` and `last_name` can't be cleared).",
@@ -26995,6 +27513,19 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "UpdateScheduledReportRequest": {
+        "description": "POST /{schedule} body: pause or resume.",
+        "properties": {
+          "active": {
+            "description": "false pauses (`paused_reason` `user`), true resumes from the next slot.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active"
         ],
         "type": "object"
       },
@@ -32433,6 +32964,124 @@
         "summary": "Create an account through an invite",
         "tags": [
           "invites"
+        ]
+      }
+    },
+    "/scheduled-reports/unsubscribe": {
+      "post": {
+        "description": "Pauses the one schedule whose mail carried `token` (`paused_reason` `unsubscribed`; a schedule already paused keeps its reason). Again is fine. Links work while the run is logged (90 days).",
+        "operationId": "scheduled_reports_unsubscribe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnsubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Unsubscribed"
+                }
+              }
+            },
+            "description": "Paused"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown or expired link"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`token` missing"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stop a scheduled report from its mail link",
+        "tags": [
+          "scheduled_reports"
         ]
       }
     },
@@ -39243,6 +39892,545 @@
         "summary": "Update a currency (send only changed fields)",
         "tags": [
           "currencies"
+        ]
+      }
+    },
+    "/workspace/{workspace}/currency-rates": {
+      "get": {
+        "operationId": "currency_rates_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only rates from this currency.",
+            "in": "query",
+            "name": "from_currency_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only rates to this currency.",
+            "in": "query",
+            "name": "to_currency_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_RateResource"
+                }
+              }
+            },
+            "description": "One page of rates"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Membership is inactive"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed currency id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the workspace's exchange rates (history, newest first)",
+        "tags": [
+          "currency_rates"
+        ]
+      },
+      "post": {
+        "operationId": "currency_rates_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RateCreated"
+                }
+              }
+            },
+            "description": "Stored; returns the new id"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `currency.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown currency or future date"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set an exchange rate for a currency pair from a day on (never edits old rates)",
+        "tags": [
+          "currency_rates"
+        ]
+      }
+    },
+    "/workspace/{workspace}/currency-rates/convert": {
+      "get": {
+        "description": "Read only. Uses the latest rate staff set on or before `on`; no market rates. Say the answer uses the workspace's own rate as of `rate_effective_on`. 422 when no rate exists for the pair (either direction).",
+        "operationId": "currency_rates_convert",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_currency_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_currency_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Signed whole minor units of the `from` currency (EUR 12.34 = 1234).",
+            "in": "query",
+            "name": "amount_minor",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Day whose rate applies (`YYYY-MM-DD`); default today in the workspace time zone.",
+            "in": "query",
+            "name": "on",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Conversion"
+                }
+              }
+            },
+            "description": "The converted amount and the rate used"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Membership is inactive"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown currency or no rate"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Convert an amount to another currency at the workspace's own exchange rate",
+        "tags": [
+          "currency_rates"
         ]
       }
     },
@@ -85420,6 +86608,191 @@
         ]
       }
     },
+    "/workspace/{workspace}/products/{product}/transfer-stock": {
+      "post": {
+        "description": "Takes the quantity from one warehouse and adds it to another warehouse of the same workspace in one transaction, keeping the lot. The source never goes below what it has free (level minus what orders hold). Both ledger rows share `related_domain` `stock_transfer` and one `related_id`.",
+        "operationId": "stock_transfer",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Product id",
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferStockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Both warehouses with their level before and after, and the lot"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `stock.move`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or product, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled`, `lot_quarantined` or `lot_expired`: the lot's stock may not move"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown warehouse or lot, same warehouse twice, or not enough free stock"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move stock from one warehouse to another",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
     "/workspace/{workspace}/products/{product}/variants": {
       "get": {
         "operationId": "product_variants_list",
@@ -88157,7 +89530,7 @@
     },
     "/workspace/{workspace}/sales-summary": {
       "get": {
-        "description": "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.",
+        "description": "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `net_total` the same excl VAT (revenue excluding VAT) and `vat_total` their VAT, so net + VAT = gross; all three before refunds. `refunded_total` is the provider refunds of those orders that went through (incl VAT, not split). One row per currency, minor units.",
         "operationId": "orders_sales_summary",
         "parameters": [
           {
@@ -88325,7 +89698,7 @@
             "bearer": []
           }
         ],
-        "summary": "Sales in a time range, per currency",
+        "summary": "Sales (revenue) in a time range per currency, incl and excl VAT",
         "tags": [
           "orders"
         ]
@@ -88527,7 +89900,7 @@
     },
     "/workspace/{workspace}/sales/top-customers": {
       "get": {
-        "description": "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. Money in minor units.",
+        "description": "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. `product_id` (and/or `variant_id`) answers \"who buys the most honey\": only that product's lines count (`line_excl` + `line_vat`) and `orders` are the orders holding it. Net/VAT split per row; all before refunds. Money in minor units.",
         "operationId": "orders_top_customers",
         "parameters": [
           {
@@ -88590,9 +89963,19 @@
             }
           },
           {
-            "description": "top-products only: just this product (all its variants), e.g. \"how much honey sold\".",
+            "description": "Just this product's lines (all its variants): \"how much honey sold\" (top-products),\n\"who buys the most honey\" (top-customers).",
             "in": "query",
             "name": "product_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Just this variant's (size's) lines.",
+            "in": "query",
+            "name": "variant_id",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -88669,7 +90052,7 @@
                 }
               }
             },
-            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20"
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20, `product_id` or `variant_id` not a UUID"
           },
           "429": {
             "content": {
@@ -88723,7 +90106,7 @@
             "bearer": []
           }
         ],
-        "summary": "Top customers by sales in a period (best customers, who bought the most)",
+        "summary": "Top customers by sales in a period, optionally of one product (best customers, who buys the most of a product)",
         "tags": [
           "orders"
         ]
@@ -88731,7 +90114,7 @@
     },
     "/workspace/{workspace}/sales/top-products": {
       "get": {
-        "description": "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
+        "description": "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart; `product_id` / `variant_id` keep one product's or size's lines. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
         "operationId": "products_top_sellers",
         "parameters": [
           {
@@ -88794,9 +90177,19 @@
             }
           },
           {
-            "description": "top-products only: just this product (all its variants), e.g. \"how much honey sold\".",
+            "description": "Just this product's lines (all its variants): \"how much honey sold\" (top-products),\n\"who buys the most honey\" (top-customers).",
             "in": "query",
             "name": "product_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Just this variant's (size's) lines.",
+            "in": "query",
+            "name": "variant_id",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -88873,7 +90266,7 @@
                 }
               }
             },
-            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20"
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20, `product_id` or `variant_id` not a UUID"
           },
           "429": {
             "content": {
@@ -88930,6 +90323,641 @@
         "summary": "Best-selling products in a period (best sellers, top products)",
         "tags": [
           "products"
+        ]
+      }
+    },
+    "/workspace/{workspace}/scheduled-reports": {
+      "get": {
+        "description": "The caller's own scheduled reports in this workspace (at most 10), oldest first, with the next run, the last outcome and why one is paused. Read-only.",
+        "operationId": "scheduled_reports_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_ScheduledReport"
+                }
+              }
+            },
+            "description": "The caller's schedules"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My scheduled reports (recurring emails, schedules, weekly summaries; geplande rapporten; ripoti zilizopangwa)",
+        "tags": [
+          "scheduled_reports"
+        ]
+      },
+      "post": {
+        "description": "Mails one read-only report to the caller's own login email, around `hour` local time (workspace `general.timezone`, UTC when unset), every day, one ISO weekday (1 = Monday) or one day of the month (1-28). There is no recipient field: it is always the caller. `overdue_invoices` and `stock` only mail when something is overdue, sold out or at/below the workspace low-stock threshold, so they work as a daily alert. Each run rechecks membership and the report's permission and pauses (`access_lost`) instead of sending. At most 10 per member per workspace.",
+        "operationId": "scheduled_reports_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduledReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScheduledReport"
+                }
+              }
+            },
+            "description": "Scheduled; `next_run_at` is the first send"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or missing the report's list permission (`order.list`, `invoice.list`, `stock.list`)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown report or frequency, hour outside 0..23, weekday/day_of_month missing or not for this frequency, or 10 schedules already"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Email me a report on a schedule (every day / Monday / month: sales summary, to-do, overdue invoices, low stock; elke maandag, wekelijks; kila Jumatatu, kila wiki)",
+        "tags": [
+          "scheduled_reports"
+        ]
+      }
+    },
+    "/workspace/{workspace}/scheduled-reports/{schedule}": {
+      "delete": {
+        "operationId": "scheduled_reports_delete",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled report id",
+            "in": "path",
+            "name": "schedule",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Deleted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or schedule, or not the caller's"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete one of my scheduled reports",
+        "tags": [
+          "scheduled_reports"
+        ]
+      },
+      "post": {
+        "description": "`active: false` pauses (`paused_reason` `user`); `active: true` resumes from the next slot after now and rechecks the report's permission. Only the caller's own schedule.",
+        "operationId": "scheduled_reports_update",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scheduled report id",
+            "in": "path",
+            "name": "schedule",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduledReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScheduledReport"
+                }
+              }
+            },
+            "description": "Updated schedule"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or resuming without the report's permission"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or schedule, or not the caller's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`active` missing or not a boolean"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause or resume one of my scheduled reports (stop / restart the emails)",
+        "tags": [
+          "scheduled_reports"
         ]
       }
     },

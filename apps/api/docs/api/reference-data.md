@@ -43,6 +43,39 @@ Delete is soft and has no "in use" guard (Laravel parity).
 - **One live default per workspace.** Setting a default clears the old one in the same transaction, and a partial unique index catches a race (422 `default_currency`). Deleting the default is allowed and leaves none (Laravel parity).
 - **List:** `q` (name), `page`, `page_size`.
 
+## Currency rates `/currency-rates`
+
+Exchange rates the workspace enters itself. Genesy fetches no market rates. A rate means 1 major unit of `from` = `rate` major units of `to` (1 EUR = 2950.5 TZS).
+
+| Route | Permission |
+|---|---|
+| `GET /` (history), `GET /convert` | any active member |
+| `POST /` | `currency.update` |
+
+```json
+{ "id": "<uuid>", "from": { "id": "<uuid>", "code": "EUR", "decimals": 2 },
+  "to": { "id": "<uuid>", "code": "TZS", "decimals": 0 }, "rate": "2950.5",
+  "effective_on": "2026-11-01", "note": null, "created_at": "…" }
+```
+
+- **Append-only.** Rates are never edited or deleted (a DB trigger refuses UPDATE, DELETE and TRUNCATE). To fix a rate, add a newer one; for the same day, the newest row wins. History stays.
+- **Create** (201 `{data:{currency_rate_id}}`):
+  - `from_currency_id` and `to_currency_id` are required. Each must be a live currency of this workspace, else 422 `The selected from currency id is invalid.`
+  - The two must differ (`The to currency must differ from the from currency.`).
+  - `rate` is required: a number or decimal string, greater than 0 and at most 1000000000, with 0–8 decimals.
+  - `effective_on` is required, `YYYY-MM-DD`. It may be back-dated but not set after today in the workspace `general.timezone` (UTC fallback): `The effective on must not be in the future.`
+  - `note` is optional, ≤500.
+- **List:** `from_currency_id`, `to_currency_id` (optional filters), `page`, `page_size`. Newest entry first.
+- **Convert** `GET /convert?from_currency_id&to_currency_id&amount_minor&on`:
+  - `amount_minor` is signed whole minor units of `from`.
+  - `on` defaults to today (workspace time zone).
+  - Uses the latest `from → to` rate with `effective_on ≤ on`. If none exists, it uses the latest `to → from` rate and divides by it (`direction: "inverse"`). It never goes through a third currency.
+  - Same currency: the amount comes back unchanged (`direction: "same"`, `rate: "1"`, `rate_effective_on: null`).
+  - No rate: 422 on `to_currency_id`, `No exchange rate from EUR to TZS on or before 2026-11-05. An admin can set one.`
+  - Math is exact integers: `amount × rate × 10^to_decimals ÷ 10^from_decimals`, rounded half up once (negatives mirror), the same rule as farmer credits. A result past 64-bit is 422 `The amount minor is too large to convert.`
+  - Response: `{amount_minor, from, to, converted_minor, rate, rate_effective_on, direction, rounding: "half_up", source: "workspace"}`. Voice always says it is the workspace's own rate as of `rate_effective_on`.
+  - Read only. Invoices and orders never store a converted amount.
+
 ## VAT groups `/settings/vat-groups`
 
 Permissions `vatgroup.{list,get,create,update,delete}`. These are new catalog names: Laravel checked them but never catalogued them.

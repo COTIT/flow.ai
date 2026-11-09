@@ -177,10 +177,12 @@
       "another",
       "share",
       "sharing",
-      "set up"
+      "set up",
+      "create",
+      "new"
     ],
-    "nl": ["koppelen", "koppeling", "partner", "coöperatie"],
-    "sw": ["unganisha", "kiungo", "ushirika", "mwingine", "shirikisha"]
+    "nl": ["koppelen", "koppeling", "partner", "coöperatie", "nieuwe"],
+    "sw": ["unganisha", "kiungo", "ushirika", "mwingine", "shirikisha", "mpya"]
   },
   "supply_links_list": {
     "en": [
@@ -354,5 +356,227 @@
     ],
     "nl": ["vandaag", "taken", "dringend", "achterstallig"],
     "sw": ["leo", "kazi", "haraka"]
+  },
+  "stock_transfer": {
+    "en": [
+      "move",
+      "moving",
+      "transfer",
+      "warehouse",
+      "warehouses",
+      "store",
+      "shop",
+      "from",
+      "bags"
+    ],
+    "nl": [
+      "verplaats",
+      "verplaatsen",
+      "overboeken",
+      "magazijn",
+      "hoofdmagazijn",
+      "winkel",
+      "van",
+      "naar",
+      "zakken"
+    ],
+    "sw": [
+      "hamisha",
+      "kuhamisha",
+      "ghala",
+      "stoo",
+      "duka",
+      "dukani",
+      "kutoka",
+      "kwenda",
+      "mifuko"
+    ]
+  },
+  "scheduled_reports_create": {
+    "en": [
+      "every",
+      "weekly",
+      "daily",
+      "monthly",
+      "each",
+      "schedule",
+      "scheduled",
+      "recurring",
+      "remind",
+      "reminder",
+      "email",
+      "mail",
+      "alert",
+      "notify",
+      "morning",
+      "monday",
+      "summary",
+      "report",
+      "tell me when",
+      "drop",
+      "drops",
+      "below",
+      "low",
+      "runs out",
+      "running low",
+      "let me know"
+    ],
+    "nl": [
+      "elke",
+      "iedere",
+      "wekelijks",
+      "dagelijks",
+      "maandelijks",
+      "planning",
+      "herinner",
+      "herinnering",
+      "mail",
+      "e-mail",
+      "melding",
+      "ochtend",
+      "maandag",
+      "overzicht",
+      "rapport",
+      "laat me weten",
+      "zakt",
+      "onder",
+      "laag",
+      "bijna op"
+    ],
+    "sw": [
+      "kila",
+      "wiki",
+      "kila siku",
+      "kila mwezi",
+      "ratiba",
+      "nikumbushe",
+      "kumbusho",
+      "barua pepe",
+      "arifa",
+      "asubuhi",
+      "jumatatu",
+      "muhtasari",
+      "ripoti",
+      "niambie",
+      "ikipungua",
+      "chini ya",
+      "karibu kuisha"
+    ]
+  },
+  "scheduled_reports_list": {
+    "en": ["my schedules", "scheduled", "recurring", "reports", "emails"],
+    "nl": ["geplande", "rapporten", "mails"],
+    "sw": ["ratiba zangu", "zilizopangwa", "ripoti"]
+  },
+  "scheduled_reports_update": {
+    "en": ["pause", "resume", "stop", "restart", "scheduled", "emails"],
+    "nl": ["pauzeer", "pauzeren", "hervat", "hervatten", "stop", "geplande"],
+    "sw": ["sitisha", "endelea", "simamisha", "zilizopangwa"]
+  },
+  "scheduled_reports_delete": {
+    "en": ["delete", "remove", "cancel", "unsubscribe", "scheduled", "report"],
+    "nl": ["verwijder", "verwijderen", "annuleer", "afmelden", "geplande"],
+    "sw": ["futa", "ondoa", "ghairi", "zilizopangwa"]
+  },
+  "currency_rates_convert": {
+    "en": [
+      "convert",
+      "conversion",
+      "exchange",
+      "euros",
+      "euro",
+      "shillings",
+      "shilling",
+      "tzs",
+      "dollars",
+      "dollar",
+      "usd",
+      "eur",
+      "worth",
+      "equivalent"
+    ],
+    "nl": [
+      "omrekenen",
+      "reken om",
+      "omzetten",
+      "wisselen",
+      "euro",
+      "euros",
+      "shilling",
+      "dollar",
+      "waard"
+    ],
+    "sw": [
+      "badilisha",
+      "kubadilisha",
+      "geuza",
+      "thamani",
+      "euro",
+      "shilingi",
+      "dola",
+      "sarafu"
+    ]
+  },
+  "currency_rates_create": {
+    "en": [
+      "exchange rate",
+      "set rate",
+      "new rate",
+      "update rate",
+      "currency rate"
+    ],
+    "nl": ["wisselkoers", "koers instellen", "nieuwe koers", "valutakoers"],
+    "sw": [
+      "kiwango",
+      "kiwango cha kubadilisha",
+      "weka kiwango",
+      "kiwango kipya"
+    ]
+  },
+  "currency_rates_list": {
+    "en": ["exchange rates", "rate history", "current rate", "which rate"],
+    "nl": ["wisselkoersen", "koersen", "koershistorie", "huidige koers"],
+    "sw": [
+      "viwango",
+      "viwango vya kubadilisha",
+      "historia ya viwango",
+      "kiwango cha sasa"
+    ]
+  },
+  "orders_sales_summary": {
+    "en": [
+      "revenue",
+      "turnover",
+      "excluding",
+      "excl",
+      "ex vat",
+      "vat",
+      "net",
+      "takings",
+      "income"
+    ],
+    "nl": ["omzet", "exclusief", "excl", "ex btw", "btw", "netto", "inkomsten"],
+    "sw": ["mapato", "mauzo", "bila vat", "bila", "vat", "kodi"]
+  },
+  "orders_top_customers": {
+    "en": [
+      "buys",
+      "buyer",
+      "buyers",
+      "most",
+      "biggest",
+      "customer",
+      "customers"
+    ],
+    "nl": ["koopt", "kopen", "meeste", "grootste", "beste", "klant", "klanten"],
+    "sw": [
+      "ananunua",
+      "wananunua",
+      "mnunuzi",
+      "wanunuzi",
+      "zaidi",
+      "mteja",
+      "wateja"
+    ]
   }
 }

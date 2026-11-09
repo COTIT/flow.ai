@@ -61,7 +61,8 @@
     "invites": "Uitnodigingen",
     "members": "Leden",
     "categories": "Categorieën",
-    "voice": "Spraakassistent"
+    "voice": "Spraakassistent",
+    "scheduledReports": "Geplande rapporten"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -1224,7 +1225,14 @@
       "contacts": "Contactpersonen",
       "variants": "Maten",
       "stock_rows": "Voorraadlocaties met voorraad",
-      "effect": "Gevolg"
+      "effect": "Gevolg",
+      "from_currency_id": "Van valuta",
+      "to_currency_id": "Naar valuta",
+      "effective_on": "Geldt vanaf",
+      "note": "Notitie",
+      "previous": "Huidig tarief",
+      "source": "Bron",
+      "from": "Van"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1294,6 +1302,7 @@
       "messages": "bericht",
       "webhooks": "webhook",
       "payments": "betaling",
+      "currency_rates": "wisselkoers",
       "currencies": "valuta",
       "vat": "btw-groep",
       "workspace": "werkruimte",
@@ -1386,6 +1395,9 @@
       "orders": "{count, plural, one {# bestelling} other {# bestellingen}}",
       "refunded": "Terugbetaald",
       "gross": "Verkoop",
+      "net": "Excl. btw, vóór terugbetalingen",
+      "vat": "Btw",
+      "netBeforeRefunds": "{amount} excl. btw, vóór terugbetalingen",
       "periodColumn": "Periode",
       "currency": "Valuta",
       "showTable": "Als tabel tonen",
@@ -1632,6 +1644,10 @@
         "name": "Uitnodigingen",
         "purpose": "Collega's uitnodigen voor de werkruimte"
       },
+      "scheduled_reports": {
+        "name": "Geplande rapporten",
+        "purpose": "Je gemailde rapporten: pauzeren of verwijderen"
+      },
       "app_keys": {
         "name": "App-sleutels",
         "purpose": "Sleutels voor gekoppelde apps"
@@ -1648,6 +1664,7 @@
     "sheetRequest": "Ik heb een spreadsheet gedeeld. Vraag me wat ik ermee wil doen.",
     "sheetNoPreview": "Genesy leest deze spreadsheet als je erom vraagt; hier is geen voorbeeld.",
     "importRows": "Rijen {from}–{to} van {total}",
+    "moreParts": "Na deze beoordeling volgen nog {count} wijzigingen. Elk deel krijgt een eigen beoordeling.",
     "notIncluded": {
       "title": "Niet meegenomen — controleer deze regels",
       "line": "Regel {line}: ",
@@ -1662,5 +1679,53 @@
         "other": "weggelaten"
       }
     }
+  },
+  "scheduled": {
+    "title": "Geplande rapporten",
+    "intro": "Rapporten die de spraakassistent je volgens schema mailt. Alleen jij krijgt ze.",
+    "empty": "Nog geen geplande rapporten.",
+    "emptyHint": "Vraag het de spraakassistent, bijv. “Stuur me elke maandag een verkoopoverzicht”.",
+    "report": "Rapport",
+    "schedule": "Wanneer",
+    "nextRun": "Volgende mail",
+    "status": "Status",
+    "actions": "Acties",
+    "pause": "Pauzeren",
+    "resume": "Hervatten",
+    "delete": "Verwijderen",
+    "deleteTitle": "{report} verwijderen?",
+    "deleteText": "Je krijgt deze mail niet meer. Je kunt de assistent altijd om een nieuwe vragen.",
+    "reports": {
+      "sales_summary": "Verkoopoverzicht",
+      "attention": "Takenlijst",
+      "overdue_invoices": "Achterstallige facturen",
+      "stock": "Lage voorraad"
+    },
+    "every": {
+      "daily": "Elke dag rond {time}",
+      "weekly": "Elke {day} rond {time}",
+      "monthly": "Dag {day} van elke maand rond {time}"
+    },
+    "zone": "Tijden in {zone}",
+    "states": {
+      "active": "Actief",
+      "user": "Gepauzeerd",
+      "access_lost": "Gepauzeerd: geen toegang",
+      "unsubscribed": "Gestopt via mail"
+    },
+    "lostHint": "Je hebt geen toegang meer tot dit rapport. Vraag een beheerder en hervat het dan.",
+    "paused": "Rapport gepauzeerd.",
+    "resumed": "Rapport hervat.",
+    "deleted": "Rapport verwijderd.",
+    "onlyYou": "Alleen jij, op je login-e-mailadres"
+  },
+  "unsubscribe": {
+    "title": "Dit rapport stoppen?",
+    "text": "Je krijgt deze mail niet meer. Je kunt hem later hervatten bij Geplande rapporten.",
+    "confirm": "Mail stoppen",
+    "done": "Klaar: je krijgt geen {report}-mails meer.",
+    "incomplete": "Deze link is onvolledig",
+    "invalid": "Deze link is niet meer geldig",
+    "manage": "Geplande rapporten beheren"
   }
 }

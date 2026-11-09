@@ -1,0 +1,8 @@
+# cargo-audit config (CI runs it from apps/api).
+[advisories]
+# RUSTSEC-2026-0459 (libsqlite3-sys < 0.39, C SQLite CVE): lockfile-only. sqlx-sqlite is an
+# optional sqlx dependency and the "sqlite" feature is off, so nothing builds or links it
+# (`cargo tree -i libsqlite3-sys` is empty). Owner-approved 2026-11-09.
+# shortcut: drop this ignore once an sqlx release allows libsqlite3-sys >= 0.39 and
+# `cargo update -p sqlx` picks it up.
+ignore = ["RUSTSEC-2026-0459"]

@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "voice:generate": "node scripts/generate-voice-catalog.mjs",
-    "voice:check": "node scripts/generate-voice-catalog.mjs --check"
+    "voice:check": "node scripts/generate-voice-catalog.mjs --check",
+    "voice:triage": "node scripts/voice-heal.mjs triage",
+    "voice:heal": "node scripts/voice-heal.mjs heal"
   },
   "dependencies": {
     "@alexanderolsen/libsamplerate-js": "2.1.2",

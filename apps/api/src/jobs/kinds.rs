@@ -54,6 +54,9 @@ pub const PAYMENT_INBOX: &str = "payment_inbox";
 /// re-fetches payments left open (every minute, `orders::payments::sweep`).
 pub const PAYMENT_SWEEP: &str = "payment_sweep";
 
+/// Mails due scheduled reports (every 5 min, `scheduled_reports::runner`).
+pub const SCHEDULED_REPORTS: &str = "scheduled_reports";
+
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
     INVOICE_DELIVERY,
@@ -69,13 +72,14 @@ pub const KINDS: &[&str] = &[
     ORDER_EXPIRE,
     PAYMENT_INBOX,
     PAYMENT_SWEEP,
+    SCHEDULED_REPORTS,
 ];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 8] = [
+pub static SCHEDULES: [Schedule; 9] = [
     Schedule {
         name: INVOICE_DELIVERY_SWEEP,
         kind: INVOICE_DELIVERY_SWEEP,
@@ -116,12 +120,18 @@ pub static SCHEDULES: [Schedule; 8] = [
         kind: PAYMENT_SWEEP,
         every: Every::Minutes(1),
     },
+    Schedule {
+        name: SCHEDULED_REPORTS,
+        kind: SCHEDULED_REPORTS,
+        every: Every::Minutes(5),
+    },
 ];
 
 /// What handlers reach: the job pool and, when configured, the file bucket.
 #[derive(Clone)]
 pub struct Ctx {
-    /// Invoice-specific runtime; contains no serialized job credentials.
+    /// Full app state for invoice delivery and scheduled report mail; no serialized job
+    /// credentials.
     pub invoice_state: Option<crate::AppState>,
     /// Provider cleanup key; never serialized into jobs or traces.
     pub assistant_api_key: Option<Arc<crate::AssistantSecret>>,
@@ -173,6 +183,10 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
         ORDER_EXPIRE => return orders::checkout::expire(&ctx.db).await,
         PAYMENT_INBOX => return orders::payments::drain(ctx, &job).await,
         PAYMENT_SWEEP => return orders::payments::sweep(ctx).await,
+        SCHEDULED_REPORTS => match &ctx.invoice_state {
+            Some(state) => return crate::modules::scheduled_reports::runner::run(state).await,
+            None => tracing::warn!("scheduled reports wait: no mailer in the job context"),
+        },
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(

@@ -140,6 +140,11 @@ test("narration detection", () => {
   assert.ok(isNarration("I'm checking the stock now."))
   assert.ok(isNarration("Let me look that up for you, one moment."))
   assert.ok(isNarration("Ninaangalia sasa hivi."))
+  // The agent's forced pre-tool acknowledgement (template beat 1) promises work; it is never the answer.
+  assert.ok(isNarration("Ok, got that, let me check it for you."))
+  assert.ok(isNarration("Oké, begrepen, ik zoek het even voor je uit."))
+  assert.ok(isNarration("Sawa, nimeelewa, niruhusu nikuangalie."))
+  assert.ok(!isNarration("Ok, got that: 3 orders are open."))
   assert.ok(!isNarration("You have 3 orders today."))
   assert.ok(!isNarration("I checked: 4 products are below zero."))
 })
@@ -175,4 +180,9 @@ test("a review card the probe could not cancel is a UI defect", () => {
   const r = grade(s, record({ reviews: 1, cancelFailures: 1 }), catalog)
   assert.equal(r.class, "works")
   assert.deepEqual(r.defects.map((d) => d.kind), ["review_card_unstable"])
+})
+
+test("rich result cards are checked for raw codes too", () => {
+  const rec = record({ messages: [{ role: "result", text: "Order 3f2b9c1e-1111-4222-8333-444455556666" }, { role: "agent", text: "Done looking." }] })
+  assert.deepEqual(grade(scenario({ outcome: "answer", ops: ["orders_list"] }), rec, catalog).defects.map((d) => d.kind), ["raw_uuid"])
 })

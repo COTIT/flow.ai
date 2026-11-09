@@ -61,7 +61,8 @@
     "invites": "Mialiko",
     "members": "Wanachama",
     "categories": "Makundi",
-    "voice": "Msaidizi wa sauti"
+    "voice": "Msaidizi wa sauti",
+    "scheduledReports": "Ripoti zilizopangwa"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -1224,7 +1225,14 @@
       "contacts": "Watu wa mawasiliano",
       "variants": "Saizi",
       "stock_rows": "Maeneo ya hisa yenye hisa",
-      "effect": "Matokeo"
+      "effect": "Matokeo",
+      "from_currency_id": "Kutoka sarafu",
+      "to_currency_id": "Kwenda sarafu",
+      "effective_on": "Inaanza",
+      "note": "Maelezo",
+      "previous": "Kiwango kilichopo",
+      "source": "Chanzo",
+      "from": "Kutoka"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -1294,6 +1302,7 @@
       "messages": "ujumbe",
       "webhooks": "webhook",
       "payments": "malipo",
+      "currency_rates": "kiwango cha kubadilisha",
       "currencies": "sarafu",
       "vat": "kundi la VAT",
       "workspace": "eneo la kazi",
@@ -1386,6 +1395,9 @@
       "orders": "{count, plural, one {oda #} other {oda #}}",
       "refunded": "Zilizorejeshwa",
       "gross": "Mauzo",
+      "net": "Bila VAT, kabla ya marejesho",
+      "vat": "VAT",
+      "netBeforeRefunds": "{amount} bila VAT, kabla ya marejesho",
       "periodColumn": "Kipindi",
       "currency": "Sarafu",
       "showTable": "Onyesha kama jedwali",
@@ -1632,6 +1644,10 @@
         "name": "Mialiko",
         "purpose": "Alika wenzako kwenye eneo la kazi"
       },
+      "scheduled_reports": {
+        "name": "Ripoti zilizopangwa",
+        "purpose": "Ripoti zako za barua pepe: sitisha au futa"
+      },
       "app_keys": {
         "name": "Funguo za programu",
         "purpose": "Funguo za programu zilizounganishwa"
@@ -1648,6 +1664,7 @@
     "sheetRequest": "Nimeshiriki jedwali. Niulize nifanye nini nalo.",
     "sheetNoPreview": "Genesy husoma jedwali hili ukiomba; hakuna onyesho hapa.",
     "importRows": "Safu {from}–{to} kati ya {total}",
+    "moreParts": "Mabadiliko {count} zaidi baada ya ukaguzi huu. Kila sehemu ina ukaguzi wake.",
     "notIncluded": {
       "title": "Hazijajumuishwa — kagua mistari hii",
       "line": "Mstari {line}: ",
@@ -1662,5 +1679,53 @@
         "other": "imeachwa"
       }
     }
+  },
+  "scheduled": {
+    "title": "Ripoti zilizopangwa",
+    "intro": "Ripoti ambazo msaidizi wa sauti anakutumia kwa barua pepe kwa ratiba. Ni wewe tu unayezipata.",
+    "empty": "Bado hakuna ripoti zilizopangwa.",
+    "emptyHint": "Muulize msaidizi wa sauti, k.m. “Kila Jumatatu nitumie muhtasari wa mauzo”.",
+    "report": "Ripoti",
+    "schedule": "Lini",
+    "nextRun": "Barua pepe ijayo",
+    "status": "Hali",
+    "actions": "Vitendo",
+    "pause": "Sitisha",
+    "resume": "Endelea",
+    "delete": "Futa",
+    "deleteTitle": "Futa {report}?",
+    "deleteText": "Hutapata barua pepe hii tena. Unaweza kumwomba msaidizi mpya wakati wowote.",
+    "reports": {
+      "sales_summary": "Muhtasari wa mauzo",
+      "attention": "Orodha ya kazi",
+      "overdue_invoices": "Ankara zilizochelewa",
+      "stock": "Hisa ndogo"
+    },
+    "every": {
+      "daily": "Kila siku karibu {time}",
+      "weekly": "Kila {day} karibu {time}",
+      "monthly": "Siku ya {day} kila mwezi karibu {time}"
+    },
+    "zone": "Saa kwa {zone}",
+    "states": {
+      "active": "Inaendelea",
+      "user": "Imesitishwa",
+      "access_lost": "Imesitishwa: huna ruhusa",
+      "unsubscribed": "Imesimamishwa kwa barua pepe"
+    },
+    "lostHint": "Huna ruhusa tena kwa ripoti hii. Muulize msimamizi, kisha uiendeleze.",
+    "paused": "Ripoti imesitishwa.",
+    "resumed": "Ripoti inaendelea.",
+    "deleted": "Ripoti imefutwa.",
+    "onlyYou": "Wewe tu, kwa barua pepe yako ya kuingia"
+  },
+  "unsubscribe": {
+    "title": "Simamisha ripoti hii?",
+    "text": "Hutapata barua pepe hii tena. Unaweza kuiendeleza baadaye kwenye Ripoti zilizopangwa.",
+    "confirm": "Simamisha barua pepe",
+    "done": "Imekamilika: hutapata tena barua pepe za {report}.",
+    "incomplete": "Kiungo hiki hakijakamilika",
+    "invalid": "Kiungo hiki si halali tena",
+    "manage": "Simamia ripoti zilizopangwa"
   }
 }

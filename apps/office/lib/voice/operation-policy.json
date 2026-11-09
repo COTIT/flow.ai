@@ -1252,6 +1252,99 @@
     },
     "confirmationFields": []
   },
+  "currency_rates_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/currency-rates",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/currency_rates/handlers.rs#list",
+        "apps/api/src/modules/currency_rates/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "currency_rates_convert": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/currency-rates/convert",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/currency_rates/handlers.rs#convert",
+        "apps/api/src/modules/currency_rates/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "currency_rates_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/currency-rates",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["currency.update"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/currency_rates/handlers.rs#create",
+        "apps/api/src/modules/currency_rates/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "custom_statuses_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/custom-status",
@@ -10008,6 +10101,37 @@
     },
     "confirmationFields": ["quantity", "reason"]
   },
+  "stock_transfer": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/products/{product}/transfer-stock",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["stock.move"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/stock/handlers.rs#transfer",
+        "apps/api/src/modules/stock/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "stock"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": ["stock_with_bins", "stock_movements"],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": ["quantity", "reason"]
+  },
   "products_price_history": {
     "method": "GET",
     "path": "/workspace/{workspace}/products/{product}/price-history",
@@ -15353,6 +15477,169 @@
       ]
     },
     "effects": ["control"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "scheduled_reports_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/scheduled-reports",
+    "disposition": "execute",
+    "reason": "Member reads own scheduled reports",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own schedules only (workspace_id and user_id); another member's or workspace's is 404",
+        "Report permission (order.list, invoice.list, stock.list) checked on create and resume, and again on every run"
+      ],
+      "authority": [
+        "apps/api/src/modules/scheduled_reports/handlers.rs#list",
+        "apps/api/src/modules/scheduled_reports/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "scheduled_reports_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/scheduled-reports",
+    "disposition": "execute",
+    "reason": "Member's own read-only report schedule; mail goes only to the caller's login email; no scheduled writes; backend rechecks access per run",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own schedules only (workspace_id and user_id); another member's or workspace's is 404",
+        "Report permission (order.list, invoice.list, stock.list) checked on create and resume, and again on every run"
+      ],
+      "authority": [
+        "apps/api/src/modules/scheduled_reports/handlers.rs#create",
+        "apps/api/src/modules/scheduled_reports/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "scheduled_reports_update": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/scheduled-reports/{schedule}",
+    "disposition": "execute",
+    "reason": "Member's own read-only report schedule; mail goes only to the caller's login email; no scheduled writes; backend rechecks access per run",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own schedules only (workspace_id and user_id); another member's or workspace's is 404",
+        "Report permission (order.list, invoice.list, stock.list) checked on create and resume, and again on every run"
+      ],
+      "authority": [
+        "apps/api/src/modules/scheduled_reports/handlers.rs#update",
+        "apps/api/src/modules/scheduled_reports/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "scheduled_reports_delete": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/scheduled-reports/{schedule}",
+    "disposition": "execute",
+    "reason": "Member's own read-only report schedule; mail goes only to the caller's login email; no scheduled writes; backend rechecks access per run",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own schedules only (workspace_id and user_id); another member's or workspace's is 404",
+        "Report permission (order.list, invoice.list, stock.list) checked on create and resume, and again on every run"
+      ],
+      "authority": [
+        "apps/api/src/modules/scheduled_reports/handlers.rs#delete",
+        "apps/api/src/modules/scheduled_reports/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "scheduled_reports_unsubscribe": {
+    "method": "POST",
+    "path": "/scheduled-reports/unsubscribe",
+    "disposition": "external",
+    "reason": "Public mail-link flow; not an Office staff tool",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/scheduled_reports/handlers.rs#unsubscribe",
+        "apps/api/src/modules/scheduled_reports/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record"],
     "risk": "write",
     "handoff": null,
     "reconciliation": [],

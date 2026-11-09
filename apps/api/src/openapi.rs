@@ -15,15 +15,16 @@ use crate::{
     http::response::MessageBody,
     modules::{
         analytics, app_keys, assistant, attention, auth, cash, contacts, currencies,
-        custom_statuses, custom_types, deal_pipelines, deals, discount_groups, discounts,
-        email_profiles, email_templates, email_verification, farm_bug_reports, farm_catalogue,
-        farm_crops, farm_documents, farm_logins, farm_market, farm_memberships, farm_passbook,
-        farm_payouts, farm_pue, farm_records, farm_supply, farm_surveys, farm_tower, farm_villages,
-        farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices, lots, messages,
-        orders, pdf_templates, permissions, price_corrections, pricing, product_brands,
-        product_categories, product_images, product_variants, products, relations, sales_groups,
-        search, settings, shipment_methods, special_offers, stock, storage_locations, storefront,
-        supply_chain, supply_links, teams, till, till_catalog, till_sales,
+        currency_rates, custom_statuses, custom_types, deal_pipelines, deals, discount_groups,
+        discounts, email_profiles, email_templates, email_verification, farm_bug_reports,
+        farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market, farm_memberships,
+        farm_passbook, farm_payouts, farm_pue, farm_records, farm_supply, farm_surveys, farm_tower,
+        farm_villages, farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices,
+        lots, messages, orders, pdf_templates, permissions, price_corrections, pricing,
+        product_brands, product_categories, product_images, product_variants, products, relations,
+        sales_groups, scheduled_reports, search, settings, shipment_methods, special_offers, stock,
+        storage_locations, storefront, supply_chain, supply_links, teams, till, till_catalog,
+        till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -119,6 +120,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(farm_logins::routes::public())
         .merge(till::routes::public())
         .merge(orders::routes::public())
+        .merge(scheduled_reports::routes::public())
 }
 
 /// Documented routes that need a token. Modules move here from `build_app`'s plain list
@@ -130,12 +132,14 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())
         .merge(currencies::routes::private())
+        .merge(currency_rates::routes::private())
         .merge(users::routes::private())
         .merge(permissions::routes::private())
         .merge(workspaces::routes::private())
         .merge(teams::routes::private())
         .merge(search::routes::private())
         .merge(attention::routes::private())
+        .merge(scheduled_reports::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())
         .merge(custom_statuses::routes::private())

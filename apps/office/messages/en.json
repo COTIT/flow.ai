@@ -61,7 +61,8 @@
     "invites": "Invites",
     "members": "Members",
     "categories": "Categories",
-    "voice": "Voice assistant"
+    "voice": "Voice assistant",
+    "scheduledReports": "Scheduled reports"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -1224,7 +1225,14 @@
       "contacts": "Contacts",
       "variants": "Sizes",
       "stock_rows": "Stock locations with stock",
-      "effect": "Effect"
+      "effect": "Effect",
+      "from_currency_id": "From currency",
+      "to_currency_id": "To currency",
+      "effective_on": "Applies from",
+      "note": "Note",
+      "previous": "Rate in force",
+      "source": "Source",
+      "from": "From"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -1294,6 +1302,7 @@
       "messages": "message",
       "webhooks": "webhook",
       "payments": "payment",
+      "currency_rates": "exchange rate",
       "currencies": "currency",
       "vat": "VAT group",
       "workspace": "workspace",
@@ -1386,6 +1395,9 @@
       "orders": "{count, plural, one {# order} other {# orders}}",
       "refunded": "Refunded",
       "gross": "Sales",
+      "net": "Excl VAT, before refunds",
+      "vat": "VAT",
+      "netBeforeRefunds": "{amount} excl VAT, before refunds",
       "periodColumn": "Period",
       "currency": "Currency",
       "showTable": "Show as table",
@@ -1632,6 +1644,10 @@
         "name": "Invites",
         "purpose": "Invite colleagues to the workspace"
       },
+      "scheduled_reports": {
+        "name": "Scheduled reports",
+        "purpose": "Your emailed reports: pause or delete"
+      },
       "app_keys": {
         "name": "App keys",
         "purpose": "Keys for connected apps"
@@ -1648,6 +1664,7 @@
     "sheetRequest": "I shared a spreadsheet. Ask me what to do with it.",
     "sheetNoPreview": "Genesy reads this spreadsheet when you ask; there is no preview here.",
     "importRows": "Rows {from}–{to} of {total}",
+    "moreParts": "{count} more changes after this review. Each part gets its own review.",
     "notIncluded": {
       "title": "Not included — check these lines",
       "line": "Line {line}: ",
@@ -1662,5 +1679,53 @@
         "other": "left out"
       }
     }
+  },
+  "scheduled": {
+    "title": "Scheduled reports",
+    "intro": "Reports the voice assistant emails to you on a schedule. Only you get them.",
+    "empty": "No scheduled reports yet.",
+    "emptyHint": "Ask the voice assistant, e.g. “Every Monday send me a sales summary”.",
+    "report": "Report",
+    "schedule": "When",
+    "nextRun": "Next email",
+    "status": "Status",
+    "actions": "Actions",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete",
+    "deleteTitle": "Delete {report}?",
+    "deleteText": "You stop getting this email. You can ask the assistant for a new one at any time.",
+    "reports": {
+      "sales_summary": "Sales summary",
+      "attention": "To-do list",
+      "overdue_invoices": "Overdue invoices",
+      "stock": "Low stock"
+    },
+    "every": {
+      "daily": "Every day around {time}",
+      "weekly": "Every {day} around {time}",
+      "monthly": "Day {day} of every month around {time}"
+    },
+    "zone": "Times in {zone}",
+    "states": {
+      "active": "Active",
+      "user": "Paused",
+      "access_lost": "Paused: no access",
+      "unsubscribed": "Stopped from email"
+    },
+    "lostHint": "You no longer have access to this report. Ask an admin, then resume it.",
+    "paused": "Report paused.",
+    "resumed": "Report resumed.",
+    "deleted": "Report deleted.",
+    "onlyYou": "Only you, at your login email"
+  },
+  "unsubscribe": {
+    "title": "Stop this report?",
+    "text": "You will no longer get this email. You can resume it later in Scheduled reports.",
+    "confirm": "Stop the email",
+    "done": "Done: you will not get {report} emails any more.",
+    "incomplete": "This link is incomplete",
+    "invalid": "This link is not valid any more",
+    "manage": "Manage scheduled reports"
   }
 }

@@ -21,6 +21,7 @@ use crate::{
         dto::{
             DeleteQuery, ListQuery, MoveBody, MoveDoc, MovementQuery, MutateBody, MutateDoc,
             MutatedDoc, SetLevelsBody, SetLevelsDoc, SetRequirementsBody, SetRequirementsDoc,
+            TransferBody, TransferDoc,
         },
         repo::ListFilter,
         resource::{ConfiguredDoc, MovementDoc, StockDoc, WithBinsDoc},
@@ -157,6 +158,32 @@ pub async fn move_between_bins(
 ) -> Result<Message, AppError> {
     service::move_between_bins(&state, access.workspace_id, &p, m, access.user_id).await?;
     Ok(Message("ok"))
+}
+
+/// POST /products/{product}/transfer-stock -> `{data:{from,to,lot}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/transfer-stock", tag = "stock",
+    operation_id = "stock_transfer", summary = "Move stock from one warehouse to another",
+    description = "Takes the quantity from one warehouse and adds it to another warehouse of the same workspace in one transaction, keeping the lot. The source never goes below what it has free (level minus what orders hold). Both ledger rows share `related_domain` `stock_transfer` and one `related_id`.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    request_body = TransferDoc,
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Both warehouses with their level before and after, and the lot"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.move`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`lot_recalled`, `lot_quarantined` or `lot_expired`: the lot's stock may not move"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse or lot, same warehouse twice, or not enough free stock"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn transfer(
+    State(state): State<AppState>,
+    access: Can<StockMove>,
+    Path((_, p)): ProductPath,
+    ValidatedJson(t): ValidatedJson<TransferBody>,
+) -> Result<Json<Value>, AppError> {
+    let data = service::transfer(&state, access.workspace_id, &p, t, access.user_id).await?;
+    Ok(Json(json!({ "data": data })))
 }
 
 /// GET /products/{product}/stock-with-bins -> `{data:[...]}`.

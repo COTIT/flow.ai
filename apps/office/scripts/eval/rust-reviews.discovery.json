@@ -789,9 +789,30 @@
         }
       ],
       "review": "Actual batch rawlot stock at farmstore; native dispatch options includes exact warehouse. No untested role/tenant/error claims."
+    },
+    {
+      "id": "discovery-currency-rates-tenant",
+      "test": "currency_rates::other_workspace_is_refused",
+      "operations": [
+        "currency_rates_convert"
+      ],
+      "gates": {
+        "cross_workspace": [
+          404,
+          422
+        ]
+      },
+      "assertions": [
+        {
+          "file": "apps/api/tests/api/currency_rates.rs",
+          "contains": "// Eve's own pair (same codes) has no rate: acme's rate never leaks across."
+        }
+      ],
+      "review": "Outsider bearer gets 404 on the owner's convert path; another account's currency ids through the outsider's own path are 422; the outsider's own pair has no rate, so no rate crosses accounts."
     }
   ],
   "sources": {
+    "apps/api/tests/api/currency_rates.rs": "6e213ea47c769a84b3d234c82b1b4102dc5424c180837ee006f152226d7214a6",
     "apps/api/tests/api/email_templates.rs": "8e760ab9bbd1963215ad8036db61f0b969fc9599e29e4465351e92140f4bffcb",
     "apps/api/tests/api/farm_supply.rs": "f81c5cb189fc2f29d076d3fcc726a1225c5e983af6d0b8ec6a4b56dc0f2363a8",
     "apps/api/tests/api/permissions.rs": "0b148854e58bac0453b4a1ec09c58dca9d2665e021135c923d6392002e0dbab2",

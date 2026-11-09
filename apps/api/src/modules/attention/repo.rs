@@ -198,13 +198,14 @@ pub async fn negative_stock(
     .await
 }
 
-/// Live stock-tracked products whose sellable available is at most 0 (the storefront's
+/// Live stock-tracked products whose sellable available is at most `at_most` (0: the storefront's
 /// `available_stock` sum and `sold_out`), lowest first, with the total on each row.
 // shortcut: aggregates every tracked product of the workspace per call; fine at catalog size,
 // keep a per-product availability column if catalogs reach tens of thousands.
 pub async fn sold_out(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
+    at_most: i64,
     limit: i64,
 ) -> Result<(Vec<AttentionStockItem>, i64), sqlx::Error> {
     let rows = sqlx::query!(
@@ -225,11 +226,12 @@ pub async fn sold_out(
                   available::numeric(19, 2)::text AS "available!",
                   count(*) OVER () AS "total!"
            FROM a
-           WHERE available <= 0
+           WHERE available <= $3::bigint
            ORDER BY available, name, id
            LIMIT $2"#,
         workspace_id,
         limit,
+        at_most,
     )
     .fetch_all(db)
     .await?;

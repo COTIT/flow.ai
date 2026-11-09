@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT upper(c.asset_type) AS \"currency!\", c.decimals, count(*) AS \"orders!\",\n                  sum(o.total)::bigint AS \"gross_total!\",\n                  sum(o.subtotal)::bigint AS \"net_total!\", sum(o.vat)::bigint AS \"vat_total!\",\n                  coalesce(sum(r.amount), 0)::bigint AS \"refunded_total!\"\n           FROM orders o\n           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           LEFT JOIN LATERAL (\n               SELECT sum(p.amount) AS amount FROM order_payments p\n               WHERE p.workspace_id = o.workspace_id AND p.order_id = o.id\n                 AND p.kind = 'refund' AND p.status = 'refunded') r ON true\n           WHERE o.workspace_id = $1\n             AND o.status IN ('open', 'completed', 'partially_returned', 'returned')\n             AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2\n             AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3\n             AND ($4::text IS NULL OR o.source = $4)\n           GROUP BY c.asset_type, c.decimals\n           ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "gross_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "net_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "vat_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "refunded_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "d9db0d8a27edf44a03cf314f63c294fad98634a8026896b9cbade2ef967e7529"
+}

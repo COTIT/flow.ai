@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, workspace_id, user_id, report, frequency, weekday, day_of_month, hour\n         FROM scheduled_reports WHERE id = $1 AND workspace_id = $2 AND user_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "report",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "report"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "frequency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "frequency"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "day_of_month",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "day_of_month"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "hour",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "hour"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "634101d807452e8dcb7933cda09c64da3be537f5d9df039e0441561c52528bec"
+}

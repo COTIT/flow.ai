@@ -511,7 +511,10 @@ it("attaches a picture to a schema-checked read result, built by the server", as
     to: "2026-11-08T00:00:00+03:00",
     source: "till",
     currencies: [
-      { currency: "TZS", decimals: 0, gross_total: 1250000, refunded_total: 0, orders: 42 },
+      {
+        currency: "TZS", decimals: 0, gross_total: 1250000, net_total: 1059322, vat_total: 190678,
+        refunded_total: 0, orders: 42,
+      },
     ],
   }
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: summary })))
@@ -535,6 +538,6 @@ it("attaches a picture to a schema-checked read result, built by the server", as
   )
   expect(result).toMatchObject({
     status: "completed",
-    view: { kind: "sales", rows: [{ currency: "TZS", gross: 1250000, orders: 42 }] },
+    view: { kind: "sales", rows: [{ currency: "TZS", gross: 1250000, net: 1059322, vat: 190678, orders: 42 }] },
   })
 })

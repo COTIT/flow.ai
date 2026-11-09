@@ -9,6 +9,10 @@ template=json.loads(raw); evidence=json.loads((root/'assistant-validation.json')
 assert evidence['provider']['templateSha256']==hashlib.sha256(raw).hexdigest(),'agent template changed without a new observed validation record'
 assert evidence['releaseGate']=='pending' and evidence['releaseCommit'] is None
 assert evidence['provider']['versionId'].startswith('agtvrsn_')
+# Written by assistant-agent.sh --apply after a read-back; one entry per environment.
+for env,entry in evidence['provider'].get('applied',{}).items():
+    assert env in {'development','staging','production'} and entry['versionId'].startswith('agtvrsn_')
+    assert re.fullmatch('[0-9a-f]{64}',entry['governedSha256']) and re.fullmatch('[0-9a-f]{64}',entry['templateSha256'])
 source=(root.parent/'apps/office/components/voice/provider.tsx').read_text()
 assert len(template['clientTools'])==2
 for tool in template['clientTools']:
@@ -23,7 +27,7 @@ assert not agent['prompt'].get('custom_llm')
 assert not {'tool_ids','knowledge_base'} & agent['prompt'].keys()
 prompt=agent['prompt']['prompt']
 assert 'assistant_batch_prepare' in prompt and 'assistant_batch_status' in prompt,'agent prompt missing fixed-batch preparation/status contract'
-assert 'two through ten' in prompt and 'operationId' in prompt and 'arguments_json' in prompt,'agent batch arguments are unspecified'
+assert 'two through 25' in prompt and 'operationId' in prompt and 'arguments_json' in prompt,'agent batch arguments are unspecified'
 assert 'paused' in prompt and 'never resume' in prompt,'agent must stop paused batches without replay'
 execute=next(tool for tool in template['clientTools'] if tool['name']=='execute_genesy_tool')
 assert execute['force_pre_tool_speech'] is False,'one acknowledgement per user turn comes from the prompt, not a forced line before every tool call'
@@ -36,6 +40,16 @@ assert '[Discoverability]' in prompt and '[/Discoverability]' in prompt,'discove
 assert 'Each account is private' in prompt and 'supply link with consent' in prompt,'account privacy line missing'
 assert 'Till refunds are done on the till' in prompt and 'Kassaretouren gaan via de kassa' in prompt and 'Marejesho ya mauzo ya kaunta' in prompt,'till refund wording missing'
 assert 'meta.open_totals' in prompt and 'never add amounts yourself' in prompt,'owe rule must use backend totals'
+assert 'up to 25 exact actions' in prompt and '"remaining"' in prompt,'bulk continuation sentence missing'
+assert 'use stock_transfer' in prompt,'in-account stock transfer hint missing'
+assert 'prepare scheduled_reports_create' in prompt,'recurring request hint missing'
+assert 'workspace rate as of' in prompt and 'currency_rates_convert' in prompt,'currency conversion hint missing'
+assert 'Never ask the user for an ID, UUID or workspace id' in prompt,'agent must never ask the user for ids'
+assert 'Say field names as plain words' in prompt and 'never in backticks' in prompt,'field names must be spoken as plain words'
+assert 'granted by the farm co-op from its own Genesy account' in prompt and 'supply_links_accept' in prompt,'supply link explanation missing'
+assert 'farm_crops_list' in prompt and 'farm_supply_options for that village and crop' in prompt,'farmer delivery lookup order missing'
+assert 'do not prepare it yet: convert that part with currency_rates_convert' in prompt,'mixed-currency payment must be converted and asked first'
+assert 'end with one direct question' in prompt,'missing or mismatched file must end in a question'
 assert 'never revert anything by yourself' in prompt,'undo must be a new review card'
 assert 'meta.total for how many' in prompt,'counts must come from meta.total'
 assert '[File import]' in prompt and 'never copy prices yourself' in prompt,'file import block missing'

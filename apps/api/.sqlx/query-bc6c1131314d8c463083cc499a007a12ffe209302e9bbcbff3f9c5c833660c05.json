@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM currency_rates\n           WHERE workspace_id = $1\n             AND ($2::uuid IS NULL OR from_currency_id = $2)\n             AND ($3::uuid IS NULL OR to_currency_id = $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "bc6c1131314d8c463083cc499a007a12ffe209302e9bbcbff3f9c5c833660c05"
+}

@@ -4,7 +4,7 @@
 export const CLASSES = ["works", "partial", "missed_tool", "missing_capability", "broken", "correctly_refused"]
 
 const NARRATION =
-  /^(ok(ay)?[,.!]?\s*)?((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one moment|just a (moment|sec)|give me a (moment|sec)|hold on|checking|looking (that|this|it) up|ninaangalia|naangalia|subiri|hebu|ngoja)\b/i
+  /^((ok(ay)?|oké|sawa)[,.!]?\s*)?((got (that|it)|begrepen|nimeelewa)[,.!]?\s*)?((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one moment|just a (moment|sec)|give me a (moment|sec)|hold on|checking|looking (that|this|it) up|ninaangalia|naangalia|subiri|hebu|ngoja|ik zoek|niruhusu)\b/i
 
 /** A "please wait" line that promises work instead of reporting a result. */
 export const isNarration = (text) => plain(text).length < 240 && NARRATION.test(plain(text))
@@ -51,7 +51,7 @@ export function grade(scenario, rec, catalog) {
   const ids = new Set(catalog.map((o) => o.id))
   const agent = rec.messages.filter((m) => m.role === "agent").map((m) => plain(m.text))
   const last = agent.at(-1) ?? ""
-  const shown = [...agent, ...rec.messages.filter((m) => m.role === "action").map((m) => m.text), ...rec.thinking]
+  const shown = [...agent, ...rec.messages.filter((m) => m.role === "action" || m.role === "result").map((m) => m.text), ...rec.thinking]
   const defects = defectsIn(shown, ids)
   if (rec.cancelFailures > 0)
     defects.push({ kind: "review_card_unstable", text: `Cancel kept re-rendering; ${rec.cancelFailures} cancel attempt(s) failed` })

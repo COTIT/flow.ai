@@ -37,14 +37,14 @@ impl Permission for CustomerSales {
 #[utoipa::path(
     get, path = "/workspace/{workspace}/sales/top-customers", tag = "orders",
     operation_id = "orders_top_customers",
-    summary = "Top customers by sales in a period (best customers, who bought the most)",
-    description = "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. Money in minor units.",
+    summary = "Top customers by sales in a period, optionally of one product (best customers, who buys the most of a product)",
+    description = "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. `product_id` (and/or `variant_id`) answers \"who buys the most honey\": only that product's lines count (`line_excl` + `line_vat`) and `orders` are the orders holding it. Net/VAT split per row; all before refunds. Money in minor units.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), TopQuery),
     responses(
         (status = 200, body = Envelope<TopCustomers>, description = "Ranked customers per currency"),
         (status = 403, body = MessageBody, description = "Inactive membership, or missing `order.list` or `relation.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20"),
+        (status = 422, body = ValidationErrorBody, description = "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20, `product_id` or `variant_id` not a UUID"),
     ),
     security(("bearer" = []))
 )]
@@ -64,13 +64,13 @@ pub async fn top_customers(
     get, path = "/workspace/{workspace}/sales/top-products", tag = "products",
     operation_id = "products_top_sellers",
     summary = "Best-selling products in a period (best sellers, top products)",
-    description = "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
+    description = "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart; `product_id` / `variant_id` keep one product's or size's lines. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), TopQuery),
     responses(
         (status = 200, body = Envelope<TopProducts>, description = "Ranked products per currency"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `order.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20"),
+        (status = 422, body = ValidationErrorBody, description = "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20, `product_id` or `variant_id` not a UUID"),
     ),
     security(("bearer" = []))
 )]

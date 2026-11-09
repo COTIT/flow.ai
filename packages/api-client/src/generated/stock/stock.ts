@@ -25,6 +25,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  EnvelopeValue,
   EnvelopeVecConfiguredBins,
   EnvelopeVecStockWithBins,
   MessageBody,
@@ -39,6 +40,7 @@ import type {
   StockMovementsParams,
   StockMutated,
   StockNegativeParams,
+  TransferStockRequest,
   ValidationErrorBody
 } from '../model';
 
@@ -913,4 +915,74 @@ export const useStockMutate = <TError = ErrorType<MessageBody | ValidationErrorB
         TContext
       > => {
       return useMutation(getStockMutateMutationOptions(options), queryClient);
+    }
+    /**
+ * Takes the quantity from one warehouse and adds it to another warehouse of the same workspace in one transaction, keeping the lot. The source never goes below what it has free (level minus what orders hold). Both ledger rows share `related_domain` `stock_transfer` and one `related_id`.
+ * @summary Move stock from one warehouse to another
+ */
+export const stockTransfer = (
+    workspace: string,
+    product: string,
+    transferStockRequest: BodyType<TransferStockRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/products/${product}/transfer-stock`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: transferStockRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStockTransferMutationKey = () => ['stockTransfer'] as const;
+
+export const getStockTransferMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stockTransfer>>, TError,StockTransferMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof stockTransfer>>, TError,StockTransferMutationVariables, TContext> => {
+
+const mutationKey = getStockTransferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stockTransfer>>, StockTransferMutationVariables> = (props) => {
+          const {workspace,product,data} = props ?? {};
+
+          return  stockTransfer(workspace,product,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StockTransferMutationResult = NonNullable<Awaited<ReturnType<typeof stockTransfer>>>
+    export type StockTransferMutationBody = BodyType<TransferStockRequest>
+    export type StockTransferMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type StockTransferMutationVariables = {workspace: string;product: string;data: BodyType<TransferStockRequest>}
+
+    /**
+ * @summary Move stock from one warehouse to another
+ */
+export const useStockTransfer = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stockTransfer>>, TError,StockTransferMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof stockTransfer>>,
+        TError,
+        StockTransferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStockTransferMutationOptions(options), queryClient);
     }

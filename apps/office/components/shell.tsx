@@ -11,6 +11,7 @@ import {
   FileText,
   Globe,
   LayoutGrid,
+  CalendarClock,
   KeyRound,
   Layers,
   LogOut,
@@ -124,11 +125,17 @@ const items: Item[] = [
     group: "shell.store",
   },
   {
+    href: "/settings/scheduled-reports",
+    match: "/settings/scheduled-reports",
+    label: "nav.scheduledReports",
+    icon: CalendarClock,
+    group: "shell.settings",
+  },
+  {
     href: "/settings/app-keys",
     match: "/settings/app-keys",
     label: "nav.appKeys",
     icon: KeyRound,
-    group: "shell.settings",
   },
   {
     href: "/settings/webhooks",

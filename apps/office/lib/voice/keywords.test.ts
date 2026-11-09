@@ -40,6 +40,13 @@ describe("voice trigger words", () => {
     ],
     ["send coffee to the other branch", "supply_chain_dispatch"],
     ["set up a supply link with a new farm co-op", "supply_links_grant"],
+    // v1 re-probe: the agent's own queries
+    ["create supply link new farm co-op", "supply_links_grant"],
+    ["farmer passbook transactions October Mwangeza", "farm_passbook_person"],
+    [
+      "farmer Kitowo supply link consent data sharing buyers",
+      "farm_passbook_consent",
+    ],
     ["pay farmers what we owe", "farm_payouts_create"],
     [
       "correct the delivery weight of a farmer harvest",
@@ -47,10 +54,7 @@ describe("voice trigger words", () => {
     ],
     ["how much do we owe farmers in total", "farm_passbook_balances"],
     ["did the farmer agree to share data", "farm_passbook_consent"],
-    [
-      "farmers who haven't delivered in a month",
-      "farm_supply_quiet_farmers",
-    ],
+    ["farmers who haven't delivered in a month", "farm_supply_quiet_farmers"],
     // sw
     ["mkulima ameleta kilo 200 za kahawa leo", "farm_supply_create"],
     ["jumla ya deni la wakulima", "farm_passbook_balances"],
@@ -64,7 +68,47 @@ describe("voice trigger words", () => {
     ["boer heeft 200 kg koffie geleverd", "farm_supply_create"],
     ["hoeveel zijn we de boer schuldig", "farm_passbook_person"],
     ["koffie naar het andere filiaal sturen", "supply_chain_dispatch"],
+    // scheduled reports (v1 gap: recurring email, stock alert)
+    [
+      "every Monday morning send me a sales summary by email",
+      "scheduled_reports_create",
+    ],
+    ["tell me when eggs drop below 10 trays", "scheduled_reports_create"],
+    ["stop my weekly sales email", "scheduled_reports_update"],
+    ["stuur me elke maandag een verkoopoverzicht", "scheduled_reports_create"],
+    [
+      "kila Jumatatu asubuhi nitumie muhtasari wa mauzo kwa barua pepe",
+      "scheduled_reports_create",
+    ],
+    // currency: workspace rates, convert read
+    ["convert this invoice to euros", "currency_rates_convert"],
+    ["what is that in TZS", "currency_rates_convert"],
+    ["set the exchange rate from euro to shilling", "currency_rates_create"],
+    ["show the exchange rate history", "currency_rates_list"],
+    ["badilisha kiasi hiki kwa euro", "currency_rates_convert"],
+    ["weka kiwango cha kubadilisha fedha", "currency_rates_create"],
+    ["reken dit om naar euro", "currency_rates_convert"],
+    ["wisselkoers instellen voor de shilling", "currency_rates_create"],
+    // revenue excl VAT, top buyer of one product (v1 re-probe gaps)
+    ["what's our revenue this month, excluding VAT?", "orders_sales_summary"],
+    ["net sales ex VAT for October", "orders_sales_summary"],
+    ["omzet deze maand ex btw", "orders_sales_summary"],
+    ["mapato ya mwezi huu bila VAT", "orders_sales_summary"],
+    ["who buys the most cardamom", "orders_top_customers"],
+    ["who is our top customer for cardamom", "orders_top_customers"],
+    ["wie koopt de meeste kardemom", "orders_top_customers"],
+    ["nani ananunua iliki zaidi", "orders_top_customers"],
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
+  })
+
+  // Same account, two warehouses: the in-account move wins over the cross-account supply transfer.
+  it.each([
+    "move 20 bags of maize from the main store to the shop",
+    "transfer stock from the warehouse to the shop",
+    "verplaats 20 zakken mais van het hoofdmagazijn naar de winkel",
+    "hamisha mifuko 20 ya mahindi kutoka stoo kuu kwenda dukani",
+  ])("puts the in-account stock transfer first for %j", (query) => {
+    expect(top(query, 1)).toEqual(["stock_transfer"])
   })
 })

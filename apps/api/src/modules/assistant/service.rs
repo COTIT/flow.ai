@@ -113,7 +113,14 @@ pub(super) async fn propose_locked(
                     Some(facts) => facts,
                     None => match super::farm_facts::capture(conn, o, &input).await? {
                         Some(facts) => facts,
-                        None => super::preconditions::capture(conn, o, &input).await?,
+                        None => {
+                            match crate::modules::currency_rates::approval::capture(conn, o, &input)
+                                .await?
+                            {
+                                Some(facts) => facts,
+                                None => super::preconditions::capture(conn, o, &input).await?,
+                            }
+                        }
                     },
                 },
             },
@@ -177,13 +184,15 @@ pub(super) fn public_review(
             granted.allows("order.view")
                 && (facts["operation_id"] != "orders_invoice" || granted.allows("invoice.view"))
         }
-        Some("stock") => granted.allows("stock.list"),
+        Some("stock" | "stock_transfer") => granted.allows("stock.list"),
         Some("product" | "product_variant") => granted.allows("product.view"),
         Some("invoice") => granted.allows("invoice.view"),
         Some("mail" | "contact" | "relation") => granted.allows("relation.view"),
         // Farm roles aren't workspace permissions; farm_facts::capture refused callers
         // without the operation's role before reading any name.
         Some("farm_supply" | "harvest" | "dispatch" | "supply_link") => true,
+        // Currencies and rates are readable by every active member.
+        Some("currency_rate") => true,
         _ => false,
     };
     if !allowed {

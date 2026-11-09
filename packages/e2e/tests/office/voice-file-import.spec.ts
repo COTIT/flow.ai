@@ -67,6 +67,8 @@ test("a shared price list becomes one review with the rows left out listed, neve
           details: {
             rows: { from: 1, to: 3, total: 3 },
             notIncluded: [{ line: 4, text: "Maize", reason: "unreadable" }],
+            // A batch that is one part of a bigger change says how many follow (own review each).
+            remaining: 12,
           },
           expiresAt: new Date(Date.now() + 120000).toISOString(),
         },
@@ -143,6 +145,10 @@ test("a shared price list becomes one review with the rows left out listed, neve
   await expect(review).toContainText("Beans")
   await expect(review).toContainText("Rows 1–3 of 3")
   await expect(review).toContainText(en.voice.notIncluded.title)
+  await expect(review).toContainText(
+    en.voice.moreParts.replace("{count}", "12")
+  )
+  await expect(review).not.toContainText("Remaining")
   await expect(review).toContainText(
     `Line 4: Maize — ${en.voice.notIncluded.reasons.unreadable}`
   )

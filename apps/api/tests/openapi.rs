@@ -359,6 +359,44 @@ fn every_currency_operation_is_documented() {
     }
 }
 
+#[test]
+fn every_currency_rate_operation_is_documented() {
+    let s = spec();
+    for (path, method, ok, id) in [
+        (
+            "/workspace/{workspace}/currency-rates",
+            "get",
+            "200",
+            "currency_rates_list",
+        ),
+        (
+            "/workspace/{workspace}/currency-rates",
+            "post",
+            "201",
+            "currency_rates_create",
+        ),
+        (
+            "/workspace/{workspace}/currency-rates/convert",
+            "get",
+            "200",
+            "currency_rates_convert",
+        ),
+    ] {
+        let op = &s["paths"][path][method];
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(
+            op["security"][0]["bearer"],
+            json!([]),
+            "{method} {path}: no bearer"
+        );
+    }
+}
+
 /// Settings lists, relations, contacts and the search registry: every route is in the spec
 /// with its operationId, success status, 401 and bearer auth.
 #[test]
@@ -880,6 +918,7 @@ fn every_stock_operation_is_documented() {
         (&levels, "post", "stock_set_levels", "200"),
         (&reqs, "post", "stock_set_requirements", "200"),
         (&mv, "post", "stock_move_between_bins", "200"),
+        (&at("/transfer-stock"), "post", "stock_transfer", "200"),
         (&bins, "get", "stock_with_bins", "200"),
         (&conf, "get", "stock_configured_bins", "200"),
         (&moves, "get", "stock_movements", "200"),
@@ -2276,4 +2315,33 @@ fn duplicate_and_refund_say_what_they_cannot_do() {
             .unwrap_or("")
             .contains("till")
     );
+}
+
+#[test]
+fn every_scheduled_reports_operation_is_documented() {
+    assert_documented(&[
+        ("/scheduled-reports", "get", "scheduled_reports_list", "200"),
+        (
+            "/scheduled-reports",
+            "post",
+            "scheduled_reports_create",
+            "201",
+        ),
+        (
+            "/scheduled-reports/{schedule}",
+            "post",
+            "scheduled_reports_update",
+            "200",
+        ),
+        (
+            "/scheduled-reports/{schedule}",
+            "delete",
+            "scheduled_reports_delete",
+            "200",
+        ),
+    ]);
+    let s = spec();
+    let op = &s["paths"]["/scheduled-reports/unsubscribe"]["post"];
+    assert_eq!(op["operationId"], "scheduled_reports_unsubscribe");
+    assert!(op.get("security").is_none(), "public route");
 }

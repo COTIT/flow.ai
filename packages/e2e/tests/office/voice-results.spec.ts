@@ -65,7 +65,7 @@ async function chat(page: Page, reply: (operation: string, n: number) => unknown
   }
 }
 
-const sales = (from: string, to: string, gross: number, orders: number) => ({
+const sales = (from: string, to: string, gross: number, orders: number, net: number | null = null) => ({
   status: "completed",
   data: { data: {} },
   view: {
@@ -73,7 +73,7 @@ const sales = (from: string, to: string, gross: number, orders: number) => ({
     from,
     to,
     source: "till",
-    rows: [{ currency: "TZS", decimals: 0, gross, refunded: 0, orders }],
+    rows: [{ currency: "TZS", decimals: 0, gross, net, vat: net === null ? null : gross - net, refunded: 0, orders }],
   },
 })
 
@@ -82,7 +82,7 @@ test("two sales answers become one comparison chart with a table equivalent", as
   await page.emulateMedia({ reducedMotion: "reduce" })
   const voice = await chat(page, (_op, n) =>
     n === 1
-      ? sales("2026-11-07T00:00:00+03:00", "2026-11-08T00:00:00+03:00", 1250000, 42)
+      ? sales("2026-11-07T00:00:00+03:00", "2026-11-08T00:00:00+03:00", 1250000, 42, 1059322)
       : sales("2026-11-06T00:00:00+03:00", "2026-11-07T00:00:00+03:00", 980000, 31)
   )
   voice.call("orders_sales_summary")
@@ -95,9 +95,14 @@ test("two sales answers become one comparison chart with a table equivalent", as
   await expect(chart.locator("[data-chart]")).toContainText("TZS 1,250,000")
   await expect(chart.locator("[data-chart]")).toContainText("TZS 980,000")
   await expect(chart.locator("[data-chart]")).toContainText("42 orders")
+  // Revenue excl VAT says it is before refunds; a row without the split shows none.
+  await expect(chart.locator("[data-chart]")).toContainText("TZS 1,059,322 excl VAT, before refunds")
+  await expect(chart.locator("[data-chart]").getByText(/excl VAT/)).toHaveCount(1)
   // The same numbers as a real table, for screen readers and on request.
   const table = chart.getByRole("table")
   await expect(table.getByRole("row")).toHaveCount(3)
+  await expect(table.getByRole("columnheader", { name: r.net })).toHaveCount(1)
+  await expect(table).toContainText("TZS 190,678")
   await chart.scrollIntoViewIfNeeded()
   await expectFits(page)
   await chart.screenshot({ path: testInfo.outputPath("sales-chart.png") })
@@ -106,6 +111,7 @@ test("two sales answers become one comparison chart with a table equivalent", as
   await page.keyboard.press("Enter")
   await expect(chart.getByRole("button", { name: r.showChart })).toHaveAttribute("aria-pressed", "true")
   await expect(table).toBeVisible()
+  await expectFits(page)
   await expect(table.getByRole("rowheader").first()).toContainText("Nov 7, 2026")
   await expect(chart.locator("[data-chart]")).toHaveCount(0)
   // The picture is for the screen: the agent's tool result carries no view.

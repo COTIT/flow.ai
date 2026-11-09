@@ -345,6 +345,50 @@ impl Validate for MoveBody {
     }
 }
 
+/// Validated transfer-stock: warehouse-level rows only.
+pub struct Transfer {
+    pub from: Uuid,
+    pub to: Uuid,
+    pub lot_id: Option<Uuid>,
+    pub quantity: Decimal,
+    pub reason: String,
+}
+
+/// POST /products/{id}/transfer-stock.
+#[derive(Deserialize)]
+pub struct TransferBody(Map<String, Value>);
+
+impl Validate for TransferBody {
+    type Valid = Transfer;
+
+    fn validate(self, r: &mut Rules) -> Option<Transfer> {
+        let m = &self.0;
+        let from = uuid_of(r, m, "warehouse_id_from", NO_WAREHOUSE, true);
+        let to = uuid_of(r, m, "warehouse_id_to", NO_WAREHOUSE, true);
+        let lot_id = uuid_of(r, m, "lot_id", "The lot id must be a valid UUID.", false);
+        let quantity = r
+            .required_value("quantity", m.get("quantity").cloned())
+            .and_then(|v| r.decimal("quantity", &v, Decimal::new(1, 2), QTY_MAX));
+        let reason = text(r, m, "reason", 255);
+        if reason.is_none() {
+            r.missing("reason");
+        }
+        if from.is_some() && from == to {
+            r.add(
+                "warehouse_id_to",
+                "Source and target warehouses must be different.",
+            );
+        }
+        Some(Transfer {
+            from: from?,
+            to: to?,
+            lot_id,
+            quantity: quantity?,
+            reason: reason?,
+        })
+    }
+}
+
 /// DELETE /products/{id}/stocks?warehouse_id=&bin_id=.
 // Laravel sends DELETE data as a query.
 #[derive(Deserialize, IntoParams)]
@@ -577,6 +621,22 @@ pub struct MoveDoc {
     bin_id_from: Option<Uuid>,
     /// Leave out for the warehouse-level row.
     bin_id_to: Option<Uuid>,
+    /// Decimal > 0.
+    quantity: String,
+    reason: String,
+}
+
+/// Body of `POST /products/{id}/transfer-stock`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = TransferStockRequest)]
+pub struct TransferDoc {
+    /// Warehouse the stock leaves; never goes below zero or under what orders hold.
+    warehouse_id_from: Uuid,
+    /// Another warehouse of the same workspace.
+    warehouse_id_to: Uuid,
+    /// Lot (batch) of this product to move; leave out for stock without a lot.
+    lot_id: Option<Uuid>,
     /// Decimal > 0.
     quantity: String,
     reason: String,

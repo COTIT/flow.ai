@@ -1267,9 +1267,9 @@ async fn sales_summary_counts_sold_orders_per_currency(pool: PgPool) {
         res["data"]["currencies"],
         json!([
             { "currency": "EUR", "decimals": 2, "orders": 2, "gross_total": 2725 + 363,
-              "refunded_total": 0 },
+              "net_total": 2500 + 300, "vat_total": 225 + 63, "refunded_total": 0 },
             { "currency": "USD", "decimals": 2, "orders": 1, "gross_total": 726,
-              "refunded_total": 0 },
+              "net_total": 600, "vat_total": 126, "refunded_total": 0 },
         ]),
         "draft and cancelled don't count; currencies never mix"
     );
@@ -1318,6 +1318,67 @@ async fn sales_summary_counts_sold_orders_per_currency(pool: PgPool) {
     let clerk = member_with(&w.api.app, &w.api.pool, &ws, "c@example.com", &[]).await;
     let (s, _) = summary(&w, &clerk, &ws, &range).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "needs order.list");
+}
+
+/// Net and VAT come from the stored order amounts: a line discount lowers net (and so VAT), a
+/// zero-VAT product adds net only. Net + VAT = gross.
+#[sqlx::test]
+async fn sales_summary_splits_net_and_vat(pool: PgPool) {
+    let w = world(pool).await;
+    let zero = w
+        .api
+        .with_base("/settings/vat-groups")
+        .create(
+            json!({ "name": "0", "vat_amount": "0", "country": "NL" }),
+            "vat_group_id",
+        )
+        .await;
+    let bread = w
+        .api
+        .with_base("/products")
+        .create(
+            json!({ "name": "Bread", "price": "4", "vat_group_id": zero }),
+            "product_id",
+        )
+        .await;
+    stock(&w.api, &bread, &w.main, 10).await;
+    // 2 honey at 12.50 less 10 %: 2250 net, 9 % VAT = 202.5 -> 203.
+    let a = draft(
+        &w,
+        json!([{ "product_id": w.honey, "quantity": "2", "discount_percentage": "10" }]),
+    )
+    .await;
+    act(&w, &a, "confirm").await;
+    // 1 bread: 400 net, no VAT.
+    let b = draft(&w, json!([line(&bread, "1")])).await;
+    act(&w, &b, "confirm").await;
+
+    let now = chrono::Utc::now();
+    let range = format!(
+        "from={}&to={}",
+        (now - chrono::Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ"),
+        (now + chrono::Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ")
+    );
+    let (ws, owner) = (w.api.ws.clone(), w.api.owner.clone());
+    let (s, res) = summary(&w, &owner, &ws, &range).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        res["data"]["currencies"],
+        json!([{ "currency": "EUR", "decimals": 2, "orders": 2, "gross_total": 2453 + 400,
+                 "net_total": 2250 + 400, "vat_total": 203, "refunded_total": 0 }]),
+        "{res}"
+    );
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, res) = summary(&w, &eve.owner, &eve.ws, &range).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(
+        res["data"]["currencies"],
+        json!([]),
+        "own workspace: nothing"
+    );
+    let (s, _) = summary(&w, &eve.owner, &ws, &range).await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "acme refuses her");
 }
 
 async fn relation(w: &W, name: &str) -> String {

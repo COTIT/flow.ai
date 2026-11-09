@@ -829,4 +829,7 @@ it("shows model-reported unclear lines on the card and never sends them as argum
   })
   expect(bad.status).toBe(400)
   expect(mocks.proposeBatch).toHaveBeenCalledOnce()
+  await execute("assistant_batch_prepare", { calls, remaining: 12 })
+  // Model batches are capped at 25; the count left is passed on to be signed into the review.
+  expect(mocks.proposeBatch.mock.calls[1]!.slice(3)).toEqual([25, 12])
 })

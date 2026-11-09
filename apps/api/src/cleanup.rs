@@ -36,6 +36,8 @@ pub struct Pruned {
     pub webhook_events: u64,
     /// Till sessions ended or expired over a day ago.
     pub till_sessions: u64,
+    /// Scheduled report runs older than 90 days (their unsubscribe links expire).
+    pub scheduled_report_runs: u64,
     /// Resolved assistant actions older than 90 days; unresolved claims stay.
     pub assistant_actions: u64,
 }
@@ -58,6 +60,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         webhook_deliveries: webhooks::prune_deliveries(db).await?,
         webhook_events: webhooks::prune_events(db).await?,
         till_sessions: till::prune_sessions(db).await?,
+        scheduled_report_runs: crate::modules::scheduled_reports::repo::prune_runs(db).await?,
     })
 }
 
@@ -170,6 +173,7 @@ mod tests {
                 webhook_deliveries: 0,
                 webhook_events: 0,
                 till_sessions: 0,
+                scheduled_report_runs: 0,
             }
         );
         assert_eq!(

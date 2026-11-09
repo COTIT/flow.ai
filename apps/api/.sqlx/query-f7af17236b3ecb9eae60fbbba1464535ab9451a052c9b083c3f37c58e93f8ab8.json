@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM scheduled_report_runs WHERE ran_at < now() - interval '90 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f7af17236b3ecb9eae60fbbba1464535ab9451a052c9b083c3f37c58e93f8ab8"
+}
