@@ -189,6 +189,7 @@ const resources = [
   "messages",
   "webhooks",
   "payments",
+  "currency_rates",
   "currencies",
   "vat",
   "workspace",

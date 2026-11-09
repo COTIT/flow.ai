@@ -73,6 +73,15 @@ describe("voice trigger words", () => {
       "kila Jumatatu asubuhi nitumie muhtasari wa mauzo kwa barua pepe",
       "scheduled_reports_create",
     ],
+    // currency: workspace rates, convert read
+    ["convert this invoice to euros", "currency_rates_convert"],
+    ["what is that in TZS", "currency_rates_convert"],
+    ["set the exchange rate from euro to shilling", "currency_rates_create"],
+    ["show the exchange rate history", "currency_rates_list"],
+    ["badilisha kiasi hiki kwa euro", "currency_rates_convert"],
+    ["weka kiwango cha kubadilisha fedha", "currency_rates_create"],
+    ["reken dit om naar euro", "currency_rates_convert"],
+    ["wisselkoers instellen voor de shilling", "currency_rates_create"],
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
   })

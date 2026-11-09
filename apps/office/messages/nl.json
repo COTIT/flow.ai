@@ -1225,7 +1225,14 @@
       "contacts": "Contactpersonen",
       "variants": "Maten",
       "stock_rows": "Voorraadlocaties met voorraad",
-      "effect": "Gevolg"
+      "effect": "Gevolg",
+      "from_currency_id": "Van valuta",
+      "to_currency_id": "Naar valuta",
+      "effective_on": "Geldt vanaf",
+      "note": "Notitie",
+      "previous": "Huidig tarief",
+      "source": "Bron",
+      "from": "Van"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -1295,6 +1302,7 @@
       "messages": "bericht",
       "webhooks": "webhook",
       "payments": "betaling",
+      "currency_rates": "wisselkoers",
       "currencies": "valuta",
       "vat": "btw-groep",
       "workspace": "werkruimte",

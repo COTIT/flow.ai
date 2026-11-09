@@ -2993,6 +2993,64 @@
         ],
         "type": "object"
       },
+      "Conversion": {
+        "description": "A converted amount. Always say it uses the workspace's own rate as of `rate_effective_on`; Genesy fetches no market rates.",
+        "properties": {
+          "amount_minor": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "converted_minor": {
+            "description": "Minor units of `to`, rounded half up once.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "from": {
+            "$ref": "#/components/schemas/SideResource"
+          },
+          "rate": {
+            "description": "The stored rate used (exact decimal text; for `inverse` it is the `to` → `from` rate).",
+            "example": "2950.5",
+            "type": "string"
+          },
+          "rate_effective_on": {
+            "description": "Day the rate took effect; null for `same`.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rounding": {
+            "description": "Always `half_up`.",
+            "example": "half_up",
+            "type": "string"
+          },
+          "source": {
+            "description": "Always `workspace`: a rate staff entered.",
+            "example": "workspace",
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/SideResource"
+          }
+        },
+        "required": [
+          "amount_minor",
+          "from",
+          "to",
+          "converted_minor",
+          "rate",
+          "rate_effective_on",
+          "direction",
+          "rounding",
+          "source"
+        ],
+        "type": "object"
+      },
       "CorrectionCreated": {
         "description": "Create response.",
         "properties": {
@@ -3858,6 +3916,43 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "CreateRateRequest": {
+        "description": "New rate: 1 major unit of `from` = `rate` major units of `to`. Rates are never edited; a newer rate for the same day replaces it.",
+        "properties": {
+          "effective_on": {
+            "description": "First day the rate applies (`YYYY-MM-DD`); not after today.",
+            "format": "date",
+            "type": "string"
+          },
+          "from_currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rate": {
+            "description": "Positive decimal, at most 8 decimals, at most 1000000000.",
+            "example": "2950.5",
+            "type": "string"
+          },
+          "to_currency_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_currency_id",
+          "to_currency_id",
+          "rate",
+          "effective_on"
         ],
         "type": "object"
       },
@@ -5236,6 +5331,15 @@
         ],
         "type": "object"
       },
+      "Direction": {
+        "description": "How the rate was applied.",
+        "enum": [
+          "same",
+          "direct",
+          "inverse"
+        ],
+        "type": "string"
+      },
       "DiscountCreated": {
         "description": "Create response.",
         "properties": {
@@ -6197,6 +6301,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ContactCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Conversion": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Conversion"
           }
         },
         "required": [
@@ -7278,6 +7394,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/QuoteResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_RateCreated": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RateCreated"
           }
         },
         "required": [
@@ -15490,6 +15618,25 @@
         ],
         "type": "object"
       },
+      "Paginated_RateResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RateResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_Redemption": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -20955,6 +21102,63 @@
         ],
         "type": "object"
       },
+      "RateCreated": {
+        "description": "Create response: the new row's id.",
+        "properties": {
+          "currency_rate_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency_rate_id"
+        ],
+        "type": "object"
+      },
+      "RateResource": {
+        "description": "A workspace exchange rate: 1 `from` = `rate` `to` from `effective_on` on.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "effective_on": {
+            "format": "date",
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/SideResource"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rate": {
+            "description": "Exact decimal text.",
+            "example": "2950.5",
+            "type": "string"
+          },
+          "to": {
+            "$ref": "#/components/schemas/SideResource"
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "to",
+          "rate",
+          "effective_on",
+          "note",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "RawProduct": {
         "description": "A product a raw lot may be of.",
         "properties": {
@@ -23831,6 +24035,29 @@
           "created_at",
           "last_updated_at",
           "meta"
+        ],
+        "type": "object"
+      },
+      "SideResource": {
+        "description": "A currency inside a rate or a conversion.",
+        "properties": {
+          "code": {
+            "description": "ISO 4217 code, upper case.",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "decimals"
         ],
         "type": "object"
       },
@@ -39653,6 +39880,545 @@
         "summary": "Update a currency (send only changed fields)",
         "tags": [
           "currencies"
+        ]
+      }
+    },
+    "/workspace/{workspace}/currency-rates": {
+      "get": {
+        "operationId": "currency_rates_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only rates from this currency.",
+            "in": "query",
+            "name": "from_currency_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only rates to this currency.",
+            "in": "query",
+            "name": "to_currency_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_RateResource"
+                }
+              }
+            },
+            "description": "One page of rates"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Membership is inactive"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed currency id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the workspace's exchange rates (history, newest first)",
+        "tags": [
+          "currency_rates"
+        ]
+      },
+      "post": {
+        "operationId": "currency_rates_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RateCreated"
+                }
+              }
+            },
+            "description": "Stored; returns the new id"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `currency.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown currency or future date"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set an exchange rate for a currency pair from a day on (never edits old rates)",
+        "tags": [
+          "currency_rates"
+        ]
+      }
+    },
+    "/workspace/{workspace}/currency-rates/convert": {
+      "get": {
+        "description": "Read only. Uses the latest rate staff set on or before `on`; no market rates. Say the answer uses the workspace's own rate as of `rate_effective_on`. 422 when no rate exists for the pair (either direction).",
+        "operationId": "currency_rates_convert",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_currency_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_currency_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Signed whole minor units of the `from` currency (EUR 12.34 = 1234).",
+            "in": "query",
+            "name": "amount_minor",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Day whose rate applies (`YYYY-MM-DD`); default today in the workspace time zone.",
+            "in": "query",
+            "name": "on",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Conversion"
+                }
+              }
+            },
+            "description": "The converted amount and the rate used"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Membership is inactive"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown currency or no rate"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Convert an amount to another currency at the workspace's own exchange rate",
+        "tags": [
+          "currency_rates"
         ]
       }
     },

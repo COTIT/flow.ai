@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT rate, effective_on FROM currency_rates\n         WHERE workspace_id = $1 AND from_currency_id = $2 AND to_currency_id = $3\n           AND effective_on <= $4\n         ORDER BY effective_on DESC, created_at DESC, id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rate",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "currency_rates",
+            "name": "rate"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "effective_on",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "currency_rates",
+            "name": "effective_on"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9a54fc22286f2232b829c4882c09732bab7808a0ecd037b332adbdce8f76dea4"
+}

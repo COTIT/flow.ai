@@ -1225,7 +1225,14 @@
       "contacts": "Contacts",
       "variants": "Sizes",
       "stock_rows": "Stock locations with stock",
-      "effect": "Effect"
+      "effect": "Effect",
+      "from_currency_id": "From currency",
+      "to_currency_id": "To currency",
+      "effective_on": "Applies from",
+      "note": "Note",
+      "previous": "Rate in force",
+      "source": "Source",
+      "from": "From"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -1295,6 +1302,7 @@
       "messages": "message",
       "webhooks": "webhook",
       "payments": "payment",
+      "currency_rates": "exchange rate",
       "currencies": "currency",
       "vat": "VAT group",
       "workspace": "workspace",

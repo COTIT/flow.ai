@@ -91,6 +91,57 @@ const reviews: Review[] = [
     shows: ["Maize 50 kg", "Main store", "Shop", "120", "100", "25"],
     hides: ["Stock from", "stock_from"],
   },
+  {
+    name: "setting an exchange rate names the pair and shows old and new rate with the day",
+    operationId: "currency_rates_create",
+    request: "Set the euro to shilling rate to 3000 from 1 November.",
+    details: {
+      workspace: "w1",
+      // actions.ts names the card's record from the facts' locked label.
+      record: { type: "record", label: "EUR → TZS" },
+      current: {
+        kind: "currency_rate",
+        locked: {
+          label: "EUR → TZS",
+          from: {
+            id: "01950000-0000-7000-8000-0000000000e1",
+            name: "EUR",
+            code: "EUR",
+            decimals: 2,
+          },
+          to: {
+            id: "01950000-0000-7000-8000-0000000000e2",
+            name: "TZS",
+            code: "TZS",
+            decimals: 0,
+          },
+          previous: { rate: "2900", effective_on: "2026-10-01" },
+        },
+        changes: [
+          { field: "rate", before: "2900", after: "3000" },
+          { field: "effective_on", before: "2026-10-01", after: "2026-11-01" },
+        ],
+        effective_on: "2026-11-01",
+        note: null,
+        source: "workspace",
+      },
+      changes: {
+        from_currency_id: "01950000-0000-7000-8000-0000000000e1",
+        to_currency_id: "01950000-0000-7000-8000-0000000000e2",
+        rate: "3000",
+        effective_on: "2026-11-01",
+      },
+    },
+    shows: [
+      en.voice.resources.currency_rates,
+      "EUR → TZS",
+      "2900",
+      "3000",
+      "2026-10-01",
+      "2026-11-01",
+      en.voice.reviewFields.effective_on,
+    ],
+  },
 ]
 
 for (const review of reviews) {

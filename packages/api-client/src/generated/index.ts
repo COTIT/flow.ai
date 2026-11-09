@@ -4,6 +4,7 @@ export * from './attention/attention';
 export * from './auth/auth';
 export * from './contacts/contacts';
 export * from './currencies/currencies';
+export * from './currency-rates/currency-rates';
 export * from './custom-statuses/custom-statuses';
 export * from './custom-types/custom-types';
 export * from './deal-pipelines/deal-pipelines';
