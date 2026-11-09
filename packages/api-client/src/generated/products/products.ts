@@ -1153,7 +1153,7 @@ export const useProductsSyncExternal = <TError = ErrorType<MessageBody>,
       return useMutation(getProductsSyncExternalMutationOptions(options), queryClient);
     }
     /**
- * Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.
+ * Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart; `product_id` / `variant_id` keep one product's or size's lines. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.
  * @summary Best-selling products in a period (best sellers, top products)
  */
 export const productsTopSellers = (

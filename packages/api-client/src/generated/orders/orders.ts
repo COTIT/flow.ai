@@ -1053,8 +1053,8 @@ export const useOrdersReturns = <TError = ErrorType<MessageBody | UnprocessableB
       return useMutation(getOrdersReturnsMutationOptions(options), queryClient);
     }
     /**
- * Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.
- * @summary Sales in a time range, per currency
+ * Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `net_total` the same excl VAT (revenue excluding VAT) and `vat_total` their VAT, so net + VAT = gross; all three before refunds. `refunded_total` is the provider refunds of those orders that went through (incl VAT, not split). One row per currency, minor units.
+ * @summary Sales (revenue) in a time range per currency, incl and excl VAT
  */
 export const ordersSalesSummary = (
     workspace: string,
@@ -1132,7 +1132,7 @@ export function useOrdersSalesSummary<TData = Awaited<ReturnType<typeof ordersSa
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Sales in a time range, per currency
+ * @summary Sales (revenue) in a time range per currency, incl and excl VAT
  */
 
 export function useOrdersSalesSummary<TData = Awaited<ReturnType<typeof ordersSalesSummary>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
@@ -1255,8 +1255,8 @@ export function useOrdersSalesCompare<TData = Awaited<ReturnType<typeof ordersSa
 
 
 /**
- * Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. Money in minor units.
- * @summary Top customers by sales in a period (best customers, who bought the most)
+ * Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. `product_id` (and/or `variant_id`) answers "who buys the most honey": only that product's lines count (`line_excl` + `line_vat`) and `orders` are the orders holding it. Net/VAT split per row; all before refunds. Money in minor units.
+ * @summary Top customers by sales in a period, optionally of one product (best customers, who buys the most of a product)
  */
 export const ordersTopCustomers = (
     workspace: string,
@@ -1334,7 +1334,7 @@ export function useOrdersTopCustomers<TData = Awaited<ReturnType<typeof ordersTo
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Top customers by sales in a period (best customers, who bought the most)
+ * @summary Top customers by sales in a period, optionally of one product (best customers, who buys the most of a product)
  */
 
 export function useOrdersTopCustomers<TData = Awaited<ReturnType<typeof ordersTopCustomers>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
