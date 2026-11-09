@@ -359,6 +359,44 @@ fn every_currency_operation_is_documented() {
     }
 }
 
+#[test]
+fn every_currency_rate_operation_is_documented() {
+    let s = spec();
+    for (path, method, ok, id) in [
+        (
+            "/workspace/{workspace}/currency-rates",
+            "get",
+            "200",
+            "currency_rates_list",
+        ),
+        (
+            "/workspace/{workspace}/currency-rates",
+            "post",
+            "201",
+            "currency_rates_create",
+        ),
+        (
+            "/workspace/{workspace}/currency-rates/convert",
+            "get",
+            "200",
+            "currency_rates_convert",
+        ),
+    ] {
+        let op = &s["paths"][path][method];
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(
+            op["security"][0]["bearer"],
+            json!([]),
+            "{method} {path}: no bearer"
+        );
+    }
+}
+
 /// Settings lists, relations, contacts and the search registry: every route is in the spec
 /// with its operationId, success status, 401 and bearer auth.
 #[test]

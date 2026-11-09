@@ -53,6 +53,52 @@ const reviews = [
       en.voice.results.warningsTitle,
     ],
   },
+  {
+    name: "setting an exchange rate names the pair and shows old and new rate with the day",
+    operationId: "currency_rates_create",
+    request: "Set the euro to shilling rate to 3000 from 1 November.",
+    details: {
+      workspace: "w1",
+      current: {
+        kind: "currency_rate",
+        locked: {
+          label: "EUR → TZS",
+          from: {
+            id: "01950000-0000-7000-8000-0000000000e1",
+            name: "EUR",
+            code: "EUR",
+            decimals: 2,
+          },
+          to: {
+            id: "01950000-0000-7000-8000-0000000000e2",
+            name: "TZS",
+            code: "TZS",
+            decimals: 0,
+          },
+          previous: { rate: "2900", effective_on: "2026-10-01" },
+        },
+        changes: [{ field: "rate", before: "2900", after: "3000" }],
+        effective_on: "2026-11-01",
+        note: null,
+        source: "workspace",
+      },
+      changes: {
+        from_currency_id: "01950000-0000-7000-8000-0000000000e1",
+        to_currency_id: "01950000-0000-7000-8000-0000000000e2",
+        rate: "3000",
+        effective_on: "2026-11-01",
+      },
+    },
+    shows: [
+      "EUR → TZS",
+      "2900",
+      "3000",
+      "2026-11-01",
+      en.voice.reviewFields.from_currency_id,
+      en.voice.reviewFields.effective_on,
+      en.voice.reviewFields.previous,
+    ],
+  },
 ]
 
 for (const review of reviews) {

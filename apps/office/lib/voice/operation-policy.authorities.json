@@ -30,7 +30,7 @@
   "apps/api/src/modules/assistant/repo.rs": "f1a9f28ae67ed493123ddb50356ab50252c0ff8ce5e07226888ce3155ca70567",
   "apps/api/src/modules/assistant/retention.rs": "e02361c7141a69fd8d3c2307fe73fae8603cbf7ba8543506797bc683b7fea0ef",
   "apps/api/src/modules/assistant/routes.rs": "28806bb3bd620a2a25aaaf0fbf362305cd9972632158523fbd841f5083c138ba",
-  "apps/api/src/modules/assistant/service.rs": "fe5a9f181657d65b245bf71df8e4b7222907f1a856e6d23d6ad10db672434a6e",
+  "apps/api/src/modules/assistant/service.rs": "ff6590d72e7ce65718c7d236b180a63b277a6c76f7f16f13fdd96b1baa7657c2",
   "apps/api/src/modules/attention/handlers.rs": "afaa4f5b5aae9184ec19401477f04943a43cd5b56c7b361095a636a7e53e1ae2",
   "apps/api/src/modules/attention/service.rs": "2e37793ecd9bbaece42fe3df7aa2fc9f3edd95492350d5aa4f76c88a55709986",
   "apps/api/src/modules/auth/handlers.rs": "bbd5f11896f4569c969e517a72746b61674423bacc2dabe87deda3d7225f49a4",
@@ -42,6 +42,8 @@
   "apps/api/src/modules/currencies/handlers.rs": "9dbc4fb8980d773bdae909ace507e175817b7f2dc0dce8026e6a1c1a2f38520f",
   "apps/api/src/modules/currencies/repo.rs": "ef29839f54313d9707b6270df4d15fc892c7fe9e82619d406bb7dea8fa7baebf",
   "apps/api/src/modules/currencies/service.rs": "dca0654dd4c3f5633831e67a19d6bb601cdefc7b36306b0a7e777ba3fd2f76dc",
+  "apps/api/src/modules/currency_rates/handlers.rs": "9be1d6f8e05d5586d369417caa0019fb9c99667353be3b7d8d29d96c1a052c2a",
+  "apps/api/src/modules/currency_rates/service.rs": "ca3ecaf0c665a3a5dbc7eca1ce45159a7f78c35c98d9e305996dec2f9f4eaca2",
   "apps/api/src/modules/custom_statuses/dto.rs": "98bdd4fddf82646ef9931670f32abb8eb7f7270f0fd80d3dcb340710f74283c2",
   "apps/api/src/modules/custom_statuses/handlers.rs": "a10a5e0e8ca2c05152118a4a5fe8025b5c6229817edfb9490b3e8a8a2f9e5b2d",
   "apps/api/src/modules/custom_statuses/service.rs": "bfdb3b0ee06ff21ed510d1abdac674826ae3c8bba141d0a5bb321c96a728b8ce",
@@ -210,5 +212,5 @@
   "apps/api/src/modules/workspaces/handlers.rs": "9766a5f326a08ba1db481f15cfa6a6e00cdc8446f98761a5cdcac7fa5edf4297",
   "apps/api/src/modules/workspaces/service.rs": "6b8b6c901d71387f37a1c0eadbf237fd4d97b17953e48a512bbf36aaf74909f6",
   "apps/api/src/money.rs": "ec8929ded1c344ea115e88323e3d348017948219920c361d066deb656d5c3b1f",
-  "apps/api/src/openapi.rs": "50879a5a757c4734a3c1d10ea98cfa8e545e255c83609531b5a98684a2a033b7"
+  "apps/api/src/openapi.rs": "bf16a82dc914474af867e6f71e608b75ffd74301ecf93f983d8ad2a995ccc80a"
 }

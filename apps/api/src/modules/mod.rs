@@ -8,6 +8,7 @@ pub mod auth;
 pub mod cash;
 pub mod contacts;
 pub mod currencies;
+pub mod currency_rates;
 pub mod custom_statuses;
 pub mod custom_types;
 pub mod deal_pipelines;

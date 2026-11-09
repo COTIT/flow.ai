@@ -26,6 +26,7 @@ mod bootstrap;
 mod checkout;
 mod cli_migrate;
 mod currencies;
+mod currency_rates;
 mod custom_statuses;
 mod custom_types;
 mod db;

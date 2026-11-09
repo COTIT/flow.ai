@@ -1252,6 +1252,99 @@
     },
     "confirmationFields": []
   },
+  "currency_rates_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/currency-rates",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/currency_rates/handlers.rs#list",
+        "apps/api/src/modules/currency_rates/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "currency_rates_convert": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/currency-rates/convert",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/currency_rates/handlers.rs#convert",
+        "apps/api/src/modules/currency_rates/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "currency_rates_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/currency-rates",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["currency.update"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/currency_rates/handlers.rs#create",
+        "apps/api/src/modules/currency_rates/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "custom_statuses_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/custom-status",

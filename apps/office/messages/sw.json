@@ -1224,7 +1224,14 @@
       "contacts": "Watu wa mawasiliano",
       "variants": "Saizi",
       "stock_rows": "Maeneo ya hisa yenye hisa",
-      "effect": "Matokeo"
+      "effect": "Matokeo",
+      "from_currency_id": "Kutoka sarafu",
+      "to_currency_id": "Kwenda sarafu",
+      "effective_on": "Inaanza",
+      "note": "Maelezo",
+      "previous": "Kiwango kilichopo",
+      "source": "Chanzo",
+      "from": "Kutoka"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",

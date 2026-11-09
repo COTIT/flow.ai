@@ -354,5 +354,70 @@
     ],
     "nl": ["vandaag", "taken", "dringend", "achterstallig"],
     "sw": ["leo", "kazi", "haraka"]
+  },
+  "currency_rates_convert": {
+    "en": [
+      "convert",
+      "conversion",
+      "exchange",
+      "euros",
+      "euro",
+      "shillings",
+      "shilling",
+      "tzs",
+      "dollars",
+      "dollar",
+      "usd",
+      "eur",
+      "worth",
+      "equivalent"
+    ],
+    "nl": [
+      "omrekenen",
+      "reken om",
+      "omzetten",
+      "wisselen",
+      "euro",
+      "euros",
+      "shilling",
+      "dollar",
+      "waard"
+    ],
+    "sw": [
+      "badilisha",
+      "kubadilisha",
+      "geuza",
+      "thamani",
+      "euro",
+      "shilingi",
+      "dola",
+      "sarafu"
+    ]
+  },
+  "currency_rates_create": {
+    "en": [
+      "exchange rate",
+      "set rate",
+      "new rate",
+      "update rate",
+      "currency rate"
+    ],
+    "nl": ["wisselkoers", "koers instellen", "nieuwe koers", "valutakoers"],
+    "sw": [
+      "kiwango",
+      "kiwango cha kubadilisha",
+      "weka kiwango",
+      "kiwango kipya"
+    ]
+  },
+  "currency_rates_list": {
+    "en": ["exchange rates", "rate history", "current rate", "which rate"],
+    "nl": ["wisselkoersen", "koersen", "koershistorie", "huidige koers"],
+    "sw": [
+      "viwango",
+      "viwango vya kubadilisha",
+      "historia ya viwango",
+      "kiwango cha sasa"
+    ]
   }
 }
