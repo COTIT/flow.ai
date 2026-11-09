@@ -22,13 +22,15 @@ const document = () =>
 
 describe("reviewed multipart business uploads", () => {
   it("serializes reproducibly and hashes exactly the approved raw body", async () => {
+    // One prepared action: its minted retry id stays fixed across serializations.
+    const action = document()
     const first = await serializeMultipart(
-      document(),
+      action,
       new Map([[id, pdf()]]),
       boundary
     )
     const second = await serializeMultipart(
-      document(),
+      action,
       new Map([[id, pdf()]]),
       boundary
     )
@@ -47,7 +49,7 @@ describe("reviewed multipart business uploads", () => {
       },
     ])
     const changed = await serializeMultipart(
-      document(),
+      action,
       new Map([
         [
           id,
@@ -96,6 +98,7 @@ describe("reviewed multipart business uploads", () => {
       {
         ...action,
         body: {
+          id: (action.body as { id: string }).id,
           actions: "[]",
           description: "Problem",
           route: "/farm",

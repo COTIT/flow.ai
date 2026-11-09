@@ -412,7 +412,12 @@ function prepare(
     : tool.requestMedia["application/json"]
       ? "application/json"
       : undefined
-  let body = args.body
+  let body = args.body ?? (multipart ? {} : undefined)
+  // Retry key the agent left out: minted once here; the signed review carries it to dispatch.
+  const key =
+    tool.retry.mode === "client_reference" ? tool.retry.field : undefined
+  if (key && object(body) && body[key] == null)
+    body = { ...body, [key]: crypto.randomUUID() }
   if (!contentType && body !== undefined)
     throw new Error("This operation does not accept a body.")
   if (
@@ -458,7 +463,6 @@ function prepare(
       throw new Error("A screenshot or photo attachment is required.")
     validateValue(`${operationId}.multipart`, multipart.schema, fields)
     knownFields(multipart.schema, fields)
-    body = args.body ?? {}
   } else if (contentType) {
     if (tool.requestRequired && body === undefined)
       throw new Error("A request body is required.")
