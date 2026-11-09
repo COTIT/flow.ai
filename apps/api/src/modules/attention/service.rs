@@ -24,8 +24,16 @@ const ITEMS: i64 = 5;
 
 /// The summary for `access`: each section only when its list route would let the caller in.
 pub async fn summary(db: &PgPool, access: &WorkspaceAccess) -> Result<Attention, AppError> {
-    let ws = access.workspace_id;
-    let may = |perm: &str| access.allows(perm);
+    sections(db, access.workspace_id, |perm| access.allows(perm)).await
+}
+
+/// The summary of `ws` for a reader holding the permissions `may` allows (scheduled reports
+/// pass the owner's grants, rechecked per run).
+pub async fn sections(
+    db: &PgPool,
+    ws: uuid::Uuid,
+    may: impl Fn(&str) -> bool,
+) -> Result<Attention, AppError> {
     let orders = if may("order.list") {
         let c = repo::order_counts(db, ws).await?;
         Some(AttentionOrders {
@@ -43,7 +51,7 @@ pub async fn summary(db: &PgPool, access: &WorkspaceAccess) -> Result<Attention,
         None
     };
     let stock = if may("stock.list") {
-        let (items, out_of_stock) = repo::sold_out(db, ws, ITEMS).await?;
+        let (items, out_of_stock) = repo::sold_out(db, ws, 0, ITEMS).await?;
         Some(AttentionStock {
             negative: repo::negative_stock(db, ws).await?,
             out_of_stock,
@@ -83,7 +91,7 @@ pub async fn summary(db: &PgPool, access: &WorkspaceAccess) -> Result<Attention,
 }
 
 /// Draft, unpaid (the `Pay` rule's statuses) and overdue invoices of `ws`.
-async fn invoices(db: &PgPool, ws: uuid::Uuid) -> Result<AttentionInvoices, AppError> {
+pub async fn invoices(db: &PgPool, ws: uuid::Uuid) -> Result<AttentionInvoices, AppError> {
     let payable = PAYABLE.map(String::from);
     let today = repo::today_start(db, ws).await?;
     let c = repo::invoice_counts(db, ws, &payable, today).await?;

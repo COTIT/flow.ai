@@ -61,7 +61,8 @@
     "invites": "Uitnodigingen",
     "members": "Leden",
     "categories": "Categorieën",
-    "voice": "Spraakassistent"
+    "voice": "Spraakassistent",
+    "scheduledReports": "Geplande rapporten"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -1632,6 +1633,10 @@
         "name": "Uitnodigingen",
         "purpose": "Collega's uitnodigen voor de werkruimte"
       },
+      "scheduled_reports": {
+        "name": "Geplande rapporten",
+        "purpose": "Je gemailde rapporten: pauzeren of verwijderen"
+      },
       "app_keys": {
         "name": "App-sleutels",
         "purpose": "Sleutels voor gekoppelde apps"
@@ -1662,5 +1667,53 @@
         "other": "weggelaten"
       }
     }
+  },
+  "scheduled": {
+    "title": "Geplande rapporten",
+    "intro": "Rapporten die de spraakassistent je volgens schema mailt. Alleen jij krijgt ze.",
+    "empty": "Nog geen geplande rapporten.",
+    "emptyHint": "Vraag het de spraakassistent, bijv. “Stuur me elke maandag een verkoopoverzicht”.",
+    "report": "Rapport",
+    "schedule": "Wanneer",
+    "nextRun": "Volgende mail",
+    "status": "Status",
+    "actions": "Acties",
+    "pause": "Pauzeren",
+    "resume": "Hervatten",
+    "delete": "Verwijderen",
+    "deleteTitle": "{report} verwijderen?",
+    "deleteText": "Je krijgt deze mail niet meer. Je kunt de assistent altijd om een nieuwe vragen.",
+    "reports": {
+      "sales_summary": "Verkoopoverzicht",
+      "attention": "Takenlijst",
+      "overdue_invoices": "Achterstallige facturen",
+      "stock": "Lage voorraad"
+    },
+    "every": {
+      "daily": "Elke dag rond {time}",
+      "weekly": "Elke {day} rond {time}",
+      "monthly": "Dag {day} van elke maand rond {time}"
+    },
+    "zone": "Tijden in {zone}",
+    "states": {
+      "active": "Actief",
+      "user": "Gepauzeerd",
+      "access_lost": "Gepauzeerd: geen toegang",
+      "unsubscribed": "Gestopt via mail"
+    },
+    "lostHint": "Je hebt geen toegang meer tot dit rapport. Vraag een beheerder en hervat het dan.",
+    "paused": "Rapport gepauzeerd.",
+    "resumed": "Rapport hervat.",
+    "deleted": "Rapport verwijderd.",
+    "onlyYou": "Alleen jij, op je login-e-mailadres"
+  },
+  "unsubscribe": {
+    "title": "Dit rapport stoppen?",
+    "text": "Je krijgt deze mail niet meer. Je kunt hem later hervatten bij Geplande rapporten.",
+    "confirm": "Mail stoppen",
+    "done": "Klaar: je krijgt geen {report}-mails meer.",
+    "incomplete": "Deze link is onvolledig",
+    "invalid": "Deze link is niet meer geldig",
+    "manage": "Geplande rapporten beheren"
   }
 }

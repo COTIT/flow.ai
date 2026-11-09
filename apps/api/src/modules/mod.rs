@@ -52,6 +52,7 @@ pub mod product_variants;
 pub mod products;
 pub mod relations;
 pub mod sales_groups;
+pub mod scheduled_reports;
 pub mod search;
 pub mod settings;
 pub mod shipment_methods;

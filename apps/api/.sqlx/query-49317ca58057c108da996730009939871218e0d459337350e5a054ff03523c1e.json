@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce((SELECT z.name FROM pg_timezone_names z\n                            WHERE z.name = (SELECT s.data -> 'general' ->> 'timezone'\n                                            FROM settings s WHERE s.workspace_id = $1)),\n                           'UTC') AS \"name!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "49317ca58057c108da996730009939871218e0d459337350e5a054ff03523c1e"
+}

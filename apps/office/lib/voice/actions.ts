@@ -8,6 +8,7 @@ import { voiceSetting } from "./settings"
 import { checkpointReview, createReview, verifyReview } from "./workflow"
 import { confirmationPhrase } from "./confirmation"
 import { withVoiceTracing } from "./tracing"
+import { workspaceTimeZone } from "./time-zone"
 import { reviewTarget } from "./review-target"
 import { reviewChanges, reviewFacts, reviewWarnings } from "./review-facts"
 import type {
@@ -253,7 +254,10 @@ export async function reviewStep(
               action.body,
               stored.review_facts,
               action.operationId,
-              context.language ?? "en"
+              context.language ?? "en",
+              action.operationId === "scheduled_reports_create"
+                ? await workspaceTimeZone(context)
+                : undefined
             ),
           }
         : {}),

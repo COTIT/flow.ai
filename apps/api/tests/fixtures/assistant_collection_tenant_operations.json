@@ -62,6 +62,8 @@
     "products_search",
     "products_top_sellers",
     "sales_groups_create",
+    "scheduled_reports_create",
+    "scheduled_reports_list",
     "shipment_methods_create",
     "special_offers_create_all",
     "stock_list",

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE scheduled_reports s\n         SET active = false, paused_reason = coalesce(s.paused_reason, 'unsubscribed'),\n             updated_at = now()\n         FROM scheduled_report_runs r\n         WHERE r.unsubscribe_hash = $1 AND s.id = r.schedule_id\n         RETURNING s.report",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "report",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_reports",
+            "name": "report"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b50e49c3c8fbcf8d05b0471b28e89ac39e3aa61c57e1c187050487da7a568e95"
+}

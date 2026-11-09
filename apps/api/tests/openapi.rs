@@ -2277,3 +2277,32 @@ fn duplicate_and_refund_say_what_they_cannot_do() {
             .contains("till")
     );
 }
+
+#[test]
+fn every_scheduled_reports_operation_is_documented() {
+    assert_documented(&[
+        ("/scheduled-reports", "get", "scheduled_reports_list", "200"),
+        (
+            "/scheduled-reports",
+            "post",
+            "scheduled_reports_create",
+            "201",
+        ),
+        (
+            "/scheduled-reports/{schedule}",
+            "post",
+            "scheduled_reports_update",
+            "200",
+        ),
+        (
+            "/scheduled-reports/{schedule}",
+            "delete",
+            "scheduled_reports_delete",
+            "200",
+        ),
+    ]);
+    let s = spec();
+    let op = &s["paths"]["/scheduled-reports/unsubscribe"]["post"];
+    assert_eq!(op["operationId"], "scheduled_reports_unsubscribe");
+    assert!(op.get("security").is_none(), "public route");
+}
