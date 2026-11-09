@@ -1,12 +1,14 @@
 /** Contextual update so the agent states times in the workspace zone, not the device's or its own guess. */
 export function timeZoneUpdate(zone = "UTC", now = new Date()) {
-  const offset =
+  const name =
     new Intl.DateTimeFormat("en", {
       timeZone: zone,
       timeZoneName: "longOffset",
     })
       .formatToParts(now)
       .find((part) => part.type === "timeZoneName")?.value ?? "GMT"
+  // ICU versions differ for zero offset ("GMT" vs "GMT+00:00"); always give the agent the full form.
+  const offset = name === "GMT" ? "GMT+00:00" : name
   return JSON.stringify({
     workspace_time_zone: zone,
     utc_offset: offset,

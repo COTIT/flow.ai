@@ -14,5 +14,5 @@ it("tells the agent the workspace zone with its offset and to always name it", (
 it("says UTC when the workspace zone is not known, never the device zone", () => {
   const update = JSON.parse(timeZoneUpdate(undefined))
   expect(update.workspace_time_zone).toBe("UTC")
-  expect(update.utc_offset).toBe("GMT")
+  expect(update.utc_offset).toBe("GMT+00:00")
 })
