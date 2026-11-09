@@ -4,7 +4,7 @@
 export const CLASSES = ["works", "partial", "missed_tool", "missing_capability", "broken", "correctly_refused"]
 
 const NARRATION =
-  /^(ok(ay)?[,.!]?\s*)?((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one moment|just a (moment|sec)|give me a (moment|sec)|hold on|checking|looking (that|this|it) up|ninaangalia|naangalia|subiri|hebu|ngoja)\b/i
+  /^((ok(ay)?|oké|sawa)[,.!]?\s*)?((got (that|it)|begrepen|nimeelewa)[,.!]?\s*)?((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one moment|just a (moment|sec)|give me a (moment|sec)|hold on|checking|looking (that|this|it) up|ninaangalia|naangalia|subiri|hebu|ngoja|ik zoek|niruhusu)\b/i
 
 /** A "please wait" line that promises work instead of reporting a result. */
 export const isNarration = (text) => plain(text).length < 240 && NARRATION.test(plain(text))

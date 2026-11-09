@@ -140,6 +140,11 @@ test("narration detection", () => {
   assert.ok(isNarration("I'm checking the stock now."))
   assert.ok(isNarration("Let me look that up for you, one moment."))
   assert.ok(isNarration("Ninaangalia sasa hivi."))
+  // The agent's forced pre-tool acknowledgement (template beat 1) promises work; it is never the answer.
+  assert.ok(isNarration("Ok, got that, let me check it for you."))
+  assert.ok(isNarration("Oké, begrepen, ik zoek het even voor je uit."))
+  assert.ok(isNarration("Sawa, nimeelewa, niruhusu nikuangalie."))
+  assert.ok(!isNarration("Ok, got that: 3 orders are open."))
   assert.ok(!isNarration("You have 3 orders today."))
   assert.ok(!isNarration("I checked: 4 products are below zero."))
 })

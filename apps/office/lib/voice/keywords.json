@@ -177,10 +177,12 @@
       "another",
       "share",
       "sharing",
-      "set up"
+      "set up",
+      "create",
+      "new"
     ],
-    "nl": ["koppelen", "koppeling", "partner", "coöperatie"],
-    "sw": ["unganisha", "kiungo", "ushirika", "mwingine", "shirikisha"]
+    "nl": ["koppelen", "koppeling", "partner", "coöperatie", "nieuwe"],
+    "sw": ["unganisha", "kiungo", "ushirika", "mwingine", "shirikisha", "mpya"]
   },
   "supply_links_list": {
     "en": [
