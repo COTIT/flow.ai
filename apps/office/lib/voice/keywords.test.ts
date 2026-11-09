@@ -40,6 +40,13 @@ describe("voice trigger words", () => {
     ],
     ["send coffee to the other branch", "supply_chain_dispatch"],
     ["set up a supply link with a new farm co-op", "supply_links_grant"],
+    // v1 re-probe: the agent's own queries
+    ["create supply link new farm co-op", "supply_links_grant"],
+    ["farmer passbook transactions October Mwangeza", "farm_passbook_person"],
+    [
+      "farmer Kitowo supply link consent data sharing buyers",
+      "farm_passbook_consent",
+    ],
     ["pay farmers what we owe", "farm_payouts_create"],
     [
       "correct the delivery weight of a farmer harvest",
