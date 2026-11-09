@@ -14,16 +14,16 @@
     "versionId": "agtvrsn_3601m70bttdef3btf4ynf00bjk68",
     "template": "deploy/assistant-agent.template.json",
     "templateSha256": "c3b080a57080e467d2ce008c209333d2019375fdaf11376ca8e18af22a1ac4ac",
-    "stagingApplied": false,
-    "productionApplied": false,
+    "stagingApplied": true,
+    "productionApplied": true,
     "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
     "productionProvisioned": true,
-    "productionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+    "productionVersionId": "agtvrsn_0701m706j49rejh84fmv8znezpa1",
     "temporaryIntegrationKeysReused": true,
     "previousVersionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
-    "stagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
-    "previousProductionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
-    "previousStagingVersionId": "agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx",
+    "stagingVersionId": "agtvrsn_5101m706hjy6fvcs268m08jr6dds",
+    "previousProductionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+    "previousStagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
     "applied": {
       "development": {
         "versionId": "agtvrsn_3601m70bttdef3btf4ynf00bjk68",
@@ -31,6 +31,22 @@
         "governedSha256": "2b10176db7699c6c66cca0f350bc2e0b2181ba6901ed0777f43f94f746ccadde",
         "templateSha256": "c3b080a57080e467d2ce008c209333d2019375fdaf11376ca8e18af22a1ac4ac",
         "observedAt": "2026-11-09T14:36:42.000Z",
+        "by": "deploy/assistant-agent.sh"
+      },
+      "staging": {
+        "versionId": "agtvrsn_5101m706hjy6fvcs268m08jr6dds",
+        "previousVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
+        "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
+        "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
+        "observedAt": "2026-11-09T13:04:18.000Z",
+        "by": "deploy/assistant-agent.sh"
+      },
+      "production": {
+        "versionId": "agtvrsn_0701m706j49rejh84fmv8znezpa1",
+        "previousVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+        "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
+        "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
+        "observedAt": "2026-11-09T13:04:35.000Z",
         "by": "deploy/assistant-agent.sh"
       }
     }
