@@ -67,7 +67,15 @@ PY
 # fixture <shared:0|1>: live agent = template with older values plus environment-only fields.
 fixture() {
   rm -rf "$tmp/state" && mkdir -p "$tmp/state"
-  cp "$HERE/assistant-validation.json" "$tmp/validation.json"
+  # Start as if only Development were live on this template, whatever the real record says today.
+  python3 - "$HERE/assistant-validation.json" "$tmp/validation.json" <<'PY'
+import json, sys
+ev = json.load(open(sys.argv[1]))
+for env in ('staging', 'production'):
+    ev['provider'].get('applied', {}).pop(env, None)
+open(sys.argv[2], 'w').write(json.dumps(ev, indent=2, ensure_ascii=False) + '\n')
+PY
+  cp "$tmp/validation.json" "$tmp/validation.start.json"
   python3 - "$HERE" "$tmp/state" "$AGENT" "$1" <<'PY'
 import copy, json, pathlib, sys
 here, state, agent_id, shared = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3], sys.argv[4] == '1'
@@ -133,7 +141,7 @@ if grep -q "discover_genesy_tools:\|require_origin_header\|voice_id\|call_limits
 grep -qF "dry run" "$tmp/out" || fail "dry run not labelled"
 no_secrets
 [[ "$(patches)" == 0 ]] || fail "dry run sent a PATCH"
-cmp -s "$HERE/assistant-validation.json" "$tmp/validation.json" || fail "dry run changed the validation record"
+cmp -s "$tmp/validation.start.json" "$tmp/validation.json" || fail "dry run changed the validation record"
 
 # 2. Production apply needs the confirmation every time; refused before any request.
 : > "$tmp/state/log"
@@ -226,14 +234,14 @@ echo drop_voice > "$tmp/state/mode"
 run development --apply && fail "accepted a read-back that lost the voice"
 grep -qF "conversation_config.tts.voice_id" "$tmp/out" || fail "lost protected field not named"
 no_secrets
-cmp -s "$HERE/assistant-validation.json" "$tmp/validation.json" || fail "failed apply wrote the record"
+cmp -s "$tmp/validation.start.json" "$tmp/validation.json" || fail "failed apply wrote the record"
 
 # 9. Provider ignores the PATCH: read-back mismatch fails non-zero.
 fixture 0
 echo ignore_patch > "$tmp/state/mode"
 run development --apply && fail "accepted a read-back that differs from the template"
 grep -qF "still differs" "$tmp/out" || fail "mismatch not reported"
-cmp -s "$HERE/assistant-validation.json" "$tmp/validation.json" || fail "failed apply wrote the record"
+cmp -s "$tmp/validation.start.json" "$tmp/validation.json" || fail "failed apply wrote the record"
 
 # 10. Key through process substitution (the ssh path) and default env-file layout via GENESY_ROOT.
 fixture 0
