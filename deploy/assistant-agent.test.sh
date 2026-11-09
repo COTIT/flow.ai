@@ -9,6 +9,10 @@ template=json.loads(raw); evidence=json.loads((root/'assistant-validation.json')
 assert evidence['provider']['templateSha256']==hashlib.sha256(raw).hexdigest(),'agent template changed without a new observed validation record'
 assert evidence['releaseGate']=='pending' and evidence['releaseCommit'] is None
 assert evidence['provider']['versionId'].startswith('agtvrsn_')
+# Written by assistant-agent.sh --apply after a read-back; one entry per environment.
+for env,entry in evidence['provider'].get('applied',{}).items():
+    assert env in {'development','staging','production'} and entry['versionId'].startswith('agtvrsn_')
+    assert re.fullmatch('[0-9a-f]{64}',entry['governedSha256']) and re.fullmatch('[0-9a-f]{64}',entry['templateSha256'])
 source=(root.parent/'apps/office/components/voice/provider.tsx').read_text()
 assert len(template['clientTools'])==2
 for tool in template['clientTools']:
