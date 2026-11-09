@@ -1,0 +1,222 @@
+[
+  {
+    "domain": "lots",
+    "language": "en",
+    "intent": "lot expiry batch",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": "used_ui",
+    "follow_up_route": "/lots",
+    "ws": 1
+  },
+  {
+    "domain": "lots",
+    "language": "sw",
+    "intent": "batch lot expiry",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": "rephrased",
+    "follow_up_route": null,
+    "ws": 2
+  },
+  {
+    "domain": "payments",
+    "language": "en",
+    "intent": "payment refund card",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 3
+  },
+  {
+    "domain": "vat_groups",
+    "language": "nl",
+    "intent": "vat rate",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 3
+  },
+  {
+    "domain": "vat_groups",
+    "language": "nl",
+    "intent": "vat rate",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 3
+  },
+  {
+    "domain": "vat_groups",
+    "language": "nl",
+    "intent": "vat rate",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 3
+  },
+  {
+    "domain": "vat_groups",
+    "language": "nl",
+    "intent": "vat rate",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 3
+  },
+  {
+    "domain": "vat_groups",
+    "language": "nl",
+    "intent": "rate vat",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": "used_ui",
+    "follow_up_route": "/settings/[id]",
+    "ws": 3
+  },
+  {
+    "domain": "orders",
+    "language": "en",
+    "intent": "top customers orders",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 1
+  },
+  {
+    "domain": "orders",
+    "language": "en",
+    "intent": "orders cancel",
+    "outcome": "failed",
+    "http_status": 500,
+    "tool": "orders_cancel",
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 1
+  },
+  {
+    "domain": "orders",
+    "language": "nl",
+    "intent": "cancel orders",
+    "outcome": "failed",
+    "http_status": 502,
+    "tool": "orders_cancel",
+    "follow_up": "used_ui",
+    "follow_up_route": "/orders/[id]",
+    "ws": 2
+  },
+  {
+    "domain": "orders",
+    "language": "sw",
+    "intent": "orders cancel",
+    "outcome": "failed",
+    "http_status": 500,
+    "tool": "orders_cancel",
+    "follow_up": "used_ui",
+    "follow_up_route": "/orders/[id]",
+    "ws": 3
+  },
+  {
+    "domain": "products",
+    "language": "en",
+    "intent": "create product",
+    "outcome": "refused",
+    "http_status": 422,
+    "tool": "products_create",
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 1
+  },
+  {
+    "domain": "products",
+    "language": "en",
+    "intent": "create product",
+    "outcome": "refused",
+    "http_status": 422,
+    "tool": "products_create",
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 2
+  },
+  {
+    "domain": "invoices",
+    "language": "en",
+    "intent": "delete invoice",
+    "outcome": "refused",
+    "http_status": 403,
+    "tool": "invoices_delete",
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 2
+  },
+  {
+    "domain": "till",
+    "language": "en",
+    "intent": "pair till shop code",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 1
+  },
+  {
+    "domain": "unknown",
+    "language": "en",
+    "intent": "total amount",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 1
+  },
+  {
+    "domain": "unknown",
+    "language": "en",
+    "intent": "total amount",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 2
+  },
+  {
+    "domain": "unknown",
+    "language": "sw",
+    "intent": "unknown",
+    "outcome": "unsupported",
+    "http_status": null,
+    "tool": null,
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 2
+  },
+  {
+    "domain": "orders",
+    "language": "en",
+    "intent": "create orders",
+    "outcome": "cancelled",
+    "http_status": null,
+    "tool": "orders_create",
+    "follow_up": null,
+    "follow_up_route": null,
+    "ws": 1
+  }
+]
