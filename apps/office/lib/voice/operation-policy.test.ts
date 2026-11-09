@@ -15,6 +15,33 @@ import {
 const uuid = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
 
 describe("reviewed operation coverage", () => {
+  it("keeps Phase 1 storefront design operations outside voice execution", () => {
+    const policies = JSON.parse(
+      readFileSync(new URL("./operation-policy.json", import.meta.url), "utf8")
+    )
+    for (const suffix of [
+      "get",
+      "save",
+      "revisions",
+      "preview",
+      "restore",
+      "publish",
+      "capabilities",
+      "published",
+    ]) {
+      const id = `storefront_design_${suffix}`
+      expect(policies[id]?.disposition, id).toBe("internal")
+      expect(
+        operationManifest.find((operation) => operation.id === id)?.disposition,
+        id
+      ).toBe("internal")
+      expect(
+        tools.some((tool) => tool.id === id),
+        id
+      ).toBe(false)
+    }
+  })
+
   it("pins material-review, durable-delivery and cleanup authorities", () => {
     const policies = JSON.parse(
       readFileSync(new URL("./operation-policy.json", import.meta.url), "utf8")
@@ -355,14 +382,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(483)
+    expect(operationManifest).toHaveLength(491)
     expect(tools).toHaveLength(396)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(30)
+    ).toHaveLength(38)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
@@ -373,7 +400,10 @@ describe("reviewed operation coverage", () => {
     const request = getOperation("farm_supply_correction_request")!
     expect(request.disposition).toBe("execute")
     expect(request.risk).toBe("high")
-    expect(request.retry).toEqual({ mode: "client_reference", field: "client_ref" })
+    expect(request.retry).toEqual({
+      mode: "client_reference",
+      field: "client_ref",
+    })
     for (const id of [
       "farm_supply_correction_approve",
       "farm_supply_correction_reject",

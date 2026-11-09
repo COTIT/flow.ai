@@ -132,6 +132,12 @@ const items: Item[] = [
     group: "shell.settings",
   },
   {
+    href: "/settings/storefront",
+    match: "/settings/storefront",
+    label: "nav.storefront",
+    icon: Globe,
+  },
+  {
     href: "/settings/app-keys",
     match: "/settings/app-keys",
     label: "nav.appKeys",

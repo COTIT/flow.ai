@@ -71,7 +71,10 @@
         "CI",
         "HOME",
         "PLAYWRIGHT_BROWSERS_PATH",
-        "E2E_PORT_OFFSET"
+        "E2E_PORT_OFFSET",
+        "E2E_STACK_OFFSET",
+        "E2E_DESIGN",
+        "SHOP_DESIGN_ENABLED"
       ],
       "cache": false
     },

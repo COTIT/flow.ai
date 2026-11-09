@@ -62,6 +62,7 @@ pub mod special_offers;
 pub mod stock;
 pub mod storage_locations;
 pub mod storefront;
+pub mod storefront_design;
 pub mod supply_chain;
 pub mod supply_links;
 pub mod teams;

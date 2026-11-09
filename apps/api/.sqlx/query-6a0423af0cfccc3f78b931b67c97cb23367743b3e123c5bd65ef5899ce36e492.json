@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE storefront_pages SET draft_revision_id=$3,version=version+1,updated_at=clock_timestamp() WHERE workspace_id=$1 AND id=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a0423af0cfccc3f78b931b67c97cb23367743b3e123c5bd65ef5899ce36e492"
+}

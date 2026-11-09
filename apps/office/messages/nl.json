@@ -62,7 +62,8 @@
     "members": "Leden",
     "categories": "Categorieën",
     "voice": "Spraakassistent",
-    "scheduledReports": "Geplande rapporten"
+    "scheduledReports": "Geplande rapporten",
+    "storefront": "Webwinkel"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -1766,5 +1767,35 @@
     "sameFarmer": "Nee, dezelfde boer",
     "rightFarmerKg": "Kg voor de andere boer",
     "send": "Ter goedkeuring sturen"
+  },
+  "storefront": {
+    "title": "Webwinkelontwerp",
+    "intro": "Bekijk opgeslagen versies voordat je wijzigingen in je winkel publiceert.",
+    "created": "Aangemaakt",
+    "status": "Status",
+    "actions": "Acties",
+    "empty": "Nog geen ontwerpconcepten.",
+    "draft": "Concept",
+    "published": "Gepubliceerd",
+    "previous": "Eerder gepubliceerd",
+    "preview": "Voorbeeld",
+    "previewRevision": "Voorbeeld van versie {number}, opgeslagen {date}",
+    "previewRegion": "Voorbeeld van de webwinkel",
+    "publish": "Publiceren",
+    "restore": "Herstellen als concept",
+    "publishTitle": "Dit concept publiceren?",
+    "publishText": "Deze versie vervangt de gepubliceerde startpagina. De vorige versie blijft beschikbaar om te herstellen.",
+    "restoreTitle": "Deze versie herstellen als concept?",
+    "restoreText": "Dit maakt een nieuw concept. Je gepubliceerde winkel verandert pas wanneer je het publiceert.",
+    "publishedDone": "Webwinkel gepubliceerd.",
+    "restoredDone": "Versie hersteld als nieuw concept.",
+    "conflict": "De webwinkel is gewijzigd. Selecteer een versie om het voorbeeld te vernieuwen en opnieuw te bekijken.",
+    "unsupported": "Deze versie kan niet worden weergegeven met de beschikbare onderdelen.",
+    "inStock": "Op voorraad",
+    "lowStock": "Nog enkele over",
+    "soldOut": "Uitverkocht",
+    "imageSoon": "Foto volgt binnenkort",
+    "emptyProducts": "Geen producten in deze collectie.",
+    "shopCta": "Bekijk de collectie"
   }
 }

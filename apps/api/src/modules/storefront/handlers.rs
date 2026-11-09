@@ -16,10 +16,9 @@ use crate::{
     },
     modules::{
         app_keys::secret::CATALOG_READ,
-        product_images, settings,
         storefront::{
-            dto::{LOW_STOCK_DEFAULT, ListQuery, StorefrontCategory, StorefrontProduct},
-            repo,
+            dto::{ListQuery, StorefrontCategory, StorefrontProduct},
+            repo, service,
         },
     },
 };
@@ -52,19 +51,8 @@ pub async fn list(
         },
     };
     let ws = key.workspace_id;
-    let rows = repo::products(&state.db, ws, None, category, page.size, page.offset()).await?;
-    let total = match rows.first() {
-        Some(r) => r.total,
-        None if page.offset() > 0 => repo::count(&state.db, ws, category).await?,
-        None => 0,
-    };
-    let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
-    let images = product_images::service::storefront_links(&state, key.workspace_id, &ids).await?;
-    let low = low_stock(&state, key.workspace_id).await?;
-    let data = rows
-        .into_iter()
-        .map(|r| StorefrontProduct::new(r, &images, low))
-        .collect();
+    let (data, total) =
+        service::products(&state, ws, None, category, page.size, page.offset()).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }
 
@@ -88,13 +76,8 @@ pub async fn get(
 ) -> Result<Data<StorefrontProduct>, AppError> {
     key.require(CATALOG_READ)?;
     let id = Uuid::parse_str(&id).map_err(|_| AppError::NotFound)?;
-    let row = repo::products(&state.db, key.workspace_id, Some(id), None, 1, 0)
-        .await?
-        .pop()
-        .ok_or(AppError::NotFound)?;
-    let images = product_images::service::storefront_links(&state, key.workspace_id, &[id]).await?;
-    let low = low_stock(&state, key.workspace_id).await?;
-    Ok(Data(StorefrontProduct::new(row, &images, low)))
+    let (mut data, _) = service::products(&state, key.workspace_id, Some(id), None, 1, 0).await?;
+    Ok(Data(data.pop().ok_or(AppError::NotFound)?))
 }
 
 /// GET /storefront/categories -> `{data:[...]}`.
@@ -115,12 +98,4 @@ pub async fn categories(
     key.require(CATALOG_READ)?;
     let rows = repo::categories(&state.db, key.workspace_id).await?;
     Ok(Data(rows.into_iter().map(Into::into).collect()))
-}
-
-/// Setting `product.low_stock_threshold`, else 5.
-async fn low_stock(state: &AppState, workspace_id: Uuid) -> Result<i64, AppError> {
-    Ok(settings::repo::section(&state.db, workspace_id, "product")
-        .await?
-        .and_then(|s| s.get("low_stock_threshold")?.as_i64())
-        .unwrap_or(LOW_STOCK_DEFAULT))
 }

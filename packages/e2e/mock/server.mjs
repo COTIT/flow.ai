@@ -2,7 +2,9 @@
 // No dependencies; listens on 127.0.0.1 only. Signed file links point back at this server.
 import console from "node:console"
 import { randomUUID } from "node:crypto"
+import { readFileSync } from "node:fs"
 import { createServer } from "node:http"
+import process from "node:process"
 import { URL } from "node:url"
 
 import {
@@ -316,6 +318,19 @@ const pageTwo = [
 ]
 const catalogue = [products, pageTwo]
 const allProducts = catalogue.flat()
+// Separate design suite owns this mock process; legacy browser suites stay unchanged.
+const designSuite = process.env.E2E_DESIGN === "true"
+let designMode = "published"
+const designFixture = () =>
+  JSON.parse(
+    readFileSync(
+      new URL(
+        "../../../apps/api/tests/fixtures/storefront-design-v1.json",
+        import.meta.url
+      ),
+      "utf8"
+    )
+  )
 
 const lot = (code, status, farmers) => ({
   code: "L-2026-014",
@@ -516,6 +531,13 @@ const image = (label) =>
 const handler = async (req, res) => {
   const path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
+  if (designSuite && path === "/__design" && req.method === "POST") {
+    const { mode } = await readJson(req)
+    if (!["published", "missing", "invalid", "unavailable"].includes(mode))
+      return send(res, 422, { message: "Unknown design fixture mode" })
+    designMode = mode
+    return send(res, 200, { mode })
+  }
   // Stand-in for the provider's hosted page: pays at once (or, for a cancelling buyer,
   // doesn't) and sends the customer back.
   const paying = orders.get(path.match(/^\/pay\/([^/]+)$/)?.[1])
@@ -536,6 +558,25 @@ const handler = async (req, res) => {
     return send(res, 401, { message: "Unauthenticated." })
 
   const failing = { message: SECRET_BODY }
+  if (path === "/v1/storefront/pages/home") {
+    if (!designSuite || designMode === "missing")
+      return send(res, 200, { data: null })
+    if (designMode === "unavailable") return send(res, 503, failing)
+    const document = designFixture()
+    if (designMode === "invalid") document.schema_version = 999
+    return send(res, 200, {
+      data: {
+        revision_id: "019a6df0-0000-7000-8000-000000000001",
+        document,
+        collections: document.sections
+          .filter((s) => s.type === "product_grid")
+          .map((s) => ({
+            section_id: s.id,
+            products: allProducts.slice(0, s.props.limit ?? 6),
+          })),
+      },
+    })
+  }
   if (path === "/v1/storefront/orders" && req.method === "POST")
     return send(
       res,

@@ -804,7 +804,10 @@
       "allOf": [],
       "anyOf": [],
       "predicates": [],
-      "authority": ["apps/api/src/modules/storefront/handlers.rs#list"],
+      "authority": [
+        "apps/api/src/modules/storefront/handlers.rs#list",
+        "apps/api/src/modules/storefront/service.rs"
+      ],
       "roleAnyOf": [],
       "requirements": [
         {
@@ -832,7 +835,10 @@
       "allOf": [],
       "anyOf": [],
       "predicates": [],
-      "authority": ["apps/api/src/modules/storefront/handlers.rs#get"],
+      "authority": [
+        "apps/api/src/modules/storefront/handlers.rs#get",
+        "apps/api/src/modules/storefront/service.rs"
+      ],
       "roleAnyOf": [],
       "requirements": [
         {
@@ -15816,6 +15822,296 @@
     },
     "effects": ["record"],
     "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/storefront/pages/home",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#get",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_save": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/revisions",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#save",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_revisions": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/storefront/pages/home/revisions",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#revisions",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_preview": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/storefront/pages/home/preview",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#preview",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs",
+        "apps/api/src/modules/storefront/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_restore": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/restore",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#restore",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_publish": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/publish",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#publish",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_capabilities": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/storefront/design-capabilities",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#capabilities",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_published": {
+    "method": "GET",
+    "path": "/storefront/pages/home",
+    "disposition": "internal",
+    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "authorization": {
+      "schemes": ["app_key"],
+      "boundary": "device",
+      "allOf": ["catalog:read"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "AppKey workspace is authoritative; published pointer only"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#published",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs",
+        "apps/api/src/modules/storefront/service.rs"
+      ],
+      "requirements": [
+        {
+          "app_key": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
     "handoff": null,
     "reconciliation": [],
     "retry": {

@@ -38,6 +38,10 @@ done
 [[ -z "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop FILES_ORIGIN)" ]] || fail "FILES_ORIGIN set by default"
 [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- api SKIP_BOOT_MIGRATIONS)" == true ]] || fail "boot migrations not skipped"
 
+# New home renderer stays opt-in in both environments.
+[[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop SHOP_DESIGN_ENABLED)" == false ]] || fail "production design renderer not disabled by default"
+[[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop SHOP_DESIGN_ENABLED)" == false ]] || fail "staging design renderer not disabled by default"
+
 # With it, but the bucket and key id not set: refuses, naming a missing variable (which one
 # Compose reports first differs between versions).
 if docker compose -f "$p/docker-compose.production.yml" -f "$p/docker-compose.uploads.yml" \

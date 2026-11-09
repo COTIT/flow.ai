@@ -30,7 +30,7 @@
   "apps/api/src/modules/assistant/repo.rs": "f1a9f28ae67ed493123ddb50356ab50252c0ff8ce5e07226888ce3155ca70567",
   "apps/api/src/modules/assistant/retention.rs": "e02361c7141a69fd8d3c2307fe73fae8603cbf7ba8543506797bc683b7fea0ef",
   "apps/api/src/modules/assistant/routes.rs": "28806bb3bd620a2a25aaaf0fbf362305cd9972632158523fbd841f5083c138ba",
-  "apps/api/src/modules/assistant/service.rs": "f35a5c67e54aea6858bf574edc5c6a0aceaba3fd3ec2169b7e2da0a198c8c706",
+  "apps/api/src/modules/assistant/service.rs": "601fa842e87e6bf06b0446ab0296f7eb3c51eeb8efcb8768da162969858d3773",
   "apps/api/src/modules/attention/handlers.rs": "afaa4f5b5aae9184ec19401477f04943a43cd5b56c7b361095a636a7e53e1ae2",
   "apps/api/src/modules/attention/service.rs": "b584cb928540894bd12013cf1a74c29145e8e671337291a1f8f902e678c86b57",
   "apps/api/src/modules/auth/handlers.rs": "bbd5f11896f4569c969e517a72746b61674423bacc2dabe87deda3d7225f49a4",
@@ -181,7 +181,12 @@
   "apps/api/src/modules/stock/service.rs": "9d8ff47475dfe09932cc29a0727bca1cd3db0976eb571659dbaa26f316adc37b",
   "apps/api/src/modules/storage_locations/handlers.rs": "3b2959e858b9fed626a0d34b05da172e26486ddd4541490a9636f88631cf68f3",
   "apps/api/src/modules/storage_locations/service.rs": "9982926ac903441a8638bdeebd28f0648778fe3b2209bbcdac1076047e25fa43",
-  "apps/api/src/modules/storefront/handlers.rs": "0e5f8db856f2f0242eb8c1de9f9bc5a8240006608d5602fec8984dc728ddc3c9",
+  "apps/api/src/modules/storefront/handlers.rs": "5a806138606efe5002ce63a72ee8763bb8c82a3169a6cdf0b8865550dedb66d8",
+  "apps/api/src/modules/storefront/service.rs": "d3ba0b6dc403ed1d369febfd9205e51a056b1790cf047af893888bedc799b6c5",
+  "apps/api/src/modules/storefront_design/dto.rs": "e3b0555a3ff45b03247041529adc8f3cb231545bb66c8d5cf5862a2e0d02bd02",
+  "apps/api/src/modules/storefront_design/handlers.rs": "864d383dd3e77787b7f369eba30e5108d696c5f9282b537b73a762d9bc735081",
+  "apps/api/src/modules/storefront_design/repo.rs": "4b1fa77457d1778482779e8aed15694c9a68a9e6c14db7c633c02f8b98451950",
+  "apps/api/src/modules/storefront_design/service.rs": "474a113521e2e34064a31cb672e801cf7621bd6f56d9b08914a056cf966fe9b0",
   "apps/api/src/modules/supply_chain/handlers.rs": "408ea547f27bcc3a69b11c76bb4d80533163b83aab3eae1fb3bf9b164b70026f",
   "apps/api/src/modules/supply_chain/service.rs": "f0cf847d4c13e965a51e3e03f7705e6a2ee74334ff31e437455a4ab978600bcd",
   "apps/api/src/modules/supply_links/handlers.rs": "af61c1f0a68626042f56eb71c81879f011c498690a8738d17ae87259683209f0",
@@ -216,5 +221,5 @@
   "apps/api/src/modules/workspaces/handlers.rs": "9766a5f326a08ba1db481f15cfa6a6e00cdc8446f98761a5cdcac7fa5edf4297",
   "apps/api/src/modules/workspaces/service.rs": "6b8b6c901d71387f37a1c0eadbf237fd4d97b17953e48a512bbf36aaf74909f6",
   "apps/api/src/money.rs": "ec8929ded1c344ea115e88323e3d348017948219920c361d066deb656d5c3b1f",
-  "apps/api/src/openapi.rs": "41f78cc6dad4a4e670383cc64fc6c2deea5e974af17ed4f747ea755465a49dd8"
+  "apps/api/src/openapi.rs": "e393d0939387759d5662643f88b95cc88d3a396ac3e85fef5acd46c2e373b114"
 }
