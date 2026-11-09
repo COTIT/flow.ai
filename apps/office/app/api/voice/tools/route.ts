@@ -26,6 +26,7 @@ import {
   type StoredBatch,
   BATCH_PREPARE_OPERATION,
   BATCH_STATUS_OPERATION,
+  MODEL_BATCH_MAX,
 } from "@/lib/voice/batches"
 import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 import { narrate } from "@/lib/voice/narration"
@@ -58,7 +59,7 @@ const statusTool = {
 const batchPrepareTool = {
   id: BATCH_PREPARE_OPERATION,
   summary:
-    "Propose one fixed ordered batch of two through ten fully resolved writes. One independent Office confirmation covers only these exact requests. Any failure, unknown, queued or partial result stops the remainder; no dynamic result references.",
+    "Propose one fixed ordered batch of two through 25 fully resolved writes. One independent Office confirmation covers only these exact requests. Any failure, unknown, queued or partial result stops the remainder; no dynamic result references. For more than 25 changes, prepare the first 25 and set remaining to how many are left; offer the next part only after this batch's status is completed, as a new batch with its own review.",
   method: "POST",
   write: true,
   body: {
@@ -68,7 +69,7 @@ const batchPrepareTool = {
       calls: {
         type: "array",
         minItems: 2,
-        maxItems: 10,
+        maxItems: MODEL_BATCH_MAX,
         items: {
           type: "object",
           required: ["operationId", "arguments"],
@@ -77,6 +78,13 @@ const batchPrepareTool = {
             arguments: { type: "object" },
           },
         },
+      },
+      remaining: {
+        type: "integer",
+        minimum: 1,
+        maximum: 10000,
+        description:
+          "How many changes of the same request are left after this batch; each later part gets its own review.",
       },
       unclear: {
         type: "array",
@@ -251,7 +259,13 @@ async function handle(request: Request, scope: GapScope) {
       const unclear = notIncludedFromModel(argumentsValue.unclear)
       return voiceResponse(
         withNotIncluded(
-          await proposeBatch(argumentsValue.calls, context, files),
+          await proposeBatch(
+            argumentsValue.calls,
+            context,
+            files,
+            MODEL_BATCH_MAX,
+            argumentsValue.remaining
+          ),
           unclear
         )
       )

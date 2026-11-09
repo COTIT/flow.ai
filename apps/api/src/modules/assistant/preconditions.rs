@@ -144,6 +144,7 @@ pub async fn capture(
         "orders_create" => "order.create",
         "orders_delete" | "orders_refund" => "order.delete",
         "stock_set_levels" => "stock.set_stock_levels",
+        "stock_transfer" => "stock.move",
         operation if requires_facts(operation) => "order.update",
         _ => return Ok(json!({})),
     };
@@ -169,6 +170,10 @@ pub async fn capture(
                 orders::service::price(conn, workspace, currency, decimals, &order.lines, false)
                     .await?;
             json!({"kind":"order","priced":orders::service::review_priced(conn,workspace,currency,decimals,warehouse,&priced).await?})
+        }
+        "stock_transfer" => {
+            let transfer = validated::<stock::dto::TransferBody>(body)?;
+            stock::service::transfer_facts(conn, workspace, target(input)?, &transfer).await?
         }
         "stock_set_levels" => {
             let entries = validated::<stock::dto::SetLevelsBody>(body)?;
@@ -295,6 +300,7 @@ pub fn requires_facts(operation_id: &str) -> bool {
             | "orders_invoice"
             | "orders_refund"
             | "stock_set_levels"
+            | "stock_transfer"
     )
 }
 

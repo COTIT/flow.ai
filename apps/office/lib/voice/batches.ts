@@ -36,13 +36,22 @@ import type { VoiceOutcome, VoiceReviewStep } from "./client-contract"
 export const BATCH_PROTOCOL_VERSION = 1
 export const BATCH_PREPARE_OPERATION = "assistant_batch_prepare"
 export const BATCH_STATUS_OPERATION = "assistant_batch_status"
+/** Model-built batches: rows a person can still read inside the 120 s review window. */
+export const MODEL_BATCH_MAX = 25
+/** Changes the agent says are left after this part; each part gets its own review. */
+const REMAINING_MAX = 10000
 type Plan = {
   version: 1
   fingerprint: string
   actionIds: string[]
   actions: PreparedAction[]
   transports: (MultipartReview | null)[]
+  remaining?: number
 }
+const isRemaining = (value: unknown): value is number =>
+  Number.isSafeInteger(value) &&
+  (value as number) >= 1 &&
+  (value as number) <= REMAINING_MAX
 
 function pseudo(plan: Plan, language = "en"): PreparedAction {
   return {
@@ -67,6 +76,7 @@ function planOf(review: ReturnType<typeof verifyReview>): Plan {
     !Array.isArray(plan.actionIds) ||
     plan.actionIds.length !== plan.actions.length ||
     typeof plan.fingerprint !== "string" ||
+    (plan.remaining !== undefined && !isRemaining(plan.remaining)) ||
     !Array.isArray(plan.transports) ||
     plan.transports.length !== plan.actions.length
   )
@@ -96,14 +106,15 @@ export async function proposeBatch(
   calls: unknown,
   context: VoiceContext,
   files: Map<string, Blob>,
-  // Model-built batches stay at ten; a price-list import page passes fifty.
-  max = 10
+  // A price-list import page passes fifty.
+  max = MODEL_BATCH_MAX,
+  remaining?: unknown
 ): Promise<VoiceOutcome> {
   if (!Array.isArray(calls) || calls.length < 2 || calls.length > max)
+    throw new VoiceError(`Choose two through ${max} exact actions.`)
+  if (remaining !== undefined && !isRemaining(remaining))
     throw new VoiceError(
-      max === 10
-        ? "Choose two through ten exact actions."
-        : `Choose two through ${max} exact actions.`
+      `remaining must be a whole number from 1 to ${REMAINING_MAX}.`
     )
   const actions = calls.map((call: unknown) => {
     if (
@@ -145,7 +156,7 @@ export async function proposeBatch(
     true
   )
   try {
-    return await batchReview(stored, actions, transports, context)
+    return await batchReview(stored, actions, transports, context, remaining)
   } catch (error) {
     await assistantRequest(context, `/batches/${stored.id}/cancel`, "POST", {
       session_id: context.sessionId,
@@ -159,7 +170,8 @@ async function batchReview(
   stored: StoredBatch,
   actions: PreparedAction[],
   transports: (MultipartReview | null)[],
-  context: VoiceContext
+  context: VoiceContext,
+  remaining?: number
 ): Promise<VoiceOutcome> {
   if (stored.steps.length !== actions.length)
     throw new VoiceError("Fixed batch membership changed.", 409)
@@ -183,6 +195,7 @@ async function batchReview(
     actionIds: stored.steps.map((step) => step.id),
     actions,
     transports,
+    ...(remaining ? { remaining } : {}),
   }
   const action = pseudo(plan, context.language)
   await checkpointReview(action, context, stored.id, plan.actionIds)
@@ -206,7 +219,11 @@ async function batchReview(
       ]
   return {
     status: "requires_confirmation",
-    data: { batchId: stored.id, actionIds: plan.actionIds },
+    data: {
+      batchId: stored.id,
+      actionIds: plan.actionIds,
+      ...(remaining ? { remaining } : {}),
+    },
     review: {
       kind: "batch",
       batchId: stored.id,
@@ -219,7 +236,11 @@ async function batchReview(
         "batch"
       )!,
       target: batchWords(context.language).target,
-      details: { actionCount: actions.length, ordered: true },
+      details: {
+        actionCount: actions.length,
+        ordered: true,
+        ...(remaining ? { remaining } : {}),
+      },
       steps,
       expiresAt: stored.expires_at,
       ...(Object.keys(attachments).length ? { attachments } : {}),
@@ -360,17 +381,42 @@ export async function confirmBatch(
     },
     true
   )
-  return executeAction(review.action, context, stored.id, async () =>
-    executeBatchController({
-      batch: stored,
-      actions: plan.actions,
-      transports: plan.transports.map((value) => value ?? undefined),
-      context,
-      files,
-      signal,
-      refresh,
-    })
+  const outcome = await executeAction(
+    review.action,
+    context,
+    stored.id,
+    async () =>
+      executeBatchController({
+        batch: stored,
+        actions: plan.actions,
+        transports: plan.transports.map((value) => value ?? undefined),
+        context,
+        files,
+        signal,
+        refresh,
+      })
   )
+  return nextPart(outcome, plan.remaining, context.language)
+}
+
+/** Only a fully completed part offers the next one; a stopped part never does. */
+export function nextPart(
+  outcome: VoiceOutcome,
+  remaining: number | undefined,
+  language = "en"
+): VoiceOutcome {
+  if (!remaining || outcome.status !== "completed") return outcome
+  const data =
+    outcome.data &&
+    typeof outcome.data === "object" &&
+    !Array.isArray(outcome.data)
+      ? outcome.data
+      : {}
+  return {
+    ...outcome,
+    data: { ...data, next: { remaining } },
+    narration: batchWords(language).next(remaining),
+  }
 }
 
 export { batchStatus, batchFailure } from "./batch-controller"

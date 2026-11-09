@@ -22,6 +22,8 @@ export const internalFields = new Set([
   // Shown in their own "Not included" notice, not as reviewed fields.
   "notIncluded",
   "rows",
+  // Shown as the "more parts" notice.
+  "remaining",
   "actionId",
   "batchId",
   "sessionId",

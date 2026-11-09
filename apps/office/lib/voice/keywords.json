@@ -354,5 +354,40 @@
     ],
     "nl": ["vandaag", "taken", "dringend", "achterstallig"],
     "sw": ["leo", "kazi", "haraka"]
+  },
+  "stock_transfer": {
+    "en": [
+      "move",
+      "moving",
+      "transfer",
+      "warehouse",
+      "warehouses",
+      "store",
+      "shop",
+      "from",
+      "bags"
+    ],
+    "nl": [
+      "verplaats",
+      "verplaatsen",
+      "overboeken",
+      "magazijn",
+      "hoofdmagazijn",
+      "winkel",
+      "van",
+      "naar",
+      "zakken"
+    ],
+    "sw": [
+      "hamisha",
+      "kuhamisha",
+      "ghala",
+      "stoo",
+      "duka",
+      "dukani",
+      "kutoka",
+      "kwenda",
+      "mifuko"
+    ]
   }
 }

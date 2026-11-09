@@ -4,7 +4,10 @@
 
 use std::collections::BTreeMap;
 
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use serde_json::Value;
+use sqlx::PgConnection;
 
 use uuid::Uuid;
 
@@ -15,15 +18,19 @@ use crate::{
     idempotency::{self, Actor, Answer, Key},
     modules::{
         assistant::preconditions,
+        lots::repo::{self as lots, LotRow},
         products::{
             dto::PHYSICAL, repo as products, repo::ProductRow, service as products_service,
         },
         stock::{
-            dto::{Entry, Move, Mutate, NO_WAREHOUSE, SetRequirements},
+            dto::{Entry, Move, Mutate, NO_WAREHOUSE, SetRequirements, Transfer},
             repo::{self, Bin, Cause, Floor, ListFilter, Movement, MovementFilter, Mutated, Slot},
             resource,
         },
-        warehouses::{repo as warehouses, service as warehouse_service},
+        warehouses::{
+            repo::{self as warehouses, CompactRow},
+            service as warehouse_service,
+        },
     },
     money::round,
 };
@@ -492,15 +499,7 @@ pub async fn move_between_bins(
     )
     .await?
     {
-        return Err(AppError::field(
-            "quantity",
-            format!(
-                "Insufficient stock available. Available: {}, Reserved: {}, Requested: {}",
-                level.normalize(),
-                reserved.normalize(),
-                m.quantity.normalize()
-            ),
-        ));
+        return Err(insufficient(level, reserved, m.quantity));
     }
     if let Mutated::OutOfRange =
         repo::mutate(&mut tx, workspace_id, to, m.quantity, Floor::None, &cause).await?
@@ -509,6 +508,213 @@ pub async fn move_between_bins(
     }
     tx.commit().await?;
     Ok(())
+}
+
+/// 422 on `quantity` when the source can't give `requested` (Laravel bin-move wording).
+fn insufficient(level: Decimal, reserved: Decimal, requested: Decimal) -> AppError {
+    AppError::field(
+        "quantity",
+        format!(
+            "Insufficient stock available. Available: {}, Reserved: {}, Requested: {}",
+            level.normalize(),
+            reserved.normalize(),
+            requested.normalize()
+        ),
+    )
+}
+
+/// Conflict code when a lot's stock may not move: recalled, on hold (quarantine) or expired.
+pub fn lot_unmovable(lot: &LotRow, today: NaiveDate) -> Option<&'static str> {
+    match lot.status.as_str() {
+        "recalled" => Some("lot_recalled"),
+        "quarantine" => Some("lot_quarantined"),
+        _ if lot.expires_on.is_some_and(|e| e < today) => Some("lot_expired"),
+        _ => None,
+    }
+}
+
+/// Plain sentence for a [`lot_unmovable`] code, for the assistant's refusal before a review.
+fn unmovable_words(code: &str) -> &'static str {
+    match code {
+        "lot_recalled" => "This batch is recalled. Its stock can't be moved.",
+        "lot_quarantined" => "This batch is on hold (quarantine). Its stock can't be moved.",
+        _ => "This batch is past its expiry date. Its stock can't be moved.",
+    }
+}
+
+/// What a transfer touches, read and checked before any write.
+pub struct TransferPlan {
+    product: ProductRow,
+    from: CompactRow,
+    to: CompactRow,
+    lot: Option<LotRow>,
+}
+
+impl TransferPlan {
+    fn slot(&self, warehouse_id: Uuid) -> Slot {
+        Slot {
+            product_id: self.product.id,
+            warehouse_id,
+            bin: None,
+            lot_id: self.lot.as_ref().map(|l| l.id),
+        }
+    }
+
+    /// Identity the assistant review binds; levels stay out (the floor rechecks them).
+    pub fn locked(&self) -> Value {
+        serde_json::json!({
+            "product": { "id": self.product.id, "name": self.product.name },
+            "lot": self.lot.as_ref().map(|l| serde_json::json!({ "id": l.id, "code": l.code, "status": l.status })),
+            "from": { "id": self.from.id, "name": self.from.name },
+            "to": { "id": self.to.id, "name": self.to.name },
+        })
+    }
+}
+
+/// Product, both warehouses and the lot of a transfer, all of this workspace: 404 product,
+/// 422 per field. `lock` takes the lot row `FOR UPDATE` so a recall can't slip in.
+async fn transfer_plan(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    product: ProductRow,
+    t: &Transfer,
+    lock: bool,
+) -> Result<TransferPlan, AppError> {
+    if !tracks_stock(&product) {
+        return Err(AppError::field(
+            "product",
+            "This product doesn't track stock.",
+        ));
+    }
+    let from = warehouses::compact(&mut *conn, workspace_id, t.from).await?;
+    let to = warehouses::compact(&mut *conn, workspace_id, t.to).await?;
+    let lot = match t.lot_id {
+        None => None,
+        Some(id) if lock => lots::locked(&mut *conn, workspace_id, id).await?,
+        Some(id) => lots::find(&mut *conn, workspace_id, id).await?,
+    };
+    let mut errors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    if from.is_none() {
+        errors.insert("warehouse_id_from".into(), vec![NO_WAREHOUSE.into()]);
+    }
+    if to.is_none() {
+        errors.insert("warehouse_id_to".into(), vec![NO_WAREHOUSE.into()]);
+    }
+    let lot_ok = lot.as_ref().is_none_or(|l| l.product_id == product.id);
+    if t.lot_id.is_some() && (lot.is_none() || !lot_ok) {
+        errors.insert(
+            "lot_id".into(),
+            vec!["The selected lot id is invalid.".into()],
+        );
+    }
+    match (from, to) {
+        (Some(from), Some(to)) if errors.is_empty() => Ok(TransferPlan {
+            product,
+            from,
+            to,
+            lot,
+        }),
+        _ => Err(AppError::Validation(errors)),
+    }
+}
+
+/// Assistant review of a transfer: identity plus both levels as of proposal time. A transfer
+/// the native route would refuse (short stock, unmovable lot) is refused here in plain words.
+pub async fn transfer_facts(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    product_id: Uuid,
+    t: &Transfer,
+) -> Result<Value, AppError> {
+    let product = products::find(&mut *conn, workspace_id, product_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let plan = transfer_plan(conn, workspace_id, product, t, false).await?;
+    if let Some(code) = plan.lot.as_ref().and_then(|l| lot_unmovable(l, today())) {
+        return Err(AppError::field("lot_id", unmovable_words(code)));
+    }
+    let (from_lvl, reserved) =
+        repo::level(&mut *conn, workspace_id, plan.slot(plan.from.id)).await?;
+    if from_lvl - reserved < t.quantity {
+        return Err(insufficient(from_lvl, reserved, t.quantity));
+    }
+    let (to_lvl, _) = repo::level(&mut *conn, workspace_id, plan.slot(plan.to.id)).await?;
+    let shown = |d: Decimal| d.normalize().to_string();
+    Ok(serde_json::json!({
+        "kind": "stock_transfer",
+        "locked": plan.locked(),
+        "changes": [
+            { "field": "stock_from", "label": plan.from.name, "before": shown(from_lvl), "after": shown(from_lvl - t.quantity) },
+            { "field": "stock_to", "label": plan.to.name, "before": shown(to_lvl), "after": shown(to_lvl + t.quantity) },
+        ],
+    }))
+}
+
+fn today() -> NaiveDate {
+    chrono::Utc::now().date_naive()
+}
+
+/// POST /products/{id}/transfer-stock: take from one warehouse and add to another of the same
+/// workspace in one transaction, lot kept. The source never goes below what it has free
+/// (level − reserved), whatever the warehouse type. Both movements share one transfer id.
+pub async fn transfer(
+    state: &AppState,
+    workspace_id: Uuid,
+    product_id: &str,
+    t: Transfer,
+    user_id: Uuid,
+) -> Result<Value, AppError> {
+    let product = product(state, workspace_id, product_id).await?;
+    let mut tx = state.db.begin().await?;
+    let plan = transfer_plan(&mut tx, workspace_id, product, &t, true).await?;
+    if let Some(code) = plan.lot.as_ref().and_then(|l| lot_unmovable(l, today())) {
+        return Err(AppError::Conflict(code));
+    }
+    if preconditions::expects("stock_transfer") {
+        preconditions::check_locked(workspace_id, "stock_transfer", &plan.locked())?;
+    }
+    let cause = Cause {
+        reason: Some(&t.reason),
+        user_id: Some(user_id),
+        related: Some(("stock_transfer", Uuid::now_v7())),
+        ..Cause::default()
+    };
+    let (from, to) = (plan.slot(plan.from.id), plan.slot(plan.to.id));
+    repo::lock_all(&mut tx, workspace_id, &[from, to]).await?;
+    let out = match repo::mutate(
+        &mut tx,
+        workspace_id,
+        from,
+        -t.quantity,
+        Floor::Available,
+        &cause,
+    )
+    .await?
+    {
+        Mutated::Short { level, reserved } => {
+            return Err(insufficient(level, reserved, t.quantity));
+        }
+        Mutated::OutOfRange => return Err(AppError::field("quantity", OUT_OF_RANGE)),
+        Mutated::Done { before, after, .. } => (before, after),
+    };
+    let into =
+        match repo::mutate(&mut tx, workspace_id, to, t.quantity, Floor::None, &cause).await? {
+            Mutated::Done { before, after, .. } => (before, after),
+            _ => return Err(AppError::field("quantity", OUT_OF_RANGE)),
+        };
+    tx.commit().await?;
+    let side = |w: &CompactRow, (before, after): (Decimal, Decimal)| {
+        serde_json::json!({
+            "warehouse": { "id": w.id, "name": w.name },
+            "before": resource::qty(before),
+            "after": resource::qty(after),
+        })
+    };
+    Ok(serde_json::json!({
+        "from": side(&plan.from, out),
+        "to": side(&plan.to, into),
+        "lot": plan.lot.as_ref().map(|l| serde_json::json!({ "id": l.id, "code": l.code })),
+    }))
 }
 
 /// True the first time `slot` is taken out of `created` (rows this request made).

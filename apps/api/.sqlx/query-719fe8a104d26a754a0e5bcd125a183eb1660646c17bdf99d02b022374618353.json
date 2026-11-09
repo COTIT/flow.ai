@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT stock_lvl, reserved FROM stocks\n         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3\n           AND bin_id IS NOT DISTINCT FROM $4 AND lot_id IS NOT DISTINCT FROM $5\n           AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stock_lvl",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "stock_lvl"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "reserved",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "reserved"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "719fe8a104d26a754a0e5bcd125a183eb1660646c17bdf99d02b022374618353"
+}

@@ -14,6 +14,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::set_levels))
         .routes(routes!(handlers::set_requirements))
         .routes(routes!(handlers::move_between_bins))
+        .routes(routes!(handlers::transfer))
         .routes(routes!(handlers::with_bins))
         .routes(routes!(handlers::configured_bins))
         .routes(routes!(handlers::movements))

@@ -177,7 +177,7 @@ pub(super) fn public_review(
             granted.allows("order.view")
                 && (facts["operation_id"] != "orders_invoice" || granted.allows("invoice.view"))
         }
-        Some("stock") => granted.allows("stock.list"),
+        Some("stock" | "stock_transfer") => granted.allows("stock.list"),
         Some("product" | "product_variant") => granted.allows("product.view"),
         Some("invoice") => granted.allows("invoice.view"),
         Some("mail" | "contact" | "relation") => granted.allows("relation.view"),

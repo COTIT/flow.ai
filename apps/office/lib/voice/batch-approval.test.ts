@@ -9,7 +9,12 @@ vi.mock("./workflow", async (original) => ({
   executeAction: mocks.execute,
   checkpointReview: vi.fn(),
 }))
-import { confirmBatch, BATCH_PREPARE_OPERATION } from "./batches"
+import {
+  confirmBatch,
+  nextPart,
+  proposeBatch,
+  BATCH_PREPARE_OPERATION,
+} from "./batches"
 import { createReview, verifyReview } from "./workflow"
 import { confirmationPhrase } from "./confirmation"
 import type { PreparedAction } from "./catalog"
@@ -33,7 +38,8 @@ const actions: PreparedAction[] = [1, 2].map((i) => ({
 }))
 function review(
   id: string,
-  expires = new Date(Date.now() + 120000).toISOString()
+  expires = new Date(Date.now() + 120000).toISOString(),
+  extra: Record<string, unknown> = {}
 ) {
   const plan = {
     version: 1,
@@ -41,6 +47,7 @@ function review(
     actions,
     actionIds: ["one", "two"],
     transports: [null, null],
+    ...extra,
   }
   const action: PreparedAction = {
     operationId: BATCH_PREPARE_OPERATION,
@@ -158,4 +165,53 @@ it("expired batch ticket never reaches an execution path", () => {
   expect(() =>
     review("expired", new Date(Date.now() - 1000).toISOString())
   ).toThrow("expired")
+})
+
+it("model batches take up to 25 actions and a whole remaining count", async () => {
+  const calls = (n: number) =>
+    Array.from({ length: n }, () => ({ operationId: "nope", arguments: {} }))
+  await expect(proposeBatch(calls(26), context, new Map())).rejects.toThrow(
+    "Choose two through 25 exact actions."
+  )
+  for (const remaining of [0, 1.5, 10001, "3"])
+    await expect(
+      proposeBatch(calls(2), context, new Map(), 25, remaining)
+    ).rejects.toThrow("remaining must be a whole number from 1 to 10000.")
+  expect(mocks.ledger).not.toHaveBeenCalled()
+})
+
+it("only a completed part offers the next one, in the user's language", () => {
+  const done = nextPart({ status: "completed", data: { steps: 2 } }, 12, "nl")
+  expect(done.data).toEqual({ steps: 2, next: { remaining: 12 } })
+  expect(done.narration).toContain("nog 12 wijzigingen")
+  for (const status of ["paused", "failed", "partial", "unknown"] as const)
+    expect(nextPart({ status }, 12)).toEqual({ status })
+  expect(nextPart({ status: "completed" }, undefined)).toEqual({
+    status: "completed",
+  })
+})
+
+it("the signed remaining count reaches the completed outcome; a bad one is refused", async () => {
+  mocks.ledger.mockImplementation(async (_c: unknown, path: string) =>
+    row(path.split("/")[2]!)
+  )
+  const result = await confirmBatch(
+    review("b-next", undefined, { remaining: 12 }),
+    { decision: "approve", method: "click" },
+    context,
+    new Map(),
+    new AbortController().signal,
+    refresh
+  )
+  expect(result.data).toEqual({ next: { remaining: 12 } })
+  await expect(
+    confirmBatch(
+      review("b-bad", undefined, { remaining: 0 }),
+      { decision: "approve", method: "click" },
+      context,
+      new Map(),
+      new AbortController().signal,
+      refresh
+    )
+  ).rejects.toThrow("Invalid fixed batch review.")
 })

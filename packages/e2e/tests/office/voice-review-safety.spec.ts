@@ -1,8 +1,19 @@
 import { expect, expectFits, test } from "./fake-api"
 import en from "../../../../apps/office/messages/en.json" with { type: "json" }
 
+type Review = {
+  name: string
+  operationId: string
+  request: string
+  details: Record<string, unknown>
+  shows: string[]
+  hides?: string[]
+  /** Review fields beyond a single action's (method, batch kind and steps). */
+  extra?: Record<string, unknown>
+}
+
 // Review card data as the Office BFF builds it from API review facts (lib/voice/actions.ts).
-const reviews = [
+const reviews: Review[] = [
   {
     name: "delete names the customer and lists only what the API reports",
     operationId: "relations_delete",
@@ -53,6 +64,33 @@ const reviews = [
       en.voice.results.warningsTitle,
     ],
   },
+  {
+    name: "a stock transfer names both warehouses with levels from proposal time",
+    operationId: "stock_transfer",
+    request: "Move 20 bags of maize from the main store to the shop.",
+    extra: { method: "POST" },
+    details: {
+      workspace: "w1",
+      target: { product: "01950000-0000-7000-8000-000000000004" },
+      record: { type: "product", label: "Maize 50 kg" },
+      current: {
+        kind: "stock_transfer",
+        locked: { lot: { code: "MZ-1", status: "released" } },
+        changes: [
+          {
+            field: "stock_from",
+            label: "Main store",
+            before: "120",
+            after: "100",
+          },
+          { field: "stock_to", label: "Shop", before: "5", after: "25" },
+        ],
+      },
+      changes: { quantity: "20", reason: "Restock shop" },
+    },
+    shows: ["Maize 50 kg", "Main store", "Shop", "120", "100", "25"],
+    hides: ["Stock from", "stock_from"],
+  },
 ]
 
 for (const review of reviews) {
@@ -94,6 +132,7 @@ for (const review of reviews) {
             method: review.operationId.endsWith("delete") ? "DELETE" : "PATCH",
             details: review.details,
             expiresAt: new Date(Date.now() + 120000).toISOString(),
+            ...review.extra,
           },
         },
       })
@@ -141,6 +180,8 @@ for (const review of reviews) {
     await expect(card).not.toContainText("Selected reference")
     await expect(card).not.toContainText("large_change")
     await expect(card).not.toContainText("01950000")
+    for (const text of review.hides ?? [])
+      await expect(card).not.toContainText(text)
     await expectFits(page)
   })
 }

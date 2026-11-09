@@ -66,7 +66,7 @@ export function ReviewDiff({ review, children }: { review: VoiceReview; children
               {summary.rows.map((row) => (
                 <div key={row.field} className="flex min-w-0 flex-col gap-1">
                   <dt className="text-sm font-medium">
-                    {labels.has(row.field) ? labels(row.field) : fieldName(row.field)}
+                    {row.label ?? (labels.has(row.field) ? labels(row.field) : fieldName(row.field))}
                   </dt>
                   <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base break-all tabular-nums">
                     {row.before !== null ? (

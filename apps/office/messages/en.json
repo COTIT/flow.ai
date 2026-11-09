@@ -1648,6 +1648,7 @@
     "sheetRequest": "I shared a spreadsheet. Ask me what to do with it.",
     "sheetNoPreview": "Genesy reads this spreadsheet when you ask; there is no preview here.",
     "importRows": "Rows {from}–{to} of {total}",
+    "moreParts": "{count} more changes after this review. Each part gets its own review.",
     "notIncluded": {
       "title": "Not included — check these lines",
       "line": "Line {line}: ",

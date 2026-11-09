@@ -1648,6 +1648,7 @@
     "sheetRequest": "Nimeshiriki jedwali. Niulize nifanye nini nalo.",
     "sheetNoPreview": "Genesy husoma jedwali hili ukiomba; hakuna onyesho hapa.",
     "importRows": "Safu {from}–{to} kati ya {total}",
+    "moreParts": "Mabadiliko {count} zaidi baada ya ukaguzi huu. Kila sehemu ina ukaguzi wake.",
     "notIncluded": {
       "title": "Hazijajumuishwa — kagua mistari hii",
       "line": "Mstari {line}: ",

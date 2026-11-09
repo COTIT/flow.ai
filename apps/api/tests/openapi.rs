@@ -880,6 +880,7 @@ fn every_stock_operation_is_documented() {
         (&levels, "post", "stock_set_levels", "200"),
         (&reqs, "post", "stock_set_requirements", "200"),
         (&mv, "post", "stock_move_between_bins", "200"),
+        (&at("/transfer-stock"), "post", "stock_transfer", "200"),
         (&bins, "get", "stock_with_bins", "200"),
         (&conf, "get", "stock_configured_bins", "200"),
         (&moves, "get", "stock_movements", "200"),
