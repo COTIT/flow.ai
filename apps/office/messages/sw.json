@@ -202,7 +202,8 @@
       "product_changed": "Bidhaa imebadilishwa",
       "sale_attributed": "Mauzo yamehusishwa na mkulima",
       "stock_changed": "Akiba imebadilika",
-      "supply_source_status_changed": "Hali ya bechi ya msambazaji imebadilika"
+      "supply_source_status_changed": "Hali ya bechi ya msambazaji imebadilika",
+      "supply_corrected": "Uwasilishaji wa mkulima umerekebishwa"
     }
   },
   "passport": {
@@ -615,7 +616,8 @@
     "title": "Ugavi",
     "tabs": {
       "links": "Viungo vya ugavi",
-      "transfers": "Uhamisho"
+      "transfers": "Uhamisho",
+      "corrections": "Marekebisho ya uwasilishaji"
     },
     "linksHint": "Kiungo kinaruhusu shamba la mshirika kutuma mafungu hapa. Orodha inasema taarifa gani za wakulima zinaweza kuonekana kwenye kurasa zako za umma; majina na picha kamwe.",
     "noLinks": "Bado hakuna viungo vya ugavi.",
@@ -1727,5 +1729,40 @@
     "incomplete": "Kiungo hiki hakijakamilika",
     "invalid": "Kiungo hiki si halali tena",
     "manage": "Simamia ripoti zilizopangwa"
+  },
+  "corrections": {
+    "count": "{total, plural, one {Marekebisho #} other {Marekebisho #}}",
+    "none": "Bado hakuna marekebisho ya uwasilishaji",
+    "farmers": "Wakulima",
+    "reason": "Sababu",
+    "netKg": "Mabadiliko ya kg",
+    "kg": "kg {kg}",
+    "lineKg": "{name}: {before} → {after} kg",
+    "lineDelta": "{name}: {delta} kg",
+    "statuses": {
+      "pending": "Inasubiri idhini",
+      "approved": "Imeidhinishwa",
+      "rejected": "Imekataliwa"
+    },
+    "waitingOther": "Ops au admin mwingine ataamua",
+    "review": "Kagua",
+    "reviewTitle": "Kagua marekebisho ya uwasilishaji",
+    "stock": "Hifadhi ya bechi ghafi inabadilika kwa kg {kg}",
+    "money": "{name}: {change}, salio baadaye {after}",
+    "owesTitle": "Mkulima atadaiwa",
+    "owes": "{name} atadaiwa {amount}. Malipo mapya yamezuiwa hadi mauzo yajayo yalipe deni hili.",
+    "approve": "Idhinisha",
+    "reject": "Kataa",
+    "file": "Rekebisha uwasilishaji",
+    "fileText": "Kg pekee. Ops au admin mwingine lazima aidhinishe kabla ya mabadiliko yoyote. Mkulima ataona marekebisho kwenye daftari lake.",
+    "batch": "Bechi",
+    "pickBatch": "Chagua bechi",
+    "delivery": "Uwasilishaji",
+    "deliveryOption": "{name} · kg {kg}",
+    "rightKg": "Kg sahihi kwa mkulima huyu",
+    "rightFarmer": "Kg ni za mkulima mwingine",
+    "sameFarmer": "Hapana, mkulima huyo huyo",
+    "rightFarmerKg": "Kg za mkulima mwingine",
+    "send": "Tuma kwa idhini"
   }
 }

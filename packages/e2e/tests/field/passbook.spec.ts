@@ -6,7 +6,7 @@ import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, role, villages } from "./api"
 import { farmerMe } from "./farmer.api"
 import { PERSON, PLOT, crops, documents, holdings, person, tourSeen } from "./officer-records.api"
-import { emptyPassbook, fourEyes, noPayouts, overBalance, overLimit, paid, passbook, payouts, unavailable } from "./passbook.api"
+import { corrected, emptyPassbook, fourEyes, noPayouts, overBalance, overLimit, paid, passbook, payouts, unavailable } from "./passbook.api"
 
 const KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 const PAYOUTS = "/workspace/w1/farm/payouts"
@@ -31,6 +31,19 @@ test("a farmer reads their balance, money lines and payouts", async ({ page }) =
   await expect(lines.first()).toContainText("Payout")
   await expect(lines.nth(1)).toContainText("Sale credit")
   await expect(page.getByTestId("payout-row")).toContainText("NIDA")
+  await expect(page.getByTestId("pay-out-TZS")).toHaveCount(0)
+  await expectNoHorizontalScroll(page)
+})
+
+test("a farmer sees a delivery correction as a new line with its reason; older lines stay", async ({ page }) => {
+  await asFarmer(page, corrected, payouts)
+  const lines = page.getByTestId("passbook-line")
+  await expect(lines).toHaveCount(3)
+  await expect(lines.first()).toContainText("Delivery corrected")
+  await expect(lines.first()).toContainText("-TZS 6,200.00")
+  await expect(lines.first().getByTestId("passbook-reason")).toHaveText("Reason: Scale read 20 kg high")
+  await expect(lines.nth(2)).toContainText("Sale credit")
+  await expect(page.getByTestId("passbook-balance-TZS")).toContainText("-TZS 1,200.00")
   await expect(page.getByTestId("pay-out-TZS")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })

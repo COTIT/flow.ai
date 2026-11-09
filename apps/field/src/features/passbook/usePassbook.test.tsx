@@ -21,7 +21,7 @@ vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 const hooks = await import('@/features/passbook/usePassbook')
 
 const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'tzs' })
-const line = (id: string, minor: number) => ({ id, kind: 'sale_credit', amount: tzs(minor), balance_after: tzs(minor), attribution_id: null, payout_id: null, created_at: '2026-11-01T08:00:00Z' })
+const line = (id: string, minor: number) => ({ id, kind: 'sale_credit', amount: tzs(minor), balance_after: tzs(minor), attribution_id: null, payout_id: null, correction_id: null, reason: null, created_at: '2026-11-01T08:00:00Z' })
 const meta = (page: number, last: number) => ({ current_page: page, last_page: last })
 
 function wrapper() {

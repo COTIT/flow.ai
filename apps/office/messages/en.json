@@ -202,7 +202,8 @@
       "product_changed": "Product changed",
       "sale_attributed": "Sale credited to a farmer",
       "stock_changed": "Stock changed",
-      "supply_source_status_changed": "Supplier batch status changed"
+      "supply_source_status_changed": "Supplier batch status changed",
+      "supply_corrected": "Farmer delivery corrected"
     }
   },
   "passport": {
@@ -615,7 +616,8 @@
     "title": "Supply",
     "tabs": {
       "links": "Supply links",
-      "transfers": "Transfers"
+      "transfers": "Transfers",
+      "corrections": "Delivery corrections"
     },
     "linksHint": "Links let a partner's farm send batches here. The allow-list says which farmer details may show on your public batch pages; names and photos never do.",
     "noLinks": "No supply links yet.",
@@ -1727,5 +1729,40 @@
     "incomplete": "This link is incomplete",
     "invalid": "This link is not valid any more",
     "manage": "Manage scheduled reports"
+  },
+  "corrections": {
+    "count": "{total, plural, one {# correction} other {# corrections}}",
+    "none": "No delivery corrections yet",
+    "farmers": "Farmers",
+    "reason": "Reason",
+    "netKg": "Kg change",
+    "kg": "{kg} kg",
+    "lineKg": "{name}: {before} → {after} kg",
+    "lineDelta": "{name}: {delta} kg",
+    "statuses": {
+      "pending": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "waitingOther": "Another ops or admin decides",
+    "review": "Review",
+    "reviewTitle": "Review delivery correction",
+    "stock": "Raw lot stock changes by {kg} kg",
+    "money": "{name}: {change}, balance after {after}",
+    "owesTitle": "Farmer will owe money",
+    "owes": "{name} will owe {amount} back. New payouts are blocked until later sales cover it.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "file": "Correct a delivery",
+    "fileText": "Kg only. Another ops or admin must approve before anything changes. The farmer sees the correction in their passbook.",
+    "batch": "Batch",
+    "pickBatch": "Choose a batch",
+    "delivery": "Delivery",
+    "deliveryOption": "{name} · {kg} kg",
+    "rightKg": "Right kg for this farmer",
+    "rightFarmer": "Kg belongs to another farmer",
+    "sameFarmer": "No, same farmer",
+    "rightFarmerKg": "Kg for the other farmer",
+    "send": "Send for approval"
   }
 }

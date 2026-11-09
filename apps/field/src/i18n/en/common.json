@@ -1609,7 +1609,8 @@
       "sale_credit": "Sale credit",
       "sale_reversal": "Sale returned",
       "payout": "Payout",
-      "payout_void": "Payout voided"
+      "payout_void": "Payout voided",
+      "supply_correction": "Delivery corrected"
     },
     "idType": {
       "nida": "NIDA",
@@ -1627,6 +1628,7 @@
     "paying": "Paying…",
     "paid": "Paid {{amount}}.",
     "cancel": "Cancel",
-    "choose": "Choose…"
+    "choose": "Choose…",
+    "reason": "Reason: {{reason}}"
   }
 }

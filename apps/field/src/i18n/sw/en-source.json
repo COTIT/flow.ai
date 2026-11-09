@@ -1410,6 +1410,7 @@
   "passbook.kind.sale_reversal": "e87d7751f0",
   "passbook.kind.payout": "9bb396940a",
   "passbook.kind.payout_void": "e7c5f86e0b",
+  "passbook.kind.supply_correction": "2b44055f83",
   "passbook.idType.nida": "10086a7079",
   "passbook.idType.voter": "996da461d0",
   "passbook.idType.driving_licence": "658ef730f5",
@@ -1424,5 +1425,6 @@
   "passbook.paying": "9d8e2f0349",
   "passbook.paid": "59098cb822",
   "passbook.cancel": "77dfd2135f",
-  "passbook.choose": "c3b69e661e"
+  "passbook.choose": "c3b69e661e",
+  "passbook.reason": "5a29af7c29"
 }

@@ -1609,7 +1609,8 @@
       "sale_credit": "Mapato ya mauzo",
       "sale_reversal": "Mauzo yamerudishwa",
       "payout": "Malipo",
-      "payout_void": "Malipo yamebatilishwa"
+      "payout_void": "Malipo yamebatilishwa",
+      "supply_correction": "Uwasilishaji umerekebishwa"
     },
     "idType": {
       "nida": "NIDA",
@@ -1627,6 +1628,7 @@
     "paying": "Inalipa…",
     "paid": "Imelipwa {{amount}}.",
     "cancel": "Ghairi",
-    "choose": "Chagua…"
+    "choose": "Chagua…",
+    "reason": "Sababu: {{reason}}"
   }
 }
