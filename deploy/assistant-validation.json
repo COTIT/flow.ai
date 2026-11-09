@@ -3,7 +3,7 @@
   "releaseGate": "pending",
   "releaseCommit": null,
   "imageDigest": null,
-  "observedAt": "2026-11-09T10:29:42.000Z",
+  "observedAt": "2026-11-09T13:04:35.000Z",
   "source": {
     "baseCommit": "ffcf5c8b8b8aad49862b97d1abafde2d97c7a69b",
     "workingTree": "uncommitted",
@@ -14,16 +14,16 @@
     "versionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
     "template": "deploy/assistant-agent.template.json",
     "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
-    "stagingApplied": false,
-    "productionApplied": false,
+    "stagingApplied": true,
+    "productionApplied": true,
     "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
     "productionProvisioned": true,
-    "productionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+    "productionVersionId": "agtvrsn_0701m706j49rejh84fmv8znezpa1",
     "temporaryIntegrationKeysReused": true,
     "previousVersionId": "agtvrsn_7201m6zpgr41fmtayvp7py4svffy",
-    "stagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
-    "previousProductionVersionId": "agtvrsn_6401m6t189eqemk8tgmt226xbz45",
-    "previousStagingVersionId": "agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx",
+    "stagingVersionId": "agtvrsn_5101m706hjy6fvcs268m08jr6dds",
+    "previousProductionVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+    "previousStagingVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
     "applied": {
       "development": {
         "versionId": "agtvrsn_1001m6zxph32fntvnfhe49y2z9s8",
@@ -31,6 +31,22 @@
         "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
         "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
         "observedAt": "2026-11-09T10:29:42.000Z",
+        "by": "deploy/assistant-agent.sh"
+      },
+      "staging": {
+        "versionId": "agtvrsn_5101m706hjy6fvcs268m08jr6dds",
+        "previousVersionId": "agtvrsn_9801m6xgwc66fysscrb26cvpet64",
+        "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
+        "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
+        "observedAt": "2026-11-09T13:04:18.000Z",
+        "by": "deploy/assistant-agent.sh"
+      },
+      "production": {
+        "versionId": "agtvrsn_0701m706j49rejh84fmv8znezpa1",
+        "previousVersionId": "agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33",
+        "governedSha256": "a8ccc83acd587b82d968e6becb0c9b8f7b4b255b888dc74e7b1eeec8259b1b69",
+        "templateSha256": "91effc4a0173f36d8607061b12c1c9edf06ad999be5a77cd02a77be97833be4a",
+        "observedAt": "2026-11-09T13:04:35.000Z",
         "by": "deploy/assistant-agent.sh"
       }
     }
@@ -147,8 +163,7 @@
     "realStackAcceptance": "Existing repository full-stack CI remains required for release; exhaustive native-model trials are deferred.",
     "paidMultilingualAcceptance": "Deferred by user scope correction: exhaustive model/capability benchmark not completed and not a gate for initial deployment.",
     "environmentAgentBindings": "Production agent matches verified development conversation/platform settings; private credentials and single-workspace allowlist prepared on server, admission disabled. Applying runtime configuration remains pending deployment.",
-    "physicalDevices": "user-owned after production deployment: Android/Chrome and iPhone/Safari microphone, speaker and camera; not tested",
-    "agentTemplateAhead": "Template 91effc4a0173 is not yet published by deploy/assistant-agent.sh to: staging, production. Published and read back: development (agtvrsn_1001m6zxph32fntvnfhe49y2z9s8)."
+    "physicalDevices": "user-owned after production deployment: Android/Chrome and iPhone/Safari microphone, speaker and camera; not tested"
   },
   "scopeCorrection": "User directed stop scope creep: finish existing implementation and queued checks; no added features, test matrices or exhaustive model benchmark."
 }
