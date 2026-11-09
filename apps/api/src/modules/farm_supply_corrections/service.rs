@@ -101,6 +101,9 @@ async fn check_window(
 /// attribution to `split(total, kg)`. Every attribution's rows sum to 0.
 // shortcut: a return attribution is re-split by its own total; a later return evens out the
 // at most one minor unit this may leave (like partial returns already do).
+// shortcut: a sale committing while an approval runs keeps the old split (sales don't take the
+// batch lock: they lock stock first, so sharing it could deadlock); the batch's next approved
+// correction re-splits that sale too. Lock the batch in `on_sale` if this ever shows up.
 async fn resplit(
     conn: &mut PgConnection,
     ws: Uuid,
