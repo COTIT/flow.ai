@@ -67,6 +67,11 @@ export function PassbookView({
                 <Card className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <span className="font-semibold">{t(`passbook.kind.${l.kind}`, { defaultValue: t('common.other') })}</span>
                   <span className="tabular font-semibold">{money(l.amount)}</span>
+                  {l.reason ? (
+                    <span className="type-note w-full" data-testid="passbook-reason">
+                      {t('passbook.reason', { reason: l.reason })}
+                    </span>
+                  ) : null}
                   <span className="type-note tabular w-full" style={{ color: 'var(--ink-2)' }}>
                     {formatTimestamp(l.created_at)} · {t('passbook.after', { balance: money(l.balance_after) })}
                   </span>

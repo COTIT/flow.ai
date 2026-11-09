@@ -36,6 +36,9 @@ pub const ORDER_CREATED: &str = "order.created";
 /// Farmers of a supply lot were credited for a sale, or debited for a return (farm workspace).
 pub const SALE_ATTRIBUTED: &str = "sale.attributed";
 
+/// An approved kg correction re-split a supply batch's credits (farm workspace).
+pub const SUPPLY_CORRECTED: &str = "supply.corrected";
+
 /// Events an endpoint may subscribe to.
 pub const EVENTS: &[&str] = &[
     LOT_CREATED,
@@ -45,6 +48,7 @@ pub const EVENTS: &[&str] = &[
     PRODUCT_CHANGED,
     SALE_ATTRIBUTED,
     STOCK_CHANGED,
+    SUPPLY_CORRECTED,
     SUPPLY_SOURCE_STATUS_CHANGED,
 ];
 

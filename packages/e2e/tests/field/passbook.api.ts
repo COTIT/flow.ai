@@ -19,6 +19,23 @@ export const passbook: MockReply = {
   },
 }
 
+/** After an approved delivery correction: the farmer owes TZS 1,200.00 back. */
+export const corrected: MockReply = {
+  body: {
+    data: [
+      {
+        ...line("l3", "supply_correction", -620000, -120000, "2026-11-09T08:00:00Z"),
+        correction_id: "cor-1",
+        reason: "Scale read 20 kg high",
+      },
+      line("l2", "payout", -300000, 500000, "2026-11-02T08:00:00Z"),
+      line("l1", "sale_credit", 800000, 800000, "2026-11-01T08:00:00Z"),
+    ],
+    meta: meta(3),
+    balances: [tzs(-120000)],
+  },
+}
+
 export const emptyPassbook: MockReply = { body: { data: [], meta: meta(0), balances: [] } }
 
 export const payout = (id: string, minor: number) => ({

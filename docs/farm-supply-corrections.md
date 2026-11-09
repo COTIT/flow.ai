@@ -1,6 +1,6 @@
 # Correcting a bought farm delivery: design
 
-Status: design only, nothing built. The user decided the open points on 2026-11-09 (see "Decided 2026-11-09"). The build will be its own task.
+Status: built 2026-11-09 (API `docs/api/farm-supply.md` "Corrections", Office `/supply/corrections`, Field passbook line, voice review card). Follow-up: the "season closed" part of D2-b is not enforced; the code has no season-close record. Only the sold-out rule applies until a season-close feature exists (coordinator decision 2026-11-09).
 
 ## Decided 2026-11-09
 

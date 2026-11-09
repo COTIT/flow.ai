@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_supply_corrections c\n           LEFT JOIN farm_supply_correction_decisions d ON d.correction_id = c.id\n           WHERE c.workspace_id = $1 AND ($2::bool OR c.village_id = ANY($3))\n             AND ($4::text IS NULL OR coalesce(d.decision, 'pending') = $4)\n             AND ($5::uuid IS NULL OR c.batch_id = $5)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "479e3e600db3306a6c471e21d69022e630833b48291f079ba2cc86b31cd25dd6"
+}

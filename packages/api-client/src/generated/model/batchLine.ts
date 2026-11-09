@@ -10,8 +10,12 @@
  * One farmer's kg from one harvest.
  */
 export interface BatchLine {
+  /** The credited farmer's given and family name. */
+  farmer_name: string;
   harvest_report_id: string;
   kg: string;
   /** Credited farmer: the farm's primary manager when the batch was made. */
   person_id: string;
+  /** The share line; a correction names it. */
+  share_id: string;
 }

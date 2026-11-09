@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM farm_supply_share_kg\n                          WHERE workspace_id = $1 AND batch_id = $2\n                          GROUP BY share_id, person_id HAVING sum(kg) < 0) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "540e446b3ee03fcbd7b23ae07d4f19ef0850d6f83323784518bc75a60331b9c7"
+}

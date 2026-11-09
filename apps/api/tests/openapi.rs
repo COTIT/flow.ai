@@ -1595,6 +1595,36 @@ fn every_farm_supply_operation_is_documented() {
             "farm_supply_get",
             "200",
         ),
+        (
+            "/farm/supply-batches/{batch}/corrections",
+            "post",
+            "farm_supply_correction_request",
+            "201",
+        ),
+        (
+            "/farm/supply-corrections",
+            "get",
+            "farm_supply_correction_list",
+            "200",
+        ),
+        (
+            "/farm/supply-corrections/{correction}",
+            "get",
+            "farm_supply_correction_get",
+            "200",
+        ),
+        (
+            "/farm/supply-corrections/{correction}/approve",
+            "post",
+            "farm_supply_correction_approve",
+            "200",
+        ),
+        (
+            "/farm/supply-corrections/{correction}/reject",
+            "post",
+            "farm_supply_correction_reject",
+            "200",
+        ),
     ]);
 }
 
@@ -2025,6 +2055,7 @@ fn key_and_webhook_lists_are_enums() {
             "product.changed",
             "sale.attributed",
             "stock.changed",
+            "supply.corrected",
             "supply.source_status_changed"
         ]
     );

@@ -15,7 +15,7 @@ The person themself, or staff of the person's village (ops and admin: any villag
 Line: `{id, kind, amount, balance_after, attribution_id, payout_id, created_at}`.
 
 Both passbook reads answer `{data: [lines], meta, balances}`. `balances` is the current balance per currency over every line, not just the page: `[{minor, currency, decimals, currency_id}]`, by currency code (`[]` with no lines).
-- `kind`: `sale_credit`, `sale_reversal`, `payout` or `payout_void`.
+- `kind`: `sale_credit`, `sale_reversal`, `payout`, `payout_void` or `supply_correction` (an approved delivery correction, with `correction_id` and its `reason`; null on other lines).
 - `amount`: signed, credits positive, debits negative; never 0.
 - `balance_after`: the balance in that currency right after this line, summed over all lines before the page is cut. The first line of page 1 is the current balance.
 

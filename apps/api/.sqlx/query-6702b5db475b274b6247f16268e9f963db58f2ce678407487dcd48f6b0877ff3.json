@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_supply_correction_decisions (correction_id, workspace_id, decision,\n                                                       requested_by, decided_by)\n         VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6702b5db475b274b6247f16268e9f963db58f2ce678407487dcd48f6b0877ff3"
+}

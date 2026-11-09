@@ -202,7 +202,8 @@
       "product_changed": "Product gewijzigd",
       "sale_attributed": "Verkoop toegekend aan boer",
       "stock_changed": "Voorraad gewijzigd",
-      "supply_source_status_changed": "Status van leveranciersbatch gewijzigd"
+      "supply_source_status_changed": "Status van leveranciersbatch gewijzigd",
+      "supply_corrected": "Levering van boer gecorrigeerd"
     }
   },
   "passport": {
@@ -615,7 +616,8 @@
     "title": "Aanvoer",
     "tabs": {
       "links": "Aanvoerkoppelingen",
-      "transfers": "Overdrachten"
+      "transfers": "Overdrachten",
+      "corrections": "Leveringscorrecties"
     },
     "linksHint": "Met een koppeling kan de boerderij van een partner batches hierheen sturen. De lijst zegt welke boerengegevens op je publieke batchpagina's mogen staan; namen en foto's nooit.",
     "noLinks": "Nog geen aanvoerkoppelingen.",
@@ -1729,5 +1731,40 @@
     "incomplete": "Deze link is onvolledig",
     "invalid": "Deze link is niet meer geldig",
     "manage": "Geplande rapporten beheren"
+  },
+  "corrections": {
+    "count": "{total, plural, one {# correctie} other {# correcties}}",
+    "none": "Nog geen leveringscorrecties",
+    "farmers": "Boeren",
+    "reason": "Reden",
+    "netKg": "Kg-wijziging",
+    "kg": "{kg} kg",
+    "lineKg": "{name}: {before} → {after} kg",
+    "lineDelta": "{name}: {delta} kg",
+    "statuses": {
+      "pending": "Wacht op goedkeuring",
+      "approved": "Goedgekeurd",
+      "rejected": "Afgewezen"
+    },
+    "waitingOther": "Een andere ops of admin beslist",
+    "review": "Bekijken",
+    "reviewTitle": "Leveringscorrectie bekijken",
+    "stock": "Voorraad van de ruwe partij wijzigt met {kg} kg",
+    "money": "{name}: {change}, saldo daarna {after}",
+    "owesTitle": "Boer komt geld tekort",
+    "owes": "{name} moet {amount} terugbetalen. Nieuwe uitbetalingen zijn geblokkeerd tot latere verkopen dit dekken.",
+    "approve": "Goedkeuren",
+    "reject": "Afwijzen",
+    "file": "Levering corrigeren",
+    "fileText": "Alleen kg. Een andere ops of admin moet goedkeuren voordat er iets verandert. De boer ziet de correctie in zijn passbook.",
+    "batch": "Partij",
+    "pickBatch": "Kies een partij",
+    "delivery": "Levering",
+    "deliveryOption": "{name} · {kg} kg",
+    "rightKg": "Juiste kg voor deze boer",
+    "rightFarmer": "Kg hoort bij een andere boer",
+    "sameFarmer": "Nee, dezelfde boer",
+    "rightFarmerKg": "Kg voor de andere boer",
+    "send": "Ter goedkeuring sturen"
   }
 }

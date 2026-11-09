@@ -70,7 +70,15 @@ const lists: {
       due_date: at,
       total_amount: "121.00",
       balance: { open: 21, paid: "100.00", total: 121 },
-      money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 10000, open: 2100 },
+      money: {
+        currency: "EUR",
+        decimals: 2,
+        subtotal: 10000,
+        vat: 2100,
+        total: 12100,
+        paid: 10000,
+        open: 2100,
+      },
       relationships: { currency: { asset_type: "EUR", decimals: 2 } },
     }),
     name: (i) => `2026-${String(i).padStart(4, "0")}`,
@@ -95,7 +103,8 @@ const lists: {
       updated_at: at,
     }),
     name: (i) => `ILU-${i}`,
-    setup: (api) => api.on("GET", "/workspace/:ws/products", () => paged([product])),
+    setup: (api) =>
+      api.on("GET", "/workspace/:ws/products", () => paged([product])),
   },
   {
     route: "/stock",
@@ -108,7 +117,10 @@ const lists: {
       minimal_stock_level: 0,
       maximum_stock_level: 0,
       meta: null,
-      relationships: { product: { ...product, id: `p-${i}`, name: `Jar ${i}` }, warehouse },
+      relationships: {
+        product: { ...product, id: `p-${i}`, name: `Jar ${i}` },
+        warehouse,
+      },
     }),
     name: (i) => `Jar ${i}`,
   },
@@ -123,7 +135,10 @@ const lists: {
       minimal_stock_level: 0,
       maximum_stock_level: 0,
       meta: null,
-      relationships: { product: { ...product, id: `p-${i}`, name: `Jar ${i}` }, warehouse },
+      relationships: {
+        product: { ...product, id: `p-${i}`, name: `Jar ${i}` },
+        warehouse,
+      },
     }),
     name: (i) => `Jar ${i}`,
   },
@@ -152,7 +167,11 @@ const lists: {
       link_id: "link-1",
       direction: "incoming",
       partner: { id: `ws-${i}`, name: `Partner ${i}` },
-      from_lot: { code: `RUA-${i}`, public_code: "7K3M9Q2XRT", status: "released" },
+      from_lot: {
+        code: `RUA-${i}`,
+        public_code: "7K3M9Q2XRT",
+        status: "released",
+      },
       quantity: "250.00",
       status: "received",
       dispatched_at: at,
@@ -165,6 +184,35 @@ const lists: {
       api
         .on("GET", "/workspace/:ws/products", () => paged([product]))
         .on("GET", "/workspace/:ws/warehouses", () => paged([warehouse])),
+  },
+  {
+    route: "/supply/corrections",
+    path: "/workspace/:ws/farm/supply-corrections",
+    empty: "No delivery corrections yet",
+    row: (i) => ({
+      id: `cor-${i}`,
+      batch_id: "b-1",
+      village_id: "v-1",
+      status: "approved",
+      reason: `Scale ${i}`,
+      requested_by: "u-ops",
+      requested_at: at,
+      decided_by: "u-admin",
+      decided_at: at,
+      net_kg: "-1.00",
+      lines: [
+        {
+          share_id: `s-${i}`,
+          person_id: `p-${i}`,
+          farmer_name: `Farmer ${i}`,
+          kg_delta: "-1.00",
+          kg_before: null,
+          kg_after: null,
+        },
+      ],
+      farmers: [],
+    }),
+    name: (i) => `Farmer ${i}: -1.00 kg`,
   },
   {
     route: "/products/categories",
@@ -207,7 +255,13 @@ const lists: {
     query: "",
     path: "/workspace/:ws/till/vaults",
     empty: "No vaults yet.",
-    row: (i) => ({ id: `v-${i}`, name: `Safe ${i}`, currency_id: usd.id, balance: 0, created_at: at }),
+    row: (i) => ({
+      id: `v-${i}`,
+      name: `Safe ${i}`,
+      currency_id: usd.id,
+      balance: 0,
+      created_at: at,
+    }),
     name: (i) => `Safe ${i}`,
     paged: false,
     setup: tillLookups,
@@ -322,7 +376,10 @@ for (const l of lists) {
     l.setup?.(api)
     api.on("GET", l.path, () => reply(l, []))
     await page.goto(l.route)
-    await expect(page.getByText(l.empty, { exact: true }), `${l.route} empty`).toBeVisible()
+    await expect(
+      page.getByText(l.empty, { exact: true }),
+      `${l.route} empty`
+    ).toBeVisible()
     await expect(page.getByText(l.name(1), { exact: true })).toHaveCount(0)
   })
 
@@ -344,17 +401,24 @@ for (const l of lists) {
       )
       await page.goto(l.route)
       // TanStack retries three times before giving up.
-      const alert = page.getByRole("alert").filter({ hasText: "The server is busy." })
+      const alert = page
+        .getByRole("alert")
+        .filter({ hasText: "The server is busy." })
       await expect(alert, `${l.route} 500`).toBeVisible({ timeout: 20_000 })
       fail = false
       await alert.getByRole("button", { name: "Try again" }).click()
-      await expect(page.getByText(l.name(1), { exact: true }).first()).toBeVisible()
+      await expect(
+        page.getByText(l.name(1), { exact: true }).first()
+      ).toBeVisible()
       await expect(alert).toHaveCount(0)
     })
   })
 
   if (l.paged !== false)
-    test(`${l.route}: Next asks the API for page 2 and shows its rows`, async ({ page, api }) => {
+    test(`${l.route}: Next asks the API for page 2 and shows its rows`, async ({
+      page,
+      api,
+    }) => {
       l.setup?.(api)
       const rows = Array.from({ length: 60 }, (_, i) => l.row(i + 1))
       const pages: string[] = []
@@ -363,10 +427,15 @@ for (const l of lists) {
         return reply(l, rows, Number(query.get("page") ?? 1))
       })
       await page.goto(l.route)
-      await expect(page.getByText("1–50 of 60"), `${l.route} pager`).toBeVisible()
+      await expect(
+        page.getByText("1–50 of 60"),
+        `${l.route} pager`
+      ).toBeVisible()
       await page.getByRole("button", { name: "Next" }).click()
       await expect(page.getByText("51–60 of 60")).toBeVisible()
-      await expect(page.getByText(l.name(51), { exact: true }).first()).toBeVisible()
+      await expect(
+        page.getByText(l.name(51), { exact: true }).first()
+      ).toBeVisible()
       await expect(page.getByText(l.name(1), { exact: true })).toHaveCount(0)
       expect(pages).toContain("2")
       await expect(page.getByRole("button", { name: "Next" })).toBeDisabled()

@@ -12,6 +12,8 @@ const line = (id: string, kind: string, minor: number, after: number) => ({
   balance_after: tzs(after),
   attribution_id: null,
   payout_id: null,
+  correction_id: null,
+  reason: null,
   created_at: '2026-11-01T08:00:00Z',
 })
 const payout = (id: string, minor: number, voided = false) => ({

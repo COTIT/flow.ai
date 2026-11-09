@@ -11,8 +11,8 @@ use crate::{
     AppError,
     http::farm::{ADMIN, FIELD_OFFICER, FarmRole, OPS},
     modules::{
-        farm_memberships::repo::live_roles, farm_records, farm_supply, permissions, supply_chain,
-        supply_links,
+        farm_memberships::repo::live_roles, farm_records, farm_supply, farm_supply_corrections,
+        permissions, supply_chain, supply_links,
     },
 };
 
@@ -23,6 +23,7 @@ pub fn describes(operation_id: &str) -> bool {
     matches!(
         operation_id,
         "farm_supply_create"
+            | "farm_supply_correction_request"
             | "farm_records_harvest_reports_revise"
             | "supply_chain_dispatch"
             | "supply_links_grant"
@@ -51,6 +52,13 @@ pub async fn capture(
             }
             let batch = validated::<farm_supply::dto::CreateBatchRequest>(body)?;
             supply(conn, ws, &batch).await?
+        }
+        "farm_supply_correction_request" => {
+            if !manages {
+                return Err(AppError::Forbidden(DENIED));
+            }
+            let c = validated::<farm_supply_corrections::dto::CreateSupplyCorrectionRequest>(body)?;
+            farm_supply_corrections::service::review(conn, ws, segment(input, 6)?, &c).await?
         }
         "farm_records_harvest_reports_revise" => {
             let revision = validated::<farm_records::dto::HarvestRevision>(body)?;

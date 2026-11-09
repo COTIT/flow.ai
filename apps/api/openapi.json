@@ -1063,6 +1063,10 @@
       "BatchLine": {
         "description": "One farmer's kg from one harvest.",
         "properties": {
+          "farmer_name": {
+            "description": "The credited farmer's given and family name.",
+            "type": "string"
+          },
           "harvest_report_id": {
             "format": "uuid",
             "type": "string"
@@ -1075,11 +1079,18 @@
             "description": "Credited farmer: the farm's primary manager when the batch was made.",
             "format": "uuid",
             "type": "string"
+          },
+          "share_id": {
+            "description": "The share line; a correction names it.",
+            "format": "uuid",
+            "type": "string"
           }
         },
         "required": [
+          "share_id",
           "harvest_report_id",
           "person_id",
+          "farmer_name",
           "kg"
         ],
         "type": "object"
@@ -4162,6 +4173,34 @@
         ],
         "type": "object"
       },
+      "CreateSupplyCorrectionRequest": {
+        "description": "Correct the kg of bought deliveries. Each line gives the kg a farmer should have on a share line; a wrong farmer is two lines on one share (the share's farmer to less, the right farmer to more).",
+        "properties": {
+          "client_ref": {
+            "description": "Retry key: the same key and body replay; another body under it is a 409.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "lines": {
+            "description": "1-50 lines, each (share, farmer) once.",
+            "items": {
+              "$ref": "#/components/schemas/SupplyCorrectionLineInput"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "description": "Why, 1-500 chars. The farmer sees it on the passbook line.",
+            "example": "Scale read 20 kg high",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_ref",
+          "reason",
+          "lines"
+        ],
+        "type": "object"
+      },
       "CreateTeamRequest": {
         "description": "New team.",
         "properties": {
@@ -6060,6 +6099,14 @@
             "$ref": "#/components/schemas/Money",
             "description": "Balance in this currency right after this line."
           },
+          "correction_id": {
+            "description": "The approved delivery correction behind a `supply_correction` line.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -6069,12 +6116,19 @@
             "type": "string"
           },
           "kind": {
-            "description": "`sale_credit`, `sale_reversal`, `payout` or `payout_void`.",
+            "description": "`sale_credit`, `sale_reversal`, `payout`, `payout_void` or `supply_correction`.",
             "type": "string"
           },
           "payout_id": {
             "description": "The payout behind a payout line.",
             "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "description": "Why the delivery was corrected (`supply_correction` lines only).",
             "type": [
               "string",
               "null"
@@ -6088,6 +6142,8 @@
           "balance_after",
           "attribution_id",
           "payout_id",
+          "correction_id",
+          "reason",
           "created_at"
         ],
         "type": "object"
@@ -7796,6 +7852,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SummaryResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_SupplyCorrectionResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SupplyCorrectionResource"
           }
         },
         "required": [
@@ -15922,6 +15990,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/StorefrontProduct"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_SupplyCorrectionResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SupplyCorrectionResource"
             },
             "type": "array"
           },
@@ -25621,6 +25708,193 @@
         ],
         "type": "object"
       },
+      "SupplyCorrectionLine": {
+        "description": "One kg change.",
+        "properties": {
+          "farmer_name": {
+            "description": "Given and family name.",
+            "type": "string"
+          },
+          "kg_after": {
+            "description": "The kg after approval; only while pending.",
+            "example": "100.50",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kg_before": {
+            "description": "The farmer's kg on this share now; only while pending.",
+            "example": "120.50",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kg_delta": {
+            "example": "-20.00",
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "share_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "share_id",
+          "person_id",
+          "farmer_name",
+          "kg_delta",
+          "kg_before",
+          "kg_after"
+        ],
+        "type": "object"
+      },
+      "SupplyCorrectionLineInput": {
+        "description": "One line of a correction request.",
+        "properties": {
+          "kg": {
+            "description": "The kg this farmer should have on this share, 0 or more, at most 2 decimals.",
+            "example": "40.00",
+            "type": "string"
+          },
+          "person_id": {
+            "description": "The farmer whose kg change; default the share's farmer. Another farmer of the batch's\nvillage takes kg moved from a wrong farmer.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "share_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "share_id",
+          "kg"
+        ],
+        "type": "object"
+      },
+      "SupplyCorrectionResource": {
+        "description": "A kg correction of a bought delivery. Pending until a second ops or admin approves or rejects it. Approval re-splits past credits by the corrected kg (one passbook line per farmer) and moves the raw lot's stock by `net_kg`.",
+        "properties": {
+          "batch_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "decided_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decided_by": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "farmers": {
+            "description": "Farmers whose money moves: the preview while pending, what was posted once approved,\nnone when rejected.",
+            "items": {
+              "$ref": "#/components/schemas/SupplyFarmerEffect"
+            },
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/SupplyCorrectionLine"
+            },
+            "type": "array"
+          },
+          "net_kg": {
+            "description": "Change of the batch's kg (and the raw lot's stock): negative is a cut.",
+            "example": "-20.00",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "description": "`pending`, `approved` or `rejected`.",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "batch_id",
+          "village_id",
+          "status",
+          "reason",
+          "requested_by",
+          "requested_at",
+          "decided_by",
+          "decided_at",
+          "net_kg",
+          "lines",
+          "farmers"
+        ],
+        "type": "object"
+      },
+      "SupplyFarmerEffect": {
+        "description": "A farmer's money effect.",
+        "properties": {
+          "balance_after": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money",
+                "description": "Their balance after approval (negative: they owe the co-op and payouts are blocked\nuntil later credits cover it); only while pending."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "change": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Signed change of their passbook balance."
+          },
+          "name": {
+            "description": "Given and family name.",
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "name",
+          "change",
+          "balance_after"
+        ],
+        "type": "object"
+      },
       "SupplyLineRequest": {
         "description": "Attach a current expected harvest figure of the opportunity's village and crop (ops or admin). The attacher is the caller. A client `id` makes retries safe.",
         "properties": {
@@ -29861,6 +30135,7 @@
           "product.changed",
           "sale.attributed",
           "stock.changed",
+          "supply.corrected",
           "supply.source_status_changed"
         ],
         "type": "string"
@@ -65576,6 +65851,829 @@
           }
         ],
         "summary": "Get a supply batch",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-batches/{batch}/corrections": {
+      "post": {
+        "description": "ops or admin. Each line sets the kg one farmer should have on a share line of the batch (kg only, no price). A wrong farmer is two lines on one share. Pending until a different ops or admin approves it in the Office. Refused when the raw lot is sold out, when a cut meets a lot dispatched over a supply link or passes its free stock, and when an increase passes the harvest. The response previews each farmer's money change and balance after; a negative balance blocks payouts until later credits cover it. The same `client_ref` and body replay (200).",
+        "operationId": "farm_supply_correction_request",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Batch id",
+            "in": "path",
+            "name": "batch",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupplyCorrectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SupplyCorrectionResource"
+                }
+              }
+            },
+            "description": "Replayed"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SupplyCorrectionResource"
+                }
+              }
+            },
+            "description": "Filed, pending"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown batch, or outside the caller's workspace"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "client_ref used with another body or by another member"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid lines, no change, sold out, dispatched, short stock or over-commitment"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request a kg correction of a batch",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-corrections": {
+      "get": {
+        "description": "Staff: corrections of their villages (ops and admin: all), newest first, with each one's lines and money effect.",
+        "operationId": "farm_supply_correction_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`pending`, `approved` or `rejected`; blank = all.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only corrections of this batch.",
+            "in": "query",
+            "name": "batch_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_SupplyCorrectionResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is a farmer, not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown status or malformed batch id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List supply corrections",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-corrections/{correction}": {
+      "get": {
+        "operationId": "farm_supply_correction_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Correction id",
+            "in": "path",
+            "name": "correction",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SupplyCorrectionResource"
+                }
+              }
+            },
+            "description": "The correction"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is a farmer, not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown correction, or outside the caller's villages or workspace"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a supply correction",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-corrections/{correction}/approve": {
+      "post": {
+        "description": "ops or admin other than the requester. One transaction: the raw lot's stock moves by the net kg, past credits of the batch are re-split by the corrected kg (one `supply_correction` passbook line per farmer whose money moved; the batch total stays), and `supply.corrected` is sent. The windows are checked again.",
+        "operationId": "farm_supply_correction_approve",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Correction id",
+            "in": "path",
+            "name": "correction",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SupplyCorrectionResource"
+                }
+              }
+            },
+            "description": "Approved"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin, or the requester"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown correction, or outside the caller's workspace"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Already approved or rejected"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Sold out, dispatched, short stock, over-commitment, or kg below 0"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a supply correction",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-corrections/{correction}/reject": {
+      "post": {
+        "description": "ops or admin other than the requester. Records the decision; nothing else moves.",
+        "operationId": "farm_supply_correction_reject",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Correction id",
+            "in": "path",
+            "name": "correction",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SupplyCorrectionResource"
+                }
+              }
+            },
+            "description": "Rejected"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin, or the requester"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown correction, or outside the caller's workspace"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Already approved or rejected"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject a supply correction",
         "tags": [
           "farm_supply"
         ]

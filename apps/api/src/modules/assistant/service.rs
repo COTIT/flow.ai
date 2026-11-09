@@ -190,7 +190,7 @@ pub(super) fn public_review(
         Some("mail" | "contact" | "relation") => granted.allows("relation.view"),
         // Farm roles aren't workspace permissions; farm_facts::capture refused callers
         // without the operation's role before reading any name.
-        Some("farm_supply" | "harvest" | "dispatch" | "supply_link") => true,
+        Some("farm_supply" | "supply_correction" | "harvest" | "dispatch" | "supply_link") => true,
         // Currencies and rates are readable by every active member.
         Some("currency_rate") => true,
         _ => false,

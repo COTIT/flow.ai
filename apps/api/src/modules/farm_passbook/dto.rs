@@ -15,7 +15,7 @@ use crate::modules::{
 #[schema(description = "A passbook line: a credit (sale) or debit (payout, reversal).")]
 pub struct EntryResource {
     id: Uuid,
-    /// `sale_credit`, `sale_reversal`, `payout` or `payout_void`.
+    /// `sale_credit`, `sale_reversal`, `payout`, `payout_void` or `supply_correction`.
     kind: String,
     /// Signed: credits positive, debits negative.
     amount: Money,
@@ -27,6 +27,12 @@ pub struct EntryResource {
     /// The payout behind a payout line.
     #[schema(required = true)]
     payout_id: Option<Uuid>,
+    /// The approved delivery correction behind a `supply_correction` line.
+    #[schema(required = true)]
+    correction_id: Option<Uuid>,
+    /// Why the delivery was corrected (`supply_correction` lines only).
+    #[schema(required = true)]
+    reason: Option<String>,
     created_at: DateTime<Utc>,
 }
 
@@ -45,6 +51,8 @@ impl From<EntryRow> for EntryResource {
             balance_after: money(e.balance_after),
             attribution_id: e.attribution_id,
             payout_id: e.payout_id,
+            correction_id: e.correction_id,
+            reason: e.reason.clone(),
             created_at: e.created_at,
         }
     }

@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.person_id, concat_ws(' ', p.given_name, p.family_name) AS \"name!\", e.amount\n           FROM farm_passbook_entries e\n           JOIN farm_persons p ON p.workspace_id = e.workspace_id AND p.id = e.person_id\n           WHERE e.workspace_id = $1 AND e.correction_id = $2 ORDER BY e.person_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "person_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "person_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "amount"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "ec2eddf8dcc9897dc902acbf24d47a3998f05dd6c50d1881fb6fe1da7e1b5354"
+}

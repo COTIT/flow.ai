@@ -18,21 +18,21 @@ use sqlx::PgPool;
 /// TZS 8,000.00 per kg.
 const PRICE: i64 = 800_000;
 
-struct Sold {
-    f: Farm,
+pub(crate) struct Sold {
+    pub(crate) f: Farm,
     /// Workspace and owner token that sell (A, or R itself).
-    shop_ws: String,
-    shop: String,
-    order: String,
+    pub(crate) shop_ws: String,
+    pub(crate) shop: String,
+    pub(crate) order: String,
     /// Persons, in the order Neema (250 kg), Baraka (120.50 kg), Upendo (30 kg).
-    persons: [String; 3],
-    tzs: String,
+    pub(crate) persons: [String; 3],
+    pub(crate) tzs: String,
     /// The shop's jar product and the warehouse holding the jars.
-    product: String,
-    warehouse: String,
+    pub(crate) product: String,
+    pub(crate) warehouse: String,
 }
 
-async fn ws_call(
+pub(crate) async fn ws_call(
     f: &Farm,
     ws: &str,
     method: Method,
@@ -57,7 +57,7 @@ async fn created(f: &Farm, ws: &str, tail: &str, body: Value, token: &str, key: 
 }
 
 /// A completed order of 3 jars from a lot packed 10 jars from 7.50 kg of a 400.50 kg batch.
-async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
+pub(crate) async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
     let f = Farm::new(pool).await;
     let c = f.cast().await;
     let (baraka, b_cycle) = f.grower("Baraka", "0712000009", &c.maize).await;
@@ -213,7 +213,7 @@ async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
 }
 
 /// A till signed in on a register of the jars' warehouse; its token.
-async fn till(s: &Sold) -> String {
+pub(crate) async fn till(s: &Sold) -> String {
     let (status, reg) = ws_call(
         &s.f,
         &s.shop_ws,
@@ -286,7 +286,7 @@ async fn give_back(s: &Sold, jars: &str) {
 }
 
 /// Each farmer's passbook balance (minor units), read through the API by ops.
-async fn balances(s: &Sold) -> [i64; 3] {
+pub(crate) async fn balances(s: &Sold) -> [i64; 3] {
     let mut out = [0; 3];
     for (i, p) in s.persons.iter().enumerate() {
         let (status, res) =

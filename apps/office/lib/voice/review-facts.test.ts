@@ -316,3 +316,42 @@ it("words a new currency as new values: code, name, symbol and decimals", () => 
   ).toContainEqual({ field: "default_currency", before: null, after: "Ja" })
   expect(createdFacts("products_create", { name: "A" }, "en")).toBeUndefined()
 })
+
+const correction = {
+  version: 1,
+  operation_id: "farm_supply_correction_request",
+  facts: {
+    kind: "supply_correction",
+    locked: { label: "ILU-H-1" },
+    lines: [{ farmer: "Gift Mushi", kg_before: "60.00", kg_after: "40.00" }],
+    net_kg: "-20.00",
+    reason: "Scale read high",
+    currency: { code: "TZS", decimals: 2 },
+    farmers: [
+      {
+        name: "Gift Mushi",
+        change_minor: -1_200_000,
+        balance_after_minor: -400_000,
+      },
+      { name: "Juma Ally", change_minor: 0, balance_after_minor: 50_000 },
+    ],
+    approval: "office",
+  },
+}
+
+it("shows a delivery correction's money in currency units and who will owe", () => {
+  const shown = reviewFacts(
+    correction,
+    "farm_supply_correction_request",
+    "en"
+  ) as { farmers: Record<string, unknown>[] }
+  expect(shown.farmers[0]).toMatchObject({ name: "Gift Mushi" })
+  expect(String(shown.farmers[0]!.change)).toMatch(/12,000\.00/)
+  expect(JSON.stringify(shown)).not.toContain("_minor")
+  const [warning, ...rest] = reviewWarnings(correction, "en")
+  expect(rest).toEqual([])
+  expect(warning).toMatch(/^Gift Mushi will owe .*4,000\.00 back\./)
+  expect(warning).not.toMatch(/400000|-/)
+  expect(reviewWarnings(correction, "sw")[0]).toContain("atadaiwa")
+  expect(reviewWarnings(correction, "nl")[0]).toContain("4.000,00")
+})
