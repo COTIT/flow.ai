@@ -133,7 +133,8 @@ test("an API draft is private until Office publishes, and restoring requires ano
     await loginOffice(page, ownerLogin)
     await page.goto(`${urls.office}/settings/storefront`)
     await page
-      .getByRole("button", { name: `Preview revision ${first}`, exact: true })
+      // Revision 1 is the fixture draft (names never carry the UUID).
+      .getByRole("button", { name: /^Preview revision 1, saved / })
       .click()
     await expect(
       page.getByRole("region", { name: "Storefront preview" })
@@ -171,7 +172,8 @@ test("an API draft is private until Office publishes, and restoring requires ano
 
     await page.goto(`${urls.office}/settings/storefront`)
     await page
-      .getByRole("button", { name: `Preview revision ${first}`, exact: true })
+      // Revision 1 is the fixture draft (names never carry the UUID).
+      .getByRole("button", { name: /^Preview revision 1, saved / })
       .click()
     await page
       .getByRole("button", { name: "Restore as draft", exact: true })
@@ -193,10 +195,8 @@ test("an API draft is private until Office publishes, and restoring requires ano
     )
     await page.goto(`${urls.office}/settings/storefront`)
     await page
-      .getByRole("button", {
-        name: `Preview revision ${state.draft_revision_id}`,
-        exact: true,
-      })
+      // Revision 3 is the restored copy of revision 1.
+      .getByRole("button", { name: /^Preview revision 3, saved / })
       .click()
     await page.getByRole("button", { name: "Publish", exact: true }).click()
     await page

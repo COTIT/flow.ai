@@ -184,7 +184,7 @@
   "apps/api/src/modules/storefront/handlers.rs": "5a806138606efe5002ce63a72ee8763bb8c82a3169a6cdf0b8865550dedb66d8",
   "apps/api/src/modules/storefront/service.rs": "d3ba0b6dc403ed1d369febfd9205e51a056b1790cf047af893888bedc799b6c5",
   "apps/api/src/modules/storefront_design/dto.rs": "e3b0555a3ff45b03247041529adc8f3cb231545bb66c8d5cf5862a2e0d02bd02",
-  "apps/api/src/modules/storefront_design/handlers.rs": "864d383dd3e77787b7f369eba30e5108d696c5f9282b537b73a762d9bc735081",
+  "apps/api/src/modules/storefront_design/handlers.rs": "d6e297d97c3ada6e59f98a008ee45b93967ffd7c3af303cc3016a30d5b302f73",
   "apps/api/src/modules/storefront_design/repo.rs": "4b1fa77457d1778482779e8aed15694c9a68a9e6c14db7c633c02f8b98451950",
   "apps/api/src/modules/storefront_design/service.rs": "474a113521e2e34064a31cb672e801cf7621bd6f56d9b08914a056cf966fe9b0",
   "apps/api/src/modules/supply_chain/handlers.rs": "408ea547f27bcc3a69b11c76bb4d80533163b83aab3eae1fb3bf9b164b70026f",

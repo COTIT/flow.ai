@@ -34554,7 +34554,7 @@
         ],
         "summary": "Public design retrieval can follow published pointer only.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
@@ -97596,7 +97596,7 @@
         ],
         "summary": "Introspect only reviewed component capabilities and Rust-generated document schema.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
@@ -97729,7 +97729,7 @@
         ],
         "summary": "Read current draft state; ownership remains relational.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
@@ -97881,7 +97881,7 @@
         ],
         "summary": "Materialize owned revision using same authoritative catalog as public Shop.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
@@ -98063,7 +98063,7 @@
         ],
         "summary": "Publish exactly current reviewed draft; atomically move pointer and append audit.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
@@ -98245,7 +98245,7 @@
         ],
         "summary": "Copy history into new draft; no implicit publication.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
@@ -98394,7 +98394,7 @@
         ],
         "summary": "Read bounded metadata without exposing document copies in history rows.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       },
       "post": {
@@ -98574,7 +98574,7 @@
         ],
         "summary": "Save new immutable revision; keyed retries replay original answer.",
         "tags": [
-          "storefront-design"
+          "storefront_design"
         ]
       }
     },
