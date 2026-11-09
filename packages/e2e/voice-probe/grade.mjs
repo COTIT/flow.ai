@@ -51,7 +51,7 @@ export function grade(scenario, rec, catalog) {
   const ids = new Set(catalog.map((o) => o.id))
   const agent = rec.messages.filter((m) => m.role === "agent").map((m) => plain(m.text))
   const last = agent.at(-1) ?? ""
-  const shown = [...agent, ...rec.messages.filter((m) => m.role === "action").map((m) => m.text), ...rec.thinking]
+  const shown = [...agent, ...rec.messages.filter((m) => m.role === "action" || m.role === "result").map((m) => m.text), ...rec.thinking]
   const defects = defectsIn(shown, ids)
   if (rec.cancelFailures > 0)
     defects.push({ kind: "review_card_unstable", text: `Cancel kept re-rendering; ${rec.cancelFailures} cancel attempt(s) failed` })
