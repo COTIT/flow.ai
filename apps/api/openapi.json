@@ -4701,6 +4701,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "net_total": {
+            "description": "Their stored subtotals (excl VAT, after line discounts), minor units, before refunds:\nrevenue excluding VAT. `net_total + vat_total = gross_total`.",
+            "format": "int64",
+            "type": "integer"
+          },
           "orders": {
             "description": "Orders sold in the range.",
             "format": "int64",
@@ -4710,6 +4715,11 @@
             "description": "Provider refunds of those orders that went through (status `refunded`), minor units.\nCredit notes and cash handed back outside the API are not in it.",
             "format": "int64",
             "type": "integer"
+          },
+          "vat_total": {
+            "description": "Their stored VAT, minor units, before refunds.",
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -4717,6 +4727,8 @@
           "decimals",
           "orders",
           "gross_total",
+          "net_total",
+          "vat_total",
           "refunded_total"
         ],
         "type": "object"
@@ -89518,7 +89530,7 @@
     },
     "/workspace/{workspace}/sales-summary": {
       "get": {
-        "description": "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.",
+        "description": "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `net_total` the same excl VAT (revenue excluding VAT) and `vat_total` their VAT, so net + VAT = gross; all three before refunds. `refunded_total` is the provider refunds of those orders that went through (incl VAT, not split). One row per currency, minor units.",
         "operationId": "orders_sales_summary",
         "parameters": [
           {
@@ -89686,7 +89698,7 @@
             "bearer": []
           }
         ],
-        "summary": "Sales in a time range, per currency",
+        "summary": "Sales (revenue) in a time range per currency, incl and excl VAT",
         "tags": [
           "orders"
         ]
@@ -89888,7 +89900,7 @@
     },
     "/workspace/{workspace}/sales/top-customers": {
       "get": {
-        "description": "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. Money in minor units.",
+        "description": "Customers ranked per currency by the totals incl VAT of their orders sold in `[from, to)` (same sold rule as `orders_sales_summary`). `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone, UTC when unset), at most 366 days apart. Orders without a customer (till walk-ins) are never ranked; they are `without_customer`. `product_id` (and/or `variant_id`) answers \"who buys the most honey\": only that product's lines count (`line_excl` + `line_vat`) and `orders` are the orders holding it. Net/VAT split per row; all before refunds. Money in minor units.",
         "operationId": "orders_top_customers",
         "parameters": [
           {
@@ -89951,9 +89963,19 @@
             }
           },
           {
-            "description": "top-products only: just this product (all its variants), e.g. \"how much honey sold\".",
+            "description": "Just this product's lines (all its variants): \"how much honey sold\" (top-products),\n\"who buys the most honey\" (top-customers).",
             "in": "query",
             "name": "product_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Just this variant's (size's) lines.",
+            "in": "query",
+            "name": "variant_id",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -90030,7 +90052,7 @@
                 }
               }
             },
-            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20"
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source`, `limit` outside 1..20, `product_id` or `variant_id` not a UUID"
           },
           "429": {
             "content": {
@@ -90084,7 +90106,7 @@
             "bearer": []
           }
         ],
-        "summary": "Top customers by sales in a period (best customers, who bought the most)",
+        "summary": "Top customers by sales in a period, optionally of one product (best customers, who buys the most of a product)",
         "tags": [
           "orders"
         ]
@@ -90092,7 +90114,7 @@
     },
     "/workspace/{workspace}/sales/top-products": {
       "get": {
-        "description": "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
+        "description": "Products ranked per currency by the line totals incl VAT of orders sold in `[from, to)` (same sold rule as `orders_sales_summary`), with units, lines and orders. `by=variant` ranks each size apart; `product_id` / `variant_id` keep one product's or size's lines. `from`/`to` take RFC 3339 or `YYYY-MM-DD` (local midnight in the workspace time zone), at most 366 days apart. Money in minor units.",
         "operationId": "products_top_sellers",
         "parameters": [
           {
@@ -90155,9 +90177,19 @@
             }
           },
           {
-            "description": "top-products only: just this product (all its variants), e.g. \"how much honey sold\".",
+            "description": "Just this product's lines (all its variants): \"how much honey sold\" (top-products),\n\"who buys the most honey\" (top-customers).",
             "in": "query",
             "name": "product_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Just this variant's (size's) lines.",
+            "in": "query",
+            "name": "variant_id",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -90234,7 +90266,7 @@
                 }
               }
             },
-            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20"
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, unknown `source` or `by`, `limit` outside 1..20, `product_id` or `variant_id` not a UUID"
           },
           "429": {
             "content": {

@@ -906,6 +906,11 @@ pub struct CurrencySales {
     pub orders: i64,
     /// Their totals incl VAT, minor units, before any refund or return.
     pub gross_total: i64,
+    /// Their stored subtotals (excl VAT, after line discounts), minor units, before refunds:
+    /// revenue excluding VAT. `net_total + vat_total = gross_total`.
+    pub net_total: i64,
+    /// Their stored VAT, minor units, before refunds.
+    pub vat_total: i64,
     /// Provider refunds of those orders that went through (status `refunded`), minor units.
     /// Credit notes and cash handed back outside the API are not in it.
     pub refunded_total: i64,

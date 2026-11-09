@@ -396,8 +396,8 @@ pub async fn events(
 /// GET /sales-summary -> `{data: {from, to, source, currencies}}`.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/sales-summary", tag = "orders",
-    operation_id = "orders_sales_summary", summary = "Sales in a time range, per currency",
-    description = "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.",
+    operation_id = "orders_sales_summary", summary = "Sales (revenue) in a time range per currency, incl and excl VAT",
+    description = "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `net_total` the same excl VAT (revenue excluding VAT) and `vat_total` their VAT, so net + VAT = gross; all three before refunds. `refunded_total` is the provider refunds of those orders that went through (incl VAT, not split). One row per currency, minor units.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), SummaryQuery),
     responses(
         (status = 200, body = Envelope<SalesSummary>, description = "One row per currency sold in"),

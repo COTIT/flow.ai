@@ -1,6 +1,7 @@
 //! SQL for sales analytics and the invoice export. "Sold" = the `orders::repo::sales_summary`
 //! rule: status open, completed, partially_returned or returned, at confirmed_at, else paid_at,
-//! completed_at, created_at. Order net = `subtotal`, VAT = `total - subtotal`, so gross = net + VAT.
+//! completed_at, created_at. Order net = `subtotal`, VAT = stored `vat` (pricing engine writes
+//! total = subtotal + vat), so gross = net + VAT. Compare reads VAT as `total - subtotal`.
 // shortcut: each query scans the workspace's orders in range like sales_summary (no index on
 // the sold-at expression); add one when a workspace passes ~100k orders.
 
@@ -48,7 +49,9 @@ pub struct CustomerTotal {
 }
 
 /// Top `limit` customers per currency by gross total (then name, id), plus one walk-in row
-/// per currency. Ordered by currency, walk-in last, rank.
+/// per currency. Ordered by currency, walk-in last, rank. With `product_id`/`variant_id` only
+/// those lines count (`line_excl`, `line_vat`) and only orders holding them.
+#[allow(clippy::too_many_arguments)]
 pub async fn top_customers(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -56,32 +59,45 @@ pub async fn top_customers(
     to: DateTime<Utc>,
     source: Option<&str>,
     limit: i64,
+    product_id: Option<Uuid>,
+    variant_id: Option<Uuid>,
 ) -> Result<Vec<CustomerTotal>, sqlx::Error> {
     sqlx::query_as!(
         CustomerTotal,
         r#"WITH g AS (
                SELECT upper(c.asset_type) AS currency, c.decimals, o.relation_id,
-                      count(*) AS orders, sum(o.total)::bigint AS gross,
-                      sum(o.subtotal)::bigint AS net
+                      count(*) AS orders,
+                      sum(coalesce(l.net, o.subtotal))::bigint AS net,
+                      sum(coalesce(l.vat, o.vat))::bigint AS vat
                FROM orders o
                JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+               -- Filtered: that product's lines of the order; no filter: no row, order totals.
+               LEFT JOIN LATERAL (
+                   SELECT sum(ol.line_excl) AS net, sum(ol.line_vat) AS vat
+                   FROM order_lines ol
+                   WHERE ol.workspace_id = o.workspace_id AND ol.order_id = o.id
+                     AND ($6::uuid IS NULL OR ol.product_id = $6)
+                     AND ($7::uuid IS NULL OR ol.product_variant_id = $7)
+                   HAVING count(*) > 0) l ON $6::uuid IS NOT NULL OR $7::uuid IS NOT NULL
                WHERE o.workspace_id = $1
+                 AND (($6::uuid IS NULL AND $7::uuid IS NULL) OR l.net IS NOT NULL)
                  AND o.status IN ('open', 'completed', 'partially_returned', 'returned')
                  AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2
                  AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3
                  AND ($4::text IS NULL OR o.source = $4)
                GROUP BY 1, 2, 3),
            r AS (
-               SELECT g.*, coalesce(nullif(rel.company_name, ''), rel.alias, '') AS name,
+               SELECT g.*, g.net + g.vat AS gross,
+                      coalesce(nullif(rel.company_name, ''), rel.alias, '') AS name,
                       row_number() OVER (
                           PARTITION BY g.currency, g.relation_id IS NULL
-                          ORDER BY g.gross DESC, coalesce(nullif(rel.company_name, ''), rel.alias, ''),
+                          ORDER BY g.net + g.vat DESC, coalesce(nullif(rel.company_name, ''), rel.alias, ''),
                                    g.relation_id) AS rank
                FROM g
                LEFT JOIN relations rel ON rel.workspace_id = $1 AND rel.id = g.relation_id)
            SELECT r.currency AS "currency!", r.decimals AS "decimals!", r.relation_id,
                   r.name AS "name!", r.orders AS "orders!", r.gross AS "gross_total!",
-                  r.net AS "net_total!", r.gross - r.net AS "vat_total!"
+                  r.net AS "net_total!", r.vat AS "vat_total!"
            FROM r
            WHERE r.relation_id IS NULL OR r.rank <= $5
            ORDER BY r.currency, r.relation_id IS NULL, r.rank"#,
@@ -90,6 +106,8 @@ pub async fn top_customers(
         to,
         source,
         limit,
+        product_id,
+        variant_id,
     )
     .fetch_all(db)
     .await
@@ -113,7 +131,7 @@ pub struct ProductTotal {
 }
 
 /// Top `limit` products per currency by line totals incl VAT; each variant apart when
-/// `by_variant`; only `product_id` when set. Ordered by currency, rank.
+/// `by_variant`; only `product_id` / `variant_id` lines when set. Ordered by currency, rank.
 #[allow(clippy::too_many_arguments)]
 pub async fn top_products(
     db: impl PgExecutor<'_>,
@@ -124,6 +142,7 @@ pub async fn top_products(
     limit: i64,
     by_variant: bool,
     product_id: Option<Uuid>,
+    variant_id: Option<Uuid>,
 ) -> Result<Vec<ProductTotal>, sqlx::Error> {
     sqlx::query_as!(
         ProductTotal,
@@ -142,6 +161,7 @@ pub async fn top_products(
                  AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3
                  AND ($4::text IS NULL OR o.source = $4)
                  AND ($7::uuid IS NULL OR l.product_id = $7)
+                 AND ($8::uuid IS NULL OR l.product_variant_id = $8)
                GROUP BY 1, 2, 3, 4),
            r AS (
                SELECT g.*, row_number() OVER (
@@ -164,6 +184,7 @@ pub async fn top_products(
         limit,
         by_variant,
         product_id,
+        variant_id,
     )
     .fetch_all(db)
     .await

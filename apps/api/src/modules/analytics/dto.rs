@@ -127,9 +127,13 @@ pub struct TopQuery {
     pub limit: Option<String>,
     /// top-products only: `product` (default) or `variant` (each size apart).
     pub by: Option<String>,
-    /// top-products only: just this product (all its variants), e.g. "how much honey sold".
+    /// Just this product's lines (all its variants): "how much honey sold" (top-products),
+    /// "who buys the most honey" (top-customers).
     #[param(value_type = Option<Uuid>)]
     pub product_id: Option<String>,
+    /// Just this variant's (size's) lines.
+    #[param(value_type = Option<Uuid>)]
+    pub variant_id: Option<String>,
 }
 
 /// Validated top-N query.
@@ -139,6 +143,7 @@ pub struct Top {
     pub limit: i64,
     pub by_variant: bool,
     pub product_id: Option<Uuid>,
+    pub variant_id: Option<Uuid>,
 }
 
 impl TopQuery {
@@ -155,17 +160,8 @@ impl TopQuery {
             by.is_none_or(|b| matches!(b, "product" | "variant")),
             "The by must be product or variant.",
         );
-        let product_id = self
-            .product_id
-            .as_deref()
-            .map(str::trim)
-            .filter(|v| !v.is_empty());
-        let parsed = product_id.and_then(|v| Uuid::parse_str(v).ok());
-        r.check(
-            "product_id",
-            product_id.is_none() || parsed.is_some(),
-            "The product id must be a valid UUID.",
-        );
+        let product_id = uuid(&mut r, "product_id", self.product_id.as_deref());
+        let variant_id = uuid(&mut r, "variant_id", self.variant_id.as_deref());
         r.into_result()?;
         let (Some(from), Some(to)) = (from, to) else {
             return Err(AppError::Internal("bounds checked above".into()));
@@ -175,9 +171,22 @@ impl TopQuery {
             source,
             limit,
             by_variant: by == Some("variant"),
-            product_id: parsed,
+            product_id,
+            variant_id,
         })
     }
+}
+
+/// Optional UUID `field` (blank = none); 422 when not a UUID.
+fn uuid(r: &mut Rules, field: &str, v: Option<&str>) -> Option<Uuid> {
+    let v = v.map(str::trim).filter(|v| !v.is_empty());
+    let parsed = v.and_then(|v| Uuid::parse_str(v).ok());
+    r.check(
+        field,
+        v.is_none() || parsed.is_some(),
+        format!("The {} must be a valid UUID.", field.replace('_', " ")),
+    );
+    parsed
 }
 
 /// GET /sales/compare query.

@@ -74,6 +74,8 @@ pub async fn top_customers(
         p.to,
         q.source.as_deref(),
         q.limit,
+        q.product_id,
+        q.variant_id,
     )
     .await?;
     let mut currencies: Vec<CustomerCurrency> = Vec::new();
@@ -133,6 +135,7 @@ pub async fn top_products(
         q.limit,
         q.by_variant,
         q.product_id,
+        q.variant_id,
     )
     .await?;
     let mut currencies: Vec<ProductCurrency> = Vec::new();
