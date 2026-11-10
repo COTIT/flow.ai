@@ -8,6 +8,9 @@ describe("readinessState", () => {
       "available"
     )
   })
+  it("switched off is off, as Office answers it: 200 { enabled: false, ready: true }", () => {
+    expect(readinessState(200, { enabled: false, ready: true })).toBe("off")
+  })
   it("503 with the assistant switched off is off", () => {
     expect(readinessState(503, { enabled: false, ready: false })).toBe("off")
   })
