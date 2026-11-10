@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 
+import { prepareAction } from "./catalog"
 import catalog from "./catalog.generated.json"
 
 // Phase 4A: a shared screenshot/PDF may only inform a typed design edit. No design operation may
@@ -75,4 +76,43 @@ describe("design references cannot become storefront content", () => {
       expect(mediaPaths(media)).toEqual([])
     }
   )
+})
+
+describe("a shared reference cannot ride along on a design write", () => {
+  const workspace = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
+  const revision = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5c"
+  const writes = [
+    [
+      "storefront_design_edit",
+      {
+        expected_version: 1,
+        changes: [{ op: "set_theme", theme: "neutral" }],
+      },
+    ],
+    [
+      "storefront_design_publish",
+      { expected_version: 1, revision_id: revision },
+    ],
+    [
+      "storefront_design_restore",
+      { expected_version: 1, revision_id: revision },
+    ],
+  ] as const
+
+  it.each(writes)("%s is prepared without attachments", (id, body) => {
+    expect(prepareAction(id, { body }, workspace)).toMatchObject({
+      operationId: id,
+      write: true,
+    })
+  })
+
+  it.each(writes)("%s refuses a session attachment handle", (id, body) => {
+    const args = {
+      body,
+      attachments: { reference: ["9f1c2b3a-0d4e-4f5a-8b6c-7d8e9f0a1b2c"] },
+    }
+    expect(() => prepareAction(id, args, workspace)).toThrow(
+      "This operation does not accept these attachments."
+    )
+  })
 })
