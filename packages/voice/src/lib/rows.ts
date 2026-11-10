@@ -1,5 +1,5 @@
-import type { ResultView } from "@/lib/voice/views"
-import type { TranscriptRow } from "../helpers"
+import type { ResultView } from "./views"
+import type { TranscriptRow } from "./helpers"
 
 /** Adds a result picture to the transcript. Sales answers to one question share one chart
  * (display grouping only; nothing is added up). */

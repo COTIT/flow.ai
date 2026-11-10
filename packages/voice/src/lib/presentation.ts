@@ -1,4 +1,4 @@
-import type { VoiceReview, VoiceReviewStep } from "@/lib/voice/client-contract"
+import type { VoiceReview, VoiceReviewStep } from "./client-contract"
 import { taskPresentation } from "./helpers"
 
 const PENDING = new Set([

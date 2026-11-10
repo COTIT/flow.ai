@@ -1,5 +1,5 @@
-import { failureReason } from "@/lib/voice/client-contract"
-import type { ResultView } from "@/lib/voice/views"
+import { failureReason } from "./client-contract"
+import type { ResultView } from "./views"
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_ATTACHMENTS = 10
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

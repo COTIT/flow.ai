@@ -23,10 +23,10 @@ import type {
   VoiceOutcome,
   VoiceReview,
   VoiceSession,
-} from "@/lib/voice/client-contract"
-import { failureReason } from "@/lib/voice/client-contract"
-import { createTurn, endedBy, type TurnEnd } from "./turn"
-import { timeZoneUpdate } from "./time-zone"
+} from "../lib/client-contract"
+import { failureReason } from "../lib/client-contract"
+import { createTurn, endedBy, type TurnEnd } from "../lib/turn"
+import { timeZoneUpdate } from "../lib/time-zone"
 import {
   attachmentProblem,
   sheetMime,
@@ -40,9 +40,9 @@ import {
   whenSlow,
   type TranscriptRow,
   type VoiceProgress,
-} from "./helpers"
-import { batchAttachmentReferences, voiceRequestBody } from "./multipart"
-import { withView } from "./results/rows"
+} from "../lib/helpers"
+import { batchAttachmentReferences, voiceRequestBody } from "../lib/multipart"
+import { withView } from "../lib/rows"
 import {
   createOutcomeWait,
   readRecovery,
@@ -50,15 +50,15 @@ import {
   sessionLanguage,
   type RecoveryPointer,
   type RecoveryTask,
-} from "./recovery"
-import { matchesSpokenConfirmation } from "@/lib/voice/confirmation"
+} from "../lib/recovery"
+import { matchesSpokenConfirmation } from "../lib/confirmation"
 import {
   historicalProgress,
   rememberTask,
   taskOwner,
   type TaskReference,
   type BatchProgress,
-} from "./continuity"
+} from "../lib/continuity"
 
 class VoiceRequestError extends Error {
   constructor(
@@ -401,7 +401,7 @@ function Session({ children }: { children: ReactNode }) {
   function add(
     role: TranscriptRow["role"],
     text: string,
-    id = crypto.randomUUID(),
+    id: string = crypto.randomUUID(),
     href?: string
   ) {
     if (active.current)

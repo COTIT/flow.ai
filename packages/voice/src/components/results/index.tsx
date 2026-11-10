@@ -6,8 +6,8 @@ import { ChevronRight, ExternalLink } from "lucide-react"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import type { Money, ResultView } from "@/lib/voice/views"
-import { fieldName } from "../helpers"
+import type { Money, ResultView } from "../../lib/views"
+import { fieldName } from "../../lib/helpers"
 import { SalesChart } from "./sales-chart"
 
 type Of<K extends ResultView["kind"]> = Extract<ResultView, { kind: K }>

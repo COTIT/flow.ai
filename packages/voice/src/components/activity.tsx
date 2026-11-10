@@ -2,9 +2,9 @@
 
 import { CircleCheck, CircleAlert } from "lucide-react"
 import { useTranslations } from "next-intl"
-import ThoughtLine from "@/components/rb/ThoughtLine"
+import ThoughtLine from "./rb/ThoughtLine"
 import { useVoice } from "./provider"
-import { activityPending, activityState } from "./presentation"
+import { activityPending, activityState } from "../lib/presentation"
 
 const ALERT = new Set(["failed", "unknown", "partial"])
 

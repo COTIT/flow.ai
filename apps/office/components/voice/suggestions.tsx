@@ -10,8 +10,8 @@ import {
   pickSuggestions,
   rotated,
   type Available,
-} from "@/lib/voice/capabilities"
-import { useVoice } from "./provider"
+} from "@genesy/voice/lib/capabilities"
+import { useVoice } from "@genesy/voice/components/provider"
 
 const DAY = 86_400_000
 

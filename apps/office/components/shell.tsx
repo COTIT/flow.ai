@@ -58,7 +58,7 @@ import { Sheet, SheetContent, SheetTitle } from "@genesy/ui/components/sheet"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 
-import { VoiceControls } from "@/components/voice/controls"
+import { VoiceControls } from "@genesy/voice/components/controls"
 import { rightFor, useCan, useRights } from "@/lib/can"
 
 type Item = {

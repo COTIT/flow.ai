@@ -1,4 +1,4 @@
-import type { VoiceOutcome } from "./client-contract"
+import type { VoiceOutcome } from "@genesy/voice/lib/client-contract"
 
 /** The agent's spoken review line, per session language. */
 const review = {

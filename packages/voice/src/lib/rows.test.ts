@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import type { TranscriptRow } from "../helpers"
-import type { ResultView } from "@/lib/voice/views"
+import type { TranscriptRow } from "./helpers"
+import type { ResultView } from "./views"
 import { withView } from "./rows"
 
 const sales = (from: string): ResultView => ({ kind: "sales", from, to: from, source: "till", rows: [] })

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { island, useMotionAllowed } from "@genesy/ui/components/island"
 import { useVoice } from "./provider"
-import { voiceMotionActive } from "./motion"
+import { voiceMotionActive } from "../lib/motion"
 
 // React Bits Strands (WebGL2) is fetched lazily; the brand rings below stay as the still version.
 const Strands = island(() => import("./strands"))

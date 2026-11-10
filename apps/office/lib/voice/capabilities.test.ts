@@ -10,7 +10,7 @@ import {
   moduleFor,
   pickSuggestions,
   type Available,
-} from "./capabilities"
+} from "@genesy/voice/lib/capabilities"
 import {
   availableCapabilities,
   describeCapabilities,
