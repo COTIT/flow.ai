@@ -71,7 +71,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           onClick={async () => {
             setLeaving(true)
             // End the voice session while the login still works; a hung end never blocks logout.
-            await settleWithin(voice.end(), END_VOICE_MS)
+            await settleWithin(
+              // A throw inside end() becomes a rejection here, so logout still runs.
+              Promise.resolve().then(() => voice.end()),
+              END_VOICE_MS
+            )
             logout.mutate()
           }}
         >
