@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17); 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
+Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17), 2C merged (#23, `dd8d4ad2f`). Phase 3 approved (D1–D12); P3-A (Rust) in progress. Phase 5 component demand built (SQL `assistant_gap_demand`, k ≥ 3 workspaces; Office `voice:demand`), PR open. Phases 4 (files only) and 6 planned; Phase 6 choices deferred. 2D proposed only. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
@@ -103,15 +103,39 @@ Architectural distinctions:
 
 Not part of this direction: a general app builder, drag-and-drop dashboards, autonomous business writes without approval, or changes to the Phase 1 storefront design architecture. It adds no scope to the current phases: no dynamic report composition, scheduling, cron or email automation is built until a later phase is planned and approved.
 
+## Proposed Phase 2D: token-efficient personalized briefings (recorded 2026-11-10; not scheduled)
+
+Architecture decision for later planning. Not part of 2C; nothing below is implemented.
+
+Goal: personalized, live business briefings with zero routine LLM calls on page load.
+
+1. AI interprets a new preference once.
+2. A validated, structured briefing configuration is saved in PostgreSQL, scoped by workspace and user.
+3. Later sessions load that configuration directly.
+4. Current metrics resolve through authorized Rust APIs.
+5. Results render through approved reusable React components.
+6. Data refreshes independently of the agent.
+7. AI runs only for new instructions or explanations.
+8. Rendering a saved briefing never starts an ElevenLabs conversation.
+
+Reuse, don't duplicate: `apps/api/src/modules/{analytics,attention,scheduled_reports}`, the job scheduler (`apps/api/src/jobs`), existing reporting services, the API client with React Query, and `@genesy/ui` components.
+
+Caching: no Redis by default. Start with existing request caching, measure query cost, and add Redis only when measurements justify new infrastructure. Preserve workspace isolation, user authorization, metric correctness, the reporting timezone, currency semantics (integer cents), explicit freshness indicators and safe invalidation.
+
+Components: a finite registry of approved metric cards, line/bar charts, attention summaries, report tables and action/review cards. Each declares its supported properties, allowed data source, valid filters, permission requirements, loading/error/empty states and responsive behavior. No AI-generated React or executable code.
+
+Routines: reuse `scheduled_reports` before proposing any new cron or automation. Keep four things separate: saved views (rendered on open), background scheduled reports, notifications, and business-changing operations. A stored preference never authorizes future business mutations.
+
 ## Roadmap: proposed future work
 
 | Phase | Deliverable | Prerequisites / acceptance |
 | --- | --- | --- |
 | 1 | Versioned home design, safe preview/publication/restore | Actual tests/reviews in ledger; legacy remains default |
 | 2 | Dedicated `apps/flow` at `flow.genesy.app`, shared agent foundation and design tools, device preview UI | Green Phase 1; inventory voice module callers; preserve Office compatibility; independent-origin auth/proxy/CSP/deploy design; explicit tool review policy |
+| 2D (proposed) | Token-efficient personalized briefings (see section above) | Approved plan; reuse analytics/attention/scheduled_reports; measured caching; component registry; no routine LLM calls on load |
 | 3 | Conversational design and targeted version-aware edits | Shared orchestration + discoverable registry; previews/review cards; explicit publish approval; conflict/retry/undo tests |
 | 4 | Screenshot/image/document and optional URL design references | Reuse existing attachment lifecycle; SSRF-safe isolated URL/browser boundary with DNS/redirect/resource controls; untrusted-content handling; original approved assets |
-| 5 | Component demand extension of existing gap ledger | Structured classifications; privacy-safe aggregates, unique-business demand, workarounds/support/resolution; backward-compatible reports/retention |
+| 5 | Component demand extension of existing gap ledger | Structured classifications; privacy-safe aggregates, unique-business demand, workarounds/support/resolution; backward-compatible reports/retention . Built: SQL `assistant_gap_demand` (k≥3 floor, ≤90 days, no workspace data) + Office `voice:demand` remedies/resolution. Support signal deferred |
 | 6 | Internal weekly component worker, at most one draft PR/cycle | Sanitized specifications; least-privilege isolated runner/API credential and spending limit; registry/schema/tests/responsive screenshots; human merge review; no production/customer transcript access or automatic merge |
 
 No Phase 2–6 functionality is claimed by this Phase 1 delivery.

@@ -1,6 +1,6 @@
 # Genesy Flow current handoff
 
-Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17, `4d4f8b455`); follow-ups #18 (Office proxy skips `api/`, voice uploads no longer cut at 10 MiB) and #19 (Shop payment-wait test flake) merged. 2C not started. Product direction recorded in MASTER_PLAN.md.**
+Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2: 2A (#16) and 2B (#17) merged; follow-ups #18, #19, #21 (gap-triage test speedup) merged; main at `a465a7697`. 2C integrated on `flow/2c-conversation` (see "PR 2C"), PR next; merge when CI is green (standing user authorization). Phase 3 approved, P3-A (Rust) in progress; Phase 5 in progress. Phases 4/6 planned; 2D proposed. Nothing deployed beyond Phase 1 staging.**
 
 Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this checkpoint → actual Git/source → [VERIFICATION.md](VERIFICATION.md) and [DECISIONS.md](DECISIONS.md).
 
@@ -30,12 +30,32 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 - Voice texts opt-in via `@genesy/i18n/voice` (Office + Flow). Audio via `packages/voice/scripts/prepare-voice-audio.mjs public` in both builds.
 - Deploy kit: `flow` service in staging/production compose (internal + edge), Traefik hosts `staging-flow.genesy.app` / `flow.genesy.app`, health hosts, `ghcr.io/cotit/genesy-flow` built by CI after green main.
 
+## PR 2C (integrated, `flow/2c-conversation`)
+
+- Conversation-first Flow `/`: `GenesyVoiceProvider` in `apps/flow/components/signed-in.tsx` (`(app)` only); two panes from 1024 px (conversation left, contextual results right), results sheet with a persistent "Review pending" reopen control below. Shared transcript/review/attachments/composer now live in `@genesy/voice` and Office uses them too. Nothing starts on load.
+- Office handoff: `apps/flow/lib/links.ts` exact-match policy to `OFFICE_PUBLIC_URL` (runtime, per environment); secure forms stay in Office (proxy unchanged).
+- Storefront: Flow `/storefront` (admin-gated review: revisions, badges, separate publish/restore dialogs, 409 handling, device toggle 375/834/1280) + same-origin frame `/storefront/preview` (only route with `frame-ancestors 'self'`). `useStorefrontReview` shared from `@genesy/api-client` with Office.
+- Edge cases: cross-tab session follow (`apps/flow/lib/other-tabs.ts`), page heading outline in the frame (`StorefrontPage headings="page"`).
+- Build: `apps/flow/scripts/check-client-bundle.mjs` runs after `next build` (also inside the image). `FILES_ORIGIN` in Flow CSP via the uploads overlays.
+- Design ops remain `internal` for voice in 2C.
+
+## Parallel work in flight (child sessions, own worktrees)
+
+- Phase 3 P3-A (Rust targeted edits + dry run + resolver/approval changes): branch `claude/flow-p3-plan-5ae261`; plan in that worktree's `side-session-notes/flow-phase-3-plan.md` (not committed: public repo). P3-B/C after 2C merges; any UI design goes to Claude Design for user approval first.
+- Phase 5 component demand: see "Phase 5" below.
+- Phase 4/6 plans: worktree `.claude/worktrees/flow-p46-plan-d8481a/side-session-notes/` (not committed).
+
+## Phase 5 (component demand)
+
+Demand export: `psql -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql | pnpm --filter @genesy/office voice:demand -- --days 7 --out demand` → `demand.json` + `demand.md`. Thresholded aggregates only (≥ 3 distinct workspaces, ≤ 90 days, no workspace ids); per-row triage input is refused. Migration `20261110120000_assistant_gap_demand` is additive (function only). Phase 6 decides the access path (DB role or operator export) for the worker.
+
 ## Before the first deploy that includes Flow (user actions)
 
 - DNS A/AAAA for `staging-flow` and `flow` (values in the staging README table). Without them Let's Encrypt fails for that host and the watch alert fires each run.
 - After the first green main promote: set GHCR package `genesy-flow` private with Actions Write, or the VPS pull fails (the deploy stops before backup/migrate).
 - A rollback to a commit before Flow leaves the flow container running: `deploy/deploy.sh <env> compose stop flow`.
 - Memory: +384M staging, +512M production limits.
+- Add `https://flow.genesy.app` and `https://staging-flow.genesy.app` to the ElevenLabs agent's allowed origins (live voice on Flow is unverified until then).
 
 ## Known issues
 
@@ -43,14 +63,16 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 ## Next
 
-1. PR 2C (needs the user's go): add `flow.genesy.app` and `staging-flow.genesy.app` to the ElevenLabs agent's allowed origins; mount `GenesyVoiceProvider` in Flow (`apiBase` default works through the proxy; `resolveHref` maps Office-relative links to the Office origin); two-pane conversation UI from `useVoice()` + shared cards; storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice).
-2. Optional: decide whether staging keeps the shop design flag on for AFM demos (would show revision 3 until a new design is published).
-3. Production rollout of the design flag is a separate, later decision.
-4. Later phases follow the product direction in MASTER_PLAN.md once planned and approved.
+1. Open the 2C PR from `flow/2c-conversation`; merge when every check is green; then remove the 2C child worktrees/branches.
+2. Phase 3: integrate P3-A, then P3-B (policy flip, resolver, prompt) and P3-C (Flow UI; Claude Design approval first).
+3. Phase 5: integrate as its own PR off main.
+4. Deploy (staging, then production) needs the user's go plus the prerequisites above. Staging design flag decision stays open.
 
 ## Working rules
 
-- Children: Auto, Opus 5.5, high effort, own worktree, plan first; parent approves before edits; children commit locally, never push or deploy.
+- Children: Auto, Opus 5.5, high effort, own worktree, plan first; parent approves before edits; children commit locally, never push or deploy; children run only related tests, the parent runs the full gate on the merged tip.
+- UI/UX design decisions: Claude Design artifact from the real JSX, user approval before implementation.
+- Merge PRs once all CI checks are green (user standing authorization, 2026-11-10); deployments still need an explicit go.
 - Ask the user only for scope, auth/permission/payment/business rules, destructive DB ops, production/credentials/vendors/cost, security exceptions.
 - SQLx macros read `GENESY_DATABASE_URL`; `.env` points it at the shared dev DB on 54320. Point it at a disposable DB explicitly when preparing queries.
 - `scripts/local-gate.sh` cleanup runs `cargo clean` and `docker builder prune -a`; expect a cold rebuild afterwards.

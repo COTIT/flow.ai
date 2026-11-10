@@ -9,6 +9,7 @@ import { useStorefrontDesignPreview } from "@genesy/api-client/endpoints/storefr
 import { Notice } from "@genesy/ui/components/notice"
 import { StorefrontPage } from "@genesy/ui/components/storefront-page"
 import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
+import { followOtherTabs } from "@/lib/other-tabs"
 
 const noChange = () => () => {}
 
@@ -24,6 +25,13 @@ export function Preview({ revisionId }: { revisionId: string | null }) {
   const hydrated = useSession((s) => s.hydrated)
   const token = useSession((s) => s.token)
   const workspaceId = useSession((s) => s.workspaceId)
+  // The login and workspace this frame was opened for; after a change in any other tab or the
+  // page around it, it shows and asks nothing until the review page opens a new frame.
+  const identity = hydrated && token ? `${workspaceId}:${token}` : null
+  const [opened, setOpened] = React.useState<string | null>(null)
+  if (identity && opened === null) setOpened(identity)
+  const stale = opened !== null && identity !== opened
+  React.useEffect(() => followOtherTabs(), [])
   // null on the server; in the browser, whether a page (Flow's own, by CSP) frames this one.
   const framed = React.useSyncExternalStore(
     noChange,
@@ -45,7 +53,7 @@ export function Preview({ revisionId }: { revisionId: string | null }) {
   }, [router])
 
   const ready = Boolean(
-    framed && hydrated && token && workspaceId && revisionId
+    framed && hydrated && token && workspaceId && revisionId && !stale
   )
   const preview = useStorefrontDesignPreview(
     workspaceId ?? "",
@@ -60,6 +68,7 @@ export function Preview({ revisionId }: { revisionId: string | null }) {
         <Notice variant="info" title={t("loggedOut")} />
       </main>
     )
+  if (stale) return null
   if (!revisionId || !workspaceId || preview.isError)
     return (
       <main className="p-4">
@@ -81,6 +90,7 @@ export function Preview({ revisionId }: { revisionId: string | null }) {
           collections={data.collections}
           locale={locale}
           preview
+          headings="page"
           labels={{
             inStock: t("inStock"),
             low: t("lowStock"),

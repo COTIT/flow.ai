@@ -1152,6 +1152,11 @@ test("while a review card is open the message box cannot be reached by pointer, 
     await page.keyboard.press("Tab")
     expect(await focused()).toBe(false)
   }
+  // Tab ends on a card button or not, depending on timing; Space or Enter there would press it.
+  // Typing from no focused control proves only that the words never become a message.
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur()
+  )
   await page.keyboard.type("cancel it")
   await page.keyboard.press("Enter")
   expect(native.sent.filter((event) => event.type === "user_message")).toEqual(

@@ -56,6 +56,48 @@ it("keeps only catalog words, so names, numbers and emails never leave Office", 
   expect(redactIntent("order ".repeat(40)).split(" ").length).toBe(12)
 })
 
+it("keeps the reviewed presentation words and still strips names, numbers and emails", async () => {
+  const { redactIntent } = await import("./gaps")
+  const { PRESENTATION_WORDS } = await import("./gap-demand")
+  // Closed, reviewed list: changing it is a privacy review, not a refactor.
+  expect([...PRESENTATION_WORDS]).toEqual([
+    "banner",
+    "button",
+    "calendar",
+    "card",
+    "chart",
+    "color",
+    "colour",
+    "dashboard",
+    "form",
+    "gallery",
+    "graph",
+    "grid",
+    "hero",
+    "image",
+    "layout",
+    "list",
+    "map",
+    "menu",
+    "page",
+    "photo",
+    "report",
+    "section",
+    "summary",
+    "table",
+    "timeline",
+    "trend",
+    "video",
+    "view",
+  ])
+  expect(
+    redactIntent("Show sales as a chart for Mary, 0712345678, mary@x.tz")
+  ).toBe("sales as a chart for")
+  expect(redactIntent("calendar dashboard Kilimo 2026")).toBe(
+    "calendar dashboard"
+  )
+})
+
 it("records a refused tool call with its domain, language, tools and status", async () => {
   const fetcher = api()
   const { noteToolCall, recordGap } = await import("./gaps")
