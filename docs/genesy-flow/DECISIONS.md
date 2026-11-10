@@ -40,6 +40,7 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | Flow availability depends on Office | Accepted for Phase 2: one voice engine, secrets and checkpoint pool stay in Office. Flow carries no ElevenLabs, bridge, checkpoint or LangSmith secret |
 | `voice` texts opt-in (`@genesy/i18n/voice`) | Shop, Till, landing never receive assistant texts in their HTML; Office's texts pinned by sha256 to `a432dec17` |
 | Flow image has no `-staging` suffix | Its build inputs do not differ per environment (no env-specific `NEXT_PUBLIC_*`); one image serves both |
+| Proposed 2D briefings: AI interprets a preference once, a structured config lives in PostgreSQL, and data comes from Rust APIs into approved components | Zero routine LLM/ElevenLabs calls on load; reuse analytics/attention/scheduled_reports; no Redis until measured; stored preferences never authorize mutations. Future guidance only, not 2C scope |
 
 Approved scope additions: persistent roadmap/handoff/evidence/decision checkpoints; necessary static `storefront` segment in existing privacy-safe gap path classifier. No Phase 2 implementation.
 
