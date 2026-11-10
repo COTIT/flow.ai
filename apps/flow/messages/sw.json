@@ -1,0 +1,27 @@
+{
+  "flow": {
+    "name": "Genesy Flow",
+    "loginSubtitle": "Ongea na msaidizi wa biashara yako.",
+    "sessionEnded": "Kipindi chako kimeisha. Ingia tena ili uendelee.",
+    "error": "Kuna kitu kimeharibika. Jaribu tena.",
+    "retry": "Jaribu tena",
+    "signedInAs": "Umeingia kama",
+    "workspace": "Eneo la kazi",
+    "chooseWorkspace": "Chagua eneo la kazi",
+    "chooseWorkspaceText": "Eneo la kazi ulilotumia mwisho halipatikani tena kwako.",
+    "noWorkspace": "Bado huko kwenye eneo lolote la kazi",
+    "noWorkspaceText": "Muombe msimamizi wa akaunti yako akualike.",
+    "assistant": "Msaidizi",
+    "assistantAvailable": "Msaidizi anapatikana",
+    "assistantOff": "Msaidizi amezimwa",
+    "assistantOffText": "Bado hajawashwa kwa mazingira haya.",
+    "assistantNotReady": "Msaidizi bado hayuko tayari",
+    "assistantNotReadyText": "Amewashwa lakini mipangilio yake haijakamilika. Jaribu tena baadaye.",
+    "assistantUnknown": "Haikuwezekana kumkagua msaidizi",
+    "conversationLater": "Mazungumzo na msaidizi yatakuja hapa katika toleo lijalo.",
+    "pageNotFound": "Ukurasa huu haupo",
+    "goHome": "Nenda mwanzo",
+    "crashed": "Skrini hii imeacha kufanya kazi",
+    "crashedText": "Hakuna kilichobadilishwa. Jaribu tena."
+  }
+}

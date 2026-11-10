@@ -1,0 +1,27 @@
+{
+  "flow": {
+    "name": "Genesy Flow",
+    "loginSubtitle": "Praat met je bedrijfsassistent.",
+    "sessionEnded": "Je sessie is beëindigd. Log opnieuw in om verder te gaan.",
+    "error": "Er ging iets mis. Probeer het opnieuw.",
+    "retry": "Opnieuw proberen",
+    "signedInAs": "Ingelogd als",
+    "workspace": "Werkruimte",
+    "chooseWorkspace": "Kies een werkruimte",
+    "chooseWorkspaceText": "De werkruimte die je het laatst gebruikte is niet meer voor je beschikbaar.",
+    "noWorkspace": "Je zit nog in geen enkele werkruimte",
+    "noWorkspaceText": "Vraag een beheerder van je account om je uit te nodigen.",
+    "assistant": "Assistent",
+    "assistantAvailable": "De assistent is beschikbaar",
+    "assistantOff": "De assistent staat uit",
+    "assistantOffText": "Hij is voor deze omgeving nog niet ingeschakeld.",
+    "assistantNotReady": "De assistent is niet klaar",
+    "assistantNotReadyText": "Hij staat aan, maar de instelling is nog niet compleet. Probeer het later opnieuw.",
+    "assistantUnknown": "De assistent kon niet worden gecontroleerd",
+    "conversationLater": "Gesprekken met de assistent komen hier in een latere versie.",
+    "pageNotFound": "Deze pagina bestaat niet",
+    "goHome": "Naar het begin",
+    "crashed": "Dit scherm werkt niet meer",
+    "crashedText": "Er is niets gewijzigd. Probeer het opnieuw."
+  }
+}

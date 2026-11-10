@@ -1,0 +1,27 @@
+{
+  "flow": {
+    "name": "Genesy Flow",
+    "loginSubtitle": "Talk to your business assistant.",
+    "sessionEnded": "Your session ended. Log in again to carry on.",
+    "error": "Something went wrong. Try again.",
+    "retry": "Try again",
+    "signedInAs": "Signed in as",
+    "workspace": "Workspace",
+    "chooseWorkspace": "Choose a workspace",
+    "chooseWorkspaceText": "The workspace you used last is no longer available to you.",
+    "noWorkspace": "You are not in any workspace yet",
+    "noWorkspaceText": "Ask an admin of your account to invite you.",
+    "assistant": "Assistant",
+    "assistantAvailable": "The assistant is available",
+    "assistantOff": "The assistant is turned off",
+    "assistantOffText": "It is not switched on for this environment yet.",
+    "assistantNotReady": "The assistant is not ready",
+    "assistantNotReadyText": "It is switched on but its setup is not complete. Try again later.",
+    "assistantUnknown": "Could not check the assistant",
+    "conversationLater": "Conversations with the assistant arrive here in a later release.",
+    "pageNotFound": "This page does not exist",
+    "goHome": "Go to the start",
+    "crashed": "This screen stopped working",
+    "crashedText": "Nothing was changed. Try again."
+  }
+}
