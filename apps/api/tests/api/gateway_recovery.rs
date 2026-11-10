@@ -299,7 +299,7 @@ pub(super) fn posts(w: &World, endpoint: &str) -> usize {
 async fn assert_qr_blocked_without_http(w: &World, payment: Uuid) {
     let before = w.remote.lock().unwrap().seen.len();
     assert!(matches!(
-        genesy_360_api::modules::gateway::service::qr(
+        genesy_360_api::gateway::service::qr(
             &w.state,
             Uuid::parse_str(&w.api.ws).unwrap(),
             payment,
