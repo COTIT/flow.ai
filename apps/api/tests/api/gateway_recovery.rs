@@ -480,7 +480,7 @@ async fn unavailable_storage_account_or_origin_blocks_new_payment_without_http(p
     w.api.app = build_app(w.state.clone());
     assert_setup_blocks_new_collection(&w, &order).await;
     w.state.credentials = Some(
-        genesy_360_api::CredentialKey::from_hex(&"ff".repeat(32))
+        genesy_360_api::CredentialKey::from_hex(&common::CREDENTIALS_KEY.replace("1f", "ff"))
             .unwrap()
             .into(),
     );
@@ -534,7 +534,7 @@ async fn historical_checkout_uses_its_bound_setup_after_disable_or_provider_swit
     assert_eq!(reply["code"], "payment_setup_required");
     assert_eq!(posts(&w, "requestPayment"), 1);
     w.state.credentials = Some(
-        genesy_360_api::CredentialKey::from_hex(&"ff".repeat(32))
+        genesy_360_api::CredentialKey::from_hex(&common::CREDENTIALS_KEY.replace("1f", "ff"))
             .unwrap()
             .into(),
     );
