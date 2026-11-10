@@ -8,11 +8,13 @@ const csp = cspProxy({ imgSrc: process.env.FILES_ORIGIN, voice: true })
 export const proxy = (request: NextRequest) =>
   followGapNavigation(request, csp(request))
 
-// Pages only: static files, images and the /v1 forward to the backend skip it.
+// Pages only: static files, images and the /v1 forward to the backend skip it. api/ is skipped
+// too: Next cuts the body of every request the proxy sees at 10 MiB, and /api/voice/* accepts
+// multipart uploads up to 10 MiB + 64 KiB.
 export const config = {
   matcher: [
     {
-      source: "/((?!v1/|_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!v1/|api/|_next/static|_next/image|favicon.ico).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
