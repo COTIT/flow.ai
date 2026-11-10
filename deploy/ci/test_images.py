@@ -29,7 +29,7 @@ def expected(producer, ref=SHA):
         "api-production": [("api", "")],
         "api-staging": [("api", "-staging")],
         "web": [("office", ""), ("field", ""), ("shop", ""), ("office", "-staging"),
-                ("till", ""), ("landing", ""), ("field", "-staging")],
+                ("till", ""), ("landing", ""), ("field", "-staging"), ("flow", "")],
     }
     return sorted(f"ghcr.io/cotit/genesy-{app}:{ref}{suffix}" for app, suffix in suffixes[producer])
 
@@ -164,7 +164,7 @@ class ReleaseImagesTests(unittest.TestCase):
                               if env == "production" else
                               [image for image in wanted if image not in
                                (f"ghcr.io/cotit/genesy-office:{SHA}", f"ghcr.io/cotit/genesy-field:{SHA}")])
-                    self.assertEqual(args[6:], ["office", "field"] if env == "production" else ["shop", "office", "till", "landing", "field"])
+                    self.assertEqual(args[6:], ["office", "field"] if env == "production" else ["shop", "office", "till", "landing", "field", "flow"])
                 else:
                     self.assertEqual(args[6:], ["api"])
                     output = expected(producer)
