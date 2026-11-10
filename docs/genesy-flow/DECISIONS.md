@@ -40,6 +40,10 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | Flow availability depends on Office | Accepted for Phase 2: one voice engine, secrets and checkpoint pool stay in Office. Flow carries no ElevenLabs, bridge, checkpoint or LangSmith secret |
 | `voice` texts opt-in (`@genesy/i18n/voice`) | Shop, Till, landing never receive assistant texts in their HTML; Office's texts pinned by sha256 to `a432dec17` |
 | Flow image has no `-staging` suffix | Its build inputs do not differ per environment (no env-specific `NEXT_PUBLIC_*`); one image serves both |
+| Phase 4 references: files only, URLs off (user, 2026-11-10) | Reuses the existing attachment pipeline (sniff, 10 MiB, quota, cleanup); no fetcher, browser container or vendor. Revisit URLs only if Phase 5 demand shows the need |
+| Phase 5 demand aggregates need >= 3 distinct workspaces, hard floor (user, 2026-11-10) | No single business identifiable; Phase 6 reads only these totals, never transcripts |
+| Phase 6 runner, model and budget: decide later (user, 2026-11-10) | Waits for Phase 5 data. Worker credentials must never be stored in the repository or GitHub; keep them in a separate safe store, chosen when Phase 6 is planned |
+| Repository stays public with `main` unprotected (user, 2026-11-10) | User's choice. Phase 6 plan noted the missing rulesets; any automated worker must not depend on GitHub-held secrets |
 | Proposed 2D briefings: AI interprets a preference once, a structured config lives in PostgreSQL, and data comes from Rust APIs into approved components | Zero routine LLM/ElevenLabs calls on load; reuse analytics/attention/scheduled_reports; no Redis until measured; stored preferences never authorize mutations. Future guidance only, not 2C scope |
 
 Approved scope additions: persistent roadmap/handoff/evidence/decision checkpoints; necessary static `storefront` segment in existing privacy-safe gap path classifier. No Phase 2 implementation.
