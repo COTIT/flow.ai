@@ -70,6 +70,14 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | Approval hold lives in the shared voice provider, keyed `{ticket, workspace:token}` | Holds while the dry run is pending or answered 409; blocks the button AND a spoken approve before any request; released on success, other failures (decision a), ticket change, logout or workspace switch. Office never sets it. The server's version/base check stays the real guard |
 | Proposal preview: parent → frame postMessage, both sides check source, origin and exact type; reply targets `location.origin` | Frame stays GET-free and inert under the existing `frame-ancestors 'self'` route; first valid message wins; document validated before render |
 | Phase 4 references: files only, URLs off (user, 2026-11-10) | Reuses the existing attachment pipeline (sniff, 10 MiB, quota, cleanup); no fetcher, browser container or vendor. Revisit URLs only if Phase 5 demand shows the need |
+| Phase 4A reuses the existing attachment lifecycle unchanged (sniff, 10 MiB, quota, ElevenLabs conversation file, sha256, cleanup) | No new storage, route, vendor or dependency |
+| D-1: no new UI; the user says "make it look like this" with an attached file | "Use as design reference" chip / side-by-side reference rejected for now; would need a Claude Design artifact first |
+| D-2: the `[Design references]` rule lives only in the agent template, entering with the D9 staging validation | Adding it to the provider's contextual update would bypass the template's validation pin |
+| D-3: no provenance column; the assistant session already links the upload (sha256) and the design action | Migration for `reference_count` rejected (nothing needs it yet) |
+| D-4: the design-reference probe scenarios run only in the D9 staging validation, never against production | Provider credit + production safety |
+| D-5: who may use references is unchanged: owner + workspace_admin (Phase 3 D7) | No new permission |
+| Design operations accept JSON only; Office refuses any attachment on a design write | A reference can inform a typed edit but never become content; guarded by test |
+| Residual: copying reference text into hero/grid text cannot be blocked in code | Exact text shown on the card; probe `notInArgs` measures it |
 | Phase 5 demand aggregates need >= 3 distinct workspaces, hard floor (user, 2026-11-10) | No single business identifiable; Phase 6 reads only these totals, never transcripts |
 | Phase 6 runner, model and budget: decide later (user, 2026-11-10) | Waits for Phase 5 data. Worker credentials must never be stored in the repository or GitHub; keep them in a separate safe store, chosen when Phase 6 is planned |
 | Repository stays public with `main` unprotected (user, 2026-11-10) | User's choice. Phase 6 plan noted the missing rulesets; any automated worker must not depend on GitHub-held secrets |

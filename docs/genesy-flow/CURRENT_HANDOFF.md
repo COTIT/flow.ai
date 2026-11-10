@@ -41,8 +41,8 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 ## Parallel work in flight (child sessions, own worktrees)
 
-- Phase 3: P3-A+B merged (#28); P3-C in PR `flow/p3-c`. Open item: agent prompt `[Storefront design]` block waits for the D9 staging validation run.
-- Phase 4A (files only): 4A-1 probe fixtures/grader/schema guard done on `claude/flow-p4a-800714`; rest after Phase 3 merges.
+- Phase 3 merged (#28, #30). Open: agent prompt `[Storefront design]` block (D9 staging validation). Open item: agent prompt `[Storefront design]` block waits for the D9 staging validation run.
+- Phase 4A (files only): PR `flow/p4a` (probe scenarios + grader, schema guard, attachment refusal on design writes, Flow e2e). Open: `[Design references]` prompt rule + live probe in the D9 run (drafts in the shared notes, not in the public repo).
 - Phase 5 component demand: see "Phase 5" below.
 - Phase 4/6 plans: worktree `.claude/worktrees/flow-p46-plan-d8481a/side-session-notes/` (not committed).
 

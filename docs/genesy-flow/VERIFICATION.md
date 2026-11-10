@@ -3,6 +3,22 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## Phase 4A — file design references (2026-11-11)
+
+Branch `flow/p4a` (child commits `a47aff20b`, `6e1fb137a`, `e28d85568`). No storage, route, migration or dependency.
+
+| Check | Result |
+| --- | --- |
+| e2e offline node tests (`pnpm --filter @genesy/e2e test`, incl. grader forbidOps/notInArgs red-first) | 46 passed (after a47aff20b) |
+| Office vitest `design-reference.test.ts` + `catalog.test.ts` (after P3-A+B merge) | 35 passed; mutation run with the `catalog.ts` attachment guard removed: 3 refusal tests red |
+| Office tsc + eslint, e2e tsc + eslint | Clean |
+| Flow e2e `design-reference.spec.ts` (flow-desktop 1280, flow-mobile 375, + 834 describe), focused local config (mock + Flow only) | 6 passed; `--repeat-each=3` 18 passed |
+| Neighbouring Flow specs `chat-attachments` + `design-conversation` | 26 passed |
+| `verify-shards.mjs playwright.config.ts 8` | 2188 tests exactly once across 8 shards |
+| Live voice probe (4 design scenarios) | Not run: waits for the D9 staging validation |
+| Agent prompt `[Design references]` in template | Not done: waits for the D9 staging validation (draft in this note, section 3.1) |
+| Full gate (`SKIP_API=1`: no API change), clean checkout | Web turbo green; fake-API e2e 2170 passed / 17 skipped / 1 failed (recurring `supply-transfers.spec.ts:192` load flake); storefront-design 21; voice-dev 12; stack 207 passed / 1 skipped |
+
 ## Phase 3 P3-C — Flow design proposal UI (2026-11-11)
 
 Design approved by the user in Claude Design (v7). Child commits `8e3f26691`…`a840f1a43` on `claude/flow-p3c-design-51f0ef`, merged onto P3-A+B (`1af34f819`) and main (`c112fab20`).

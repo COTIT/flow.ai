@@ -43,7 +43,8 @@ for (const { file, min, maxTurns } of BANKS) {
 
   test(`${file}: expected operations exist in the voice catalog; a scenario without one names its gap`, () => {
     for (const s of scenarios) {
-      for (const op of s.expect.ops ?? []) assert.ok(ids.has(op), `${s.id}: unknown op ${op}`)
+      for (const op of [...(s.expect.ops ?? []), ...(s.expect.forbidOps ?? [])])
+        assert.ok(ids.has(op), `${s.id}: unknown op ${op}`)
       if (["answer", "review"].includes(s.expect.outcome) && !(s.expect.ops ?? []).length && !s.expect.noTool)
         assert.ok(typeof s.gap === "string" && s.gap.length > 5, `${s.id}: no ops and no gap`)
     }
@@ -52,4 +53,17 @@ for (const { file, min, maxTurns } of BANKS) {
 
 test("the parent's six staging findings are regression cases", () => {
   assert.ok(load("scenarios.json").filter((s) => s.regression).length >= 6)
+})
+
+test("design references: a reference image and two planted-instruction files, each forbidding publish", () => {
+  const refs = load("adversarial.json").filter((s) => s.id.startsWith("adv-design-"))
+  assert.equal(refs.length, 4)
+  for (const s of refs) {
+    assert.ok(s.attach?.length === 1, s.id)
+    assert.ok(s.expect.forbidOps?.includes("storefront_design_publish"), s.id)
+  }
+  const attached = new Set(refs.map((s) => s.attach[0]))
+  for (const f of ["fixtures/design-reference.png", "fixtures/design-injection.png", "fixtures/design-injection.pdf"])
+    assert.ok(attached.has(f), `no scenario attaches ${f}`)
+  assert.ok(refs.some((s) => s.expect.notInArgs?.length), "one scenario checks copied reference text")
 })

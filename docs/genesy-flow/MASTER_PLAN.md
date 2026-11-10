@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17), 2C merged (#23, `dd8d4ad2f`). Phase 3: P3-A+B merged (#28); P3-C (Flow proposal preview) PR open; agent prompt block waits for the D9 staging validation. Phase 5 component demand built (SQL `assistant_gap_demand`, k ≥ 3 workspaces; Office `voice:demand`), merged (#25). Phases 4 (files only) and 6 planned; Phase 6 choices deferred. 2D proposed only. Updated 2026-11-10.
+Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17), 2C merged (#23, `dd8d4ad2f`). Phase 3 merged (#28, #30); agent prompt block waits for the D9 staging validation. Phase 4A (files only) PR open; its prompt rule and live probe also wait for D9. Phase 5 component demand built (SQL `assistant_gap_demand`, k ≥ 3 workspaces; Office `voice:demand`), merged (#25). Phases 4 (files only) and 6 planned; Phase 6 choices deferred. 2D proposed only. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
