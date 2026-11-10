@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { NextRequest } from "next/server"
 
 import { proxy } from "./proxy"
@@ -27,4 +27,20 @@ describe("Flow CSP", () => {
     expect(policy).toContain("frame-ancestors 'none'")
     expect(policy).toContain("wss://api.elevenlabs.io")
   })
+})
+
+describe("Flow CSP images", () => {
+  it.each(["/", "/storefront/preview"])(
+    "allows the signed file host (FILES_ORIGIN) as an image source on %s, like Office",
+    async (path) => {
+      vi.stubEnv("FILES_ORIGIN", "https://files.example")
+      vi.resetModules()
+      const fresh = (await import("./proxy")).proxy
+      const policy = fresh(
+        new NextRequest(`https://flow.test${path}`)
+      ).headers.get("Content-Security-Policy")!
+      expect(policy).toMatch(/img-src [^;]*https:\/\/files\.example/)
+      vi.unstubAllEnvs()
+    }
+  )
 })

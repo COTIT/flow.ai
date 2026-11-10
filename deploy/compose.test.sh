@@ -55,7 +55,7 @@ on=("$p/docker-compose.production.yml" "$p/docker-compose.stripe.yml" "$p/docker
 [[ "$(value "$t/prod.env" "${on[@]}" -- api B2_UPLOADS_APPLICATION_KEY_FILE)" == /run/secrets/b2_uploads_key ]] || fail "key file not passed"
 [[ "$(value "$t/prod.env" "${on[@]}" -- cli B2_UPLOADS_KEY_ID)" == 005abc ]] || fail "cli has no uploads"
 [[ "$(value "$t/prod.env" "${on[@]}" -- api PAYMENTS_PROVIDER)" == stripe ]] || fail "uploads overlay dropped stripe"
-for app in shop office; do
+for app in shop office flow; do
   [[ "$(value "$t/prod.env" "${on[@]}" -- $app FILES_ORIGIN)" == https://s3.eu-central-003.backblazeb2.com ]] || fail "$app FILES_ORIGIN"
 done
 docker compose -f "${on[0]}" -f "${on[1]}" -f "${on[2]}" --env-file "$t/prod.env" config --format json \
@@ -77,7 +77,7 @@ sv() { value "$t/staging.env" "${son[@]}" -- "$@"; }
 [[ "$(sv api B2_UPLOADS_APPLICATION_KEY_FILE)" == /run/secrets/b2_uploads_key ]] || fail "staging key file not passed"
 [[ "$(sv seed B2_UPLOADS_KEY_ID)" == 005stg ]] || fail "staging seed has no uploads"
 [[ "$(sv api PAYMENTS_PROVIDER)" == stripe ]] || fail "staging uploads overlay dropped stripe"
-for app in shop office; do
+for app in shop office flow; do
   [[ "$(sv $app FILES_ORIGIN)" == https://s3.eu-central-003.backblazeb2.com ]] || fail "staging $app FILES_ORIGIN"
 done
 docker compose -f "${son[0]}" -f "${son[1]}" -f "${son[2]}" --env-file "$t/staging.env" --profile seed config --format json \
@@ -108,7 +108,9 @@ assert f, "no flow service"
 assert f["image"] == "ghcr.io/cotit/genesy-flow:test", f["image"]
 assert set(f["networks"]) == {"internal", "edge"}, f["networks"]
 env = f.get("environment", {})
-assert set(env) == {"API_URL", "VOICE_UPSTREAM_URL", "OFFICE_PUBLIC_URL"}, sorted(env)
+# FILES_ORIGIN (CSP img-src for signed product images) comes only with the uploads overlay.
+assert set(env) - {"FILES_ORIGIN"} == {"API_URL", "VOICE_UPSTREAM_URL", "OFFICE_PUBLIC_URL"}, sorted(env)
+assert env.get("FILES_ORIGIN", "https://s3.eu-central-003.backblazeb2.com") == "https://s3.eu-central-003.backblazeb2.com", env
 assert env["VOICE_UPSTREAM_URL"] == "http://office:3000" and env["API_URL"] == "http://api:8080/v1", env
 # Links in Flow's assistant open this environment's own Office, never another one.
 assert env["OFFICE_PUBLIC_URL"] == "https://" + office, env
