@@ -175,6 +175,27 @@ services:
       traefik.http.routers.genesy-staging-till.middlewares: genesy-staging-allow,genesy-staging-noindex
       traefik.http.services.genesy-staging-till.loadbalancer.server.port: "3000"
 
+  # Flow: voice goes to Office over `internal` (http://office:3000); no assistant secret here.
+  # Same build in both envs, so one `<sha>` tag (no -staging), like till.
+  flow:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: flow }
+    image: ghcr.io/cotit/genesy-flow:${GENESY_REF:-local}
+    environment:
+      API_URL: http://api:8080/v1
+      VOICE_UPSTREAM_URL: http://office:3000
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-staging-flow.rule: Host(`staging-flow.genesy.app`)
+      traefik.http.routers.genesy-staging-flow.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-staging-flow.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.routers.genesy-staging-flow.middlewares: genesy-staging-allow,genesy-staging-noindex
+      traefik.http.services.genesy-staging-flow.loadbalancer.server.port: "3000"
+
   # staging.genesy.app: the landing page, kept out of search engines (NOINDEX + X-Robots-Tag).
   landing:
     <<: *hardening

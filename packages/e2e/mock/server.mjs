@@ -531,6 +531,17 @@ const image = (label) =>
 const handler = async (req, res) => {
   const path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
+  // Fake Office voice server for Flow's proxy (VOICE_UPSTREAM_URL is this origin).
+  if (path === "/api/voice/readiness" && req.method === "GET")
+    return send(res, 200, { enabled: true, ready: true })
+  // Says which credentials arrived, so a spec can prove Flow drops cookies and keeps the bearer.
+  if (path === "/api/voice/session" && req.method === "DELETE")
+    return send(res, 200, {
+      status: "ended",
+      authorization: req.headers.authorization ?? null,
+      cookie: req.headers.cookie ?? null,
+      forwardedFor: req.headers["x-forwarded-for"] ?? null,
+    })
   if (designSuite && path === "/__design" && req.method === "POST") {
     const { mode } = await readJson(req)
     if (!["published", "missing", "invalid", "unavailable"].includes(mode))

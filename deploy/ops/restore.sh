@@ -20,7 +20,7 @@ if [[ "$GENESY_ENV" == production ]]; then
 fi
 
 "$here/backup.sh" "$GENESY_ENV" pre-restore
-"${COMPOSE[@]}" stop api shop office till landing field
+"${COMPOSE[@]}" stop api shop office till landing field flow
 checkpoint_roles identities "${COMPOSE[@]}" exec -T db
 "${COMPOSE[@]}" exec -T db pg_restore -U genesy -d genesy --clean --if-exists \
   --single-transaction --exit-on-error < "$dump"

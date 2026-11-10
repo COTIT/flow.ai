@@ -34,6 +34,12 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | `voice` translations stay in Office for 2A | Shared components keep `useTranslations("voice")`; the namespace moves to `packages/i18n` messages when Flow exists, keeping 2A behavior-identical |
 | Host injection with Office defaults (`apiBase`, `audioBase`, `resolveHref`, `onUnauthorized`, `SAFE_HREF`, `openHref`, rights, `statusLabel`) | Smallest seam a second origin needs; Office passes nothing and behaves as before |
 | Purity guards | `@genesy/voice/lib/*` must stay plain TS (vitest guard); Office server code may not import `@genesy/voice/components` (vitest guard) |
+| Flow sign-in is origin-local | Flow uses the existing API login and the shared session store; its `localStorage` session is separate from Office's. Users sign in to each app. No SSO, no shared cookies, no tokens in URLs, no auth-policy change |
+| Flow voice proxy is an allowlist, not a reverse proxy | Only readiness GET; session POST/DELETE; tools/batch/confirm POST; attachments POST/DELETE. Fixed runtime `VOICE_UPSTREAM_URL` origin (compose `http://office:3000`); request headers limited to authorization, content-type/length, accept, x-workspace-id, x-voice-session, x-file-name; response headers content-type, cache-control, retry-after; Office's 10 MiB + 64 KiB cap enforced while streaming; manual redirects; per-route timeouts (confirm 600 s, runs batches); no retries; generic `{message}` 502/504 |
+| `secure` route and upstream Set-Cookie not proxied | `secure` serves only Office's own secure form; the only Set-Cookie is Office's gap cookie, read only by Office pages |
+| Flow availability depends on Office | Accepted for Phase 2: one voice engine, secrets and checkpoint pool stay in Office. Flow carries no ElevenLabs, bridge, checkpoint or LangSmith secret |
+| `voice` texts opt-in (`@genesy/i18n/voice`) | Shop, Till, landing never receive assistant texts in their HTML; Office's texts pinned by sha256 to `a432dec17` |
+| Flow image has no `-staging` suffix | Its build inputs do not differ per environment (no env-specific `NEXT_PUBLIC_*`); one image serves both |
 
 Approved scope additions: persistent roadmap/handoff/evidence/decision checkpoints; necessary static `storefront` segment in existing privacy-safe gap path classifier. No Phase 2 implementation.
 

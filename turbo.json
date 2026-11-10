@@ -22,7 +22,8 @@
     "LANGSMITH_PROJECT",
     "LANGSMITH_HIDE_INPUTS",
     "LANGSMITH_HIDE_OUTPUTS",
-    "LANGCHAIN_CALLBACKS_BACKGROUND"
+    "LANGCHAIN_CALLBACKS_BACKGROUND",
+    "VOICE_UPSTREAM_URL"
   ],
   "tasks": {
     "build": {
@@ -65,7 +66,8 @@
         "@genesy/office#build",
         "@genesy/field#build",
         "@genesy/till#build",
-        "@genesy/landing#build"
+        "@genesy/landing#build",
+        "@genesy/flow#build"
       ],
       "passThroughEnv": [
         "CI",

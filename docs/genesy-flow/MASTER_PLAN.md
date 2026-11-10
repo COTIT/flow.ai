@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 merged and staging-validated (flag false). Phase 2 in progress: PR 2A (shared voice package) under review; 2B and 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
+Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16, `a432dec17`); 2B (Flow app foundation) on review; 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
@@ -52,6 +52,7 @@ configuration; they must never generate and execute arbitrary production React c
 - `apps/office/lib/voice/`: `provider.ts`, `bridge.ts`, `server.ts`, `workflow.ts`,
   `checkpoint.ts`, `catalog.ts`, operation policy/authority/generated files and gap capture.
 - `apps/office/app/api/voice/`: session admission/binding, references and bridge routes (server stays in Office).
+- `apps/flow` (PR 2B): sign-in, workspace, shell, `/healthz`, and the restricted voice proxy `app/api/voice/[route]` → `lib/voice-proxy.ts` (allowlisted routes/methods/headers, fixed `VOICE_UPSTREAM_URL`, bounded streaming, no retries). Voice texts: `@genesy/i18n/voice` (opt-in for Office and Flow); audio: `packages/voice/scripts/prepare-voice-audio.mjs <publicDir>`.
 - `packages/voice` (`@genesy/voice`, PR 2A): client engine `components/provider.tsx` (host props
   `apiBase`, `audioBase`, `resolveHref`, `onUnauthorized`), reusable cards/results/controls, and pure
   `lib/*` contracts (`client-contract`, `views`, `confirmation`, `capabilities`) plus client helpers.

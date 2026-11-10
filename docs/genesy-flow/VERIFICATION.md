@@ -3,6 +3,24 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## PR 2B — Flow app foundation (2026-11-10)
+
+Branch `flow/2b-foundation` = child B (`e8c295cd0`, `f6b67e128`: opt-in voice texts, shared audio script), child A (`1ca1607ea`…`aa0f6471a`: apps/flow, auth, restricted voice proxy, e2e/stack), child C (`f257bea2d`…`2f45f4592`: compose, health hosts, images, docs), then parent `10b89d3dc` (Flow opts into voice texts + audio build; test red in all 3 locales first) and `4f0b75144` (spawn-test timeout).
+
+| Check | Result |
+| --- | --- |
+| Child A | Flow vitest 50/50 (45 proxy incl. 5 deliberate-break checks, 5 readiness); Flow Playwright desktop + 375px 54/54; real-stack `flow-proxy.spec` 6/6 (readiness through Flow equals Office; session DELETE through Flow equals Office: bad token 401, foreign workspace 403, own 404). Stack spec caught a real bug: Office readiness answers 200 `{enabled:false}` when off; fixed red→green |
+| Child B | i18n 20/20, voice 107/107, Office 615/615; Office `voice` texts sha256-pinned to `a432dec17`; no app gets `voice` by default; audio old vs new byte-identical (`08b6ef29…`, `ca6e162f…`, `3bea39a5…`) |
+| Child C | 14/14 deploy test scripts; deploy/ci unittest 33 OK; `docker compose config` staging + production OK; Flow env exactly `API_URL`, `VOICE_UPSTREAM_URL`, no secrets with every overlay |
+| Integration: Flow turbo tasks | 12/12; Flow `public/voice-audio` hashes equal Office's |
+| `scripts/local-gate.sh` (`SKIP_API=1`: no `apps/api` file changed) | Deploy tests pass; fake-API e2e 7/7 tasks (incl. Flow projects); `storefront-design` 21; `voice-dev` 12; full stack 195 passed, 1 skipped. **Web step red once**: new `prepare-voice-audio.test.mjs` timed out (spawned node took 21 s under load vs 5 s default) → 30 s timeout (`4f0b75144`); then all web tasks 43/43 |
+| `voice:check` | 491 operations, storefront design ops still `internal` |
+| Flow Docker image (`next.Dockerfile APP=flow`), run with NO env | healthy; `/healthz` 200; `/` and `/login` 200; `/api/voice/readiness` 502 `{message}` (no upstream); unknown route 404, wrong method 405; `/voice-audio/*` served; log `voice proxy readiness not_configured` only |
+| Flow CSP | `connect-src 'self' https://api.elevenlabs.io wss://api.elevenlabs.io`; `frame-ancestors 'none'`; nonce + `strict-dynamic`; same `cspProxy({ voice: true })` as Office |
+| Office Docker image | Builds; `/app/apps/office/public/voice-audio/` holds all three audio files (shared script path works in the image) |
+
+Not verified: a real voice session POST through Flow (needs paid ElevenLabs keys, `VOICE=1`); staging/production deployment (none performed; DNS for `staging-flow`/`flow` not created).
+
 ## PR 2A — shared voice package (2026-11-10)
 
 Branch `flow/2a-shared-voice` (child commits `a0c7dcca5` move, `71a367267` injection, `87925f95a` guards; parent docs on top). Base `main` `b70b909a2`.

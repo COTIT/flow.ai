@@ -10,8 +10,14 @@ import {
   WS,
   type FakeApi,
 } from "./fake-api"
-import en from "../../../../apps/office/messages/en.json" with { type: "json" }
-import nl from "../../../../apps/office/messages/nl.json" with { type: "json" }
+import officeEn from "../../../../apps/office/messages/en.json" with { type: "json" }
+import officeNl from "../../../../apps/office/messages/nl.json" with { type: "json" }
+import voiceEn from "../../../../packages/i18n/messages/voice/en.json" with { type: "json" }
+import voiceNl from "../../../../packages/i18n/messages/voice/nl.json" with { type: "json" }
+
+// Office hosts the shared voice texts next to its own.
+const en = { ...voiceEn, ...officeEn }
+const nl = { ...voiceNl, ...officeNl }
 
 const labels = (ids: string[], messages = en) =>
   ids.map(

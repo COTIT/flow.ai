@@ -13,7 +13,10 @@ type Credential = {
   path: string
 }
 type State = {
-  urls: Record<"api" | "shop" | "office" | "field" | "till" | "landing", string>
+  urls: Record<
+    "api" | "shop" | "office" | "field" | "till" | "landing" | "flow",
+    string
+  >
   container: string
 }
 
@@ -72,16 +75,28 @@ export async function mailTo(address: string): Promise<string> {
   const box = join(dir, "mail")
   let found = ""
   await expect
-    .poll(() => {
-      const files = existsSync(box) ? readdirSync(box).sort().reverse() : []
-      found =
-        files
-          .map((f) => readFileSync(join(box, f), "utf8"))
-          .find((m) => new RegExp(`^To: .*${address.replace(/[.+]/g, "\\$&")}`, "mi").test(m)) ?? ""
-      return found
-    }, { message: `a mail to ${address}`, timeout: 10_000 })
+    .poll(
+      () => {
+        const files = existsSync(box) ? readdirSync(box).sort().reverse() : []
+        found =
+          files
+            .map((f) => readFileSync(join(box, f), "utf8"))
+            .find((m) =>
+              new RegExp(
+                `^To: .*${address.replace(/[.+]/g, "\\$&")}`,
+                "mi"
+              ).test(m)
+            ) ?? ""
+        return found
+      },
+      { message: `a mail to ${address}`, timeout: 10_000 }
+    )
     .not.toBe("")
-  return found.replace(/=\r?\n/g, "").replace(/=([0-9A-F]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
+  return found
+    .replace(/=\r?\n/g, "")
+    .replace(/=([0-9A-F]{2})/g, (_, h: string) =>
+      String.fromCharCode(parseInt(h, 16))
+    )
 }
 
 /** A spec-unique suffix for names of things a test creates (data rule 1 in STACK.md). */
@@ -140,6 +155,15 @@ export async function loginOffice(page: Page, who: Credential) {
   await expect(page).toHaveURL(`${urls.office}/`)
 }
 
+/** Logs into Flow through its own login page (its own origin, its own session). */
+export async function loginFlow(page: Page, who: Credential) {
+  await page.goto(`${urls.flow}/login`)
+  await page.getByLabel("Email").fill(who.login)
+  await page.getByLabel("Password").fill(who.secret)
+  await page.getByRole("button", { name: "Log in" }).click()
+  await expect(page).toHaveURL(`${urls.flow}/`)
+}
+
 /** Logs into Field (staff by email, farmers by phone) through its login page. */
 export async function loginField(page: Page, who: Credential) {
   await page.goto(`${urls.field}/login`)
@@ -168,7 +192,9 @@ export async function pairTill(page: Page, request: APIRequestContext) {
   // Newest first and paged: every test adds a register, so walk back to the seeded one.
   let seeded: Register | undefined
   for (let n = 1; !seeded; n++) {
-    const rows = await owner.get<Register[]>(owner.ws(`/till/registers?page=${n}&page_size=100`))
+    const rows = await owner.get<Register[]>(
+      owner.ws(`/till/registers?page=${n}&page_size=100`)
+    )
     if (!rows.length) throw new Error(`no seeded register "${counter}"`)
     seeded = rows.find((r) => r.name === counter)
   }

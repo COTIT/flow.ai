@@ -13,7 +13,7 @@ target/
 *.tsbuildinfo
 next-env.d.ts
 .voice-data/
-apps/office/public/voice-audio/
+apps/*/public/voice-audio/
 
 # test output
 coverage/

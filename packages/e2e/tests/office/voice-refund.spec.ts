@@ -1,7 +1,15 @@
 import { expect, expectFits, test } from "./fake-api"
-import en from "../../../../apps/office/messages/en.json" with { type: "json" }
-import nl from "../../../../apps/office/messages/nl.json" with { type: "json" }
-import sw from "../../../../apps/office/messages/sw.json" with { type: "json" }
+import officeEn from "../../../../apps/office/messages/en.json" with { type: "json" }
+import officeNl from "../../../../apps/office/messages/nl.json" with { type: "json" }
+import officeSw from "../../../../apps/office/messages/sw.json" with { type: "json" }
+import voiceEn from "../../../../packages/i18n/messages/voice/en.json" with { type: "json" }
+import voiceNl from "../../../../packages/i18n/messages/voice/nl.json" with { type: "json" }
+import voiceSw from "../../../../packages/i18n/messages/voice/sw.json" with { type: "json" }
+
+// Office hosts the shared voice texts next to its own.
+const en = { ...voiceEn, ...officeEn }
+const nl = { ...voiceNl, ...officeNl }
+const sw = { ...voiceSw, ...officeSw }
 
 for (const { locale, messages, money, request, summary, phrase } of [
   {

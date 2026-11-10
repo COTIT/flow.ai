@@ -30,6 +30,7 @@
   "exports": {
     "./locales": "./src/locales.ts",
     "./request": "./src/request.ts",
-    "./locale-switcher": "./src/locale-switcher.tsx"
+    "./locale-switcher": "./src/locale-switcher.tsx",
+    "./voice": "./src/voice.ts"
   }
 }

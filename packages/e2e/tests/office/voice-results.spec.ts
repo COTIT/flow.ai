@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test"
 import { expect, expectFits, test } from "./fake-api"
-import en from "../../../../apps/office/messages/en.json" with { type: "json" }
+import officeEn from "../../../../apps/office/messages/en.json" with { type: "json" }
+import voiceEn from "../../../../packages/i18n/messages/voice/en.json" with { type: "json" }
+
+// Office hosts the shared voice texts next to its own.
+const en = { ...voiceEn, ...officeEn }
 
 const r = en.voice.results
 const uuid = (n: number) => `0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a${String(n).padStart(2, "0")}`

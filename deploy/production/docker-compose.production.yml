@@ -141,6 +141,25 @@ services:
       traefik.http.routers.genesy-production-till.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
       traefik.http.services.genesy-production-till.loadbalancer.server.port: "3000"
 
+  # Flow: voice goes to Office over `internal` (http://office:3000); no assistant secret here.
+  flow:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: flow }
+    image: ghcr.io/cotit/genesy-flow:${GENESY_REF}
+    environment:
+      API_URL: http://api:8080/v1
+      VOICE_UPSTREAM_URL: http://office:3000
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-flow.rule: Host(`flow.genesy.app`)
+      traefik.http.routers.genesy-production-flow.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-flow.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.services.genesy-production-flow.loadbalancer.server.port: "3000"
+
   # genesy.app: the public landing page. It calls no API; www.genesy.app answers with a 301 to it.
   landing:
     <<: *hardening

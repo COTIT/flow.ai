@@ -1,5 +1,5 @@
 import "server-only"
-import en from "@/messages/en.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 import { rightFor } from "../routes"
 import { VoiceError } from "./server"
 import { voiceText } from "./capabilities.server"
@@ -55,7 +55,7 @@ export const pageTool = {
         enum: PAGES.map((p) => p.id),
         description: PAGES.map(
           (p) =>
-            `${p.id}: ${(en.voice.pages as Record<string, { purpose: string }>)[p.id]!.purpose}`
+            `${p.id}: ${(voiceMessages.en.voice.pages as Record<string, { purpose: string }>)[p.id]!.purpose}`
         ).join("; "),
       },
       recordId: {
