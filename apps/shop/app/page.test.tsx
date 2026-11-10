@@ -1,6 +1,17 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import document from "../../api/tests/fixtures/storefront-design-v1.json"
+import { readFileSync } from "node:fs"
+
+// Read at runtime: the shop image build context has no apps/api, and next build type-checks tests.
+const document = JSON.parse(
+  readFileSync(
+    new URL(
+      "../../api/tests/fixtures/storefront-design-v1.json",
+      import.meta.url
+    ),
+    "utf8"
+  )
+)
 
 const mocks = vi.hoisted(() => ({ design: vi.fn(), redirect: vi.fn() }))
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }))
