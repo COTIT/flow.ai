@@ -50,6 +50,14 @@ pub async fn categories_exist(
 ) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar!("SELECT count(*) = cardinality($2::uuid[]) AS \"valid!\" FROM product_categories WHERE workspace_id=$1 AND id=ANY($2) AND deleted_at IS NULL",ws,ids).fetch_one(db).await
 }
+/// Live same-workspace category names for review rows; ids absent here are omitted.
+pub async fn category_names(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<(Uuid, String)>, sqlx::Error> {
+    sqlx::query!("SELECT id,name FROM product_categories WHERE workspace_id=$1 AND id=ANY($2) AND deleted_at IS NULL",ws,ids).fetch_all(db).await.map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
+}
 /// New immutable revision metadata.
 pub struct NewRevision<'a> {
     pub parent: Option<Uuid>,
@@ -109,7 +117,7 @@ pub async fn history(
     limit: i64,
     offset: i64,
 ) -> Result<Vec<StorefrontDesignRevisionSummary>, sqlx::Error> {
-    sqlx::query_as!(StorefrontDesignRevisionSummary,r#"SELECT r.id AS revision_id,r.created_at,r.created_by,r.restored_from_revision_id,EXISTS(SELECT 1 FROM storefront_design_events e WHERE e.workspace_id=$1 AND e.page_id=r.page_id AND e.revision_id=r.id AND e.kind='published') AS "was_published!" FROM storefront_design_revisions r WHERE r.workspace_id=$1 AND r.page_id=$2 ORDER BY r.created_at DESC,r.id DESC LIMIT $3 OFFSET $4"#,ws,page,limit,offset).fetch_all(db).await
+    sqlx::query_as!(StorefrontDesignRevisionSummary,r#"SELECT r.id AS revision_id,r.parent_revision_id,r.created_at,r.created_by,r.restored_from_revision_id,EXISTS(SELECT 1 FROM storefront_design_events e WHERE e.workspace_id=$1 AND e.page_id=r.page_id AND e.revision_id=r.id AND e.kind='published') AS "was_published!" FROM storefront_design_revisions r WHERE r.workspace_id=$1 AND r.page_id=$2 ORDER BY r.created_at DESC,r.id DESC LIMIT $3 OFFSET $4"#,ws,page,limit,offset).fetch_all(db).await
 }
 /// Total history rows for pagination; same filter as `history`, history index.
 pub async fn history_count(
@@ -118,4 +126,34 @@ pub async fn history_count(
     page: Uuid,
 ) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!("SELECT count(*) AS \"total!\" FROM storefront_design_revisions WHERE workspace_id=$1 AND page_id=$2",ws,page).fetch_one(db).await
+}
+/// Read-only snapshot: page pointer and revision come from one moment. Call first in a transaction.
+pub async fn snapshot(db: &mut PgConnection) -> Result<(), sqlx::Error> {
+    // SET cannot be a prepared statement; fixed text, no input.
+    sqlx::raw_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        .execute(db)
+        .await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    #[sqlx::test]
+    async fn snapshot_is_read_only_repeatable_read(pool: PgPool) {
+        let mut tx = pool.begin().await.unwrap();
+        snapshot(&mut tx).await.unwrap();
+        let (level, read_only): (String, String) = sqlx::query_as(
+            "SELECT current_setting('transaction_isolation'), current_setting('transaction_read_only')",
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
+        assert_eq!(
+            (level.as_str(), read_only.as_str()),
+            ("repeatable read", "on")
+        );
+    }
 }

@@ -3,6 +3,19 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## Phase 3 P3-A + P3-B — targeted design edits + voice tools (2026-11-11)
+
+Commits `0f7cab4df` (P3-A), `768e27f5a` (review fixes), `785ce5c4c` (P3-B), `0b60600d6` (`text` field), merged with main as `39c0fd2f2`.
+
+| Check | Result |
+| --- | --- |
+| Child runs (disposable PG 55490; 54320 never touched) | fmt/clippy clean; lib storefront 16, lib assistant 29, api storefront 43, api assistant 114 (incl. `assistant_storefront_design` 3: edit + publish dispatch through signed single-use cards, tampered body 409, write after review 409 with nothing stored, closed ops refused, member 403), openapi 70 (+2 paths, +5 schemas); `sqlx prepare --check` clean; api-client generate:check 0; `voice:check` 493 operations / 402 tools; Office lib/voice + i18n + eval 584; `@genesy/voice` 126 |
+| Reviews (Rust + security, independent) | No critical/high. Fixed test-first: dry run reads in one READ ONLY REPEATABLE READ snapshot; new-section facts list every field; category rows carry `category_id`. Accepted: silent partial no-ops, O(n·m) category naming, unlocked capture (dispatch re-checks under lock) |
+| Bug found by the gate | Design facts used `base`; the dispatch claim requires `locked`, so no design write could dispatch. Fixed red→green (`785ce5c4c`) |
+| Full gate, clean detached checkout `39c0fd2f2` | API: fmt, clippy, migrations, 2113 cargo tests passed / 0 failed, OpenAPI committed spec; web turbo green; fake-API e2e 2135 passed / 17 skipped / 10 failed, all 30 s timeouts under load (Office voice, Field) → rerun 52/52 (2 repeats); storefront-design 21; voice-dev 12; stack 199 passed / 1 skipped |
+
+Not verified: live ElevenLabs use of the design tools (agent prompt block is a draft until the D9 staging validation run).
+
 ## Phase 5 — component demand (2026-11-10)
 
 | Check | Result |

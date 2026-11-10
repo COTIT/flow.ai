@@ -272,11 +272,23 @@ function owes(facts: Record<string, unknown>, locale: string): string[] {
   })
 }
 
+const publishWarning: Record<string, string> = {
+  en: "Publishing replaces the home page design customers see when design display is on.",
+  nl: "Publiceren vervangt het ontwerp van de startpagina dat klanten zien wanneer de ontwerpweergave aan staat.",
+  sw: "Kuchapisha kunabadilisha muundo wa ukurasa wa mwanzo ambao wateja wanaona pale onyesho la muundo limewashwa.",
+}
+
 /** The API flags large money changes; this only words them for the card in the user's language. */
 export function reviewWarnings(snapshot: unknown, locale: string): string[] {
   const facts =
     object(snapshot) && object(snapshot.facts) ? snapshot.facts : undefined
   if (facts?.kind === "supply_correction") return owes(facts, locale)
+  // Wording says "published", not "live": the API cannot see the Shop design flag.
+  if (facts?.kind === "storefront_design")
+    return object(snapshot) &&
+      snapshot.operation_id === "storefront_design_publish"
+      ? [publishWarning[locale] ?? publishWarning.en!]
+      : []
   if (!facts || !Array.isArray(facts.changes)) return []
   const text = warningText[locale] ?? warningText.en!
   return facts.changes.flatMap((change) => {

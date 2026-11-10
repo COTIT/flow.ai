@@ -7830,6 +7830,18 @@
         ],
         "type": "object"
       },
+      "Envelope_StorefrontDesignEditPreview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StorefrontDesignEditPreview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_StorefrontDesignPreview": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -25272,6 +25284,277 @@
         ],
         "type": "object"
       },
+      "StorefrontDesignChange": {
+        "description": "One targeted change to current draft; closed list of editable properties.",
+        "oneOf": [
+          {
+            "description": "Switch reviewed theme preset.",
+            "properties": {
+              "op": {
+                "enum": [
+                  "set_theme"
+                ],
+                "type": "string"
+              },
+              "theme": {
+                "$ref": "#/components/schemas/StorefrontDesignTheme"
+              }
+            },
+            "required": [
+              "theme",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Change hero text or layout; omitted properties stay.",
+            "properties": {
+              "body": {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "heading": {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "layout": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/StorefrontHeroLayout"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "op": {
+                "enum": [
+                  "set_hero"
+                ],
+                "type": "string"
+              },
+              "section_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_id",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Remove hero body text.",
+            "properties": {
+              "op": {
+                "enum": [
+                  "clear_hero_body"
+                ],
+                "type": "string"
+              },
+              "section_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_id",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Change product grid heading, category, size or columns; omitted properties stay.",
+            "properties": {
+              "category_id": {
+                "format": "uuid",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "columns": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/StorefrontDesignColumns"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "heading": {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "limit": {
+                "format": "int32",
+                "maximum": 12,
+                "minimum": 1,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "op": {
+                "enum": [
+                  "set_product_grid"
+                ],
+                "type": "string"
+              },
+              "section_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_id",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Grid shows all categories again.",
+            "properties": {
+              "op": {
+                "enum": [
+                  "show_all_products"
+                ],
+                "type": "string"
+              },
+              "section_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_id",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Insert section; `position` 1 is first, absent appends.",
+            "properties": {
+              "op": {
+                "enum": [
+                  "add_section"
+                ],
+                "type": "string"
+              },
+              "position": {
+                "format": "int32",
+                "maximum": 12,
+                "minimum": 1,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "section": {
+                "$ref": "#/components/schemas/StorefrontDesignSection"
+              }
+            },
+            "required": [
+              "section",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Drop section; at least one must remain.",
+            "properties": {
+              "op": {
+                "enum": [
+                  "remove_section"
+                ],
+                "type": "string"
+              },
+              "section_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_id",
+              "op"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "Move section to 1-based position.",
+            "properties": {
+              "op": {
+                "enum": [
+                  "move_section"
+                ],
+                "type": "string"
+              },
+              "position": {
+                "format": "int32",
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "section_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "section_id",
+              "position",
+              "op"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "StorefrontDesignChangeRow": {
+        "description": "One field-level difference shown on review cards; `—` marks removed value.",
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category_id": {
+            "description": "Category id dispatch stores for `category` rows; `after` carries its name.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "field",
+          "label",
+          "before",
+          "after"
+        ],
+        "type": "object"
+      },
       "StorefrontDesignCollection": {
         "description": "Bounded catalog data supplied outside presentation JSONB.",
         "properties": {
@@ -25354,6 +25637,77 @@
         ],
         "type": "object"
       },
+      "StorefrontDesignEdit": {
+        "additionalProperties": false,
+        "description": "Targeted edit of current draft, guarded by page version and draft identity.",
+        "properties": {
+          "base_revision_id": {
+            "description": "Current draft revision; absent only while page has no draft.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/StorefrontDesignChange"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version",
+          "changes"
+        ],
+        "type": "object"
+      },
+      "StorefrontDesignEditPreview": {
+        "description": "Dry run of targeted edit; nothing stored.",
+        "properties": {
+          "base_revision_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/StorefrontDesignChangeRow"
+            },
+            "type": "array"
+          },
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/StorefrontDesignCollection"
+            },
+            "type": "array"
+          },
+          "document": {
+            "$ref": "#/components/schemas/StorefrontDesignDocument"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "base_revision_id",
+          "document",
+          "collections",
+          "changes"
+        ],
+        "type": "object"
+      },
       "StorefrontDesignPage": {
         "description": "Only home is configurable in phase one.",
         "enum": [
@@ -25418,6 +25772,14 @@
             "format": "uuid",
             "type": "string"
           },
+          "parent_revision_id": {
+            "description": "Draft this revision replaced; null for first revision. Undo restores it.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "restored_from_revision_id": {
             "format": "uuid",
             "type": [
@@ -25435,6 +25797,7 @@
         },
         "required": [
           "revision_id",
+          "parent_revision_id",
           "created_at",
           "created_by",
           "restored_from_revision_id",
@@ -97728,6 +98091,361 @@
           }
         ],
         "summary": "Read current draft state; ownership remains relational.",
+        "tags": [
+          "storefront_design"
+        ]
+      }
+    },
+    "/workspace/{workspace}/storefront/pages/home/edits": {
+      "post": {
+        "operationId": "storefront_design_edit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required retry key; reuse only with identical payload",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorefrontDesignEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StorefrontDesignState"
+                }
+              }
+            },
+            "description": "Edited copy of current draft saved as new draft"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired login or app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive member, missing workspace admin rights or catalog scope"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or revision, or resource outside caller scope"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Stale page version or base is not current draft"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request exceeds API body limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid change, resulting document, category binding or idempotency key"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Targeted changes to current draft saved as new draft; no whole-document writes.",
+        "tags": [
+          "storefront_design"
+        ]
+      }
+    },
+    "/workspace/{workspace}/storefront/pages/home/edits/preview": {
+      "post": {
+        "operationId": "storefront_design_edit_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorefrontDesignEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StorefrontDesignEditPreview"
+                }
+              }
+            },
+            "description": "Edited document, public catalog collections and change rows; nothing stored"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired login or app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive member, missing workspace admin rights or catalog scope"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or revision, or resource outside caller scope"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Stale page version or base is not current draft"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request exceeds API body limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid change, resulting document or category binding"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry run of targeted edit with live collections and review rows; stores nothing.",
         "tags": [
           "storefront_design"
         ]

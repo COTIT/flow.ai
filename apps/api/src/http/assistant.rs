@@ -302,6 +302,7 @@ async fn admitted(state: &AppState, req: Request, next: Next) -> Result<Response
     let needs_facts = crate::modules::assistant::preconditions::requires_facts(&operation)
         || crate::modules::products::approval::requires_facts(&operation)
         || crate::modules::invoices::approval::requires_facts(&operation)
+        || crate::modules::storefront_design::approval::requires_facts(&operation)
         || operation == "messages_send";
     let review_facts = if parts.headers.contains_key("Assistant-Batch-Id")
         || parts.headers.contains_key("Assistant-Batch-Token")

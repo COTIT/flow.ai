@@ -15,20 +15,40 @@ import {
 const uuid = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
 
 describe("reviewed operation coverage", () => {
-  it("keeps Phase 1 storefront design operations outside voice execution", () => {
+  it("exposes reviewed storefront design tools and keeps whole-document, preview and public reads internal", () => {
     const policies = JSON.parse(
       readFileSync(new URL("./operation-policy.json", import.meta.url), "utf8")
     )
-    for (const suffix of [
-      "get",
-      "save",
-      "revisions",
-      "preview",
-      "restore",
-      "publish",
-      "capabilities",
-      "published",
-    ]) {
+    const reviewed: Record<string, { risk: string; effects: string[] }> = {
+      get: { risk: "read", effects: [] },
+      revisions: { risk: "read", effects: [] },
+      capabilities: { risk: "read", effects: [] },
+      edit: { risk: "write", effects: ["record"] },
+      restore: { risk: "write", effects: ["record"] },
+      publish: { risk: "high", effects: ["record", "publish"] },
+    }
+    for (const [suffix, expected] of Object.entries(reviewed)) {
+      const id = `storefront_design_${suffix}`
+      const tool = tools.find((tool) => tool.id === id)
+      expect(policies[id]?.disposition, id).toBe("execute")
+      expect(tool, id).toBeDefined()
+      expect(tool!.risk, id).toBe(expected.risk)
+      expect(tool!.effects, id).toEqual(expected.effects)
+      expect(tool!.authorization.allOf, id).toEqual(["workspace_admin"])
+      expect(tool!.confirmationFields, id).toEqual([])
+      if (expected.effects.length) {
+        expect(tool!.write, id).toBe(true)
+        expect(tool!.idempotent, id).toBe(true)
+        expect(tool!.retry.mode, id).toBe("idempotency_key")
+        expect(tool!.reconciliation, id).toEqual(["storefront_design_get"])
+      } else expect(tool!.write, id).toBe(false)
+      expect(isToolAllowed(tool!, ["workspace_admin"]), id).toBe(true)
+      expect(
+        isToolAllowed(tool!, ["setting.update", "product.update"]),
+        id
+      ).toBe(false)
+    }
+    for (const suffix of ["save", "preview", "published", "edit_preview"]) {
       const id = `storefront_design_${suffix}`
       expect(policies[id]?.disposition, id).toBe("internal")
       expect(
@@ -40,6 +60,33 @@ describe("reviewed operation coverage", () => {
         id
       ).toBe(false)
     }
+  })
+
+  it("prepares targeted design edits and refuses whole documents", () => {
+    const edit = (body: unknown) =>
+      prepareAction("storefront_design_edit", { body }, uuid)
+    const action = edit({
+      expected_version: 0,
+      changes: [{ op: "set_theme", theme: "neutral" }],
+    })
+    expect(action.path).toBe(`/workspace/${uuid}/storefront/pages/home/edits`)
+    expect(action.write).toBe(true)
+    for (const bad of [
+      {
+        expected_version: 0,
+        document: {},
+        changes: [{ op: "set_theme", theme: "neutral" }],
+      },
+      {
+        expected_version: 0,
+        changes: [{ op: "replace_document", document: {} }],
+      },
+      { expected_version: 0, changes: [] },
+    ])
+      expect(() => edit(bad), JSON.stringify(bad)).toThrow()
+    expect(() =>
+      prepareAction("storefront_design_save", { body: {} }, uuid)
+    ).toThrow()
   })
 
   it("pins material-review, durable-delivery and cleanup authorities", () => {
@@ -382,14 +429,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(491)
-    expect(tools).toHaveLength(396)
+    expect(operationManifest).toHaveLength(493)
+    expect(tools).toHaveLength(402)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(38)
+    ).toHaveLength(34)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)

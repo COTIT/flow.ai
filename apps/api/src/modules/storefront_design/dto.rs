@@ -269,6 +269,140 @@ impl Validate for StorefrontDesignSelect {
         Some(self)
     }
 }
+/// Most targeted changes one edit may carry.
+pub const MAX_CHANGES: usize = 10;
+
+/// One targeted change to current draft; closed list of editable properties.
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
+#[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
+pub enum StorefrontDesignChange {
+    /// Switch reviewed theme preset.
+    SetTheme { theme: StorefrontDesignTheme },
+    /// Change hero text or layout; omitted properties stay.
+    SetHero {
+        section_id: String,
+        #[serde(default)]
+        #[schema(min_length = 1, max_length = 160)]
+        heading: Option<String>,
+        #[serde(default)]
+        #[schema(min_length = 1, max_length = 1000)]
+        body: Option<String>,
+        #[serde(default)]
+        layout: Option<StorefrontHeroLayout>,
+    },
+    /// Remove hero body text.
+    ClearHeroBody { section_id: String },
+    /// Change product grid heading, category, size or columns; omitted properties stay.
+    SetProductGrid {
+        section_id: String,
+        #[serde(default)]
+        #[schema(min_length = 1, max_length = 160)]
+        heading: Option<String>,
+        #[serde(default)]
+        category_id: Option<Uuid>,
+        #[serde(default)]
+        #[schema(minimum = 1, maximum = 12)]
+        limit: Option<u8>,
+        #[serde(default)]
+        columns: Option<StorefrontDesignColumns>,
+    },
+    /// Grid shows all categories again.
+    ShowAllProducts { section_id: String },
+    /// Insert section; `position` 1 is first, absent appends.
+    AddSection {
+        section: StorefrontDesignSection,
+        #[serde(default)]
+        #[schema(minimum = 1, maximum = 12)]
+        position: Option<u8>,
+    },
+    /// Drop section; at least one must remain.
+    RemoveSection { section_id: String },
+    /// Move section to 1-based position.
+    MoveSection {
+        section_id: String,
+        #[schema(minimum = 1, maximum = 12)]
+        position: u8,
+    },
+}
+/// Targeted edit of current draft, guarded by page version and draft identity.
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StorefrontDesignEdit {
+    #[schema(minimum = 0)]
+    pub expected_version: i64,
+    /// Current draft revision; absent only while page has no draft.
+    #[serde(default)]
+    pub base_revision_id: Option<Uuid>,
+    #[schema(min_items = 1, max_items = 10)]
+    pub changes: Vec<StorefrontDesignChange>,
+}
+impl Validate for StorefrontDesignEdit {
+    type Valid = Self;
+    fn validate(self, r: &mut Rules) -> Option<Self> {
+        r.check(
+            "expected_version",
+            self.expected_version >= 0,
+            "Version must be nonnegative.",
+        );
+        r.check(
+            "changes",
+            (1..=MAX_CHANGES).contains(&self.changes.len()),
+            "Use 1 to 10 changes.",
+        );
+        Some(self)
+    }
+}
+/// One field-level difference shown on review cards; `—` marks removed value.
+#[derive(Clone, Debug, PartialEq, Serialize, ToSchema)]
+pub struct StorefrontDesignChangeRow {
+    pub field: String,
+    #[schema(required = true)]
+    pub label: Option<String>,
+    #[schema(required = true)]
+    pub before: Option<String>,
+    pub after: String,
+    /// Category id dispatch stores for `category` rows; `after` carries its name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_id: Option<Uuid>,
+}
+/// Dry run of targeted edit; nothing stored.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontDesignEditPreview {
+    pub version: i64,
+    #[schema(required = true)]
+    pub base_revision_id: Option<Uuid>,
+    pub document: StorefrontDesignDocument,
+    pub collections: Vec<StorefrontDesignCollection>,
+    pub changes: Vec<StorefrontDesignChangeRow>,
+}
+/// Base for first edit on page without draft: registry examples.
+pub fn starter() -> StorefrontDesignDocument {
+    StorefrontDesignDocument {
+        schema_version: SCHEMA_VERSION,
+        page: StorefrontDesignPage::Home,
+        theme: StorefrontDesignTheme::Forest,
+        sections: vec![
+            StorefrontDesignSection::Hero {
+                id: "hero-main".into(),
+                props: StorefrontHeroProps {
+                    heading: "From farm to your table".into(),
+                    body: None,
+                    layout: StorefrontHeroLayout::Split,
+                },
+            },
+            StorefrontDesignSection::ProductGrid {
+                id: "featured-products".into(),
+                props: StorefrontProductGridProps {
+                    heading: "Our products".into(),
+                    source: StorefrontDesignSource::Catalog,
+                    category_id: None,
+                    limit: grid_limit(),
+                    columns: StorefrontDesignColumns::default(),
+                },
+            },
+        ],
+    }
+}
 /// Immutable revision content.
 #[derive(Serialize, ToSchema)]
 pub struct StorefrontDesignRevision {
@@ -311,6 +445,9 @@ pub struct StorefrontDesignPreview {
 #[derive(Serialize, ToSchema)]
 pub struct StorefrontDesignRevisionSummary {
     pub revision_id: Uuid,
+    /// Draft this revision replaced; null for first revision. Undo restores it.
+    #[schema(required = true)]
+    pub parent_revision_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub created_by: Uuid,
     #[schema(required = true)]
@@ -336,7 +473,10 @@ pub struct HistoryQuery {
 pub fn capabilities() -> Result<Value, AppError> {
     let mut nested = Vec::new();
     StorefrontDesignDocument::schemas(&mut nested);
+    StorefrontDesignEdit::schemas(&mut nested);
     let mut schema = serde_json::to_value(StorefrontDesignDocument::schema())
+        .map_err(|_| AppError::Internal("design schema serialization failed".into()))?;
+    let mut edit = serde_json::to_value(StorefrontDesignEdit::schema())
         .map_err(|_| AppError::Internal("design schema serialization failed".into()))?;
     let mut defs = serde_json::Map::new();
     for (name, s) in nested {
@@ -364,6 +504,9 @@ pub fn capabilities() -> Result<Value, AppError> {
             _ => {}
         }
     }
+    edit["$defs"] = Value::Object(defs.clone());
+    refs(&mut edit);
+    edit["$schema"] = json!("https://json-schema.org/draft/2020-12/schema");
     schema["$defs"] = Value::Object(defs);
     refs(&mut schema);
     schema["$schema"] = json!("https://json-schema.org/draft/2020-12/schema");
@@ -372,9 +515,9 @@ pub fn capabilities() -> Result<Value, AppError> {
      {"contains":{"properties":{"type":{"const":"product_grid"}},"required":["type"]},"minContains":0,"maxContains":4}
     ]);
     Ok(
-        json!({"schema_version":SCHEMA_VERSION,"document_schema":schema,"constraints":{"max_document_bytes":DOCUMENT_BYTES,"unique_section_ids":true,"max_hero":1,"max_product_grid":4},"components":[
-        {"id":"hero","version":1,"purpose":"Introduce storefront","description":"Plain heading and body with fixed Shop CTA.","properties_schema":"#/$defs/StorefrontHeroProps","allowed_children":[],"responsive_behavior":"Centered or split; stacks on mobile.","data_requirements":[],"runtime_capabilities":[],"accessibility":["Page heading hierarchy","Plain text","Keyboard-accessible CTA"],"defaults":{"layout":"split"},"examples":[{"id":"hero-main","type":"hero","props":{"heading":"From farm to your table"}}],"deprecated":false,"deprecation":null},
-        {"id":"product_grid","version":1,"purpose":"Browse sellable products","description":"Live public catalog cards; business data stays outside design document.","properties_schema":"#/$defs/StorefrontProductGridProps","allowed_children":[],"responsive_behavior":"Explicit mobile, tablet and desktop columns.","data_requirements":["catalog"],"runtime_capabilities":["catalog:read"],"accessibility":["Section heading","Named product links","Image alternative text"],"defaults":{"source":"catalog","limit":6,"columns":{"mobile":1,"tablet":2,"desktop":3}},"examples":[{"id":"featured-products","type":"product_grid","props":{"heading":"Our products"}}],"deprecated":false,"deprecation":null}
+        json!({"schema_version":SCHEMA_VERSION,"document_schema":schema,"edit_schema":edit,"constraints":{"max_document_bytes":DOCUMENT_BYTES,"unique_section_ids":true,"max_hero":1,"max_product_grid":4,"max_changes":MAX_CHANGES},"components":[
+        {"id":"hero","version":1,"purpose":"Introduce storefront","description":"Plain heading and body with fixed Shop CTA.","properties_schema":"#/$defs/StorefrontHeroProps","editable":["heading","body","layout"],"allowed_children":[],"responsive_behavior":"Centered or split; stacks on mobile.","data_requirements":[],"runtime_capabilities":[],"accessibility":["Page heading hierarchy","Plain text","Keyboard-accessible CTA"],"defaults":{"layout":"split"},"examples":[{"id":"hero-main","type":"hero","props":{"heading":"From farm to your table"}}],"deprecated":false,"deprecation":null},
+        {"id":"product_grid","version":1,"purpose":"Browse sellable products","description":"Live public catalog cards; business data stays outside design document.","properties_schema":"#/$defs/StorefrontProductGridProps","editable":["heading","category_id","limit","columns"],"allowed_children":[],"responsive_behavior":"Explicit mobile, tablet and desktop columns.","data_requirements":["catalog"],"runtime_capabilities":["catalog:read"],"accessibility":["Section heading","Named product links","Image alternative text"],"defaults":{"source":"catalog","limit":6,"columns":{"mobile":1,"tablet":2,"desktop":3}},"examples":[{"id":"featured-products","type":"product_grid","props":{"heading":"Our products"}}],"deprecated":false,"deprecation":null}
         ]}),
     )
 }
@@ -412,6 +555,31 @@ mod tests {
             );
             assert!(!validator.is_valid(&bad), "{path}");
         }
+    }
+
+    #[test]
+    fn edit_schema_accepts_targeted_changes_and_rejects_documents() {
+        let registry = capabilities().unwrap();
+        let validator = jsonschema::validator_for(&registry["edit_schema"]).unwrap();
+        let good = json!({"expected_version":0,"changes":[
+            {"op":"set_theme","theme":"neutral"},
+            {"op":"set_product_grid","section_id":"featured-products","limit":4},
+            {"op":"add_section","section":{"id":"more","type":"product_grid","props":{"heading":"More"}},"position":1}
+        ]});
+        assert!(validator.is_valid(&good), "{}", registry["edit_schema"]);
+        assert!(serde_json::from_value::<StorefrontDesignEdit>(good).is_ok());
+        for bad in [
+            json!({"expected_version":0,"document":fixture(),"changes":[{"op":"set_theme","theme":"neutral"}]}),
+            json!({"expected_version":0,"changes":[{"op":"replace_document","document":fixture()}]}),
+            json!({"expected_version":0,"changes":[]}),
+        ] {
+            assert!(!validator.is_valid(&bad), "{bad}");
+        }
+        assert_eq!(
+            registry["components"][0]["editable"],
+            json!(["heading", "body", "layout"])
+        );
+        assert_eq!(registry["constraints"]["max_changes"], 10);
     }
 
     #[test]

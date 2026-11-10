@@ -271,7 +271,16 @@
       "source": "Source",
       "from": "From",
       "symbol": "Symbol",
-      "default_currency": "Default currency"
+      "default_currency": "Default currency",
+      "theme": "Theme",
+      "heading": "Heading",
+      "layout": "Layout",
+      "category": "Category",
+      "limit": "Number of products",
+      "columns": "Columns (phone / tablet / computer)",
+      "section": "Section",
+      "position": "Position",
+      "text": "Text"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -346,7 +355,8 @@
       "vat": "VAT group",
       "workspace": "workspace",
       "settings": "setting",
-      "relations": "customer"
+      "relations": "customer",
+      "storefront_design": "storefront design"
     },
     "operationActions": {
       "create": "Create {record}",

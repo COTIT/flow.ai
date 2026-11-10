@@ -15832,8 +15832,8 @@
   "storefront_design_get": {
     "method": "GET",
     "path": "/workspace/{workspace}/storefront/pages/home",
-    "disposition": "internal",
-    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "disposition": "execute",
+    "reason": "Owner/admin design read; current draft and version for targeted edits.",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -15904,8 +15904,8 @@
   "storefront_design_revisions": {
     "method": "GET",
     "path": "/workspace/{workspace}/storefront/pages/home/revisions",
-    "disposition": "internal",
-    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "disposition": "execute",
+    "reason": "Owner/admin design history; parent ids make undo a reviewed restore.",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -15977,8 +15977,8 @@
   "storefront_design_restore": {
     "method": "POST",
     "path": "/workspace/{workspace}/storefront/pages/home/restore",
-    "disposition": "internal",
-    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "disposition": "execute",
+    "reason": "Reviewed restore into a new draft; also undo; backend rechecks version.",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -15993,6 +15993,7 @@
         "apps/api/src/modules/storefront_design/dto.rs",
         "apps/api/src/modules/storefront_design/service.rs",
         "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
         "apps/api/src/modules/assistant/service.rs"
       ],
       "requirements": [
@@ -16004,7 +16005,7 @@
     "effects": ["record"],
     "risk": "write",
     "handoff": null,
-    "reconciliation": [],
+    "reconciliation": ["storefront_design_get"],
     "retry": {
       "mode": "idempotency_key"
     },
@@ -16013,8 +16014,8 @@
   "storefront_design_publish": {
     "method": "POST",
     "path": "/workspace/{workspace}/storefront/pages/home/publish",
-    "disposition": "internal",
-    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "disposition": "execute",
+    "reason": "High-risk reviewed publication of the current draft; backend rechecks version and draft.",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -16029,6 +16030,45 @@
         "apps/api/src/modules/storefront_design/dto.rs",
         "apps/api/src/modules/storefront_design/service.rs",
         "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "publish"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": ["storefront_design_get"],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_edit": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/edits",
+    "disposition": "execute",
+    "reason": "Reviewed targeted draft edit; backend rechecks admin, version and base draft.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#edit",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/edit.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
         "apps/api/src/modules/assistant/service.rs"
       ],
       "requirements": [
@@ -16040,17 +16080,55 @@
     "effects": ["record"],
     "risk": "write",
     "handoff": null,
-    "reconciliation": [],
+    "reconciliation": ["storefront_design_get"],
     "retry": {
       "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_edit_preview": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/edits/preview",
+    "disposition": "internal",
+    "reason": "UI-only dry run for design review previews; never an assistant tool.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#edit_preview",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/edit.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
     },
     "confirmationFields": []
   },
   "storefront_design_capabilities": {
     "method": "GET",
     "path": "/workspace/{workspace}/storefront/design-capabilities",
-    "disposition": "internal",
-    "reason": "Phase 1 design APIs stay outside voice execution; staff review and explicitly publish in Office.",
+    "disposition": "execute",
+    "reason": "Reviewed component registry and edit schema; read-only discovery.",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
