@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 implemented, fixed after audit, full gate run (see VERIFICATION.md); PR pending review. Phases 2–6 are proposed future work. Updated 2026-11-10.
+Status: Phase 1 merged (#13, image fix #14) and validated on staging 2026-11-10 (see VERIFICATION.md); flag stays false. Phase 2 not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
