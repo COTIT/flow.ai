@@ -66,6 +66,9 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | Closed presentation-word list in redaction, pinned by a test | Keeps "chart"/"calendar"-style asks; names, numbers and emails are still stripped |
 | Resolutions in git (`gap-demand.resolved.json`) | Catalog-word keys only; a fix PR adds its entry; status is open/resolved/recurring |
 | Support signal deferred | Voice has no support channel to link |
+| P3-C diff rows show "label · Field" only when the field has a translated `voice.reviewFields` name | Approved choice (b) as written would have renamed Office's stock-transfer rows; the narrowed rule keeps Office identical |
+| Approval hold lives in the shared voice provider, keyed `{ticket, workspace:token}` | Holds while the dry run is pending or answered 409; blocks the button AND a spoken approve before any request; released on success, other failures (decision a), ticket change, logout or workspace switch. Office never sets it. The server's version/base check stays the real guard |
+| Proposal preview: parent → frame postMessage, both sides check source, origin and exact type; reply targets `location.origin` | Frame stays GET-free and inert under the existing `frame-ancestors 'self'` route; first valid message wins; document validated before render |
 | Phase 4 references: files only, URLs off (user, 2026-11-10) | Reuses the existing attachment pipeline (sniff, 10 MiB, quota, cleanup); no fetcher, browser container or vendor. Revisit URLs only if Phase 5 demand shows the need |
 | Phase 5 demand aggregates need >= 3 distinct workspaces, hard floor (user, 2026-11-10) | No single business identifiable; Phase 6 reads only these totals, never transcripts |
 | Phase 6 runner, model and budget: decide later (user, 2026-11-10) | Waits for Phase 5 data. Worker credentials must never be stored in the repository or GitHub; keep them in a separate safe store, chosen when Phase 6 is planned |
