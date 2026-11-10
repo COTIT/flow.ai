@@ -10,12 +10,14 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 - Staging evidence merged in COTIT/genesy#15 (`b70b909a2`).
 - PR 2A merged (#16, `a432dec17`). `packages/voice` (`@genesy/voice`) holds the voice client engine (`components/provider.tsx`), reusable cards/results/controls and pure `lib/*` contracts; Office keeps its conversation screen, secure form, voice pages, all server code (`lib/voice` server modules, `app/api/voice/*`), generated catalog/policy and translations. See DECISIONS.md for the boundary and VERIFICATION.md for evidence.
 
-## Staging (2026-11-10)
+## Staging (checked 2026-11-11, read-only)
 
-- Runs `dd6678bfe` (API, Office, Shop, Till, Field, landing). Schema `20261109191001`. Previous: `fbe1fcf15` / `20261109130000`, with a pre-deploy dump recorded in `.deploy-state`.
-- One Shop instance; its key serves `afm-demo`. Validation used that workspace (user-approved): draft → Office preview → publish → flag on → responsive checks → second revision → restore → republish → failure/isolation checks → flag restored to false. All passed; details and evidence in VERIFICATION.md.
-- afm-demo now holds 3 revisions; revision 3 (fixture content) is published but hidden while the flag is off.
-- Production: untouched (`fbe1fcf15`, no design migration).
+- Runs `76d32c1ad` at schema `20261110060000`: a Codex payments branch (`codex/globadyme-payments` / `codex/shop-connections-payment-environments`, Globadyme gateway migration not in main), deployed 2026-11-10 12:05 UTC. Before that: Phase 1 `dd6678bfe`.
+- **Flow / Phase 2–5 staging deploy waits until that payments branch is merged to main** (user decision 2026-11-11). Deploying main earlier would hit an unknown applied migration and drop the payments test state.
+- Prerequisites ready in code: `flow` service, Traefik router + `TRAEFIK_CERTRESOLVER` (Let's Encrypt HTTP challenge retries until DNS resolves), `OFFICE_PUBLIC_URL`, health hosts (`deploy/ops/lib.sh`), rollback-compatible Phase 5 migration (#27).
+- User-only before/around that deploy: DNS A `staging-flow` → `185.77.96.44` (not set on 2026-11-11), GHCR `genesy-flow` access check, ElevenLabs allowed origin `https://staging-flow.genesy.app`. Then the D9 validation run adds the Phase 3/4A prompt blocks and runs the live probe.
+- First Flow deploy: the health step uses the old checkout's host list, so probe `staging-flow` by hand; `vps-watch` covers it only after the ops kit is reinstalled from a checkout with Flow.
+- Production: untouched.
 
 ## Known gaps
 

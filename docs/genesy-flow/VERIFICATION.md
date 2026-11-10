@@ -3,6 +3,10 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## Local full-stack check of Flow on main `106b83325` (2026-11-11)
+
+Real API, Office and Flow from `pnpm --filter @genesy/e2e stack:up` (seeded, assistant off), in-app browser. Owner login → conversation (two panes on desktop, one pane + Results button at 375 px); storefront design created through the real API (save 201, publish 200, Phase 3 typed edit 201); `/storefront` shows draft/published with distinct short codes; preview frame measured 375 / 834 / 1280 px inner width, one h1, no links, no page overflow; no console errors; all API calls 200 (one aborted `_rsc` prefetch, known noise).
+
 ## Phase 4A — file design references (2026-11-11)
 
 Branch `flow/p4a` (child commits `a47aff20b`, `6e1fb137a`, `e28d85568`). No storage, route, migration or dependency.
