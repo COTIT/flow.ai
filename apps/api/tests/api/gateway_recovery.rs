@@ -521,7 +521,8 @@ async fn multiple_successes_before_capture_require_attention_without_booking(poo
         .unwrap()
         .transactions
         .insert(payment.to_string(), rows);
-    let saved = refresh(&w, payment).await;
+    refresh(&w, payment).await;
+    let saved = operation(&w, payment).await;
     assert_eq!(saved["status"], "open", "{saved}");
     assert_eq!(saved["attention"], true, "{saved}");
     assert!(saved["captured_transaction_id"].is_null(), "{saved}");
