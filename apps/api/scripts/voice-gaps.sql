@@ -7,6 +7,9 @@
 -- Other window: add -v days=7
 -- Triage input for `pnpm --filter @genesy/office voice:triage` (one JSON array, one row per gap):
 --   psql "$DATABASE_URL" -At -v triage=1 -v days=7 -f apps/api/scripts/voice-gaps.sql
+-- Component demand for `pnpm --filter @genesy/office voice:demand` (k-anonymous clusters only,
+-- floor of 3 workspaces enforced by SQL function assistant_gap_demand; -v k raises it):
+--   psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql
 
 \if :{?days}
 \else
@@ -19,6 +22,12 @@ FROM assistant_gaps
 WHERE workspace_id = :'workspace' AND created_at > now() - make_interval(days => :days)
 ORDER BY created_at DESC
 LIMIT 500;
+\elif :{?demand}
+\if :{?k}
+SELECT coalesce(json_agg(d), '[]') FROM assistant_gap_demand(:days, :k) d;
+\else
+SELECT coalesce(json_agg(d), '[]') FROM assistant_gap_demand(:days) d;
+\endif
 \elif :{?triage}
 -- `ws` is a per-run number (salted with now()), never a workspace id: it only counts distinct accounts.
 SELECT coalesce(json_agg(g), '[]')
