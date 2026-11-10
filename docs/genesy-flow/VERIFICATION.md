@@ -3,6 +3,13 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## Phase 5 — component demand (2026-11-10)
+
+| Check | Result |
+| --- | --- |
+| Child (disposable PG 55480; shared 54320 never touched) | Rust `assistant_gaps` 12/12 (4 red first: function missing), `assistant_retention` 6/6; fmt/clippy clean; migrate run/revert/run OK; `cargo sqlx prepare --check` OK (`.sqlx`, `openapi.json`, client unchanged); function SECURITY INVOKER (test asserts `prosecdef=false`); floor test: 2 workspaces stay hidden with k=1, 0, -5; Office related vitest 103/103 (red first), tsc/eslint/prettier clean |
+| Full gate (`scripts/local-gate.sh`, with API, on Phase 5 + main `281ca739a`) | API: fmt, clippy, migrations, 2090 cargo tests passed / 0 failed, OpenAPI committed spec; web turbo green; fake-API e2e 2039 passed / 16 skipped / 3 failed under load (Office supply-transfers 409 notice, Office PWA offline ×2: HTTP 500 `/v1/me`; unrelated, no UI change in Phase 5) → rerun 12/12 (3 repeats, desktop/mobile/PWA); storefront-design 21; voice-dev 12; stack 195 passed / 1 skipped |
+
 ## PR 2C — Flow conversation + storefront device preview (2026-11-10)
 
 Branch `flow/2c-conversation`: children A (conversation, `68894749f`), B (storefront review + preview frame, `6aabf5cbd`), C (client-bundle check, `92ef9dbc5`), parent `2e3130118` (bundle check in build, `FILES_ORIGIN` img-src), stack-spec update `af5768fc7`, edge-case children (headings `46fd1df5c`, cross-tab `47e29069d`), main merged (`541261b61`, incl. #21), revision short code fix (see table).

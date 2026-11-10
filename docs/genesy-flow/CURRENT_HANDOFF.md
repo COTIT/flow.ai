@@ -42,8 +42,12 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 ## Parallel work in flight (child sessions, own worktrees)
 
 - Phase 3 P3-A (Rust targeted edits + dry run + resolver/approval changes): branch `claude/flow-p3-plan-5ae261`; plan in that worktree's `side-session-notes/flow-phase-3-plan.md` (not committed: public repo). P3-B/C after 2C merges; any UI design goes to Claude Design for user approval first.
-- Phase 5 component demand (additive SQL function, k ≥ 3 workspaces, `voice-heal.mjs demand`): branch from main, child `flow-p5-demand`.
+- Phase 5 component demand: see "Phase 5" below.
 - Phase 4/6 plans: worktree `.claude/worktrees/flow-p46-plan-d8481a/side-session-notes/` (not committed).
+
+## Phase 5 (component demand)
+
+Demand export: `psql -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql | pnpm --filter @genesy/office voice:demand -- --days 7 --out demand` → `demand.json` + `demand.md`. Thresholded aggregates only (≥ 3 distinct workspaces, ≤ 90 days, no workspace ids); per-row triage input is refused. Migration `20261110120000_assistant_gap_demand` is additive (function only). Phase 6 decides the access path (DB role or operator export) for the worker.
 
 ## Before the first deploy that includes Flow (user actions)
 

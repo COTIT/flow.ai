@@ -140,3 +140,12 @@ Office records each voice request the assistant could not finish, so developers 
 `POST /v1/assistant/gaps/{gap}/follow-up` needs the bridge signature only (Office's page proxy has no staff bearer). Body `{"workspace_id","signal","route"?}`: `rephrased` (no route) or `used_ui` with a page pattern such as `/orders/[id]` (lowercase segments or `[id]`, no query, at most 80 chars). 200 `{"data":{"id","follow_up"}}`. 404 when the gap is not in that workspace. 409 when a follow-up is already set or the gap is older than 10 minutes.
 
 Rows are deleted 90 days after `created_at` by the hourly prune. Deleting a workspace deletes its gaps.
+
+### Component demand (developers only)
+
+SQL function `assistant_gap_demand(days int, min_workspaces int DEFAULT 3)` (migration `assistant_gap_demand`) is the only cross-workspace demand export. Staff run `psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql` (`-v k=5` raises the threshold) and pipe it to `pnpm --filter @genesy/office voice:demand`.
+
+- One row per cluster: `domain`, `outcome`, `words` (sorted distinct intent words, the same key as Office `clusterGaps`), `intent` (most frequent), `gaps`, `workspaces` (distinct), `languages`, `rephrased`, `used_ui`, `route` (usual page pattern), `tool` (usual last tool), `http_status` (usual), `last_seen` (day).
+- A cluster appears only when at least 3 workspaces hit it. `greatest(min_workspaces, 3)`: callers may raise the floor, never lower it. One busy workspace never makes demand alone.
+- `days` is clamped to 1-90 (the ledger keeps 90 days). At most 200 clusters, largest first.
+- No workspace id, salted rank, gap id, timestamp or per-row data. SECURITY INVOKER, no grants, no HTTP route.
