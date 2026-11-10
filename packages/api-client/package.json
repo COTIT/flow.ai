@@ -37,6 +37,9 @@
     "./endpoints/*": "./src/generated/*/*.ts",
     "./session": "./src/session.ts",
     "./auth": "./src/auth.ts",
-    "./setup": "./src/setup.ts"
+    "./setup": "./src/setup.ts",
+    "./idempotency": "./src/idempotency.ts",
+    "./rights": "./src/rights.ts",
+    "./storefront-review": "./src/storefront-review.ts"
   }
 }
