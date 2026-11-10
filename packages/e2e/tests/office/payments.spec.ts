@@ -224,6 +224,7 @@ guestTest(
     api.on("POST", `${path}/payment`, () => {
       state.payment = {
         ...payment,
+        status: "open",
         checkout_url: "https://pay.example/checkout",
       }
       return { data: state.payment }
@@ -256,6 +257,92 @@ guestTest(
     await expect(page).toHaveURL(/\/clients\/pay-for-invoice\/token-online$/)
     for (const call of api.calls)
       expect(call.headers.authorization, call.path).toBeUndefined()
+    await expectFits(page)
+  }
+)
+
+guestTest(
+  "public invoice uses a fresh collection for balance remaining after a paid attempt",
+  async ({ page, api }) => {
+    const path = "/invoices/fetch-from-hashed/:token"
+    const oldUrl = "https://pay.example/used-checkout"
+    const newUrl = "https://pay.example/remaining-checkout"
+    const state = {
+      payment: {
+        ...payment,
+        payment_id: "used-payment",
+        status: "paid",
+        amount: 1000,
+        checkout_url: oldUrl,
+      },
+    }
+    api.on("GET", path, () => ({
+      data: {
+        invoice_nr: "2026-0009",
+        online_payment_enabled: true,
+        is_credit: false,
+        status: "partially_paid",
+        reference: null,
+        due_date: null,
+        balance: { total: 20, paid: 10, open: 10 },
+        items: [],
+        company_details: { company_name: "Ilundo Honey", account: {} },
+        relationships: {
+          currency: { decimals: 2, symbol_prefix: "€", symbol_suffix: null },
+        },
+      },
+    }))
+    api.on("GET", `${path}/payment`, () => ({ data: state.payment }))
+    api.on("POST", `${path}/payment`, () => {
+      state.payment = {
+        ...payment,
+        payment_id: "remaining-payment",
+        status: "open",
+        amount: 1000,
+        checkout_url: newUrl,
+      }
+      return { data: state.payment }
+    })
+    await page.route(
+      "**/v1/invoices/fetch-from-hashed/token-remaining/payment/qr",
+      (route) =>
+        route.fulfill({
+          contentType: "image/png",
+          body: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+            "base64"
+          ),
+        })
+    )
+    await page.goto("/clients/pay-for-invoice/token-remaining")
+    await expect(
+      page.getByRole("status").getByText("Paid", { exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByText("Open", { exact: true }).locator("..")
+    ).toHaveText(/Open.*€10\.00/)
+    await expect(
+      page.getByRole("link", { name: "Continue to payment" })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("img", { name: "Scan this QR code to continue payment" })
+    ).toHaveCount(0)
+    expect(api.callsTo("POST", `${path}/payment`)).toHaveLength(0)
+    await page.getByLabel("Payer name").fill("Ada Miller")
+    await page.getByLabel("Country code (2 letters)").fill("nl")
+    await page.getByRole("button", { name: "Pay online", exact: true }).click()
+    await expect(
+      page.getByRole("link", { name: "Continue to payment" })
+    ).toHaveAttribute("href", newUrl)
+    await expect(page.locator(`a[href="${oldUrl}"]`)).toHaveCount(0)
+    await expect(
+      page.getByRole("img", { name: "Scan this QR code to continue payment" })
+    ).toBeVisible()
+    expect(api.callsTo("POST", `${path}/payment`)).toHaveLength(1)
+    expect(api.callsTo("POST", `${path}/payment`)[0]!.body).toEqual({
+      country: "NL",
+      payer_name: "Ada Miller",
+    })
     await expectFits(page)
   }
 )

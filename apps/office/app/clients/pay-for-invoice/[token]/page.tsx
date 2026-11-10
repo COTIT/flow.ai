@@ -190,7 +190,7 @@ function PublicInvoice({ token }: { token: string }) {
               onRetry={() => void payment.refetch()}
             />
           ) : null}
-          {checkout && !review && payable ? (
+          {current?.status === "open" && checkout && !review && payable ? (
             <>
               <a
                 className={buttonVariants({ size: "lg" })}
@@ -213,9 +213,14 @@ function PublicInvoice({ token }: { token: string }) {
           inv.online_payment_enabled === true &&
           !review &&
           (!current ||
-            ["failed", "cancelled", "canceled", "expired"].includes(
-              current.status
-            )) &&
+            [
+              "paid",
+              "refunded",
+              "failed",
+              "cancelled",
+              "canceled",
+              "expired",
+            ].includes(current.status)) &&
           payment.isSuccess ? (
             <form
               className="flex flex-col gap-4"

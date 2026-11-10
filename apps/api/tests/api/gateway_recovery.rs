@@ -296,6 +296,20 @@ pub(super) fn posts(w: &World, endpoint: &str) -> usize {
         .count()
 }
 
+async fn assert_qr_blocked_without_http(w: &World, payment: Uuid) {
+    let before = w.remote.lock().unwrap().seen.len();
+    assert!(matches!(
+        genesy_360_api::modules::gateway::service::qr(
+            &w.state,
+            Uuid::parse_str(&w.api.ws).unwrap(),
+            payment,
+        )
+        .await,
+        Err(genesy_360_api::AppError::NotFound)
+    ));
+    assert_eq!(w.remote.lock().unwrap().seen.len(), before);
+}
+
 fn context(w: &World) -> Ctx {
     Ctx {
         invoice_state: Some(w.state.clone()),
@@ -393,6 +407,7 @@ async fn committed_pre_post_claim_survives_crash_without_submission(pool: PgPool
     let saved = operation(&w, payment).await;
     assert_eq!(saved["status"], "unknown");
     assert_eq!(posts(&w, "requestPayment"), 0);
+    assert_qr_blocked_without_http(&w, payment).await;
 }
 
 #[sqlx::test]
@@ -468,7 +483,11 @@ async fn only_authoritative_capture_marks_paid_and_stale_lookup_never_downgrades
         assert_eq!(posts(&w, "requestPayment"), 1);
     }
     capture(&w, payment);
-    assert_eq!(refresh(&w, payment).await["status"], "paid");
+    let captured = refresh(&w, payment).await;
+    assert_eq!(captured["status"], "paid");
+    assert!(captured["checkout_url"].is_null(), "{captured}");
+    assert!(operation(&w, payment).await["checkout_url"].is_null());
+    assert_qr_blocked_without_http(&w, payment).await;
     for rows in [
         vec![transaction(&w, payment, "tx-1", "PROCESSED", false)],
         vec![transaction(&w, payment, "tx-1", "FAILED", false)],
@@ -481,6 +500,8 @@ async fn only_authoritative_capture_marks_paid_and_stale_lookup_never_downgrades
             .insert(payment.to_string(), rows);
         let saved = refresh(&w, payment).await;
         assert_eq!(saved["status"], "paid", "{saved}");
+        assert!(saved["checkout_url"].is_null(), "{saved}");
+        assert!(operation(&w, payment).await["checkout_url"].is_null());
         assert_eq!(saved["captured_transaction_id"], "tx-1", "{saved}");
         let (status, public) = send(
             &w.api.app,
@@ -512,6 +533,7 @@ async fn only_authoritative_capture_marks_paid_and_stale_lookup_never_downgrades
 async fn multiple_successes_before_capture_require_attention_without_booking(pool: PgPool) {
     let w = world(pool).await;
     let (order, payment) = collection(&w).await;
+    assert!(operation(&w, payment).await["checkout_url"].is_string());
     let rows = vec![
         transaction(&w, payment, "tx-1", "PROCESSED", false),
         transaction(&w, payment, "tx-2", "PROCESSED", false),
@@ -521,16 +543,21 @@ async fn multiple_successes_before_capture_require_attention_without_booking(poo
         .unwrap()
         .transactions
         .insert(payment.to_string(), rows);
-    refresh(&w, payment).await;
+    let refreshed = refresh(&w, payment).await;
+    assert_eq!(refreshed["attention"], true, "{refreshed}");
+    assert!(refreshed["checkout_url"].is_null(), "{refreshed}");
     let saved = operation(&w, payment).await;
     assert_eq!(saved["status"], "open", "{saved}");
     assert_eq!(saved["attention"], true, "{saved}");
+    assert!(saved["checkout_url"].is_null(), "{saved}");
     assert!(saved["captured_transaction_id"].is_null(), "{saved}");
     assert_eq!(saved["transactions"].as_array().unwrap().len(), 2);
+    assert_qr_blocked_without_http(&w, payment).await;
     let (status, retry) = intent(&w, &order).await;
     assert_eq!(status, StatusCode::OK, "{retry}");
     assert_eq!(retry["data"]["payment_id"], payment.to_string());
     assert_eq!(retry["data"]["status"], "open");
+    assert!(retry["data"]["checkout_url"].is_null(), "{retry}");
     let (status, public) = send(
         &w.api.app,
         Method::GET,

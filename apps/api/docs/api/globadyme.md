@@ -51,7 +51,7 @@ GET  /v1/invoices/fetch-from-hashed/{token}/payment
 GET  /v1/invoices/fetch-from-hashed/{token}/payment/qr
 ```
 
-POST snapshots the exact outstanding invoice balance under its lock. One live collection is allowed. The browser cannot choose the amount. GET returns `data: null` before a collection exists. QR returns `image/png` with `Cache-Control: no-store`; the server authenticates to the provider's fixed QR endpoint. The invoice page preserves bank-transfer details.
+POST snapshots the exact outstanding invoice balance under its lock. One live collection is allowed. The browser cannot choose the amount. GET returns `data: null` before a collection exists. QR returns `image/png` with `Cache-Control: no-store`; the server authenticates to the provider's fixed QR endpoint. Only open collections without reconciliation warnings expose payment links or QR. A remaining invoice balance after capture starts a fresh collection. The invoice page preserves bank-transfer details.
 
 Payment views include `payment_id`, `status`, integer `amount`, exact integer-text `amount_minor`, `currency`, stored `decimals`, `checkout_url` and attention fields. Use `amount_minor` for exact browser display. No credential is returned. Invoice tokens are rebuilt from their sealed copy when a return URL is needed; payment attempts never store the plaintext token.
 

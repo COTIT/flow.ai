@@ -27,11 +27,15 @@ use uuid::Uuid;
 /// Safe browser/operator projection; credentials and invoice tokens never leave engine.
 pub fn view(op: &Operation) -> Value {
     json!({"payment_id":op.id,"kind":op.kind,"status":op.status,"amount":op.amount,"amount_minor":op.amount.to_string(),
-        "currency":op.currency,"decimals":op.decimals,"checkout_url":op.checkout_url,
+        "currency":op.currency,"decimals":op.decimals,"checkout_url":if can_checkout(op) { op.checkout_url.as_deref() } else { None },
         "environment":op.environment,"merchant_id":op.merchant_id,"order_id":op.order_id,
         "invoice_id":op.invoice_id,"credit_note_id":op.credit_note_id,
         "captured_transaction_id":op.captured_transaction_id,"attention":op.attention,
         "attention_reason":op.attention_reason})
+}
+
+fn can_checkout(op: &Operation) -> bool {
+    op.kind == "payment" && op.status == "open" && !op.attention
 }
 
 fn down(_: Error) -> AppError {
@@ -395,6 +399,9 @@ pub async fn qr(state: &AppState, ws: Uuid, id: Uuid) -> Result<Vec<u8>, AppErro
     let op = repo::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    if !can_checkout(&op) {
+        return Err(AppError::NotFound);
+    }
     let account = accounts::bound(
         state,
         ws,
@@ -478,10 +485,15 @@ pub async fn order_intent(
     let op = repo::find(&state.db, ws, payment)
         .await?
         .ok_or(AppError::NotFound)?;
+    let checkout_url = if can_checkout(&op) {
+        op.checkout_url
+    } else {
+        None
+    };
     Ok(orders::dto::PaymentIntentResource {
         payment_id: op.id,
         status: op.status,
-        checkout_url: op.checkout_url,
+        checkout_url,
     })
 }
 

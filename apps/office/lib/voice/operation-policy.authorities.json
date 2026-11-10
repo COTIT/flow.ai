@@ -108,7 +108,7 @@
   "apps/api/src/modules/gateway/accounts.rs": "54fb2d3b38bc8075b365c6fd72d92bfadaceedc18fc438c259fb89c310b0ac58",
   "apps/api/src/modules/gateway/handlers.rs": "89631f4099b06579c2cdff11be19be50ffedf273d390df3c4ecb825ad14f3f77",
   "apps/api/src/modules/gateway/repo.rs": "f4ea395de71578149af95099ff6814a46c5e7d300d3be5dfaccdb80af5f301f3",
-  "apps/api/src/modules/gateway/service.rs": "d01f38a2f2a9c4a0d1a937d355c3bbcb80032e8905f0ad5d19ba51189fd8cce6",
+  "apps/api/src/modules/gateway/service.rs": "86473115bb29a8424720fa6ba94673fa5b59373981ae04ba6619ad24b03c4bd5",
   "apps/api/src/modules/hourly_rates/handlers.rs": "489ee42ba758ea006a3b7a277526b8e5c9dc9e880ab60a351998a863e3a74c6a",
   "apps/api/src/modules/hourly_rates/service.rs": "299f91c794e08ea8cb1a7ced4a56d3cab9569e890c9f2306ecd36dfcddd38643",
   "apps/api/src/modules/invites/handlers.rs": "e2f6af93c1025cd99e9237092b14d7c9f1ae6f91da208f61dd2f55d23407d274",
