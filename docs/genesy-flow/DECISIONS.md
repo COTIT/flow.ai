@@ -28,6 +28,7 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | Plain `<a>` in the ui renderer; trace form below sections in design mode | ui package cannot import `next/link`; the form is composed by Shop outside the schema |
 | Turbopack for local builds | Earlier webpack workaround came from a Codex-sandbox EPERM; not needed here |
 | OpenAPI tag `storefront_design` | Operation ids must carry their tag prefix; repo uses underscores |
+| Staging validation on `afm-demo`, flag back to false | User chose the seeded AFM data for realistic volume; the one staging Shop serves it. Published revision 3 stays stored but hidden; turning the flag on later shows it until a new design is published |
 
 Approved scope additions: persistent roadmap/handoff/evidence/decision checkpoints; necessary static `storefront` segment in existing privacy-safe gap path classifier. No Phase 2 implementation.
 

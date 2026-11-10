@@ -1,36 +1,36 @@
 # Genesy Flow current handoff
 
-Checkpoint: 2026-11-10. **Phase 1 merged to `main` (COTIT/genesy#13, merge `e041285e7`). Staging validation in progress. Phase 2 not started.**
+Checkpoint: 2026-11-10. **Phase 1 merged and validated on staging (PASS). Flag `SHOP_DESIGN_ENABLED` is false everywhere. Phase 2 not started; it needs the user's go.**
 
 Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this checkpoint → actual Git/source → [VERIFICATION.md](VERIFICATION.md) and [DECISIONS.md](DECISIONS.md).
 
 ## Git
 
-- `main` = `e041285e7` (merge of `codex/flow-foundation`: `42985896e` feature, `6f049b0d3` tag + stack locator fix, docs).
-- Branch `fix/shop-image-fixture-import`: the main-branch `ci` run failed `image-prepare (web)`. Shop tests imported the API fixture as a module; the web image context excludes `apps/api` and `next build` type-checks tests (TS2307). Tests now read the fixture at runtime. Until this lands and `ci` is green, no deployable images exist for `e041285e7`.
+- `main` includes Phase 1 (COTIT/genesy#13, merge `e041285e7`) and the shop image fix (COTIT/genesy#14, merge `dd6678bfe`).
+- This checkpoint's docs and staging evidence land via branch `docs/flow-staging-validation`.
 
-## Staging (read 2026-11-10)
+## Staging (2026-11-10)
 
-- Staging runs `fbe1fcf15` (pre-Phase-1); migration head `20261109130000`; the design route answers 404.
-- One Shop instance; its `STOREFRONT_APP_KEY` maps to workspace `afm-demo` (76 products). `SHOP_DESIGN_ENABLED` unset (false).
-- User approved: deploy the first green main commit to staging; validate on `afm-demo` with the real staging Shop; flag returns to false afterwards.
+- Runs `dd6678bfe` (API, Office, Shop, Till, Field, landing). Schema `20261109191001`. Previous: `fbe1fcf15` / `20261109130000`, with a pre-deploy dump recorded in `.deploy-state`.
+- One Shop instance; its key serves `afm-demo`. Validation used that workspace (user-approved): draft → Office preview → publish → flag on → responsive checks → second revision → restore → republish → failure/isolation checks → flag restored to false. All passed; details and evidence in VERIFICATION.md.
+- afm-demo now holds 3 revisions; revision 3 (fixture content) is published but hidden while the flag is off.
+- Production: untouched (`fbe1fcf15`, no design migration).
 
-## How Phase 1 got here
+## Known gaps
 
-1. A Codex agent implemented Phase 1 uncommitted; the user stopped it and a Claude parent session took over.
-2. Two read-only audits checked the work against the supplied spec: nothing missing; 13 gaps fixed.
-3. Two plan-first child sessions (API, frontend) with exclusive file ownership fixed them under parent review.
-4. The parent regenerated SQLx, OpenAPI, client and voice artifacts, ran the full local gate, fixed two real failures, ran security + React reviews, merged.
+- `scripts/local-gate.sh` and PR CI build no Docker images; the image build runs only on `main`. Build `deploy/images/next.Dockerfile` locally when a change could touch the image context (that is how the #14 defect slipped through).
+- Staging API logs no request paths, so "flag off → no design request" is proven by unit test, not runtime logs.
+- Binary rollback past the design migration needs `--restore-db` or `--compatible-assistant`; never bypass the schema guard.
 
-## Open
+## Next (each needs the user's go)
 
-- Land the image fix, get `main` `ci` green, deploy to staging, run the staging scenario, record evidence.
-- Then decide Phase 2 readiness.
+1. Phase 2 (`apps/flow`): follow the MASTER_PLAN Phase 2 checklist, in small PRs (shared agent extraction / Flow auth + deploy / UI).
+2. Optional: decide whether staging keeps the flag on for AFM demos (would show revision 3 until a new design is published).
+3. Production rollout of the design flag is a separate, later decision.
 
-## Safety notes
+## Working rules
 
-- Child sessions run in their own worktrees, plan first, never push.
-- Never reset/reseed shared stack state from specs; each design spec owns its workspace, key and Shop process.
+- Children: Auto, Opus 5.5, high effort, own worktree, plan first; parent approves before edits; children commit locally, never push or deploy.
+- Ask the user only for scope, auth/permission/payment/business rules, destructive DB ops, production/credentials/vendors/cost, security exceptions.
 - SQLx macros read `GENESY_DATABASE_URL`; `.env` points it at the shared dev DB on 54320. Point it at a disposable DB explicitly when preparing queries.
-- `scripts/local-gate.sh` builds no Docker images; build `deploy/images/next.Dockerfile` locally when a change could affect the image context.
 - `scripts/local-gate.sh` cleanup runs `cargo clean` and `docker builder prune -a`; expect a cold rebuild afterwards.

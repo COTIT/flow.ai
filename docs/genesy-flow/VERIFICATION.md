@@ -1,7 +1,33 @@
 # Genesy Flow verification
 
-Updated 2026-11-10. Results below were actually executed on branch `codex/flow-foundation`.
+Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
+
+## Staging validation (2026-11-10) — PASS
+
+Environment: staging VPS stack, API/Office/Shop images `dd6678bfe` (Phase 1 + shop image fix #14), deployed by `deploy/deploy.sh staging dd6678bfe… --bundle` after `main` `ci` was fully green including both `images` jobs. Pre-deploy backup `genesy-staging-20261110T043217Z-pre-dd6678bfe….dump` (also off-site). Migration applied: `20261109191001` (schema `20261109130000` → `20261109191001`). Production untouched (`fbe1fcf15`). Workspace: `afm-demo` (`01a1b252-0e26-…146`, 72 public products), the one workspace the staging Shop key serves; user-approved. Office actions used a signed-in afm-demo owner session; API steps ran from that page through Office's `/v1` proxy (no secret left the browser). Shop-key reads ran inside the shop container.
+
+Before this, `main` `ci` for `e041285e7` failed `image-prepare (web)`: shop tests statically imported the API fixture, which the web image context excludes (TS2307). Reproduced with `deploy/images/next.Dockerfile`, fixed in #14 (runtime read), verified shop + office image builds green.
+
+| Step | Result |
+| --- | --- |
+| A. Legacy baseline, flag off (desktop 1280, iPad, 375px) | Pass: legacy h1, header/footer, batch form, `/shop` → product → add to cart → checkout form, passport `/b/2RH1SSHG8Z`, `nl` locale; no console errors, failed requests or overflow (`legacy-flag-off.report.json`) |
+| B. Draft via API (fixture, expected_version 0, Idempotency-Key) | 201; version 0→1; draft set; published null; one `saved` event; public read with Shop key `{"data":null}` |
+| C. Office preview | Revision list + preview render (`c1`, `c2`); 6 grid products hash-identical to the public catalog entries (signed image URLs excluded): prices/stock authoritative |
+| D. Publish via confirmation dialog | Dialog required (`d1`); version 2; both pointers rev 1; "Storefront published." (`d2`); public read returns only `revision_id`, `document`, `collections`. Flag still off → Shop stayed legacy |
+| Flag on (`SHOP_DESIGN_ENABLED=true`, shop recreated) | Shop renders design immediately (no-store design loader); grid links open matching products, 6/6 card prices equal product-page prices; hero CTA → `/shop`; batch form still present |
+| E. Responsive, design mode (3 viewports × rev 1, rev 2, rev 3) | Pass, 0 problems each; split hero + 3 cols desktop, 1 col 375px; rev 2 centered hero, 3 cols tablet, 8 products |
+| F. Restore | Second revision saved + published (version 4, Shop updated). Restore rev 1 via its own dialog (`f1`) → new draft rev 3 (parent rev 2, restored_from rev 1), version 5, Shop unchanged until publish; publish → version 6, Shop shows rev 1 content. Every revision/event has author + login snapshot |
+| G. Failure + isolation (no writes) | No auth 401 (GET, POST); Shop app key on staff route 401; foreign workspace state 404; foreign-workspace preview of an afm revision 404; unknown revision 404; stale save 409; stale publish 409; unknown component 422; URL field 422; duplicate id 422 `document.sections.1.id`; missing Idempotency-Key 422; state unchanged |
+| Flag restored | `.env.staging` restored byte-identical from the pre-validation copy (diff showed only the added line); container `false`; final legacy run 3/3 viewports, 0 problems |
+
+Covered by existing automated tests, not exercised on shared staging: non-admin member refused, design API outage → legacy fallback, catalog outage error page, "nothing published" with flag on, concurrent first saves, idempotent replay, transaction rollback (API `storefront_design` tests, Shop unit tests, fake-API `storefront-design` e2e).
+
+Not verifiable on staging: the API logs no request paths, so "flag off makes no design request" rests on the Shop unit test plus the container env, not a runtime log.
+
+Evidence (committed, compressed): `docs/genesy-flow/evidence/staging-2026-11-10/` (JSON reports per run, Office screenshots, home screenshots). Full-resolution PNGs (local, git-ignored): `packages/e2e/test-results/flow-staging-2026-11-10/`.
+
+Final staging state: flag false (original); afm-demo keeps published revision 3 (fixture content) stored, invisible while the flag is off. Rollback: feature = flag false (done). Binary rollback to `fbe1fcf15` is guarded by the schema check: plain `rollback` refuses; it needs `--restore-db` (loses writes since deploy) or `--compatible-assistant` with the assistant disabled. Not executed.
 
 ## Full local gate (`scripts/local-gate.sh`) on commit `42985896e`
 
@@ -46,7 +72,7 @@ Pending items are listed as pending, never as passed.
 
 ## Not verified
 
-- Staging rollout, production deploy, and old-binary rollback compatibility (no deploy in Phase 1).
+- Production deploy. Old-binary rollback was not executed on staging (guarded by the schema check; see staging section).
 - Node 22 specifically. Local runtime is Node v23.3.0; CI pins its own version.
 
 ## Reproduce draft creation
