@@ -1,5 +1,5 @@
 // `pnpm --filter @genesy/e2e stack:up`: throwaway Postgres, migrated + seeded, the API and all
-// five apps pointed at it (STACK.md). Anything that fails tears down what was started.
+// six apps pointed at it (STACK.md). Anything that fails tears down what was started.
 import console from "node:console"
 import { randomBytes } from "node:crypto"
 import { spawn, spawnSync } from "node:child_process"
@@ -20,9 +20,9 @@ const t0 = Date.now()
 const building = new Set()
 const lap = (what) => console.log(`stack: ${what} (${((Date.now() - t0) / 1000).toFixed(0)} s)`)
 
-/** Office needs package build preparation; other stack builds retain their isolated entrypoints. */
+/** Office and Flow need package build preparation; other stack builds retain their isolated entrypoints. */
 export function nextBuildArgs(name) {
-  return ["--filter", `@genesy/${name}`, ...(name === "office" ? ["build"] : ["exec", "next", "build"])]
+  return ["--filter", `@genesy/${name}`, ...(["office", "flow"].includes(name) ? ["build"] : ["exec", "next", "build"])]
 }
 
 export async function up() {
@@ -58,6 +58,8 @@ export async function up() {
     office: { env: { API_URL: api, FILES_ORIGIN } },
     shop: { env: { API_URL: api, SITE_URL: URLS.shop, FILES_ORIGIN } },
     till: { env: { API_URL: api } },
+    // Flow proxies /api/voice/* to the stack's Office at request time (compose: http://office:3000).
+    flow: { env: { API_URL: api, VOICE_UPSTREAM_URL: URLS.office } },
     landing: { env: { SITE_URL: URLS.landing, NEXT_PUBLIC_SHOP_URL: URLS.shop } },
   }
   // Next bakes the /v1 rewrite into the build, so these builds are the stack's own (.next-stack).
@@ -177,6 +179,7 @@ export async function up() {
     waitFor("shop", URLS.shop),
     waitFor("till", `${URLS.till}/setup`),
     waitFor("landing", URLS.landing),
+    waitFor("flow", `${URLS.flow}/login`),
     waitFor("field", `${URLS.field}/login`),
   ])
   lap(`up: ${Object.entries(URLS).map(([n, u]) => `${n} ${u}`).join(", ")}`)
