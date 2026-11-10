@@ -19,6 +19,15 @@ const find = (words: string, outcome?: string) =>
   triaged.find(
     (t) => t.words.join(" ") === words && (!outcome || t.outcome === outcome)
   )!
+const shipped = JSON.stringify(keywords)
+const thresholds = { minGaps: 2, minWorkspaces: 2, soloGaps: 5 }
+// Each planHeal replays the probe fixture through discoverTools (~0.5 s), so each plan is built once.
+const plan = planHeal(triaged, keywords, thresholds)
+const loose = planHeal(triaged, keywords, {
+  ...thresholds,
+  minWorkspaces: 1,
+  minGaps: 1,
+})
 
 describe("clusterGaps", () => {
   it("merges the same words in any order and counts distinct workspaces", () => {
@@ -121,16 +130,13 @@ describe("replayHits", () => {
 })
 
 describe("planHeal", () => {
-  const thresholds = { minGaps: 2, minWorkspaces: 2, soloGaps: 5 }
-
   it("proposes missing words for eligible discoverability clusters only", () => {
-    const plan = planHeal(triaged, keywords, thresholds)
     expect(plan.proposals.map((p) => p.op).sort()).toEqual([
       "lots_list",
       "vat_groups_list",
     ])
     const lots = plan.proposals.find((p) => p.op === "lots_list")!
-    expect(lots.words.sort()).toEqual(["batch", "expiry"])
+    expect([...lots.words].sort()).toEqual(["batch", "expiry"])
     expect(plan.keywords.lots_list!.en).toEqual(
       expect.arrayContaining(["batch", "expiry"])
     )
@@ -146,39 +152,29 @@ describe("planHeal", () => {
   })
 
   it("skips one workspace's few gaps unless the thresholds allow it", () => {
-    expect(
-      planHeal(triaged, keywords, thresholds).skipped.map((s) => s.op)
-    ).toContain("invoice_payments_mark_as_credited")
-    expect(
-      planHeal(triaged, keywords, {
-        ...thresholds,
-        minWorkspaces: 1,
-        minGaps: 1,
-      }).proposals.map((p) => p.op)
-    ).toContain("invoice_payments_mark_as_credited")
+    expect(plan.skipped.map((s) => s.op)).toContain(
+      "invoice_payments_mark_as_credited"
+    )
+    expect(loose.proposals.map((p) => p.op)).toContain(
+      "invoice_payments_mark_as_credited"
+    )
   })
 
   it("marks money and write operations for human review", () => {
-    const plan = planHeal(triaged, keywords, {
-      ...thresholds,
-      minWorkspaces: 1,
-      minGaps: 1,
-    })
-    expect(plan.proposals.find((p) => p.op === "lots_list")!.review).toBe(false)
+    expect(loose.proposals.find((p) => p.op === "lots_list")!.review).toBe(
+      false
+    )
     expect(
-      plan.proposals.find((p) => p.op === "invoice_payments_mark_as_credited")!
+      loose.proposals.find((p) => p.op === "invoice_payments_mark_as_credited")!
         .review
     ).toBe(true)
   })
 
   it("leaves the shipped keywords untouched", () => {
-    const before = JSON.stringify(keywords)
-    planHeal(triaged, keywords, thresholds)
-    expect(JSON.stringify(keywords)).toBe(before)
+    expect(JSON.stringify(keywords)).toBe(shipped)
   })
 
   it("writes words that really make search find the operation", () => {
-    const plan = planHeal(triaged, keywords, thresholds)
     const extra = Object.fromEntries(plan.proposals.map((p) => [p.op, p.words]))
     for (const { intent, want } of plan.fixture)
       expect(
@@ -194,11 +190,6 @@ describe("planHeal", () => {
 })
 
 describe("report", () => {
-  const plan = planHeal(triaged, keywords, {
-    minGaps: 2,
-    minWorkspaces: 2,
-    soloGaps: 5,
-  })
   const markdown = report(triaged, plan, { days: 7 })
 
   it("counts every class and lists what was proposed", () => {
