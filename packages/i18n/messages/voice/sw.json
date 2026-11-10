@@ -695,6 +695,10 @@
         "name": "Webhooks",
         "purpose": "Anwani za webhook za miunganisho"
       },
+      "storefront": {
+        "name": "Muundo wa duka la mtandaoni",
+        "purpose": "Kukagua muundo wa duka la mtandaoni na matoleo yake"
+      },
       "search": {
         "name": "Tafuta",
         "purpose": "Tafuta katika eneo lote la kazi"

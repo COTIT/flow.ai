@@ -695,6 +695,10 @@
         "name": "Webhooks",
         "purpose": "Webhook-adressen voor koppelingen"
       },
+      "storefront": {
+        "name": "Webwinkelontwerp",
+        "purpose": "Het ontwerp van de webwinkel en de versies ervan bekijken"
+      },
       "search": {
         "name": "Zoeken",
         "purpose": "Zoeken in de hele werkruimte"
