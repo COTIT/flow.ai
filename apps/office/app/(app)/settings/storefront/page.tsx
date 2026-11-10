@@ -1,21 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
-import { sessionStore } from "@genesy/api-client/session"
-import {
-  getStorefrontDesignGetQueryKey,
-  getStorefrontDesignPreviewQueryKey,
-  getStorefrontDesignRevisionsQueryKey,
-  useStorefrontDesignGet,
-  useStorefrontDesignPreview,
-  useStorefrontDesignPublish,
-  useStorefrontDesignRestore,
-  useStorefrontDesignRevisions,
-} from "@genesy/api-client/endpoints/storefront-design"
+import { useStorefrontReview } from "@genesy/api-client/storefront-review"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Badge } from "@genesy/ui/components/badge"
 import { Button } from "@genesy/ui/components/button"
@@ -43,7 +31,6 @@ import {
 } from "@/components/list"
 import { Done, LoadError, NoAccess, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
-import { useIdempotencyKey } from "@/lib/idempotency"
 
 /** Administration-only review of saved storefront designs. */
 export default function StorefrontSettingsPage() {
@@ -71,144 +58,46 @@ function StorefrontSettings({
 }) {
   const t = useTranslations()
   const locale = useLocale()
-  const queryClient = useQueryClient()
-  const [page, setPage] = React.useState(1)
-  const [selected, setSelected] = React.useState<string | null>(null)
-  const [ask, setAsk] = React.useState<{
-    kind: "publish" | "restore"
-    revisionId: string
-    version: number
-  } | null>(null)
-  const [conflict, setConflict] = React.useState(false)
   const done = useDone()
-  const state = useStorefrontDesignGet(workspaceId, { query: { retry: false } })
-  const revisions = useStorefrontDesignRevisions(workspaceId, {
-    page: String(page),
-    page_size: "50",
-  })
-  const preview = useStorefrontDesignPreview(
+  const {
+    state,
+    revisions,
+    preview,
+    current,
+    reviewed,
+    supported,
+    selected,
+    selectRevision,
+    setPage,
+    ask,
+    setAsk,
+    confirm,
+    conflict,
+    error,
+    busy,
+    ready,
+    canPublish,
+    canRestore,
+    revisionNumber,
+  } = useStorefrontReview({
     workspaceId,
-    { revision_id: selected ?? "" },
-    {
-      query: { enabled: Boolean(selected), retry: false },
-    }
-  )
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: getStorefrontDesignGetQueryKey(workspaceId),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: getStorefrontDesignRevisionsQueryKey(workspaceId),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: getStorefrontDesignPreviewQueryKey(workspaceId, {
-          revision_id: selected ?? "",
-        }).slice(0, 1),
-      }),
-    ])
-  const clearReview = () => {
-    setSelected(null)
-    setAsk(null)
-  }
-  const changed = (error: unknown) => {
-    if (
-      (error as { response?: { status?: number } })?.response?.status === 409
-    ) {
-      clearReview()
-      setConflict(true)
-      void refresh()
-    }
-  }
-  const publishKey = useIdempotencyKey()
-  const restoreKey = useIdempotencyKey()
-  const publish = useStorefrontDesignPublish({
-    request: publishKey.request,
-    mutation: {
-      onMutate: done.clear,
-      onSuccess: () => {
-        clearReview()
-        done.show(t("storefront.publishedDone"))
-        return refresh()
-      },
-      onError: changed,
-      onSettled: (_data, error) => publishKey.settle(error),
-    },
+    token,
+    canRender: canRenderStorefrontPage,
+    onStart: done.clear,
+    onDone: (kind) =>
+      done.show(
+        t(
+          kind === "publish"
+            ? "storefront.publishedDone"
+            : "storefront.restoredDone"
+        )
+      ),
   })
-  const restore = useStorefrontDesignRestore({
-    request: restoreKey.request,
-    mutation: {
-      onMutate: done.clear,
-      onSuccess: () => {
-        clearReview()
-        done.show(t("storefront.restoredDone"))
-        return refresh()
-      },
-      onError: changed,
-      onSettled: (_data, error) => restoreKey.settle(error),
-    },
-  })
-  const busy = publish.isPending || restore.isPending
-  const current = state.data?.data
-  const reviewed =
-    selected && preview.data?.data.revision_id === selected
-      ? preview.data.data
-      : null
-  const supported =
-    reviewed && canRenderStorefrontPage(reviewed.document, reviewed.collections)
-  const ready = Boolean(
-    current &&
-    reviewed &&
-    supported &&
-    current.version === reviewed.version &&
-    !state.isFetching &&
-    !preview.isFetching &&
-    !preview.isError &&
-    !state.isError
-  )
-  const canPublish =
-    ready &&
-    selected === current?.draft_revision_id &&
-    selected !== current?.published_revision_id
-  const canRestore = ready && selected !== current?.draft_revision_id
   const columns = [
     { label: t("storefront.created") },
     { label: t("storefront.status") },
     { label: t("storefront.actions"), right: true },
   ]
-  const selectRevision = (revisionId: string) => {
-    if (busy) return
-    setAsk(null)
-    setConflict(false)
-    publish.reset()
-    restore.reset()
-    publishKey.renew()
-    restoreKey.renew()
-    done.clear()
-    if (selected === revisionId) void preview.refetch()
-    else setSelected(revisionId)
-  }
-  const confirm = () => {
-    const session = sessionStore.getState()
-    if (
-      !ask ||
-      busy ||
-      !ready ||
-      !reviewed ||
-      ask.revisionId !== reviewed.revision_id ||
-      ask.version !== reviewed.version ||
-      session.workspaceId !== workspaceId ||
-      session.token !== token ||
-      (ask.kind === "publish" ? !canPublish : !canRestore)
-    )
-      return
-    const variables = {
-      workspace: workspaceId,
-      data: { expected_version: ask.version, revision_id: ask.revisionId },
-    }
-    if (ask.kind === "publish") publish.mutate(variables)
-    else restore.mutate(variables)
-  }
 
   return (
     <>
@@ -220,7 +109,7 @@ function StorefrontSettings({
       <Done message={done.message} />
       <ApiError
         // A 409 shows only the translated conflict notice below.
-        error={conflict ? null : (publish.error ?? restore.error)}
+        error={error}
         fallback={t("common.error")}
       />
       {conflict && (
@@ -232,12 +121,7 @@ function StorefrontSettings({
       <ListCard
         pager={
           revisions.data?.data.length ? (
-            <ListPager
-              meta={revisions.data.meta}
-              onPage={(next) => {
-                if (!busy) setPage(next)
-              }}
-            />
+            <ListPager meta={revisions.data.meta} onPage={setPage} />
           ) : null
         }
       >
@@ -274,7 +158,7 @@ function StorefrontSettings({
                   <TableCell className="font-semibold">
                     <span>{formatDateTime(revision.created_at, locale)}</span>
                     <span className="mt-1 block font-mono text-xs text-muted-foreground">
-                      {revision.revision_id.slice(0, 8)}
+                      {revision.revision_id.slice(-8)}
                     </span>
                   </TableCell>
                   <TableCell data-m="sub">
@@ -301,12 +185,7 @@ function StorefrontSettings({
                       disabled={busy || state.isError}
                       aria-pressed={selected === revision.revision_id}
                       aria-label={t("storefront.previewRevision", {
-                        // Newest first and append-only, so numbers never shift.
-                        number:
-                          revisions.data.meta.total -
-                          (revisions.data.meta.from ?? 1) +
-                          1 -
-                          index,
+                        number: revisionNumber(index),
                         date: formatDateTime(revision.created_at, locale),
                       })}
                       onClick={() => selectRevision(revision.revision_id)}

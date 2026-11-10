@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next dev --port 3005",
-    "build": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next build",
+    "build": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next build && node scripts/check-client-bundle.mjs",
     "start": "next start --port 3005",
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
@@ -16,6 +16,7 @@
     "@genesy/i18n": "workspace:*",
     "@genesy/security": "workspace:*",
     "@genesy/ui": "workspace:*",
+    "@genesy/voice": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",

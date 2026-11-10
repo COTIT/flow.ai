@@ -31,7 +31,11 @@ describe("Office messages", () => {
     "%s keeps the voice texts it had before the move",
     async (locale) => {
       const messages = await loadOfficeMessages(locale)
-      expect(hash(messages.voice)).toBe(VOICE[locale])
+      const voice = messages.voice as { pages: Record<string, unknown> }
+      // Added since (2C): the read-only storefront page of the assistant's page tool.
+      const { storefront, ...pages } = voice.pages
+      expect(storefront).toBeDefined()
+      expect(hash({ ...voice, pages })).toBe(VOICE[locale])
     }
   )
 

@@ -695,6 +695,10 @@
         "name": "Webhooks",
         "purpose": "Webhook endpoints for integrations"
       },
+      "storefront": {
+        "name": "Storefront design",
+        "purpose": "Review the shop's storefront design and its revisions"
+      },
       "search": {
         "name": "Search",
         "purpose": "Search across the workspace"

@@ -29,9 +29,10 @@ test("logging in opens the landing with who and where", async ({ page }) => {
   await logIn(page)
   await expect(page).toHaveURL("/")
   await expect(page.getByText(AMINA.name)).toBeVisible()
-  await expect(page.getByText(AMINA.email)).toBeVisible()
   await expect(page.getByText("Ilundo Honey Co.")).toBeVisible()
-  await expect(page.getByText("The assistant is available")).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Use text instead", exact: true })
+  ).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
 

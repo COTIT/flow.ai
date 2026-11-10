@@ -187,6 +187,8 @@ services:
     environment:
       API_URL: http://api:8080/v1
       VOICE_UPSTREAM_URL: http://office:3000
+      # Where assistant links to Office pages open (browser-facing); read per request.
+      OFFICE_PUBLIC_URL: https://staging-office.genesy.app
     networks: [internal, edge]
     labels:
       <<: *edge-labels

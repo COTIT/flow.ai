@@ -25,6 +25,9 @@ services:
   office:
     environment:
       FILES_ORIGIN: ${B2_UPLOADS_ENDPOINT:-https://s3.eu-central-003.backblazeb2.com}
+  flow:
+    environment:
+      FILES_ORIGIN: ${B2_UPLOADS_ENDPOINT:-https://s3.eu-central-003.backblazeb2.com}
 
 secrets:
   b2_uploads_key:

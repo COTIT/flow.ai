@@ -23,6 +23,13 @@ export type StorefrontPageProps = {
     shopCta: string
   }
   preview?: boolean
+  /**
+   * Heading levels: "page" starts at h1 (then h2), "nested" puts every section at h3.
+   * Separate from `preview`, which only makes the page inert: a preview embedded in a host
+   * page sits under its headings, but a framed preview is its own document.
+   * Defaults to "nested" for previews, "page" otherwise.
+   */
+  headings?: "page" | "nested"
 }
 
 const mobileColumns: Record<number, string> = {
@@ -53,13 +60,14 @@ export function StorefrontPage({
   locale,
   labels,
   preview = false,
+  headings = preview ? "nested" : "page",
 }: StorefrontPageProps) {
   if (!canRenderStorefrontPage(document, collections)) return null
   return (
     <div className="flex min-w-0 flex-col gap-5 md:gap-7">
       {document.sections.map((section, index) => {
-        // Office preview sits under the page h1 and its own h2.
-        const Heading = preview ? "h3" : index === 0 ? "h1" : "h2"
+        // Nested: Office's embedded preview sits under the page h1 and its own h2.
+        const Heading = headings === "nested" ? "h3" : index === 0 ? "h1" : "h2"
         if (section.type === "hero") {
           const centered = section.props.layout === "centered"
           return (

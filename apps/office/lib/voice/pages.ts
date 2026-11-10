@@ -31,6 +31,7 @@ export const PAGES: { id: string; route: string; record?: true }[] = [
   { id: "scheduled_reports", route: "/settings/scheduled-reports" },
   { id: "app_keys", route: "/settings/app-keys" },
   { id: "webhooks", route: "/settings/webhooks" },
+  { id: "storefront", route: "/settings/storefront" },
   { id: "search", route: "/search" },
 ]
 

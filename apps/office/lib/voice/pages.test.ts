@@ -63,6 +63,25 @@ describe("opening a page", () => {
     expect(openPage({ page: "overview" }, [], "sw").links?.[0]?.href).toBe("/")
   })
 
+  it("opens the storefront design review for admins only; it reads and changes nothing", () => {
+    expect(openPage({ page: "storefront" }, ["workspace_admin"], "en")).toEqual(
+      {
+        status: "completed",
+        data: { page: en.voice.pages.storefront.name },
+        links: [
+          {
+            label: en.voice.pages.storefront.name,
+            href: "/settings/storefront",
+          },
+        ],
+        narration: en.voice.pages.storefront.name,
+      }
+    )
+    expect(() =>
+      openPage({ page: "storefront" }, ["product.list"], "en")
+    ).toThrow(/permission/)
+  })
+
   it("uses the same right as the office route", () => {
     for (const page of PAGES) {
       const right = rightFor(page.route)
