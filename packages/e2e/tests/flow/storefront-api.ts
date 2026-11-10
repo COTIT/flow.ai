@@ -128,6 +128,49 @@ export function designs(api: FakeApi, ws = "w1", heading?: string) {
     })
 }
 
+/**
+ * The edit dry run Flow calls before showing a design review: "ok" answers the base document with
+ * the requested heading and theme applied (nothing stored), "conflict" a 409 as when the draft
+ * moved, "broken" a 500. Returns the bodies it was sent.
+ */
+export function designEdits(api: FakeApi, mode: "ok" | "conflict" | "broken" = "ok", ws = "w1") {
+  const sent: unknown[] = []
+  api.on("POST", `${root(ws)}/edits/preview`, ({ body }) => {
+    sent.push(body)
+    if (mode === "conflict")
+      return { status: 409, body: { message: "The design changed. Reload before saving or publishing." } }
+    if (mode === "broken") return { status: 500, body: { message: "Internal error" } }
+    const edit = body as { expected_version: number; changes: { op: string; heading?: string; theme?: string }[] }
+    const heading = edit.changes.find((c) => c.heading)?.heading ?? "Fresh this week"
+    const theme = edit.changes.find((c) => c.theme)?.theme ?? document.theme
+    return {
+      data: {
+        version: edit.expected_version,
+        base_revision_id: draft,
+        document: {
+          ...document,
+          theme,
+          sections: document.sections.map((s) =>
+            s.type === "product_grid" ? { ...s, props: { ...s.props, heading } } : s
+          ),
+        },
+        collections: [{ section_id: "featured-products", products }],
+        changes: [],
+      },
+    }
+  })
+  return sent
+}
+
+/** The proposal frame once it has loaded (fed by message, not by URL). */
+export async function proposalFrame(page: Page): Promise<Frame> {
+  await expect(page.locator('iframe[title="Proposed shop preview"]')).toBeVisible()
+  await expect
+    .poll(() => page.frames().some((f) => f.url().includes("/storefront/preview?proposal=1")))
+    .toBe(true)
+  return page.frames().find((f) => f.url().includes("/storefront/preview?proposal=1"))!
+}
+
 /** The preview frame once it has loaded (the iframe's own document). */
 export async function previewFrame(page: Page): Promise<Frame> {
   await expect(page.locator('iframe[title="Shop preview"]')).toBeVisible()

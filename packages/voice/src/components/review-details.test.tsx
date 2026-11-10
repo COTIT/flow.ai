@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { VoiceReview } from "../lib/client-contract"
 import { VoiceContext, type VoiceContextValue } from "./provider"
-import { ReviewButtons, ReviewDetails } from "./review-details"
+import { ReviewButtons, ReviewDetails, ReviewHints } from "./review-details"
 import { stubVoice } from "./stub-voice"
 
 vi.mock("next-intl", () => ({
@@ -74,5 +74,22 @@ describe("ReviewButtons", () => {
     const out = html(<ReviewButtons />, { review: review("batch"), busy: true })
     expect(out).toContain(">batchStop<")
     expect(out.match(/ disabled=""/g)).toHaveLength(1)
+  })
+})
+
+describe("an approval the host holds", () => {
+  const held = (r: VoiceReview) =>
+    ({ ...r, confirmationPhrase: "Confirm action 135790" }) as VoiceReview
+
+  it("disables approve but keeps cancel", () => {
+    const out = html(<ReviewButtons />, { review: review(), approvalHeld: true })
+    expect(out.match(/ disabled=""/g)).toHaveLength(1)
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>approve</)
+  })
+
+  it("does not offer the spoken approval phrase", () => {
+    const voice = { review: held(review()) }
+    expect(html(<ReviewHints />, voice)).toContain("Confirm action 135790")
+    expect(html(<ReviewHints />, { ...voice, approvalHeld: true })).not.toContain("Confirm action 135790")
   })
 })

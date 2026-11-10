@@ -66,7 +66,22 @@
       "loggedOut": "Ingia tena ili kuona hakiki.",
       "page": "Ukurasa {page} kati ya {last}",
       "previousPage": "Iliyotangulia",
-      "nextPage": "Inayofuata"
+      "nextPage": "Inayofuata",
+      "editPreviewTitle": "Muundo unaopendekezwa",
+      "editPreviewBadge": "Bado haujahifadhiwa",
+      "editPreviewText": "Ukurasa wako wa mwanzo ukiidhinisha. Hakuna kinachohifadhiwa wala kuchapishwa hadi hapo.",
+      "restorePreviewTitle": "Toleo la kurejesha",
+      "restorePreviewBadge": "Linakuwa rasimu",
+      "restorePreviewText": "Hii inaunda rasimu mpya. Duka lako lililochapishwa halibadiliki hadi uchapishe.",
+      "publishPreviewTitle": "Toleo la kuchapisha",
+      "publishPreviewBadge": "Litachapishwa",
+      "publishPreviewText": "Hili ndilo toleo hasa litakalochapishwa.",
+      "proposalFrameTitle": "Muonekano wa duka unaopendekezwa",
+      "previewLoading": "Inaandaa muonekano",
+      "proposalConflict": "Ukurasa wa duka ulibadilika baada ya ukaguzi huu kuandaliwa.",
+      "proposalConflictText": "Kuidhinisha kumezimwa kwa ukaguzi huu. Ughairi kisha uombe tena: msaidizi atasoma rasimu mpya na kuandaa ukaguzi mpya.",
+      "proposalUnavailableText": "Mabadiliko yaliyoorodheshwa hapo juu bado ni sahihi.",
+      "retry": "Jaribu tena"
     },
     "chat": {
       "storefront": "Duka la mtandaoni",

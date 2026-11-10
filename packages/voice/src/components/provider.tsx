@@ -51,6 +51,11 @@ import {
   type RecoveryPointer,
   type RecoveryTask,
 } from "../lib/recovery"
+import {
+  approvalBlocked,
+  approvalHeld,
+  type ApprovalHold,
+} from "../lib/approval-hold"
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
 import {
@@ -112,6 +117,10 @@ type VoiceContextValue = {
   recoveredTasks: RecoveryTask[]
   checkingRecovery: boolean
   recoveredReview: boolean
+  /** The host holds approval of this review (see holdApproval); false unless a host holds it. */
+  approvalHeld: boolean
+  /** Hold (ticket) or release (null) approval of one review: approve, by button or voice, does nothing. */
+  holdApproval: (ticket: string | null) => void
   refreshRecovery: () => Promise<void>
   restore: (actionId: string, kind?: TaskReference["kind"]) => Promise<void>
   stopBatch: (command?: "pause" | "cancel") => Promise<void>
@@ -223,6 +232,18 @@ function Session({
   const [recoveredTasks, setRecoveredTasks] = useState<RecoveryTask[]>([])
   const [checkingRecovery, setCheckingRecovery] = useState(false)
   const [recoveredReview, setRecoveredReview] = useState(false)
+  // The login + workspace a hold belongs to: it never carries across a change of either.
+  const identity = `${workspaceId ?? ""}:${token ?? ""}`
+  const currentIdentity = useRef(identity)
+  currentIdentity.current = identity
+  const [heldState, setHeldState] = useState<ApprovalHold>(null)
+  // Read by confirm, which a spoken event can reach from an older render.
+  const held = useRef<ApprovalHold>(null)
+  const holdApproval = useCallback((ticket: string | null) => {
+    const next = ticket ? { ticket, identity: currentIdentity.current } : null
+    held.current = next
+    setHeldState(next)
+  }, [])
   const [messages, setMessages] = useState<TranscriptRow[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [review, setReview] = useState<VoiceReview | null>(null)
@@ -1151,6 +1172,8 @@ function Session({
   }
   function end(preserve = false): Promise<void> {
     turn.stop()
+    // An ended session has no review to hold.
+    holdApproval(null)
     queued.current = []
     if (!preserve) {
       setUnfinished(null)
@@ -1528,7 +1551,9 @@ function Session({
       !current ||
       dispatching.current ||
       (!recoveredPointer && (!session.current || !verified.current)) ||
-      (recoveredPointer && speech)
+      (recoveredPointer && speech) ||
+      // Held by the host: nothing is sent and the review stays open; cancelling still works.
+      approvalBlocked(held.current, decision, current.ticket, currentIdentity.current)
     )
       return
     const expiry = Date.parse(current.expiresAt)
@@ -1690,6 +1715,8 @@ function Session({
         recoveredTasks,
         checkingRecovery,
         recoveredReview,
+        approvalHeld: approvalHeld(heldState, review?.ticket, identity),
+        holdApproval,
         refreshRecovery: () => loadRecovery(),
         restore,
         stopBatch,

@@ -41,7 +41,7 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 ## Parallel work in flight (child sessions, own worktrees)
 
-- Phase 3: P3-A+B in PR `flow/p3-ab`; P3-C (Flow UI, design approved in Claude Design) on `claude/flow-p3c-design-51f0ef`, its PR follows. Open item: agent prompt `[Storefront design]` block waits for the D9 staging validation run.
+- Phase 3: P3-A+B merged (#28); P3-C in PR `flow/p3-c`. Open item: agent prompt `[Storefront design]` block waits for the D9 staging validation run.
 - Phase 4A (files only): 4A-1 probe fixtures/grader/schema guard done on `claude/flow-p4a-800714`; rest after Phase 3 merges.
 - Phase 5 component demand: see "Phase 5" below.
 - Phase 4/6 plans: worktree `.claude/worktrees/flow-p46-plan-d8481a/side-session-notes/` (not committed).
