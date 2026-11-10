@@ -64,9 +64,11 @@ export function ReviewDiff({ review, children }: { review: VoiceReview; children
             <h3 className="text-xs text-muted-foreground">{t("diffTitle")}</h3>
             <dl className="flex flex-col gap-3">
               {summary.rows.map((row) => (
-                <div key={row.field} className="flex min-w-0 flex-col gap-1">
+                // Two sections can change the same field: the label tells their rows apart.
+                <div key={`${row.label ?? ""}:${row.field}`} className="flex min-w-0 flex-col gap-1">
                   <dt className="text-sm font-medium">
-                    {row.label ?? (labels.has(row.field) ? labels(row.field) : fieldName(row.field))}
+                    {row.label ? <span className="text-muted-foreground">{row.label} · </span> : null}
+                    {labels.has(row.field) ? labels(row.field) : fieldName(row.field)}
                   </dt>
                   <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base break-all tabular-nums">
                     {row.before !== null ? (
