@@ -16,10 +16,12 @@ Prefix: `/v1/workspace/{workspace}/storefront/pages/home`.
 | `GET /preview` | required `revision_id` UUID | 200 validated document and bounded public catalog collections |
 | `POST /restore` | `{expected_version, revision_id}` | 201 historical document copied into a new draft |
 | `POST /publish` | `{expected_version, revision_id}` | 200 current draft published and page state |
+| `POST /edits` | `{expected_version, base_revision_id?, changes}` | 201 targeted changes saved as a new draft and page state |
+| `POST /edits/preview` | same body, no `Idempotency-Key` | 200 dry run: changed document, collections and change rows; stores nothing |
 
 `GET /v1/workspace/{workspace}/storefront/design-capabilities` returns `{data:{schema_version,document_schema,constraints,components}}`. The document JSON schema is generated from Rust DTOs. Component property-schema references point into that schema's `$defs`. Registry entries describe supported props, defaults, children, responsive behavior, data/runtime requirements, accessibility, examples and deprecation. Unique section IDs and canonical serialized byte size also receive Rust validation.
 
-Page state is `{data:{version,draft_revision_id,published_revision_id,draft}}`. An untouched workspace has version 0 and null pointers/draft. A draft is `{revision_id,document}`. Save, restore and publish return this same state shape. History rows contain `revision_id`, `created_at`, `created_by`, `restored_from_revision_id` and `was_published`.
+Page state is `{data:{version,draft_revision_id,published_revision_id,draft}}`. An untouched workspace has version 0 and null pointers/draft. A draft is `{revision_id,document}`. Save, restore and publish return this same state shape. History rows contain `revision_id`, `parent_revision_id` (the draft it replaced, null for the first), `created_at`, `created_by`, `restored_from_revision_id` and `was_published`. Rows are newest first, so row 0 is the current draft.
 
 Preview returns `{data:{version,revision_id,document,collections:[{section_id,products:[...]}]}}`. Products use the existing storefront DTO and rules. Preview revision IDs remain scoped to the requested workspace and home page; they are never shareable preview credentials.
 
@@ -32,6 +34,27 @@ Every POST requires `Idempotency-Key`. Retry with the same key and identical bod
 Publishing requires the selected revision to be the current draft, revalidates the entire document and its category bindings, and atomically advances the published pointer. Publishing an already published revision again with a fresh key is 409. Earlier revisions remain available. To roll back, restore a historical revision into a new draft, review its preview, then explicitly publish the new draft.
 
 Revision content and audit events are immutable in PostgreSQL. Actor and login UUID snapshots survive user/token cleanup; they contain no bearer secrets. Deleting an existing workspace still cascades its design data. There is no design-history delete endpoint.
+
+## Targeted edits
+
+`POST /edits` changes the current draft without sending a whole document. `base_revision_id` must be the current draft (`draft_revision_id`); leave it out only while the page has no draft, and the edit then starts from the built-in starter (the registry examples: hero `hero-main`, grid `featured-products`). A stale `expected_version`, or a base that is not the current draft, is 409 and changes nothing. The changed document passes the same checks as a save (fields, counts, size, live same-workspace categories) and is stored as a new immutable revision whose `parent_revision_id` is the base; the audit event is `saved`. `Idempotency-Key` is required and replays like the other writes.
+
+`changes` holds 1 to 10 items, applied in order. Each has an `op`:
+
+| `op` | Fields | Rule |
+| --- | --- | --- |
+| `set_theme` | `theme` | `forest` or `neutral` |
+| `set_hero` | `section_id`, any of `heading`, `body`, `layout` | target must be a hero; at least one field |
+| `clear_hero_body` | `section_id` | removes the hero body |
+| `set_product_grid` | `section_id`, any of `heading`, `category_id`, `limit`, `columns` | target must be a product grid; at least one field |
+| `show_all_products` | `section_id` | removes the category binding |
+| `add_section` | `section` (a full hero or product grid section), optional `position` | `position` 1 is first; absent appends |
+| `remove_section` | `section_id` | at least one section remains |
+| `move_section` | `section_id`, `position` | 1-based position |
+
+Unknown ops or fields are 422; so is a whole `document`. An edit that leaves the document as it was is 422 on `changes` ("This change leaves the design as it is."). Errors name the change (`changes.0.section_id`, `changes.1.position`) or the resulting document path (`document.sections.0.props.heading`).
+
+`POST /edits/preview` takes the same body without a key and stores nothing: no page row, revision, event or idempotency answer. It answers `{data:{version, base_revision_id, document, collections, changes}}`. `changes` are review rows `{field, label, before, after}`: `field` is `theme`, `heading`, `body`, `layout`, `category`, `limit`, `columns`, `section` or `position`; `label` is the section heading before the change; `before` is null when there was no value; `after` is `—` when a value or section is removed. Categories are shown by name, columns as `mobile / tablet / desktop`. The same rows are the assistant review facts for `storefront_design_edit`.
 
 ## Document v1
 
@@ -51,4 +74,4 @@ Product prices, availability and images are read through the existing catalog se
 
 Common failures: 401 invalid login/key; 403 missing admin or catalog scope; 404 unknown/foreign revision or workspace; 409 stale version or invalid publication selection; 413 request body too large; 422 invalid document, query, binding or idempotency key. Validation uses the API's `{message,errors}` shape; existing idempotency errors can use `{message}`. Document errors are keyed by path, for example `document.sections.1.id` or `document.schema_version`. Internal database errors stay private.
 
-All phase-one design routes are excluded from assistant discovery and Rust action proposals. Publishing requires the explicit authenticated Office workflow. Voice design tools, cross-subdomain preview tokens, Flow authentication, URL analysis and automated component development are deferred.
+All design routes are still excluded from assistant discovery and Rust action proposals. Assistant proposals for `storefront_design_edit`, `storefront_design_restore` and `storefront_design_publish` already capture review facts (field changes against the current draft, or against the published revision for publish), but the voice policy and the Rust resolver keep refusing them until the voice turn-on change. The full-document save and the dry run stay outside voice for good. Cross-subdomain preview tokens, URL analysis and automated component development are deferred.

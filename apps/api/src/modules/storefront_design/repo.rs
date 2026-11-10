@@ -50,6 +50,14 @@ pub async fn categories_exist(
 ) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar!("SELECT count(*) = cardinality($2::uuid[]) AS \"valid!\" FROM product_categories WHERE workspace_id=$1 AND id=ANY($2) AND deleted_at IS NULL",ws,ids).fetch_one(db).await
 }
+/// Live same-workspace category names for review rows; ids absent here are omitted.
+pub async fn category_names(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<(Uuid, String)>, sqlx::Error> {
+    sqlx::query!("SELECT id,name FROM product_categories WHERE workspace_id=$1 AND id=ANY($2) AND deleted_at IS NULL",ws,ids).fetch_all(db).await.map(|rows| rows.into_iter().map(|r| (r.id, r.name)).collect())
+}
 /// New immutable revision metadata.
 pub struct NewRevision<'a> {
     pub parent: Option<Uuid>,
@@ -109,7 +117,7 @@ pub async fn history(
     limit: i64,
     offset: i64,
 ) -> Result<Vec<StorefrontDesignRevisionSummary>, sqlx::Error> {
-    sqlx::query_as!(StorefrontDesignRevisionSummary,r#"SELECT r.id AS revision_id,r.created_at,r.created_by,r.restored_from_revision_id,EXISTS(SELECT 1 FROM storefront_design_events e WHERE e.workspace_id=$1 AND e.page_id=r.page_id AND e.revision_id=r.id AND e.kind='published') AS "was_published!" FROM storefront_design_revisions r WHERE r.workspace_id=$1 AND r.page_id=$2 ORDER BY r.created_at DESC,r.id DESC LIMIT $3 OFFSET $4"#,ws,page,limit,offset).fetch_all(db).await
+    sqlx::query_as!(StorefrontDesignRevisionSummary,r#"SELECT r.id AS revision_id,r.parent_revision_id,r.created_at,r.created_by,r.restored_from_revision_id,EXISTS(SELECT 1 FROM storefront_design_events e WHERE e.workspace_id=$1 AND e.page_id=r.page_id AND e.revision_id=r.id AND e.kind='published') AS "was_published!" FROM storefront_design_revisions r WHERE r.workspace_id=$1 AND r.page_id=$2 ORDER BY r.created_at DESC,r.id DESC LIMIT $3 OFFSET $4"#,ws,page,limit,offset).fetch_all(db).await
 }
 /// Total history rows for pagination; same filter as `history`, history index.
 pub async fn history_count(

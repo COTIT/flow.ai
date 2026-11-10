@@ -15993,6 +15993,7 @@
         "apps/api/src/modules/storefront_design/dto.rs",
         "apps/api/src/modules/storefront_design/service.rs",
         "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
         "apps/api/src/modules/assistant/service.rs"
       ],
       "requirements": [
@@ -16029,6 +16030,7 @@
         "apps/api/src/modules/storefront_design/dto.rs",
         "apps/api/src/modules/storefront_design/service.rs",
         "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
         "apps/api/src/modules/assistant/service.rs"
       ],
       "requirements": [
@@ -16043,6 +16045,82 @@
     "reconciliation": [],
     "retry": {
       "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_edit": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/edits",
+    "disposition": "internal",
+    "reason": "Targeted design edits stay outside voice execution until the reviewed voice turn-on.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#edit",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/edit.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_edit_preview": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/edits/preview",
+    "disposition": "internal",
+    "reason": "UI-only dry run for design review previews; never an assistant tool.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped revisions"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#edit_preview",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/service.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/storefront_design/edit.rs",
+        "apps/api/src/modules/storefront_design/approval.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
     },
     "confirmationFields": []
   },

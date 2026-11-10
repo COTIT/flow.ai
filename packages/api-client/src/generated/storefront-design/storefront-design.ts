@@ -26,11 +26,13 @@ import type {
 
 import type {
   EnvelopeOptionStorefrontPublishedDesign,
+  EnvelopeStorefrontDesignEditPreview,
   EnvelopeStorefrontDesignPreview,
   EnvelopeStorefrontDesignState,
   EnvelopeValue,
   MessageBody,
   PaginatedStorefrontDesignRevisionSummary,
+  StorefrontDesignEdit,
   StorefrontDesignPreviewParams,
   StorefrontDesignRevisionsParams,
   StorefrontDesignSave,
@@ -339,6 +341,142 @@ export function useStorefrontDesignGet<TData = Awaited<ReturnType<typeof storefr
 
 
 /**
+ * @summary Targeted changes to current draft saved as new draft; no whole-document writes.
+ */
+export const storefrontDesignEdit = (
+    workspace: string,
+    storefrontDesignEditBody: BodyType<StorefrontDesignEdit>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontDesignState>(
+      {url: `/workspace/${workspace}/storefront/pages/home/edits`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: storefrontDesignEditBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontDesignEditMutationKey = () => ['storefrontDesignEdit'] as const;
+
+export const getStorefrontDesignEditMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignEdit>>, TError,StorefrontDesignEditMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignEdit>>, TError,StorefrontDesignEditMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontDesignEditMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontDesignEdit>>, StorefrontDesignEditMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  storefrontDesignEdit(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontDesignEditMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontDesignEdit>>>
+    export type StorefrontDesignEditMutationBody = BodyType<StorefrontDesignEdit>
+    export type StorefrontDesignEditMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type StorefrontDesignEditMutationVariables = {workspace: string;data: BodyType<StorefrontDesignEdit>}
+
+    /**
+ * @summary Targeted changes to current draft saved as new draft; no whole-document writes.
+ */
+export const useStorefrontDesignEdit = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignEdit>>, TError,StorefrontDesignEditMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontDesignEdit>>,
+        TError,
+        StorefrontDesignEditMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontDesignEditMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Dry run of targeted edit with live collections and review rows; stores nothing.
+ */
+export const storefrontDesignEditPreview = (
+    workspace: string,
+    storefrontDesignEdit: BodyType<StorefrontDesignEdit>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontDesignEditPreview>(
+      {url: `/workspace/${workspace}/storefront/pages/home/edits/preview`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: storefrontDesignEdit, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontDesignEditPreviewMutationKey = () => ['storefrontDesignEditPreview'] as const;
+
+export const getStorefrontDesignEditPreviewMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignEditPreview>>, TError,StorefrontDesignEditPreviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignEditPreview>>, TError,StorefrontDesignEditPreviewMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontDesignEditPreviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontDesignEditPreview>>, StorefrontDesignEditPreviewMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  storefrontDesignEditPreview(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontDesignEditPreviewMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontDesignEditPreview>>>
+    export type StorefrontDesignEditPreviewMutationBody = BodyType<StorefrontDesignEdit>
+    export type StorefrontDesignEditPreviewMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type StorefrontDesignEditPreviewMutationVariables = {workspace: string;data: BodyType<StorefrontDesignEdit>}
+
+    /**
+ * @summary Dry run of targeted edit with live collections and review rows; stores nothing.
+ */
+export const useStorefrontDesignEditPreview = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignEditPreview>>, TError,StorefrontDesignEditPreviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontDesignEditPreview>>,
+        TError,
+        StorefrontDesignEditPreviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontDesignEditPreviewMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Materialize owned revision using same authoritative catalog as public Shop.
  */
 export const storefrontDesignPreview = (

@@ -12,6 +12,11 @@
 export interface StorefrontDesignRevisionSummary {
   created_at: string;
   created_by: string;
+  /**
+     * Draft this revision replaced; null for first revision. Undo restores it.
+     * @nullable
+     */
+  parent_revision_id: string | null;
   /** @nullable */
   restored_from_revision_id: string | null;
   revision_id: string;

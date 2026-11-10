@@ -13,6 +13,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::preview))
         .routes(routes!(handlers::restore))
         .routes(routes!(handlers::publish))
+        .routes(routes!(handlers::edit))
+        .routes(routes!(handlers::edit_preview))
         .routes(routes!(handlers::capabilities))
         .routes(routes!(handlers::published))
 }

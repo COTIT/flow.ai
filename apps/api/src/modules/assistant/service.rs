@@ -118,7 +118,14 @@ pub(super) async fn propose_locked(
                                 .await?
                             {
                                 Some(facts) => facts,
-                                None => super::preconditions::capture(conn, o, &input).await?,
+                                None => match crate::modules::storefront_design::approval::capture(
+                                    conn, o, &input,
+                                )
+                                .await?
+                                {
+                                    Some(facts) => facts,
+                                    None => super::preconditions::capture(conn, o, &input).await?,
+                                },
                             }
                         }
                     },
@@ -193,6 +200,7 @@ pub(super) fn public_review(
         Some("farm_supply" | "supply_correction" | "harvest" | "dispatch" | "supply_link") => true,
         // Currencies and rates are readable by every active member.
         Some("currency_rate") => true,
+        Some("storefront_design") => granted.allows("workspace_admin"),
         _ => false,
     };
     if !allowed {
@@ -522,6 +530,27 @@ pub fn evidence(operation: &str, status: u16) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn storefront_design_facts_need_workspace_admin() {
+        use crate::modules::permissions::model::Granted;
+        let row =
+            json!({"review_facts":{"version":1,"facts":{"kind":"storefront_design","changes":[]}}});
+        let member = Granted::new(false, ["setting.get".to_owned()]);
+        assert_eq!(
+            public_review(row.clone(), &member)["review_facts"],
+            json!({"factsHiddenByPermission":true})
+        );
+        let admin = Granted::new(false, ["workspace_admin".to_owned()]);
+        for granted in [admin, Granted::new(true, [])] {
+            let shown = public_review(row.clone(), &granted);
+            assert_eq!(shown["review_facts"]["facts"]["kind"], "storefront_design");
+            assert!(
+                shown["review_facts"]
+                    .get("factsHiddenByPermission")
+                    .is_none()
+            );
+        }
+    }
     #[test]
     fn hash_binds_every_argument() {
         let base = request_hash("POST", "/v1/x", None, Some(&json!({"a":1,"b":2})));

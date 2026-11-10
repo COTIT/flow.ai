@@ -116,6 +116,7 @@ mod stock_transfer;
 mod storage_locations;
 mod storefront;
 mod storefront_design;
+mod storefront_design_edits;
 mod supply_links;
 mod teams;
 mod till_cash;

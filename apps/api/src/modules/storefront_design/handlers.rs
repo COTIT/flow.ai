@@ -6,6 +6,7 @@ use crate::{
     error::{UnprocessableBody, ValidationErrorBody},
     http::{
         app_key::AppKey,
+        json::ValidatedJson,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
@@ -86,6 +87,28 @@ pub async fn publish(
     Keyed { input, key }: Keyed<StorefrontDesignSelect>,
 ) -> Result<Answer, AppError> {
     service::publish(&state.db, &access, input, key).await
+}
+
+/// Targeted changes to current draft saved as new draft; no whole-document writes.
+#[utoipa::path(post,path="/workspace/{workspace}/storefront/pages/home/edits",tag="storefront_design",operation_id="storefront_design_edit",params(("workspace"=uuid::Uuid,Path),("Idempotency-Key"=String,Header,description="Required retry key; reuse only with identical payload")),request_body=StorefrontDesignEdit,responses((status=201,body=Envelope<StorefrontDesignState>,description="Edited copy of current draft saved as new draft"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown workspace or revision, or resource outside caller scope"),(status=409,body=MessageBody,description="Stale page version or base is not current draft"),(status=413,body=MessageBody,description="Request exceeds API body limit"),(status=422,body=UnprocessableBody,description="Invalid change, resulting document, category binding or idempotency key")),security(("bearer"=[])))]
+pub async fn edit(
+    State(state): State<AppState>,
+    access: Can<WorkspaceAdmin>,
+    Keyed { input, key }: Keyed<StorefrontDesignEdit>,
+) -> Result<Answer, AppError> {
+    service::edit(&state.db, &access, input, key).await
+}
+
+/// Dry run of targeted edit with live collections and review rows; stores nothing.
+#[utoipa::path(post,path="/workspace/{workspace}/storefront/pages/home/edits/preview",tag="storefront_design",operation_id="storefront_design_edit_preview",params(("workspace"=uuid::Uuid,Path)),request_body=StorefrontDesignEdit,responses((status=200,body=Envelope<StorefrontDesignEditPreview>,description="Edited document, public catalog collections and change rows; nothing stored"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown workspace or revision, or resource outside caller scope"),(status=409,body=MessageBody,description="Stale page version or base is not current draft"),(status=413,body=MessageBody,description="Request exceeds API body limit"),(status=422,body=UnprocessableBody,description="Invalid change, resulting document or category binding")),security(("bearer"=[])))]
+pub async fn edit_preview(
+    State(state): State<AppState>,
+    access: Can<WorkspaceAdmin>,
+    ValidatedJson(input): ValidatedJson<StorefrontDesignEdit>,
+) -> Result<Data<StorefrontDesignEditPreview>, AppError> {
+    Ok(Data(
+        service::edit_preview(&state, access.workspace_id, input).await?,
+    ))
 }
 
 /// Introspect only reviewed component capabilities and Rust-generated document schema.

@@ -15,7 +15,7 @@ import {
 const uuid = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
 
 describe("reviewed operation coverage", () => {
-  it("keeps Phase 1 storefront design operations outside voice execution", () => {
+  it("keeps storefront design operations outside voice execution", () => {
     const policies = JSON.parse(
       readFileSync(new URL("./operation-policy.json", import.meta.url), "utf8")
     )
@@ -28,6 +28,8 @@ describe("reviewed operation coverage", () => {
       "publish",
       "capabilities",
       "published",
+      "edit",
+      "edit_preview",
     ]) {
       const id = `storefront_design_${suffix}`
       expect(policies[id]?.disposition, id).toBe("internal")
@@ -382,14 +384,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(491)
+    expect(operationManifest).toHaveLength(493)
     expect(tools).toHaveLength(396)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(38)
+    ).toHaveLength(40)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
