@@ -81,6 +81,7 @@ export function Preview({ revisionId }: { revisionId: string | null }) {
           collections={data.collections}
           locale={locale}
           preview
+          headings="page"
           labels={{
             inStock: t("inStock"),
             low: t("lowStock"),

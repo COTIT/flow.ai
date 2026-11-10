@@ -226,3 +226,23 @@ test("logged out, the frame asks to log in and calls nothing", async ({
     0
   )
 })
+
+test("the frame is its own document with the public page's heading outline", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  await page.goto("/storefront")
+  await page.getByRole("button", { name: revisionButton(2) }).click()
+  const frame = await previewFrame(page)
+  await expect(frame.getByText("Honey jar 1")).toBeVisible()
+  await expect(frame.locator("h1")).toHaveCount(1)
+  await expect(frame.locator("h1")).toHaveText("From farm to your table")
+  await expect(frame.locator("h2")).toHaveText(["Fresh from our growers"])
+  // Product names sit one level below their section; no section heading is an h3.
+  await expect(frame.locator("section > h3")).toHaveCount(0)
+  await expect(
+    frame.getByRole("heading", { level: 3, name: "Honey jar 1" })
+  ).toBeVisible()
+  expect(await frame.locator("a, form").count()).toBe(0)
+})

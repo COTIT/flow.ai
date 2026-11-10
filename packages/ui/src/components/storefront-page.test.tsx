@@ -93,6 +93,17 @@ describe("storefront page", () => {
     expect(html).toMatch(/<h4[^>]*>Forest honey<\/h4>/)
   })
 
+  it("gives a framed preview the page outline while staying inert", () => {
+    const html = renderToStaticMarkup(
+      <StorefrontPage {...props} preview headings="page" />
+    )
+    expect(html).not.toContain("href=")
+    expect(html.match(/<h1\b/g)).toHaveLength(1)
+    expect(html.match(/<h2\b/g)).toHaveLength(document.sections.length - 1)
+    expect(html).toMatch(/<h3[^>]*>Forest honey<\/h3>/)
+    expect(html.match(/<h3\b/g)).toHaveLength(1)
+  })
+
   it("keeps a valid heading hierarchy when a document has no hero", () => {
     const withoutHero = {
       ...document,
