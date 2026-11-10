@@ -9,6 +9,7 @@ import {
   expect,
   loginFlow,
   mailTo,
+  stackAllow,
   test,
   unique,
   urls,
@@ -51,7 +52,7 @@ async function proposeEdit(page: Page, body: unknown) {
     route.fulfill({
       json: {
         sessionId: "stack-session",
-        conversationId: "stack-conversation",
+        conversationId: "flow-conversation", // what fakeAgent announces
         signedUrl:
           "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=stack",
       },
@@ -68,6 +69,9 @@ async function proposeEdit(page: Page, body: unknown) {
         review: {
           ticket: `stack-design-${unique()}`,
           summary: "Storefront design edit",
+          // As Office builds it (apps/office/lib/voice/actions.ts).
+          operationId: "storefront_design_edit",
+          method: "POST",
           confirmationCode: "112233",
           confirmationPhrase: "Confirm action 112233",
           target: "Current workspace",
@@ -200,22 +204,37 @@ for (const [label, viewport] of [
 }
 
 test.describe("refusals", () => {
+  // The guard allows exact absolute URLs only (no baseURL here), and the moved draft lives in a
+  // workspace made at run time: both refused dry runs are known once beforeAll has made them.
+  const allowed: { url: string; status: number }[] = []
+  let moved: Awaited<ReturnType<typeof ownerWithDraft>>
+  test.beforeAll(async ({ playwright }) => {
+    test.setTimeout(120_000)
+    const request = await playwright.request.newContext()
+    moved = await ownerWithDraft(request)
+    await moved.save(moved.first.version) // someone else saved meanwhile
+    const member = await apiAs(request, cred("field (RUAHA)", "ops"))
+    allowed.push(
+      { url: `${urls.flow}/v1${moved.path}/edits/preview`, status: 409 },
+      {
+        url: `${urls.flow}/v1${member.ws("/storefront/pages/home")}/edits/preview`,
+        status: 403,
+      }
+    )
+    await request.dispose()
+  })
   test.use({
-    allow: {
-      responses: [
-        { url: "/edits/preview", status: 409 },
-        { url: "/edits/preview", status: 403 },
-      ],
-    },
+    // eslint-disable-next-line no-empty-pattern -- Playwright reads fixture deps from the pattern
+    allow: async ({}, use) =>
+      use({ ...stackAllow, responses: [...stackAllow.responses, ...allowed] }),
   })
 
   test("a draft that moved: the API answers 409, no preview, approval held", async ({
     page,
     request,
   }) => {
-    test.setTimeout(120_000)
-    const { login, first, save } = await ownerWithDraft(request)
-    await save(first.version) // someone else saved meanwhile
+    void request
+    const { login, first } = moved
     const statuses = dryRuns(page)
     await loginFlow(page, login)
     await proposeEdit(page, edit(first.version, first.draft_revision_id))
