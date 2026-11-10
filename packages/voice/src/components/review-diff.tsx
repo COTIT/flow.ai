@@ -5,9 +5,9 @@ import { useLocale, useTranslations } from "next-intl"
 import { ArrowRight, ChevronDown, TrendingDown, TrendingUp } from "lucide-react"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatShare } from "@genesy/ui/lib/format"
-import type { VoiceReview } from "@/lib/voice/client-contract"
-import { fieldName } from "./helpers"
-import { reviewSummary } from "./review-changes"
+import type { VoiceReview } from "../lib/client-contract"
+import { fieldName } from "../lib/helpers"
+import { reviewSummary } from "../lib/review-changes"
 
 /** The review card leads with what the API says matters: the record, warnings, impact counts and
  * changed fields (old struck through → new). Everything else folds under "More details".

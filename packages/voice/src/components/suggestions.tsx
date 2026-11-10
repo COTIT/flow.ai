@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
-import { useRights } from "@/lib/can"
 import {
   allowedFor,
   followUpFor,
@@ -10,16 +9,22 @@ import {
   pickSuggestions,
   rotated,
   type Available,
-} from "@/lib/voice/capabilities"
+} from "../lib/capabilities"
 import { useVoice } from "./provider"
 
 const DAY = 86_400_000
 
+/** The member's rights as the host app read them; nothing is offered until `read`. */
+export type VoiceRights = { read: boolean; may: (right: string) => boolean }
+
 /** Start chips, the one follow-up chip and the text box hint, from the curated capability list. */
-export function useVoiceTips(capabilities: Available[], from?: string) {
+export function useVoiceTips(
+  capabilities: Available[],
+  from: string | undefined,
+  rights: VoiceRights
+) {
   const t = useTranslations("voice")
   const voice = useVoice()
-  const rights = useRights()
   const allowed = rights.read ? allowedFor(capabilities, rights.may) : []
   const [day] = useState(() => Math.floor(Date.now() / DAY))
   // Chips fill a text box: shown before starting, and in text sessions (voice mode has no box).

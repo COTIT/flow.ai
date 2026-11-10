@@ -11,7 +11,7 @@ import { cancelReview, executeAction, verifyReview } from "@/lib/voice/workflow"
 import { voiceSetting } from "@/lib/voice/settings"
 import { takeFilePermit, voiceInput } from "@/lib/voice/input"
 import { createHash } from "node:crypto"
-import { matchesSpokenConfirmation } from "@/lib/voice/confirmation"
+import { matchesSpokenConfirmation } from "@genesy/voice/lib/confirmation"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
 import {
   batchFailure,

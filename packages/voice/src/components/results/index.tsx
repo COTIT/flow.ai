@@ -1,16 +1,20 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { ChevronRight, ExternalLink } from "lucide-react"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import type { Money, ResultView } from "@/lib/voice/views"
-import { fieldName } from "../helpers"
+import type { Money, ResultView } from "../../lib/views"
+import { fieldName } from "../../lib/helpers"
+import { useVoice } from "../provider"
 import { SalesChart } from "./sales-chart"
 
 type Of<K extends ResultView["kind"]> = Extract<ResultView, { kind: K }>
+/** A host's own words for a record status; `domain` is the record kind, e.g. "orders". */
+export type StatusLabel = (domain: string | undefined, status: string) => string
+const HostStatus = createContext<StatusLabel | undefined>(undefined)
 
 const CARD =
   "w-full max-w-[36rem] min-w-0 self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card p-4 text-sm"
@@ -20,6 +24,8 @@ function useLabels() {
   const t = useTranslations("voice")
   const all = useTranslations()
   const locale = useLocale()
+  const host = useContext(HostStatus)
+  const { resolveHref } = useVoice()
   return {
     t,
     locale,
@@ -27,15 +33,18 @@ function useLabels() {
     // The record page's own status words first, so the chat says what Office says.
     status: (s: string | null, domain?: string) =>
       !s ? null
+      : host ? host(domain, s)
       : domain && all.has(`${domain}.statuses.${s}`) ? all(`${domain}.statuses.${s}`)
       : t.has(`values.${s}`) ? t(`values.${s}`)
       : humanize(s),
     day: (iso: string | null) => (iso ? formatDate(iso, locale) : null),
+    href: resolveHref,
   }
 }
 
 /** One row: a link to its Office page (new tab, like record links), or plain text without one. */
 function Row({ href, label, detail, end }: { href: string | null; label: string; detail?: ReactNode; end?: ReactNode }) {
+  const { resolveHref } = useVoice()
   const body = (
     <>
       <span className="flex min-w-0 flex-col">
@@ -53,7 +62,7 @@ function Row({ href, label, detail, end }: { href: string | null; label: string;
     <li>
       {href ? (
         <a
-          href={href}
+          href={resolveHref(href)}
           target="_blank"
           rel="noopener noreferrer"
           className={`${cls} transition-colors duration-100 hover:bg-(--hair) focus-visible:ring-2 focus-visible:ring-(--gold) focus-visible:outline-none motion-reduce:transition-none`}
@@ -68,7 +77,7 @@ function Row({ href, label, detail, end }: { href: string | null; label: string;
 }
 
 function Records({ view }: { view: Of<"records"> }) {
-  const { t, locale, money, status } = useLabels()
+  const { t, locale, money, status, href } = useLabels()
   const title = t(`results.resources.${view.resource}`)
   if (!view.rows.length)
     return <EmptyState title={t(`results.empty.${view.resource}`)} description={t("results.emptyHint")} className="py-6" />
@@ -97,7 +106,7 @@ function Records({ view }: { view: Of<"records"> }) {
         <p className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           {t("results.showing", { shown: view.rows.length, total: view.total })}
           <a
-            href={view.href}
+            href={href(view.href)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-11 items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-(--gold) focus-visible:outline-none"
@@ -219,7 +228,7 @@ function Attention({ view }: { view: Of<"attention"> }) {
 }
 
 /** A result picture in the chat. Unknown kinds render nothing (the agent's words still answer). */
-export function VoiceResult({ views }: { views: ResultView[] }) {
+export function VoiceResult({ views, statusLabel }: { views: ResultView[]; statusLabel?: StatusLabel }) {
   const first = views[0]
   if (!first) return null
   const body =
@@ -229,5 +238,9 @@ export function VoiceResult({ views }: { views: ResultView[] }) {
     : first.kind === "trail" ? <Trail view={first} />
     : first.kind === "attention" ? <Attention view={first} />
     : null
-  return body ? <div data-role="result" data-kind={first.kind} className={CARD}>{body}</div> : null
+  return body ? (
+    <HostStatus.Provider value={statusLabel}>
+      <div data-role="result" data-kind={first.kind} className={CARD}>{body}</div>
+    </HostStatus.Provider>
+  ) : null
 }

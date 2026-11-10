@@ -1,4 +1,4 @@
-import type { VoiceOutcome } from "@/lib/voice/client-contract"
+import type { VoiceOutcome } from "./client-contract"
 import type { BatchProgress } from "./continuity"
 
 export const RECOVERY_KEY = "genesy.voice.recovery"

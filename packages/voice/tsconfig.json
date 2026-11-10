@@ -1,0 +1,9 @@
+{
+  "extends": "@genesy/typescript-config/react-library.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,7 +1,7 @@
 import "server-only"
 import { Client } from "langsmith"
 import { getCurrentRunTree, traceable } from "langsmith/traceable"
-import { failureCategory } from "./client-contract"
+import { failureCategory } from "@genesy/voice/lib/client-contract"
 import { voiceSetting } from "./settings"
 
 type TracingRuntime = {

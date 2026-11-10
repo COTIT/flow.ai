@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
-import { GenesyVoiceProvider } from "@/components/voice/provider"
+import { GenesyVoiceProvider } from "@genesy/voice/components/provider"
 import { AppShell } from "@/components/shell"
 import { LoadError, NoAccess } from "@/components/states"
 import { rightFor, useRights } from "@/lib/can"

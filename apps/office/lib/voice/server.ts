@@ -8,8 +8,8 @@ import {
 } from "./catalog"
 import { readBounded } from "./bridge"
 import { recordLinks, type RecordLink } from "./links"
-import { resultView, type ResultView } from "./views"
-import { failureReason } from "./client-contract"
+import { resultView, type ResultView } from "@genesy/voice/lib/views"
+import { failureReason } from "@genesy/voice/lib/client-contract"
 import { noteVoiceFailure } from "./tracing"
 import { voiceSetting } from "./settings"
 

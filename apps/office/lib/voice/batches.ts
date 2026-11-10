@@ -19,7 +19,7 @@ import {
   executeBatchController,
   type StoredBatch,
 } from "./batch-controller"
-import { confirmationPhrase, matchesSpokenConfirmation } from "./confirmation"
+import { confirmationPhrase, matchesSpokenConfirmation } from "@genesy/voice/lib/confirmation"
 import {
   createReview,
   verifyReview,
@@ -31,7 +31,7 @@ import { voiceSetting } from "./settings"
 import { VoiceError, type VoiceContext } from "./server"
 import type { MultipartReview } from "./multipart"
 import { IMPORT_PAGE } from "./sheet"
-import type { VoiceOutcome, VoiceReviewStep } from "./client-contract"
+import type { VoiceOutcome, VoiceReviewStep } from "@genesy/voice/lib/client-contract"
 
 export const BATCH_PROTOCOL_VERSION = 1
 export const BATCH_PREPARE_OPERATION = "assistant_batch_prepare"

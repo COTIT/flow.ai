@@ -23,10 +23,10 @@ import type {
   VoiceOutcome,
   VoiceReview,
   VoiceSession,
-} from "@/lib/voice/client-contract"
-import { failureReason } from "@/lib/voice/client-contract"
-import { createTurn, endedBy, type TurnEnd } from "./turn"
-import { timeZoneUpdate } from "./time-zone"
+} from "../lib/client-contract"
+import { failureReason } from "../lib/client-contract"
+import { createTurn, endedBy, type TurnEnd } from "../lib/turn"
+import { timeZoneUpdate } from "../lib/time-zone"
 import {
   attachmentProblem,
   sheetMime,
@@ -40,9 +40,9 @@ import {
   whenSlow,
   type TranscriptRow,
   type VoiceProgress,
-} from "./helpers"
-import { batchAttachmentReferences, voiceRequestBody } from "./multipart"
-import { withView } from "./results/rows"
+} from "../lib/helpers"
+import { batchAttachmentReferences, voiceRequestBody } from "../lib/multipart"
+import { withView } from "../lib/rows"
 import {
   createOutcomeWait,
   readRecovery,
@@ -50,15 +50,16 @@ import {
   sessionLanguage,
   type RecoveryPointer,
   type RecoveryTask,
-} from "./recovery"
-import { matchesSpokenConfirmation } from "@/lib/voice/confirmation"
+} from "../lib/recovery"
+import { matchesSpokenConfirmation } from "../lib/confirmation"
+import { voiceFetch } from "../lib/fetch"
 import {
   historicalProgress,
   rememberTask,
   taskOwner,
   type TaskReference,
   type BatchProgress,
-} from "./continuity"
+} from "../lib/continuity"
 
 class VoiceRequestError extends Error {
   constructor(
@@ -139,6 +140,18 @@ type VoiceContextValue = {
   unfinished: "stalled" | "dropped" | null
   /** Ask the stalled request again, or continue a dropped call in a new conversation. */
   resume: () => Promise<void>
+  /** Where a server-built Office href points in this host app. */
+  resolveHref: (href: string) => string
+}
+/** Host wiring; every default is Office's own, so Office passes nothing. */
+export type VoiceHost = {
+  /** Base of the voice BFF routes. */
+  apiBase?: string
+  /** Base the SDK audio worklets are served from. */
+  audioBase?: string
+  resolveHref?: (href: string) => string
+  /** A voice route answered 401. */
+  onUnauthorized?: () => void
 }
 const STEP_KEYS = ["checking", "preparing", "running", "finalizing"]
 export type MicMode = "hold" | "open"
@@ -150,16 +163,28 @@ export function useVoice() {
   if (!value) throw new Error("Voice controls require GenesyVoiceProvider")
   return value
 }
-export function GenesyVoiceProvider({ children }: { children: ReactNode }) {
+const signOutExpired = () => sessionStore.getState().signOut("expired")
+const sameHref = (href: string) => href
+
+export function GenesyVoiceProvider({
+  children,
+  ...host
+}: { children: ReactNode } & VoiceHost) {
   const workspace = useSession((s) => s.workspaceId)
   const token = useSession((s) => s.token)
   return (
     <ConversationProvider key={`${workspace}:${token}`}>
-      <Session>{children}</Session>
+      <Session {...host}>{children}</Session>
     </ConversationProvider>
   )
 }
-function Session({ children }: { children: ReactNode }) {
+function Session({
+  children,
+  apiBase = "/api/voice",
+  audioBase = "/voice-audio",
+  resolveHref = sameHref,
+  onUnauthorized = signOutExpired,
+}: { children: ReactNode } & VoiceHost) {
   const token = useSession((s) => s.token)
   const workspaceId = useSession((s) => s.workspaceId)
   const locale = useLocale()
@@ -381,14 +406,17 @@ function Session({ children }: { children: ReactNode }) {
         { cause: e }
       )
     }
-    const response = await fetch(`/api/voice/${path}`, {
-      method,
-      headers: { Authorization: `Bearer ${token}`, ...wire.headers },
-      body: wire.body,
-      ...init,
-    })
-    const value = await response.json()
-    if (response.status === 401) sessionStore.getState().signOut("expired")
+    const { response, value } = await voiceFetch(
+      apiBase,
+      path,
+      {
+        method,
+        headers: { Authorization: `Bearer ${token}`, ...wire.headers },
+        body: wire.body,
+        ...init,
+      },
+      onUnauthorized
+    )
     if (!response.ok) {
       throw new VoiceRequestError(
         t(requestFailureKey(response.status)),
@@ -401,7 +429,7 @@ function Session({ children }: { children: ReactNode }) {
   function add(
     role: TranscriptRow["role"],
     text: string,
-    id = crypto.randomUUID(),
+    id: string = crypto.randomUUID(),
     href?: string
   ) {
     if (active.current)
@@ -411,7 +439,7 @@ function Session({ children }: { children: ReactNode }) {
   }
   function showLinks(outcome: VoiceOutcome) {
     for (const link of outcome.links ?? [])
-      add("link", link.label ?? t("openRecord"), undefined, link.href)
+      add("link", link.label ?? t("openRecord"), undefined, resolveHref(link.href))
     // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
     const view = outcome.view
     if (view && active.current)
@@ -687,10 +715,10 @@ function Session({ children }: { children: ReactNode }) {
   }
   const conversation = useConversation({
     workletPaths: {
-      rawAudioProcessor: "/voice-audio/rawAudioProcessor.js",
-      audioConcatProcessor: "/voice-audio/audioConcatProcessor.js",
+      rawAudioProcessor: `${audioBase}/rawAudioProcessor.js`,
+      audioConcatProcessor: `${audioBase}/audioConcatProcessor.js`,
     },
-    libsampleratePath: "/voice-audio/libsamplerate.worklet.js",
+    libsampleratePath: `${audioBase}/libsamplerate.worklet.js`,
     onConnect: ({ conversationId }) => {
       if (!active.current) return
       if (
@@ -865,7 +893,7 @@ function Session({ children }: { children: ReactNode }) {
   })
   async function cleanup(current: Pick<VoiceSession, "sessionId"> | null) {
     if (!current) return
-    await fetch("/api/voice/session", {
+    await fetch(`${apiBase}/session`, {
       method: "DELETE",
       headers,
       body: JSON.stringify({ workspaceId, sessionId: current.sessionId }),
@@ -1388,20 +1416,22 @@ function Session({ children }: { children: ReactNode }) {
         if (!receipt) {
           patch(file.key, { state: "uploading", error: undefined })
           try {
-            const response = await fetch("/api/voice/attachments", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "X-Workspace-Id": workspaceId ?? "",
-                "X-Voice-Session": session.current!.sessionId,
-                "Content-Type": sheetMime(file.file) ?? file.file.type,
-                "X-File-Name": encodeURIComponent(file.name),
+            const { response, value: result } = await voiceFetch(
+              apiBase,
+              "attachments",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "X-Workspace-Id": workspaceId ?? "",
+                  "X-Voice-Session": session.current!.sessionId,
+                  "Content-Type": sheetMime(file.file) ?? file.file.type,
+                  "X-File-Name": encodeURIComponent(file.name),
+                },
+                body: file.file,
               },
-              body: file.file,
-            })
-            const result = await response.json()
-            if (response.status === 401)
-              sessionStore.getState().signOut("expired")
+              onUnauthorized
+            )
             if (!response.ok)
               throw new Error(
                 response.status === 413
@@ -1687,6 +1717,7 @@ function Session({ children }: { children: ReactNode }) {
         confirm,
         unfinished,
         resume,
+        resolveHref,
       }}
     >
       {children}

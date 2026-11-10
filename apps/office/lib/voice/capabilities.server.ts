@@ -3,7 +3,7 @@ import en from "@/messages/en.json"
 import nl from "@/messages/nl.json"
 import sw from "@/messages/sw.json"
 import { getOperation, isToolAllowed } from "./catalog"
-import { CAPABILITIES, rotated, type Available } from "./capabilities"
+import { CAPABILITIES, rotated, type Available } from "@genesy/voice/lib/capabilities"
 
 const messages = { en, nl, sw }
 export const voiceText = (language?: string | null) =>

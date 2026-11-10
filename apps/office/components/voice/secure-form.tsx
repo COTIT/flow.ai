@@ -13,8 +13,8 @@ import { Checkbox } from "@genesy/ui/components/checkbox"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { PageHead } from "@/components/list"
 import { Tile } from "@/components/bento"
-import { useVoice } from "./provider"
-import { requestFailureKey } from "./helpers"
+import { useVoice } from "@genesy/voice/components/provider"
+import { requestFailureKey } from "@genesy/voice/lib/helpers"
 
 class SecureRequestError extends Error {
   constructor(

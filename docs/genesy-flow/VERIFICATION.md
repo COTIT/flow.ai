@@ -3,6 +3,24 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## PR 2A — shared voice package (2026-11-10)
+
+Branch `flow/2a-shared-voice` (child commits `a0c7dcca5` move, `71a367267` injection, `87925f95a` guards; parent docs on top). Base `main` `b70b909a2`.
+
+| Check | Result |
+| --- | --- |
+| Test parity across the move | Before: Office 61 files / 608 tests. After commit (a): Office 47/532 + voice 14/76 = 61/608 |
+| New injection tests (child, red first) | Observed red: `SAFE_HREF` not exported; `./fetch` module missing; controls `href="/assistant"`; provider `audioBase` mismatch; results `resolveHref` + `statusLabel`; suggestions rights (`'weekly_sales,todays_orders'` vs `''`). Default-path tests stayed green throughout |
+| `@genesy/voice` lint / typecheck / test | 0 / 0 / 20 files, 105 tests |
+| Office lint / typecheck / test (alone) | 0 / 0 / 48 files, 608 tests |
+| `voice:check`, voice schema check, `deploy/assistant-agent.test.sh` | Pass |
+| `scripts/local-gate.sh` (`SKIP_API=1`: no `apps/api` file changed; CI runs API) | Deployment helper tests pass; fake-API e2e 6/6 tasks; `storefront-design` 21 passed; `voice-dev` 12 passed; full stack 189 passed, 1 skipped. **Web step red once**: `gap-triage.test.ts` `planHeal > skips one workspace's few gaps…` timed out at 5 s (6.9 s) under parallel turbo load. Untouched by 2A (no diff to the module or its imports); alone 27/27 three times; full Office suite alone 608/608 |
+| Web tasks rerun to completion (turbo stopped after that failure) | 39/39 successful (26 cached) |
+| Office voice e2e `voice.config.ts` desktop + mobile (child) | 1039 passed, 10 skipped, 1 failed: office-mobile `voice.spec.ts:489` (duplicate reference names/focus); rerun alone 5× per project: 10/10. Original error text not kept, so cause unconfirmed |
+| Office + Shop Docker images (`deploy/images/next.Dockerfile`, full build) | Both exit 0; Shop client-bundle check "no storefront key". First attempt failed only on a Docker Hub frontend fetch timeout (`docker/dockerfile:1`), retried after pulling it |
+
+Security: no new route, env read, header, CORS or CSP change. Provider defaults equal Office's previous literals (`/api/voice`, `/voice-audio`, identity `resolveHref`, `signOut("expired")`); `SAFE_HREF` unchanged; `@elevenlabs/react` 1.21.1 unchanged. Guards: `@genesy/voice/lib/*` stays plain TS; Office server code cannot import `@genesy/voice/components`.
+
 ## Staging validation (2026-11-10) — PASS
 
 Environment: staging VPS stack, API/Office/Shop images `dd6678bfe` (Phase 1 + shop image fix #14), deployed by `deploy/deploy.sh staging dd6678bfe… --bundle` after `main` `ci` was fully green including both `images` jobs. Pre-deploy backup `genesy-staging-20261110T043217Z-pre-dd6678bfe….dump` (also off-site). Migration applied: `20261109191001` (schema `20261109130000` → `20261109191001`). Production untouched (`fbe1fcf15`). Workspace: `afm-demo` (`01a1b252-0e26-…146`, 72 public products), the one workspace the staging Shop key serves; user-approved. Office actions used a signed-in afm-demo owner session; API steps ran from that page through Office's `/v1` proxy (no secret left the browser). Shop-key reads ran inside the shop container.

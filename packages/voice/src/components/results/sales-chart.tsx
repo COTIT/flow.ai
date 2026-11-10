@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import type { ResultView } from "@/lib/voice/views"
+import type { ResultView } from "../../lib/views"
 
 type Sales = Extract<ResultView, { kind: "sales" }>
 
