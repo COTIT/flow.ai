@@ -13,6 +13,11 @@ export interface StorefrontDesignChangeRow {
   after: string;
   /** @nullable */
   before: string | null;
+  /**
+     * Category id dispatch stores for `category` rows; `after` carries its name.
+     * @nullable
+     */
+  category_id?: string | null;
   field: string;
   /** @nullable */
   label: string | null;

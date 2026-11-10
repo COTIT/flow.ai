@@ -361,6 +361,9 @@ pub struct StorefrontDesignChangeRow {
     #[schema(required = true)]
     pub before: Option<String>,
     pub after: String,
+    /// Category id dispatch stores for `category` rows; `after` carries its name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_id: Option<Uuid>,
 }
 /// Dry run of targeted edit; nothing stored.
 #[derive(Serialize, ToSchema)]

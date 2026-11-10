@@ -277,16 +277,17 @@ pub async fn edit(
     tx.commit().await?;
     Ok(answer)
 }
-/// Dry run of targeted edit; reads only, stores nothing.
+/// Dry run of targeted edit; one read-only snapshot, stores nothing.
 pub async fn edit_preview(
     state: &AppState,
     ws: Uuid,
     input: StorefrontDesignEdit,
 ) -> Result<StorefrontDesignEditPreview, AppError> {
-    let mut db = state.db.acquire().await?;
-    let page = repo::page(&mut *db, ws).await?;
-    let (document, changes) = plan_edit(&mut db, ws, page.as_ref(), &input).await?;
-    drop(db);
+    let mut tx = state.db.begin().await?;
+    repo::snapshot(&mut tx).await?;
+    let page = repo::page(&mut *tx, ws).await?;
+    let (document, changes) = plan_edit(&mut tx, ws, page.as_ref(), &input).await?;
+    tx.rollback().await?;
     let collections = collections(state, ws, &document).await?;
     Ok(StorefrontDesignEditPreview {
         version: page.as_ref().map_or(0, |p| p.version),

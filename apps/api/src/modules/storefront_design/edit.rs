@@ -37,6 +37,7 @@ fn push(rows: &mut Rows, field: &str, label: Option<&str>, before: Option<String
             label: label.map(str::to_owned),
             before,
             after,
+            category_id: None,
         });
     }
 }
@@ -186,13 +187,7 @@ fn step(
                 props.heading = h.clone();
             }
             if let Some(id) = category_id {
-                push(
-                    rows,
-                    "category",
-                    Some(&label),
-                    props.category_id.map(|v| v.to_string()),
-                    id.to_string(),
-                );
+                push_category(rows, Some(&label), props.category_id, Some(*id));
                 props.category_id = Some(*id);
             }
             if let Some(n) = limit {
@@ -218,15 +213,8 @@ fn step(
         }
         C::ShowAllProducts { section_id } => {
             let props = grid(doc, i, section_id)?;
-            if let Some(id) = props.category_id.take() {
-                push(
-                    rows,
-                    "category",
-                    Some(&props.heading.clone()),
-                    Some(id.to_string()),
-                    REMOVED.into(),
-                );
-            }
+            let before = props.category_id.take();
+            push_category(rows, Some(&props.heading.clone()), before, None);
         }
         C::AddSection {
             section,
@@ -237,13 +225,7 @@ fn step(
                 Some(p) => position(i, *p, len + 1)?,
                 None => len,
             };
-            push(
-                rows,
-                "section",
-                Some(heading(section)),
-                None,
-                kind(section).into(),
-            );
+            added(rows, section);
             doc.sections.insert(at, section.clone());
         }
         C::RemoveSection { section_id } => {
@@ -297,9 +279,8 @@ pub fn diff(before: Option<&StorefrontDesignDocument>, after: &StorefrontDesignD
     };
     let (was, now) = (common(old, &after.sections), common(&after.sections, old));
     for s in &after.sections {
-        let label = Some(heading(s));
         match old.iter().find(|o| o.id() == s.id() && kind(o) == kind(s)) {
-            None => push(&mut rows, "section", label, None, kind(s).into()),
+            None => added(&mut rows, s),
             Some(o) => {
                 let label = Some(heading(o));
                 match (o, s) {
@@ -330,10 +311,7 @@ pub fn diff(before: Option<&StorefrontDesignDocument>, after: &StorefrontDesignD
                             Some(b.heading.clone()),
                             a.heading.clone(),
                         );
-                        if b.category_id != a.category_id {
-                            let id = |v: Option<uuid::Uuid>| v.map(|v| v.to_string());
-                            rows.push(row("category", label, id(b.category_id), id(a.category_id)));
-                        }
+                        push_category(&mut rows, label, b.category_id, a.category_id);
                         push(
                             &mut rows,
                             "limit",
@@ -386,6 +364,43 @@ pub fn diff(before: Option<&StorefrontDesignDocument>, after: &StorefrontDesignD
     }
     rows
 }
+/// Category change carrying stored id; `after` later becomes its name.
+fn push_category(
+    rows: &mut Rows,
+    label: Option<&str>,
+    before: Option<uuid::Uuid>,
+    after: Option<uuid::Uuid>,
+) {
+    if before != after {
+        let mut r = row(
+            "category",
+            label,
+            before.map(|v| v.to_string()),
+            after.map(|v| v.to_string()),
+        );
+        r.category_id = after;
+        rows.push(r);
+    }
+}
+/// New section: kind row, then every content field it will write.
+fn added(rows: &mut Rows, s: &StorefrontDesignSection) {
+    let label = Some(heading(s));
+    push(rows, "section", label, None, kind(s).into());
+    push(rows, "heading", label, None, heading(s).into());
+    match s {
+        StorefrontDesignSection::Hero { props, .. } => {
+            if let Some(body) = &props.body {
+                push(rows, "body", label, None, body.clone());
+            }
+            push(rows, "layout", label, None, name(&props.layout));
+        }
+        StorefrontDesignSection::ProductGrid { props, .. } => {
+            push_category(rows, label, None, props.category_id);
+            push(rows, "limit", label, None, props.limit.to_string());
+            push(rows, "columns", label, None, columns(&props.columns));
+        }
+    }
+}
 fn row(
     field: &str,
     label: Option<&str>,
@@ -397,6 +412,7 @@ fn row(
         label: label.map(str::to_owned),
         before,
         after: after.unwrap_or_else(|| REMOVED.into()),
+        category_id: None,
     }
 }
 
@@ -443,7 +459,12 @@ mod tests {
             label: label.map(Into::into),
             before: before.map(Into::into),
             after: after.into(),
+            category_id: None,
         }
+    }
+    fn with_id(mut row: StorefrontDesignChangeRow, id: &str) -> StorefrontDesignChangeRow {
+        row.category_id = Some(id.parse().unwrap());
+        row
     }
     fn fields(err: AppError) -> Vec<String> {
         match err {
@@ -521,7 +542,10 @@ mod tests {
         assert_eq!(rows[0].after, "—");
         assert_eq!(
             rows[1],
-            row("category", Some("Fresh from our growers"), None, category)
+            with_id(
+                row("category", Some("Fresh from our growers"), None, category),
+                category
+            )
         );
         let (doc, rows) = apply(
             &doc,
@@ -568,6 +592,9 @@ mod tests {
             rows,
             vec![
                 row("section", Some("Honey"), None, "product_grid"),
+                row("heading", Some("Honey"), None, "Honey"),
+                row("limit", Some("Honey"), None, "6"),
+                row("columns", Some("Honey"), None, "1 / 2 / 3"),
                 row("position", Some("Honey"), Some("3"), "1"),
                 row(
                     "section",
@@ -698,6 +725,9 @@ mod tests {
             diff(Some(&before), &after),
             vec![
                 row("section", Some("Honey"), None, "product_grid"),
+                row("heading", Some("Honey"), None, "Honey"),
+                row("limit", Some("Honey"), None, "6"),
+                row("columns", Some("Honey"), None, "1 / 2 / 3"),
                 row("position", Some("Fresh from our growers"), Some("2"), "1"),
                 row("heading", hero, hero, "New"),
                 row(
@@ -723,13 +753,71 @@ mod tests {
             vec![
                 row("theme", None, None, "forest"),
                 row("section", hero, None, "hero"),
+                row("heading", hero, None, "From farm to your table"),
+                row(
+                    "body",
+                    hero,
+                    None,
+                    "Discover the products and people behind every harvest."
+                ),
+                row("layout", hero, None, "split"),
                 row(
                     "section",
                     Some("Fresh from our growers"),
                     None,
                     "product_grid"
                 ),
+                row(
+                    "heading",
+                    Some("Fresh from our growers"),
+                    None,
+                    "Fresh from our growers"
+                ),
+                row("limit", Some("Fresh from our growers"), None, "6"),
+                row("columns", Some("Fresh from our growers"), None, "1 / 2 / 3"),
             ]
+        );
+    }
+
+    #[test]
+    fn added_sections_show_every_field_that_will_be_written() {
+        let category = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b";
+        let (_, rows) = apply(
+            &base(),
+            &changes(json!([
+                {"op":"remove_section","section_id":"hero-main"},
+                {"op":"add_section","position":1,"section":{"id":"welcome","type":"hero","props":{"heading":"Hi","body":"Fresh honey every Friday","layout":"centered"}}},
+                {"op":"add_section","section":{"id":"honey","type":"product_grid","props":{"heading":"Honey","category_id":category,"limit":4,"columns":{"mobile":2,"tablet":2,"desktop":4}}}}
+            ])),
+        )
+        .unwrap();
+        let hi = Some("Hi");
+        let honey = Some("Honey");
+        assert_eq!(
+            rows[1..].to_vec(),
+            vec![
+                row("section", hi, None, "hero"),
+                row("heading", hi, None, "Hi"),
+                row("body", hi, None, "Fresh honey every Friday"),
+                row("layout", hi, None, "centered"),
+                row("section", honey, None, "product_grid"),
+                row("heading", honey, None, "Honey"),
+                with_id(row("category", honey, None, category), category),
+                row("limit", honey, None, "4"),
+                row("columns", honey, None, "2 / 2 / 4"),
+            ]
+        );
+        let (after, _) = apply(
+            &base(),
+            &changes(json!([{"op":"set_product_grid","section_id":"featured-products","category_id":category}])),
+        )
+        .unwrap();
+        assert_eq!(
+            diff(Some(&base()), &after),
+            vec![with_id(
+                row("category", Some("Fresh from our growers"), None, category),
+                category
+            )]
         );
     }
 

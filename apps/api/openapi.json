@@ -25529,6 +25529,14 @@
               "null"
             ]
           },
+          "category_id": {
+            "description": "Category id dispatch stores for `category` rows; `after` carries its name.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "field": {
             "type": "string"
           },

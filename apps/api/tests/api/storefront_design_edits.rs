@@ -263,7 +263,7 @@ async fn dry_run_names_categories_and_materializes_catalog(pool: PgPool) {
     assert_eq!(status, StatusCode::OK, "{preview}");
     assert_eq!(
         preview["data"]["changes"],
-        json!([{"field":"category","label":"Our products","before":null,"after":"Honey"}])
+        json!([{"field":"category","label":"Our products","before":null,"after":"Honey","category_id":category}])
     );
     assert_eq!(preview["data"]["collections"][0]["products"], json!([]));
 }

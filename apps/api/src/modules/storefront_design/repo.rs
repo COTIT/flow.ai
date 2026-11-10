@@ -127,3 +127,33 @@ pub async fn history_count(
 ) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!("SELECT count(*) AS \"total!\" FROM storefront_design_revisions WHERE workspace_id=$1 AND page_id=$2",ws,page).fetch_one(db).await
 }
+/// Read-only snapshot: page pointer and revision come from one moment. Call first in a transaction.
+pub async fn snapshot(db: &mut PgConnection) -> Result<(), sqlx::Error> {
+    // SET cannot be a prepared statement; fixed text, no input.
+    sqlx::raw_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        .execute(db)
+        .await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    #[sqlx::test]
+    async fn snapshot_is_read_only_repeatable_read(pool: PgPool) {
+        let mut tx = pool.begin().await.unwrap();
+        snapshot(&mut tx).await.unwrap();
+        let (level, read_only): (String, String) = sqlx::query_as(
+            "SELECT current_setting('transaction_isolation'), current_setting('transaction_read_only')",
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
+        assert_eq!(
+            (level.as_str(), read_only.as_str()),
+            ("repeatable read", "on")
+        );
+    }
+}
