@@ -40,6 +40,12 @@ type PaymentSettings = {
   }
 }
 type Integrations = Record<string, unknown> & { payment?: PaymentSettings }
+const CREDENTIAL_FIELDS = [
+  "merchant_id",
+  "username",
+  "password",
+  "callback_secret",
+] as const
 
 export default function PaymentSettingsPage() {
   const workspace = useSession((s) => s.workspaceId)
@@ -88,6 +94,15 @@ function PaymentSettings({ workspace }: { workspace: string }) {
   })
   const integrations = (settings.data?.data ?? {}) as Integrations
   const payment = integrations.payment ?? {}
+  const savedEnvironment =
+    payment.environment === "production" ? "production" : "sandbox"
+  const savedSlot = payment.payment_providers?.globadyme?.[savedEnvironment]
+  const missingFields = CREDENTIAL_FIELDS.filter((field) => {
+    const value = savedSlot?.[field]
+    return !(field === "merchant_id" || field === "username"
+      ? value?.trim()
+      : value)
+  })
   return (
     <>
       <PageHead
@@ -114,12 +129,7 @@ function PaymentSettings({ workspace }: { workspace: string }) {
             const globadyme = { ...providers.globadyme }
             for (const environment of ["sandbox", "production"] as const) {
               const slot = { ...globadyme[environment] }
-              for (const field of [
-                "merchant_id",
-                "username",
-                "password",
-                "callback_secret",
-              ] as const) {
+              for (const field of CREDENTIAL_FIELDS) {
                 const value = String(form.get(`${environment}.${field}`) ?? "")
                 slot[field] =
                   (field === "merchant_id" || field === "username"
@@ -181,6 +191,20 @@ function PaymentSettings({ workspace }: { workspace: string }) {
               {t("payments.enabled")}
             </label>
             <Notice variant="warning" title={t("payments.productionBlocked")} />
+            {payment.active_provider === "globadyme" && missingFields.length ? (
+              <Notice variant="warning" title={t("payments.setupIncomplete")}>
+                <p>
+                  {t("payments.savedSetupHint", {
+                    environment: t(`payments.${savedEnvironment}`),
+                  })}
+                </p>
+                <ul className="mt-2 list-disc pl-5">
+                  {missingFields.map((field) => (
+                    <li key={field}>{t(`payments.credentials.${field}`)}</li>
+                  ))}
+                </ul>
+              </Notice>
+            ) : null}
             <p className="text-sm text-muted-foreground">
               {t("payments.identityHint")}
             </p>
@@ -193,14 +217,7 @@ function PaymentSettings({ workspace }: { workspace: string }) {
               span="col-span-12"
             >
               <div className="grid gap-4 md:grid-cols-2">
-                {(
-                  [
-                    "merchant_id",
-                    "username",
-                    "password",
-                    "callback_secret",
-                  ] as const
-                ).map((field) => (
+                {CREDENTIAL_FIELDS.map((field) => (
                   <Field
                     key={field}
                     id={`${environment}-${field}`}

@@ -62,6 +62,7 @@ function PublicInvoice({ token }: { token: string }) {
     },
   })
   const [uncertain, setUncertain] = React.useState(false)
+  const [setupRequired, setSetupRequired] = React.useState(false)
   const create = useMutation({
     mutationFn: (data: {
       country: string
@@ -79,8 +80,17 @@ function PublicInvoice({ token }: { token: string }) {
     },
     onError: (error) => {
       // A transport failure can follow an accepted payment: check before allowing another attempt.
-      const response = (error as { response?: { status?: number } }).response
-      if (!response || (response.status ?? 500) >= 500) setUncertain(true)
+      const response = (
+        error as { response?: { status?: number; data?: { code?: string } } }
+      ).response
+      if (
+        response?.status === 503 &&
+        response.data?.code === "payment_setup_required"
+      ) {
+        setSetupRequired(true)
+        void refetchInvoice()
+      } else if (!response || (response.status ?? 500) >= 500)
+        setUncertain(true)
       void payment.refetch()
     },
   })
@@ -115,6 +125,8 @@ function PublicInvoice({ token }: { token: string }) {
   const text = (value: unknown) => (typeof value === "string" ? value : "")
   const errors = fieldErrors(create.error)
   const payable = !inv.is_credit && inv.balance.open > 0
+  const resumable =
+    current?.status === "open" && Boolean(checkout) && !review && payable
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-8">
       <header className="flex flex-col gap-2">
@@ -183,6 +195,19 @@ function PublicInvoice({ token }: { token: string }) {
                 title={t("payments.nothingDue")}
               />
             ) : null}
+            {payable &&
+            (setupRequired || inv.online_payment_enabled === false) &&
+            payment.isSuccess &&
+            !resumable &&
+            !review ? (
+              <Notice
+                live={false}
+                variant="warning"
+                title={t("payments.onlineUnavailable")}
+              >
+                {t("payments.onlineUnavailableHint")}
+              </Notice>
+            ) : null}
           </div>
           {payment.isError ? (
             <LoadError
@@ -190,7 +215,7 @@ function PublicInvoice({ token }: { token: string }) {
               onRetry={() => void payment.refetch()}
             />
           ) : null}
-          {current?.status === "open" && checkout && !review && payable ? (
+          {resumable && checkout ? (
             <>
               <a
                 className={buttonVariants({ size: "lg" })}
@@ -210,6 +235,7 @@ function PublicInvoice({ token }: { token: string }) {
             </>
           ) : null}
           {payable &&
+          !setupRequired &&
           inv.online_payment_enabled === true &&
           !review &&
           (!current ||

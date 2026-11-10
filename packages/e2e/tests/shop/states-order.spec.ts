@@ -31,13 +31,23 @@ test("when the payment takes too long, a warning says what to do and can check a
   request,
 }) => {
   await page.clock.install()
-  await page.goto(`/orders/${await placeOrder(request)}`)
+  const path = `/orders/${await placeOrder(request)}`
+  // SSR renders the notice before hydration installs the polling timer.
+  const firstPoll = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === path &&
+      response.request().headers()["rsc"] === "1"
+  )
+  await page.goto(path)
   await expect(notice(page, "info", "Waiting for payment.")).toBeVisible()
+  await firstPoll
 
   await page.clock.fastForward("02:01")
   const warning = notice(page, "warning", "Still waiting for the payment")
   await expect(warning).toBeVisible()
-  await expect(warning).toContainText("If you paid, check again in a minute")
+  await expect(warning).toContainText(
+    "The provider has not confirmed payment yet. Check again in a minute or contact us before trying another payment."
+  )
   await expectNoHorizontalScroll(page)
 
   await warning.getByRole("button", { name: "Check again" }).click()
@@ -79,18 +89,20 @@ test("a paid order the shop refunded and cancelled says so, not that it expired"
   await expect(page).toHaveURL("/shop")
 })
 
-test("a failed payment start is an error, and the button offers to try again", async ({
+test("an uncertain payment start waits for review without offering another payment", async ({
   page,
   request,
 }) => {
   await page.goto(`/orders/${await placeOrder(request, PROVIDER_DOWN_EMAIL)}`)
   await page.getByRole("button", { name: /^Pay \$\d/ }).click()
-  const error = page
-    .getByRole("alert")
-    .filter({ hasText: "The payment service isn't answering" })
-  await expect(error).toContainText("Nothing was charged.")
-  await expect(error).toHaveAttribute("data-variant", "error")
-  await expect(page.getByRole("button", { name: "Try again" })).toBeEnabled()
+  const warning = notice(page, "warning", "Payment pending review")
+  await expect(warning).toContainText(
+    "Please wait or contact us before trying another payment"
+  )
+  await expect(page.getByText("Nothing was charged.")).toHaveCount(0)
+  await expect(
+    page.getByRole("button", { name: /^Pay \$|Try again/ })
+  ).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })
 

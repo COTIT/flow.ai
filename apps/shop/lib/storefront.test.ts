@@ -241,8 +241,13 @@ describe("startPayment", () => {
     { status: "open", checkout_url: null },
     { status: "open", checkout_url: "https://pay.example/1", attention: true },
   ])("keeps uncertain payment %j under review", async (payment) => {
-    api.storefrontOrdersPayment.mockResolvedValue({ data: { payment_id: "x", ...payment } })
-    expect(await startPayment(ORDER_ID, "https://shop.test/orders/1")).toEqual({ ok: false, kind: "pending_review" })
+    api.storefrontOrdersPayment.mockResolvedValue({
+      data: { payment_id: "x", ...payment },
+    })
+    expect(await startPayment(ORDER_ID, "https://shop.test/orders/1")).toEqual({
+      ok: false,
+      kind: "pending_review",
+    })
   })
   it("returns where to send the customer, coming back to the order page", async () => {
     api.storefrontOrdersPayment.mockResolvedValue({
@@ -262,15 +267,55 @@ describe("startPayment", () => {
   })
 
   it.each([
+    [
+      503,
+      {
+        code: "payment_setup_required",
+        message: "no payment provider configured",
+      },
+      "setup_required",
+    ],
+    [
+      503,
+      {
+        code: "payment_setup_required",
+        message: "Geheime configuratiegegevens",
+      },
+      "setup_required",
+    ],
     [503, { message: "no payment provider configured" }, "no_provider"],
-    [503, { message: "provider unavailable" }, "provider_down"],
+    [503, { message: "provider unavailable" }, "pending_review"],
     [409, { message: "conflict" }, "not_payable"],
-    [500, { message: "secret" }, "unavailable"],
+    [500, { message: "secret" }, "pending_review"],
+    [502, { message: "secret" }, "pending_review"],
+    [504, { message: "secret" }, "pending_review"],
   ])("maps %i %j to %s", async (status, data, kind) => {
     api.storefrontOrdersPayment.mockRejectedValue(errorWith(status, data))
     expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
       ok: false,
       kind,
     })
+  })
+
+  it.each([
+    new Error("network connection closed"),
+    Object.assign(new Error("timeout after dispatch"), {
+      code: "ECONNABORTED",
+    }),
+  ])("keeps uncertain transport failure under review", async (error) => {
+    api.storefrontOrdersPayment.mockRejectedValue(error)
+    expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
+      ok: false,
+      kind: "pending_review",
+    })
+  })
+
+  it("does not dispatch when the local shop key is missing", async () => {
+    vi.stubEnv("STOREFRONT_APP_KEY", "")
+    expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
+      ok: false,
+      kind: "unavailable",
+    })
+    expect(api.storefrontOrdersPayment).not.toHaveBeenCalled()
   })
 })

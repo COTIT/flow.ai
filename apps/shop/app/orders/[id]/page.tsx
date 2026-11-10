@@ -90,6 +90,7 @@ export default async function OrderPage({ params }: Props) {
               action={
                 <PayButton
                   orderId={order.id}
+                  setupRequired={order.online_payment_enabled === false}
                   pendingReview={
                     order.payment_attention === true ||
                     order.payment_status === "unknown"

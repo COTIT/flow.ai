@@ -101,7 +101,7 @@ fn schema_errors(spec: &Value, schema: &Value, value: &Value) -> Vec<String> {
         .collect()
 }
 
-/// Real body passes the full schema and has exactly the documented, required keys.
+/// Real body passes the full schema, includes required keys and omits undocumented keys.
 fn check(spec: &Value, path: &str, method: &str, status: &str, value: &Value, at: &str) {
     let errors = schema_errors(spec, raw_response_schema(spec, path, method, status), value);
     assert!(errors.is_empty(), "{at}: {errors:#?}");
@@ -122,9 +122,8 @@ fn nullable(spec: &Value, schema: &Value) -> bool {
             .is_some_and(|alts| alts.iter().any(|a| in_type(resolve(spec, a))))
 }
 
-/// Real object has exactly the documented keys, all marked required (generated clients
-/// then type them as always present); nulls only where documented nullable; nested
-/// objects checked the same way.
+/// Required keys are present; optional keys may be omitted. Every sent key is documented,
+/// nulls require nullable schemas, and nested objects follow the same rules.
 fn assert_matches(spec: &Value, schema: &Value, value: &Value, at: &str) {
     let schema = resolve(spec, schema);
     let props = schema["properties"]
@@ -133,17 +132,16 @@ fn assert_matches(spec: &Value, schema: &Value, value: &Value, at: &str) {
     let obj = value
         .as_object()
         .unwrap_or_else(|| panic!("{at}: not an object"));
-    let mut documented: Vec<_> = props.keys().collect();
-    let mut real: Vec<_> = obj.keys().collect();
-    documented.sort();
-    real.sort();
-    assert_eq!(real, documented, "{at}: keys differ from schema");
     let required = schema["required"].as_array().cloned().unwrap_or_default();
     for key in obj.keys() {
         assert!(
-            required.contains(&json!(key)),
-            "{at}.{key}: always sent but not in `required`"
+            props.contains_key(key),
+            "{at}.{key}: sent but not documented"
         );
+    }
+    for key in required {
+        let key = key.as_str().expect("required key must be a string");
+        assert!(obj.contains_key(key), "{at}.{key}: required key missing");
     }
     for (key, v) in obj {
         let field = resolve(spec, &props[key]);
@@ -156,6 +154,41 @@ fn assert_matches(spec: &Value, schema: &Value, value: &Value, at: &str) {
             assert_matches(spec, field, v, &format!("{at}.{key}"));
         }
     }
+}
+
+#[test]
+fn object_matcher_accepts_optional_keys_but_rejects_missing_required_and_unknown_keys() {
+    let spec = json!({});
+    let schema = json!({
+        "type":"object",
+        "properties":{"message":{"type":"string"},"code":{"type":"string"}},
+        "required":["message"]
+    });
+    assert_matches(&spec, &schema, &json!({"message":"ok"}), "message");
+    assert_matches(
+        &spec,
+        &schema,
+        &json!({"message":"ok","code":"setup"}),
+        "coded message",
+    );
+    assert!(
+        std::panic::catch_unwind(|| assert_matches(
+            &spec,
+            &schema,
+            &json!({"code":"setup"}),
+            "missing message"
+        ))
+        .is_err()
+    );
+    assert!(
+        std::panic::catch_unwind(|| assert_matches(
+            &spec,
+            &schema,
+            &json!({"message":"ok","extra":true}),
+            "unknown field"
+        ))
+        .is_err()
+    );
 }
 
 #[test]

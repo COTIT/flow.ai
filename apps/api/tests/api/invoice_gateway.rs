@@ -17,6 +17,103 @@ async fn sent_invoice(f: &F, amount: &str) -> Uuid {
     id.parse().unwrap()
 }
 
+#[sqlx::test]
+async fn incomplete_invoice_gateway_setup_disables_new_collection_without_ledger_entries(
+    pool: PgPool,
+) {
+    let f = setup(pool).await;
+    let invoice = sent_invoice(&f, "10").await;
+    let token = f.api.get(&invoice.to_string()).await["payment_hash"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let path = format!("/v1/invoices/fetch-from-hashed/{token}");
+    let complete = json!({"payment":{
+        "active_provider":"globadyme","enabled":true,"environment":"sandbox",
+        "payment_providers":{"globadyme":{"sandbox":{
+            "merchant_id":"invoice-setup","username":"login","password":"password",
+            "callback_secret":"callback"
+        }}}
+    }});
+    for missing in ["merchant_id", "username", "password", "callback_secret"] {
+        let mut config = complete.clone();
+        config["payment"]["payment_providers"]["globadyme"]["sandbox"][missing] =
+            serde_json::Value::Null;
+        let (status, reply) = f
+            .api
+            .with_base("/settings")
+            .call(
+                Method::POST,
+                "",
+                Some(json!({"integrations":config})),
+                &f.api.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::OK, "{reply}");
+        let (status, reply) = common::send(&f.api.app, Method::GET, &path, None, None).await;
+        assert_eq!(status, StatusCode::OK, "{reply}");
+        assert_eq!(reply["data"]["online_payment_enabled"], false, "{missing}");
+        let (status, reply) = common::send(
+            &f.api.app,
+            Method::POST,
+            &format!("{path}/payment"),
+            Some(json!({"country":"NL","payer_name":"Client"})),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+        assert_eq!(reply["code"], "payment_setup_required");
+    }
+    let attempts: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM order_payments WHERE invoice_id=$1")
+            .bind(invoice)
+            .fetch_one(&f.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(attempts, 0);
+    let paid: i64 = sqlx::query_scalar("SELECT paid_total FROM invoices WHERE id=$1")
+        .bind(invoice)
+        .fetch_one(&f.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(paid, 0);
+    let (status, reply) = f
+        .api
+        .with_base("/settings")
+        .call(
+            Method::POST,
+            "",
+            Some(json!({"integrations":complete})),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    let (status, masked) = f
+        .api
+        .with_base("/settings")
+        .call(Method::GET, "?type=integrations", None, &f.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{masked}");
+    assert_eq!(
+        masked["data"]["payment"]["payment_providers"]["globadyme"]["sandbox"]["password"],
+        "********"
+    );
+    let (status, reply) = f
+        .api
+        .with_base("/settings")
+        .call(
+            Method::POST,
+            "",
+            Some(json!({"integrations":masked["data"]})),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    let (status, reply) = common::send(&f.api.app, Method::GET, &path, None, None).await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    assert_eq!(reply["data"]["online_payment_enabled"], true);
+}
+
 async fn operation(
     f: &F,
     invoice: Uuid,

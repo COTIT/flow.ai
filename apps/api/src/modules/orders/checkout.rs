@@ -8,6 +8,8 @@ use serde_json::json;
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
+use crate::modules::gateway::{accounts, repo::Operation};
+
 use crate::{
     AppState,
     error::AppError,
@@ -60,6 +62,7 @@ pub fn minimal(o: &OrderRow, lines: &[LineRow]) -> StorefrontOrder {
         paid_at: o.paid_at,
         payment_status: None,
         payment_attention: None,
+        online_payment_enabled: None,
     }
 }
 
@@ -165,12 +168,40 @@ pub async fn get(state: &AppState, key: &AppKey, id: &str) -> Result<StorefrontO
             .ok_or(AppError::NotFound)?;
     }
     let mut result = minimal(&o, &lines);
-    let payment:Option<(String,bool)>=sqlx::query_as("SELECT status,attention FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND provider='globadyme' ORDER BY created_at DESC,id DESC LIMIT 1")
+    let payment:Option<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' ORDER BY created_at DESC,id DESC LIMIT 1")
         .bind(key.workspace_id).bind(o.id).fetch_optional(&state.db).await?;
-    if let Some((status, attention)) = payment {
-        result.payment_status = Some(status);
-        result.payment_attention = Some(attention);
+    if let Some(p) = payment.as_ref().filter(|p| p.provider == "globadyme") {
+        result.payment_status = Some(p.status.clone());
+        result.payment_attention = Some(p.attention);
     }
+    let live = payment
+        .as_ref()
+        .filter(|p| matches!(p.status.as_str(), "creating" | "open" | "unknown"));
+    let available = match live {
+        Some(p) if p.provider == "globadyme" && p.status == "creating" => {
+            accounts::select(state, key.workspace_id)
+                .await
+                .map(|a| Some(a.is_some()))
+        }
+        Some(p) if p.provider == "globadyme" => accounts::bound(
+            state,
+            key.workspace_id,
+            p.environment.as_deref().unwrap_or(""),
+            p.merchant_id.as_deref(),
+        )
+        .await
+        .map(|_| Some(true))
+        .map_err(accounts::setup_error),
+        Some(_) => Ok(None),
+        None => accounts::select(state, key.workspace_id)
+            .await
+            .map(|a| a.map(|_| true)),
+    };
+    result.online_payment_enabled = match available {
+        Ok(value) => value,
+        Err(AppError::PaymentSetupRequired) => Some(false),
+        Err(error) => return Err(error),
+    };
     Ok(result)
 }
 

@@ -91,6 +91,8 @@ export const EXPIRED_EMAIL = "expired@e2e.test"
 export const PROVIDER_DOWN_EMAIL = "provider-down@e2e.test"
 export const UNKNOWN_PAYMENT_EMAIL = "unknown-payment@e2e.test"
 export const EXISTING_UNKNOWN_PAYMENT_EMAIL = "existing-unknown-payment@e2e.test"
+export const PAYMENT_SETUP_REQUIRED_EMAIL = "payment-setup-required@e2e.test"
+export const STALE_PAYMENT_SETUP_EMAIL = "stale-payment-setup@e2e.test"
 /** Checkout with this email gets the API's 429 (too many web orders waiting). */
 export const BUSY_EMAIL = "busy@e2e.test"
 /** Reading this order fails with a 503 (API trouble while loading the order page). */

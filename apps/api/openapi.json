@@ -13540,6 +13540,13 @@
       "MessageBody": {
         "description": "A short message: `ok` after an action, or what went wrong.",
         "properties": {
+          "code": {
+            "description": "Stable machine-readable reason, when the caller must distinguish setup from retry.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "message": {
             "type": "string"
           }
@@ -25732,6 +25739,13 @@
             "example": "ORD-0001",
             "type": "string"
           },
+          "online_payment_enabled": {
+            "description": "Local Globadyme setup permits a new collection or resuming this bound live attempt.\nAbsent for legacy providers; this does not verify the provider login or connection.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "paid_at": {
             "format": "date-time",
             "type": [
@@ -34856,7 +34870,7 @@
     },
     "/storefront/orders/{order}/payment": {
       "post": {
-        "description": "503 `no payment provider configured` without a provider; 503 while the provider is down (retry).",
+        "description": "503 with code `payment_setup_required` when merchant setup is incomplete or new collections are disabled; retrying cannot complete setup. Legacy providers return 503 `no payment provider configured` without a provider. Other failures can follow an accepted submission: check the order before retrying.",
         "operationId": "storefront_orders_payment",
         "parameters": [
           {

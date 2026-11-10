@@ -23,6 +23,12 @@ export interface StorefrontOrder {
   /** What was ordered, in order. */
   lines: StorefrontOrderLine[];
   number: string;
+  /**
+     * Local Globadyme setup permits a new collection or resuming this bound live attempt.
+     * Absent for legacy providers; this does not verify the provider login or connection.
+     * @nullable
+     */
+  online_payment_enabled?: boolean | null;
   /** @nullable */
   paid_at: string | null;
   /**

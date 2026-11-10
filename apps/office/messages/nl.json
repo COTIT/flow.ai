@@ -1898,6 +1898,10 @@
     },
     "yes": "Ja",
     "no": "Nee",
-    "legacy": "Standaard van installatie (bestaand)"
+    "legacy": "Standaard van installatie (bestaand)",
+    "setupIncomplete": "Opgeslagen betalingsinstellingen zijn onvolledig",
+    "savedSetupHint": "Opgeslagen geselecteerde omgeving: {environment}. Nieuwe online betalingen zijn pas beschikbaar als de instellingen volledig zijn. Ontbrekende opgeslagen velden:",
+    "onlineUnavailable": "Online betalen is niet beschikbaar",
+    "onlineUnavailableHint": "Gebruik de bankgegevens hieronder of neem contact op met de leverancier."
   }
 }

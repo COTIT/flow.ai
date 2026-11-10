@@ -159,7 +159,7 @@
       },
       "provider_down": {
         "title": "The payment service isn't answering",
-        "body": "Nothing was charged. Please try again in a moment."
+        "body": "Please check your order's payment status or contact us before trying again."
       },
       "not_payable": {
         "title": "This order can't be paid any more",
@@ -167,7 +167,11 @@
       },
       "unavailable": {
         "title": "Payment couldn't start",
-        "body": "Nothing was charged. Please try again in a minute."
+        "body": "Please try again in a minute. Contact the shop if you need help."
+      },
+      "setup_required": {
+        "title": "Online payment is currently unavailable",
+        "body": "Your order is saved. Please contact the shop to arrange payment."
       },
       "pending_review": {
         "title": "Payment pending review",

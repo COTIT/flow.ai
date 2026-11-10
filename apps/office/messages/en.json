@@ -1898,6 +1898,10 @@
     },
     "yes": "Yes",
     "no": "No",
-    "legacy": "Deployment default (legacy)"
+    "legacy": "Deployment default (legacy)",
+    "setupIncomplete": "Saved payment setup is incomplete",
+    "savedSetupHint": "Saved selected environment: {environment}. New online payments are unavailable until setup is complete. Missing saved fields:",
+    "onlineUnavailable": "Online payment is unavailable",
+    "onlineUnavailableHint": "Please use the bank details below or contact the supplier."
   }
 }

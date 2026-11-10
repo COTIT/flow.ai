@@ -61,15 +61,29 @@ pub async fn select(state: &AppState, ws: Uuid) -> Result<Option<Account>, AppEr
     if config["active_provider"].as_str() != Some("globadyme") {
         return Ok(None);
     }
-    if config["enabled"].as_bool() == Some(false) {
-        return Err(AppError::Unavailable("New online payments are disabled."));
+    if config["enabled"].as_bool() != Some(true) {
+        return Err(AppError::PaymentSetupRequired);
     }
     let env = config["environment"].as_str().unwrap_or("sandbox");
     let merchant = config["payment_providers"]["globadyme"][env]["merchant_id"]
         .as_str()
         .filter(|id| !id.trim().is_empty())
-        .ok_or(AppError::Unavailable("Globadyme account is incomplete."))?;
-    bound(state, ws, env, Some(merchant)).await.map(Some)
+        .ok_or(AppError::PaymentSetupRequired)?;
+    bound(state, ws, env, Some(merchant))
+        .await
+        .map(Some)
+        .map_err(setup_error)
+}
+
+/// Bound-account checks perform no provider I/O; database failures remain operational errors.
+pub(crate) fn setup_error(error: AppError) -> AppError {
+    match error {
+        AppError::Unavailable(_)
+        | AppError::NotFound
+        | AppError::Conflict(_)
+        | AppError::Internal(_) => AppError::PaymentSetupRequired,
+        error => error,
+    }
 }
 
 /// Historical account resolution bypasses collection disable/selection switches.
@@ -130,7 +144,7 @@ pub async fn bind(conn: &mut PgConnection, ws: Uuid, account: &Account) -> Resul
     .await?;
     let config = config.unwrap_or(Value::Null);
     if config["active_provider"].as_str() != Some("globadyme")
-        || config["enabled"].as_bool() == Some(false)
+        || config["enabled"].as_bool() != Some(true)
         || config["environment"].as_str().unwrap_or("sandbox") != account.environment
         || config["payment_providers"]["globadyme"][&account.environment]["merchant_id"].as_str()
             != Some(account.merchant_id.as_str())
@@ -332,4 +346,27 @@ pub async fn audit(
     sqlx::query("INSERT INTO payment_audit(workspace_id,user_id,environment,action,reason,evidence) VALUES($1,$2,$3,$4,$5,$6)")
         .bind(ws).bind(user).bind(env).bind(action).bind(reason).bind(evidence).execute(conn).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn setup_classification_preserves_database_failures() {
+        assert!(matches!(
+            setup_error(AppError::Database(sqlx::Error::PoolClosed)),
+            AppError::Database(_)
+        ));
+        assert!(matches!(
+            setup_error(AppError::Unavailable("Missing account")),
+            AppError::PaymentSetupRequired
+        ));
+        assert!(matches!(
+            setup_error(AppError::Internal(
+                "Sealed credential failed to open".into()
+            )),
+            AppError::PaymentSetupRequired
+        ));
+    }
 }

@@ -213,6 +213,7 @@ export type PaymentResult =
         | "not_payable"
         | "unavailable"
         | "pending_review"
+        | "setup_required"
     }
 
 /** Starts (or resumes) the payment; the provider sends the customer back to `redirectUrl`. */
@@ -240,17 +241,18 @@ export async function startPayment(
     if (error instanceof StorefrontUnavailable)
       return { ok: false, kind: "unavailable" }
     const { status, data } = failure(error)
-    const message = (data as { message?: string })?.message
-    if (status === 503)
-      return {
-        ok: false,
-        kind:
-          message === "no payment provider configured"
-            ? "no_provider"
-            : "provider_down",
-      }
+    const { message, code } = (data ?? {}) as {
+      message?: string
+      code?: string
+    }
+    if (status === 503 && code === "payment_setup_required")
+      return { ok: false, kind: "setup_required" }
+    if (status === 503 && message === "no payment provider configured")
+      return { ok: false, kind: "no_provider" }
     if (status === 409) return { ok: false, kind: "not_payable" }
     console.error(`storefront: POST ${path} failed:`, status ?? "network")
+    if (status === undefined || status >= 500)
+      return { ok: false, kind: "pending_review" }
     return { ok: false, kind: "unavailable" }
   }
 }

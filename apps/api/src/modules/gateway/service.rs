@@ -61,7 +61,14 @@ pub async fn submit(
         op.environment.as_deref().unwrap_or(""),
         op.merchant_id.as_deref(),
     )
-    .await?;
+    .await
+    .map_err(|error| {
+        if op.kind == "payment" {
+            accounts::setup_error(error)
+        } else {
+            error
+        }
+    })?;
     let mut dispatch = state.db.acquire().await?;
     // Session fence closes on cancellation; never return advisory-locked session to pool.
     dispatch.close_on_drop();
@@ -74,18 +81,9 @@ pub async fn submit(
     }
     let mut tx = dispatch.begin().await?;
     if op.kind == "payment" {
-        let config: Option<Value> = sqlx::query_scalar(
-            "SELECT data->'integrations'->'payment' FROM settings WHERE workspace_id=$1 FOR SHARE",
-        )
-        .bind(ws)
-        .fetch_optional(&mut *tx)
-        .await?;
-        if config
-            .as_ref()
-            .is_some_and(|c| c["enabled"].as_bool() == Some(false))
-        {
-            return Err(AppError::Unavailable("New online payments are disabled."));
-        }
+        accounts::bind(&mut tx, ws, &account)
+            .await
+            .map_err(accounts::setup_error)?;
     }
     let refund_transaction = if op.kind == "refund" {
         lock_owner(&mut tx, ws, &op).await?;
@@ -99,7 +97,9 @@ pub async fn submit(
     } else {
         None
     };
-    accounts::bind_history(&mut tx, ws, &account).await?;
+    if op.kind == "refund" {
+        accounts::bind_history(&mut tx, ws, &account).await?;
+    }
     if !repo::claim(&mut *tx, ws, id).await? {
         return Ok(());
     }
@@ -486,6 +486,14 @@ pub async fn order_intent(
         .await?
         .ok_or(AppError::NotFound)?;
     let checkout_url = if can_checkout(&op) {
+        accounts::bound(
+            state,
+            ws,
+            op.environment.as_deref().unwrap_or(""),
+            op.merchant_id.as_deref(),
+        )
+        .await
+        .map_err(accounts::setup_error)?;
         op.checkout_url
     } else {
         None

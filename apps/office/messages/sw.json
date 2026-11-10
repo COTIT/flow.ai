@@ -1898,6 +1898,10 @@
     },
     "yes": "Ndiyo",
     "no": "Hapana",
-    "legacy": "Chaguo la usanidi (la awali)"
+    "legacy": "Chaguo la usanidi (la awali)",
+    "setupIncomplete": "Mipangilio ya malipo iliyohifadhiwa haijakamilika",
+    "savedSetupHint": "Mazingira yaliyochaguliwa na kuhifadhiwa: {environment}. Malipo mapya ya mtandaoni hayatapatikana hadi usanidi ukamilike. Sehemu zilizokosekana katika mipangilio iliyohifadhiwa:",
+    "onlineUnavailable": "Malipo ya mtandaoni hayapatikani",
+    "onlineUnavailableHint": "Tumia maelezo ya benki hapa chini au wasiliana na muuzaji."
   }
 }

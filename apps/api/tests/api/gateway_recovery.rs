@@ -236,6 +236,61 @@ async fn intent(w: &World, order: &str) -> (StatusCode, Value) {
     .await
 }
 
+fn complete_setup(environment: &str) -> Value {
+    json!({"integrations":{"payment":{
+        "active_provider":"globadyme","enabled":true,"environment":environment,
+        "payment_providers":{"globadyme":{environment:{
+            "merchant_id":MERCHANT,"username":"user@example.com","password":"password-secret",
+            "callback_secret":CALLBACK
+        }}}
+    }}})
+}
+
+async fn save_setup(w: &World, body: Value) {
+    let (status, reply) = w
+        .api
+        .with_base("/settings")
+        .call(Method::POST, "", Some(body), &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+}
+
+async fn public_order(w: &World, order: &str) -> Value {
+    let (status, reply) = send(
+        &w.api.app,
+        Method::GET,
+        &format!("/v1/storefront/orders/{order}"),
+        None,
+        Some(&w.key),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    reply["data"].clone()
+}
+
+async fn assert_setup_blocks_new_collection(w: &World, order: &str) {
+    let before = w.remote.lock().unwrap().seen.len();
+    assert_eq!(
+        public_order(w, order).await["online_payment_enabled"],
+        false
+    );
+    let (status, reply) = intent(w, order).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(reply["code"], "payment_setup_required", "{reply}");
+    let attempts: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM order_payments WHERE order_id=$1::uuid")
+            .bind(order)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(attempts, 0);
+    assert_eq!(
+        w.remote.lock().unwrap().seen.len(),
+        before,
+        "setup checks must not contact the provider"
+    );
+}
+
 pub(super) async fn collection(w: &World) -> (String, Uuid) {
     let order = new_order(w).await;
     let (status, reply) = intent(w, &order).await;
@@ -361,6 +416,189 @@ async fn resolve(w: &World, refund: Uuid, outcome: &str) -> (StatusCode, Value) 
 }
 
 #[sqlx::test]
+async fn incomplete_or_disabled_setup_never_admits_a_financial_attempt(pool: PgPool) {
+    let w = world(pool).await;
+    let order = new_order(&w).await;
+    for missing in ["merchant_id", "username", "password", "callback_secret"] {
+        let mut body = complete_setup("sandbox");
+        body["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"][missing] =
+            Value::Null;
+        save_setup(&w, body).await;
+        assert_setup_blocks_new_collection(&w, &order).await;
+    }
+    for enabled in [None, Some(Value::Null), Some(json!(false))] {
+        let mut disabled = complete_setup("sandbox");
+        let payment = disabled["integrations"]["payment"].as_object_mut().unwrap();
+        match enabled {
+            Some(value) => {
+                payment.insert("enabled".into(), value);
+            }
+            None => {
+                payment.remove("enabled");
+            }
+        }
+        save_setup(&w, disabled).await;
+        for (query, pointer) in [
+            ("", "/data/integrations/payment/enabled"),
+            ("?type=integrations", "/data/payment/enabled"),
+            ("?type=integrations.payment", "/data/enabled"),
+            ("?type=integrations.payment.enabled", "/data/0"),
+        ] {
+            let (status, saved) = w
+                .api
+                .with_base("/settings")
+                .call(Method::GET, query, None, &w.api.owner)
+                .await;
+            assert_eq!(status, StatusCode::OK, "{saved}");
+            assert_eq!(
+                saved.pointer(pointer),
+                Some(&Value::Bool(false)),
+                "{query}: {saved}"
+            );
+        }
+        assert_setup_blocks_new_collection(&w, &order).await;
+    }
+    save_setup(&w, complete_setup("sandbox")).await;
+    let before = w.remote.lock().unwrap().seen.len();
+    assert_eq!(
+        public_order(&w, &order).await["online_payment_enabled"],
+        true
+    );
+    assert_eq!(
+        w.remote.lock().unwrap().seen.len(),
+        before,
+        "configured is not login verification"
+    );
+}
+
+#[sqlx::test]
+async fn unavailable_storage_account_or_origin_blocks_new_payment_without_http(pool: PgPool) {
+    let mut w = world(pool).await;
+    let order = new_order(&w).await;
+    let key = w.state.credentials.clone();
+    w.state.credentials = None;
+    w.api.app = build_app(w.state.clone());
+    assert_setup_blocks_new_collection(&w, &order).await;
+    w.state.credentials = Some(
+        genesy_360_api::CredentialKey::from_hex(&"ff".repeat(32))
+            .unwrap()
+            .into(),
+    );
+    w.api.app = build_app(w.state.clone());
+    assert_setup_blocks_new_collection(&w, &order).await;
+    w.state.credentials = key;
+    w.api.app = build_app(w.state.clone());
+    save_setup(&w, complete_setup("production")).await;
+    assert_setup_blocks_new_collection(&w, &order).await;
+    save_setup(&w, complete_setup("sandbox")).await;
+    sqlx::query(
+        "DELETE FROM payment_accounts WHERE workspace_id=$1::uuid AND environment='sandbox'",
+    )
+    .bind(&w.api.ws)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+    assert_setup_blocks_new_collection(&w, &order).await;
+}
+
+#[sqlx::test]
+async fn historical_checkout_uses_its_bound_setup_after_disable_or_provider_switch(pool: PgPool) {
+    let mut w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    for provider in ["globadyme", "fake"] {
+        settings(&w, provider, false, false, false).await;
+        sqlx::query("UPDATE order_payments SET last_checked_at=now() WHERE id=$1")
+            .bind(payment)
+            .execute(&w.api.pool)
+            .await
+            .unwrap();
+        let before = w.remote.lock().unwrap().seen.len();
+        assert_eq!(
+            public_order(&w, &order).await["online_payment_enabled"],
+            true
+        );
+        let (status, reply) = intent(&w, &order).await;
+        assert_eq!(status, StatusCode::OK, "{reply}");
+        assert_eq!(reply["data"]["payment_id"], payment.to_string());
+        assert!(reply["data"]["checkout_url"].is_string(), "{reply}");
+        assert_eq!(w.remote.lock().unwrap().seen.len(), before);
+    }
+    w.state.credentials = None;
+    w.api.app = build_app(w.state.clone());
+    assert_eq!(
+        public_order(&w, &order).await["online_payment_enabled"],
+        false
+    );
+    let (status, reply) = intent(&w, &order).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(reply["code"], "payment_setup_required");
+    assert_eq!(posts(&w, "requestPayment"), 1);
+    w.state.credentials = Some(
+        genesy_360_api::CredentialKey::from_hex(&"ff".repeat(32))
+            .unwrap()
+            .into(),
+    );
+    w.api.app = build_app(w.state.clone());
+    assert_eq!(
+        public_order(&w, &order).await["online_payment_enabled"],
+        false
+    );
+    let (status, reply) = intent(&w, &order).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(reply["code"], "payment_setup_required");
+    capture(&w, payment);
+    w.state.credentials = common::state(w.api.pool.clone(), Mailer::capture().0).credentials;
+    w.api.app = build_app(w.state.clone());
+    assert_eq!(refresh(&w, payment).await["status"], "paid");
+    assert_eq!(public_order(&w, &order).await["status"], "open");
+}
+
+#[sqlx::test]
+async fn existing_legacy_checkout_ignores_incomplete_new_globadyme_selection(pool: PgPool) {
+    let w = world(pool).await;
+    let mut legacy = complete_setup("sandbox");
+    legacy["integrations"]["payment"]["active_provider"] = json!("fake");
+    legacy["integrations"]["payment"]
+        .as_object_mut()
+        .unwrap()
+        .remove("enabled");
+    save_setup(&w, legacy).await;
+    let (status, defaults) = w
+        .api
+        .with_base("/settings")
+        .call(
+            Method::GET,
+            "?type=integrations.payment.enabled",
+            None,
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{defaults}");
+    assert_eq!(defaults["data"][0], true, "legacy defaults stay unchanged");
+    let order = new_order(&w).await;
+    let (status, first) = intent(&w, &order).await;
+    assert_eq!(status, StatusCode::OK, "{first}");
+    let mut incomplete = complete_setup("sandbox");
+    incomplete["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"]["password"] =
+        Value::Null;
+    save_setup(&w, incomplete).await;
+    let public = public_order(&w, &order).await;
+    assert!(public["online_payment_enabled"].is_null(), "{public}");
+    let (status, retry) = intent(&w, &order).await;
+    assert_eq!(status, StatusCode::OK, "{retry}");
+    assert_eq!(retry, first);
+    let attempts: i16 = sqlx::query_scalar(
+        "SELECT attempts FROM order_payments WHERE order_id=$1::uuid AND kind='payment'",
+    )
+    .bind(order)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(attempts, 1);
+    assert_eq!(posts(&w, "requestPayment"), 0);
+}
+
+#[sqlx::test]
 async fn concurrent_checkout_callers_share_one_committed_financial_dispatch(pool: PgPool) {
     let w = world(pool).await;
     let order = new_order(&w).await;
@@ -380,6 +618,83 @@ async fn concurrent_checkout_callers_share_one_committed_financial_dispatch(pool
     .await
     .unwrap();
     assert_eq!(attempts, 1);
+}
+
+#[sqlx::test]
+async fn committed_unclaimed_payment_needs_explicit_enable_before_dispatch(pool: PgPool) {
+    let w = world(pool).await;
+    let order = new_order(&w).await;
+    let payment = Uuid::now_v7();
+    sqlx::query("INSERT INTO order_payments(id,request_id,workspace_id,order_id,kind,provider,environment,merchant_id,account_revision,amount,currency,decimals,customer_id,country,payer_name,payer_email,redirect_url) SELECT $1,$1,o.workspace_id,o.id,'payment','globadyme','sandbox',a.merchant_id,a.credential_revision,o.total,upper(c.asset_type),2,$1::text,'NL','Kim','kim@example.com','https://shop.example.com/order' FROM orders o JOIN currencies c ON c.workspace_id=o.workspace_id AND c.id=o.currency_id JOIN payment_accounts a ON a.workspace_id=o.workspace_id AND a.environment='sandbox' WHERE o.id=$2::uuid")
+        .bind(payment).bind(&order).execute(&w.api.pool).await.unwrap();
+    for (field, value) in [
+        ("enabled", None),
+        ("enabled", Some(Value::Null)),
+        ("enabled", Some(json!(false))),
+        ("active_provider", Some(json!("fake"))),
+    ] {
+        let mut disabled = complete_setup("sandbox");
+        let config = disabled["integrations"]["payment"].as_object_mut().unwrap();
+        match value {
+            Some(value) => {
+                config.insert(field.into(), value);
+            }
+            None => {
+                config.remove(field);
+            }
+        }
+        save_setup(&w, disabled).await;
+        let before = w.remote.lock().unwrap().seen.len();
+        assert_eq!(
+            public_order(&w, &order).await["online_payment_enabled"],
+            false
+        );
+        let (status, reply) = intent(&w, &order).await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+        assert_eq!(reply["code"], "payment_setup_required");
+        assert!(matches!(
+            genesy_360_api::gateway::service::submit(
+                &w.state,
+                w.api.ws.parse().unwrap(),
+                payment,
+                "https://shop.example.com/order"
+            )
+            .await,
+            Err(genesy_360_api::AppError::PaymentSetupRequired)
+        ));
+        let saved: (String, i16, bool) = sqlx::query_as(
+            "SELECT status,attempts,claimed_at IS NOT NULL FROM order_payments WHERE id=$1",
+        )
+        .bind(payment)
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap();
+        assert_eq!(saved, ("creating".into(), 0, false));
+        assert_eq!(w.remote.lock().unwrap().seen.len(), before);
+        assert_eq!(posts(&w, "requestPayment"), 0);
+    }
+    let mut missing = complete_setup("sandbox");
+    missing["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"]["password"] =
+        Value::Null;
+    save_setup(&w, missing).await;
+    let before = w.remote.lock().unwrap().seen.len();
+    assert_eq!(
+        public_order(&w, &order).await["online_payment_enabled"],
+        false
+    );
+    let (status, reply) = intent(&w, &order).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(reply["code"], "payment_setup_required");
+    let saved: (String, i16, bool) = sqlx::query_as(
+        "SELECT status,attempts,claimed_at IS NOT NULL FROM order_payments WHERE id=$1",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(saved, ("creating".into(), 0, false));
+    assert_eq!(w.remote.lock().unwrap().seen.len(), before);
+    assert_eq!(posts(&w, "requestPayment"), 0);
 }
 
 #[sqlx::test]

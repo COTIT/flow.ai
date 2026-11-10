@@ -406,7 +406,7 @@ export function useStorefrontOrdersGet<TData = Awaited<ReturnType<typeof storefr
 
 
 /**
- * 503 `no payment provider configured` without a provider; 503 while the provider is down (retry).
+ * 503 with code `payment_setup_required` when merchant setup is incomplete or new collections are disabled; retrying cannot complete setup. Legacy providers return 503 `no payment provider configured` without a provider. Other failures can follow an accepted submission: check the order before retrying.
  * @summary Start or resume the payment
  */
 export const storefrontOrdersPayment = (

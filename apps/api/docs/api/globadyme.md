@@ -6,6 +6,8 @@ Production collection is disabled: the published contract lists only `https://ap
 
 ## Account setup
 
+Incomplete setup keeps new collections disabled. In **Settings → Payments**, select the environment and save its merchant ID, username, password and callback secret. The warning lists fields missing from that saved environment; masked credentials count as stored, and the previous callback secret is optional. Field presence does not verify the provider login. Shop and public invoice pages show online payment as unavailable until local setup permits it; bank details remain visible on invoices. Existing live payments keep their original account binding after new collections are disabled or another provider is selected.
+
 Configure the server's existing `CREDENTIALS_KEY` before saving credentials. Open **Settings → Payments**, select Globadyme and sandbox, then enter the merchant ID, login username, password and dashboard callback secret. Configure this HTTPS callback in the merchant dashboard:
 
 ```text

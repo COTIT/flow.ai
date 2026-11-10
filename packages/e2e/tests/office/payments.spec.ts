@@ -204,11 +204,11 @@ guestTest(
   "public invoice starts hosted checkout using payer details and server amount only",
   async ({ page, api }) => {
     const path = "/invoices/fetch-from-hashed/:token"
-    const state = { payment: null as null | typeof payment }
+    const state = { payment: null as null | typeof payment, enabled: true }
     api.on("GET", path, () => ({
       data: {
         invoice_nr: "2026-0008",
-        online_payment_enabled: true,
+        online_payment_enabled: state.enabled,
         is_credit: false,
         reference: null,
         due_date: null,
@@ -250,6 +250,15 @@ guestTest(
     await expect(
       page.getByRole("img", { name: "Scan this QR code to continue payment" })
     ).toBeVisible()
+    state.enabled = false
+    await page.reload()
+    await expect(
+      page.getByRole("link", { name: "Continue to payment" })
+    ).toHaveAttribute("href", "https://pay.example/checkout")
+    await expect(
+      page.getByText("Online payment is unavailable", { exact: true })
+    ).toHaveCount(0)
+    expect(api.callsTo("POST", `${path}/payment`)).toHaveLength(1)
     expect(api.callsTo("POST", `${path}/payment`)[0]!.body).toEqual({
       country: "NL",
       payer_name: "Ada Miller",
@@ -521,7 +530,12 @@ guestTest(
     await expect(page.getByText("NL91ABNA0417164300")).toBeVisible()
     await expect(
       page.getByRole("region", { name: "Online payment" }).getByRole("status")
-    ).toHaveText("")
+    ).toContainText("Online payment is unavailable")
+    await expect(
+      page.getByText(
+        "Please use the bank details below or contact the supplier."
+      )
+    ).toBeVisible()
     await expect(page.getByLabel("Payer name")).toHaveCount(0)
     await expect(
       page.getByRole("button", { name: "Pay online", exact: true })
@@ -535,3 +549,172 @@ guestTest(
     await expectFits(page)
   }
 )
+
+guestTest.describe("stale invoice setup rejection", () => {
+  guestTest.use({
+    allow: {
+      responses: [
+        {
+          url: "/v1/invoices/fetch-from-hashed/token-stale-setup/payment",
+          status: 503,
+        },
+      ],
+    },
+  })
+  guestTest(
+    "public invoice shows setup unavailable instead of uncertain payment after a definitive rejection",
+    async ({ page, api }) => {
+      const path = "/invoices/fetch-from-hashed/:token"
+      api.on("GET", path, () => ({
+        data: {
+          invoice_nr: "2026-0011",
+          online_payment_enabled: true,
+          is_credit: false,
+          reference: null,
+          due_date: null,
+          balance: { total: 12.5, paid: 0, open: 12.5 },
+          items: [],
+          company_details: {
+            company_name: "Ilundo Honey",
+            account: { account_number: "NL91ABNA0417164300" },
+          },
+          relationships: {
+            currency: { decimals: 2, symbol_prefix: "€", symbol_suffix: null },
+          },
+        },
+      }))
+      api.on("GET", `${path}/payment`, () => ({ data: null }))
+      api.on("POST", `${path}/payment`, () => ({
+        status: 503,
+        body: {
+          message:
+            "Online payments are unavailable until the shop finishes payment setup.",
+          code: "payment_setup_required",
+        },
+      }))
+      await page.clock.install()
+      await page.goto("/clients/pay-for-invoice/token-stale-setup")
+      await page.getByLabel("Payer name").fill("Ada Miller")
+      await page.getByLabel("Country code (2 letters)").fill("nl")
+      await page
+        .getByRole("button", { name: "Pay online", exact: true })
+        .click()
+      await expect(
+        page.getByText("Online payment is unavailable", { exact: true })
+      ).toBeVisible()
+      await expect(
+        page.getByText("Payment pending review", { exact: true })
+      ).toHaveCount(0)
+      await expect(page.getByText("NL91ABNA0417164300")).toBeVisible()
+      await expect
+        .poll(() => api.callsTo("GET", path).length)
+        .toBeGreaterThanOrEqual(2)
+      await expect
+        .poll(() => api.callsTo("GET", `${path}/payment`).length)
+        .toBeGreaterThanOrEqual(2)
+      await page.clock.fastForward(20000)
+      await expect(page.getByLabel("Payer name")).toHaveCount(0)
+      await expect(
+        page.getByRole("button", { name: "Pay online", exact: true })
+      ).toHaveCount(0)
+      await expect(
+        page.getByRole("link", { name: "Continue to payment" })
+      ).toHaveCount(0)
+      expect(api.callsTo("POST", `${path}/payment`)).toHaveLength(1)
+      await expectFits(page)
+    }
+  )
+})
+
+const maskedCredentials = {
+  merchant_id: "********",
+  username: "********",
+  password: "********",
+  callback_secret: "********",
+}
+
+for (const [field, label, environment, storedValue] of [
+  ["merchant_id", "Merchant ID", "sandbox", null],
+  ["username", "Username", "sandbox", null],
+  ["password", "Password", "production", null],
+  ["callback_secret", "Callback secret", "production", null],
+  ["merchant_id", "Merchant ID", "sandbox", " \t "],
+  ["username", "Username", "sandbox", " \t "],
+] as const) {
+  test(`saved ${environment} setup identifies missing ${label}${storedValue === null ? "" : " (whitespace only)"}`, async ({
+    page,
+    api,
+  }) => {
+    api.on("GET", "/workspace/:ws/settings", () => ({
+      data: {
+        payment: {
+          active_provider: "globadyme",
+          enabled: true,
+          environment,
+          payment_providers: {
+            globadyme: {
+              sandbox: maskedCredentials,
+              production: maskedCredentials,
+              [environment]: { ...maskedCredentials, [field]: storedValue },
+            },
+          },
+        },
+      },
+    }))
+    await page.goto("/settings/payments")
+    const notice = page
+      .getByRole("status")
+      .filter({ hasText: "Saved payment setup is incomplete" })
+    await expect(notice).toBeVisible()
+    await expect(notice).toContainText(
+      `Saved selected environment: ${environment === "sandbox" ? "Sandbox" : "Production"}.`
+    )
+    await expect(notice).toContainText(
+      "New online payments are unavailable until setup is complete."
+    )
+    await expect(notice.getByRole("listitem")).toHaveText([label])
+    await page
+      .getByRole("region", {
+        name: `Globadyme · ${environment === "sandbox" ? "Sandbox" : "Production"}`,
+      })
+      .getByLabel(label, { exact: true })
+      .fill("unsaved replacement")
+    await expect(notice.getByRole("listitem")).toHaveText([label])
+    expect(api.callsTo("POST", "/workspace/:ws/settings")).toHaveLength(0)
+    await expectFits(page)
+  })
+}
+
+test("masked saved credentials are present and previous callback secret is optional", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/settings", () => ({
+    data: {
+      payment: {
+        active_provider: "globadyme",
+        enabled: true,
+        environment: "sandbox",
+        payment_providers: {
+          globadyme: {
+            sandbox: { ...maskedCredentials, previous_callback_secret: null },
+            production: {},
+          },
+        },
+      },
+    },
+  }))
+  await page.goto("/settings/payments")
+  const sandbox = page.getByRole("region", { name: "Globadyme · Sandbox" })
+  await expect(sandbox).toBeVisible()
+  await expect(sandbox.getByLabel("Previous callback secret")).toHaveValue("")
+  await expect(
+    page.getByText("Saved payment setup is incomplete", { exact: true })
+  ).toHaveCount(0)
+  await expect(
+    page.getByText(
+      "Production unavailable until the official provider origin is approved."
+    )
+  ).toBeVisible()
+  await expectFits(page)
+})

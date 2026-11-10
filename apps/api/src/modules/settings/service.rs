@@ -64,8 +64,19 @@ pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<
         None if name == "meta" => at(&stored["meta"], rest).clone(),
         None => Value::Null,
         Some(_) if rest.is_empty() => read_section(name, &stored[name]),
+        Some(_)
+            if name == "integrations"
+                && rest == "payment.enabled"
+                && stored[name]["payment"]["active_provider"].as_str() == Some("globadyme") =>
+        {
+            Value::Bool(stored[name]["payment"]["enabled"].as_bool() == Some(true))
+        }
         Some(default) => {
-            let merged = schema::overlay(&default, &stored[name]);
+            let merged = if name == "integrations" {
+                read_section(name, &stored[name])
+            } else {
+                schema::overlay(&default, &stored[name])
+            };
             let found = at(&merged, rest);
             if php_falsy(found) {
                 at(&default, rest).clone()
@@ -230,6 +241,10 @@ fn read_section(name: &str, stored: &Value) -> Value {
         return Value::Null;
     };
     let mut v = schema::overlay(&default, stored);
+    if name == "integrations" && stored["payment"]["active_provider"].as_str() == Some("globadyme")
+    {
+        v["payment"]["enabled"] = Value::Bool(stored["payment"]["enabled"].as_bool() == Some(true));
+    }
     if name == "cash_register" {
         cash_register_out(&mut v);
     }

@@ -27,6 +27,8 @@ import {
   PROVIDER_DOWN_EMAIL,
   UNKNOWN_PAYMENT_EMAIL,
   EXISTING_UNKNOWN_PAYMENT_EMAIL,
+  PAYMENT_SETUP_REQUIRED_EMAIL,
+  STALE_PAYMENT_SETUP_EMAIL,
   PRODUCT,
   REFUNDED_EMAIL,
   SECRET_BODY,
@@ -433,6 +435,9 @@ const view = ({
   unknownPayment,
   paymentAttempts,
   paymentUnderReview,
+  paymentSetupRequired,
+  stalePaymentSetup,
+  providerDown,
 }) => ({
   id,
   number,
@@ -445,7 +450,8 @@ const view = ({
   expires_at,
   paid_at,
   lines,
-  ...(unknownPayment ? { payment_attempts: paymentAttempts } : {}),
+  ...(unknownPayment || paymentSetupRequired || stalePaymentSetup || providerDown ? { payment_attempts: paymentAttempts } : {}),
+  ...(paymentSetupRequired || paymentUnderReview || (stalePaymentSetup && paymentAttempts > 0) ? { online_payment_enabled: false } : {}),
   ...(paymentUnderReview || (unknownPayment && paymentAttempts > 0) ? { payment_status: "unknown", payment_attention: true } : {}),
 })
 
@@ -518,6 +524,8 @@ function placeOrder(body, key) {
     providerDown: email === PROVIDER_DOWN_EMAIL,
     unknownPayment: email === UNKNOWN_PAYMENT_EMAIL || email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
     paymentUnderReview: email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
+    paymentSetupRequired: email === PAYMENT_SETUP_REQUIRED_EMAIL,
+    stalePaymentSetup: email === STALE_PAYMENT_SETUP_EMAIL,
     paymentAttempts: 0,
     latePayment: email === LATE_PAYMENT_EMAIL,
     cancelPayment: email === CANCEL_PAYMENT_EMAIL,
@@ -612,14 +620,18 @@ const handler = async (req, res) => {
         })
       return send(res, 200, { data: view(order) })
     }
+    order.paymentAttempts++
+    if (order.paymentSetupRequired || order.stalePaymentSetup)
+      return send(res, 503, { code: "payment_setup_required", message: SECRET_BODY })
     if (order.noProvider)
       return send(res, 503, { message: "no payment provider configured" })
-    if (order.providerDown)
+    if (order.providerDown) {
+      order.paymentUnderReview = true
       return send(res, 503, { message: "payment provider unavailable" })
+    }
     if (order.status !== "awaiting_payment")
       return send(res, 409, { message: "conflict" })
     if (order.unknownPayment) {
-      order.paymentAttempts++
       return send(res, 200, { data: { payment_id: `pay_${order.id}`, status: "unknown", checkout_url: null, attention: true } })
     }
     order.redirect = (await readJson(req)).redirect_url
