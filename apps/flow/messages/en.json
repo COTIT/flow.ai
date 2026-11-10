@@ -18,10 +18,25 @@
     "assistantNotReady": "The assistant is not ready",
     "assistantNotReadyText": "It is switched on but its setup is not complete. Try again later.",
     "assistantUnknown": "Could not check the assistant",
-    "conversationLater": "Conversations with the assistant arrive here in a later release.",
     "pageNotFound": "This page does not exist",
     "goHome": "Go to the start",
     "crashed": "This screen stopped working",
-    "crashedText": "Nothing was changed. Try again."
+    "crashedText": "Nothing was changed. Try again.",
+    "chat": {
+      "storefront": "Storefront",
+      "conversation": "Conversation",
+      "results": "Results",
+      "resultsEmpty": "Answers show here",
+      "resultsEmptyText": "Ask about sales, orders, stock or an invoice. Charts and lists appear on this side while you talk.",
+      "showResult": "Show in results",
+      "viewResult": "View result",
+      "closeResults": "Close results",
+      "reviewPending": "An action is waiting for your approval",
+      "openReview": "Review action",
+      "secureTitle": "This needs Office's secure form",
+      "openInOffice": "Open in Office",
+      "officeSignIn": "Office opens in a new tab. You may need to sign in to Office separately, and check that Office shows the same workspace.",
+      "officeNotLinked": "Office is not linked from Flow here. Open Office yourself to finish this."
+    }
   }
 }

@@ -18,10 +18,25 @@
     "assistantNotReady": "Msaidizi bado hayuko tayari",
     "assistantNotReadyText": "Amewashwa lakini mipangilio yake haijakamilika. Jaribu tena baadaye.",
     "assistantUnknown": "Haikuwezekana kumkagua msaidizi",
-    "conversationLater": "Mazungumzo na msaidizi yatakuja hapa katika toleo lijalo.",
     "pageNotFound": "Ukurasa huu haupo",
     "goHome": "Nenda mwanzo",
     "crashed": "Skrini hii imeacha kufanya kazi",
-    "crashedText": "Hakuna kilichobadilishwa. Jaribu tena."
+    "crashedText": "Hakuna kilichobadilishwa. Jaribu tena.",
+    "chat": {
+      "storefront": "Duka la mtandaoni",
+      "conversation": "Mazungumzo",
+      "results": "Matokeo",
+      "resultsEmpty": "Majibu yanaonekana hapa",
+      "resultsEmptyText": "Uliza kuhusu mauzo, maagizo, hisa au ankara. Chati na orodha zinaonekana upande huu unapozungumza.",
+      "showResult": "Onyesha kwenye matokeo",
+      "viewResult": "Tazama matokeo",
+      "closeResults": "Funga matokeo",
+      "reviewPending": "Kitendo kinasubiri idhini yako",
+      "openReview": "Kagua kitendo",
+      "secureTitle": "Hii inahitaji fomu salama ya Office",
+      "openInOffice": "Fungua katika Office",
+      "officeSignIn": "Office inafunguka kwenye kichupo kipya. Huenda ukahitaji kuingia kwenye Office kando, na uhakikishe Office inaonyesha eneo la kazi lilelile.",
+      "officeNotLinked": "Office haijaunganishwa na Flow hapa. Fungua Office mwenyewe ili kumaliza hili."
+    }
   }
 }
