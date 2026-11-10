@@ -3,6 +3,7 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
 import { loadMessages, locales, pickLocale } from "./locales"
+import { voiceMessages } from "./voice"
 
 describe("pickLocale", () => {
   it("keeps a supported locale from the cookie", () => {
@@ -27,18 +28,37 @@ describe("loadMessages", () => {
 
 // Every messages folder in the repo: nl and sw must have exactly en's keys.
 const root = join(import.meta.dirname, "../../..")
+const appFolders = readdirSync(join(root, "apps"))
+  .map((app) => join(root, "apps", app, "messages"))
+  .filter((dir) => {
+    try {
+      return readdirSync(dir).includes("en.json")
+    } catch {
+      return false
+    }
+  })
+
+describe("voice texts", () => {
+  it("are their own opt-in namespace", () => {
+    for (const locale of locales)
+      expect(voiceMessages[locale].voice).toBeDefined()
+  })
+
+  // Assistant texts never reach an app (shop, till, landing) that did not opt in.
+  it.each(appFolders)("stay out of %s's merged messages", async (dir) => {
+    for (const locale of locales) {
+      const app = JSON.parse(readFileSync(join(dir, `${locale}.json`), "utf8"))
+      const messages = await loadMessages(locale, async () => app)
+      expect(messages).not.toHaveProperty("voice")
+    }
+  })
+})
+
 const folders = [
   join(root, "packages/i18n/messages"),
-  ...readdirSync(join(root, "apps")).map((app) =>
-    join(root, "apps", app, "messages")
-  ),
-].filter((dir) => {
-  try {
-    return readdirSync(dir).includes("en.json")
-  } catch {
-    return false
-  }
-})
+  join(root, "packages/i18n/messages/voice"),
+  ...appFolders,
+]
 
 function keys(value: unknown, prefix = ""): string[] {
   if (typeof value !== "object" || value === null) return [prefix]
