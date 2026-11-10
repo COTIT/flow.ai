@@ -6,4 +6,4 @@ Full license in LICENSE.md. Product embedding is allowed; selling or redistribut
 
 Office compatibility header `// @ts-nocheck` as on every file here.
 The only edit: `@hugeicons` replaced by a small lucide-react shim at the top (no new dependency; same call sites), marked `// Genesy edit:`.
-Customization lives in components/voice/ (props and the palette overrides in app/office.css).
+Customization lives in the hosts that render it (props) and in `src/styles/voice.css` (palette overrides). Moved here from apps/office/components/rb on 2026-11-10 so Flow can share it.

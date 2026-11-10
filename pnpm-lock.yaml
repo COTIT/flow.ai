@@ -188,6 +188,9 @@ importers:
       '@genesy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@genesy/voice':
+        specifier: workspace:*
+        version: link:../../packages/voice
       '@tanstack/react-query':
         specifier: ^5.105.0
         version: 5.105.0(@types/react@19.3.0)(react@19.3.1)

@@ -67,6 +67,22 @@
       "page": "Ukurasa {page} kati ya {last}",
       "previousPage": "Iliyotangulia",
       "nextPage": "Inayofuata"
+    },
+    "chat": {
+      "storefront": "Duka la mtandaoni",
+      "conversation": "Mazungumzo",
+      "results": "Matokeo",
+      "resultsEmpty": "Majibu yanaonekana hapa",
+      "resultsEmptyText": "Uliza kuhusu mauzo, maagizo, hisa au ankara. Chati na orodha zinaonekana upande huu unapozungumza.",
+      "showResult": "Onyesha kwenye matokeo",
+      "viewResult": "Tazama matokeo",
+      "closeResults": "Funga matokeo",
+      "reviewPending": "Kitendo kinasubiri idhini yako",
+      "openReview": "Kagua kitendo",
+      "secureTitle": "Hii inahitaji fomu salama ya Office",
+      "openInOffice": "Fungua katika Office",
+      "officeSignIn": "Office inafunguka kwenye kichupo kipya. Huenda ukahitaji kuingia kwenye Office kando, na uhakikishe Office inaonyesha eneo la kazi lilelile.",
+      "officeNotLinked": "Office haijaunganishwa na Flow hapa. Fungua Office mwenyewe ili kumaliza hili."
     }
   }
 }

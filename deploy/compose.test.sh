@@ -108,8 +108,10 @@ assert f, "no flow service"
 assert f["image"] == "ghcr.io/cotit/genesy-flow:test", f["image"]
 assert set(f["networks"]) == {"internal", "edge"}, f["networks"]
 env = f.get("environment", {})
-assert set(env) == {"API_URL", "VOICE_UPSTREAM_URL"}, sorted(env)
+assert set(env) == {"API_URL", "VOICE_UPSTREAM_URL", "OFFICE_PUBLIC_URL"}, sorted(env)
 assert env["VOICE_UPSTREAM_URL"] == "http://office:3000" and env["API_URL"] == "http://api:8080/v1", env
+# Links in Flow's assistant open this environment's own Office, never another one.
+assert env["OFFICE_PUBLIC_URL"] == "https://" + office, env
 assert not f.get("secrets"), f.get("secrets")
 assert not [k for k in env if re.search("SECRET|KEY|TOKEN|ELEVENLABS|BRIDGE|CHECKPOINT|LANGSMITH|ASSISTANT", k)]
 assert f.get("cap_drop") == ["ALL"] and "no-new-privileges:true" in f.get("security_opt", []), "not hardened"

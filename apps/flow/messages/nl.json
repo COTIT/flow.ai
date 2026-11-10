@@ -67,6 +67,22 @@
       "page": "Pagina {page} van {last}",
       "previousPage": "Vorige",
       "nextPage": "Volgende"
+    },
+    "chat": {
+      "storefront": "Webwinkel",
+      "conversation": "Gesprek",
+      "results": "Resultaten",
+      "resultsEmpty": "Antwoorden verschijnen hier",
+      "resultsEmptyText": "Vraag naar verkoop, bestellingen, voorraad of een factuur. Grafieken en lijsten verschijnen aan deze kant terwijl je praat.",
+      "showResult": "Toon bij resultaten",
+      "viewResult": "Bekijk resultaat",
+      "closeResults": "Resultaten sluiten",
+      "reviewPending": "Er wacht een actie op je goedkeuring",
+      "openReview": "Actie bekijken",
+      "secureTitle": "Hiervoor is het beveiligde formulier van Office nodig",
+      "openInOffice": "Openen in Office",
+      "officeSignIn": "Office opent in een nieuw tabblad. Mogelijk moet je apart inloggen bij Office; controleer dat Office dezelfde werkruimte toont.",
+      "officeNotLinked": "Office is hier niet gekoppeld aan Flow. Open Office zelf om dit af te ronden."
     }
   }
 }

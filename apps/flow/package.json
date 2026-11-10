@@ -16,6 +16,7 @@
     "@genesy/i18n": "workspace:*",
     "@genesy/security": "workspace:*",
     "@genesy/ui": "workspace:*",
+    "@genesy/voice": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",

@@ -7,6 +7,7 @@ import { createServer } from "node:http"
 import process from "node:process"
 import { URL } from "node:url"
 
+import { flowVoice } from "./flow-voice.mjs"
 import {
   APP_KEY,
   LOT,
@@ -542,6 +543,7 @@ const handler = async (req, res) => {
       cookie: req.headers.cookie ?? null,
       forwardedFor: req.headers["x-forwarded-for"] ?? null,
     })
+  if (await flowVoice(req, res, path, send, readJson)) return
   if (designSuite && path === "/__design" && req.method === "POST") {
     const { mode } = await readJson(req)
     if (!["published", "missing", "invalid", "unavailable"].includes(mode))
