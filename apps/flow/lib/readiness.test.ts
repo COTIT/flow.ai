@@ -4,7 +4,9 @@ import { readinessState } from "./readiness"
 
 describe("readinessState", () => {
   it("200 ready is available", () => {
-    expect(readinessState(200, { enabled: true, ready: true })).toBe("available")
+    expect(readinessState(200, { enabled: true, ready: true })).toBe(
+      "available"
+    )
   })
   it("503 with the assistant switched off is off", () => {
     expect(readinessState(503, { enabled: false, ready: false })).toBe("off")

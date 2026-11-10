@@ -12,7 +12,11 @@ export default async function NotFound() {
       <Card className="mx-auto w-full max-w-lg">
         <CardContent>
           <EmptyState
-            title={<span role="heading" aria-level={1}>{t("pageNotFound")}</span>}
+            title={
+              <span role="heading" aria-level={1}>
+                {t("pageNotFound")}
+              </span>
+            }
             action={
               <Link
                 className="text-sm font-medium underline-offset-4 hover:underline"

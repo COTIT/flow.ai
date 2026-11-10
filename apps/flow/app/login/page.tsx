@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 max-md:p-4">
       <div
-        className="glass-strong flex w-[min(440px,100%)] flex-col gap-5 rounded-[20px] p-8 max-md:p-6"
+        className="flex w-[min(440px,100%)] flex-col gap-5 rounded-[20px] glass-strong p-8 max-md:p-6"
         aria-busy={login.isPending}
       >
         <Logo className="h-auto w-[168px]" />

@@ -33,7 +33,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const logout = useLogout()
   return (
     <div className="flex min-h-svh flex-col gap-5 p-5 max-md:gap-3 max-md:p-3">
-      <header className="glass-strong flex flex-wrap items-center gap-2 rounded-2xl px-4 py-2.5">
+      <header className="flex flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5">
         <LogoIcon aria-hidden="true" className="size-7 shrink-0" />
         <span className="mr-auto text-[15px] font-semibold">
           {t("flow.name")}
