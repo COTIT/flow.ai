@@ -82,7 +82,8 @@ before "backup.sh production pre-$A" "run --rm cli migrate" || fail "backup not 
 before "run --rm cli migrate" "up -d --wait --wait-timeout 300" || fail "migrate not before up"
 before "up -d --wait --wait-timeout 300" "curl " || fail "health not after up"
 grep -q "curl .*--resolve api.genesy.app:443:127.0.0.1 https://api.genesy.app/healthz" "$CALLS" || fail "api health not checked"
-[[ "$(grep -c '^curl' "$CALLS")" == 6 ]] || fail "not every host checked"
+grep -q "curl .*--resolve flow.genesy.app:443:127.0.0.1 https://flow.genesy.app/$" "$CALLS" || fail "flow health not checked"
+[[ "$(grep -c '^curl' "$CALLS")" == 7 ]] || fail "not every host checked"
 grep -qx "GENESY_REF=$A" "$d/.env.production" || fail "GENESY_REF not set"
 [[ "$(state live)" == "$A" && -z "$(state previous)" ]] || fail "state after A: $(cat "$d/.deploy-state")"
 if grep -q "stripe.yml" "$CALLS"; then fail "stripe overlay without its key"; fi
