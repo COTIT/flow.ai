@@ -6,7 +6,7 @@ python3 - "$HERE" <<'PY'
 import hashlib,json,pathlib,subprocess,sys,tempfile
 script=pathlib.Path(sys.argv[1])/'assistant-compatibility.py'
 reviewed=json.loads((script.parent/'assistant-compatibility.json').read_text())
-assert len(reviewed['migrations'])==9,'review each new additive migration explicitly'
+assert len(reviewed['migrations'])==10,'review each new additive migration explicitly'
 assert reviewed['invoiceDeliveryVersion']==1
 assert reviewed['batchVersion']==1
 assert reviewed['workflowVersion']==2
@@ -31,11 +31,15 @@ with tempfile.TemporaryDirectory() as temporary:
     git('add','.'); git('commit','-qm','supported assistant'); previous=git('rev-parse','HEAD')
     (root/'old').write_text('new application release'); git('add','.'); git('commit','-qm','new app'); live=git('rev-parse','HEAD')
     before='20261106190652'; current='20261107000925'
-    evidence=''.join(path.split('/')[-1][:14]+'|'+checksum+'\n' for path,checksum in reviewed['migrations'].items() if int(path.split('/')[-1][:14])>int(before))
+    evidence=''.join(path.split('/')[-1][:14]+'|'+checksum+'\n' for path,checksum in reviewed['migrations'].items() if int(before)<int(path.split('/')[-1][:14])<=int(current))
     def check(evidence=evidence,saver='5',prev=previous,now=live,before=before):
         return subprocess.run(['python3',str(script),str(root),now,prev,before,current,saver],input=evidence,text=True,capture_output=True)
     result=check(); assert result.returncode==0,result.stderr
     assert result.stdout.strip()=='office-assistant-v1/2/1.1.2/assistant_checkpoint/5/1/1'
+    # Phase 5 window (staging dd6678bfe at 20261109191001 -> gap demand): its one reviewed function migration.
+    gap='apps/api/migrations/20261110120000_assistant_gap_demand.up.sql'
+    window=subprocess.run(['python3',str(script),str(root),live,previous,'20261109191001','20261110120000','5'],input='20261110120000|'+reviewed['migrations'][gap]+'\n',text=True,capture_output=True)
+    assert window.returncode==0,window.stderr
     assert check(prev=unsupported).returncode!=0,'pre-assistant target without invoice worker accepted'
     assert check(prev=unsupported,before=current,evidence='').returncode!=0,'same-schema pre-assistant target accepted'
     assert check(before=current,evidence='\n').returncode==0,'supported same-schema app rollback rejected'
