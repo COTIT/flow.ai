@@ -51,7 +51,11 @@ import {
   type RecoveryPointer,
   type RecoveryTask,
 } from "../lib/recovery"
-import { approvalBlocked, approvalHeld } from "../lib/approval-hold"
+import {
+  approvalBlocked,
+  approvalHeld,
+  type ApprovalHold,
+} from "../lib/approval-hold"
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
 import {
@@ -228,12 +232,17 @@ function Session({
   const [recoveredTasks, setRecoveredTasks] = useState<RecoveryTask[]>([])
   const [checkingRecovery, setCheckingRecovery] = useState(false)
   const [recoveredReview, setRecoveredReview] = useState(false)
-  const [heldTicket, setHeldTicket] = useState<string | null>(null)
+  // The login + workspace a hold belongs to: it never carries across a change of either.
+  const identity = `${workspaceId ?? ""}:${token ?? ""}`
+  const currentIdentity = useRef(identity)
+  currentIdentity.current = identity
+  const [heldState, setHeldState] = useState<ApprovalHold>(null)
   // Read by confirm, which a spoken event can reach from an older render.
-  const held = useRef<string | null>(null)
+  const held = useRef<ApprovalHold>(null)
   const holdApproval = useCallback((ticket: string | null) => {
-    held.current = ticket
-    setHeldTicket(ticket)
+    const next = ticket ? { ticket, identity: currentIdentity.current } : null
+    held.current = next
+    setHeldState(next)
   }, [])
   const [messages, setMessages] = useState<TranscriptRow[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -1163,6 +1172,8 @@ function Session({
   }
   function end(preserve = false): Promise<void> {
     turn.stop()
+    // An ended session has no review to hold.
+    holdApproval(null)
     queued.current = []
     if (!preserve) {
       setUnfinished(null)
@@ -1542,7 +1553,7 @@ function Session({
       (!recoveredPointer && (!session.current || !verified.current)) ||
       (recoveredPointer && speech) ||
       // Held by the host: nothing is sent and the review stays open; cancelling still works.
-      approvalBlocked(held.current, decision, current.ticket)
+      approvalBlocked(held.current, decision, current.ticket, currentIdentity.current)
     )
       return
     const expiry = Date.parse(current.expiresAt)
@@ -1704,7 +1715,7 @@ function Session({
         recoveredTasks,
         checkingRecovery,
         recoveredReview,
-        approvalHeld: approvalHeld(heldTicket, review?.ticket),
+        approvalHeld: approvalHeld(heldState, review?.ticket, identity),
         holdApproval,
         refreshRecovery: () => loadRecovery(),
         restore,

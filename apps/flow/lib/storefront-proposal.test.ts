@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  holdsApproval,
   PROPOSAL,
   PROPOSAL_READY,
   proposalFromParent,
@@ -110,5 +111,26 @@ describe("the frame takes a proposal only from the page around it", () => {
         yes
       )
     ).toBe("invalid")
+  })
+})
+
+describe("when an edit review's approval is held", () => {
+  it("holds while the dry run is still running, so an early approve cannot go out", () => {
+    expect(holdsApproval(true, "pending")).toBe(true)
+  })
+
+  it("holds when the draft moved (409)", () => {
+    expect(holdsApproval(true, "error", 409)).toBe(true)
+  })
+
+  it("releases once the dry run answered, or failed for another reason (Try again)", () => {
+    expect(holdsApproval(true, "success")).toBe(false)
+    expect(holdsApproval(true, "error", 500)).toBe(false)
+    expect(holdsApproval(true, "error", undefined)).toBe(false)
+  })
+
+  it("never holds restore, publish or any other review", () => {
+    expect(holdsApproval(false, "pending")).toBe(false)
+    expect(holdsApproval(false, "error", 409)).toBe(false)
   })
 })

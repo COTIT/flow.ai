@@ -157,6 +157,38 @@ test.describe("on a tablet (834 px)", () => {
   })
 })
 
+test("while the dry run runs, approval is held on the button and by voice", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  designEdits(api)
+  let release = () => {}
+  const gate = new Promise<void>((done) => (release = done))
+  await page.route("**/edits/preview", async (route) => {
+    await gate
+    await route.fallback()
+  })
+  const { agent, confirms, review, actions } = await propose(
+    page,
+    "storefront_design_edit",
+    edit()
+  )
+  await expect(actions.getByRole("button", { name: v.approve })).toBeDisabled()
+  await expect(review).not.toContainText(PHRASE)
+  agent.emit({
+    type: "user_transcript",
+    user_transcription_event: { user_transcript: PHRASE, event_id: 42 },
+  })
+  await page.waitForTimeout(500)
+  expect(confirms.filter((c) => c.method === "POST")).toEqual([])
+
+  release()
+  await proposalFrame(page)
+  await expect(actions.getByRole("button", { name: v.approve })).toBeEnabled()
+  await expect(review).toContainText(PHRASE)
+})
+
 test("rejecting sends a cancel and writes nothing", async ({ page, api }) => {
   designs(api)
   designEdits(api)

@@ -14,6 +14,7 @@ import { Skeleton } from "@genesy/ui/components/skeleton"
 import { useVoice } from "@genesy/voice/components/provider"
 import type { VoiceReview } from "@genesy/voice/lib/client-contract"
 import { StorefrontFrame } from "@/app/(app)/storefront/frame"
+import { holdsApproval } from "@/lib/storefront-proposal"
 
 const kinds = {
   storefront_design_edit: "edit",
@@ -53,18 +54,23 @@ function useDryRun(review: VoiceReview | null) {
 }
 
 /**
- * While the storefront changed under an edit review (dry run 409), approving it could only fail:
- * hold it, so neither the button nor the spoken phrase sends it. The hold names this ticket, so
- * the next review is free. Mounted with the conversation, so it holds with the sheet closed too.
+ * Holds approval of an edit review while its dry run runs and when it says the draft moved (409),
+ * so neither the button nor the spoken phrase can send it; any other answer releases it (rule:
+ * `holdsApproval`). The hold names this ticket, so the next review is free. Mounted with the
+ * conversation, so it holds with the sheet closed too; set before paint, so no click lands first.
  */
 export function useProposalHold(review: VoiceReview | null) {
   const { holdApproval } = useVoice()
   const dryRun = useDryRun(review)
-  const conflict = dryRun.isError && status(dryRun.error) === 409
+  const held = holdsApproval(
+    designKind(review) === "edit",
+    dryRun.status,
+    status(dryRun.error)
+  )
   const ticket = review?.ticket
-  React.useEffect(() => {
-    if (conflict && ticket) holdApproval(ticket)
-  }, [conflict, ticket, holdApproval])
+  React.useLayoutEffect(() => {
+    holdApproval(held && ticket ? ticket : null)
+  }, [held, ticket, holdApproval])
 }
 
 /** What the shop's home page looks like if this review is approved; the diff above stays the review. */

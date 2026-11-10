@@ -1,13 +1,20 @@
 /**
- * A host may hold approval of one review, by its ticket (Flow does while the storefront changed
- * under a design review). Held: approving does nothing, by button or by voice; cancelling works.
- * A hold names one ticket, so a new review is never held by an old hold. Office never holds.
+ * A host may hold approval of one review (Flow does while a design review's dry run runs or says
+ * the storefront changed). Held: approving does nothing, by button or by voice; cancelling works.
+ * A hold names one ticket and the login + workspace it was set under, so it never holds a new
+ * review or outlives a session, workspace or user change. Office never holds.
  */
-export const approvalHeld = (held: string | null, ticket: string | undefined) =>
-  held !== null && held === ticket
+export type ApprovalHold = { ticket: string; identity: string } | null
+
+export const approvalHeld = (
+  hold: ApprovalHold,
+  ticket: string | undefined,
+  identity: string
+) => hold !== null && hold.ticket === ticket && hold.identity === identity
 
 export const approvalBlocked = (
-  held: string | null,
+  hold: ApprovalHold,
   decision: "approve" | "cancel",
-  ticket: string | undefined
-) => decision === "approve" && approvalHeld(held, ticket)
+  ticket: string | undefined,
+  identity: string
+) => decision === "approve" && approvalHeld(hold, ticket, identity)

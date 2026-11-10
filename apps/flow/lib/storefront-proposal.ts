@@ -52,3 +52,15 @@ export function proposalFromParent(
     ? { document, collections }
     : "invalid"
 }
+
+/**
+ * Whether an edit review's approval is held: while its dry run runs (an approve could otherwise
+ * go out before a 409 is known) and when the draft moved (409). Any other failure releases it:
+ * the diff is still exact, so the person may approve (with Try again for the preview).
+ */
+export const holdsApproval = (
+  edit: boolean,
+  status: "pending" | "error" | "success",
+  httpStatus?: number
+) =>
+  edit && (status === "pending" || (status === "error" && httpStatus === 409))
