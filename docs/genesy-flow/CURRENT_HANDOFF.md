@@ -1,6 +1,6 @@
 # Genesy Flow current handoff
 
-Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2 authorized: PR 2A (shared voice package) on review; 2B/2C not started.**
+Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16, `a432dec17`); 2B (Flow app foundation) on review; 2C not started.**
 
 Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this checkpoint → actual Git/source → [VERIFICATION.md](VERIFICATION.md) and [DECISIONS.md](DECISIONS.md).
 
@@ -8,7 +8,7 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 - `main` includes Phase 1 (COTIT/genesy#13, merge `e041285e7`) and the shop image fix (COTIT/genesy#14, merge `dd6678bfe`).
 - Staging evidence merged in COTIT/genesy#15 (`b70b909a2`).
-- PR 2A: branch `flow/2a-shared-voice`. `packages/voice` (`@genesy/voice`) holds the voice client engine (`components/provider.tsx`), reusable cards/results/controls and pure `lib/*` contracts; Office keeps its conversation screen, secure form, voice pages, all server code (`lib/voice` server modules, `app/api/voice/*`), generated catalog/policy and translations. See DECISIONS.md for the boundary and VERIFICATION.md for evidence.
+- PR 2A merged (#16, `a432dec17`). `packages/voice` (`@genesy/voice`) holds the voice client engine (`components/provider.tsx`), reusable cards/results/controls and pure `lib/*` contracts; Office keeps its conversation screen, secure form, voice pages, all server code (`lib/voice` server modules, `app/api/voice/*`), generated catalog/policy and translations. See DECISIONS.md for the boundary and VERIFICATION.md for evidence.
 
 ## Staging (2026-11-10)
 
@@ -23,11 +23,29 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 - Staging API logs no request paths, so "flag off → no design request" is proven by unit test, not runtime logs.
 - Binary rollback past the design migration needs `--restore-db` or `--compatible-assistant`; never bypass the schema guard.
 
+## PR 2B (branch `flow/2b-foundation`)
+
+- `apps/flow`: own Next app (port 3005 dev), sign-in via the shared login form and API login, origin-local session (separate from Office; sign in per app), workspace choose/switch, assistant-first shell, `/healthz`, landing with user, workspace and assistant readiness.
+- Voice proxy `apps/flow/app/api/voice/[route]` → `lib/voice-proxy.ts`: allowlisted routes/methods/headers to fixed runtime `VOICE_UPSTREAM_URL` (compose `http://office:3000`; dev `http://localhost:3001`). Details in DECISIONS.md.
+- Voice texts opt-in via `@genesy/i18n/voice` (Office + Flow). Audio via `packages/voice/scripts/prepare-voice-audio.mjs public` in both builds.
+- Deploy kit: `flow` service in staging/production compose (internal + edge), Traefik hosts `staging-flow.genesy.app` / `flow.genesy.app`, health hosts, `ghcr.io/cotit/genesy-flow` built by CI after green main.
+
+## Before the first deploy that includes Flow (user actions)
+
+- DNS A/AAAA for `staging-flow` and `flow` (values in the staging README table). Without them Let's Encrypt fails for that host and the watch alert fires each run.
+- After the first green main promote: set GHCR package `genesy-flow` private with Actions Write, or the VPS pull fails (the deploy stops before backup/migrate).
+- A rollback to a commit before Flow leaves the flow container running: `deploy/deploy.sh <env> compose stop flow`.
+- Memory: +384M staging, +512M production limits.
+
+## Known issues
+
+- Office's page proxy matcher includes `/api/voice`, and Next caps bodies it proxies at 10 MB while Office accepts 10 MiB + 64 KiB. Near-limit uploads can be cut in Office (and Flow, which forwards to Office). Follow-up fix in Office, not in 2B.
+- Flow voice depends on Office's internal voice service (accepted for Phase 2).
+
 ## Next
 
-1. Merge PR 2A once CI is green (user go given).
-2. PR 2B (start only after 2A merges): `apps/flow` shell on its own origin. Planned: Flow server proxies `/api/voice/*` to Office internally; Flow sign-in uses the existing API login on its own origin (origin-local bearer like Office, no shared cookies, no tokens in URLs); move the `voice` translation namespace into `packages/i18n` messages; worklet assets (`prepare-voice-audio`) for Flow; deploy/compose/Traefik/CSP for `flow.genesy.app`; Docker image built locally. Any auth-policy change goes to the user first.
-3. PR 2C: Flow two-pane assistant UI from `useVoice()` + shared cards, storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice).
+1. Merge PR 2B once CI is green (user go given).
+2. PR 2C (after 2B merges): mount `GenesyVoiceProvider` in Flow (`apiBase` default works through the proxy; `resolveHref` maps Office-relative links to the Office origin), two-pane conversation UI from `useVoice()` + shared cards, storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice). Add `flow.genesy.app` (and staging) to the ElevenLabs agent's allowed origins first. PR 2C: Flow two-pane assistant UI from `useVoice()` + shared cards, storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice).
 2. Optional: decide whether staging keeps the flag on for AFM demos (would show revision 3 until a new design is published).
 3. Production rollout of the design flag is a separate, later decision.
 
