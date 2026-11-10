@@ -94,7 +94,15 @@ export function AttachmentList({
                 name: file.name,
                 number: file.ordinal,
               })}
-              onClick={() => void voice.remove(file.key)}
+              onClick={(event) => {
+                // Move focus before this button leaves the DOM: the dialog would otherwise
+                // pull it onto its popup a frame later, away from the tray.
+                const row = event.currentTarget.closest("li")
+                ;(row?.nextElementSibling ?? row?.previousElementSibling)
+                  ?.querySelector("button")
+                  ?.focus()
+                void voice.remove(file.key)
+              }}
             >
               <Trash2 aria-hidden />
             </Button>
