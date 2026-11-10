@@ -279,7 +279,8 @@
       "limit": "Idadi ya bidhaa",
       "columns": "Safu (simu / tableti / kompyuta)",
       "section": "Sehemu",
-      "position": "Nafasi"
+      "position": "Nafasi",
+      "text": "Maandishi"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",

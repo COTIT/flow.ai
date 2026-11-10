@@ -36,6 +36,7 @@ const DESIGN_FIELDS = [
   "columns",
   "section",
   "position",
+  "text",
 ]
 
 describe("Office messages", () => {

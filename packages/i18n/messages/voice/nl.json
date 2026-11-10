@@ -279,7 +279,8 @@
       "limit": "Aantal producten",
       "columns": "Kolommen (telefoon / tablet / computer)",
       "section": "Sectie",
-      "position": "Positie"
+      "position": "Positie",
+      "text": "Tekst"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",

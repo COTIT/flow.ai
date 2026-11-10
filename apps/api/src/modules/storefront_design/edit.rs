@@ -4,7 +4,7 @@ use super::dto::*;
 use crate::AppError;
 use serde::Serialize;
 
-/// Removed value on review rows.
+/// Removed value on review rows. Hero body rows use field `text`: `body` labels mean "message" elsewhere.
 pub const REMOVED: &str = "—";
 
 type Rows = Vec<StorefrontDesignChangeRow>;
@@ -132,7 +132,7 @@ fn step(
                 props.heading = h.clone();
             }
             if let Some(b) = body {
-                push(rows, "body", Some(&label), props.body.clone(), b.clone());
+                push(rows, "text", Some(&label), props.body.clone(), b.clone());
                 props.body = Some(b.clone());
             }
             if let Some(l) = layout {
@@ -157,7 +157,7 @@ fn step(
             if props.body.is_some() {
                 push(
                     rows,
-                    "body",
+                    "text",
                     Some(&props.heading.clone()),
                     props.body.take(),
                     REMOVED.into(),
@@ -293,7 +293,7 @@ pub fn diff(before: Option<&StorefrontDesignDocument>, after: &StorefrontDesignD
                             a.heading.clone(),
                         );
                         if b.body != a.body {
-                            rows.push(row("body", label, b.body.clone(), a.body.clone()));
+                            rows.push(row("text", label, b.body.clone(), a.body.clone()));
                         }
                         push(
                             &mut rows,
@@ -390,7 +390,7 @@ fn added(rows: &mut Rows, s: &StorefrontDesignSection) {
     match s {
         StorefrontDesignSection::Hero { props, .. } => {
             if let Some(body) = &props.body {
-                push(rows, "body", label, None, body.clone());
+                push(rows, "text", label, None, body.clone());
             }
             push(rows, "layout", label, None, name(&props.layout));
         }
@@ -538,7 +538,7 @@ mod tests {
         let v = serde_json::to_value(&doc).unwrap();
         assert!(v["sections"][0]["props"].get("body").is_none());
         assert_eq!(v["sections"][1]["props"]["category_id"], category);
-        assert_eq!(rows[0].field, "body");
+        assert_eq!(rows[0].field, "text");
         assert_eq!(rows[0].after, "—");
         assert_eq!(
             rows[1],
@@ -731,7 +731,7 @@ mod tests {
                 row("position", Some("Fresh from our growers"), Some("2"), "1"),
                 row("heading", hero, hero, "New"),
                 row(
-                    "body",
+                    "text",
                     hero,
                     Some("Discover the products and people behind every harvest."),
                     REMOVED
@@ -755,7 +755,7 @@ mod tests {
                 row("section", hero, None, "hero"),
                 row("heading", hero, None, "From farm to your table"),
                 row(
-                    "body",
+                    "text",
                     hero,
                     None,
                     "Discover the products and people behind every harvest."
@@ -798,7 +798,7 @@ mod tests {
             vec![
                 row("section", hi, None, "hero"),
                 row("heading", hi, None, "Hi"),
-                row("body", hi, None, "Fresh honey every Friday"),
+                row("text", hi, None, "Fresh honey every Friday"),
                 row("layout", hi, None, "centered"),
                 row("section", honey, None, "product_grid"),
                 row("heading", honey, None, "Honey"),

@@ -279,7 +279,8 @@
       "limit": "Number of products",
       "columns": "Columns (phone / tablet / computer)",
       "section": "Section",
-      "position": "Position"
+      "position": "Position",
+      "text": "Text"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
