@@ -695,9 +695,15 @@ importers:
 
   packages/voice:
     dependencies:
+      '@alexanderolsen/libsamplerate-js':
+        specifier: 2.1.2
+        version: 2.1.2
+      '@elevenlabs/client':
+        specifier: 1.35.0
+        version: 1.35.0(@types/dom-mediacapture-record@1.0.22)
       '@elevenlabs/react':
         specifier: ^1.21.1
-        version: 1.21.1(react@19.3.1)
+        version: 1.21.1(@types/dom-mediacapture-record@1.0.22)(react@19.3.1)
       '@genesy/api-client':
         specifier: workspace:*
         version: link:../api-client
@@ -6845,7 +6851,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/dom-mediacapture-record'
 
-  '@elevenlabs/react@1.21.1(react@19.3.1)':
+  '@elevenlabs/react@1.21.1(@types/dom-mediacapture-record@1.0.22)(react@19.3.1)':
     dependencies:
       '@elevenlabs/client': 1.35.0(@types/dom-mediacapture-record@1.0.22)
       react: 19.3.1
