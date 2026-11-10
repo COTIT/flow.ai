@@ -7,6 +7,7 @@ services:
   field: { ports: ["127.0.0.1:18102:8080"] }
   till: { ports: ["127.0.0.1:18103:3000"] }
   landing: { ports: ["127.0.0.1:18104:3000"] }
+  flow: { ports: ["127.0.0.1:18105:3000"] }
 
 networks:
   edge:

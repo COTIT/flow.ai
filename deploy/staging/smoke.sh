@@ -20,8 +20,8 @@ printf 'postgres://genesy:%s@db:5432/genesy' "$pw" >"$secrets/database_url"
 openssl rand -hex 32 | tr -d '\n' >"$secrets/credentials_key"
 chmod 444 "$secrets"/*
 
-# Images this run may add: its own six plus the pinned ones compose pulls.
-ours=(ghcr.io/cotit/genesy-{api,office,field}:smoke-staging ghcr.io/cotit/genesy-{shop,till,landing}:smoke)
+# Images this run may add: its own seven plus the pinned ones compose pulls.
+ours=(ghcr.io/cotit/genesy-{api,office,field}:smoke-staging ghcr.io/cotit/genesy-{shop,till,landing,flow}:smoke)
 pulled=($(sed -n 's/^ *image: \([^$]*@sha256:[0-9a-f]*\)$/\1/p' "$here/docker-compose.staging.yml"))
 before="$(docker images -q --no-trunc | sort -u)"
 
@@ -49,7 +49,7 @@ expect() {
   if [[ "$code" =~ ^($3)$ ]]; then echo "ok   $1 $2 -> $code"; else echo "FAIL $1 $2 -> $code"; fail=1; fi
 }
 expect api "http://127.0.0.1:18080/healthz" 200
-for app in shop:18100 office:18101 field:18102 till:18103; do
+for app in shop:18100 office:18101 field:18102 till:18103 flow:18105; do
   # Home answers (2xx/3xx; the shop answers 503 until STOREFRONT_APP_KEY is set).
   expect "${app%%:*}" "http://127.0.0.1:${app##*:}/" '2..|3..|503'
   # The same-origin /v1 forward reaches the API: /v1/me without a token is the API's 401.
