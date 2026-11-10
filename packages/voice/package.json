@@ -38,6 +38,7 @@
   },
   "exports": {
     "./lib/*": "./src/lib/*.ts",
-    "./components/*": "./src/components/*.tsx"
+    "./components/*": "./src/components/*.tsx",
+    "./styles/*": "./src/styles/*"
   }
 }

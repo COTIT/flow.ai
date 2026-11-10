@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 
 import "@genesy/ui/globals.css"
 import "./office.css"
+import "@genesy/voice/styles/voice.css"
 import { QueryProvider } from "@genesy/api-client/query-provider"
 import { ServiceWorker } from "@genesy/ui/components/service-worker"
 import { fontSans } from "@genesy/ui/lib/fonts"

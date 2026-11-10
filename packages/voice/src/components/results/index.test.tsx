@@ -40,6 +40,12 @@ describe("VoiceResult links", () => {
     expect(out).toContain('href="https://office.test/orders/1"')
     expect(out).toContain('href="https://office.test/orders?status=open"')
   })
+
+  it("draws no link where the host refuses the href", () => {
+    const out = html(<VoiceResult views={orders} />, () => "")
+    expect(out).not.toContain("<a")
+    expect(out).toContain("Order 1")
+  })
 })
 
 describe("VoiceResult status labels", () => {

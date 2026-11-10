@@ -17,9 +17,8 @@ them otherwise; wrap them instead, so a later copy can replace them.
 review rows, text composer), not decoration, so the voice screen imports them directly instead of
 through `island`; each honours reduced motion itself. Source, date and edits per file:
 `ThoughtLine-notice.md`, `AnimatedList-notice.md`, `PromptBar-notice.md`. `ThoughtLine` (with its
-notice and a copy of `LICENSE.md`) now lives in `packages/voice/src/components/rb`, next to the
-shared assistant engine that uses it. PromptBar carries a few
+notice and a copy of `LICENSE.md`), `AnimatedList` and `PromptBar` now live in
+`packages/voice/src/components/rb`, shared by Office and Flow. PromptBar carries a few
 more edits than the others (translated labels, hint, `ready`, keep the draft on a refused send,
 "+" menu focus order), marked
-`// Genesy edit:` in the file. Their palettes are overridden in `app/office.css` under the voice
-comments.
+`// Genesy edit:` in the file. Their palettes are overridden in `packages/voice/src/styles/voice.css`.
