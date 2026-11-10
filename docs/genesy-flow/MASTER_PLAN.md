@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17); 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
+Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17), 2C (Flow conversation + storefront device preview) integrated on `flow/2c-conversation`, PR pending. Phase 3 approved (D1–D12); P3-A (Rust) in progress. Phase 5 in progress (k ≥ 3 workspaces). Phases 4 (files only) and 6 planned; Phase 6 choices deferred. 2D proposed only. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
