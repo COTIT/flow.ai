@@ -71,7 +71,7 @@ const review = () => ({
  * draft that moved (409 at dispatch).
  */
 const designReview = (operationId, body) => {
-  const heading = body?.changes?.[0]?.heading
+  const heading = body?.changes?.find((change) => change.heading)?.heading
   const kind = operationId.replace("storefront_design_", "")
   const rows =
     kind === "restore"
@@ -90,6 +90,9 @@ const designReview = (operationId, body) => {
     data: { actionId: "0193f6b0-1c2d-7e3f-8a9b-bbbbbbbbbbbb" },
     review: {
       ticket: heading === "Raced" ? "flow-design-raced" : `flow-design-${kind}`,
+      // As Office builds it (apps/office/lib/voice/actions.ts): the operation travels with the review.
+      operationId,
+      method: "POST",
       summary: `Storefront design ${kind}`,
       confirmationCode: "246802",
       confirmationPhrase: "Confirm action 246802",
@@ -158,7 +161,9 @@ export async function flowVoice(req, res, path, send, readJson) {
                 : page("Orders", "/orders")
               : body.operationId === "app_keys_create"
                 ? secure
-                : /^storefront_design_(edit|restore|publish)$/.test(body.operationId)
+                : /^storefront_design_(edit|restore|publish)$/.test(
+                      body.operationId
+                    )
                   ? designReview(body.operationId, body.arguments?.body)
                   : { status: "failed", message: "Unknown e2e operation." }
     return (send(res, 200, answer), true)
@@ -172,21 +177,25 @@ export async function flowVoice(req, res, path, send, readJson) {
         body.decision === "approve" && body.ticket === "flow-design-raced"
           ? {
               status: "failed",
-              message: "The design changed. Reload before saving or publishing.",
+              message:
+                "The design changed. Reload before saving or publishing.",
             }
-          : body.decision === "approve" && String(body.ticket).startsWith("flow-design-")
+          : body.decision === "approve" &&
+              String(body.ticket).startsWith("flow-design-")
             ? {
                 status: "completed",
                 message: "Saved as a new draft.",
-                links: [{ label: "Storefront design", href: "/settings/storefront" }],
+                links: [
+                  { label: "Storefront design", href: "/settings/storefront" },
+                ],
               }
-          : body.decision === "approve"
-          ? {
-              status: "completed",
-              message: "Order created.",
-              links: [{ label: "ORD-0043", href: `/orders/${FLOW_ORDER}` }],
-            }
-          : { status: "cancelled", message: "Nothing was changed." }
+            : body.decision === "approve"
+              ? {
+                  status: "completed",
+                  message: "Order created.",
+                  links: [{ label: "ORD-0043", href: `/orders/${FLOW_ORDER}` }],
+                }
+              : { status: "cancelled", message: "Nothing was changed." }
       ),
       true
     )

@@ -12,6 +12,7 @@ import {
   published,
   test,
 } from "./storefront-api"
+import type { FakeApi } from "../office/fake-api"
 import { chat, fakeAgent, startText, v, watch } from "./voice"
 
 // SIMULATED voice (fake ElevenLabs socket + mock upstream) and a faked API: a storefront design
@@ -19,6 +20,7 @@ import { chat, fakeAgent, startText, v, watch } from "./voice"
 
 const s = flowEn.flow.storefront
 const PHRASE = "Confirm action 246802"
+const DRY_RUN = "/v1/workspace/w1/storefront/pages/home/edits/preview"
 const narrow = (page: Page) => page.viewportSize()!.width < 1024
 
 const edit = (heading = "Fresh this week") => ({
@@ -65,10 +67,8 @@ async function propose(page: Page, operation: string, args: unknown) {
   return { agent, confirms, review, actions }
 }
 
-test("an edit review shows each change and the proposed page; approving runs it once", async ({
-  page,
-  api,
-}) => {
+/** The whole edit review: diff, proposal frame at every device size, approve once. */
+async function editReview(page: Page, api: FakeApi) {
   designs(api)
   const sent = designEdits(api)
   const fromFrame = frameRequests(page)
@@ -133,6 +133,24 @@ test("an edit review shows each change and the proposed page; approving runs it 
   // The frame fetched nothing: no API call, no write; only its own page, by GET.
   expect(fromFrame.filter((r) => r.method() !== "GET")).toEqual([])
   expect(fromFrame.filter((r) => r.url().includes("/v1/"))).toEqual([])
+}
+
+test("an edit review shows each change and the proposed page; approving runs it once", async ({
+  page,
+  api,
+}) => {
+  await editReview(page, api)
+})
+
+test.describe("on a tablet (834 px)", () => {
+  test.use({ viewport: { width: 834, height: 1194 } })
+
+  test("the edit review opens in the sheet with the proposed page", async ({
+    page,
+    api,
+  }) => {
+    await editReview(page, api)
+  })
 })
 
 test("rejecting sends a cancel and writes nothing", async ({ page, api }) => {
@@ -154,7 +172,7 @@ test("rejecting sends a cancel and writes nothing", async ({ page, api }) => {
 })
 
 test.describe("the draft moved after the review was prepared", () => {
-  test.use({ allow: { responses: [{ url: "/edits/preview", status: 409 }] } })
+  test.use({ allow: { responses: [{ url: DRY_RUN, status: 409 }] } })
 
   test("no preview, and approval is held on the button and by voice; cancel still works", async ({
     page,
@@ -195,7 +213,7 @@ test.describe("the draft moved after the review was prepared", () => {
 })
 
 test.describe("the dry run fails", () => {
-  test.use({ allow: { responses: [{ url: "/edits/preview", status: 500 }] } })
+  test.use({ allow: { responses: [{ url: DRY_RUN, status: 500 }] } })
 
   test("says the preview is unavailable, offers to try again and keeps approval", async ({
     page,
@@ -230,7 +248,17 @@ test("an approval that meets a moved draft is refused in plain words", async ({
   )
   await proposalFrame(page)
   await actions.getByRole("button", { name: v.approve }).click()
-  await expect(page.getByText(v.taskStates.failed)).toBeVisible()
+  // The transcript line says it failed; no success line and no record link.
+  await expect(
+    page
+      .locator('[data-role="action"]')
+      .filter({ hasText: v.taskStates.failed })
+  ).toBeVisible()
+  await expect(
+    page
+      .locator('[data-role="action"]')
+      .filter({ hasText: v.taskStates.completed })
+  ).toHaveCount(0)
   await expect(
     page.getByRole("link", { name: /Storefront design/ })
   ).toHaveCount(0)
