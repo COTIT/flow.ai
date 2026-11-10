@@ -26,16 +26,42 @@ const VOICE = {
   sw: "76e478f6cf8efbe3d82560f8b91f5d4a1913780ad7f09cd6e36907ee56505691",
 }
 
+// Review-card field names added for storefront design facts (body, category_id existed).
+const DESIGN_FIELDS = [
+  "theme",
+  "heading",
+  "layout",
+  "category",
+  "limit",
+  "columns",
+  "section",
+  "position",
+]
+
 describe("Office messages", () => {
   it.each(locales)(
     "%s keeps the voice texts it had before the move",
     async (locale) => {
       const messages = await loadOfficeMessages(locale)
-      const voice = messages.voice as { pages: Record<string, unknown> }
+      const voice = messages.voice as {
+        pages: Record<string, unknown>
+        resources: Record<string, unknown>
+        reviewFields: Record<string, unknown>
+      }
       // Added since (2C): the read-only storefront page of the assistant's page tool.
       const { storefront, ...pages } = voice.pages
       expect(storefront).toBeDefined()
-      expect(hash({ ...voice, pages })).toBe(VOICE[locale])
+      // Added since (Phase 3): storefront design review labels.
+      const { storefront_design, ...resources } = voice.resources
+      expect(storefront_design).toBeDefined()
+      const reviewFields = { ...voice.reviewFields }
+      for (const key of DESIGN_FIELDS) {
+        expect(reviewFields[key], key).toBeDefined()
+        delete reviewFields[key]
+      }
+      expect(hash({ ...voice, pages, resources, reviewFields })).toBe(
+        VOICE[locale]
+      )
     }
   )
 

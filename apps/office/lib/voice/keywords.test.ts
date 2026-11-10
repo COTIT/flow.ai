@@ -98,6 +98,19 @@ describe("voice trigger words", () => {
     ["who is our top customer for cardamom", "orders_top_customers"],
     ["wie koopt de meeste kardemom", "orders_top_customers"],
     ["nani ananunua iliki zaidi", "orders_top_customers"],
+    // storefront design (Phase 3)
+    ["change the headline on my shop home page", "storefront_design_edit"],
+    ["make the storefront theme neutral", "storefront_design_edit"],
+    ["publish the new storefront design", "storefront_design_publish"],
+    [
+      "undo the last change to the shop page design",
+      "storefront_design_restore",
+    ],
+    ["what can I change on my storefront", "storefront_design_capabilities"],
+    ["verander de kop van de webwinkel", "storefront_design_edit"],
+    ["publiceer het nieuwe winkelontwerp", "storefront_design_publish"],
+    ["badilisha kichwa cha ukurasa wa duka", "storefront_design_edit"],
+    ["chapisha muundo mpya wa duka", "storefront_design_publish"],
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
   })

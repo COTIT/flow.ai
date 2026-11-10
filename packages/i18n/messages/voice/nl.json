@@ -271,7 +271,15 @@
       "source": "Bron",
       "from": "Van",
       "symbol": "Symbool",
-      "default_currency": "Standaardvaluta"
+      "default_currency": "Standaardvaluta",
+      "theme": "Thema",
+      "heading": "Kop",
+      "layout": "Indeling",
+      "category": "Categorie",
+      "limit": "Aantal producten",
+      "columns": "Kolommen (telefoon / tablet / computer)",
+      "section": "Sectie",
+      "position": "Positie"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -346,7 +354,8 @@
       "vat": "btw-groep",
       "workspace": "werkruimte",
       "settings": "instelling",
-      "relations": "klant"
+      "relations": "klant",
+      "storefront_design": "webwinkelontwerp"
     },
     "operationActions": {
       "create": "{record} aanmaken",

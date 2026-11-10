@@ -428,6 +428,16 @@ pub fn operations_ready() -> bool {
     OPS.get().is_some()
 }
 
+/// Design routes outside voice for good: whole-document save, previews, public read.
+fn closed_design_route(method: &str, path: &str) -> bool {
+    let home = path
+        .split_once("/storefront/pages/home")
+        .map(|(_, rest)| rest);
+    path == "/v1/storefront/pages/home"
+        || method == "POST" && home == Some("/revisions")
+        || matches!(home, Some("/preview" | "/edits/preview"))
+}
+
 /// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
@@ -435,8 +445,7 @@ pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
         .as_ref()
         .map_err(|_| AppError::Internal("assistant operation inventory failed".into()))?;
     if path.contains("/assistant/")
-        || path.contains("/storefront/pages/")
-        || path.ends_with("/storefront/design-capabilities")
+        || closed_design_route(method, path)
         || path.contains("/app-keys") && method != "DELETE"
         || path.contains("/credentials")
         || path.contains("/password")
@@ -569,15 +578,41 @@ mod tests {
     }
     #[test]
     fn secret_controls_never_become_business_operations() {
-        assert!(
-            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/publish").is_err()
-        );
-        assert!(
-            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/revisions").is_err()
-        );
-        assert!(
-            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/restore").is_err()
-        );
+        let home = "/v1/workspace/w/storefront/pages/home";
+        for (method, path) in [
+            ("POST", format!("{home}/revisions")),
+            ("POST", format!("{home}/edits/preview")),
+            ("GET", format!("{home}/preview")),
+            ("GET", "/v1/storefront/pages/home".to_owned()),
+        ] {
+            assert!(resolve_operation(method, &path).is_err(), "{method} {path}");
+        }
+        for (method, path, id) in [
+            ("POST", format!("{home}/edits"), "storefront_design_edit"),
+            (
+                "POST",
+                format!("{home}/restore"),
+                "storefront_design_restore",
+            ),
+            (
+                "POST",
+                format!("{home}/publish"),
+                "storefront_design_publish",
+            ),
+            ("GET", home.to_owned(), "storefront_design_get"),
+            (
+                "GET",
+                format!("{home}/revisions"),
+                "storefront_design_revisions",
+            ),
+            (
+                "GET",
+                "/v1/workspace/w/storefront/design-capabilities".to_owned(),
+                "storefront_design_capabilities",
+            ),
+        ] {
+            assert_eq!(resolve_operation(method, &path).unwrap(), id, "{path}");
+        }
         assert!(resolve_operation("POST", "/v1/workspace/w/assistant/actions").is_err());
         assert!(resolve_operation("POST", "/v1/workspace/w/app-keys").is_err());
     }

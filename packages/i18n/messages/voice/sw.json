@@ -271,7 +271,15 @@
       "source": "Chanzo",
       "from": "Kutoka",
       "symbol": "Alama",
-      "default_currency": "Sarafu chaguo-msingi"
+      "default_currency": "Sarafu chaguo-msingi",
+      "theme": "Mandhari",
+      "heading": "Kichwa",
+      "layout": "Mpangilio",
+      "category": "Aina",
+      "limit": "Idadi ya bidhaa",
+      "columns": "Safu (simu / tableti / kompyuta)",
+      "section": "Sehemu",
+      "position": "Nafasi"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -346,7 +354,8 @@
       "vat": "kundi la VAT",
       "workspace": "eneo la kazi",
       "settings": "mpangilio",
-      "relations": "mteja"
+      "relations": "mteja",
+      "storefront_design": "muundo wa duka"
     },
     "operationActions": {
       "create": "Unda {record}",

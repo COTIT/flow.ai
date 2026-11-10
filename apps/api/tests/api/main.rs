@@ -20,6 +20,7 @@ mod assistant_price_import;
 mod assistant_product_quotes;
 mod assistant_retention;
 mod assistant_review_safety;
+mod assistant_storefront_design;
 mod attention;
 mod body_limits;
 mod bootstrap;
