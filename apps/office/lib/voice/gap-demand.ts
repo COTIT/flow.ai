@@ -45,7 +45,7 @@ const EXISTING: Record<string, string> = {
   gallery: "product_grid",
 }
 
-/** Same floor as SQL `assistant_gap_demand`; a second guard in case input came from elsewhere. */
+/** Migration `assistant_gap_demand` is authoritative for k; this only refuses unthresholded input. */
 const MIN_WORKSPACES = 3
 
 /** One row of `voice-gaps.sql -v demand=1` (SQL `assistant_gap_demand`). */
