@@ -30,6 +30,11 @@ test("draft and published are marked; the frame shows the live catalog", async (
   ).toHaveCount(1)
   // Ids stay out of accessible names.
   await expect(page.getByRole("button", { name: draft })).toHaveCount(0)
+  // The short code is the id's random tail: ids minted in the same minute share their head.
+  await expect(rows.filter({ hasText: "Draft" })).toContainText(draft.slice(-8))
+  await expect(
+    rows.filter({ hasText: "Published" }).filter({ hasNotText: "Previously" })
+  ).toContainText(published.slice(-8))
 
   await page.getByRole("button", { name: revisionButton(2) }).click()
   const preview = page.getByRole("region", { name: region })

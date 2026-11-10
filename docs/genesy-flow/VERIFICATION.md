@@ -3,6 +3,24 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## PR 2C — Flow conversation + storefront device preview (2026-11-10)
+
+Branch `flow/2c-conversation`: children A (conversation, `68894749f`), B (storefront review + preview frame, `6aabf5cbd`), C (client-bundle check, `92ef9dbc5`), parent `2e3130118` (bundle check in build, `FILES_ORIGIN` img-src), stack-spec update `af5768fc7`, edge-case children (headings `46fd1df5c`, cross-tab `47e29069d`), main merged (`541261b61`, incl. #21), revision short code fix (see table).
+
+| Check | Result |
+| --- | --- |
+| Children (related tests only) | A: Office voice e2e 158 passed / 2 skipped before and after the component extraction; B: Flow storefront + preview e2e incl. frame-ancestors, cross-origin refusal, 375/834/1280 real breakpoints, inertness, member refusal, logged-out frame; C: bundle-check fixtures 27/27; cross-tab: Flow vitest 179/179, related e2e 60/60 (desktop + 375); headings: ui unit red→green, Office/Shop markup byte-identical, Flow frame e2e red→green |
+| Security reviews (2, independent) | No confirmed or plausible issues; low finding "Flow CSP lacks `FILES_ORIGIN`" fixed test-first (`2e3130118`) |
+| First gate (`2e3130118`, `SKIP_API=1`) | Deploy tests pass; fake-API e2e 7/7 tasks; storefront-design 21; voice-dev 12; stack 197 passed / 1 skipped / **2 failed**: `flow-proxy.spec` still expected the 2B landing's email line → updated to the member name (`af5768fc7`), rerun Flow stack specs 10/10. Web step stopped on the known `gap-triage` timeout (fixed by #21) |
+| Final gate (`541261b61`, `SKIP_API=1`: no `apps/api` change) | Deploy tests all pass; web turbo 43/43 (typecheck, lint, unit, builds incl. Flow bundle check); fake-API e2e 2141 passed / 17 skipped / 2 failed under load (Office voice-interface:1094 got a 503 from `/api/voice/confirm`, Office PWA got a 500 from `/v1/me`; machine load 29 on 11 cores) → both rerun 9/9 (3 repeats, desktop + mobile, load 4); storefront-design 21; voice-dev 12; stack 199 passed / 1 skipped |
+| Flow Docker image (`next.Dockerfile APP=flow`, run with NO env) | Builds (first attempt hit a transient Debian mirror 404; rebuilt green); bundle check ran inside the image build: clean. 38/38 header checks: `/storefront/preview` and `?revision=<uuid>` send exactly one CSP with `frame-ancestors 'self'`, no ElevenLabs origins, `Cache-Control` no-store; `/`, `/login`, `/storefront`, `/storefront/preview/x`, `/storefront/previewx` send exactly one CSP with `frame-ancestors 'none'`; all have nonce + `strict-dynamic`, no `X-Frame-Options`; `/healthz` 200; `/api/voice/readiness` 502, `/api/voice/secure` 404; with `FILES_ORIGIN` set, `img-src` contains it on `/` and the preview |
+| Office Docker image | Builds; `/healthz` 200; one CSP header, `frame-ancestors 'none'` (unchanged); voice audio files present |
+| Privileged data caching | API sets `Cache-Control: no-store` on every `/v1` response (`apps/api/src/lib.rs`); preview HTML carries no draft data (fetched client-side with the bearer header) |
+| Revision short code (found in screenshots) | Both apps showed `revision_id.slice(0, 8)`, the UUIDv7 timestamp head, so revisions minted within ~65 s shared one code. Now the random tail `slice(-8)` in Flow and Office; e2e red first ("00000002" missing), then Flow + Office storefront specs 34/34 (desktop + mobile) |
+| Screenshots | 10 captured with the fake API (desktop 1280, tablet 834, mobile 375: empty conversation + sales chart; storefront review with preview in Mobile/Tablet/Desktop modes; full page at 375). Kept outside the repository (public) in the parent session's scratchpad |
+
+Not verified: a live ElevenLabs session from a Flow origin (needs the agent's allowed origins + DNS); staging/production deployment (none performed). Mocked browser tests use a fake ElevenLabs socket and a mock Office upstream behind Flow's real proxy; the real-stack specs use the real API/Office/Flow with the assistant off.
+
 ## PR 2B — Flow app foundation (2026-11-10)
 
 Branch `flow/2b-foundation` = child B (`e8c295cd0`, `f6b67e128`: opt-in voice texts, shared audio script), child A (`1ca1607ea`…`aa0f6471a`: apps/flow, auth, restricted voice proxy, e2e/stack), child C (`f257bea2d`…`2f45f4592`: compose, health hosts, images, docs), then parent `10b89d3dc` (Flow opts into voice texts + audio build; test red in all 3 locales first) and `4f0b75144` (spawn-test timeout).

@@ -138,7 +138,7 @@ function Review({
                           {formatDateTime(revision.created_at, locale)}
                         </span>
                         <span className="mt-1 block font-mono text-xs text-muted-foreground">
-                          {revision.revision_id.slice(0, 8)}
+                          {revision.revision_id.slice(-8)}
                         </span>
                       </TableCell>
                       <TableCell>
