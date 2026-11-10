@@ -79,7 +79,11 @@ async function editReview(page: Page, api: FakeApi) {
   )
 
   // The diff names the section and the field; the dry run got the exact request body.
-  await expect(review).toContainText("Fresh from our growers · ")
+  // The section's name, and the field's once voice.reviewFields names it (P3-B adds "heading").
+  const field = (v.reviewFields as Record<string, string>).heading
+  await expect(review).toContainText(
+    field ? `Fresh from our growers · ${field}` : "Fresh from our growers"
+  )
   await expect(review).toContainText("Fresh this week")
   await expect(review).toContainText(PHRASE)
   await expect.poll(() => sent.length).toBe(1)

@@ -4,9 +4,13 @@ import { describe, expect, it, vi } from "vitest"
 import type { VoiceReview } from "../lib/client-contract"
 import { ReviewDiff } from "./review-diff"
 
+// "heading" and "theme" have translated field names here; "stock_from" has none.
+const named: Record<string, string> = { heading: "Heading", theme: "Theme" }
 vi.mock("next-intl", () => ({
   useTranslations: () =>
-    Object.assign((key: string) => key, { has: () => false }),
+    Object.assign((key: string) => named[key] ?? key, {
+      has: (key: string) => key in named,
+    }),
   useLocale: () => "en",
 }))
 
@@ -40,6 +44,19 @@ describe("ReviewDiff rows", () => {
       </ReviewDiff>
     )
     expect(rows(out)).toEqual(["Our products · Heading"])
+  })
+
+  it("keeps a labelled row whose field has no translated name as its label alone", () => {
+    const out = renderToStaticMarkup(
+      <ReviewDiff
+        review={review([
+          { field: "stock_from", label: "Main store", before: "120", after: "100" },
+        ])}
+      >
+        {null}
+      </ReviewDiff>
+    )
+    expect(rows(out)).toEqual(["Main store"])
   })
 
   it("keeps an unlabelled row as its field name alone", () => {

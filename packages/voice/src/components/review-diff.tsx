@@ -67,8 +67,22 @@ export function ReviewDiff({ review, children }: { review: VoiceReview; children
                 // Two sections can change the same field: the label tells their rows apart.
                 <div key={`${row.label ?? ""}:${row.field}`} className="flex min-w-0 flex-col gap-1">
                   <dt className="text-sm font-medium">
-                    {row.label ? <span className="text-muted-foreground">{row.label} · </span> : null}
-                    {labels.has(row.field) ? labels(row.field) : fieldName(row.field)}
+                    {/* A label names the row (a warehouse, a section); a translated field name
+                        says what changes in it. Without a translation the label stays alone. */}
+                    {row.label ? (
+                      labels.has(row.field) ? (
+                        <>
+                          <span className="text-muted-foreground">{row.label} · </span>
+                          {labels(row.field)}
+                        </>
+                      ) : (
+                        row.label
+                      )
+                    ) : labels.has(row.field) ? (
+                      labels(row.field)
+                    ) : (
+                      fieldName(row.field)
+                    )}
                   </dt>
                   <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base break-all tabular-nums">
                     {row.before !== null ? (
