@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 merged (#13, image fix #14) and validated on staging 2026-11-10 (see VERIFICATION.md); flag stays false. Phase 2 not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
+Status: Phase 1 merged and staging-validated (flag false). Phase 2 in progress: PR 2A (shared voice package) under review; 2B and 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
@@ -51,8 +51,11 @@ configuration; they must never generate and execute arbitrary production React c
 
 - `apps/office/lib/voice/`: `provider.ts`, `bridge.ts`, `server.ts`, `workflow.ts`,
   `checkpoint.ts`, `catalog.ts`, operation policy/authority/generated files and gap capture.
-- `apps/office/app/api/voice/`: session admission/binding, references and bridge routes;
-  `apps/office/components/voice/`: current conversation/review/result cards.
+- `apps/office/app/api/voice/`: session admission/binding, references and bridge routes (server stays in Office).
+- `packages/voice` (`@genesy/voice`, PR 2A): client engine `components/provider.tsx` (host props
+  `apiBase`, `audioBase`, `resolveHref`, `onUnauthorized`), reusable cards/results/controls, and pure
+  `lib/*` contracts (`client-contract`, `views`, `confirmation`, `capabilities`) plus client helpers.
+  `apps/office/components/voice/` keeps Office-only UI: `conversation.tsx`, `secure-form.tsx`, `design-preview.tsx`.
 - `apps/api/src/modules/assistant/`: authoritative sessions/actions, signed approval
   dispatch and gap ledger. `apps/api/src/http/assistant.rs` verifies bridge signatures.
 - `docs/office-assistant-{plan,validation,latency}.md`, `deploy/ASSISTANT.md`: prior agent

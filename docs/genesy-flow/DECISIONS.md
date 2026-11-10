@@ -29,6 +29,11 @@ Updated 2026-11-10. Approved Phase 1 scope only. See MASTER_PLAN.md for roadmap 
 | Turbopack for local builds | Earlier webpack workaround came from a Codex-sandbox EPERM; not needed here |
 | OpenAPI tag `storefront_design` | Operation ids must carry their tag prefix; repo uses underscores |
 | Staging validation on `afm-demo`, flag back to false | User chose the seeded AFM data for realistic volume; the one staging Shop serves it. Published revision 3 stays stored but hidden; turning the flag on later shows it until a new design is published |
+| 2A extracts the voice client engine + pure contracts into `@genesy/voice`; server stays in Office | Flow reuse needs the engine and cards. Voice routes check only the bearer (no origin/cookie), bridge signing has no origin, checkpoints are keyed by session id, so Flow can reuse the server unchanged |
+| 2B plan: Flow's server proxies `/api/voice/*` to Office over the internal network | One agent engine; ElevenLabs and bridge secrets stay in one container; the checkpoint role's 10-connection budget is unchanged; no CORS. Full server extraction waits until the Office assistant is retired |
+| `voice` translations stay in Office for 2A | Shared components keep `useTranslations("voice")`; the namespace moves to `packages/i18n` messages when Flow exists, keeping 2A behavior-identical |
+| Host injection with Office defaults (`apiBase`, `audioBase`, `resolveHref`, `onUnauthorized`, `SAFE_HREF`, `openHref`, rights, `statusLabel`) | Smallest seam a second origin needs; Office passes nothing and behaves as before |
+| Purity guards | `@genesy/voice/lib/*` must stay plain TS (vitest guard); Office server code may not import `@genesy/voice/components` (vitest guard) |
 
 Approved scope additions: persistent roadmap/handoff/evidence/decision checkpoints; necessary static `storefront` segment in existing privacy-safe gap path classifier. No Phase 2 implementation.
 
