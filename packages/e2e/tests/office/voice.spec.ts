@@ -554,9 +554,10 @@ test("duplicate reference names retain ordinals and local previews restore keybo
   await expect(tray).toContainText("2. duplicate.pdf")
   await expect(tray).not.toContainText("1. duplicate.pdf")
   await expect(tray).toContainText(`${reference.buffer.length} B`)
-  await page
-    .getByRole("button", { name: "Preview reference 2", exact: true })
-    .focus()
+  // Removing a reference keeps the keyboard in the tray, on the reference that took its place.
+  await expect(
+    page.getByRole("button", { name: "Preview reference 2", exact: true })
+  ).toBeFocused()
   await page.keyboard.press("Enter")
   const preview = page.getByRole("dialog", {
     name: "duplicate.pdf",
