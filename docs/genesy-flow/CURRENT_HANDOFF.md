@@ -1,6 +1,6 @@
 # Genesy Flow current handoff
 
-Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16, `a432dec17`); 2B (Flow app foundation) on review; 2C not started.**
+Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17, `4d4f8b455`); follow-ups #18 (Office proxy skips `api/`, voice uploads no longer cut at 10 MiB) and #19 (Shop payment-wait test flake) merged. 2C not started. Product direction recorded in MASTER_PLAN.md.**
 
 Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this checkpoint → actual Git/source → [VERIFICATION.md](VERIFICATION.md) and [DECISIONS.md](DECISIONS.md).
 
@@ -23,7 +23,7 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 - Staging API logs no request paths, so "flag off → no design request" is proven by unit test, not runtime logs.
 - Binary rollback past the design migration needs `--restore-db` or `--compatible-assistant`; never bypass the schema guard.
 
-## PR 2B (branch `flow/2b-foundation`)
+## PR 2B (merged, #17)
 
 - `apps/flow`: own Next app (port 3005 dev), sign-in via the shared login form and API login, origin-local session (separate from Office; sign in per app), workspace choose/switch, assistant-first shell, `/healthz`, landing with user, workspace and assistant readiness.
 - Voice proxy `apps/flow/app/api/voice/[route]` → `lib/voice-proxy.ts`: allowlisted routes/methods/headers to fixed runtime `VOICE_UPSTREAM_URL` (compose `http://office:3000`; dev `http://localhost:3001`). Details in DECISIONS.md.
@@ -39,15 +39,14 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 ## Known issues
 
-- Office's page proxy matcher includes `/api/voice`, and Next caps bodies it proxies at 10 MB while Office accepts 10 MiB + 64 KiB. Near-limit uploads can be cut in Office (and Flow, which forwards to Office). Follow-up fix in Office, not in 2B.
 - Flow voice depends on Office's internal voice service (accepted for Phase 2).
 
 ## Next
 
-1. Merge PR 2B once CI is green (user go given).
-2. PR 2C (after 2B merges): mount `GenesyVoiceProvider` in Flow (`apiBase` default works through the proxy; `resolveHref` maps Office-relative links to the Office origin), two-pane conversation UI from `useVoice()` + shared cards, storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice). Add `flow.genesy.app` (and staging) to the ElevenLabs agent's allowed origins first. PR 2C: Flow two-pane assistant UI from `useVoice()` + shared cards, storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice).
-2. Optional: decide whether staging keeps the flag on for AFM demos (would show revision 3 until a new design is published).
+1. PR 2C (needs the user's go): add `flow.genesy.app` and `staging-flow.genesy.app` to the ElevenLabs agent's allowed origins; mount `GenesyVoiceProvider` in Flow (`apiBase` default works through the proxy; `resolveHref` maps Office-relative links to the Office origin); two-pane conversation UI from `useVoice()` + shared cards; storefront revision preview reusing `StorefrontPage` and the Phase 1 API (design ops stay `internal` for voice).
+2. Optional: decide whether staging keeps the shop design flag on for AFM demos (would show revision 3 until a new design is published).
 3. Production rollout of the design flag is a separate, later decision.
+4. Later phases follow the product direction in MASTER_PLAN.md once planned and approved.
 
 ## Working rules
 
