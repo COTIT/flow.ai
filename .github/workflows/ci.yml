@@ -648,7 +648,7 @@ jobs:
             staging: api
             production: api
           - group: web
-            staging: shop office till landing field
+            staging: shop office till landing field flow
             production: office field
     env:
       GH_TOKEN: ${{ github.token }}

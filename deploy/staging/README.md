@@ -2,7 +2,7 @@
 
 Office assistant stays disabled by default. See [assistant deployment](../ASSISTANT.md) for runtime secrets, restricted checkpoint roles, readiness and compatible rollback.
 
-A full Genesy stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), the five apps and the landing page, all served through the VPS's existing Traefik.
+A full Genesy stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), the apps (shop, office, till, field, flow) and the landing page, all served through the VPS's existing Traefik.
 
 Think of it as a dress rehearsal stage: same sets as opening night, fake money in the till, and every letter lands in a box backstage.
 
@@ -12,6 +12,7 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 | `staging-shop.genesy.app`   | shop    | 3000           |
 | `staging-office.genesy.app` | office  | 3000           |
 | `staging-till.genesy.app`   | till    | 3000           |
+| `staging-flow.genesy.app`   | flow    | 3000           |
 | `staging-field.genesy.app`  | field   | 8080           |
 | `staging.genesy.app`        | landing | 3000           |
 
@@ -32,10 +33,10 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | ---------------------------- | ------------------------------------------------------------------------------------ |
 | `docker-compose.staging.yml` | The stack, with Traefik labels                                                       |
 | `docker-compose.uploads.yml` | File uploads: staging's own B2 bucket, added by `deploy.sh` once `secrets/b2_uploads_key` exists |
-| `docker-compose.local.yml`   | Local override: no Traefik, ports on `127.0.0.1:18080` and `18100`–`18103`           |
+| `docker-compose.local.yml`   | Local override: no Traefik, ports on `127.0.0.1:18080` and `18100`–`18105`           |
 | `.env.staging.example`       | Every variable, no secrets. Copy it to `.env.staging` on the VPS.                    |
 | `secrets/`                   | Secret files on the VPS only. Git ignores everything in it.                          |
-| `../images/next.Dockerfile`  | shop, office and till (Next standalone, `--build-arg APP=…`); shared with production |
+| `../images/next.Dockerfile`  | shop, office, till, landing and flow (Next standalone, `--build-arg APP=…`); shared with production |
 | `../images/field.Dockerfile` | field: a Vite build, served by nginx; shared with production                         |
 | `../images/field.nginx.conf` | SPA fallback and the `/v1` forward to the API                                        |
 | `smoke.sh`                   | Local check: build, start, probe, then remove everything it added                    |
@@ -76,6 +77,8 @@ Staging and production, one A and one AAAA record per host:
 | AAAA | `staging-till`   | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `staging-field`  | `185.77.96.44`        | 3600 |
 | AAAA | `staging-field`  | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `staging-flow`   | `185.77.96.44`        | 3600 |
+| AAAA | `staging-flow`   | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `api`            | `185.77.96.44`        | 3600 |
 | AAAA | `api`            | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `shop`           | `185.77.96.44`        | 3600 |
@@ -86,6 +89,8 @@ Staging and production, one A and one AAAA record per host:
 | AAAA | `till`           | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `field`          | `185.77.96.44`        | 3600 |
 | AAAA | `field`          | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `flow`           | `185.77.96.44`        | 3600 |
+| AAAA | `flow`           | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `staging`        | `185.77.96.44`        | 3600 |
 | AAAA | `staging`        | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `@` (apex)       | `185.77.96.44`        | 3600 |
@@ -95,7 +100,7 @@ Staging and production, one A and one AAAA record per host:
 
 Traefik answers on IPv6 (checked 2026-11-01: HTTP 301 on `[2a02:4780:d:ca37::1]`), so the AAAA records are safe.
 
-Let's Encrypt can only issue the certificates once these names resolve.
+Let's Encrypt can only issue the certificates once these names resolve. The `staging-flow` and `flow` records are new with Flow: add them before the first deploy that contains it ("Flow" below).
 
 ## One-time setup (on the VPS)
 
@@ -134,10 +139,10 @@ Then deploy (next section). Keep `credentials_key` once you have it: it encrypts
 
 ### GHCR pull token (once, in GitHub)
 
-The VPS needs read access to the six private `ghcr.io/cotit/genesy-*` packages, nothing more. These steps are yours, in GitHub.
+The VPS needs read access to the seven private `ghcr.io/cotit/genesy-*` packages, nothing more. These steps are yours, in GitHub.
 
-1. **COTIT → Settings → Packages:** allow private container packages to be created. The first green `images` run then creates `genesy-api`, `-shop`, `-office`, `-till`, `-field` and `-landing`. Check each one's settings: visibility **private**, and "Manage Actions access" lists `COTIT/genesy` with **Write**.
-2. **A machine account** (for example `genesy-deploy-bot`) in COTIT, given **Read** on those six packages only (package settings → Manage access). It needs no repository access.
+1. **COTIT → Settings → Packages:** allow private container packages to be created. The first green `images` run then creates `genesy-api`, `-shop`, `-office`, `-till`, `-field`, `-landing` and `-flow`. Check each one's settings: visibility **private**, and "Manage Actions access" lists `COTIT/genesy` with **Write**.
+2. **A machine account** (for example `genesy-deploy-bot`) in COTIT, given **Read** on those seven packages only (package settings → Manage access). It needs no repository access.
 3. **On that account:** a **classic** personal access token with only `read:packages`, expiring in a year (set a reminder). GHCR does not take fine-grained tokens unless GitHub lists a Packages permission for them when you create one.
 
 Fallback without a machine account: your own classic token with only `read:packages`. It can read every package you can, so the machine account is safer.
@@ -180,6 +185,19 @@ ssh -L 8025:127.0.0.1:18025 genesy
 ```
 
 Then open <http://localhost:8025>.
+
+## Flow (`staging-flow.genesy.app`)
+
+Flow is its own Next container (`flow`, image `ghcr.io/cotit/genesy-flow:<sha>`, built once and shared by staging and production like till). Its server forwards `/api/voice/*` to Office over the `internal` network at `http://office:3000`; the voice agent, ElevenLabs key, bridge secret and checkpoint database stay in Office (`../ASSISTANT.md`). Flow itself takes only `API_URL` and `VOICE_UPSTREAM_URL`, no secret, and no variable in `.env.staging`. Office keeps its one public host (`staging-office.genesy.app`); Flow adds no public route to it. When Office is down or its assistant is off, Flow's voice calls fail and the rest of Flow keeps answering.
+
+Before the first deploy of a commit that contains Flow:
+
+1. **DNS first.** Add the `staging-flow` A and AAAA records ("DNS records" above) and wait until they resolve. Without them the deploy's health check still passes (it asks the local Traefik with `--resolve`), but Let's Encrypt keeps failing for that host and `vps-watch` alerts on its missing certificate on every run.
+2. **GHCR package.** The first green `images` run after the merge creates `genesy-flow`. Check its settings: visibility **private**, "Manage Actions access" lists `COTIT/genesy` with **Write**, and the machine account has **Read**. Without Read the VPS pull fails and the deploy stops before its backup and migrations.
+3. **Rollback past Flow.** A rollback to a commit from before Flow leaves the newer `flow` container running (compose does not remove services the older file lacks). Stop it by hand: `deploy/deploy.sh staging compose stop flow`.
+4. **Memory.** Flow adds one Next container per environment: ceilings of 384 MB on staging and 512 MB on production (production README, "Resource limits").
+
+If the VPS still has an untracked `docker-compose.nodns.yml`, give `flow` the same `traefik.enable=false` entry as the other apps.
 
 ## Turning on Stripe (test mode)
 

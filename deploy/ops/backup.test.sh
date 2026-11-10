@@ -161,7 +161,7 @@ if echo "restore production" | run restore.sh production /etc/hosts; then fail "
 echo "restore production" | run restore.sh production "$dump" || fail "restore refused: $(cat "$t/out")"
 grep -n "" "$CALLS" | grep -m1 "pg_dump" > /dev/null || fail "no pre-restore backup"
 ls "$t/backups/production"/*-pre-restore.dump > /dev/null || fail "pre-restore dump missing"
-stop_line="$(grep -n "stop api shop office till landing field" "$CALLS" | cut -d: -f1)"
+stop_line="$(grep -n "stop api shop office till landing field flow" "$CALLS" | cut -d: -f1)"
 restore_line="$(grep -n "pg_restore -U genesy -d genesy --clean --if-exists --single-transaction" "$CALLS" | cut -d: -f1)"
 [[ -n "$stop_line" && -n "$restore_line" && "$stop_line" -lt "$restore_line" ]] || fail "apps not stopped before restore"
 

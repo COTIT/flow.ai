@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 LAYOUT = {
     "api-production": {"production": ["api"]},
     "api-staging": {"staging": ["api"]},
-    "web": {"production": ["office", "field"], "staging": ["shop", "office", "till", "landing", "field"]},
+    "web": {"production": ["office", "field"], "staging": ["shop", "office", "till", "landing", "field", "flow"]},
 }
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 

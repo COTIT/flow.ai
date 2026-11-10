@@ -244,7 +244,7 @@ Rolling back needs --restore-db, which restores the pre-deploy dump and loses ev
 }
 
 # prune: image tags of this stack's repositories other than the live and previous version of
-# BOTH envs (staging and production share the GHCR repositories, and shop/till/landing share
+# BOTH envs (staging and production share the GHCR repositories, and shop/till/landing/flow share
 # the tag: `<sha>`, or `<sha>-staging` for staging's api/office/field); dangling images; build
 # cache above 10 GB (kept warm so a fallback build is quick).
 prune() {
