@@ -95,6 +95,7 @@ services:
       SITE_URL: https://shop.genesy.app
       # App key (scope catalog:read) made in the office; empty until then (shop answers 503).
       STOREFRONT_APP_KEY: ${STOREFRONT_APP_KEY:-}
+      SHOP_DESIGN_ENABLED: ${SHOP_DESIGN_ENABLED:-false}
       FILES_ORIGIN: ${FILES_ORIGIN:-}
     networks: [internal, edge]
     labels:

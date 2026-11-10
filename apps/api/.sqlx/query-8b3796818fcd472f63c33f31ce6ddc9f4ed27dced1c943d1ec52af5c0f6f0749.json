@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO storefront_pages(workspace_id,storefront_id,page_key) SELECT $1,id,'home' FROM storefronts WHERE workspace_id=$1 ON CONFLICT(workspace_id,page_key) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8b3796818fcd472f63c33f31ce6ddc9f4ed27dced1c943d1ec52af5c0f6f0749"
+}

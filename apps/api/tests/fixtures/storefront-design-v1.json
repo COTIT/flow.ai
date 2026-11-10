@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "page": "home",
+  "theme": "forest",
+  "sections": [
+    {
+      "id": "hero-main",
+      "type": "hero",
+      "props": {
+        "heading": "From farm to your table",
+        "body": "Discover the products and people behind every harvest.",
+        "layout": "split"
+      }
+    },
+    {
+      "id": "featured-products",
+      "type": "product_grid",
+      "props": {
+        "heading": "Fresh from our growers",
+        "source": "catalog",
+        "limit": 6,
+        "columns": { "mobile": 1, "tablet": 2, "desktop": 3 }
+      }
+    }
+  ]
+}

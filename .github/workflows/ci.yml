@@ -321,6 +321,9 @@ jobs:
       - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
       - run: pnpm turbo run build --filter='!@genesy/api' --concurrency=2
       - run: pnpm --filter @genesy/e2e e2e --shard=${{ matrix.shard }}/8 --workers=3
+      - name: Published storefront design browser checks
+        if: matrix.shard == 1
+        run: pnpm --filter @genesy/e2e exec playwright test -c storefront-design.config.ts
       - name: Upload report and traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

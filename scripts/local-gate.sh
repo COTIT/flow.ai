@@ -58,6 +58,7 @@ if [[ -z "${SKIP_E2E:-}" ]]; then
   step "e2e (fake API)"
   cd "$ROOT"
   run env E2E_PORT_OFFSET=95 VITE_FEATURE_RESOURCES=on pnpm turbo run e2e --output-logs=errors-only -- --workers=3
+  run env E2E_PORT_OFFSET=95 pnpm --filter @genesy/e2e exec playwright test -c storefront-design.config.ts
   run pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
 fi
 

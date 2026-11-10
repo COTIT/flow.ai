@@ -62,7 +62,8 @@
     "members": "Members",
     "categories": "Categories",
     "voice": "Voice assistant",
-    "scheduledReports": "Scheduled reports"
+    "scheduledReports": "Scheduled reports",
+    "storefront": "Storefront"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -1766,5 +1767,35 @@
     "sameFarmer": "No, same farmer",
     "rightFarmerKg": "Kg for the other farmer",
     "send": "Send for approval"
+  },
+  "storefront": {
+    "title": "Storefront design",
+    "intro": "Review saved revisions before publishing changes to your shop.",
+    "created": "Created",
+    "status": "Status",
+    "actions": "Actions",
+    "empty": "No design drafts yet.",
+    "draft": "Draft",
+    "published": "Published",
+    "previous": "Previously published",
+    "preview": "Preview",
+    "previewRevision": "Preview revision {number}, saved {date}",
+    "previewRegion": "Storefront preview",
+    "publish": "Publish",
+    "restore": "Restore as draft",
+    "publishTitle": "Publish this draft?",
+    "publishText": "This revision will replace the published home page. The previous revision remains available to restore.",
+    "restoreTitle": "Restore this revision as a draft?",
+    "restoreText": "This creates a new draft. Your published shop stays unchanged until you publish it.",
+    "publishedDone": "Storefront published.",
+    "restoredDone": "Revision restored as a new draft.",
+    "conflict": "The storefront changed. Select a revision to refresh its preview and review it again.",
+    "unsupported": "This revision cannot be previewed with the available components.",
+    "inStock": "In stock",
+    "lowStock": "Few left",
+    "soldOut": "Sold out",
+    "imageSoon": "Photo coming soon",
+    "emptyProducts": "No products in this collection.",
+    "shopCta": "Shop the collection"
   }
 }

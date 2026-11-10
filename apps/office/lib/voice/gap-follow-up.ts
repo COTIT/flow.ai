@@ -82,6 +82,7 @@ export const ROUTE_SEGMENTS = new Set([
   "settings",
   "shifts",
   "stock",
+  "storefront",
   "supply",
   "till",
   "transfers",

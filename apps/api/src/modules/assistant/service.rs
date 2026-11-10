@@ -427,6 +427,8 @@ pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
         .as_ref()
         .map_err(|_| AppError::Internal("assistant operation inventory failed".into()))?;
     if path.contains("/assistant/")
+        || path.contains("/storefront/pages/")
+        || path.ends_with("/storefront/design-capabilities")
         || path.contains("/app-keys") && method != "DELETE"
         || path.contains("/credentials")
         || path.contains("/password")
@@ -538,6 +540,15 @@ mod tests {
     }
     #[test]
     fn secret_controls_never_become_business_operations() {
+        assert!(
+            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/publish").is_err()
+        );
+        assert!(
+            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/revisions").is_err()
+        );
+        assert!(
+            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/restore").is_err()
+        );
         assert!(resolve_operation("POST", "/v1/workspace/w/assistant/actions").is_err());
         assert!(resolve_operation("POST", "/v1/workspace/w/app-keys").is_err());
     }

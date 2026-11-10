@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO storefronts(workspace_id) VALUES($1) ON CONFLICT(workspace_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "587b98e96c51febfbfbbde827024eaab451bc43f5ba0e83784e675fceb22d60b"
+}

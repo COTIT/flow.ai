@@ -62,7 +62,8 @@
     "members": "Wanachama",
     "categories": "Makundi",
     "voice": "Msaidizi wa sauti",
-    "scheduledReports": "Ripoti zilizopangwa"
+    "scheduledReports": "Ripoti zilizopangwa",
+    "storefront": "Duka"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -1766,5 +1767,35 @@
     "sameFarmer": "Hapana, mkulima huyo huyo",
     "rightFarmerKg": "Kg za mkulima mwingine",
     "send": "Tuma kwa idhini"
+  },
+  "storefront": {
+    "title": "Muundo wa duka",
+    "intro": "Kagua matoleo yaliyohifadhiwa kabla ya kuchapisha mabadiliko kwenye duka lako.",
+    "created": "Imeundwa",
+    "status": "Hali",
+    "actions": "Vitendo",
+    "empty": "Bado hakuna rasimu za muundo.",
+    "draft": "Rasimu",
+    "published": "Imechapishwa",
+    "previous": "Ilichapishwa awali",
+    "preview": "Hakiki",
+    "previewRevision": "Hakiki toleo {number}, lililohifadhiwa {date}",
+    "previewRegion": "Hakiki ya duka",
+    "publish": "Chapisha",
+    "restore": "Rejesha kama rasimu",
+    "publishTitle": "Chapisha rasimu hii?",
+    "publishText": "Toleo hili litachukua nafasi ya ukurasa mkuu uliochapishwa. Toleo la awali litabaki kwa ajili ya kurejesha.",
+    "restoreTitle": "Rejesha toleo hili kama rasimu?",
+    "restoreText": "Hii inaunda rasimu mpya. Duka lililochapishwa halitabadilika hadi uichapishe.",
+    "publishedDone": "Duka limechapishwa.",
+    "restoredDone": "Toleo limerejeshwa kama rasimu mpya.",
+    "conflict": "Duka limebadilika. Chagua toleo ili kuonyesha hakiki mpya na ulikague tena.",
+    "unsupported": "Toleo hili haliwezi kuonyeshwa kwa vipengele vinavyopatikana.",
+    "inStock": "Ipo dukani",
+    "lowStock": "Zimebaki chache",
+    "soldOut": "Imeisha",
+    "imageSoon": "Picha inakuja",
+    "emptyProducts": "Hakuna bidhaa kwenye mkusanyiko huu.",
+    "shopCta": "Nunua kwenye mkusanyiko"
   }
 }

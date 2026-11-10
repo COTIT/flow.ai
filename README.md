@@ -49,6 +49,17 @@ Rust handlers ──▶ apps/api/openapi.json ──▶ orval ──▶ packages
 - In an app: `lib/api.ts` calls `configureApi(...)` once; then use the hooks, e.g.
   `import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"` and types from `@genesy/api-client/model`.
 
+## Storefront design foundation
+
+Owners and workspace admins review API-authored home-page revisions in Office at
+`/settings/storefront`. Drafts stay private until explicitly published. The Shop's
+server-only `SHOP_DESIGN_ENABLED` flag defaults to `false`; enabling it renders a
+published `hero`/`product_grid` document and retains native batch lookup. Existing
+catalog caching and commerce routes keep their contracts.
+
+See [Genesy Flow handoff](docs/genesy-flow/CURRENT_HANDOFF.md) for the test fixture, API workflow,
+architecture, validation evidence, rollout/rollback and proposed Phases 2–6.
+
 ## Office voice assistant
 
 Open `/voice` in Office for ElevenLabs voice or text conversations. Voice also accepts typed messages and temporary JPEG, PNG, WebP and PDF references. The conversation persists across Office navigation. Rust enforces the signed-in staff member's current permissions and workspace on every operation. Credential entry and physical verification open secure native forms after the conversation ends.

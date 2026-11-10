@@ -166,6 +166,7 @@ it("signs the follow-up cookie and turns record paths into route patterns", asyn
   expect(await readGapCookie("junk")).toBeUndefined()
   expect(routePattern(`/orders/${gapId}`)).toBe("/orders/[id]")
   expect(routePattern("/settings/app-keys")).toBe("/settings/app-keys")
+  expect(routePattern("/settings/storefront")).toBe("/settings/storefront")
   expect(routePattern("/invoices/1042")).toBe("/invoices/[id]")
   expect(routePattern("/products/afm-coffee-250g")).toBe("/products/[id]")
   expect(routePattern("/voice")).toBeUndefined()
