@@ -358,3 +358,66 @@ test("a member without the send right sees no Send", async ({ page, api }) => {
   await expect(page.getByRole("button", { name: "Send", exact: true })).toHaveCount(0)
   await expect(page.getByRole("button", { name: "Duplicate" })).toHaveCount(0)
 })
+
+test("gateway receipts cannot be voided; credit-note refunds preserve exact amount and idempotency", async ({
+  page,
+  api,
+}) => {
+  const source = "019a676a-599c-7000-8000-000000000001"
+  invoiceApi(
+    api,
+    invoice({
+      is_credit: true,
+      status: "pending",
+      invoice_nr: "2026-0009",
+      allowed_actions: ["mark_as_credited"],
+      relationships: {
+        currency: eur,
+        relation,
+        payments: [
+          {
+            id: source,
+            date: "2026-11-01T00:00:00Z",
+            provider: "globadyme",
+            provider_id: "txn-1",
+            payment_method: "provider",
+            amount_minor: 1250,
+          },
+        ],
+        order: null,
+      },
+    })
+  )
+  api.on("POST", "/workspace/:ws/invoices/:id/refunds", () => ({
+    status: 201,
+    body: { data: { refund_id: "refund-1", status: "creating" } },
+  }))
+  await page.goto("/invoices/inv-1")
+  await expect(
+    page
+      .getByRole("region", { name: "Payments" })
+      .getByRole("button", { name: "Void", exact: true })
+  ).toHaveCount(0)
+  await page
+    .getByRole("button", { name: "Refund payment", exact: true })
+    .click()
+  const dialog = page.getByRole("dialog", { name: "Refund payment" })
+  await dialog.getByLabel("Source payment ID").fill(source)
+  await dialog.getByLabel("Amount (EUR)").fill("12.50")
+  await dialog
+    .getByRole("button", { name: "Refund payment", exact: true })
+    .click()
+  await expect(
+    page.getByText("Refund submitted. Check Payments for confirmation.")
+  ).toBeVisible()
+  const call = api.callsTo("POST", "/workspace/:ws/invoices/:id/refunds")[0]!
+  expect(call.body).toEqual({ payment_id: source, amount: "12.50" })
+  expect(call.headers["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/)
+  await expectFits(page)
+})
+
+test("legacy provider receipts retain manual void control", async ({ page, api }) => {
+  invoiceApi(api, invoice({ status: "partially_paid", invoice_nr: "2026-0007", allowed_actions: ["pay"], relationships: { currency: eur, relation, payments: [{ id: "legacy-1", date: "2026-11-01T00:00:00Z", provider: "mollie", provider_id: "legacy-ref", payment_method: "manual", amount_minor: 1250 }], order: null } }))
+  await page.goto("/invoices/inv-1")
+  await expect(page.getByRole("region", { name: "Payments" }).getByRole("button", { name: "Void", exact: true })).toBeVisible()
+})

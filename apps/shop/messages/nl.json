@@ -168,6 +168,10 @@
       "unavailable": {
         "title": "Betalen kon niet starten",
         "body": "Er is niets afgeschreven. Probeer het over een minuut opnieuw."
+      },
+      "pending_review": {
+        "title": "Betaling wacht op controle",
+        "body": "De aanbieder heeft deze betaling nog niet bevestigd. Wacht of neem contact met ons op voordat je opnieuw betaalt."
       }
     },
     "cancelledBody": "De artikelen zijn terug op de plank. Je kunt ze opnieuw bestellen.",
@@ -176,7 +180,7 @@
     "retry": "Opnieuw proberen",
     "waitingLong": {
       "title": "We wachten nog op de betaling",
-      "body": "De betaaldienst heeft hem nog niet bevestigd. Heb je betaald? Controleer het over een minuut opnieuw. Zo niet, gebruik Nu betalen hieronder.",
+      "body": "De aanbieder heeft de betaling nog niet bevestigd. Controleer over een minuut opnieuw of neem contact met ons op voordat je opnieuw betaalt.",
       "action": "Opnieuw controleren"
     },
     "loadFailed": {

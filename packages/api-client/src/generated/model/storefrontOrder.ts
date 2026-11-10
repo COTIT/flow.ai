@@ -25,6 +25,16 @@ export interface StorefrontOrder {
   number: string;
   /** @nullable */
   paid_at: string | null;
+  /**
+     * Gateway evidence needs operator review; never initiate another charge.
+     * @nullable
+     */
+  payment_attention?: boolean | null;
+  /**
+     * Bound gateway submission state; absent before first collection.
+     * @nullable
+     */
+  payment_status?: string | null;
   /** `awaiting_payment`, `open` (paid), `cancelled` (expired), `completed`, ... */
   status: string;
   /** Minor units, excl VAT. */

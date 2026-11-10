@@ -43,6 +43,9 @@ pub use http::{
     rate_limit::RateLimit,
     slots::{Slots, WorkspaceSlots},
 };
+pub use modules::gateway;
+pub use modules::invoice_payments;
+pub use modules::invoices::gateway as invoice_gateway;
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
 /// and keeps junk bodies (axum default 2 MB) off the parser.
@@ -84,7 +87,7 @@ pub struct AppState {
     /// HTML to PDF (Gotenberg); None answers PDF routes with 503.
     pub pdf: Option<pdf::Renderer>,
     /// Web payments (`PAYMENTS_PROVIDER`); None answers payment intents with 503.
-    pub payments: Option<payments::Provider>,
+    pub payments: payments::Payments,
     /// Most web orders one workspace may have awaiting payment (`CHECKOUT_HOLD_MAX`).
     pub checkout_hold_max: i64,
     /// `SIGNUP_ENABLED`: `POST /v1/create-workspace` answers; off = 404.

@@ -90,6 +90,10 @@ export default async function OrderPage({ params }: Props) {
               action={
                 <PayButton
                   orderId={order.id}
+                  pendingReview={
+                    order.payment_attention === true ||
+                    order.payment_status === "unknown"
+                  }
                   label={t("payAmount", { amount: money(order.total) })}
                 />
               }

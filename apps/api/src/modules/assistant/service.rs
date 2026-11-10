@@ -342,12 +342,28 @@ pub fn request_hash(
 
 /// Reviewed GET previews can create PDF/file effects; ordinary reads need no claim.
 pub fn reviewable_method(method: &str, operation: &str) -> bool {
+    if gateway_financial_operation(operation) {
+        return false;
+    }
     matches!(method, "POST" | "PUT" | "PATCH" | "DELETE")
         || method == "GET"
             && matches!(
                 operation,
                 "invoices_preview" | "pdf_templates_preview" | "messages_profile_test"
             )
+}
+
+/// Gateway money, reconciliation and account administration require the native Office UI.
+fn gateway_financial_operation(operation: &str) -> bool {
+    matches!(
+        operation,
+        "invoices_gateway_create"
+            | "invoices_gateway_refund"
+            | "payments_gateway_refresh"
+            | "payments_gateway_resolve"
+            | "payments_globadyme_callback_retire"
+            | "payments_globadyme_webhook"
+    )
 }
 
 /// Bind exact raw multipart bytes and MIME boundary, domain-separated from JSON drafts.
@@ -395,6 +411,7 @@ fn operations() -> &'static Result<Vec<Operation>, String> {
                             .as_array()
                             .is_some_and(|ss| ss.iter().any(|s| s.get("bearer").is_some()))
                             && let Some(id) = op["operationId"].as_str()
+                            && !gateway_financial_operation(id)
                         {
                             ops.push(Operation {
                                 method: method.to_ascii_uppercase(),
@@ -551,6 +568,54 @@ mod tests {
         );
         assert!(resolve_operation("POST", "/v1/workspace/w/assistant/actions").is_err());
         assert!(resolve_operation("POST", "/v1/workspace/w/app-keys").is_err());
+    }
+    #[test]
+    fn gateway_money_and_administration_never_enter_assistant_inventory() {
+        for (operation, path) in [
+            (
+                "invoices_gateway_create",
+                "/v1/invoices/fetch-from-hashed/token/payment",
+            ),
+            (
+                "invoices_gateway_refund",
+                "/v1/workspace/w/invoices/i/refunds",
+            ),
+            (
+                "payments_gateway_refresh",
+                "/v1/workspace/w/payments/p/refresh",
+            ),
+            (
+                "payments_gateway_resolve",
+                "/v1/workspace/w/payments/p/resolve",
+            ),
+            (
+                "payments_globadyme_callback_retire",
+                "/v1/workspace/w/payments/globadyme/sandbox/callback-secret/retire",
+            ),
+            (
+                "payments_globadyme_webhook",
+                "/v1/payments/webhooks/globadyme/w/sandbox",
+            ),
+        ] {
+            assert!(!reviewable_method("POST", operation), "{operation}");
+            assert!(resolve_operation("POST", path).is_err(), "{operation}");
+        }
+        assert_eq!(
+            resolve_operation("GET", "/v1/workspace/w/payments").unwrap(),
+            "payments_gateway_list"
+        );
+        assert_eq!(
+            resolve_operation("GET", "/v1/workspace/w/payments/p").unwrap(),
+            "payments_gateway_get"
+        );
+        assert_eq!(
+            resolve_operation("GET", "/v1/workspace/w/invoices/i/gateway").unwrap(),
+            "invoices_gateway_inspect"
+        );
+        assert!(
+            reviewable_method("POST", "orders_refund"),
+            "legacy refunds retain their approved native review"
+        );
     }
 }
 

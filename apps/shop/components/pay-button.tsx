@@ -12,10 +12,12 @@ import { payOrder, type PayState } from "@/app/actions"
 export function PayButton({
   orderId,
   label,
+  pendingReview = false,
 }: {
   orderId: string
   /** "Pay $48.50": the order's total, from the server. */
   label: string
+  pendingReview?: boolean
 }) {
   const t = useTranslations("order")
   const [state, action, pending] = React.useActionState<PayState, FormData>(
@@ -24,6 +26,16 @@ export function PayButton({
   )
   const failed =
     state.problem === "provider_down" || state.problem === "unavailable"
+  if (pendingReview || state.problem === "pending_review")
+    return (
+      <Notice
+        live={false}
+        variant="warning"
+        title={t("problem.pending_review.title")}
+      >
+        {t("problem.pending_review.body")}
+      </Notice>
+    )
   return (
     <form action={action} className="flex flex-col items-start gap-3">
       <input type="hidden" name="order" value={orderId} />

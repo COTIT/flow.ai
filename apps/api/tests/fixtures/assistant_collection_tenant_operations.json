@@ -59,6 +59,7 @@
     "orders_list",
     "orders_sales_compare",
     "orders_top_customers",
+    "payments_gateway_list",
     "price_corrections_create",
     "product_brands_create",
     "products_create",

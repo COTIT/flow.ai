@@ -168,6 +168,10 @@
       "unavailable": {
         "title": "Payment couldn't start",
         "body": "Nothing was charged. Please try again in a minute."
+      },
+      "pending_review": {
+        "title": "Payment pending review",
+        "body": "The provider has not confirmed this payment. Please wait or contact us before trying another payment."
       }
     },
     "cancelledBody": "The items went back on the shelf. You can order them again.",
@@ -176,7 +180,7 @@
     "retry": "Try again",
     "waitingLong": {
       "title": "Still waiting for the payment",
-      "body": "The payment provider hasn't confirmed it yet. If you paid, check again in a minute; if not, use Pay now below.",
+      "body": "The provider has not confirmed payment yet. Check again in a minute or contact us before trying another payment.",
       "action": "Check again"
     },
     "loadFailed": {

@@ -155,3 +155,8 @@ fn every_file_is_a_module() {
         "declare in tests/api/main.rs: {missing:?}"
     );
 }
+
+mod gateway_accounts;
+mod invoice_gateway;
+
+mod gateway_recovery;

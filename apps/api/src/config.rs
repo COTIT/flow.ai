@@ -245,9 +245,13 @@ impl Config {
         let skip_boot_migrations = flag(&get, "SKIP_BOOT_MIGRATIONS")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
         let release = !cfg!(debug_assertions);
-        let stripe = match payments_provider.as_deref().map(str::trim) {
-            Some("stripe") => Some(stripe_settings(&get, release)?),
-            _ => None,
+        let stripe = if payments_provider.as_deref().map(str::trim) == Some("stripe")
+            || get("STRIPE_SECRET_KEY").is_some_and(|v| !v.is_empty())
+            || get("STRIPE_SECRET_KEY_FILE").is_some_and(|v| !v.is_empty())
+        {
+            Some(stripe_settings(&get, release)?)
+        } else {
+            None
         };
         crate::payments::select(payments_provider.as_deref(), release, stripe.clone())?;
         let credentials_key = get("CREDENTIALS_KEY")
@@ -983,13 +987,23 @@ mod tests {
             assert!(err.starts_with(var), "{var}={bad}: {err}");
             assert!(!err.contains("abc"), "value echoed: {err}");
         }
-        // Not chosen: the settings are not read at all.
-        let none = Config::from_lookup(lookup(&[
+        let none = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")])).unwrap();
+        assert!(none.stripe.is_none());
+        // Historical obligations retain Stripe even when it is no longer the default.
+        let retained = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("STRIPE_SECRET_KEY", "sk_test_abc"),
+            ("STRIPE_WEBHOOK_SECRET", "whsec_abc"),
+        ]))
+        .unwrap();
+        assert!(retained.stripe.is_some());
+        let err = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
             ("STRIPE_SECRET_KEY", "nonsense"),
         ]))
-        .unwrap();
-        assert!(none.stripe.is_none());
+        .unwrap_err();
+        assert!(err.starts_with("STRIPE_SECRET_KEY"), "{err}");
+        assert!(!err.contains("nonsense"), "value echoed: {err}");
     }
 
     #[test]

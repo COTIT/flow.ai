@@ -9004,7 +9004,9 @@
       "boundary": "workspace",
       "allOf": ["order.delete"],
       "anyOf": [],
-      "predicates": [],
+      "predicates": [
+        "Globadyme refunds reject assistant execution at runtime; only legacy-provider refunds retain approved assistant review."
+      ],
       "authority": [
         "apps/api/src/modules/orders/handlers.rs#refund",
         "apps/api/src/modules/orders/service.rs",
@@ -9014,7 +9016,10 @@
         "apps/api/src/modules/orders/handlers.rs",
         "apps/api/src/modules/orders/payments.rs",
         "apps/api/src/modules/assistant/repo.rs",
-        "apps/api/src/http/assistant.rs"
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/gateway/accounts.rs"
       ],
       "roleAnyOf": [],
       "requirements": [
@@ -16112,6 +16117,365 @@
     },
     "effects": [],
     "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/payments",
+    "disposition": "execute",
+    "reason": "Staff read; backend checks the payment owner and its exact native permission.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": ["invoice.list", "order.list"],
+      "predicates": [
+        "Server returns only invoice-owned operations with invoice.list or order-owned operations with order.list; no cross-owner access."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#list",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/payments/{payment}",
+    "disposition": "execute",
+    "reason": "Staff read; backend checks the payment owner and its exact native permission.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": ["invoice.view", "order.view"],
+      "predicates": [
+        "Server checks invoice.view for invoice-owned operations and order.view for order-owned operations, in the current workspace."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#detail",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_refresh": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/payments/{payment}/refresh",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": ["invoice.view", "order.view"],
+      "predicates": [
+        "Server checks invoice.view for invoice-owned operations and order.view for order-owned operations, in the current workspace.",
+        "Reconciliation may apply provider financial receipts; never an autonomous assistant capability."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#refresh",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/payments/{payment}/resolve",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [
+        "Unknown gateway submissions or open collections with affirmative closed/no-charge evidence only; audited reason and provider evidence required; cannot mark a collection paid."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#resolve",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_globadyme_callback_retire": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/payments/globadyme/{environment}/callback-secret/retire",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [
+        "Explicit audited retirement of the previous environment callback secret."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#retire",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "credential"],
+    "risk": "secret",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_globadyme_webhook": {
+    "method": "POST",
+    "path": "/payments/webhooks/globadyme/{workspace}/{environment}",
+    "disposition": "external",
+    "reason": "Signed provider callback scoped to workspace and immutable account environment; never a staff assistant tool.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#callback",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_create": {
+    "method": "POST",
+    "path": "/invoices/fetch-from-hashed/{token}/payment",
+    "disposition": "external",
+    "reason": "Public token-scoped payer checkout; monetary amount is server-owned and provider credentials remain private.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#create_payment",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_status": {
+    "method": "GET",
+    "path": "/invoices/fetch-from-hashed/{token}/payment",
+    "disposition": "external",
+    "reason": "Public token-scoped authoritative payment reconciliation; never exposed as a staff read tool.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#payment_status",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_qr": {
+    "method": "GET",
+    "path": "/invoices/fetch-from-hashed/{token}/payment/qr",
+    "disposition": "external",
+    "reason": "Public token-scoped provider QR image proxy; never a staff assistant tool.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#payment_qr",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_inspect": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/invoices/{invoice}/gateway",
+    "disposition": "execute",
+    "reason": "Staff read; backend checks the payment owner and its exact native permission.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["invoice.view"],
+      "anyOf": [],
+      "predicates": [
+        "Invoice and operation ownership must match the active workspace."
+      ],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#inspect",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_refund": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/invoices/{invoice}/refunds",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["invoice.credit"],
+      "anyOf": [],
+      "predicates": [
+        "Source-linked pending credit note, exact decimal balance and Idempotency-Key required; native UI only."
+      ],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#refund",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
     "handoff": null,
     "reconciliation": [],
     "retry": {

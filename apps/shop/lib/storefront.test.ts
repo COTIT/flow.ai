@@ -235,6 +235,15 @@ describe("getOrder", () => {
 })
 
 describe("startPayment", () => {
+  it.each([
+    { status: "unknown", checkout_url: null },
+    { status: "creating", checkout_url: null },
+    { status: "open", checkout_url: null },
+    { status: "open", checkout_url: "https://pay.example/1", attention: true },
+  ])("keeps uncertain payment %j under review", async (payment) => {
+    api.storefrontOrdersPayment.mockResolvedValue({ data: { payment_id: "x", ...payment } })
+    expect(await startPayment(ORDER_ID, "https://shop.test/orders/1")).toEqual({ ok: false, kind: "pending_review" })
+  })
   it("returns where to send the customer, coming back to the order page", async () => {
     api.storefrontOrdersPayment.mockResolvedValue({
       data: {

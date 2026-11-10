@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, status, checkout_url FROM order_payments\n         WHERE workspace_id = $1 AND order_id = $2 AND kind = 'payment'\n           AND status IN ('creating', 'open')\n         FOR UPDATE",
+  "query": "SELECT id, provider, status, checkout_url FROM order_payments\n         WHERE workspace_id = $1 AND order_id = $2 AND kind = 'payment'\n           AND status IN ('creating', 'open', 'unknown')\n         FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,17 @@
       },
       {
         "ordinal": 1,
+        "name": "provider",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "status",
         "type_info": "Text",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "checkout_url",
         "type_info": "Text",
         "origin": {
@@ -46,8 +57,9 @@
     "nullable": [
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "611cc9fe75d5acb0a9c87da12e5b86fa940309ec09ecee2ef1a987fc0bcc1e9f"
+  "hash": "331a5e4e2efb8d7232413a8ee39af72bb3b12318a3aa7b6d59dc19f7f2df9240"
 }

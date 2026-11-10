@@ -158,3 +158,7 @@ Unvoided, by date then entry:
   - order status (F12);
   - the cash register (F15).
 - Activity log and workflows (batch 7).
+
+## Online collection and gateway refunds
+
+[Globadyme hosted payments](globadyme.md) adds token-authorized hosted collection and QR, plus exact full/partial refunds through sent source-linked credit notes. Confirmed gateway receipts cannot be voided; pending refund reservations protect manual settlement/mark-as-credited/void operations. System receipts have a nullable user. Ordinary manual payments remain permitted while a collection is pending; a later overpayment books once and requires attention.

@@ -34,7 +34,7 @@ async fn world_with(pool: PgPool, tune: impl FnOnce(&mut genesy_360_api::AppStat
     let mut api = Api::new(pool.clone(), "/orders").await;
     let fake = Fake::default();
     let mut state = common::state(pool.clone(), Mailer::capture().0);
-    state.payments = Some(Provider::Fake(fake.clone()));
+    state.payments = Provider::Fake(fake.clone()).into();
     api.app = build_app(state);
     let vat = api
         .with_base("/settings/vat-groups")
@@ -61,7 +61,7 @@ async fn world_with(pool: PgPool, tune: impl FnOnce(&mut genesy_360_api::AppStat
     let key = key_for(&api, &["catalog:read", "checkout:write"]).await;
     // Tuned limits apply from here on, on a fresh app.
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = Some(Provider::Fake(fake.clone()));
+    state.payments = Provider::Fake(fake.clone()).into();
     tune(&mut state);
     api.app = build_app(state);
     W {
@@ -181,7 +181,7 @@ async fn run_jobs(w: &W, kinds_: &[&str]) {
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
-        payments: Some(Provider::Fake(w.fake.clone())),
+        payments: Provider::Fake(w.fake.clone()).into(),
     };
     while let Some(job) = repo::claim(&w.api.pool, kinds_, 100, Duration::from_secs(60))
         .await
@@ -428,7 +428,7 @@ async fn a_provider_outage_leaves_the_intent_to_retry_with_the_same_key(pool: Pg
 
 #[sqlx::test]
 async fn without_a_provider_payment_is_unavailable(pool: PgPool) {
-    let w = world_with(pool, |s| s.payments = None).await;
+    let w = world_with(pool, |s| s.payments = Default::default()).await;
     let id = ordered(&w, "1").await;
     let (s, res) = pay(&w, &id, "https://shop.example.com/thanks").await;
     assert_eq!(

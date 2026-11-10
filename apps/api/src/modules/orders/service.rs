@@ -1117,11 +1117,23 @@ async fn book_paid(
     let Some((provider, provider_id)) = paid.filter(|_| net > 0) else {
         return Ok(());
     };
+    let (receipt_id, provider_id, actor) = if provider == "globadyme" {
+        let sources:Vec<(Uuid,Option<String>)>=sqlx::query_as("SELECT id,captured_transaction_id FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND status='paid' AND provider='globadyme' AND NOT attention ORDER BY id")
+            .bind(workspace_id).bind(o.id).fetch_all(&mut *conn).await?;
+        if sources.len() != 1 || sources[0].1.is_none() {
+            return Err(AppError::Conflict(
+                "Payment requires reconciliation before invoicing.",
+            ));
+        }
+        (sources[0].0, sources[0].1.clone(), None)
+    } else {
+        (Uuid::now_v7(), provider_id, Some(user_id))
+    };
     let description = format!("Paid online for order {}", o.number);
     let row = invoice_payments::repo::NewPayment {
-        id: Uuid::now_v7(),
+        id: receipt_id,
         invoice_id,
-        user_id,
+        user_id: actor,
         date: o.paid_at.unwrap_or_else(chrono::Utc::now).date_naive(),
         amount: net,
         description: Some(&description),
@@ -1209,6 +1221,9 @@ pub async fn invoice(
         key,
         async |conn, o, lines| {
             check(OrderAction::Invoice, &o, &lines, Paid::default())?;
+            let pending_gateway_refund:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND provider='globadyme' AND kind='refund' AND status IN ('creating','open','unknown'))")
+                .bind(workspace_id).bind(o.id).fetch_one(&mut *conn).await?;
+            if pending_gateway_refund{return Err(AppError::Conflict("Resolve pending gateway refunds before creating an invoice."));}
             let input = invoice_input(&o, &lines)?;
             let invoice_id =
                 invoices::service::create_in(conn, workspace_id, user_id, input).await?;

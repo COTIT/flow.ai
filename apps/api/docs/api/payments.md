@@ -67,3 +67,7 @@ A provider is one `Provider` variant plus one file in `src/payments/`. It must:
 7. Widen the `provider` CHECKs of `order_payments` and `payment_webhook_inbox` in its own migration (Stripe's: `payments_stripe`, which also allows ids up to 255 characters), and add its name to `payments::select`.
 
 Tests it must pass (run the existing payment suites with the provider faked at its HTTP edge): the same webhook 5× gives one paid order; a "paid" claim the provider doesn't confirm changes nothing; a mismatched amount is rejected; a request killed after the provider call is recovered once by the sweep; a late payment re-holds stock or is refunded exactly once; refunds respect what is left; an invoice books paid − refunded.
+
+## Globadyme accounts and unknown submissions
+
+See [Globadyme hosted payments](globadyme.md) for workspace account selection, callback signatures, one-shot submission recovery, exact transaction evidence, QR and settlement/chargeback inspection. Existing Stripe/fake retry behavior remains provider-specific. An unknown Globadyme submission stays live and reserved; never repeat its financial POST.

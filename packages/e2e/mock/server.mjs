@@ -25,6 +25,8 @@ import {
   LONG_NAME,
   NO_PROVIDER_EMAIL,
   PROVIDER_DOWN_EMAIL,
+  UNKNOWN_PAYMENT_EMAIL,
+  EXISTING_UNKNOWN_PAYMENT_EMAIL,
   PRODUCT,
   REFUNDED_EMAIL,
   SECRET_BODY,
@@ -428,6 +430,9 @@ const view = ({
   expires_at,
   paid_at,
   lines,
+  unknownPayment,
+  paymentAttempts,
+  paymentUnderReview,
 }) => ({
   id,
   number,
@@ -440,6 +445,8 @@ const view = ({
   expires_at,
   paid_at,
   lines,
+  ...(unknownPayment ? { payment_attempts: paymentAttempts } : {}),
+  ...(paymentUnderReview || (unknownPayment && paymentAttempts > 0) ? { payment_status: "unknown", payment_attention: true } : {}),
 })
 
 const readJson = (req) =>
@@ -509,6 +516,9 @@ function placeOrder(body, key) {
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
     noProvider: email === NO_PROVIDER_EMAIL,
     providerDown: email === PROVIDER_DOWN_EMAIL,
+    unknownPayment: email === UNKNOWN_PAYMENT_EMAIL || email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
+    paymentUnderReview: email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
+    paymentAttempts: 0,
     latePayment: email === LATE_PAYMENT_EMAIL,
     cancelPayment: email === CANCEL_PAYMENT_EMAIL,
     reads: 0,
@@ -608,6 +618,10 @@ const handler = async (req, res) => {
       return send(res, 503, { message: "payment provider unavailable" })
     if (order.status !== "awaiting_payment")
       return send(res, 409, { message: "conflict" })
+    if (order.unknownPayment) {
+      order.paymentAttempts++
+      return send(res, 200, { data: { payment_id: `pay_${order.id}`, status: "unknown", checkout_url: null, attention: true } })
+    }
     order.redirect = (await readJson(req)).redirect_url
     return send(res, 200, {
       data: {

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl"
 import {
   Archive,
   Calculator,
+  CreditCard,
   ChevronRight,
   FileText,
   Globe,
@@ -104,6 +105,12 @@ const items: Item[] = [
     icon: FileText,
   },
   {
+    href: "/payments",
+    match: "/payments",
+    label: "nav.payments",
+    icon: CreditCard,
+  },
+  {
     href: "/lots",
     match: "/lots",
     label: "nav.lots",
@@ -142,6 +149,12 @@ const items: Item[] = [
     match: "/settings/app-keys",
     label: "nav.appKeys",
     icon: KeyRound,
+  },
+  {
+    href: "/settings/payments",
+    match: "/settings/payments",
+    label: "nav.paymentSettings",
+    icon: CreditCard,
   },
   {
     href: "/settings/webhooks",

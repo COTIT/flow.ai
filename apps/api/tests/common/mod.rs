@@ -73,7 +73,7 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         assistant_bridge_secret: None,
         files: Some(genesy_360_api::storage::Store::memory()),
         pdf: None,
-        payments: None,
+        payments: Default::default(),
         checkout_hold_max: 500,
         signup_enabled: true,
     }

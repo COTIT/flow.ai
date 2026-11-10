@@ -150,6 +150,16 @@ pub async fn update(
     }
     // Settings row first: its lock queues same-workspace saves before any credential row.
     repo::merge(&mut *tx, workspace_id, user_id, &sections).await?;
+    crate::modules::gateway::accounts::sync(
+        state,
+        &mut tx,
+        workspace_id,
+        user_id,
+        &sections,
+        &input.credentials,
+        &mut clears,
+    )
+    .await?;
     for (path, key_id, sealed) in &sets {
         repo::put_credential(&mut *tx, workspace_id, path, key_id, sealed, user_id).await?;
     }

@@ -207,7 +207,12 @@ export type PaymentResult =
   | { ok: true; checkoutUrl: string }
   | {
       ok: false
-      kind: "no_provider" | "provider_down" | "not_payable" | "unavailable"
+      kind:
+        | "no_provider"
+        | "provider_down"
+        | "not_payable"
+        | "unavailable"
+        | "pending_review"
     }
 
 /** Starts (or resumes) the payment; the provider sends the customer back to `redirectUrl`. */
@@ -222,6 +227,12 @@ export async function startPayment(
       { redirect_url: redirectUrl },
       fresh(options())
     )
+    if (
+      (data as typeof data & { attention?: boolean }).attention ||
+      data.status === "unknown" ||
+      (!data.checkout_url && ["creating", "open"].includes(data.status))
+    )
+      return { ok: false, kind: "pending_review" }
     return data.checkout_url
       ? { ok: true, checkoutUrl: data.checkout_url }
       : { ok: false, kind: "not_payable" }

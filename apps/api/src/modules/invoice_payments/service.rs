@@ -87,15 +87,20 @@ pub async fn create(
     }
     let dp = dp(&mut tx, workspace_id, &main).await?;
     let amount = money::minor(input.amount, dp)?;
-    // The paid total stays within i64 (its SUM would fail otherwise).
-    main.paid_total
-        .checked_add(amount)
-        .ok_or_else(|| AppError::field("amount", OUT_OF_RANGE))?;
+    let collection: Option<i64> = sqlx::query_scalar(
+        "SELECT amount FROM order_payments WHERE workspace_id=$1 AND invoice_id=$2
+         AND provider='globadyme' AND kind='payment' AND status IN ('creating','open','unknown')",
+    )
+    .bind(workspace_id)
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    payment_headroom(main.paid_total, amount, collection.unwrap_or(0))?;
     let payment_id = Uuid::now_v7();
     let row = |method: &'static str, provider, settle_twin_id| NewPayment {
         id: payment_id,
         invoice_id: id,
-        user_id,
+        user_id: Some(user_id),
         date: input.date,
         amount,
         description: input.description.as_deref(),
@@ -122,7 +127,7 @@ pub async fn create(
             let twin = NewPayment {
                 id: twin_id,
                 invoice_id: note_id,
-                user_id,
+                user_id: Some(user_id),
                 date: input.date,
                 amount: -amount,
                 description: Some(&twin_text),
@@ -146,6 +151,14 @@ pub async fn create(
     Ok(answer)
 }
 
+/// Keep numeric room for a confirmed collection arriving after this manual payment.
+fn payment_headroom(paid: i64, amount: i64, collection: i64) -> Result<(), AppError> {
+    paid.checked_add(amount)
+        .and_then(|paid| paid.checked_add(collection))
+        .map(|_| ())
+        .ok_or_else(|| AppError::field("amount", OUT_OF_RANGE))
+}
+
 /// Laravel's settle checks plus the ones it lacked: a sent, pending credit note of the same
 /// relation, currency and decimals, and no more than both the note and the invoice have open
 /// (credit is never burned on an overpayment).
@@ -157,6 +170,8 @@ async fn check_settle(
     amount: i64,
     dp: u32,
 ) -> Result<(), AppError> {
+    refund_reservation(conn, workspace_id, main.id).await?;
+    refund_reservation(conn, workspace_id, note.id).await?;
     let fits = note.is_credit
         && note.invoice_number.is_some()
         && note.status == "pending"
@@ -198,6 +213,23 @@ pub async fn void(
     if !locked.contains_key(&id) || twin_invoice.is_some_and(|t| !locked.contains_key(&t)) {
         return Err(AppError::NotFound);
     }
+    for invoice in locked.keys() {
+        refund_reservation(&mut tx, workspace_id, *invoice).await?;
+    }
+    let gateway_receipt: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM invoice_payments WHERE workspace_id=$1 AND invoice_id=$2
+         AND id=$3 AND provider='globadyme' AND is_paid AND voided_at IS NULL)",
+    )
+    .bind(workspace_id)
+    .bind(id)
+    .bind(payment)
+    .fetch_one(&mut *tx)
+    .await?;
+    if gateway_receipt {
+        return Err(AppError::Conflict(
+            "Gateway receipts cannot be voided; request a refund.",
+        ));
+    }
     if repo::void(&mut tx, workspace_id, id, payment, user_id).await? == 0 {
         // Voided by a request that held the lock first.
         return Err(AppError::NotFound);
@@ -232,6 +264,7 @@ pub async fn mark_as_credited(
         .await?
         .ok_or(AppError::NotFound)?;
     invoices::approval::check(&mut tx, workspace_id, id, None).await?;
+    refund_reservation(&mut tx, workspace_id, id).await?;
     let answer = Answer::ok();
     if note.is_credit && note.status == "credited" {
         idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
@@ -258,7 +291,7 @@ pub async fn mark_as_credited(
             &[NewPayment {
                 id: Uuid::now_v7(),
                 invoice_id: id,
-                user_id,
+                user_id: Some(user_id),
                 date: input.date,
                 amount: open,
                 description: Some(input.description.as_deref().unwrap_or(REFUNDED)),
@@ -299,7 +332,7 @@ async fn lock_all(
 
 /// Recompute the invoice's paid total from its ledger rows and its status from that sum
 /// (`status` forces one, as mark-as-credited does).
-async fn rebalance(
+pub(crate) async fn rebalance(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     t: &Target,
@@ -320,6 +353,31 @@ async fn rebalance(
         )
     });
     repo::set_balance(conn, workspace_id, t.id, paid, status).await?;
+    Ok(())
+}
+
+/// Invoice locks serialize admission with gateway refunds; their reserved money cannot be
+/// consumed or reopened by a manual settle, mark-as-credited, or void.
+async fn refund_reservation(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice: Uuid,
+) -> Result<(), AppError> {
+    let reserved: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM order_payments p LEFT JOIN orders o
+         ON o.workspace_id=p.workspace_id AND o.id=p.order_id WHERE p.workspace_id=$1
+         AND p.provider='globadyme' AND p.kind='refund' AND p.status IN ('creating','open','unknown')
+         AND (p.invoice_id=$2 OR p.credit_note_id=$2 OR o.invoice_id=$2))",
+    )
+    .bind(workspace_id)
+    .bind(invoice)
+    .fetch_one(conn)
+    .await?;
+    if reserved {
+        return Err(AppError::Conflict(
+            "A gateway refund is still pending for this invoice.",
+        ));
+    }
     Ok(())
 }
 
@@ -345,4 +403,17 @@ fn number(t: &Target) -> String {
 
 fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn manual_payments_leave_numeric_room_for_a_late_collection() {
+        assert!(payment_headroom(1_000, 1_000, 1_000).is_ok());
+        assert!(payment_headroom(i64::MAX - 100, 50, 50).is_ok());
+        assert!(payment_headroom(i64::MAX - 100, 50, 51).is_err());
+        assert!(payment_headroom(i64::MAX, 1, 0).is_err());
+    }
 }

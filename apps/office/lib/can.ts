@@ -24,7 +24,12 @@ export function useRights() {
     may: (name: string) =>
       Boolean(
         granted?.some((p) =>
-          [name, "workspace_admin", "workspace_owner"].includes(p)
+          [
+            name,
+            "workspace_admin",
+            "workspace_owner",
+            ...(name === "payment.read" ? ["invoice.list", "order.list"] : []),
+          ].includes(p)
         )
       ),
   }

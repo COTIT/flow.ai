@@ -641,6 +641,12 @@ pub struct StorefrontOrder {
     pub paid_at: Option<DateTime<Utc>>,
     /// What was ordered, in order.
     pub lines: Vec<StorefrontOrderLine>,
+    /// Bound gateway submission state; absent before first collection.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_status: Option<String>,
+    /// Gateway evidence needs operator review; never initiate another charge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_attention: Option<bool>,
 }
 
 /// One line of a web order, as the customer may see it.

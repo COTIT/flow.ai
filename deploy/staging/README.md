@@ -260,3 +260,9 @@ It:
 - checks that the API booted with fake payments.
 
 When it finishes, it removes its containers and volume, deletes only the images that were not there before, and runs `docker builder prune -af`. Other containers (`genesy-dev-pg`, `genesy-pg-*`) are never touched.
+
+## Globadyme verification
+
+Use a disposable staging database and the branch source for migration, SQLx, API and browser checks. Keep the live staging data out of test fixtures. Follow the normal backup/readiness deployment flow before exposing the branch; the migration refuses a destructive downgrade once gateway account or financial history exists. Application rollback requires schema compatibility, and financial data must never be restored over newer money activity.
+
+Workspace sandbox account setup and provider smoke checks are in [Globadyme hosted payments](../../apps/api/docs/api/globadyme.md). Production collection remains gated pending an official origin. No sandbox/live provider payment is proven by loopback tests alone.
