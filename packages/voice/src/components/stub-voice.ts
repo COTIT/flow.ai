@@ -29,6 +29,8 @@ export function stubVoice(overrides: Partial<VoiceContextValue> = {}): VoiceCont
     recoveredTasks: [],
     checkingRecovery: false,
     recoveredReview: false,
+    approvalHeld: false,
+    holdApproval: noop,
     refreshRecovery: later,
     restore: later,
     stopBatch: later,

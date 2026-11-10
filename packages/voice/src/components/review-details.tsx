@@ -259,7 +259,8 @@ export function ReviewHints() {
           {t("recoveredReviewHint")}
         </p>
       ) : null}
-      {voice.review?.confirmationPhrase && !voice.recoveredReview ? (
+      {/* A held approval is not offered by voice either. */}
+      {voice.review?.confirmationPhrase && !voice.recoveredReview && !voice.approvalHeld ? (
         <p className="text-sm">
           {t("spokenHint")}{" "}
           <strong className="font-semibold break-words">
@@ -292,7 +293,7 @@ export function ReviewButtons() {
       </Button>
       <Button
         className="min-h-11"
-        disabled={voice.busy}
+        disabled={voice.busy || voice.approvalHeld}
         onClick={() => void voice.confirm("approve")}
       >
         {t(voice.busy ? "working" : "approve")}

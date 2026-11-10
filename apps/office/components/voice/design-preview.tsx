@@ -119,6 +119,8 @@ export function VoiceDesignPreview() {
       recoveredTasks: [],
       checkingRecovery: false,
       recoveredReview: false,
+      approvalHeld: false,
+      holdApproval: () => undefined,
       progress: null,
       narration: "",
       steps:

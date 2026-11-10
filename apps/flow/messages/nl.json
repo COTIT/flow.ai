@@ -66,7 +66,22 @@
       "loggedOut": "Log opnieuw in om het voorbeeld te zien.",
       "page": "Pagina {page} van {last}",
       "previousPage": "Vorige",
-      "nextPage": "Volgende"
+      "nextPage": "Volgende",
+      "editPreviewTitle": "Voorgesteld ontwerp",
+      "editPreviewBadge": "Nog niet opgeslagen",
+      "editPreviewText": "Je startpagina als je goedkeurt. Tot dan wordt niets opgeslagen of gepubliceerd.",
+      "restorePreviewTitle": "Versie om terug te zetten",
+      "restorePreviewBadge": "Wordt het concept",
+      "restorePreviewText": "Dit maakt een nieuw concept. Je gepubliceerde winkel blijft ongewijzigd tot je publiceert.",
+      "publishPreviewTitle": "Versie om te publiceren",
+      "publishPreviewBadge": "Wordt gepubliceerd",
+      "publishPreviewText": "Dit is precies de versie die gepubliceerd wordt.",
+      "proposalFrameTitle": "Voorbeeld van de voorgestelde winkel",
+      "previewLoading": "Voorbeeld wordt voorbereid",
+      "proposalConflict": "De winkelpagina is gewijzigd nadat deze controle was voorbereid.",
+      "proposalConflictText": "Goedkeuren staat uit voor deze controle. Annuleer en vraag het opnieuw: de assistent leest het nieuwe concept en bereidt een nieuwe controle voor.",
+      "proposalUnavailableText": "De wijzigingen hierboven kloppen nog steeds.",
+      "retry": "Opnieuw proberen"
     },
     "chat": {
       "storefront": "Webwinkel",
