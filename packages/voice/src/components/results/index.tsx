@@ -43,8 +43,10 @@ function useLabels() {
 }
 
 /** One row: a link to its Office page (new tab, like record links), or plain text without one. */
-function Row({ href, label, detail, end }: { href: string | null; label: string; detail?: ReactNode; end?: ReactNode }) {
+function Row({ href: raw, label, detail, end }: { href: string | null; label: string; detail?: ReactNode; end?: ReactNode }) {
   const { resolveHref } = useVoice()
+  // A host may refuse a destination (""): the row stays, without a link.
+  const href = raw ? resolveHref(raw) : ""
   const body = (
     <>
       <span className="flex min-w-0 flex-col">
@@ -62,7 +64,7 @@ function Row({ href, label, detail, end }: { href: string | null; label: string;
     <li>
       {href ? (
         <a
-          href={resolveHref(href)}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
           className={`${cls} transition-colors duration-100 hover:bg-(--hair) focus-visible:ring-2 focus-visible:ring-(--gold) focus-visible:outline-none motion-reduce:transition-none`}
@@ -102,7 +104,7 @@ function Records({ view }: { view: Of<"records"> }) {
           />
         ))}
       </ul>
-      {view.total > view.rows.length ? (
+      {view.total > view.rows.length && href(view.href) ? (
         <p className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           {t("results.showing", { shown: view.rows.length, total: view.total })}
           <a

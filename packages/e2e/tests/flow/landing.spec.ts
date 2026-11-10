@@ -12,13 +12,9 @@ test("Office's real answer reaches the landing through Flow's proxy", async ({
 }) => {
   // No page.route: the built proxy asks the mock standing in for Office (ready).
   await page.goto("/")
+  // Available: the conversation offers its start buttons (nothing starts by itself).
   await expect(
-    page.getByRole("status").filter({ hasText: "The assistant is available" })
-  ).toBeVisible()
-  await expect(
-    page.getByText(
-      "Conversations with the assistant arrive here in a later release."
-    )
+    page.getByRole("button", { name: "Use text instead", exact: true })
   ).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
@@ -39,6 +35,9 @@ test.describe("assistant switched off", () => {
         .filter({ hasText: "The assistant is turned off" })
     ).toBeVisible()
     await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Use text instead", exact: true })
+    ).toHaveCount(0)
   })
 
   test("switched on but not ready: says so and can check again", async ({
@@ -56,10 +55,13 @@ test.describe("assistant switched off", () => {
     await expect(
       page.getByRole("status").filter({ hasText: "The assistant is not ready" })
     ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Use text instead", exact: true })
+    ).toHaveCount(0)
     ready = true
     await page.getByRole("button", { name: "Try again" }).click()
     await expect(
-      page.getByRole("status").filter({ hasText: "The assistant is available" })
+      page.getByRole("button", { name: "Use text instead", exact: true })
     ).toBeVisible()
   })
 })

@@ -117,6 +117,8 @@ export default defineConfig({
       env: {
         API_URL: "http://127.0.0.1:9/v1",
         VOICE_UPSTREAM_URL: MOCK_ORIGIN,
+        // Never opened by a test: links only have to point at it.
+        OFFICE_PUBLIC_URL: "https://office.genesy.test",
       },
     },
   ],

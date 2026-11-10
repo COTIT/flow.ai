@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
     "@genesy/api-client",
     "@genesy/i18n",
     "@genesy/security",
+    "@genesy/voice",
   ],
   headers: async () => [{ source: "/:path*", headers: securityHeaders }],
   // The browser calls same-origin /v1 and Next forwards it: the backend sends no CORS headers.

@@ -1,5 +1,7 @@
 import "server-only"
 
+import { exactOrigin } from "./links"
+
 /**
  * Flow's restricted way to Office's voice server (apps/office/app/api/voice/*), over the
  * internal network. The browser only ever picks one name from ROUTES; the upstream origin
@@ -47,23 +49,6 @@ const unavailable = () =>
 
 class TooLarge extends Error {}
 
-/** Exactly one http(s) origin: no path, query, credentials or fragment. */
-function origin(value: string | undefined): string | undefined {
-  try {
-    const url = new URL(value ?? "")
-    const exact =
-      ["http:", "https:"].includes(url.protocol) &&
-      !url.username &&
-      !url.password &&
-      url.pathname === "/" &&
-      !url.search &&
-      !url.hash
-    return exact ? url.origin : undefined
-  } catch {
-    return undefined
-  }
-}
-
 /** The body as it streams through: never more than `limit`, and exactly `declared` when set. */
 function bounded(
   body: ReadableStream<Uint8Array>,
@@ -104,7 +89,7 @@ export async function forwardVoice(
     return failure(405, "This assistant address does not take that request.", {
       Allow: Object.keys(methods).join(", "),
     })
-  const base = origin(upstream)
+  const base = exactOrigin(upstream)
   if (!base) {
     warn(route, "not_configured")
     return unavailable()

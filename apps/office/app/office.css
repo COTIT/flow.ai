@@ -22,48 +22,6 @@
   backdrop-filter: none;
 }
 
-.voice-orb > span {
-  position: absolute;
-  inset: 3%;
-  border: 1px solid var(--gold);
-  border-radius: 46% 54% 48% 52%;
-  opacity: 0.6;
-  animation: voice-orbit 16s linear infinite;
-  animation-play-state: paused;
-}
-.voice-orb > span:nth-child(2) {
-  inset: 10%;
-  border-color: var(--tone-success);
-  border-radius: 54% 46% 55% 45%;
-  animation-direction: reverse;
-  animation-duration: 12s;
-}
-.voice-orb > span:nth-child(3) {
-  inset: 18%;
-  border-color: var(--muted-foreground);
-  animation-duration: 20s;
-}
-.voice-orb[data-animate="true"] > span {
-  animation-play-state: running;
-}
-.voice-orb[data-active="true"] > span {
-  animation-duration: 3s;
-}
-@keyframes voice-orbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .voice-orb > span {
-    animation: none;
-  }
-}
-.theme-glass [data-voice-overlay] textarea {
-  min-height: 48px;
-  max-height: 20dvh;
-}
-
 /* The top bar's workspace picker is drawn as a 40 px outline button, not a 44 px field. */
 .theme-glass [data-topbar] [data-slot="select-trigger"] {
   height: 40px;
@@ -116,8 +74,8 @@
   }
 }
 
-/* Vendored React Bits list and bento keep their own palettes inline; ours wins (glass tokens). */
-.theme-glass .voice-review-list,
+/* Vendored React Bits bento keeps its own palette inline; ours wins (glass tokens). The voice
+   review list's overrides live in @genesy/voice/styles/voice.css. */
 .theme-glass .magic-bento {
   --al-tile: var(--glass) !important;
   --al-tile-edge: var(--glass-border) !important;
@@ -149,10 +107,6 @@
   --mb-secondary: var(--tint-success) !important;
   --mb-secondary-ink: var(--tone-success) !important;
 }
-.theme-glass .voice-review-list [role="option"] > * > :first-child {
-  color: var(--muted-foreground);
-}
-
 /* The review sheet is portaled outside the dark overlay; it keeps the overlay's dark glass. */
 .theme-glass [data-slot="sheet-content"].dark {
   background: var(--background);
@@ -172,16 +126,4 @@
 /* The vendor card is select-none; order numbers and names stay copyable. */
 .overview-bento .magic-bento__card {
   user-select: text;
-}
-
-/* Phones: the composer's 28 px buttons get an invisible 44 px tap area; nothing drawn changes. */
-@media (pointer: coarse), (max-width: 767px) {
-  .voice-composer .group button {
-    position: relative;
-  }
-  .voice-composer .group button::after {
-    content: "";
-    position: absolute;
-    inset: -8px;
-  }
 }
