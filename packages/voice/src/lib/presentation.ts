@@ -160,6 +160,7 @@ export function displayText(
 }
 
 const resources = [
+  "storefront_design",
   "app_keys",
   "email_profiles",
   "supply_links",
@@ -219,6 +220,7 @@ const verbs = [
   "close",
   "open",
   "pay",
+  "edit",
 ] as const
 export function operationLabel(operationId: string, method?: string) {
   const resource =
@@ -230,7 +232,10 @@ export function operationLabel(operationId: string, method?: string) {
       ? "delete"
       : verb === "remove"
         ? "delete"
-        : (verb ?? (method === "PUT" || method === "PATCH" ? "update" : "run"))
+        : verb === "edit"
+          ? "update"
+          : (verb ??
+            (method === "PUT" || method === "PATCH" ? "update" : "run"))
   return { action, resource }
 }
 

@@ -52,7 +52,8 @@ pub async fn capture(
     };
     Ok(Some(json!({"version":1,"operation_id":operation,"facts":{
         "kind":"storefront_design",
-        "base":{
+        // `locked` is what the dispatch claim requires before a reviewed write runs.
+        "locked":{
             "version":page.as_ref().map_or(0, |p| p.version),
             "draft_revision_id":page.as_ref().and_then(|p| p.draft_revision_id),
             "published_revision_id":page.as_ref().and_then(|p| p.published_revision_id),
@@ -161,7 +162,7 @@ mod tests {
                 .unwrap(),
             json!({"version":1,"operation_id":"storefront_design_edit","facts":{
                 "kind":"storefront_design",
-                "base":{"version":0,"draft_revision_id":null,"published_revision_id":null},
+                "locked":{"version":0,"draft_revision_id":null,"published_revision_id":null},
                 "changes":[{"field":"theme","label":null,"before":"forest","after":"neutral"}]
             }})
         );
@@ -255,7 +256,7 @@ mod tests {
             json!([{"field":"heading","label":"One","before":"One","after":"Two"}])
         );
         assert_eq!(
-            review["facts"]["base"]["published_revision_id"],
+            review["facts"]["locked"]["published_revision_id"],
             json!(first)
         );
         let review = facts(

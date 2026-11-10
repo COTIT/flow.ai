@@ -355,3 +355,25 @@ it("shows a delivery correction's money in currency units and who will owe", () 
   expect(reviewWarnings(correction, "sw")[0]).toContain("atadaiwa")
   expect(reviewWarnings(correction, "nl")[0]).toContain("4.000,00")
 })
+
+it("warns that publishing replaces the shop design, in the user's language", () => {
+  const facts = (operation_id: string) => ({
+    version: 1,
+    operation_id,
+    facts: {
+      kind: "storefront_design",
+      changes: [
+        { field: "heading", label: "Hi", before: "Hi", after: "Hello" },
+      ],
+    },
+  })
+  const publish = facts("storefront_design_publish")
+  expect(reviewWarnings(publish, "en")).toEqual([
+    "Publishing replaces the home page design customers see when design display is on.",
+  ])
+  expect(reviewWarnings(publish, "nl")[0]).toMatch(/^Publiceren vervangt/)
+  expect(reviewWarnings(publish, "sw")[0]).toMatch(/^Kuchapisha/)
+  expect(reviewWarnings(publish, "fr")).toEqual(reviewWarnings(publish, "en"))
+  expect(reviewWarnings(facts("storefront_design_edit"), "en")).toEqual([])
+  expect(reviewWarnings(facts("storefront_design_restore"), "en")).toEqual([])
+})

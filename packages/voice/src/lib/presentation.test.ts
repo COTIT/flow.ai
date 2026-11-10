@@ -120,6 +120,15 @@ describe("readable approval presentation", () => {
       action: "update",
       resource: "record",
     })
+    for (const [id, action] of [
+      ["storefront_design_edit", "update"],
+      ["storefront_design_restore", "restore"],
+      ["storefront_design_publish", "publish"],
+    ] as const)
+      expect(operationLabel(id, "POST")).toEqual({
+        action,
+        resource: "storefront_design",
+      })
   })
 })
 

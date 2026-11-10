@@ -85,6 +85,11 @@ export function VoiceConversation({
         showCloseButton={false}
         overlayClassName="bg-black/75 motion-reduce:animate-none"
         className="dark top-0 left-0 translate-x-0 translate-y-0 text-foreground motion-reduce:animate-none"
+        // A nested sheet has no backdrop, so a click beside the card lands here; without this
+        // the click would focus this popup and its own focus trap would hold Tab outside the card.
+        onMouseDown={(event) => {
+          if (voice.review) event.preventDefault()
+        }}
       >
         {/* While a review card is open nothing behind it can be reached, so nothing cancels it by accident. */}
         <div

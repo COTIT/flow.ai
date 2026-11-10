@@ -14,7 +14,8 @@
     "apps/api/migrations/20261106200256_assistant_review_facts.up.sql": "623cb17f768590d6a652acc885dfe58536eb3348b028da465619607433e2a52e5e1cbe136db49c994c72ff0c5721b9fa",
     "apps/api/migrations/20261106204413_invoice_delivery.up.sql": "2bda67b79350b32d725fdf9f39923850d443f063da162a3d6375db4ce69c8fb0365bff2a4c382d1cc36749f667e2525d",
     "apps/api/migrations/20261106210133_assistant_delivery_indexes.up.sql": "95f662b9f9bd784351e99fed292c9f8bccfabf880926b93168c6f4d90cea45964d349f1c8b17c3234ae1d2801e72fa1a",
-    "apps/api/migrations/20261107000925_assistant_batches.up.sql": "22abd1ea70095cadc57eb8ab86d7f2f56f83414b6c28cfdaa957f038b4374c3f19962d472331b3382ddba0f1e68a91d3"
+    "apps/api/migrations/20261107000925_assistant_batches.up.sql": "22abd1ea70095cadc57eb8ab86d7f2f56f83414b6c28cfdaa957f038b4374c3f19962d472331b3382ddba0f1e68a91d3",
+    "apps/api/migrations/20261110120000_assistant_gap_demand.up.sql": "8ba5da37427360b092a69bceb6c47d8c1ef9114f40dff40252252b8104af0343f0fa43bcdb8f3ef270724f278b2316d8"
   },
   "batchVersion": 1
 }
