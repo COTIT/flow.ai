@@ -33,6 +33,7 @@ import type { TranscriptRow } from "@genesy/voice/lib/helpers"
 import { useWorkspaceChoices } from "@/components/shell"
 import { readinessState, type Readiness } from "@/lib/readiness"
 import { ResultsList, ReviewPanel } from "./results"
+import { useProposalHold } from "./storefront-proposal"
 import { useWide } from "./use-wide"
 
 const look: Record<
@@ -58,6 +59,7 @@ export function Conversation() {
   const tv = useTranslations("voice")
   const voice = useVoice()
   const wide = useWide()
+  useProposalHold(voice.review)
   const me = useUsersMe()
   const workspaceId = useSession((s) => s.workspaceId)
   const { query: workspaces, choices } = useWorkspaceChoices()

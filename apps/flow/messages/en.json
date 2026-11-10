@@ -66,7 +66,22 @@
       "loggedOut": "Log in again to see the preview.",
       "page": "Page {page} of {last}",
       "previousPage": "Previous",
-      "nextPage": "Next"
+      "nextPage": "Next",
+      "editPreviewTitle": "Proposed design",
+      "editPreviewBadge": "Not saved yet",
+      "editPreviewText": "Your home page if you approve. Nothing is saved or published until then.",
+      "restorePreviewTitle": "Revision to restore",
+      "restorePreviewBadge": "Becomes the draft",
+      "restorePreviewText": "This creates a new draft. Your published shop stays unchanged until you publish it.",
+      "publishPreviewTitle": "Revision to publish",
+      "publishPreviewBadge": "Will be published",
+      "publishPreviewText": "This is exactly the revision that will be published.",
+      "proposalFrameTitle": "Proposed shop preview",
+      "previewLoading": "Preparing the preview",
+      "proposalConflict": "The storefront changed after this review was prepared.",
+      "proposalConflictText": "Approve is off for this review. Cancel it and ask again: the assistant reads the new draft and prepares a fresh review.",
+      "proposalUnavailableText": "The changes listed above are still exact.",
+      "retry": "Try again"
     },
     "chat": {
       "storefront": "Storefront",

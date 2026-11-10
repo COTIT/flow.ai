@@ -14,6 +14,7 @@ import {
   ReviewList,
   ReviewTitle,
 } from "@genesy/voice/components/review-details"
+import { designKind, StorefrontProposal } from "./storefront-proposal"
 
 /** The results of this conversation, newest first; each can be focused from its transcript line. */
 export function ResultsList({ rows }: { rows: TranscriptRow[] }) {
@@ -47,6 +48,7 @@ export function ReviewPanel({ withButtons }: { withButtons: boolean }) {
   const t = useTranslations("voice")
   const voice = useVoice()
   if (!voice.review) return null
+  const design = designKind(voice.review)
   return (
     <section
       aria-labelledby="flow-review-title"
@@ -58,6 +60,10 @@ export function ReviewPanel({ withButtons }: { withButtons: boolean }) {
       <ReviewDiff review={voice.review}>
         <ReviewList review={voice.review} />
       </ReviewDiff>
+      {/* A design review also shows the page it leads to; a new ticket mounts a fresh frame. */}
+      {design ? (
+        <StorefrontProposal key={voice.review.ticket} review={voice.review} kind={design} />
+      ) : null}
       <NotIncluded review={voice.review} />
       <ReviewHints />
       {withButtons ? (
