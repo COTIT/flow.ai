@@ -58,8 +58,9 @@ import { StrandsStatus } from "@genesy/voice/components/strands-status"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
 import { VoiceResult } from "@genesy/voice/components/results/index"
 import { ReviewDiff } from "@genesy/voice/components/review-diff"
-import { useVoiceTips, VoiceSuggestions } from "./suggestions"
+import { useVoiceTips, VoiceSuggestions } from "@genesy/voice/components/suggestions"
 import type { Available } from "@genesy/voice/lib/capabilities"
+import { useRights } from "@/lib/can"
 
 function ReviewTitle({
   review,
@@ -293,7 +294,8 @@ export function VoiceConversation({
   const router = useRouter()
   const voice = useVoice()
   // Suggestion chips fill the text box (starting a text session if needed); they never send.
-  const tips = useVoiceTips(capabilities, from)
+  const rights = useRights()
+  const tips = useVoiceTips(capabilities, from, rights)
   const [seed, setSeed] = useState<{ text: string }>()
   const pick = (text: string) => {
     setSeed({ text })

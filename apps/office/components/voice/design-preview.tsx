@@ -156,6 +156,7 @@ export function VoiceDesignPreview() {
         setState(decision === "approve" ? "completed" : "listening"),
       unfinished: null,
       resume: noop,
+      resolveHref: (href) => href,
     }
   }, [state, phase])
   return (

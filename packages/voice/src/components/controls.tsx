@@ -8,7 +8,14 @@ import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { useVoice } from "./provider"
 import { VoiceActivity } from "./activity"
 
-export function VoiceControls({ compact = false }: { compact?: boolean }) {
+export function VoiceControls({
+  compact = false,
+  openHref = "/voice",
+}: {
+  compact?: boolean
+  /** The host's assistant page, linked from the compact controls. */
+  openHref?: string
+}) {
   const voice = useVoice()
   const t = useTranslations("voice")
   if (!voice.connected && !voice.starting && !voice.upgrading)
@@ -32,7 +39,7 @@ export function VoiceControls({ compact = false }: { compact?: boolean }) {
       {compact ? <VoiceActivity compact /> : null}
       {compact ? (
         <Link
-          href="/voice"
+          href={openHref}
           className={buttonVariants({
             variant: "outline",
             className: "min-h-11",

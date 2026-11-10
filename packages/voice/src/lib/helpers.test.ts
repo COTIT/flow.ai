@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest"
-import { progressOf, spokenText, whenSlow } from "./helpers"
+import { progressOf, SAFE_HREF, splitLinks, spokenText, whenSlow } from "./helpers"
 
 afterEach(() => vi.useRealTimers())
 
@@ -51,4 +51,16 @@ it.each([
   ["Order [ORD-12] has 2 lines [1].", "Order [ORD-12] has 2 lines [1]."],
 ])("hides voice audio tags from displayed agent text: %s", (raw, shown) => {
   expect(spokenText(raw)).toBe(shown)
+})
+
+it("only links Office pages and https by default", () => {
+  expect(SAFE_HREF.test("/orders/1")).toBe(true)
+  expect(splitLinks("[a](/assistant/x)")).toEqual([{ text: "[a](/assistant/x)" }])
+})
+
+it("links what the host's whitelist allows", () => {
+  expect(splitLinks("see [a](/assistant/x)", /^\/assistant\//)).toEqual([
+    { text: "see " },
+    { text: "a", href: "/assistant/x" },
+  ])
 })

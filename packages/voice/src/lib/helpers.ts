@@ -31,18 +31,22 @@ export type TranscriptRow = {
   href?: string
 }
 
-const SAFE_HREF =
+/** Office pages and https: the agent-text links Office opens. */
+export const SAFE_HREF =
   /^(\/(products|orders|invoices|lots|stock|supply|till|settings)(\/|\?|$)|https:\/\/)/
 
-/** Splits "[label](url)" out of agent text; only office pages and https become links. */
-export function splitLinks(text: string): { text: string; href?: string }[] {
+/** Splits "[label](url)" out of agent text; only hrefs `safe` allows become links. */
+export function splitLinks(
+  text: string,
+  safe: RegExp = SAFE_HREF
+): { text: string; href?: string }[] {
   const parts: { text: string; href?: string }[] = []
   let last = 0
   for (const match of text.matchAll(
     /\[([^\]\n]{1,120})\]\(([^)\s]{1,500})\)/g
   )) {
     const [whole, label, href] = match
-    if (!SAFE_HREF.test(href!)) continue
+    if (!safe.test(href!)) continue
     if (match.index > last) parts.push({ text: text.slice(last, match.index) })
     parts.push({ text: label!, href })
     last = match.index + whole.length
