@@ -8,14 +8,12 @@ import {
   type PreparedAction,
 } from "./catalog"
 import { callBackend, VoiceError, type VoiceContext } from "./server"
-import en from "../../messages/en.json"
-import nl from "../../messages/nl.json"
-import sw from "../../messages/sw.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 
 const resources: Record<string, Record<string, string>> = {
-  en: en.voice.resources,
-  nl: nl.voice.resources,
-  sw: sw.voice.resources,
+  en: voiceMessages.en.voice.resources,
+  nl: voiceMessages.nl.voice.resources,
+  sw: voiceMessages.sw.voice.resources,
 }
 /** A record's own name, first present in this order; blank counts as absent. */
 const labelFields = [

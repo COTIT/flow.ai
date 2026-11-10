@@ -3,8 +3,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node scripts/prepare-voice-audio.mjs && next dev --port 3001",
-    "build": "node scripts/prepare-voice-audio.mjs && next build",
+    "dev": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next dev --port 3001",
+    "build": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next build",
     "start": "next start --port 3001",
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",

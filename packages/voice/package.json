@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@alexanderolsen/libsamplerate-js": "2.1.2",
+    "@elevenlabs/client": "1.35.0",
     "@elevenlabs/react": "^1.21.1",
     "@genesy/api-client": "workspace:*",
     "@genesy/ui": "workspace:*",

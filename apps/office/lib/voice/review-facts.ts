@@ -5,6 +5,7 @@ import { timingWords, type ScheduleTiming } from "../scheduled-reports"
 import en from "../../messages/en.json"
 import nl from "../../messages/nl.json"
 import sw from "../../messages/sw.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 
 const scheduledText: Record<string, typeof en.scheduled> = {
   en: en.scheduled,
@@ -146,9 +147,9 @@ export function reviewChanges(
 }
 
 const yes: Record<string, string> = {
-  en: en.voice.yes,
-  nl: nl.voice.yes,
-  sw: sw.voice.yes,
+  en: voiceMessages.en.voice.yes,
+  nl: voiceMessages.nl.voice.yes,
+  sw: voiceMessages.sw.voice.yes,
 }
 /** A create the API sends no facts for: the exact body to be sent, as new values on the card. */
 export function createdFacts(
