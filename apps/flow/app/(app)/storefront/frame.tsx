@@ -40,7 +40,10 @@ export function StorefrontFrame(
     const onMessage = (event: MessageEvent) => {
       const target = frame.current?.contentWindow
       if (!readyFromFrame(event, target, location.origin)) return
-      target!.postMessage({ type: PROPOSAL, ...proposal }, location.origin)
+      target!.postMessage(
+        { type: PROPOSAL, document: proposal.document, collections: proposal.collections },
+        location.origin
+      )
     }
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)

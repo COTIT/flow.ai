@@ -14,7 +14,9 @@ export const PROPOSAL_READY = "genesy:storefront-proposal-ready"
 export const PROPOSAL = "genesy:storefront-proposal"
 
 const typed = (data: unknown, type: string) =>
-  !!data && typeof data === "object" && (data as { type?: unknown }).type === type
+  !!data &&
+  typeof data === "object" &&
+  (data as { type?: unknown }).type === type
 
 /** The review page: only its own frame, on this origin, saying exactly "ready". */
 export const readyFromFrame = (
@@ -37,9 +39,16 @@ export function proposalFromParent(
   origin: string,
   canRender: (document: never, collections: never) => boolean
 ): Proposal | "invalid" | null {
-  if (event.source !== parent || event.origin !== origin || !typed(event.data, PROPOSAL)) return null
+  if (
+    event.source !== parent ||
+    event.origin !== origin ||
+    !typed(event.data, PROPOSAL)
+  )
+    return null
   const { document, collections } = event.data as Partial<Proposal>
-  return document && Array.isArray(collections) && canRender(document as never, collections as never)
+  return document &&
+    Array.isArray(collections) &&
+    canRender(document as never, collections as never)
     ? { document, collections }
     : "invalid"
 }

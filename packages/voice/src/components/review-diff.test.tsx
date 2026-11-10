@@ -28,7 +28,12 @@ describe("ReviewDiff rows", () => {
     const out = renderToStaticMarkup(
       <ReviewDiff
         review={review([
-          { field: "heading", label: "Our products", before: "Our products", after: "Fresh this week" },
+          {
+            field: "heading",
+            label: "Our products",
+            before: "Our products",
+            after: "Fresh this week",
+          },
         ])}
       >
         {null}
@@ -39,7 +44,11 @@ describe("ReviewDiff rows", () => {
 
   it("keeps an unlabelled row as its field name alone", () => {
     const out = renderToStaticMarkup(
-      <ReviewDiff review={review([{ field: "theme", before: "neutral", after: "forest" }])}>
+      <ReviewDiff
+        review={review([
+          { field: "theme", before: "neutral", after: "forest" },
+        ])}
+      >
         {null}
       </ReviewDiff>
     )
@@ -51,8 +60,18 @@ describe("ReviewDiff rows", () => {
     const out = renderToStaticMarkup(
       <ReviewDiff
         review={review([
-          { field: "heading", label: "Welcome", before: "Hello", after: "Karibu" },
-          { field: "heading", label: "Our products", before: "Our products", after: "Fresh this week" },
+          {
+            field: "heading",
+            label: "Welcome",
+            before: "Hello",
+            after: "Karibu",
+          },
+          {
+            field: "heading",
+            label: "Our products",
+            before: "Our products",
+            after: "Fresh this week",
+          },
         ])}
       >
         {null}

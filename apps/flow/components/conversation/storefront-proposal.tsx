@@ -23,7 +23,8 @@ const kinds = {
 type Kind = (typeof kinds)[keyof typeof kinds]
 
 export const designKind = (review: VoiceReview | null): Kind | null =>
-  (review?.operationId && kinds[review.operationId as keyof typeof kinds]) || null
+  (review?.operationId && kinds[review.operationId as keyof typeof kinds]) ||
+  null
 
 const status = (error: unknown) =>
   (error as { response?: { status?: number } } | null)?.response?.status
@@ -67,16 +68,28 @@ export function useProposalHold(review: VoiceReview | null) {
 }
 
 /** What the shop's home page looks like if this review is approved; the diff above stays the review. */
-export function StorefrontProposal({ review, kind }: { review: VoiceReview; kind: Kind }) {
+export function StorefrontProposal({
+  review,
+  kind,
+}: {
+  review: VoiceReview
+  kind: Kind
+}) {
   const t = useTranslations("flow.storefront")
-  const changes = review.details.changes as { revision_id?: unknown } | undefined
+  const changes = review.details.changes as
+    { revision_id?: unknown } | undefined
   return (
-    <section aria-labelledby="flow-proposal-title" className="flex min-w-0 flex-col gap-3">
+    <section
+      aria-labelledby="flow-proposal-title"
+      className="flex min-w-0 flex-col gap-3"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 id="flow-proposal-title" className="text-sm font-semibold">
           {t(`${kind}PreviewTitle`)}
         </h4>
-        <Badge variant={kind === "publish" ? "gold" : "slate"}>{t(`${kind}PreviewBadge`)}</Badge>
+        <Badge variant={kind === "publish" ? "gold" : "slate"}>
+          {t(`${kind}PreviewBadge`)}
+        </Badge>
       </div>
       <p className="text-sm text-muted-foreground">{t(`${kind}PreviewText`)}</p>
       {kind === "edit" ? (
@@ -119,6 +132,6 @@ function EditPreview({ review }: { review: VoiceReview }) {
         {t("proposalUnavailableText")}
       </Notice>
     )
-  const { document, collections } = dryRun.data.data
-  return <StorefrontFrame proposal={{ document, collections }} />
+  // The query's own object: stable across renders, so the frame's listener is set up once.
+  return <StorefrontFrame proposal={dryRun.data.data} />
 }

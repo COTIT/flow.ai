@@ -65,6 +65,47 @@ const review = () => ({
   },
 })
 
+/**
+ * A storefront design review as Office proposes it: Rust's facts (field before → after) under
+ * `current`, the exact request body under `changes`. A heading "Raced" makes the approval meet a
+ * draft that moved (409 at dispatch).
+ */
+const designReview = (operationId, body) => {
+  const heading = body?.changes?.[0]?.heading
+  const kind = operationId.replace("storefront_design_", "")
+  const rows =
+    kind === "restore"
+      ? [{ field: "theme", label: null, before: "neutral", after: "forest" }]
+      : [
+          { field: "theme", label: null, before: "forest", after: "neutral" },
+          {
+            field: "heading",
+            label: "Fresh from our growers",
+            before: "Fresh from our growers",
+            after: heading ?? "Fresh this week",
+          },
+        ]
+  return {
+    status: "requires_confirmation",
+    data: { actionId: "0193f6b0-1c2d-7e3f-8a9b-bbbbbbbbbbbb" },
+    review: {
+      ticket: heading === "Raced" ? "flow-design-raced" : `flow-design-${kind}`,
+      summary: `Storefront design ${kind}`,
+      confirmationCode: "246802",
+      confirmationPhrase: "Confirm action 246802",
+      target: "Current workspace",
+      details: {
+        ...(kind === "publish"
+          ? { warnings: ["This replaces the design customers see."] }
+          : {}),
+        current: { changes: rows },
+        changes: body,
+      },
+      expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+    },
+  }
+}
+
 const page = (name, href) => ({
   status: "completed",
   data: { page: name },
@@ -117,7 +158,9 @@ export async function flowVoice(req, res, path, send, readJson) {
                 : page("Orders", "/orders")
               : body.operationId === "app_keys_create"
                 ? secure
-                : { status: "failed", message: "Unknown e2e operation." }
+                : /^storefront_design_(edit|restore|publish)$/.test(body.operationId)
+                  ? designReview(body.operationId, body.arguments?.body)
+                  : { status: "failed", message: "Unknown e2e operation." }
     return (send(res, 200, answer), true)
   }
   if (route === "confirm" && req.method === "POST") {
@@ -126,7 +169,18 @@ export async function flowVoice(req, res, path, send, readJson) {
       send(
         res,
         200,
-        body.decision === "approve"
+        body.decision === "approve" && body.ticket === "flow-design-raced"
+          ? {
+              status: "failed",
+              message: "The design changed. Reload before saving or publishing.",
+            }
+          : body.decision === "approve" && String(body.ticket).startsWith("flow-design-")
+            ? {
+                status: "completed",
+                message: "Saved as a new draft.",
+                links: [{ label: "Storefront design", href: "/settings/storefront" }],
+              }
+          : body.decision === "approve"
           ? {
               status: "completed",
               message: "Order created.",
