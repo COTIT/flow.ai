@@ -3,6 +3,16 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## Phase 3 P3-C — Flow design proposal UI (2026-11-11)
+
+Design approved by the user in Claude Design (v7). Child commits `8e3f26691`…`a840f1a43` on `claude/flow-p3c-design-51f0ef`, merged onto P3-A+B (`1af34f819`) and main (`c112fab20`).
+
+| Check | Result |
+| --- | --- |
+| Child runs | voice vitest 138, Flow vitest 188; Flow e2e 79/79 at desktop + 375 (+ edit review at 834), design-conversation 20/20 after hardening; Office voice e2e 155 passed / 2 skipped (stock-transfer rows kept by the narrowed "label · Field" rule); stack `flow-design.spec` 8/8 (real dry run in the frame at 375/1280, moved draft 409 → no frame + Approve disabled, member 403) |
+| Security + React review | No issues above low. Hardened test-first: hold while the dry run is pending; hold keyed to login + workspace and cleared on session end; Flow query cache confirmed cleared on logout / user change |
+| Full gate (`SKIP_API=1`: no API change vs gated P3-A+B), clean checkout `1af34f819` | Web turbo green; fake-API e2e 2164 passed / 17 skipped / 1 failed (Office `supply-transfers.spec.ts:192` 409 alert, recurring load flake, rerun 20/20); storefront-design 21; voice-dev 12; stack 207 passed / 1 skipped |
+
 ## Phase 3 P3-A + P3-B — targeted design edits + voice tools (2026-11-11)
 
 Commits `0f7cab4df` (P3-A), `768e27f5a` (review fixes), `785ce5c4c` (P3-B), `0b60600d6` (`text` field), merged with main as `39c0fd2f2`.
