@@ -1,6 +1,6 @@
 # Genesy Flow master plan
 
-Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16, `a432dec17`); 2B (Flow app foundation) on review; 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
+Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17); 2C not started. Phases 2–6 are proposed future work. Updated 2026-11-10.
 
 Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evidence belongs in [VERIFICATION.md](VERIFICATION.md); rationale belongs in [DECISIONS.md](DECISIONS.md).
 
@@ -75,6 +75,33 @@ configuration; they must never generate and execute arbitrary production React c
 Home only; hero + product_grid; API-authored drafts; owner/admin review, immutable revisions, explicit publish and restore-to-draft. Preserve catalog caching and existing routes/trace/commerce. Shared UI is presentation-only; app adapters own fetching/auth. Public reads follow published pointer only. New operations stay outside voice execution.
 
 Canonical schema, fields, routes and migration behavior: `apps/api/docs/api/storefront-design.md`, Rust `storefront_design` DTO/service/repo and generated OpenAPI. Do not maintain a second schema here.
+
+## Product direction (approved 2026-11-10; guides future planning, not scheduled work)
+
+**"Genesy Flow — A business operating system that adapts to how you work."** Voice-first, adaptive business operating environment: value without learning navigation, building dashboards or configuring UI first.
+
+Target experience:
+1. Users tell Flow, in plain conversation, which information and workflows matter to them.
+2. Flow saves explicit preferences across sessions.
+3. Later sessions restore the right views and fetch current business data.
+4. Flow composes existing approved UI components from validated data and presentation configurations.
+5. Users refine saved views through conversation.
+6. Users explicitly configure recurring reports, notifications and approved business routines.
+7. Scheduled routines run independently of browser and voice sessions.
+8. Users can see and control saved preferences, routines, permissions and approvals.
+9. Existing Rust APIs stay authoritative for calculations, business data and operations.
+10. Useful defaults even when the user has configured nothing.
+
+Architectural distinctions:
+- Conversational memory does not replace structured, durable preferences.
+- Saved display preferences are separate from scheduled routines.
+- Reporting is separate from business mutations.
+- Reuse existing UI components; never generate arbitrary runtime React code.
+- Never silently broaden permissions; never auto-start expensive voice sessions.
+- Initial views stay fast and non-blocking.
+- Creating or enabling recurring external actions needs explicit user confirmation.
+
+Not part of this direction: a general app builder, drag-and-drop dashboards, autonomous business writes without approval, or changes to the Phase 1 storefront design architecture. It adds no scope to the current phases: no dynamic report composition, scheduling, cron or email automation is built until a later phase is planned and approved.
 
 ## Roadmap: proposed future work
 
