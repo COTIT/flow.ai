@@ -21,23 +21,34 @@ const sources = {
 let dir
 afterEach(() => dir && rmSync(dir, { recursive: true, force: true }))
 
-describe("prepare-voice-audio", () => {
-  it("copies the installed SDK's audio processors into <publicDir>/voice-audio", () => {
-    dir = mkdtempSync(join(tmpdir(), "voice-audio-"))
-    const run = spawnSync(process.execPath, [script, "public"], {
-      cwd: dir,
-      encoding: "utf8",
-    })
-    expect(run.status, run.stderr).toBe(0)
-    for (const [file, source] of Object.entries(sources))
-      expect(readFileSync(join(dir, "public/voice-audio", file))).toEqual(
-        readFileSync(require.resolve(source))
-      )
-  })
+// Each case spawns a real node process; under a loaded build machine that alone can pass 5 s.
+const SPAWN_TIMEOUT = 30_000
 
-  it("refuses to run without a target folder", () => {
-    const run = spawnSync(process.execPath, [script], { encoding: "utf8" })
-    expect(run.status).toBe(1)
-    expect(run.stderr).toContain("usage: prepare-voice-audio.mjs <publicDir>")
-  })
+describe("prepare-voice-audio", () => {
+  it(
+    "copies the installed SDK's audio processors into <publicDir>/voice-audio",
+    () => {
+      dir = mkdtempSync(join(tmpdir(), "voice-audio-"))
+      const run = spawnSync(process.execPath, [script, "public"], {
+        cwd: dir,
+        encoding: "utf8",
+      })
+      expect(run.status, run.stderr).toBe(0)
+      for (const [file, source] of Object.entries(sources))
+        expect(readFileSync(join(dir, "public/voice-audio", file))).toEqual(
+          readFileSync(require.resolve(source))
+        )
+    },
+    SPAWN_TIMEOUT
+  )
+
+  it(
+    "refuses to run without a target folder",
+    () => {
+      const run = spawnSync(process.execPath, [script], { encoding: "utf8" })
+      expect(run.status).toBe(1)
+      expect(run.stderr).toContain("usage: prepare-voice-audio.mjs <publicDir>")
+    },
+    SPAWN_TIMEOUT
+  )
 })
