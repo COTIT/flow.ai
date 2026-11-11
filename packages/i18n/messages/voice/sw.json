@@ -537,7 +537,17 @@
       "effect": {
         "archive": "Itahifadhiwa kwenye kumbukumbu, si kufutwa."
       },
-      "warningsTitle": "Kabla ya kuidhinisha"
+      "warningsTitle": "Kabla ya kuidhinisha",
+      "breakdown": {
+        "products": "Bidhaa zinazouzwa zaidi",
+        "customers": "Wateja wakuu",
+        "walkIn": "Mauzo ya papo hapo (bila mteja)"
+      },
+      "compare": {
+        "title": "Mauzo yakilinganishwa",
+        "change": "{change} ukilinganisha na {period}",
+        "noBase": "Hakuna mauzo katika {period} ya kulinganisha"
+      }
     },
     "suggestions": "Mapendekezo",
     "tryPrompt": "Jaribu: “{prompt}”",

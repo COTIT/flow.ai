@@ -537,7 +537,17 @@
       "effect": {
         "archive": "Het wordt gearchiveerd, niet verwijderd."
       },
-      "warningsTitle": "Voordat je goedkeurt"
+      "warningsTitle": "Voordat je goedkeurt",
+      "breakdown": {
+        "products": "Topproducten",
+        "customers": "Topklanten",
+        "walkIn": "Losse verkoop (geen klant)"
+      },
+      "compare": {
+        "title": "Verkoop vergeleken",
+        "change": "{change} t.o.v. {period}",
+        "noBase": "Geen verkoop in {period} om mee te vergelijken"
+      }
     },
     "suggestions": "Suggesties",
     "tryPrompt": "Probeer: “{prompt}”",

@@ -145,10 +145,40 @@ describe("record links", () => {
       outcomeForAgent({ status: "completed", data: [1], view: { kind: "sales" } })
     ).not.toHaveProperty("view")
   })
+  it("says how a picture is drawn, and why a requested kind did not fit with the closest one", () => {
+    const view = { kind: "breakdown", by: "products", from: "a", to: "b", currencies: [{ currency: "USD", decimals: 2, rows: [{ label: "Honey", gross: 5, orders: 1 }] }], presentation: "pie" }
+    expect(outcomeForAgent({ status: "completed", view }).on_screen).toMatchObject({ kind: "chart", shown_as: "pie", points: 1 })
+    const refused = outcomeForAgent({
+      status: "completed",
+      view: { kind: "sales_daily", from: "a", to: "b", time_zone: null, currencies: [] },
+      presentation_note: { asked: "pie", shown: "line", closest: "bar", reason: "a pie needs parts of one whole" },
+    })
+    expect(refused.on_screen?.shown_as).toBe("line")
+    expect(refused.on_screen?.instruction).toMatch(/asked for a pie.*a pie needs parts of one whole.*one sentence.*bar/i)
+  })
+
+  it("says how many points the picture shows", () => {
+    const view = {
+      kind: "sales_daily",
+      from: "2026-11-03",
+      to: "2026-11-06",
+      time_zone: "UTC",
+      currencies: [
+        { currency: "TZS", decimals: 0, days: [{ date: "2026-11-03", gross: 1, net: 1, orders: 1 }, { date: "2026-11-04", gross: 0, net: 0, orders: 0 }] },
+        { currency: "USD", decimals: 2, days: [{ date: "2026-11-03", gross: 5, net: 5, orders: 1 }] },
+      ],
+    }
+    expect(outcomeForAgent({ status: "completed", view }).on_screen).toMatchObject({ kind: "chart", points: 3 })
+    const records = { kind: "records", resource: "orders", total: 9, href: "/orders", rows: [{}, {}] }
+    expect(outcomeForAgent({ status: "completed", view: records }).on_screen).toMatchObject({ kind: "list", points: 2 })
+  })
+
   it("knows a picture is on screen, so it summarises instead of reading every point", () => {
     const chart = outcomeForAgent({ status: "completed", data: [1, 2, 3], view: { kind: "sales_daily" } })
     expect(chart.on_screen).toEqual({
       kind: "chart",
+      shown_as: "line",
+      points: 0,
       instruction: expect.stringMatching(/one or two sentences.*never read/i),
     })
     expect(outcomeForAgent({ status: "completed", view: { kind: "records" } }).on_screen?.kind).toBe("list")

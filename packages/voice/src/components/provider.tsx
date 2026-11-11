@@ -44,7 +44,8 @@ import {
   type VoiceProgress,
 } from "../lib/helpers"
 import { batchAttachmentReferences, voiceRequestBody } from "../lib/multipart"
-import { withView } from "../lib/rows"
+import { replaceView, withView } from "../lib/rows"
+import { oneSlot } from "../lib/slot"
 import {
   createOutcomeWait,
   readRecovery,
@@ -464,13 +465,17 @@ function Session({
         mergeTranscript(rows, { role, text, id, ...(href ? { href } : {}) })
       )
   }
-  function showLinks(outcome: VoiceOutcome) {
+  function showLinks(outcome: VoiceOutcome, operation?: string) {
     for (const link of outcome.links ?? [])
       add("link", link.label ?? t("openRecord"), undefined, resolveHref(link.href))
     // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
     const view = outcome.view
     if (view && active.current)
-      setMessages((rows) => withView(rows, view, crypto.randomUUID()))
+      setMessages((rows) =>
+        outcome.replaces
+          ? replaceView(rows, outcome.replaces, view, operation, crypto.randomUUID())
+          : withView(rows, view, crypto.randomUUID(), operation)
+      )
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id
@@ -544,15 +549,25 @@ function Session({
     if (
       !verified.current ||
       !session.current ||
-      (!statusRead &&
-        (proposal.current ||
-          dispatching.current ||
-          preparing.current === before))
+      (!statusRead && (proposal.current || dispatching.current))
     )
       return JSON.stringify({ status: "failed", message: t("finishReview") })
+    // P6-2: still one request at a time; a call made meanwhile waits and goes next (newest wins).
+    if (!statusRead && preparing.current === before) {
+      const turn = await slot.wait(
+        () => active.current && before === generation.current
+      )
+      if (turn === "run") return tool(command, body)
+      return JSON.stringify(
+        turn === "superseded"
+          ? { status: "superseded", message: "Replaced by a newer request" }
+          : { status: "cancelled" }
+      )
+    }
     if (!statusRead && document.visibilityState !== "visible")
       return JSON.stringify({ status: "paused", message: t("recoveryHint") })
     if (!statusRead) preparing.current = before
+    const settled = statusRead ? undefined : slot.begin()
     let quiet = false // failed or awaiting review: no thinking row afterwards
     setToolRequests((count) => count + 1)
     turn.toolStart()
@@ -684,7 +699,7 @@ function Session({
         turnEnd.current("answered", 0)
       } else if (command === "execute") {
         setOutcome({ ...result, operationId: String(body.operationId) })
-        showLinks(result)
+        showLinks(result, String(body.operationId))
         if (result.reason && ["failed", "unknown"].includes(result.status))
           setError(t(`requestErrors.${result.reason}`))
       }
@@ -732,6 +747,7 @@ function Session({
       })
     } finally {
       if (!statusRead && preparing.current === before) preparing.current = null
+      settled?.()
       if (active.current && before === generation.current) {
         setToolRequests((count) => Math.max(0, count - 1))
         turn.toolEnd()
@@ -744,6 +760,7 @@ function Session({
     null
   )
   const sceneWanted = useRef<SceneContext | null>(null)
+  const [slot] = useState(oneSlot)
   const [scene] = useState(() =>
     contextSync(() => (verified.current ? latest.current : null))
   )
@@ -909,11 +926,14 @@ function Session({
     clientTools: {
       discover_genesy_tools: ({ query: search }) =>
         tool("discover", { query: search }),
-      execute_genesy_tool: ({ operation_id, arguments_json }) => {
+      execute_genesy_tool: ({ operation_id, arguments_json, presentation, replaces }) => {
         try {
           return tool("execute", {
             operationId: operation_id,
             arguments: JSON.parse(String(arguments_json)),
+            // How to draw a read and which picture it redraws; Office checks both.
+            ...(presentation ? { presentation } : {}),
+            ...(replaces ? { replaces } : {}),
           })
         } catch {
           if (active.current && verified.current) {

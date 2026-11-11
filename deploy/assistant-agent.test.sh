@@ -60,6 +60,22 @@ assert 'call the same wait:true again' in prompt,'agent must keep waiting after 
 assert 'you may call execute_genesy_tool directly' in prompt and 'Effects still require discovering' in prompt,'direct lookup contract missing'
 assert 'You cannot approve actions yourself.' in prompt and 'Approval codes and exact confirmation phrases are private' in prompt,'approval rules changed'
 assert 'The top search result includes its full input schema' in prompt,'agent must execute after one search when the top match fits'
+assert '[Results on screen]' in prompt and 'never read the points or items one by one' in prompt,'summary rule for pictures on screen missing'
+assert 'say why in one sentence and offer the closest kind' in prompt,'refused chart kind must be explained with the closest fit'
+assert '[Flow context]' in prompt and '[/Flow context]' in prompt and 'UNTRUSTED UI state' in prompt,'Flow context block missing'
+assert 'saved period' in prompt,'Flow context period caveat missing'
+assert 'replaces' in prompt and 'presentation' in prompt and 'Reads stay reads' in prompt,'change-in-place contract missing'
+assert 'Never invent data to fit a chart' in prompt,'charts must never fake data'
+kinds=['line','sparkline','bar','hbar','pie','donut','kpi','delta','meter','table','list','timeline','map']
+for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table'}.items():
+    assert f'{shape}: {allowed}' in prompt,'chart kinds per data shape missing: '+shape
+assert 'flow_scenes_update' in prompt and 'review card' in prompt,'scene chart changes must stay a reviewed write'
+params=execute['parameters']
+assert params['required']==['operation_id','arguments_json'],'presentation and replaces stay optional'
+assert params['properties']['presentation']['type']=='string' and params['properties']['presentation']['enum']==kinds,'presentation must offer every chart kind'
+assert params['properties']['replaces']['type']=='string','replaces names the picture to redraw'
+assert 'presentation, replaces' in source,'Office must forward presentation and replaces'
+assert 'superseded or cancelled has no answer' in prompt and 'never retry it' in prompt,'a superseded or cancelled tool result must be silent, never retried'
 turn=config['conversation_config']['turn']
 assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==180,'idle: one check-in after 20 s silence, end after 180 s'
 assert config['conversation_config']['conversation']['max_duration_seconds']==1800,'long tool chains need a 30-minute conversation limit'

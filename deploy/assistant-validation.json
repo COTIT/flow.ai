@@ -13,7 +13,7 @@
     "observation": "Development and Staging, 2026-11-08, owner-approved: system prompt only, adding the record-name rule after the Result beat (\"When a result lists records, say their names or numbers...\") and the plain-language failure paragraph with the \"unsupported: <request>\" discovery signal. Before editing, each agent's prompt hashed equal to the previous template prompt; after publishing, a reload read back a prompt equal to this template's prompt (7463 chars, same SHA-256). The publish review listed only the system prompt as changed. Development: agtvrsn_9401m6xgqeykevqtqmefgnw7zpap (was agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). Staging: agtvrsn_9801m6xgwc66fysscrb26cvpet64 (was agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). Production still runs the previous prompt (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33) until the owner approves. Previous record: Development: prompt and turn update for talk-back, one-search execute, direct lookups and the idle check-in (agtvrsn_9201m6wpk981esws35nzq6pe4k9c), then the shared execute_genesy_tool swapped for a dev-only copy with identical name, description and schema and force_pre_tool_speech true (agtvrsn_2201m6wqvk9qevm82wx048yaw0hj). A read-only GET verified the exact prompt, turn_timeout 20, silence_end_call_timeout 60 and the tool swap. A dashboard Preview text chat showed the pre-tool line \"Ok, got that, let me check it for you.\" just before the execute_genesy_tool call (orders_list called directly, without discovery); spoken audio was not checked. With explicit owner approval on 2026-11-08, the shared execute_genesy_tool used by Production and Staging was set to force pre-tool speech. A read-only GET showed force_pre_tool_speech true, pre_tool_speech force, and no other tool field changed. With owner approval, the Staging agent then got the template prompt, turn_timeout 20 and silence_end_call_timeout 60 (agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx). A read-only GET showed exactly those three fields changed. With owner approval, the Production agent got the same prompt and turn settings (agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33). A read-only GET showed those three fields changed, plus a server-filled widget.terms_html default.",
     "versionId": "agtvrsn_3601m70bttdef3btf4ynf00bjk68",
     "template": "deploy/assistant-agent.template.json",
-    "templateSha256": "c3b080a57080e467d2ce008c209333d2019375fdaf11376ca8e18af22a1ac4ac",
+    "templateSha256": "64412c6717b9c6560dd32e9f83d0458321024df6b2194023861addff9794868c",
     "stagingApplied": true,
     "productionApplied": true,
     "previousNativeEvidenceVersionId": "agtvrsn_6301m6s7vrr6fmy9ncebz032r73m",
@@ -157,6 +157,7 @@
     }
   },
   "pendingGates": {
+    "agentTemplateAhead": "Template 64412c6717b9 is not yet published by deploy/assistant-agent.sh to: development, staging, production. Published and read back: none.",
     "linuxContainerImage": "Frozen Office Linux build and 384 MiB packaging smoke passed; green-main CI release images still required.",
     "staging384MiB": "Extended saturation/acknowledgement experiments deferred by user scope correction. Preliminary live load passed; final packaging smoke required.",
     "production512MiB": "Extended load experiments deferred by user scope correction. Initial rollout retains bounded uploads/workspace admission and required packaging/readiness checks.",

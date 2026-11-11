@@ -4,6 +4,7 @@
  */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ROWS = 5
+const BREAKDOWN_ROWS = 8
 
 export type Money = { minor: number; decimals: number; currency: string }
 export type RecordRow = {
@@ -25,7 +26,7 @@ export type AttentionItem = {
   attempts: number | null
   href: string | null
 }
-export type ResultView =
+export type ResultView = (
   | {
       kind: "sales"
       from: string
@@ -65,6 +66,24 @@ export type ResultView =
       kind: "attention"
       sections: { key: string; counts: Record<string, number>; items: AttentionItem[] }[]
     }
+  | {
+      kind: "breakdown"
+      by: "products" | "customers"
+      from: string
+      to: string
+      // Ranked as the API ranked them; label null = sales without a customer (walk-ins).
+      currencies: { currency: string; decimals: number; rows: { label: string | null; gross: number; orders: number }[] }[]
+    }
+  | {
+      kind: "comparison"
+      from: string
+      to: string
+      base_from: string
+      base_to: string
+      // Gross per period and the API's own change (basis points; null when the base is 0).
+      currencies: { currency: string; decimals: number; current: number; base: number; change_bp: number | null }[]
+    }
+) & { presentation?: Kind }
 
 type Resource = "orders" | "invoices" | "products" | "lots"
 type Obj = Record<string, unknown>
@@ -278,6 +297,57 @@ export function resultView(operationId: string, response: unknown): ResultView |
       }),
     }
   }
+  if (operationId === "orders_sales_compare" && obj(data)) {
+    const list = rows(data.currencies)
+    const now = obj(data.period) ? data.period : {}, before = obj(data.compare_to_period) ? data.compare_to_period : {}
+    const from = text(now.from), to = text(now.to), base_from = text(before.from), base_to = text(before.to)
+    if (!list || !from || !to || !base_from || !base_to) return
+    return {
+      kind: "comparison",
+      from,
+      to,
+      base_from,
+      base_to,
+      currencies: list.flatMap((row) => {
+        const currency = text(row.currency), decimals = int(row.decimals)
+        const current = obj(row.current) ? int(row.current.gross_total) : null
+        const base = obj(row.base) ? int(row.base.gross_total) : null
+        return currency && decimals !== null && current !== null && base !== null
+          ? [{ currency, decimals, current, base, change_bp: int(row.gross_change_bp) }]
+          : []
+      }),
+    }
+  }
+  const by = operationId === "products_top_sellers" ? "products" : operationId === "orders_top_customers" ? "customers" : null
+  if (by && obj(data)) {
+    const list = rows(data.currencies)
+    const from = text(data.from), to = text(data.to)
+    if (!list || !from || !to) return
+    return {
+      kind: "breakdown",
+      by,
+      from,
+      to,
+      currencies: list.flatMap((row) => {
+        const currency = text(row.currency), decimals = int(row.decimals)
+        if (!currency || decimals === null) return []
+        const ranked = (rows(row.rows) ?? []).flatMap((r) => {
+          const label =
+            by === "products" ? text(r.title) ?? (obj(r.product) ? text(r.product.name) : null)
+            : obj(r.relation) ? text(r.relation.name) : null
+          const gross = int(r.gross_total), orders = int(r.orders)
+          return label && gross !== null && orders !== null ? [{ label, gross, orders }] : []
+        }).slice(0, BREAKDOWN_ROWS)
+        const walkIn = obj(row.without_customer) ? row.without_customer : {}
+        const walkGross = int(walkIn.gross_total), walkOrders = int(walkIn.orders)
+        return [{
+          currency,
+          decimals,
+          rows: walkGross !== null && walkOrders ? [...ranked, { label: null, gross: walkGross, orders: walkOrders }] : ranked,
+        }]
+      }),
+    }
+  }
   if (operationId === "lots_passport_get" && obj(data)) {
     const passport = obj(data.published) ? data.published : obj(data.draft) ? data.draft : undefined
     if (!passport) return
@@ -320,4 +390,87 @@ export function resultView(operationId: string, response: unknown): ResultView |
         return [{ key, counts, items }]
       }),
     }
+}
+
+/** Every way the screen can draw a result. The agent may ask for one; Office checks it fits. */
+export const KINDS = [
+  "line", "sparkline", "bar", "hbar", "pie", "donut", "kpi", "delta", "meter", "table", "list", "timeline", "map",
+] as const
+export type Kind = (typeof KINDS)[number]
+
+/** What a result's data is, whatever read it came from. */
+export type Shape = "series" | "totals" | "comparison" | "breakdown" | "share" | "counts" | "rows" | "events"
+const SHAPE: Record<ResultView["kind"], Shape> = {
+  sales_daily: "series",
+  sales: "totals",
+  comparison: "comparison",
+  breakdown: "breakdown",
+  lot_origin: "share",
+  attention: "counts",
+  records: "rows",
+  trail: "events",
+}
+export const shapeOf = (view: ResultView) => SHAPE[view.kind]
+
+/** The kinds that honestly draw each shape; the first is the default. */
+export const SUPPORTS: Record<Shape, readonly Kind[]> = {
+  series: ["line", "sparkline", "bar", "table"],
+  totals: ["hbar", "bar", "kpi", "table"],
+  comparison: ["delta", "bar", "hbar", "kpi", "table"],
+  breakdown: ["hbar", "bar", "pie", "donut", "table", "list"],
+  share: ["list", "bar", "hbar", "pie", "donut", "meter", "table"],
+  counts: ["list", "bar", "hbar", "pie", "donut", "kpi", "table"],
+  rows: ["list", "kpi", "table"],
+  events: ["timeline", "list", "table"],
+}
+export const drawnAs = (view: ResultView): Kind => view.presentation ?? SUPPORTS[shapeOf(view)][0]!
+
+// Why a kind cannot draw some data (said by the agent in one sentence), and its nearest kinds.
+const NEEDS: Record<Kind, string> = {
+  line: "a line needs values over time",
+  sparkline: "a trend line needs values over time",
+  bar: "bars need an amount per item, day or period",
+  hbar: "ranked bars need an amount per item",
+  pie: "a pie needs parts of one whole",
+  donut: "a donut needs parts of one whole",
+  kpi: "a single figure here would have to be added up, and figures are never made up",
+  delta: "a change needs two periods to compare",
+  meter: "a meter needs a part of a known total",
+  table: "a table needs rows",
+  list: "a list needs separate records or items",
+  timeline: "a timeline needs dated events",
+  map: "a map needs a location, and this result has none",
+}
+const NEAREST: Record<Kind, Kind[]> = {
+  line: ["sparkline", "bar"],
+  sparkline: ["line", "bar"],
+  bar: ["hbar", "line"],
+  hbar: ["bar"],
+  pie: ["donut", "bar", "hbar"],
+  donut: ["pie", "bar", "hbar"],
+  kpi: ["delta", "list"],
+  delta: ["kpi", "bar"],
+  meter: ["hbar", "bar"],
+  table: ["list"],
+  list: ["table"],
+  timeline: ["list", "table"],
+  map: ["list", "table"],
+}
+
+/** A requested kind if it can draw this data; otherwise the default, why, and the closest fit. */
+export function choosePresentation(view: ResultView, asked: unknown) {
+  const supports = SUPPORTS[shapeOf(view)]
+  const shown = supports[0]!
+  if (typeof asked === "string" && supports.includes(asked as Kind))
+    return { view: { ...view, presentation: asked === shown ? undefined : (asked as Kind) } as ResultView }
+  const known = typeof asked === "string" && (KINDS as readonly string[]).includes(asked)
+  return {
+    view,
+    note: {
+      asked: known ? (asked as Kind) : "unknown",
+      shown,
+      closest: (known ? NEAREST[asked as Kind] : []).find((k) => supports.includes(k)) ?? shown,
+      reason: known ? NEEDS[asked as Kind] : "that is not a way this screen can draw results",
+    },
+  }
 }

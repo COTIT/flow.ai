@@ -30,6 +30,7 @@ import {
 } from "@/lib/voice/batches"
 import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 import { narrate } from "@/lib/voice/narration"
+import { present, viewChoice } from "@/lib/voice/present"
 import { describeCapabilities } from "@/lib/voice/capabilities.server"
 import { asksForPage, openPage, pageTool, PAGE_TOOL } from "@/lib/voice/pages"
 import { noteToolCall, trackGap, type GapScope } from "@/lib/voice/gaps"
@@ -380,6 +381,7 @@ async function handle(request: Request, scope: GapScope) {
     }
     if (!isToolAllowed(operation, context.permissions))
       throw new VoiceError("You do not have permission for this action.", 403)
+    const choice = viewChoice(input, operation)
     if (operation.disposition === "secure_ui") {
       const route = operation.handoff?.route
       if (!route || !route.startsWith("/") || route.startsWith("//"))
@@ -427,10 +429,13 @@ async function handle(request: Request, scope: GapScope) {
     if (files.size)
       throw new VoiceError("This lookup does not accept binary attachments.")
     return voiceResponse(
-      narrate(
-        await executeAction(action, context, randomUUID()),
-        "lookup",
-        language
+      present(
+        narrate(
+          await executeAction(action, context, randomUUID()),
+          "lookup",
+          language
+        ),
+        choice
       )
     )
   } catch (error) {
