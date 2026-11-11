@@ -60,3 +60,28 @@ describe("VoiceResult status labels", () => {
     expect(out).toContain("orders:open")
   })
 })
+
+describe("VoiceResult daily sales", () => {
+  it("draws one bar per day with the API's numbers and no refund figure it never had", () => {
+    const daily = {
+      kind: "sales_daily",
+      from: "2026-11-09",
+      to: "2026-11-10",
+      time_zone: "UTC",
+      currencies: [
+        {
+          currency: "USD",
+          decimals: 2,
+          days: [
+            { date: "2026-11-09", gross: 1000, net: 1000, orders: 2 },
+            { date: "2026-11-10", gross: 0, net: 0, orders: 0 },
+          ],
+        },
+      ],
+    } as ResultView
+    const out = html(<VoiceResult views={[daily]} />)
+    expect(out).toContain('data-kind="sales_daily"')
+    expect(out).toContain("$10.00")
+    expect(out).not.toContain("noSales")
+  })
+})

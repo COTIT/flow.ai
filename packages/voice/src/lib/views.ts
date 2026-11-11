@@ -38,9 +38,17 @@ export type ResultView =
         gross: number
         net: number | null
         vat: number | null
-        refunded: number
+        // null: the source has no refund split (daily series).
+        refunded: number | null
         orders: number
       }[]
+    }
+  | {
+      kind: "sales_daily"
+      from: string
+      to: string
+      time_zone: string | null
+      currencies: { currency: string; decimals: number; days: { date: string; gross: number; net: number; orders: number }[] }[]
     }
   | { kind: "records"; resource: Resource; total: number; href: string; rows: RecordRow[] }
   | {
@@ -151,6 +159,51 @@ function attentionItem(key: string, row: Obj): AttentionItem | null {
 
 const SECTIONS = ["orders", "invoices", "stock", "till_shifts", "lots", "webhooks"]
 
+// Flow noticed kinds the screen knows, and where each item's record lives.
+const PRIORITIES: Record<string, Resource | null> = {
+  "stock.below_minimum": "products",
+  "orders.open": "orders",
+  "invoices.overdue": "invoices",
+  "till.open_shifts": null,
+  "lots.quarantined": "lots",
+  "webhooks.failed": null,
+}
+const DAY = /^\d{4}-\d{2}-\d{2}$/
+
+function priorityItem(resource: Resource | null, row: Obj): AttentionItem | null {
+  const label = text(row.label)
+  if (!label) return null
+  const cash = obj(row.money) ? row.money : {}
+  const ref = id(row.ref_id)
+  return {
+    label,
+    detail: null,
+    status: null,
+    money: money(cash.amount, cash.decimals, cash.currency),
+    level: text(row.available),
+    at: text(row.since),
+    attempts: null,
+    href: resource && ref ? `/${resource}/${ref}` : null,
+  }
+}
+
+/** One sales view per day (each currency of that day side by side) for the period bar chart; never sums. */
+export function dailyAsSales(view: Extract<ResultView, { kind: "sales_daily" }>): Extract<ResultView, { kind: "sales" }>[] {
+  const dates = [...new Set(view.currencies.flatMap((c) => c.days.map((d) => d.date)))].sort()
+  return dates.map((date) => ({
+    kind: "sales",
+    from: date,
+    to: date,
+    source: null,
+    rows: view.currencies.flatMap((c) => {
+      const day = c.days.find((d) => d.date === date)
+      return day
+        ? [{ currency: c.currency, decimals: c.decimals, gross: day.gross, net: day.net, vat: null, refunded: null, orders: day.orders }]
+        : []
+    }),
+  }))
+}
+
 export function resultView(operationId: string, response: unknown): ResultView | undefined {
   const body = obj(response) ? response : undefined
   if (!body) return
@@ -182,6 +235,46 @@ export function resultView(operationId: string, response: unknown): ResultView |
         return currency && decimals !== null && gross !== null && refunded !== null && orders !== null
           ? [{ currency, decimals, gross, net: int(row.net_total), vat: int(row.vat_total), refunded, orders }]
           : []
+      }),
+    }
+  }
+  if (operationId === "orders_sales_daily" && obj(data)) {
+    const list = rows(data.currencies)
+    const from = text(data.from), to = text(data.to)
+    if (!list || !from || !to) return
+    return {
+      kind: "sales_daily",
+      from,
+      to,
+      time_zone: text(data.time_zone),
+      currencies: list.flatMap((row) => {
+        const currency = text(row.currency), decimals = int(row.decimals)
+        if (!currency || decimals === null) return []
+        const days = (rows(row.days) ?? []).flatMap((d) => {
+          const date = text(d.date), gross = int(d.gross), net = int(d.net), orders = int(d.orders)
+          return date && DAY.test(date) && gross !== null && net !== null && orders !== null ? [{ date, gross, net, orders }] : []
+        })
+        return [{ currency, decimals, days }]
+      }),
+    }
+  }
+  if (operationId === "attention_priorities" && obj(data)) {
+    const groups = rows(data.groups)
+    if (!groups) return
+    return {
+      kind: "attention",
+      // API order is the priority order; unknown kinds are left out, restricted ones never arrive.
+      sections: groups.flatMap((g) => {
+        const kind = text(g.kind)
+        if (!kind || !(kind in PRIORITIES)) return []
+        const counts = Object.fromEntries(
+          (["open", "acknowledged", "snoozed"] as const).flatMap((k) => {
+            const n = int(g[`${k}_count`])
+            return n === null ? [] : [[k, n]]
+          })
+        ) as Record<string, number>
+        const items = (rows(g.items) ?? []).flatMap((row) => priorityItem(PRIORITIES[kind] ?? null, row) ?? []).slice(0, ROWS)
+        return [{ key: kind.replace(".", "_"), counts, items }]
       }),
     }
   }

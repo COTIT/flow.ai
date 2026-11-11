@@ -826,5 +826,70 @@
       "kuchapisha",
       "muundo mpya"
     ]
+  },
+  "attention_priorities": {
+    "en": [
+      "priorities",
+      "priority",
+      "important",
+      "first",
+      "noticed",
+      "below",
+      "minimum",
+      "low stock"
+    ],
+    "nl": [
+      "prioriteiten",
+      "prioriteit",
+      "belangrijkste",
+      "belangrijk",
+      "eerst",
+      "minimum",
+      "laag"
+    ],
+    "sw": ["kipaumbele", "muhimu", "kwanza", "kiwango", "chini"]
+  },
+  "attention_marks_set": {
+    "en": ["snooze", "acknowledge", "seen", "later", "tomorrow", "dismiss"],
+    "nl": ["uitstellen", "stel", "uit", "gezien", "later", "morgen"],
+    "sw": ["ahirisha", "nimeona", "baadaye", "kesho"]
+  },
+  "attention_marks_delete": {
+    "en": ["unsnooze", "unacknowledge", "show it again"],
+    "nl": ["terugzetten", "terug"],
+    "sw": ["rudisha"]
+  },
+  "orders_sales_daily": {
+    "en": ["daily", "per day", "each day", "trend", "chart", "sales"],
+    "nl": ["dagelijks", "per dag", "verloop", "grafiek", "verkoop"],
+    "sw": ["kila siku", "kwa siku", "mwenendo", "chati", "mauzo"]
+  },
+  "flow_scenes_list": {
+    "en": ["flow", "scenes", "scene", "layout", "cards", "my view"],
+    "nl": ["flow", "scène", "scènes", "indeling", "overzicht", "kaarten"],
+    "sw": ["mpangilio", "dashibodi", "kadi", "onyesho"]
+  },
+  "flow_scenes_update": {
+    "en": [
+      "always show",
+      "pin",
+      "keep",
+      "reorder",
+      "move card",
+      "scene",
+      "pulse"
+    ],
+    "nl": ["altijd", "toon", "vastzetten", "volgorde", "verplaatsen", "scène"],
+    "sw": ["kila mara", "onyesha", "bandika", "panga", "dashibodi", "kwanza"]
+  },
+  "flow_scenes_delete": {
+    "en": ["default", "back to", "restore scene", "scene"],
+    "nl": ["standaard", "terug", "herstellen", "scène"],
+    "sw": ["chaguo-msingi", "rejesha", "mpangilio"]
+  },
+  "flow_scenes_reset": {
+    "en": ["reset", "start over", "whole", "all scenes", "layout"],
+    "nl": ["resetten", "opnieuw beginnen", "indeling"],
+    "sw": ["weka upya", "anza upya", "mpangilio", "wote"]
   }
 }

@@ -14,6 +14,7 @@ import { voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
 import { assistantReadiness } from "@/lib/voice/readiness"
 import { workspaceTimeZone } from "@/lib/voice/time-zone"
+import { GREETING_HINTS, sessionGreeting, type GreetingHint } from "@/lib/voice/greeting"
 import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
 export const runtime = "nodejs"
 
@@ -55,9 +56,15 @@ export async function POST(request: Request) {
         })
       )
     }
+    const hint = input.greeting as GreetingHint | undefined
+    if (hint !== undefined && !GREETING_HINTS.includes(hint))
+      throw new VoiceError("Invalid greeting.")
     if (!(await assistantReadiness()).ready)
       throw new VoiceError("Assistant configuration is not ready.", 503)
-    const timeZone = await workspaceTimeZone(context)
+    const [timeZone, greeting] = await Promise.all([
+      workspaceTimeZone(context),
+      sessionGreeting(context, language, hint),
+    ])
     const session = await assistantRequest<AssistantSession>(
       context,
       "/sessions",
@@ -77,6 +84,7 @@ export async function POST(request: Request) {
         ...provider,
         sessionId: session.id,
         ...(timeZone ? { timeZone } : {}),
+        ...(greeting !== undefined ? { greeting } : {}),
       })
     } catch (error) {
       await assistantRequest(
