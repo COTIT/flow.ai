@@ -162,7 +162,7 @@ pub async fn preview_link_revoke(
 }
 
 /// Shop server resolves preview token for its own workspace; any dead or foreign token is 404.
-#[utoipa::path(post,path="/storefront/preview",tag="storefront_design",operation_id="storefront_design_preview_resolve",request_body=StorefrontPreviewResolve,responses((status=200,body=Envelope<StorefrontPreviewDesign>,description="Unpublished revision with public catalog collections"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown, expired, revoked, published or superseded link, or another workspace's link"),(status=422,body=ValidationErrorBody,description="Body without a token string"),(status=429,body=MessageBody,description="Too many preview resolves for this app key")),security(("app_key"=[])))]
+#[utoipa::path(post,path="/storefront/preview",tag="storefront_design",operation_id="storefront_design_preview_resolve",request_body=StorefrontPreviewResolve,responses((status=200,body=Envelope<StorefrontPreviewDesign>,description="Unpublished revision with public catalog collections"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown, expired, revoked, published or superseded link, or another workspace's link"),(status=422,body=ValidationErrorBody,description="Body without a token string")),security(("app_key"=[])))]
 pub async fn preview_resolve(
     State(state): State<AppState>,
     key: AppKey,

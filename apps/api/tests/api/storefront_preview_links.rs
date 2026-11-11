@@ -560,10 +560,18 @@ async fn resolve_has_its_own_rate_limit(pool: PgPool) {
     for _ in 0..3 {
         assert_eq!(resolve_on(&app, &key, &token).await.0, StatusCode::OK);
     }
-    assert_eq!(
-        resolve_on(&app, &key, &token).await.0,
-        StatusCode::TOO_MANY_REQUESTS
-    );
+    let (status, headers, _) = common::send_full(
+        &app,
+        Method::POST,
+        RESOLVE,
+        Some(json!({"token":token})),
+        Some(&key),
+        &[],
+    )
+    .await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    let wait: u64 = headers["retry-after"].to_str().unwrap().parse().unwrap();
+    assert!(wait >= 1, "Retry-After {wait}");
     let (status, _) = common::send(
         &app,
         Method::GET,
