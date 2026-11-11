@@ -11,17 +11,64 @@ import { useSeries } from "@/lib/use-scene-data"
 import { DataState, Restricted } from "./data-state"
 import type { RegistryProps } from "./types"
 
-/** Bars or a line are drawing scale only; every number shown is the API's. */
+/** A short day name for a week, a day and month for longer periods (date-only, no time zone shift). */
+const dayLabel = (date: string, locale: string, week: boolean) =>
+  new Date(`${date}T12:00:00`).toLocaleDateString(
+    locale,
+    week ? { weekday: "short" } : { day: "numeric", month: "short" }
+  )
+
+/**
+ * Bars or a line fill the tile's height (at a glance), with the days below and the lowest and
+ * highest value beside. The drawing is scale only; every number shown is the API's own value.
+ */
 function Drawing({
   line,
   cur,
   field,
+  locale,
 }: {
   line: boolean
   cur: DailyCurrency
   field: "gross" | "net"
+  locale: string
 }) {
-  return <Series line={line} values={cur.days.map((d) => d[field])} />
+  const values = cur.days.map((d) => d[field])
+  const money = (v: number) =>
+    formatMoney(v, cur.decimals, cur.currency, locale)
+  const week = cur.days.length <= 7
+  // Longer periods label the first, middle and last day only.
+  const shown = week
+    ? cur.days
+    : cur.days.filter(
+        (_, i, all) =>
+          i === 0 || i === all.length - 1 || i === Math.floor(all.length / 2)
+      )
+  return (
+    <figure className="m-0 grid min-h-28 flex-1 grid-cols-[auto_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-x-2 gap-y-1">
+      <div className="flex flex-col justify-between text-right text-[11px] text-muted-foreground tabular-nums">
+        <span data-range="max">
+          {values.length ? money(Math.max(...values)) : null}
+        </span>
+        <span data-range="min">
+          {values.length ? money(Math.min(...values)) : null}
+        </span>
+      </div>
+      <div className="min-h-0 min-w-0 border-b border-l border-border/60">
+        <Series line={line} values={values} className="h-full" />
+      </div>
+      <div
+        aria-hidden
+        className={`col-start-2 flex text-[11px] text-muted-foreground ${line ? "justify-between" : "justify-around"}`}
+      >
+        {shown.map((d) => (
+          <span key={d.date} data-day={d.date}>
+            {dayLabel(d.date, locale, week)}
+          </span>
+        ))}
+      </div>
+    </figure>
+  )
 }
 
 export function Chart({
@@ -44,7 +91,7 @@ export function Chart({
     <section
       aria-label={title}
       data-chart={line ? "line" : "bar"}
-      className="flex flex-col gap-3 rounded-2xl border bg-card p-4"
+      className="flex h-full flex-col gap-3 rounded-2xl border bg-card p-4"
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">{title}</h3>
@@ -64,7 +111,7 @@ export function Chart({
         emptyTitle={t("noSales")}
         reserve={160}
       >
-        <div id={tableId} className="flex flex-col gap-4">
+        <div id={tableId} className="flex min-h-0 flex-1 flex-col gap-4">
           {currencies.map((cur) =>
             table ? (
               <table key={cur.currency} className="w-full text-sm">
@@ -91,7 +138,13 @@ export function Chart({
                 </tbody>
               </table>
             ) : (
-              <Drawing key={cur.currency} line={line} cur={cur} field={field} />
+              <Drawing
+                key={cur.currency}
+                line={line}
+                cur={cur}
+                field={field}
+                locale={locale}
+              />
             )
           )}
         </div>
