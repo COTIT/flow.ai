@@ -3,6 +3,8 @@
 // Findings list: side-session notes, child-stress-test-findings.md.
 import { markInjected } from "../../src/test"
 import { expect, test } from "./storefront-api"
+import { readBack, receipt, scene, stockReview, stockRoutes } from "./task"
+import { fakeAgent, startText, v } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -78,5 +80,75 @@ test("SW3: a component the API refuses (403) says it is not available for the ro
   const card = page.locator('[data-component="sales-today"]')
   await expect(card).toContainText("Not available for your role", {
     timeout: 3_000,
+  })
+})
+
+const stockReadBack = (
+  api: Parameters<Parameters<typeof test>[2]>[0]["api"]
+) => {
+  const stock =
+    readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
+  api.on(
+    "GET",
+    "/workspace/:ws/products/:id/stock-with-bins",
+    () => stock.body as object
+  )
+}
+const propose = (agent: Awaited<ReturnType<typeof fakeAgent>>) =>
+  agent.call("stock_set_levels", {
+    path: { product: "p-500" },
+    body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 120 }] },
+  })
+
+test("SW4: after Approve from the keyboard, focus stays in the task (never lost to the page)", async ({
+  page,
+  api,
+}) => {
+  test.fail(
+    !process.env.FINDINGS_RED,
+    "SW4 open: the Approve button unmounts and focus falls to <body>"
+  )
+  stockReadBack(api)
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  propose(agent)
+  const approve = scene(page).getByRole("button", { name: v.approve })
+  await approve.focus()
+  await page.keyboard.press("Enter")
+  await expect(receipt(page)).toBeVisible()
+  // Focus moves to what replaced the button (the receipt), not to <body>.
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement !== document.body))
+    .toBe(true)
+})
+
+test("SW5: a review that expires while open says so where the card was", async ({
+  page,
+}) => {
+  test.fail(
+    !process.env.FINDINGS_RED,
+    "SW5 open: the card vanishes; the open scene shows only 'Answers show here'"
+  )
+  const agent = await fakeAgent(page)
+  await page.route("**/api/voice/tools", (route) => {
+    const body = route.request().postDataJSON() as {
+      command?: string
+      operationId?: string
+    }
+    if (body.command !== "execute" || body.operationId !== "stock_set_levels")
+      return route.fallback()
+    const review = stockReview(120)
+    review.review.expiresAt = new Date(Date.now() + 2_000).toISOString()
+    return route.fulfill({ json: review })
+  })
+  await page.goto("/")
+  await startText(page)
+  propose(agent)
+  await expect(scene(page)).toContainText("Confirm action 135790")
+  // The dock already says it; the scene the person is looking at must not go blank.
+  await expect(scene(page)).toContainText("This review expired", {
+    timeout: 6_000,
   })
 })
