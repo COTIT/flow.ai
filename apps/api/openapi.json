@@ -35227,7 +35227,15 @@
                 }
               }
             },
-            "description": "Too many preview resolves for this app key"
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
