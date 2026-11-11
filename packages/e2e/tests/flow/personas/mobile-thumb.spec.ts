@@ -326,8 +326,14 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
  */
 async function expectNotZoomedOut(page: Page) {
   const found = await page.evaluate((screen) => {
+    // Inside a scroller or a clipping box it cannot widen the page.
+    const clipped = (el: Element) => {
+      for (let p = el.parentElement; p; p = p.parentElement)
+        if (getComputedStyle(p).overflowX !== "visible") return true
+      return false
+    }
     const wide = Array.from(document.querySelectorAll<HTMLElement>("body *"))
-      .filter((el) => el.getBoundingClientRect().right > screen + 1)
+      .filter((el) => el.getBoundingClientRect().right > screen + 1 && !clipped(el))
       .map((el) => {
         const r = el.getBoundingClientRect()
         const what = el.getAttribute("aria-label") ?? el.getAttribute("role") ?? el.className.toString().slice(0, 50)
@@ -727,4 +733,19 @@ test.fail("P10-9: rotating on a scene and back keeps the page at full size", asy
   await page.setViewportSize(SIZES.phone)
   await page.waitForTimeout(2_500)
   await expectNotZoomedOut(page)
+})
+
+// P10-10: during a conversation, rotating to landscape and back loses the phone's conversation
+// sheet on home: the conversation is still live but its transcript is nowhere on screen (only the
+// orb, "Open the conversation", leads to it). Before the rotation the sheet was there.
+test.fail("P10-10: the conversation sheet comes back after rotating there and back", async ({
+  persona,
+  page,
+}) => {
+  void persona
+  await withSheet(page, SIZES.phone)
+  await page.setViewportSize({ width: SIZES.phone.height, height: SIZES.phone.width })
+  await page.waitForTimeout(1_500)
+  await page.setViewportSize(SIZES.phone)
+  await expect(sheetHandle(page)).toBeVisible()
 })
