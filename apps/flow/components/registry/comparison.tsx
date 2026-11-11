@@ -14,14 +14,17 @@ export function Comparison({ component, restricted }: RegistryProps) {
   const locale = useLocale()
   const metric = component.metric ?? "sales.gross"
   const period = component.period ?? "this_week"
-  const title = `${t(`metric.${metric}`)} · ${t(`period.${period}`)}`
+  const title = `${t(`metric.${metric.replace(".", "_")}`)} · ${t(`period.${period}`)}`
   const query = useCompare(period, !restricted)
   if (restricted) return <Restricted title={title} />
   const net = metric === "sales.net"
   const rows = query.data?.data.currencies ?? []
   return (
     <DataState query={query} empty={!rows.length} emptyTitle={t("noSales")}>
-      <div data-comparison="" className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
+      <div
+        data-comparison=""
+        className="flex flex-col gap-2 rounded-2xl border bg-card p-4"
+      >
         <p className="text-xs text-muted-foreground">{title}</p>
         {rows.map((row) => {
           const bp = net ? row.net_change_bp : row.gross_change_bp
@@ -29,10 +32,19 @@ export function Comparison({ component, restricted }: RegistryProps) {
           return (
             <div key={row.currency} className="flex flex-col">
               <p className="text-2xl font-semibold tabular-nums">
-                {formatMoney(net ? row.current.net_total : row.current.gross_total, row.decimals, row.currency, locale)}
+                {formatMoney(
+                  net ? row.current.net_total : row.current.gross_total,
+                  row.decimals,
+                  row.currency,
+                  locale
+                )}
               </p>
               <p className="text-xs text-muted-foreground">
-                {bp ? t("vsBefore", { change: `${sign}${formatShare(Math.abs(bp), locale)}` }) : t("noChange")}
+                {bp
+                  ? t("vsBefore", {
+                      change: `${sign}${formatShare(Math.abs(bp), locale)}`,
+                    })
+                  : t("noChange")}
               </p>
             </div>
           )

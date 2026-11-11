@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react"
 import { useTranslations } from "next-intl"
+import { useQueryClient } from "@tanstack/react-query"
 import { Lock } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
@@ -9,6 +10,7 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { freshness } from "@/lib/freshness"
+import { isSceneData } from "@/lib/use-scene-data"
 
 /** The part of a TanStack query a component's states depend on. */
 export type Query = {
@@ -50,14 +52,19 @@ export function DataState({
   children: React.ReactNode
 }) {
   const t = useTranslations("scenes")
-  if (query.isPending) return <Skeleton data-loading="" className="h-24 w-full rounded-2xl" />
+  if (query.isPending)
+    return <Skeleton data-loading="" className="h-24 w-full rounded-2xl" />
   if (query.isError && !query.dataUpdatedAt)
     return (
       <Notice
         variant="error"
         title={t("failed")}
         action={
-          <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void query.refetch()}
+          >
             {t("retry")}
           </Button>
         }
@@ -72,16 +79,33 @@ const tick = (notify: () => void) => {
   return () => clearInterval(id)
 }
 
-/** "Updated 32 s ago" / "Refreshing…" / "Data may be outdated" for the queries behind a scene. */
-export function Freshness({ queries, staleAfter }: { queries: Query[]; staleAfter: number }) {
+/** "Updated 32 s ago" / "Refreshing…" / "Data may be outdated" for the data the visible scene shows. */
+export function Freshness({ staleAfter }: { staleAfter: number }) {
   const t = useTranslations("scenes")
-  const now = useSyncExternalStore(tick, () => Math.floor(Date.now() / 1000) * 1000, () => 0)
+  const now = useSyncExternalStore(
+    tick,
+    () => Math.floor(Date.now() / 1000) * 1000,
+    () => 0
+  )
+  const queries = useQueryClient()
+    .getQueryCache()
+    .findAll({
+      predicate: (q) => isSceneData(q.queryKey) && q.getObserversCount() > 0,
+    })
+    .map((q) => ({
+      isPending: q.state.status === "pending",
+      isError: q.state.status === "error",
+      isFetching: q.state.fetchStatus === "fetching",
+      dataUpdatedAt: q.state.dataUpdatedAt,
+      refetch: () => undefined,
+    }))
   const answered = queries.filter((q) => q.dataUpdatedAt)
   if (!now || !answered.length) return null
   const state = freshness({
     updatedAt: Math.min(...answered.map((q) => q.dataUpdatedAt)),
     fetching: queries.some((q) => q.isFetching),
-    failed: queries.some((q) => q.isError),
+    // A query that never answered (e.g. a role without that data) has no shown data to age.
+    failed: answered.some((q) => q.isError),
     now,
     staleAfter,
   })
@@ -93,7 +117,11 @@ export function Freshness({ queries, staleAfter }: { queries: Query[]; staleAfte
     failed: t("refreshFailed"),
   }[state.kind]
   return (
-    <p data-freshness={state.kind} aria-live="polite" className="text-xs text-muted-foreground">
+    <p
+      data-freshness={state.kind}
+      aria-live="polite"
+      className="text-xs text-muted-foreground"
+    >
       {text}
     </p>
   )

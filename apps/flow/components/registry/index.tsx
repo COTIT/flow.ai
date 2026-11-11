@@ -31,5 +31,7 @@ export const REGISTRY = {
 } satisfies Record<FlowComponentType, ComponentType<RegistryProps>>
 
 /** The component for a type, or null for one this build doesn't know (it renders nothing). */
-export const componentFor = (type: string): ComponentType<RegistryProps> | null =>
+export const componentFor = (
+  type: string
+): ComponentType<RegistryProps> | null =>
   Object.hasOwn(REGISTRY, type) ? REGISTRY[type as FlowComponentType] : null

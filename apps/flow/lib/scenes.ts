@@ -34,8 +34,7 @@ export const homeScenes = (list: FlowScene[]) =>
     .filter((s) => !s.hidden && s.scene !== "noticed" && !allRestricted(s))
     .sort((a, b) => a.position - b.position)
 
-export const hiddenScenes = (list: FlowScene[]) =>
-  list.filter((s) => s.hidden)
+export const hiddenScenes = (list: FlowScene[]) => list.filter((s) => s.hidden)
 
 const isOrders = (c: FlowComponent) =>
   c.type === "order_list" || !!c.metric?.startsWith("orders.")

@@ -41,13 +41,13 @@
     },
     "periodLabel": "Period",
     "metric": {
-      "sales.gross": "Sales",
-      "sales.net": "Sales excl. VAT",
-      "orders.pending": "Pending orders",
-      "orders.draft": "Draft orders",
-      "stock.below_minimum": "Products below minimum",
-      "invoices.overdue": "Overdue invoices",
-      "invoices.unpaid": "Unpaid invoices"
+      "sales_gross": "Sales",
+      "sales_net": "Sales excl. VAT",
+      "orders_pending": "Pending orders",
+      "orders_draft": "Draft orders",
+      "stock_below_minimum": "Products below minimum",
+      "invoices_overdue": "Overdue invoices",
+      "invoices_unpaid": "Unpaid invoices"
     },
     "vsBefore": "{change} vs the period before",
     "noChange": "Same as the period before",
@@ -102,12 +102,12 @@
       "reviewOrders": "Review orders",
       "affects": "{count, plural, one {# open order} other {# open orders}}",
       "kind": {
-        "stock.below_minimum": "{count, plural, one {# product below its minimum stock level} other {# products below their minimum stock levels}}",
-        "orders.open": "{count, plural, one {# order needs fulfillment attention} other {# orders need fulfillment attention}}",
-        "invoices.overdue": "{count, plural, one {# overdue invoice} other {# overdue invoices}}",
-        "till.open_shifts": "{count, plural, one {# till shift still open} other {# till shifts still open}}",
-        "lots.quarantined": "{count, plural, one {# lot in quarantine} other {# lots in quarantine}}",
-        "webhooks.failed": "{count, plural, one {# webhook failing} other {# webhooks failing}}"
+        "stock_below_minimum": "{count, plural, one {# product below its minimum stock level} other {# products below their minimum stock levels}}",
+        "orders_open": "{count, plural, one {# order needs fulfillment attention} other {# orders need fulfillment attention}}",
+        "invoices_overdue": "{count, plural, one {# overdue invoice} other {# overdue invoices}}",
+        "till_open_shifts": "{count, plural, one {# till shift still open} other {# till shifts still open}}",
+        "lots_quarantined": "{count, plural, one {# lot in quarantine} other {# lots in quarantine}}",
+        "webhooks_failed": "{count, plural, one {# webhook failing} other {# webhooks failing}}"
       }
     },
     "scene": {

@@ -14,34 +14,49 @@ import { Notice } from "@genesy/ui/components/notice"
 import { formatDateTime } from "@genesy/ui/lib/format"
 import { useReports, useWorkspace } from "@/lib/use-scene-data"
 import { DataState } from "./data-state"
-import type { RegistryProps } from "./types"
 
 /** My Routines: the caller's own scheduled reports. Creating one stays a reviewed voice action. */
-export function ReportList(_: RegistryProps) {
+export function ReportList(): React.ReactNode {
   const t = useTranslations("scenes")
   const locale = useLocale()
   const ws = useWorkspace()
   const client = useQueryClient()
   const query = useReports()
-  const done = { onSettled: () => client.invalidateQueries({ queryKey: getScheduledReportsListQueryKey(ws) }) }
+  const done = {
+    onSettled: () =>
+      client.invalidateQueries({
+        queryKey: getScheduledReportsListQueryKey(ws),
+      }),
+  }
   const update = useScheduledReportsUpdate({ mutation: done })
   const remove = useScheduledReportsDelete({ mutation: done })
   const rows = query.data?.data ?? []
   return (
-    <section aria-label={t("reports")} className="flex flex-col gap-3 rounded-2xl border bg-card p-3">
+    <section
+      aria-label={t("reports")}
+      className="flex flex-col gap-3 rounded-2xl border bg-card p-3"
+    >
       <h3 className="px-1 text-sm font-semibold">{t("reports")}</h3>
-      {update.isError || remove.isError ? <Notice variant="error" title={t("saveFailed")} /> : null}
+      {update.isError || remove.isError ? (
+        <Notice variant="error" title={t("saveFailed")} />
+      ) : null}
       <DataState query={query} empty={!rows.length} emptyTitle={t("noReports")}>
         <ul className="flex flex-col gap-2">
           {rows.map((r) => (
-            <li key={r.id} data-report={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-2 py-2">
+            <li
+              key={r.id}
+              data-report={r.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-2 py-2"
+            >
               <div className="mr-auto flex min-w-0 flex-col">
                 <span className="font-medium">
                   {t(`report.${r.report}`)} · {t(`frequency.${r.frequency}`)}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {r.active ? t("active") : t("paused")}
-                  {r.active ? ` · ${t("nextRun", { when: formatDateTime(r.next_run_at, locale) })}` : null}
+                  {r.active
+                    ? ` · ${t("nextRun", { when: formatDateTime(r.next_run_at, locale) })}`
+                    : null}
                 </span>
               </div>
               <Button
@@ -49,7 +64,13 @@ export function ReportList(_: RegistryProps) {
                 size="sm"
                 className="min-h-11"
                 disabled={update.isPending}
-                onClick={() => update.mutate({ workspace: ws, schedule: r.id, data: { active: !r.active } })}
+                onClick={() =>
+                  update.mutate({
+                    workspace: ws,
+                    schedule: r.id,
+                    data: { active: !r.active },
+                  })
+                }
               >
                 {r.active ? t("pause") : t("resume")}
               </Button>
@@ -61,7 +82,9 @@ export function ReportList(_: RegistryProps) {
                 cancel={t("cancel")}
                 destructive
                 disabled={remove.isPending}
-                onConfirm={() => remove.mutate({ workspace: ws, schedule: r.id })}
+                onConfirm={() =>
+                  remove.mutate({ workspace: ws, schedule: r.id })
+                }
               />
             </li>
           ))}

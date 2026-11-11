@@ -41,13 +41,13 @@
     },
     "periodLabel": "Kipindi",
     "metric": {
-      "sales.gross": "Mauzo",
-      "sales.net": "Mauzo bila VAT",
-      "orders.pending": "Oda zinazosubiri",
-      "orders.draft": "Oda za rasimu",
-      "stock.below_minimum": "Bidhaa chini ya kiwango cha chini",
-      "invoices.overdue": "Ankara zilizochelewa",
-      "invoices.unpaid": "Ankara ambazo hazijalipwa"
+      "sales_gross": "Mauzo",
+      "sales_net": "Mauzo bila VAT",
+      "orders_pending": "Oda zinazosubiri",
+      "orders_draft": "Oda za rasimu",
+      "stock_below_minimum": "Bidhaa chini ya kiwango cha chini",
+      "invoices_overdue": "Ankara zilizochelewa",
+      "invoices_unpaid": "Ankara ambazo hazijalipwa"
     },
     "vsBefore": "{change} ukilinganisha na kipindi kilichopita",
     "noChange": "Sawa na kipindi kilichopita",
@@ -102,12 +102,12 @@
       "reviewOrders": "Kagua oda",
       "affects": "{count, plural, one {oda # iliyo wazi} other {oda # zilizo wazi}}",
       "kind": {
-        "stock.below_minimum": "{count, plural, one {bidhaa # chini ya kiwango chake cha chini cha hisa} other {bidhaa # chini ya viwango vyao vya chini vya hisa}}",
-        "orders.open": "{count, plural, one {oda # inahitaji kushughulikiwa} other {oda # zinahitaji kushughulikiwa}}",
-        "invoices.overdue": "{count, plural, one {ankara # iliyochelewa} other {ankara # zilizochelewa}}",
-        "till.open_shifts": "{count, plural, one {zamu # ya kaunta bado iko wazi} other {zamu # za kaunta bado ziko wazi}}",
-        "lots.quarantined": "{count, plural, one {kundi # katika karantini} other {makundi # katika karantini}}",
-        "webhooks.failed": "{count, plural, one {webhook # inashindwa} other {webhook # zinashindwa}}"
+        "stock_below_minimum": "{count, plural, one {bidhaa # chini ya kiwango chake cha chini cha hisa} other {bidhaa # chini ya viwango vyao vya chini vya hisa}}",
+        "orders_open": "{count, plural, one {oda # inahitaji kushughulikiwa} other {oda # zinahitaji kushughulikiwa}}",
+        "invoices_overdue": "{count, plural, one {ankara # iliyochelewa} other {ankara # zilizochelewa}}",
+        "till_open_shifts": "{count, plural, one {zamu # ya kaunta bado iko wazi} other {zamu # za kaunta bado ziko wazi}}",
+        "lots_quarantined": "{count, plural, one {kundi # katika karantini} other {makundi # katika karantini}}",
+        "webhooks_failed": "{count, plural, one {webhook # inashindwa} other {webhook # zinashindwa}}"
       }
     },
     "scene": {

@@ -15,7 +15,6 @@ import { Notice } from "@genesy/ui/components/notice"
 import { formatQty } from "@genesy/ui/lib/format"
 import { usePriorities, useWorkspace } from "@/lib/use-scene-data"
 import { DataState } from "./data-state"
-import type { RegistryProps } from "./types"
 
 /** Where "Review" goes for a kind; kinds without a scene get no review link. */
 export const REVIEW: Partial<Record<string, string>> = {
@@ -32,26 +31,41 @@ function Group({ group }: { group: PriorityGroup }) {
     mutation: {
       onSettled: () =>
         Promise.all([
-          client.invalidateQueries({ queryKey: getAttentionPrioritiesQueryKey(ws) }),
-          client.invalidateQueries({ queryKey: getAttentionSummaryQueryKey(ws) }),
+          client.invalidateQueries({
+            queryKey: getAttentionPrioritiesQueryKey(ws),
+          }),
+          client.invalidateQueries({
+            queryKey: getAttentionSummaryQueryKey(ws),
+          }),
         ]),
     },
   })
   const can = (action: string) => group.actions.includes(action)
   const review = REVIEW[group.kind]
-  const kindKey = `noticed.kind.${group.kind}`
+  const kindKey = `noticed.kind.${group.kind.replace(".", "_")}`
   return (
-    <li data-group={group.kind} className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
+    <li
+      data-group={group.kind}
+      className="flex flex-col gap-2 rounded-2xl border bg-card p-4"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-semibold">{t.has(kindKey) ? t(kindKey, { count: group.count }) : group.kind}</h3>
+        <h3 className="font-semibold">
+          {t.has(kindKey) ? t(kindKey, { count: group.count }) : group.kind}
+        </h3>
         {group.impact.open_orders ? (
-          <span className="text-xs text-muted-foreground">{t("noticed.affects", { count: group.impact.open_orders })}</span>
+          <span className="text-xs text-muted-foreground">
+            {t("noticed.affects", { count: group.impact.open_orders })}
+          </span>
         ) : null}
       </div>
       {mark.isError ? <Notice variant="error" title={t("saveFailed")} /> : null}
       <ul className="flex flex-col gap-2">
         {group.items.map((item) => (
-          <li key={item.ref_id} data-item={item.ref_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <li
+            key={item.ref_id}
+            data-item={item.ref_id}
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+          >
             <span className="mr-auto font-medium">{item.label}</span>
             {item.available !== null && item.minimum !== null ? (
               <span className="flex gap-3 text-xs text-muted-foreground tabular-nums">
@@ -71,7 +85,10 @@ function Group({ group }: { group: PriorityGroup }) {
             <span className="flex flex-wrap gap-1">
               {can("acknowledge") ? (
                 item.acknowledged ? (
-                  <span data-acknowledged="" className="px-2 text-xs text-muted-foreground">
+                  <span
+                    data-acknowledged=""
+                    className="px-2 text-xs text-muted-foreground"
+                  >
                     {t("noticed.acknowledged")}
                   </span>
                 ) : (
@@ -80,7 +97,16 @@ function Group({ group }: { group: PriorityGroup }) {
                     size="sm"
                     className="min-h-11"
                     disabled={mark.isPending}
-                    onClick={() => mark.mutate({ workspace: ws, data: { kind: group.kind, ref_id: item.ref_id, state: "acknowledged" } })}
+                    onClick={() =>
+                      mark.mutate({
+                        workspace: ws,
+                        data: {
+                          kind: group.kind,
+                          ref_id: item.ref_id,
+                          state: "acknowledged",
+                        },
+                      })
+                    }
                   >
                     {t("noticed.acknowledge")}
                   </Button>
@@ -94,9 +120,23 @@ function Group({ group }: { group: PriorityGroup }) {
                       size="sm"
                       className="min-h-11"
                       disabled={mark.isPending}
-                      onClick={() => mark.mutate({ workspace: ws, data: { kind: group.kind, ref_id: item.ref_id, state: "snoozed", snooze } })}
+                      onClick={() =>
+                        mark.mutate({
+                          workspace: ws,
+                          data: {
+                            kind: group.kind,
+                            ref_id: item.ref_id,
+                            state: "snoozed",
+                            snooze,
+                          },
+                        })
+                      }
                     >
-                      {t(snooze === "until_tomorrow" ? "noticed.snoozeTomorrow" : "noticed.snoozeWeek")}
+                      {t(
+                        snooze === "until_tomorrow"
+                          ? "noticed.snoozeTomorrow"
+                          : "noticed.snoozeWeek"
+                      )}
                     </Button>
                   ))
                 : null}
@@ -105,8 +145,19 @@ function Group({ group }: { group: PriorityGroup }) {
         ))}
       </ul>
       {review && can("review") ? (
-        <Link href={review} className={buttonVariants({ variant: "outline", size: "sm", className: "min-h-11 self-start" })}>
-          {t(group.kind === "orders.open" ? "noticed.reviewOrders" : "noticed.reviewStock")}
+        <Link
+          href={review}
+          className={buttonVariants({
+            variant: "outline",
+            size: "sm",
+            className: "min-h-11 self-start",
+          })}
+        >
+          {t(
+            group.kind === "orders.open"
+              ? "noticed.reviewOrders"
+              : "noticed.reviewStock"
+          )}
         </Link>
       ) : null}
     </li>
@@ -114,12 +165,16 @@ function Group({ group }: { group: PriorityGroup }) {
 }
 
 /** Flow noticed in full: every readable group, its items, and only the actions the API offers. */
-export function AttentionPanel(_: RegistryProps) {
+export function AttentionPanel(): React.ReactNode {
   const t = useTranslations("scenes")
   const query = usePriorities()
   const groups = (query.data?.data.groups ?? []).filter((g) => g.count > 0)
   return (
-    <DataState query={query} empty={!groups.length} emptyTitle={t("noticed.calm")}>
+    <DataState
+      query={query}
+      empty={!groups.length}
+      emptyTitle={t("noticed.calm")}
+    >
       <ul data-attention="" className="flex flex-col gap-3">
         {groups.map((g) => (
           <Group key={g.kind} group={g} />

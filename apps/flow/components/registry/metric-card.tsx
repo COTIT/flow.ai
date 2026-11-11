@@ -17,9 +17,20 @@ const COUNTS: Partial<Record<FlowMetric, (a: Attention) => number | null>> = {
   "invoices.unpaid": (a) => a.invoices?.unpaid ?? null,
 }
 
-function Card({ label, sub, children }: { label: string; sub: string; children: React.ReactNode }) {
+function Card({
+  label,
+  sub,
+  children,
+}: {
+  label: string
+  sub: string
+  children: React.ReactNode
+}) {
   return (
-    <div data-metric-card="" className="flex flex-col gap-1 rounded-2xl border bg-card p-4">
+    <div
+      data-metric-card=""
+      className="flex flex-col gap-1 rounded-2xl border bg-card p-4"
+    >
       <p className="text-xs text-muted-foreground">
         {label} · {sub}
       </p>
@@ -28,19 +39,32 @@ function Card({ label, sub, children }: { label: string; sub: string; children: 
   )
 }
 
-function SalesCard({ metric, period }: { metric: "sales.gross" | "sales.net"; period: NonNullable<RegistryProps["component"]["period"]> }) {
+function SalesCard({
+  metric,
+  period,
+}: {
+  metric: "sales.gross" | "sales.net"
+  period: NonNullable<RegistryProps["component"]["period"]>
+}) {
   const t = useTranslations("scenes")
   const locale = useLocale()
   const query = useSales(period)
   const rows = query.data?.data.currencies ?? []
-  const label = t(`metric.${metric}`)
+  const label = t(`metric.${metric.replace(".", "_")}`)
   return (
     <DataState query={query} empty={!rows.length} emptyTitle={t("noSales")}>
       <Card label={label} sub={t(`period.${period}`)}>
         {rows.map((row) => (
           <p key={row.currency} className="text-2xl font-semibold tabular-nums">
-            {formatMoney(metric === "sales.gross" ? row.gross_total : row.net_total, row.decimals, row.currency, locale)}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">{t("orders", { count: row.orders })}</span>
+            {formatMoney(
+              metric === "sales.gross" ? row.gross_total : row.net_total,
+              row.decimals,
+              row.currency,
+              locale
+            )}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              {t("orders", { count: row.orders })}
+            </span>
           </p>
         ))}
       </Card>
@@ -51,7 +75,7 @@ function SalesCard({ metric, period }: { metric: "sales.gross" | "sales.net"; pe
 function CountCard({ metric }: { metric: FlowMetric }) {
   const t = useTranslations("scenes")
   const query = useAttention()
-  const label = t(`metric.${metric}`)
+  const label = t(`metric.${metric.replace(".", "_")}`)
   const value = query.data ? COUNTS[metric]!(query.data.data) : undefined
   if (value === null) return <Restricted title={label} />
   return (
@@ -68,7 +92,7 @@ export function MetricCard({ component, restricted }: RegistryProps) {
   const t = useTranslations("scenes")
   const metric = component.metric
   if (!metric) return null
-  if (restricted) return <Restricted title={t(`metric.${metric}`)} />
+  if (restricted) return <Restricted title={t(`metric.${metric.replace(".", "_")}`)} />
   if (metric === "sales.gross" || metric === "sales.net")
     return <SalesCard metric={metric} period={component.period ?? "today"} />
   return <CountCard metric={metric} />
