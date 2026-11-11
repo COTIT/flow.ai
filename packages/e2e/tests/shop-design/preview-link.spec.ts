@@ -35,7 +35,9 @@ test("valid preview link shows the draft in the real shop, inert and unindexed",
     "noindex, nofollow"
   )
 
-  const banner = page.getByRole("status").filter({ hasText: "Unpublished preview" })
+  const banner = page
+    .getByRole("status")
+    .filter({ hasText: "Unpublished preview" })
   await expect(banner).toContainText("Revision 019a6df0")
   await expect(banner.locator("time")).toHaveAttribute(
     "datetime",
@@ -52,7 +54,9 @@ test("valid preview link shows the draft in the real shop, inert and unindexed",
   // Inert body: products are not links, no hero CTA, no batch lookup form.
   const main = page.getByRole("main")
   await expect(main.getByRole("link", { name: /Ilundo/ })).toHaveCount(0)
-  await expect(main.getByRole("link", { name: "Shop the collection" })).toHaveCount(0)
+  await expect(
+    main.getByRole("link", { name: "Shop the collection" })
+  ).toHaveCount(0)
   await expect(page.getByLabel("Batch code")).toHaveCount(0)
   await expect(main.locator("form")).toHaveCount(0)
   // Real shop chrome stays.
