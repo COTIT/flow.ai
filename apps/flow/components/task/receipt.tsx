@@ -9,12 +9,14 @@ import { useVoice } from "@genesy/voice/components/provider"
 import { ReviewTitle } from "@genesy/voice/components/review-details"
 import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
 import { receiptOf, slotKey, stockAt, type ReadBack } from "@genesy/voice/lib/task"
+import { stockLevels } from "@/lib/proposed"
 import { useOnceIntent } from "@/lib/use-once-intent"
 import { useTakeFocus } from "@/lib/use-take-focus"
 
 /**
  * What the approved action did, only from the server: previous values from the review's snapshot,
- * new values from the API's answer or a read of the record after the write. Never the proposal.
+ * new values from the API's answer or a read of the record after the write. Never the proposal
+ * as "New": a slot the server has not confirmed shows what was approved, labelled "Approved".
  */
 export function Receipt({
   review,
@@ -48,6 +50,11 @@ export function Receipt({
       )
     : undefined
   const receipt = receiptOf(review, outcome, readBack)
+  const levels = stockLevels(review)
+  const approved = (slot?: { warehouse: string }) => {
+    const level = slot && levels.find((l) => l.warehouse === slot.warehouse)
+    return level ? t("approved", { value: level.total }) : null
+  }
   const reason = outcome.reason && errors.has(outcome.reason) ? errors(outcome.reason) : null
   return (
     <section
@@ -100,7 +107,9 @@ export function Receipt({
                 ) : receipt.readBack ? (
                   t("reading")
                 ) : (
-                  "—"
+                  // Outcome unknown: what was approved, labelled as such (P6-5). A refused write
+                  // ("not done") keeps "—": nothing new was written.
+                  ((receipt.status === "unknown" ? approved(row.slot) : null) ?? "—")
                 ))}
             </dd>
           </div>

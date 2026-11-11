@@ -61,7 +61,8 @@
       "unknownText": "Usirudie: huenda tayari imefanyika. Genesy inakagua matokeo yaliyorekodiwa.",
       "check": "Iombe Genesy ikague",
       "checkMessage": "Kagua kama mabadiliko yangu ya mwisho yaliyoidhinishwa yamekamilika. Usiyarudie.",
-      "next": "Inayofuata"
+      "next": "Inayofuata",
+      "approved": "Imeidhinishwa: {value}"
     },
     "clarify": {
       "title": "Ulimaanisha bidhaa ipi?",
