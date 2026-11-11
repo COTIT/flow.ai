@@ -54,7 +54,7 @@ export function ProductCard({
           </span>
         ) : null}
         <span className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-base font-semibold tabular-nums md:text-lg">
+          <span className="text-base font-semibold text-gold-ink tabular-nums md:text-lg">
             {formatMoney(
               shownPrice(product),
               product.currency_decimals,

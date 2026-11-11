@@ -10,10 +10,12 @@ describe("Logo", () => {
     expect(html).toContain('aria-label="Genesy"')
   })
 
-  it("draws the word mark navy, white on dark backgrounds (the two provided files)", () => {
-    expect(renderToStaticMarkup(<Logo />)).toContain("dark:fill-white")
+  it("draws the word mark in the theme's text colour, white on dark backgrounds", () => {
+    const auto = renderToStaticMarkup(<Logo />)
+    expect(auto).toContain("fill-foreground")
+    expect(auto).not.toMatch(/fill-\[#/)
     expect(renderToStaticMarkup(<Logo tone="onDark" />)).not.toContain(
-      "fill-[#0a183a]"
+      "fill-foreground"
     )
   })
 

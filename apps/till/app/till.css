@@ -7,34 +7,23 @@
   --muted: var(--muted-foreground);
   --hl: var(--glass-highlight);
   --shadow: var(--glass-shadow);
-  --hair: rgb(10 24 58 / 8%);
-  --hair-2: rgb(10 24 58 / 14%);
-  --field: rgb(255 255 255 / 78%);
-  --field-border: rgb(10 24 58 / 16%);
-  --c-teal: rgb(1 144 155 / 13%);
-  --c-gold: rgb(208 165 95 / 22%);
-  --c-red: rgb(180 35 24 / 10%);
-  --c-slate: rgb(69 96 135 / 12%);
+  /* --hair, --hair-2, --field and --field-border come from theme-glass (packages/ui). */
+  --c-teal: var(--tint-success);
+  --c-gold: var(--tint-warning);
+  --c-red: var(--tint-error);
+  --c-slate: var(--tint-info);
   --t-teal: var(--tone-success);
   --t-gold: var(--tone-warning);
   --t-red: var(--tone-error);
   --t-slate: var(--tone-info);
-  --scrim: rgb(10 24 58 / 28%);
+  --scrim: rgb(28 27 24 / 28%);
   --r-card: 20px;
   --r-tile: 16px;
   --r-key: 20px;
   font-size: 15px;
 }
 .dark .till-app {
-  --hair: rgb(255 255 255 / 8%);
-  --hair-2: rgb(255 255 255 / 16%);
-  --field: rgb(255 255 255 / 6%);
-  --field-border: rgb(255 255 255 / 18%);
-  --c-teal: rgb(1 144 155 / 22%);
-  --c-gold: rgb(239 201 119 / 16%);
-  --c-red: rgb(249 112 102 / 16%);
-  --c-slate: rgb(143 166 200 / 16%);
-  --scrim: rgb(3 8 22 / 55%);
+  --scrim: rgb(0 0 0 / 55%);
 }
 
 /* In the components layer, so a Tailwind utility on the element (p-8, gap-4) still wins. */
@@ -70,7 +59,7 @@
 
   /* ---------- Keypad, PIN, user tiles ---------- */
   .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .key { height: 72px; border-radius: var(--r-key); border: 1px solid var(--glass-border); background: var(--glass-strong); box-shadow: var(--hl), 0 2px 6px -3px rgb(10 24 58 / 25%); font-size: 28px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .key { height: 72px; border-radius: var(--r-key); border: 1px solid var(--glass-border); background: var(--glass-strong); box-shadow: var(--hl), 0 2px 6px -3px rgb(28 27 24 / 25%); font-size: 28px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--fg); }
   .key.fn { font-size: 16px; background: var(--glass-subtle); }
   .key:disabled { opacity: 0.5; cursor: default; }
   .charge:active, .key:active, .ptile:active, .utile:active, .qstep button:active { filter: brightness(0.92); }
@@ -85,7 +74,7 @@
   @media (max-width: 760px) { .users { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
   /* ---------- Big buttons (mockup inline sizes) ---------- */
-  .charge { height: 76px; border-radius: 22px; border: 0; background: var(--primary); color: var(--primary-foreground); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 20px; font-weight: 600; cursor: pointer; box-shadow: 0 12px 24px -12px rgb(10 24 58 / 60%); flex: none; }
+  .charge { height: 76px; border-radius: 22px; border: 0; background: var(--primary); color: var(--primary-foreground); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 20px; font-weight: 600; cursor: pointer; box-shadow: 0 12px 24px -12px rgb(28 27 24 / 60%); flex: none; }
   .charge:disabled { opacity: 0.5; cursor: default; }
 
   /* ---------- Badges (shortcut: till copy until Badge's tone variants are on main) ---------- */
@@ -139,7 +128,7 @@
   .sheet-foot { display: flex; flex-direction: column; gap: 14px; margin-top: auto; }
   .seg { display: flex; padding: 4px; gap: 4px; border-radius: 14px; background: var(--glass-subtle); border: 1px solid var(--hair); }
   .seg button { flex: 1; height: 48px; border-radius: 10px; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; cursor: pointer; color: var(--fg); }
-  .seg button[aria-pressed="true"] { background: var(--glass-strong); border-color: var(--glass-border); box-shadow: var(--hl), 0 2px 8px -4px rgb(10 24 58 / 25%); }
+  .seg button[aria-pressed="true"] { background: var(--glass-strong); border-color: var(--glass-border); box-shadow: var(--hl), 0 2px 8px -4px rgb(28 27 24 / 25%); }
   .tender { font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0; text-align: right; padding: 8px 16px; border-radius: 18px; background: var(--glass-subtle); border: 1px solid var(--hair); min-height: 84px; }
   .tender.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.04em; text-align: left; }
   .notes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }

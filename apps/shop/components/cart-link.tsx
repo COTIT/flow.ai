@@ -25,7 +25,7 @@ export function CartLink() {
       {count ? (
         <span
           aria-hidden
-          className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-(image:--gold-gradient) px-1.5 text-[11px] font-bold text-[#0a183a]"
+          className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-(image:--gold-gradient) px-1.5 text-[11px] font-bold text-gold-foreground"
         >
           {count}
         </span>

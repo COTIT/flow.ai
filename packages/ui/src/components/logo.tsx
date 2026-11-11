@@ -5,7 +5,7 @@ import { cn } from "cn"
 // shapes and gradient unchanged. The two logo files differ only in the word mark's colour.
 
 type LogoProps = React.ComponentProps<"svg"> & {
-  /** `auto` follows the theme; `onDark` is for a navy or photo ground in either theme. */
+  /** `auto` follows the theme; `onDark` is for a dark or photo ground in either theme. */
   tone?: "auto" | "onDark"
 }
 
@@ -19,7 +19,7 @@ function useGradientId(name: string) {
 function Logo({ tone = "auto", className, ...props }: LogoProps) {
   const g = useGradientId("genesy-logo")
   const text =
-    tone === "onDark" ? "fill-white" : "fill-[#0a183a] dark:fill-white"
+    tone === "onDark" ? "fill-white" : "fill-foreground dark:fill-white"
   return (
     <svg
       viewBox="0 0 777.15 159.15"

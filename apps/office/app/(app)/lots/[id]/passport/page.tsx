@@ -68,7 +68,7 @@ function blockSummary(b: Block) {
 }
 
 const gold =
-  "bg-[image:var(--gold-gradient)] font-semibold text-[#0a183a] hover:opacity-90"
+  "bg-[image:var(--gold-gradient)] font-semibold text-gold-foreground hover:opacity-90"
 
 export default function PassportPage({
   params,
