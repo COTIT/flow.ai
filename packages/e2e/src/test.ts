@@ -56,6 +56,9 @@ export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
   page.on("pageerror", (e) => {
     // The browser's own offline error page: its scripts are not the app's (e.g. a reload offline).
     if (page.url().startsWith("chrome-error://")) return
+    // A code chunk that failed to load because the test cut that request (offline, failApi).
+    const chunk = e.message.match(/Failed to load chunk (\S+)/)?.[1]
+    if (chunk && isInjected(page, new URL(chunk, page.url()).href)) return
     problems.push(`page error: ${e.message}`)
   })
   page.on("console", (m) => {

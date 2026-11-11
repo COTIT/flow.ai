@@ -1,10 +1,10 @@
 import type { Page } from "@playwright/test"
-import { revealHeader } from "./shell"
 
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import { sc } from "./scenes-api"
+import { revealHeader } from "./shell"
 import { ACTION, k, proposeStock, readBack, scene, stockReview, stockRoutes } from "./task"
 import { fakeAgent, startText, v } from "./voice"
 

@@ -3,7 +3,8 @@ export const SETTLE_MS = 1500
 /** No narration or tool event for this long while the agent owes a reply: say it could not finish. */
 export const STALL_MS = 45000
 
-export type TurnEnd = "answered" | "stalled"
+/** "quiet": the agent went silent after a tool call it made on its own; nobody is owed an answer. */
+export type TurnEnd = "answered" | "stalled" | "quiet"
 
 /** One user request until its answer: narration and tool calls keep it open; silence ends it. */
 export function createTurn(onEnd: (kind: TurnEnd, steps: number) => void) {
@@ -24,7 +25,9 @@ export function createTurn(onEnd: (kind: TurnEnd, steps: number) => void) {
   }
   const armStall = () => {
     clearTimeout(stall)
-    if (open && !tools) stall = setTimeout(() => finish("stalled"), STALL_MS)
+    // Outside a user turn (the agent acting on its own) the same silence ends quietly (P7-3).
+    if (!tools)
+      stall = setTimeout(() => finish(open ? "stalled" : "quiet"), STALL_MS)
   }
   return {
     get open() {
@@ -48,7 +51,7 @@ export function createTurn(onEnd: (kind: TurnEnd, steps: number) => void) {
       armStall()
     },
     agentLine() {
-      if (!open) return
+      if (!open) return clearTimeout(stall)
       started = true
       armStall()
       clearTimeout(settle)

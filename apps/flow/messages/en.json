@@ -22,7 +22,10 @@
     "pageNotFound": "This page does not exist",
     "goHome": "Go to the start",
     "crashed": "This screen stopped working",
-    "crashedText": "Nothing was changed. Try again.",
+    "crashedText": "Try again, or go to the start.",
+    "loadFailed": "This page couldn't load",
+    "loadFailedText": "Check your connection, then try again. Nothing was changed.",
+    "loadFailedOffline": "You're offline. This page loads again once you're back online.",
     "storefront": {
       "title": "Storefront design",
       "intro": "Review saved revisions before publishing changes to your shop.",

@@ -1,5 +1,6 @@
 {
   "shell": {
+    "workspaceSwitched": "Overgeschakeld naar {name}",
     "phaseLabel": "Spraak",
     "phase": {
       "ready": "Klaar",

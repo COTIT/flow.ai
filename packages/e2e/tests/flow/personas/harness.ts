@@ -253,14 +253,32 @@ export class Persona {
       }, direction === "back")
       .catch(() => false)
     if (!can) return
-    await (
-      direction === "back" ? this.page.goBack() : this.page.goForward()
-    ).catch(() => {})
+    await this.navigate(direction, (nav) =>
+      direction === "back" ? this.page.goBack(nav) : this.page.goForward(nav)
+    )
   }
   /** A reload while offline would only show the browser's error page: skipped, not a break. */
   async reload() {
     if (this.net.down) return this.log("  (reload skipped: offline)")
-    await this.page.reload().catch(() => {})
+    await this.navigate("reload", (nav) => this.page.reload(nav))
+  }
+  /**
+   * Back, Forward or reload, bounded: waits for the document only (not every resource); a
+   * navigation that does not land in time is noted in the trail and the walk goes on.
+   */
+  private async navigate(
+    what: string,
+    go: (nav: {
+      waitUntil: "domcontentloaded"
+      timeout: number
+    }) => Promise<unknown>
+  ) {
+    await go({ waitUntil: "domcontentloaded", timeout: 10_000 }).catch(
+      (error: unknown) => {
+        if (String(error).includes("Timeout"))
+          this.log(`  (${what} did not land in 10 s)`)
+      }
+    )
   }
   /**
    * The network goes down (or comes back) for every tab, mocks included: setOffline alone lets
@@ -282,7 +300,11 @@ export class Persona {
     if (!on)
       for (const page of this.pages)
         if (!page.isClosed() && page.url().startsWith("chrome-error://"))
-          await page.reload().catch(() => {})
+          await page
+            .reload({ waitUntil: "domcontentloaded", timeout: 10_000 })
+            .catch(() =>
+              this.log("  (reload after offline did not land in 10 s)")
+            )
   }
   private wentOffline = false
   private tunnels = new WeakSet<Page>()

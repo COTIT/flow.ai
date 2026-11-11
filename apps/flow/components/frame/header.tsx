@@ -28,6 +28,7 @@ import { useVoice } from "@genesy/voice/components/provider"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
 import { settleWithin } from "@/lib/settle"
 import { useHeaderReveal } from "./use-header-reveal"
+import { useWorkspaceSwitch } from "./use-workspace-switch"
 
 /** How long logout waits for the voice session to end with the still-valid login. */
 const END_VOICE_MS = 3000
@@ -220,29 +221,38 @@ function WorkspacePicker() {
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId)
   const { choices } = useWorkspaceChoices()
+  const { trigger, said, remember } = useWorkspaceSwitch(workspaceId) // P9-3
   if (choices.length < 2) return null
   const options = choices.map((w) => ({ value: w.id, label: w.display_name }))
   return (
-    <Select
-      items={options}
-      value={workspaceId}
-      onValueChange={(v) => {
-        if (v) sessionStore.getState().selectWorkspace(v)
-      }}
-    >
-      <SelectTrigger
-        aria-label={t("common.workspace")}
-        className="min-h-11 max-w-48"
+    <>
+      <p role="status" className="sr-only">
+        {said}
+      </p>
+      <Select
+        items={options}
+        value={workspaceId}
+        onValueChange={(v) => {
+          if (!v) return
+          remember(v, options.find((o) => o.value === v)?.label ?? "")
+          sessionStore.getState().selectWorkspace(v)
+        }}
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          ref={trigger}
+          aria-label={t("common.workspace")}
+          className="min-h-11 max-w-48"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
   )
 }
