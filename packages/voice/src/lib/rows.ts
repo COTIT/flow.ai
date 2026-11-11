@@ -9,3 +9,13 @@ export function withView(rows: TranscriptRow[], view: ResultView, id: string, op
     return [...rows.slice(0, -1), { ...last, views: [...last.views, view] }]
   return [...rows.slice(-199), { id, role: "result" as const, text: "", views: [view], ...(operation ? { operation } : {}) }]
 }
+
+/** A changed picture (another drawing, period or split) takes the place of the one it replaces;
+ * a picture no longer on screen is never removed: the new one is added instead. */
+export function replaceView(rows: TranscriptRow[], replaces: string, view: ResultView, operation: string | undefined, id: string) {
+  const index = rows.findIndex((row) => row.id === replaces && row.role === "result")
+  if (index < 0) return withView(rows, view, id, operation)
+  return rows.map((row, i) =>
+    i === index ? { id: row.id, role: "result" as const, text: "", views: [view], ...(operation ? { operation } : {}) } : row
+  )
+}

@@ -145,6 +145,18 @@ describe("record links", () => {
       outcomeForAgent({ status: "completed", data: [1], view: { kind: "sales" } })
     ).not.toHaveProperty("view")
   })
+  it("says how a picture is drawn, and why a requested kind did not fit with the closest one", () => {
+    const view = { kind: "breakdown", by: "products", from: "a", to: "b", currencies: [{ currency: "USD", decimals: 2, rows: [{ label: "Honey", gross: 5, orders: 1 }] }], presentation: "pie" }
+    expect(outcomeForAgent({ status: "completed", view }).on_screen).toMatchObject({ kind: "chart", shown_as: "pie", points: 1 })
+    const refused = outcomeForAgent({
+      status: "completed",
+      view: { kind: "sales_daily", from: "a", to: "b", time_zone: null, currencies: [] },
+      presentation_note: { asked: "pie", shown: "line", closest: "bar", reason: "a pie needs parts of one whole" },
+    })
+    expect(refused.on_screen?.shown_as).toBe("line")
+    expect(refused.on_screen?.instruction).toMatch(/asked for a pie.*a pie needs parts of one whole.*one sentence.*bar/i)
+  })
+
   it("says how many points the picture shows", () => {
     const view = {
       kind: "sales_daily",
@@ -165,6 +177,7 @@ describe("record links", () => {
     const chart = outcomeForAgent({ status: "completed", data: [1, 2, 3], view: { kind: "sales_daily" } })
     expect(chart.on_screen).toEqual({
       kind: "chart",
+      shown_as: "line",
       points: 0,
       instruction: expect.stringMatching(/one or two sentences.*never read/i),
     })

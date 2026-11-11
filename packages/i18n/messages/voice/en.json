@@ -537,7 +537,17 @@
       "effect": {
         "archive": "It will be archived, not deleted."
       },
-      "warningsTitle": "Before you approve"
+      "warningsTitle": "Before you approve",
+      "breakdown": {
+        "products": "Top products",
+        "customers": "Top customers",
+        "walkIn": "Walk-in sales (no customer)"
+      },
+      "compare": {
+        "title": "Sales compared",
+        "change": "{change} vs {period}",
+        "noBase": "No sales in {period} to compare with"
+      }
     },
     "suggestions": "Suggestions",
     "tryPrompt": "Try: “{prompt}”",

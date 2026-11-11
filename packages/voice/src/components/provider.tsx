@@ -44,7 +44,7 @@ import {
   type VoiceProgress,
 } from "../lib/helpers"
 import { batchAttachmentReferences, voiceRequestBody } from "../lib/multipart"
-import { withView } from "../lib/rows"
+import { replaceView, withView } from "../lib/rows"
 import {
   createOutcomeWait,
   readRecovery,
@@ -470,7 +470,11 @@ function Session({
     // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
     const view = outcome.view
     if (view && active.current)
-      setMessages((rows) => withView(rows, view, crypto.randomUUID(), operation))
+      setMessages((rows) =>
+        outcome.replaces
+          ? replaceView(rows, outcome.replaces, view, operation, crypto.randomUUID())
+          : withView(rows, view, crypto.randomUUID(), operation)
+      )
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id
@@ -909,11 +913,14 @@ function Session({
     clientTools: {
       discover_genesy_tools: ({ query: search }) =>
         tool("discover", { query: search }),
-      execute_genesy_tool: ({ operation_id, arguments_json }) => {
+      execute_genesy_tool: ({ operation_id, arguments_json, presentation, replaces }) => {
         try {
           return tool("execute", {
             operationId: operation_id,
             arguments: JSON.parse(String(arguments_json)),
+            // How to draw a read and which picture it redraws; Office checks both.
+            ...(presentation ? { presentation } : {}),
+            ...(replaces ? { replaces } : {}),
           })
         } catch {
           if (active.current && verified.current) {

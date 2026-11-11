@@ -1,4 +1,5 @@
 import type { TranscriptRow } from "./helpers"
+import { drawnAs, shapeOf, SUPPORTS, type Kind, type Shape } from "./views"
 
 /** One component a scene shows: what it is, never what it says. */
 export type VisibleComponent = { id: string; type: string; metric?: string; period?: string }
@@ -18,7 +19,16 @@ export type SceneContext = {
 }
 
 /** A result picture: its id, what it is, the read it came from and its period; never its values. */
-export type Picture = { id: string; kind: string; operation?: string; period?: { from: string; to: string } }
+export type Picture = {
+  id: string
+  kind: string
+  shape: Shape
+  shown_as: Kind
+  /** Every kind it may be redrawn as, in place. */
+  supports: readonly Kind[]
+  operation?: string
+  period?: { from: string; to: string }
+}
 const MAX_PICTURES = 8
 
 export function sceneContext({
@@ -64,6 +74,9 @@ export function sceneContext({
         return {
           id: row.id,
           kind: view.kind,
+          shape: shapeOf(view),
+          shown_as: drawnAs(view),
+          supports: SUPPORTS[shapeOf(view)],
           ...(row.operation ? { operation: row.operation } : {}),
           ...("from" in view ? { period: { from: view.from.slice(0, 10), to: view.to.slice(0, 10) } } : {}),
         }

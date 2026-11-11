@@ -66,8 +66,16 @@ describe("scene context", () => {
       results_shown: 2,
       latest_result: "sales_daily",
       pictures: [
-        { id: "r2", kind: "sales_daily", operation: "orders_sales_daily", period: { from: "2026-11-03", to: "2026-11-10" } },
-        { id: "r1", kind: "records", operation: "orders_list" },
+        {
+          id: "r2",
+          kind: "sales_daily",
+          shape: "series",
+          shown_as: "line",
+          supports: ["line", "sparkline", "bar", "table"],
+          operation: "orders_sales_daily",
+          period: { from: "2026-11-03", to: "2026-11-10" },
+        },
+        { id: "r1", kind: "records", shape: "rows", shown_as: "list", supports: ["list", "kpi", "table"], operation: "orders_list" },
       ],
       review_open: true,
     })

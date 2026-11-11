@@ -1,5 +1,5 @@
 import { failureReason } from "./client-contract"
-import type { ResultView } from "./views"
+import { drawnAs, type Kind, type ResultView } from "./views"
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_ATTACHMENTS = 10
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -71,6 +71,8 @@ const PICTURES: Record<string, "chart" | "list"> = {
   attention: "list",
   lot_origin: "list",
   trail: "list",
+  comparison: "chart",
+  breakdown: "chart",
 }
 
 const count = (v: unknown) => (Array.isArray(v) ? v.length : 0)
@@ -81,11 +83,20 @@ const pointsOf = (view: Record<string, unknown>) =>
   count(view.rows) + count(view.materials) + count(view.events) +
   countIn(view.currencies, "days") + countIn(view.currencies, "rows") + countIn(view.sections, "items")
 
+/** Office kept the default drawing: the agent says why in one sentence and offers the closest fit. */
+const refusal = (note: unknown) => {
+  if (!note || typeof note !== "object") return ""
+  const { asked, reason, closest } = note as { asked?: string; reason?: string; closest?: string }
+  return ` The person asked for ${asked === "unknown" ? "a drawing this screen does not have" : `a ${asked}`}, which does not fit: ${reason}. Say that in one sentence and offer a ${closest} instead.`
+}
+
 /** What the agent hears about an outcome: record names, never links; that a picture is shown. */
 export function outcomeForAgent(outcome: {
   links?: { label: string | null; href: string }[]
   [field: string]: unknown
-}): Record<string, unknown> & { on_screen?: { kind: "chart" | "list"; points: number; instruction: string } } {
+}): Record<string, unknown> & {
+  on_screen?: { kind: "chart" | "list"; shown_as: Kind; points: number; instruction: string }
+} {
   // The picture is for the screen only; the agent keeps `data` so what it says stays grounded.
   const { links, view, ...rest } = outcome
   const records = links?.flatMap((link) => (link.label ? [link.label] : []))
@@ -97,8 +108,9 @@ export function outcomeForAgent(outcome: {
       ? {
           on_screen: {
             kind,
+            shown_as: drawnAs(view as ResultView),
             points: pointsOf(view as Record<string, unknown>),
-            instruction: `This result is on the person's screen as a ${kind}. Answer in one or two sentences: the total or the direction and at most one notable point; never read the ${kind === "chart" ? "points" : "items"} one by one.`,
+            instruction: `This result is on the person's screen as a ${kind}. Answer in one or two sentences: the total or the direction and at most one notable point; never read the ${kind === "chart" ? "points" : "items"} one by one.${refusal(rest.presentation_note)}`,
           },
         }
       : {}),

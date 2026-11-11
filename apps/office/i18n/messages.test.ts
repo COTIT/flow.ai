@@ -82,13 +82,17 @@ describe("Office messages", () => {
       const { acknowledged, snoozed, ...counts } = results.counts
       expect(acknowledged).toBeDefined()
       expect(snoozed).toBeDefined()
+      // Added since (voice results): labels of the breakdown and comparison pictures.
+      const { breakdown, compare, ...unchanged } = results as typeof results & { breakdown?: unknown; compare?: unknown }
+      expect(breakdown).toBeDefined()
+      expect(compare).toBeDefined()
       expect(
         hash({
           ...voice,
           pages,
           resources,
           reviewFields,
-          results: { ...results, sections, counts },
+          results: { ...unchanged, sections, counts },
         })
       ).toBe(VOICE[locale])
     }
