@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl"
 import { useSession } from "@genesy/api-client/auth"
 import { Button } from "@genesy/ui/components/button"
 import { useVoice } from "@genesy/voice/components/provider"
+import { batchCounts } from "@genesy/voice/lib/task"
+import { dockAsk } from "@/lib/pills"
 import { outcomeKind, unseenOutcomes } from "@/lib/recovered-outcomes"
 import { approvalOutcome, taskStore, useTask } from "@/lib/task-store"
 
@@ -29,6 +31,7 @@ function readSeen(workspace: string | null): string[] {
  */
 export function ResumePrompt({ idle }: { idle: boolean }) {
   const t = useTranslations("task.resume")
+  const tt = useTranslations("task")
   const voice = useVoice()
   const dismissed = useTask((s) => s.resumeDismissed)
   const workspace = useSession((s) => s.workspaceId)
@@ -64,11 +67,20 @@ export function ResumePrompt({ idle }: { idle: boolean }) {
       <h2 id="flow-resume-title" className="text-xs font-semibold uppercase">
         {task ? t("title") : t("outcomes")}
       </h2>
-      {outcomes.map(({ id: key, task: done }) => (
-        <p key={key} data-recovered-outcome={outcomeKind(done.status)}>
-          {t(outcomeKind(done.status), { summary: name(done.data) })}
-        </p>
-      ))}
+      {outcomes.map(({ id: key, task: done }) => {
+        // P8-6: a run found again (e.g. after logging in) says where it stands, in numbers.
+        const run = done.data?.kind === "batch" ? done.data : undefined
+        const counts = run?.steps?.length
+          ? batchCounts({ id: key, state: run.state ?? "", nextIndex: 0, recoverable: false, steps: run.steps })
+          : null
+        return (
+          <p key={key} data-recovered-outcome={outcomeKind(done.status)}>
+            {t(outcomeKind(done.status), { summary: name(done.data) })}
+            {run?.state === "running" || run?.state === "paused" ? ` ${tt(`states.${run.state}`)}.` : null}
+            {counts ? ` ${tt("batch.result", counts)}` : null}
+          </p>
+        )
+      })}
       {task ? <p>{t("awaiting", { summary: name(task.data) })}</p> : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button
@@ -81,6 +93,16 @@ export function ResumePrompt({ idle }: { idle: boolean }) {
         >
           {t("dismiss")}
         </Button>
+        {/* A status question to Genesy in a new conversation; nothing is resumed or sent again. */}
+        {outcomes.some((o) => outcomeKind(o.task.status) === "unconfirmed") ? (
+          <Button
+            variant="outline"
+            className="min-h-11"
+            onClick={() => dockAsk.getState().ask?.(tt("receipt.checkMessage"))}
+          >
+            {tt("receipt.check")}
+          </Button>
+        ) : null}
         {id && task ? (
           <Button
             className="min-h-11"

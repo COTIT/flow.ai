@@ -5,7 +5,7 @@ import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import { sc } from "./scenes-api"
 import { ACTION, k, proposeStock, readBack, scene, stockReview, stockRoutes } from "./task"
-import { fakeAgent, v } from "./voice"
+import { fakeAgent, startText, v } from "./voice"
 
 // The login expires while the person is away (persona P8, the idle returner). SIMULATED API and
 // voice: after `expire`, the one call each test makes is refused with 401, as the API and Office
@@ -161,5 +161,115 @@ test.describe("approving after the login expired", () => {
     await expect(scene(page).getByRole("button", { name: v.approve })).toBeVisible()
     // The refused click never reached Office: no decision was recorded.
     expect(confirms).toEqual([])
+  })
+})
+
+const batchSteps = (done: number, total = 21) =>
+  Array.from({ length: total }, (_, i) => ({
+    status: i < done ? "completed" : "not_started",
+    data: { actionId: `a-${i}`, operation: "products_update", summary: `Price ${i}` },
+  }))
+/** Office's batch status (batch-controller.ts): progress only, never a verified completion. */
+const batchTask = (state: string, done: number) => ({
+  status: state === "running" ? "running" : "partial",
+  data: {
+    kind: "batch",
+    batchId: "b-1",
+    state,
+    nextIndex: done,
+    summary: "Update 21 supplier purchase prices",
+    recoverable: false,
+    steps: batchSteps(done),
+  },
+})
+
+test.describe("a run going when the login expired", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/api/voice/batch", status: 401 },
+        { url: "/api/voice/confirm", status: 401 },
+        { url: "/api/voice/session", status: 401 },
+      ],
+    },
+  })
+
+  test("P8-6 its state is reachable after logging in again, and nothing resumes", async ({ page }) => {
+    const agent = await fakeAgent(page)
+    const commands: string[] = []
+    const confirms: string[] = []
+    let atOffice = batchTask("running", 4)
+    let expired = () => {}
+    const loggedOut = new Promise<void>((resolve) => (expired = resolve))
+    await page.route("**/api/voice/batch", async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      commands.push(String(body.command))
+      if (body.command === "prepare")
+        return route.fulfill({
+          json: {
+            status: "requires_confirmation",
+            data: { batchId: "b-1" },
+            review: {
+              ticket: "batch-21",
+              kind: "batch",
+              batchId: "b-1",
+              summary: "Update 21 supplier purchase prices",
+              confirmationCode: "246810",
+              confirmationPhrase: "Confirm batch 246810",
+              details: { notIncluded: [] },
+              steps: batchSteps(0).map((s) => ({
+                actionId: s.data.actionId,
+                operationId: "products_update",
+                summary: s.data.summary,
+                details: {},
+              })),
+              expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+            },
+          },
+        })
+      if (body.command === "status") return route.fulfill({ json: atOffice })
+      return route.fallback()
+    })
+    await page.route("**/api/voice/confirm", async (route) => {
+      confirms.push(String((route.request().postDataJSON() as Record<string, unknown>).decision))
+      await loggedOut // the run is still going at Office when the login expires
+      return route.fulfill({ status: 401, json: { message: "Unauthenticated." } })
+    })
+    await page.route("**/api/voice/tools", async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      if (body.command === "status") return route.fulfill({ json: { status: "completed", data: [atOffice] } })
+      return route.fallback()
+    })
+    const { expire } = await server(page, ["POST /api/voice/batch", "DELETE /api/voice/session"])
+
+    await page.goto("/")
+    await startText(page)
+    agent.call("assistant_batch_prepare", { calls: [{}, {}] })
+    await expect(page.locator("[data-batch]")).toContainText("21 changes matched")
+    await scene(page).getByRole("button", { name: v.approve }).click()
+    await expect.poll(() => confirms).toEqual(["approve"])
+
+    // Office pauses the run when the conversation goes (8 done, 13 not run); the login expired.
+    atOffice = batchTask("paused", 8)
+    expire()
+    expired()
+    await logInAgain(page)
+    await expect(page).toHaveURL(/\/$/)
+    const prompt = page.getByRole("region", { name: k.resume.outcomes })
+    await expect(prompt).toContainText("Update 21 supplier purchase prices")
+    await expect(prompt).toContainText("Paused")
+    await expect(prompt).toContainText("8 updated · 0 failed · 13 not run · 0 need checking")
+    await expect(prompt.getByRole("button", { name: k.receipt.check })).toBeVisible()
+    // Shown, never resumed: no new decision and no run command after logging in.
+    expect(confirms).toEqual(["approve"])
+    expect(commands.filter((c) => c !== "status" && c !== "prepare")).toEqual([])
+    await expectNoHorizontalScroll(page)
+    // Asking to check is a question in a new conversation, never a replay of the run.
+    await prompt.getByRole("button", { name: k.receipt.check }).click()
+    await expect
+      .poll(() => agent.sent.filter((e) => e.type === "user_message").map((e) => e.text))
+      .toContain(k.receipt.checkMessage)
+    expect(confirms).toEqual(["approve"])
+    expect(commands.filter((c) => c !== "status" && c !== "prepare")).toEqual([])
   })
 })
