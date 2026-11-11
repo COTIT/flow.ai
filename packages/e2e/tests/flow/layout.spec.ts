@@ -550,7 +550,7 @@ for (const size of [
     // The frame fits the visible part: nothing of it hangs below the keyboard's edge.
     const frame = await page
       .locator("[data-dock-layer]")
-      .evaluate((el) => (el.offsetParent as HTMLElement).getBoundingClientRect().bottom)
+      .evaluate((el) => ((el as HTMLElement).offsetParent as HTMLElement).getBoundingClientRect().bottom)
     expect(frame).toBeLessThanOrEqual(visible + 1)
     await expect(composer(page)).toBeFocused()
   })

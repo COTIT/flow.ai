@@ -5,9 +5,9 @@ import { expect, test } from "./storefront-api"
 test.beforeEach(({ api }) => void api)
 
 /** Two presses in the same task: no layout change or double-click detail can absorb them. */
-const pressTwice = (name: string) => (names: string) =>
+const pressTwice = (name: string) =>
   [...document.querySelectorAll<HTMLButtonElement>("button")]
-    .filter((b) => b.textContent?.trim() === names)
+    .filter((b) => b.textContent?.trim() === name)
     .forEach((b) => {
       b.click()
       b.click()
@@ -17,7 +17,7 @@ test("Show pending orders first writes once and then says it is done", async ({ 
   await page.goto("/scenes/pulse")
   const button = page.getByRole("button", { name: sc.pendingFirst })
   await expect(button).toBeEnabled()
-  await page.evaluate(pressTwice(sc.pendingFirst), sc.pendingFirst)
+  await page.evaluate(pressTwice, sc.pendingFirst)
   await expect(page.getByRole("status").filter({ hasText: sc.pendingFirstDone })).toBeVisible()
   await page.waitForTimeout(500)
   expect(api.callsTo("PUT", "/workspace/w1/flow/scenes/pulse")).toHaveLength(1)
@@ -28,7 +28,7 @@ test("Show pending orders first writes once and then says it is done", async ({ 
 test("Remove from Your Flow writes once", async ({ page, api }) => {
   await page.goto("/scenes/pulse")
   await expect(page.getByRole("button", { name: sc.remove })).toBeEnabled()
-  await page.evaluate(pressTwice(sc.remove), sc.remove)
+  await page.evaluate(pressTwice, sc.remove)
   await expect(page).toHaveURL(/\/$/)
   expect(api.callsTo("PUT", "/workspace/w1/flow/scenes/pulse")).toHaveLength(1)
 })
