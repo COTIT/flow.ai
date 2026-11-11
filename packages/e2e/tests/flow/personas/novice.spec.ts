@@ -284,7 +284,7 @@ async function walk(persona: Persona, page: Page) {
   try {
     await persona.run(noviceSteps(persona, page))
   } finally {
-    if (process.env.PERSONA_TRAIL) console.log(persona.trail.join("\n"))
+    if (process.env.PERSONA_VERBOSE) console.log(persona.trail.join("\n"))
   }
 }
 

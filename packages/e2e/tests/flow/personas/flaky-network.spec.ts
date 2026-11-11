@@ -261,17 +261,6 @@ test.describe("P6-1: a dropped or garbled voice request shows the browser's raw 
   })
 })
 
-const call = (persona: Persona, id: string, operation: string, args: unknown = {}) =>
-  persona.agent.emit({
-    type: "client_tool_call",
-    client_tool_call: {
-      tool_name: "execute_genesy_tool",
-      tool_call_id: id,
-      parameters: { operation_id: operation, arguments_json: JSON.stringify(args) },
-      expects_response: true,
-    },
-  })
-
 // P6-2 (fixed): the regression test lives in tests/flow/voice-results.spec.ts (reads run in turn).
 
 test.describe("P6-3: reloading while an approval is on its way loses the task", () => {

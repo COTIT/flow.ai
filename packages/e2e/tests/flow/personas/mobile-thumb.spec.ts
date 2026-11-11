@@ -3,7 +3,7 @@
 // taps while things still move. SIMULATED API and voice (see harness.ts).
 import type { Page } from "@playwright/test"
 
-import { expectSingleScroller, expectTapTargets } from "../../../src/test"
+import { expectTapTargets } from "../../../src/test"
 import { sc } from "../scenes-api"
 import { arm, expectNotBroken } from "./dumb-breaker.helpers"
 import { expect, labels, test, type Step } from "./harness"
@@ -17,6 +17,7 @@ import {
 } from "./mobile-thumb.helpers"
 
 // A thumb user is on a touch phone: the 375 px project (touch, mobile) only.
+// eslint-disable-next-line no-empty-pattern -- Playwright needs the fixtures object first
 test.beforeEach(({}, info) => test.skip(info.project.name !== "flow-mobile", "touch phone only"))
 
 /** Signed in at a size, a text conversation open and live. */
