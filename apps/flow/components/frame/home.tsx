@@ -1,5 +1,6 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
 import { useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -19,6 +20,14 @@ import { ResultScene } from "./result-scene"
 
 const greeting = (hour: number) =>
   hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"
+const noChange = () => () => {}
+/** The local hour on the client only; the server renders no greeting, so they never disagree. */
+const useLocalHour = () =>
+  useSyncExternalStore(
+    noChange,
+    () => new Date().getHours(),
+    () => null
+  )
 
 /**
  * Home: welcome, the orb's reserved place and its caption, then (later PRs) the discovery hint,
@@ -35,6 +44,7 @@ export function Home() {
   const resultOpen = useFlow((s) => s.resultOpen)
   const live = voice.connected || voice.starting || voice.upgrading
   const { state } = useReadiness()
+  const hour = useLocalHour()
 
   if (me.isError || workspaces.isError)
     return (
@@ -86,9 +96,11 @@ export function Home() {
   return (
     <div className="flex flex-col items-center gap-5 py-6 text-center max-md:py-3">
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">
-          {t(`shell.${greeting(new Date().getHours())}`)}
-        </p>
+        {hour === null ? null : (
+          <p className="text-sm text-muted-foreground">
+            {t(`shell.${greeting(hour)}`)}
+          </p>
+        )}
         <h1 className="text-2xl font-semibold text-balance">
           {t("shell.flowTitle")}
         </h1>

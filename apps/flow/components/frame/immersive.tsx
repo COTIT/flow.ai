@@ -18,6 +18,12 @@ export function Immersive() {
   const t = useTranslations()
   const voice = useVoice()
   const log = useRef<HTMLDivElement>(null)
+  const heading = useRef<HTMLHeadingElement>(null)
+  // Opened from the orb: the orb becomes a picture here, so focus moves into the conversation.
+  useEffect(() => {
+    if (document.activeElement?.closest("[data-orb]"))
+      heading.current?.focus()
+  }, [])
   // Keep the newest line in view.
   useEffect(() => {
     const element = log.current
@@ -28,7 +34,12 @@ export function Immersive() {
       aria-labelledby="flow-conversation-title"
       className="flex flex-col items-center gap-4 py-4"
     >
-      <h1 id="flow-conversation-title" className="sr-only">
+      <h1
+        ref={heading}
+        id="flow-conversation-title"
+        tabIndex={-1}
+        className="sr-only"
+      >
         {t("shell.conversation")}
       </h1>
       <OrbSlot name="immersive" className="size-48 sm:size-64" />

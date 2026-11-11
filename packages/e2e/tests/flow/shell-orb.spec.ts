@@ -75,3 +75,27 @@ test.describe("reduced motion", () => {
     expect(words.width).toBeLessThanOrEqual(1)
   })
 })
+
+test("opening the conversation from the orb moves focus into it, never onto a hidden element", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  await fakeAgent(page)
+  await page.goto("/")
+  await startText(page)
+  await page.getByRole("link", { name: "Storefront" }).click()
+  await orbAt(page, "compact")
+  await page.getByRole("button", { name: s.orbOpen }).click()
+  await orbAt(page, "immersive")
+  const focus = () =>
+    page.evaluate(() => {
+      const el = document.activeElement
+      return {
+        hidden: !!el?.closest('[aria-hidden="true"]'),
+        body: el === document.body,
+        text: el?.textContent ?? "",
+      }
+    })
+  await expect.poll(focus).toEqual({ hidden: false, body: false, text: s.conversation })
+})

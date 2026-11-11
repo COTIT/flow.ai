@@ -49,24 +49,28 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const pills = usePills()
   const draft = useFlow((s) => s.draft)
   const resultOpen = useFlow((s) => s.resultOpen)
-  const pending = useRef<string | null>(null)
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
   const { query: readiness, state } = useReadiness()
 
-  const deliver = async (text: string) => {
-    if (await voice.send(text)) flowStore.getState().setDraft("")
+  // Clears the box only if it still holds what was sent (typing during the send stays).
+  const deliver = async (text: string, typed: string) => {
+    if ((await voice.send(text)) && flowStore.getState().draft === typed)
+      flowStore.getState().setDraft("")
   }
-  // Text typed before the conversation was up goes out once it connects.
+  // A start the dock asked for: once it settles, send what the box holds then, or nothing.
+  const sendOnConnect = useRef(false)
   useEffect(() => {
-    if (!voice.connected || pending.current === null) return
-    const text = pending.current
-    pending.current = null
-    if (text) void deliver(text)
+    if (voice.starting || !sendOnConnect.current) return
+    sendOnConnect.current = false
+    if (!voice.connected) return
+    const typed = flowStore.getState().draft
+    const { rest } = parseWake(typed.trim())
+    if (rest) void deliver(rest, typed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voice.connected])
+  }, [voice.starting, voice.connected])
 
   // One start at a time, also across the readiness check below.
   const opening = useRef(false)
@@ -76,18 +80,19 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     const files = voice.attachments.some((file) => file.state !== "submitted")
     if (!rest && !wake && !files) return
     if (!voice.connected) {
-      // Text sent while the conversation opens goes out once it is connected.
-      pending.current = rest
-      if (opening.current || voice.starting || voice.upgrading) return
+      if (opening.current || voice.starting || voice.upgrading) {
+        sendOnConnect.current = true
+        return
+      }
       opening.current = true
       try {
         // Readiness may still be on its way: ask for the latest answer, never a stale one.
-        const ready = state ?? (await readiness.refetch()).data
-        if (ready !== "available") {
-          pending.current = null
-          return
-        }
+        const ready =
+          state ?? (await readiness.refetch({ cancelRefetch: false })).data
+        if (ready !== "available") return
         if (!rest) flowStore.getState().setDraft("")
+        // Sent from the box once connected; a start that fails sends nothing later.
+        sendOnConnect.current = true
         await voice.start(true)
       } finally {
         opening.current = false
@@ -95,7 +100,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       return
     }
     if (!rest && !files) return flowStore.getState().setDraft("")
-    void deliver(rest)
+    void deliver(rest, draft)
   }
 
   const handoff = voice.outcome?.handoff?.route
@@ -159,7 +164,9 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           className="flex flex-wrap items-center gap-2 rounded-xl border border-(--gold) p-2"
         >
           <p id="flow-review-pending" className="mr-auto text-sm">
-            <span className="font-semibold">{t("flow.chat.reviewPending")}</span>
+            <span className="font-semibold">
+              {t("flow.chat.reviewPending")}
+            </span>
             {": "}
             <ReviewTitle review={voice.review} />
           </p>
@@ -304,7 +311,8 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           size="icon"
           className="min-h-11 min-w-11"
           aria-label={t("voice.send")}
-          disabled={!live && state !== "available"}
+          // Unknown readiness still sends (Enter included); the start checks it first.
+          disabled={!live && !!state && state !== "available"}
         >
           <Send aria-hidden />
         </Button>

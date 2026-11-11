@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useRef } from "react"
+import { useCallback, useLayoutEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
@@ -32,10 +32,13 @@ export function OrbSlot({
       aria-hidden
       data-orb-slot={name}
       className={`shrink-0 ${className}`}
-      ref={(element) => {
-        flowStore.getState().setSlot(name, element)
-        return () => flowStore.getState().setSlot(name, null)
-      }}
+      ref={useCallback(
+        (element: HTMLDivElement) => {
+          flowStore.getState().setSlot(name, element)
+          return () => flowStore.getState().setSlot(name, null)
+        },
+        [name]
+      )}
     />
   )
 }
@@ -70,8 +73,11 @@ export function OrbLayer() {
     let moving = placed.current !== null && placed.current !== mode && !still
     placed.current = mode
     let frame = 0
+    // A late callback (fonts, frame) after cleanup must not measure a detached slot.
+    let dead = false
     const settle = setTimeout(() => (moving = false), MOVE_MS + 40)
     const place = () => {
+      if (dead) return
       const to = slotTransform(
         slot.getBoundingClientRect(),
         box.getBoundingClientRect(),
@@ -85,6 +91,7 @@ export function OrbLayer() {
     }
     place()
     const later = () => {
+      if (dead) return
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(place)
     }
@@ -96,6 +103,7 @@ export function OrbLayer() {
     window.visualViewport?.addEventListener("resize", later)
     void document.fonts?.ready.then(later)
     return () => {
+      dead = true
       clearTimeout(settle)
       cancelAnimationFrame(frame)
       resize.disconnect()

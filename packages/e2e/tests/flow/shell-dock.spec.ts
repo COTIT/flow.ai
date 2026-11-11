@@ -99,3 +99,62 @@ test("text sent while the conversation is still opening is kept and goes out onc
     .toEqual(["Sent while opening"])
   await expect(box).toHaveValue("")
 })
+
+test.describe("a start that fails", () => {
+  test.use({
+    allow: { responses: [{ url: "/api/voice/session", status: 503 }] },
+  })
+
+  test("forgets the text it was going to send; a later conversation never sends it", async ({
+    page,
+    api,
+  }) => {
+    designs(api)
+    let refuse = true
+    await page.route("**/api/voice/session", async (route) => {
+      if (route.request().method() === "POST" && refuse) {
+        refuse = false
+        return route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "unavailable" }),
+        })
+      }
+      await route.continue()
+    })
+    const agent = await fakeAgent(page)
+    await page.goto("/")
+    const box = dock(page).getByLabel(v.message)
+    await box.fill("Old question")
+    await box.press("Enter")
+    // The start fails and says so.
+    await expect(dock(page).getByRole("alert")).toBeVisible()
+    await expect(phase(page)).not.toHaveText(new RegExp(s.phase.live))
+    // The text stays in the box for the person to decide.
+    await expect(box).toHaveValue("Old question")
+    await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+    await expect(dock(page).getByRole("button", { name: v.addFiles })).toBeVisible()
+    await page.waitForTimeout(700)
+    expect(agent.sent.filter((e) => e.type === "user_message")).toEqual([])
+  })
+})
+
+test("Enter before the readiness answer still starts the text conversation and sends", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  await page.route("**/api/voice/readiness", async (route) => {
+    await new Promise((done) => setTimeout(done, 1000))
+    await route.continue()
+  })
+  const agent = await fakeAgent(page)
+  await page.goto("/")
+  const box = dock(page).getByLabel(v.message)
+  await box.fill("Early question")
+  await box.press("Enter")
+  await expect
+    .poll(() => agent.sent.filter((e) => e.type === "user_message").map((e) => e.text))
+    .toEqual(["Early question"])
+  await expect(box).toHaveValue("")
+})
