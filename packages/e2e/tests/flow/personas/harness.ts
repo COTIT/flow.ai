@@ -106,22 +106,27 @@ export class Persona {
   async click(target: Locator, how: "single" | "double" | "triple" = "single") {
     const el = target.first()
     if (!(await el.isVisible().catch(() => false))) return false
-    if (!(await el.isEnabled().catch(() => false))) return false
+    if (!(await el.isEnabled({ timeout: 1_000 }).catch(() => false))) return false
     const clickCount = how === "single" ? 1 : how === "double" ? 2 : 3
     await el.click({ clickCount, timeout: 2_000 }).catch(() => {})
     return true
   }
-  /** A random visible control in the frame: buttons and links, never ones leaving Flow. */
+  /**
+   * A random visible control in the frame: buttons and links, never ones leaving Flow. A control
+   * that vanishes mid-step (the page moved on) makes the step a no-op, never a hang.
+   */
   async clickAnything(scope: Locator = this.page.locator("body"), avoid = /log out|uitloggen|ondoka/i) {
     const controls = scope.locator(
       'button:visible:not([disabled]), a[href]:visible:not([target="_blank"])'
     )
-    const count = await controls.count()
+    const count = await controls.count().catch(() => 0)
     if (!count) return null
     const el = controls.nth(this.int(0, count - 1))
-    const name = ((await el.getAttribute("aria-label")) ?? (await el.innerText().catch(() => "")))
-      .trim()
-      .slice(0, 40)
+    const quick = { timeout: 1_000 }
+    const label = await el.getAttribute("aria-label", quick).catch(() => null)
+    const text = label ?? (await el.innerText(quick).catch(() => null))
+    if (text === null) return null // gone before it could be read
+    const name = text.trim().slice(0, 40)
     if (avoid.test(name)) return null
     await el.click({ timeout: 2_000 }).catch(() => {})
     return name
@@ -129,9 +134,10 @@ export class Persona {
   /** Types into the dock and sends (Enter or the Send button). */
   async say(text: string, how: "enter" | "button" = this.chance(0.5) ? "enter" : "button") {
     const box = this.page.getByLabel(v.message)
-    if (!(await box.isEditable().catch(() => false))) return false
-    await box.fill(text)
-    if (how === "enter") await box.press("Enter")
+    if (!(await box.isEditable({ timeout: 1_000 }).catch(() => false))) return false
+    // The dock may turn inert (a review opened) between the check and the typing: skip, never hang.
+    if (!(await box.fill(text, { timeout: 2_000 }).then(() => true, () => false))) return false
+    if (how === "enter") await box.press("Enter", { timeout: 2_000 }).catch(() => {})
     else await this.click(this.page.getByRole("button", { name: v.send, exact: true }))
     return true
   }
@@ -162,11 +168,15 @@ export class Persona {
   async reload() {
     await this.page.reload().catch(() => {})
   }
-  /** Network down for the page's requests (the mocked voice socket is not affected). */
+  /** Network down for every tab's requests (the mocked voice socket is not affected). */
   async offline(context: BrowserContext, on: boolean) {
-    if (on) markInjected(this.page, /./)
+    if (on) {
+      this.wentOffline = true
+      for (const page of this.pages) markInjected(page, /./)
+    }
     await context.setOffline(on)
   }
+  private wentOffline = false
   /** Answers one API path with a failure on purpose; the guard lets exactly that through. */
   async failApi(path: RegExp, status = 503, times = 1) {
     markInjected(this.page, path)
@@ -197,6 +207,8 @@ export class Persona {
   async secondTab(api: FakeApi) {
     const page = await this.page.context().newPage()
     this.extraProblems.push(watchProblems(page, {}, undefined))
+    // A tab opened after the network dropped may still see those failures.
+    if (this.wentOffline) markInjected(page, /./)
     await page.route("**/v1/**", (route) => api.handle(route))
     const agent = await fakeAgent(page)
     this.pages.push(page)
@@ -206,12 +218,22 @@ export class Persona {
   // ---- invariants ----------------------------------------------------------------------------
   /** Nothing stays busy forever: every spinner or skeleton settles, or a clear state replaces it. */
   async expectSettled(page = this.page) {
+    const busy = () =>
+      page
+        .locator(BUSY)
+        .evaluateAll((els) =>
+          els.map((el) => {
+            const part = el.closest("[data-component], [role=log], section, main")
+            return `${el.tagName.toLowerCase()}${el.getAttribute("data-slot") ? `[${el.getAttribute("data-slot")}]` : ""} in ${part?.getAttribute("data-component") ?? part?.tagName.toLowerCase() ?? "?"}: ${(el.textContent ?? "").trim().slice(0, 40)}`
+          })
+        )
+        .catch(() => [] as string[]) // mid-navigation: judged on the next check
     await expect
-      .poll(() => page.locator(BUSY).count(), {
-        message: "something stays busy (stuck spinner or skeleton)",
+      .poll(busy, {
+        message: `something stays busy (stuck spinner or skeleton) on ${page.url()}`,
         timeout: this.options.settleMs ?? 10_000,
       })
-      .toBe(0)
+      .toEqual([])
   }
   /** Each action is decided at most once (no duplicate writes). */
   expectNoDuplicateWrites() {
@@ -235,14 +257,21 @@ export class Persona {
   async check() {
     for (const page of this.pages) {
       if (page.isClosed()) continue
+      // A click may still be navigating: judge the page it lands on, not the one it leaves.
+      await page.waitForLoadState("domcontentloaded", { timeout: 10_000 }).catch(() => {})
       await this.expectSettled(page)
-      if (await page.locator("[data-flow-scroll]").count()) await expectSingleScroller(page)
+      if (await page.locator("[data-flow-scroll]").count())
+        await expectSingleScroller(page).catch(async (error: unknown) => {
+          if (!String(error).includes("Execution context was destroyed")) throw error
+          await page.waitForLoadState("domcontentloaded").catch(() => {})
+          await expectSingleScroller(page)
+        })
       await this.expectReachable(page)
       await this.expectNoForeignData(page)
     }
     this.expectNoDuplicateWrites()
     for (const problems of this.extraProblems)
-      expect(problems, "problems in another tab").toEqual([])
+      expect(problems, "problems in another tab").toEqual([]) // the list names each one
   }
 
   /**
@@ -262,6 +291,7 @@ export class Persona {
       let roll = this.random() * total
       const step = steps.find((s) => (roll -= s.weight) < 0) ?? steps.at(-1)!
       this.log(`${i}: ${step.name}`)
+      if (process.env.PERSONA_VERBOSE) console.log(`[persona] step ${i}: ${step.name}`)
       try {
         await step.run()
         await this.check()
@@ -281,7 +311,8 @@ export const test = flowTest.extend<{ persona: Persona }>({
   persona: async ({ page, api }, use, info) => {
     const seed = seedOf()
     // The session's own budget plus room for setup and the final checks.
-    info.setTimeout((Number(process.env.PERSONA_BUDGET_MS) || 90_000) + 60_000)
+    // A step plus its checks on every tab can take ~30 s (injected failures retry before settling).
+    info.setTimeout((Number(process.env.PERSONA_BUDGET_MS) || 90_000) + 120_000)
     info.annotations.push({ type: "seed", description: String(seed) })
     console.log(`[persona] ${info.title} · ${info.project.name} · PERSONA_SEED=${seed}`)
     void api
