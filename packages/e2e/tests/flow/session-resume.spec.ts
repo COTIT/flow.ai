@@ -4,6 +4,7 @@ import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import { sc } from "./scenes-api"
+import { revealHeader } from "./shell"
 import { ACTION, k, proposeStock, readBack, scene, stockReview, stockRoutes } from "./task"
 import { fakeAgent, startText, v } from "./voice"
 
@@ -103,7 +104,8 @@ test.describe("starting a conversation after the login expired", () => {
 test("P8-1 a draft is dropped when the person logs out by choice", async ({ page }) => {
   await page.goto("/")
   await page.getByLabel(v.message).fill(DRAFT)
-  await page.getByRole("button", { name: "Log out" }).click()
+  // The floating header hides until reached; no conversation is live, so no confirm (P10-3).
+  await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
   await expect(page).toHaveURL(/\/login$/)
   await page.getByLabel("Email").fill("e2e@genesy.test")
   await page.getByLabel("Password").fill("e2e-password-only")
