@@ -5,6 +5,7 @@ import type { Page } from "@playwright/test"
 
 import { expectSingleScroller, expectTapTargets } from "../../../src/test"
 import { sc } from "../scenes-api"
+import { readBack, scene, stockRoutes } from "../task"
 import { s as shell } from "../shell"
 import { v as voice } from "../voice"
 import { arm, expectNotBroken } from "./dumb-breaker.helpers"
@@ -570,6 +571,57 @@ for (const [name, size] of Object.entries({ phone: SIZES.phone, se: SIZES.se }))
     await page.setViewportSize(size)
     await page.waitForTimeout(500)
     await expectDockReachable(page)
+    await expectSingleScroller(page)
+  })
+}
+
+for (const [name, size] of Object.entries(GESTURE_SIZES)) {
+  test(`review ${name}: swipes during an open review leave it reachable and decided once`, async ({
+    persona,
+    page,
+    api,
+  }) => {
+    const stock = readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
+    api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
+    await stockRoutes(page)
+    await live(page, size)
+    persona.agent.call("stock_set_levels", {
+      path: { product: "p-500" },
+      body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 120 }] },
+    })
+    const approve = scene(page).getByRole("button", { name: labels.approve })
+    await expect(approve).toBeVisible()
+    const touch = await Touch.on(page)
+    const x = Math.round(size.width * 0.3)
+    // Reveal and hide the header, pull in the content, swipe the sheet if there is one, rotate.
+    await touch.swipe({ x, y: 14 }, { x, y: 160 }, 6, 120)
+    await touch.swipe({ x, y: 120 }, { x, y: 10 }, 6, 120)
+    await touch.swipe({ x, y: Math.round(size.height * 0.4) }, { x, y: Math.round(size.height * 0.8) }, 8, 200)
+    const handle = await sheetHandle(page).boundingBox({ timeout: 1_000 }).catch(() => null)
+    if (handle)
+      await touch.swipe(
+        { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 },
+        { x: handle.x + handle.width / 2, y: handle.y - 150 },
+        6,
+        120
+      )
+    await page.setViewportSize({ width: size.height, height: size.width })
+    await page.waitForTimeout(400)
+    await page.setViewportSize(size)
+    await page.waitForTimeout(400)
+    // Still there, reachable by a thumb, nothing on top of it.
+    await approve.scrollIntoViewIfNeeded()
+    await expect(approve).toBeInViewport()
+    const b = (await approve.boundingBox())!
+    const onTop = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x!, y!)?.closest("button")?.textContent?.trim() ?? "",
+      [b.x + b.width / 2, b.y + b.height / 2]
+    )
+    expect(onTop, "something covers Approve").toMatch(labels.approve)
+    await touch.tap(b.x + b.width / 2, b.y + b.height / 2)
+    await touch.tap(b.x + b.width / 2, b.y + b.height / 2)
+    await expect(approve).toBeHidden()
+    persona.expectNoDuplicateWrites()
     await expectSingleScroller(page)
   })
 }
