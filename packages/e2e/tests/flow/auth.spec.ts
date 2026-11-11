@@ -10,6 +10,7 @@ import {
   RUAHA,
   savedToken,
 } from "./api"
+import { revealHeader } from "./shell"
 
 test("a visitor who is not signed in is sent to the login page", async ({
   page,
@@ -91,7 +92,7 @@ test("logging out forgets the session and shows no earlier data to the next logi
   await logIn(page)
   await expect(page.getByText(AMINA.name)).toBeVisible()
 
-  await page.getByRole("button", { name: "Log out" }).click()
+  await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
   await expect(page).toHaveURL("/login")
   await expect(page.getByText("Your session ended.")).toHaveCount(0)
   expect(await savedToken(page)).toBeNull()

@@ -34,6 +34,17 @@
       "recovering": "Inarejesha",
       "error": "Kuna tatizo",
       "ended": "Mazungumzo yameisha"
-    }
+    },
+    "skipToContent": "Ruka hadi maudhui",
+    "menu": "Menyu",
+    "showHeader": "Onyesha kichwa",
+    "hideHeader": "Ficha kichwa",
+    "headerHint": "Telezesha chini kutoka juu kupata menyu",
+    "showConversation": "Onyesha mazungumzo",
+    "hideConversation": "Ficha mazungumzo",
+    "resizeConversation": "Badilisha upana wa mazungumzo",
+    "jumpToLatest": "Nenda kwa jipya zaidi",
+    "raiseConversation": "Inua mazungumzo",
+    "lowerConversation": "Shusha mazungumzo"
   }
 }

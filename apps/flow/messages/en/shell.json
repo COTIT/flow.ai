@@ -34,6 +34,17 @@
       "recovering": "Recovering",
       "error": "Something went wrong",
       "ended": "Conversation ended"
-    }
+    },
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "showHeader": "Show the header",
+    "hideHeader": "Hide the header",
+    "headerHint": "Swipe down from the top for the menu",
+    "showConversation": "Show conversation",
+    "hideConversation": "Hide conversation",
+    "resizeConversation": "Resize the conversation",
+    "jumpToLatest": "Jump to latest",
+    "raiseConversation": "Raise the conversation",
+    "lowerConversation": "Lower the conversation"
   }
 }

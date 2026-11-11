@@ -1,7 +1,7 @@
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, ILUNDO, mockApi, RUAHA } from "./api"
-import { orbAt } from "./shell"
+import { orbAt, revealHeader } from "./shell"
 import {
   capsule,
   k,
@@ -202,6 +202,7 @@ test("a task belongs to its workspace: after switching, nothing of it shows, als
 
   const picker = page.getByRole("combobox", { name: "Workspace" })
   for (const ws of [RUAHA, ILUNDO]) {
+    await revealHeader(page)
     await picker.click()
     await page.getByRole("option", { name: ws.display_name, exact: true }).click()
     await expect(
