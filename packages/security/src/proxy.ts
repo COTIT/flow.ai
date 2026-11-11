@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server"
 
 import { contentSecurityPolicy } from "./headers"
 
@@ -16,7 +16,7 @@ export function cspProxy(
 ) {
   return function proxy(
     request: NextRequest,
-    destination?: URL,
+    destination?: URL | NextFetchEvent,
     forwarded?: Headers
   ) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
@@ -32,7 +32,8 @@ export function cspProxy(
     headers.set("x-nonce", nonce)
     headers.set("Content-Security-Policy", csp)
 
-    const response = destination
+    // Next passes an event as argument two when this function is exported directly.
+    const response = destination instanceof URL
       ? NextResponse.rewrite(destination, { request: { headers } })
       : NextResponse.next({ request: { headers } })
     response.headers.set("Content-Security-Policy", csp)
