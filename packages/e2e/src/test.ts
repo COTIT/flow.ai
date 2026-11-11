@@ -60,6 +60,12 @@ export const test = base.extend<Options & { guard: void }>({
 
       await use()
       expect(problems, "page problems").toEqual([])
+      // Flow's shell has one scroll root; every Flow test ends with the layout checked.
+      if (
+        !page.isClosed() &&
+        (await page.locator("[data-flow-scroll]").count())
+      )
+        await expectSingleScroller(page)
     },
     { auto: true },
   ],
@@ -74,6 +80,37 @@ export async function expectNoHorizontalScroll(page: Page) {
     width: window.innerWidth,
   }))
   expect(scroll, "page scrolls sideways").toBeLessThanOrEqual(width)
+}
+
+/**
+ * One scroll root (`root`, e.g. Flow's `main[data-flow-scroll]`): the page itself never scrolls
+ * (no space below the viewport, nothing sideways) and no other element scrolls vertically.
+ */
+export async function expectSingleScroller(
+  page: Page,
+  root = "[data-flow-scroll]"
+) {
+  const found = await page.evaluate((root) => {
+    const d = document.documentElement
+    const others = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .filter((el) => {
+        if (el.matches(root)) return false
+        const y = getComputedStyle(el).overflowY
+        return /(auto|scroll)/.test(y) && el.scrollHeight > el.clientHeight + 1
+      })
+      .map(
+        (el) =>
+          `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`
+      )
+    return {
+      page: d.scrollHeight - window.innerHeight,
+      sideways: d.scrollWidth - window.innerWidth,
+      others,
+    }
+  }, root)
+  expect(found.page, "page scrolls below the viewport").toBeLessThanOrEqual(0)
+  expect(found.sideways, "page scrolls sideways").toBeLessThanOrEqual(0)
+  expect(found.others, "a second vertical scroll bar").toEqual([])
 }
 
 /**

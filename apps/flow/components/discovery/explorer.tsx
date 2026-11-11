@@ -43,7 +43,7 @@ export function Explorer() {
         <p className="text-sm text-muted-foreground">{t("text")}</p>
       </div>
       <Tabs defaultValue="understand" className="min-w-0">
-        <TabsList className="max-w-full overflow-x-auto">
+        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
           {GROUPS.map((group) => (
             <TabsTrigger key={group} value={group} className="min-h-11">
               {t(`groups.${group}`)}

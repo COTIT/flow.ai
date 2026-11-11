@@ -24,10 +24,10 @@ export function Immersive() {
     if (document.activeElement?.closest("[data-orb]"))
       heading.current?.focus()
   }, [])
-  // Keep the newest line in view.
+  // Keep the newest line in view; the page's one scroller scrolls, the log never has its own.
   useEffect(() => {
-    const element = log.current
-    if (element) element.scrollTop = element.scrollHeight
+    const scroller = log.current?.closest("[data-flow-scroll]")
+    if (scroller) scroller.scrollTop = scroller.scrollHeight
   }, [voice.messages, voice.thinking])
   return (
     <section
@@ -50,7 +50,7 @@ export function Immersive() {
         role="log"
         aria-label={t("voice.transcript")}
         aria-live="polite"
-        className="flex max-h-[40svh] min-h-16 w-full min-w-0 flex-col gap-2 overflow-y-auto px-1"
+        className="flex min-h-16 w-full min-w-0 flex-col gap-2 px-1"
       >
         <TranscriptRows
           rows={voice.messages}

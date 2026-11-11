@@ -40,8 +40,14 @@ export async function expectOrbClear(page: Page, others: Locator[]) {
   expect(
     Math.abs(ball.y + ball.height / 2 - (slot.y + slot.height / 2))
   ).toBeLessThan(1.5)
+  // What is drawn: the orb layer clips the orb (a scrolled conversation can carry it out of view).
+  const layer = (await orb(page).locator("..").boundingBox())!
+  const top = Math.max(ball.y, layer.y)
+  const bottom = Math.min(ball.y + ball.height, layer.y + layer.height)
+  const drawn = { ...ball, y: top, height: Math.max(0, bottom - top) }
   for (const other of others) {
     const box = await other.boundingBox()
-    if (box) expect(overlap(ball, box), `orb covers ${other}`).toBe(false)
+    if (box && drawn.height)
+      expect(overlap(drawn, box), `orb covers ${other}`).toBe(false)
   }
 }

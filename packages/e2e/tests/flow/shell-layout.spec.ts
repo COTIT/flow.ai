@@ -1,9 +1,14 @@
 import type { Page } from "@playwright/test"
 
 import { seedSession } from "../../src/session"
-import { expect, expectNoHorizontalScroll, test } from "../../src/test"
+import {
+  expect,
+  expectNoHorizontalScroll,
+  expectSingleScroller,
+  test,
+} from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { fakeAgent, v } from "./voice"
+import { fakeAgent, send, v } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -65,3 +70,35 @@ for (const size of [
     })
   })
 }
+
+test("a long conversation scrolls in one place; the page never grows below the screen", async ({
+  page,
+}) => {
+  // Each answer is its own event, a moment after the question, as a real agent's are.
+  let event = 0
+  await fakeAgent(page, (text, a) =>
+    setTimeout(() => {
+      a.emit({
+        type: "agent_response",
+        agent_response_event: {
+          agent_response: `Answer to ${text}. `.repeat(8),
+          event_id: ++event,
+        },
+      })
+    }, 100)
+  )
+  await page.goto("/")
+  await expectSingleScroller(page)
+  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  for (let i = 0; i < 12; i++) {
+    await send(page, `Question ${i}`)
+    await expect(page.getByRole("log")).toContainText(
+      `Answer to Question ${i}.`
+    )
+  }
+  await expectSingleScroller(page)
+  // The newest answer is in view, without the person scrolling.
+  await expect(
+    page.getByRole("log").getByText("Answer to Question 11.", { exact: false })
+  ).toBeInViewport()
+})

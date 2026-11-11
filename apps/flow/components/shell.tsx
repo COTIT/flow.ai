@@ -58,6 +58,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket])
 
+  // A new scene starts at its top, never at the scroll position of the page before.
+  const scroller = useRef<HTMLElement>(null)
+  useEffect(() => {
+    scroller.current?.scrollTo(0, 0)
+  }, [pathname, resultOpen])
+
   // The agent quietly knows the scene (ids only); the provider sends only while connected.
   const send = voice.sendContext
   useEffect(() => {
@@ -99,7 +105,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <Header phase={phase} />
       <div className="relative flex min-h-0 flex-col">
         {!home || resultOpen ? <SceneBar /> : null}
-        <main data-flow-scroll className="min-h-0 flex-1 overflow-y-auto">
+        {/* The one scroll root; positioned so nothing inside (e.g. sr-only text) stretches the page. */}
+        <main
+          ref={scroller}
+          data-flow-scroll
+          className="relative min-h-0 flex-1 overflow-y-auto"
+        >
           <div
             className={`mx-auto flex w-full min-w-0 flex-col gap-5 max-md:gap-3 ${home ? "max-w-3xl" : "max-w-2xl"}`}
           >
