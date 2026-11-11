@@ -388,5 +388,13 @@
     "mary": "Omslag van het prentenboek The Mary: een boerin met een schoffel, geschilderd door Benard Omondi",
     "benard": "Getekend portret van kunstenaar Benard Omondi, lachend, voor savanneheuvels",
     "nafasi": "Nostalgic Memories van Pascal Masegesse: een oude platenspeler op een stoel tegen rode en blauwe patronen"
+  },
+  "preview": {
+    "banner": "Niet-gepubliceerde preview",
+    "revision": "Revisie {id}",
+    "expires": "Verloopt {time}",
+    "expiredTitle": "Deze preview is verlopen",
+    "expiredBody": "De niet-gepubliceerde winkelrevisie staat nog in je werkruimte.",
+    "backToFlow": "Terug naar Genesy Flow"
   }
 }

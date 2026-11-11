@@ -41,6 +41,9 @@ done
 # New home renderer stays opt-in in both environments.
 [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop SHOP_DESIGN_ENABLED)" == false ]] || fail "production design renderer not disabled by default"
 [[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop SHOP_DESIGN_ENABLED)" == false ]] || fail "staging design renderer not disabled by default"
+# Expired preview links send people back to their own environment's Flow.
+[[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop FLOW_URL)" == https://flow.genesy.app ]] || fail "production shop FLOW_URL"
+[[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop FLOW_URL)" == https://staging-flow.genesy.app ]] || fail "staging shop FLOW_URL"
 
 # With it, but the bucket and key id not set: refuses, naming a missing variable (which one
 # Compose reports first differs between versions).

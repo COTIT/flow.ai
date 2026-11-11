@@ -388,5 +388,13 @@
     "mary": "Cover of the picture book The Mary: a woman farmer carrying a hoe, painted by Benard Omondi",
     "benard": "Illustrated portrait of the artist Benard Omondi, smiling, in front of savanna hills",
     "nafasi": "Nostalgic Memories by Pascal Masegesse: an old record player on a chair against red and blue patterns"
+  },
+  "preview": {
+    "banner": "Unpublished preview",
+    "revision": "Revision {id}",
+    "expires": "Expires {time}",
+    "expiredTitle": "This preview has expired",
+    "expiredBody": "The unpublished storefront revision is still available in your workspace.",
+    "backToFlow": "Return to Genesy Flow"
   }
 }
