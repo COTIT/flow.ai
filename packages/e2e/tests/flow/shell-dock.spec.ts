@@ -1,6 +1,6 @@
 import { expect, test, designs } from "./storefront-api"
 import { fakeAgent, startText, v, watch } from "./voice"
-import { dock, phase, s } from "./shell"
+import { dock, phase, s, revealHeader } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -24,7 +24,7 @@ test("unsent text stays in the dock across scenes", async ({ page, api }) => {
   const box = dock(page).getByLabel(v.message)
   await box.fill("half a thought")
   // F2: Your Flow also has "Storefront Studio"
-  await page.getByRole("link", { name: "Storefront" , exact: true }).click()
+  await (await revealHeader(page)).getByRole("link", { name: "Storefront", exact: true }).click()
   await expect(page).toHaveURL(/\/storefront$/)
   await expect(box).toHaveValue("half a thought")
   await page.getByRole("button", { name: s.backHome }).click()
@@ -70,7 +70,7 @@ test("text works inside a scene, in the same conversation", async ({ page, api }
   await page.goto("/")
   await startText(page)
   // F2: Your Flow also has "Storefront Studio"
-  await page.getByRole("link", { name: "Storefront" , exact: true }).click()
+  await (await revealHeader(page)).getByRole("link", { name: "Storefront", exact: true }).click()
   await dock(page).getByLabel(v.message).fill("Make the hero calmer")
   await dock(page).getByLabel(v.message).press("Enter")
   await expect

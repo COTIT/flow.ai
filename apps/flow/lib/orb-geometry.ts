@@ -1,18 +1,24 @@
 export type OrbMode = "ambient" | "immersive" | "compact"
 type Rect = { left: number; top: number; width: number; height: number }
 
-/** Scenes keep the orb compact; home shows it ambient, or immersive while talking. */
+/**
+ * Scenes keep the orb compact; home shows it ambient, or immersive while a conversation opens.
+ * Once the conversation has content it steps aside (compact) so the chat gets the full height.
+ */
 export function orbMode({
   pathname,
   resultOpen,
   immersive,
+  conversing,
 }: {
   pathname: string
   resultOpen?: boolean
   immersive?: boolean
+  conversing?: boolean
 }): OrbMode {
   if (pathname !== "/" || resultOpen) return "compact"
-  return immersive ? "immersive" : "ambient"
+  if (!immersive) return "ambient"
+  return conversing ? "compact" : "immersive"
 }
 
 /** Translate + scale (origin top-left) that puts a `base`-px orb centred on `slot`, relative to `layer`. */
@@ -31,7 +37,11 @@ export function springEasing(samples = 24, omega = 8) {
   const at = (t: number) => 1 - (1 + omega * t) * Math.exp(-omega * t)
   const end = at(1)
   const points = Array.from({ length: samples + 1 }, (_, i) =>
-    i === 0 ? 0 : i === samples ? 1 : Math.round((at(i / samples) / end) * 1000) / 1000
+    i === 0
+      ? 0
+      : i === samples
+        ? 1
+        : Math.round((at(i / samples) / end) * 1000) / 1000
   )
   return `linear(${points.join(", ")})`
 }

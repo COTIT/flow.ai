@@ -1,6 +1,7 @@
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, ILUNDO, mockApi, readiness, RUAHA } from "./api"
+import { revealHeader } from "./shell"
 
 test.beforeEach(async ({ page }) => {
   await readiness(page, 200, { enabled: true, ready: true })
@@ -30,6 +31,7 @@ test("two workspaces: switching changes the shown and saved workspace", async ({
   await page.goto("/")
   const picker = page.getByRole("combobox", { name: "Workspace" })
   await expect(picker).toContainText(ILUNDO.display_name)
+  await revealHeader(page)
   await picker.click()
   await page
     .getByRole("option", { name: RUAHA.display_name, exact: true })

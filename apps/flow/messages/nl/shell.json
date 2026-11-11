@@ -35,6 +35,18 @@
       "error": "Er ging iets mis",
       "ended": "Gesprek beëindigd"
     },
-    "offlineNavigation": "Je bent offline. Dit opent zodra je weer online bent."
+    "offlineNavigation": "Je bent offline. Dit opent zodra je weer online bent.",
+    "skipToContent": "Naar de inhoud",
+    "menu": "Menu",
+    "showHeader": "Toon de kopbalk",
+    "hideHeader": "Verberg de kopbalk",
+    "headerHint": "Veeg omlaag vanaf de bovenkant voor het menu",
+    "showConversation": "Toon gesprek",
+    "hideConversation": "Verberg gesprek",
+    "resizeConversation": "Gesprek breder of smaller maken",
+    "jumpToLatest": "Naar het nieuwste",
+    "raiseConversation": "Gesprek omhoog",
+    "lowerConversation": "Gesprek omlaag",
+    "newReply": "Genesy antwoordde"
   }
 }

@@ -1,6 +1,6 @@
 import { expect, test, designs } from "./storefront-api"
 import { fakeAgent, startText, v } from "./voice"
-import { dock, expectOrbClear, orb, orbAt, phase, s } from "./shell"
+import { dock, expectOrbClear, orb, orbAt, phase, s, revealHeader } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 // Design tests 1, 2 (storefront as the scene), 6, 7 and 10 (every project width).
@@ -37,15 +37,18 @@ test("one orb moves home → conversation → scene → conversation → home, n
   await expect(phase(page)).toHaveText(new RegExp(s.phase.live))
 
   // 2: a scene opens: the orb shrinks to the upper right of the content, same connection.
-  await page.getByRole("link", { name: "Storefront" }).click()
+  await (await revealHeader(page)).getByRole("link", { name: "Storefront" }).click()
   await expect(page).toHaveURL(/\/storefront$/)
   await orbAt(page, "compact")
   const heading = page.getByRole("heading", { level: 1 })
   await expect(heading).toBeVisible()
   await expectOrbClear(page, [header, dock(page), heading])
   const ball = (await orb(page).boundingBox())!
-  const width = page.viewportSize()!.width
-  expect(ball.x + ball.width / 2).toBeGreaterThan(width / 2)
+  const { width, height } = page.viewportSize()!
+  if (width < 640)
+    // Phone: the conversation sheet holds it, in its peek at the bottom (PhoneSheet board).
+    expect(ball.y).toBeGreaterThan(height / 2)
+  else expect(ball.x + ball.width / 2).toBeGreaterThan(width / 2)
 
   // 6: the compact orb opens the same conversation again.
   await page.getByRole("button", { name: s.orbOpen }).click()
@@ -87,7 +90,7 @@ test("opening the conversation from the orb moves focus into it, never onto a hi
   await fakeAgent(page)
   await page.goto("/")
   await startText(page)
-  await page.getByRole("link", { name: "Storefront" }).click()
+  await (await revealHeader(page)).getByRole("link", { name: "Storefront" }).click()
   await orbAt(page, "compact")
   await page.getByRole("button", { name: s.orbOpen }).click()
   await orbAt(page, "immersive")

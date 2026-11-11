@@ -112,7 +112,10 @@
         "till_open_shifts": "{count, plural, one {zamu # ya kaunta bado iko wazi} other {zamu # za kaunta bado ziko wazi}}",
         "lots_quarantined": "{count, plural, one {kundi # katika karantini} other {makundi # katika karantini}}",
         "webhooks_failed": "{count, plural, one {webhook # inashindwa} other {webhook # zinashindwa}}"
-      }
+      },
+      "snooze": "Ahirisha",
+      "untilTomorrow": "Hadi kesho",
+      "forWeek": "Siku 7"
     },
     "scene": {
       "pulse": {
@@ -148,6 +151,18 @@
       "sales": "Mauzo · {period}",
       "stock": "Stock Watch · imehifadhiwa"
     },
-    "cancel": "Ghairi"
+    "cancel": "Ghairi",
+    "table": {
+      "product": "Bidhaa",
+      "item": "Kipengele",
+      "order": "Agizo",
+      "date": "Tarehe",
+      "total": "Jumla",
+      "invoice": "Ankara",
+      "due": "Inadaiwa",
+      "open": "Iliyobaki",
+      "actions": "Vitendo",
+      "rowActions": "Vitendo vya {name}"
+    }
   }
 }

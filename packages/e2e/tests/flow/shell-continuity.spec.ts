@@ -1,6 +1,6 @@
 import { expect, test, designs } from "./storefront-api"
 import { fakeAgent, startText, watch } from "./voice"
-import { orbAt, phase, s } from "./shell"
+import { orbAt, phase, s, revealHeader } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -22,7 +22,13 @@ test("one conversation survives four navigations: one socket, one session, quiet
   // The new conversation hears the scene it starts in.
   await expect.poll(scenes).toEqual(["home"])
   // F2: Your Flow also has "Storefront Studio"
-  const storefront = page.getByRole("link", { name: "Storefront" , exact: true })
+  // The header hides again after each use: reveal it for every click.
+  const storefront = {
+    click: async () =>
+      (await revealHeader(page))
+        .getByRole("link", { name: "Storefront", exact: true })
+        .click(),
+  }
 
   // Each scene is told once it settles (quick hops inside the 300 ms debounce collapse).
   const heard: string[] = ["home"]

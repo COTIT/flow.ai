@@ -2,6 +2,7 @@ import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, ILUNDO, mockApi, RUAHA } from "./api"
 import { fakeAgent, send, startText, v, watch } from "./voice"
+import { revealHeader } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -21,7 +22,7 @@ test("switching workspace ends the conversation and shows nothing of the old one
   const log = page.getByRole("log", { name: v.transcript })
   await expect(log).toContainText("Ilundo answer to Ilundo stock")
 
-  const picker = page.getByRole("combobox", { name: "Workspace" })
+  const picker = (await revealHeader(page)).getByRole("combobox", { name: "Workspace" })
   await picker.click()
   await page
     .getByRole("option", { name: RUAHA.display_name, exact: true })
@@ -57,7 +58,7 @@ test("logging out ends the voice session first, then shows no conversation", asy
   await startText(page)
   await send(page, "private question")
   await expect(page.getByRole("log")).toContainText("Private answer")
-  await page.getByRole("button", { name: "Log out" }).click()
+  await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
   await expect(page).toHaveURL("/login")
   expect(order[0]).toBe("voice:Bearer e2e-token")
   expect(order).toContain("logout")
@@ -76,7 +77,7 @@ test("a voice end that hangs never blocks logging out", async ({ page }) => {
   await page.goto("/")
   await startText(page)
   const started = Date.now()
-  await page.getByRole("button", { name: "Log out" }).click()
+  await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
   await expect(page).toHaveURL("/login", { timeout: 10_000 })
   expect(Date.now() - started).toBeLessThan(8_000)
 })

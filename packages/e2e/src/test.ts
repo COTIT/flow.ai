@@ -99,34 +99,45 @@ export async function expectNoHorizontalScroll(page: Page) {
 }
 
 /**
- * One scroll root (`root`, e.g. Flow's `main[data-flow-scroll]`): the page itself never scrolls
- * (no space below the viewport, nothing sideways) and no other element scrolls vertically.
+ * Split-view scrolling. The document itself never scrolls (no space below the viewport, nothing
+ * sideways). Only the scroll `root` (e.g. Flow's `main[data-flow-scroll]`) and, unless `strict`,
+ * elements marked `[data-flow-pane]` (side-by-side panes: results, conversation rail, sheet body)
+ * may scroll vertically; no scroller sits inside another, so each pane has exactly one.
  */
 export async function expectSingleScroller(
   page: Page,
-  root = "[data-flow-scroll]"
+  root = "[data-flow-scroll]",
+  { strict = false }: { strict?: boolean } = {}
 ) {
-  const found = await page.evaluate((root) => {
-    const d = document.documentElement
-    const others = Array.from(document.querySelectorAll<HTMLElement>("body *"))
-      .filter((el) => {
-        if (el.matches(root)) return false
+  const found = await page.evaluate(
+    ({ root, strict }) => {
+      const d = document.documentElement
+      const scrolls = (el: Element) => {
         const y = getComputedStyle(el).overflowY
         return /(auto|scroll)/.test(y) && el.scrollHeight > el.clientHeight + 1
-      })
-      .map(
-        (el) =>
-          `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`
-      )
-    return {
-      page: d.scrollHeight - window.innerHeight,
-      sideways: d.scrollWidth - window.innerWidth,
-      others,
-    }
-  }, root)
+      }
+      const allowed = (el: Element) =>
+        el.matches(root) || (!strict && el.matches("[data-flow-pane]"))
+      const name = (el: Element) =>
+        `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`
+      const scrollers = Array.from(
+        document.querySelectorAll<HTMLElement>("body *")
+      ).filter(scrolls)
+      return {
+        page: d.scrollHeight - window.innerHeight,
+        sideways: d.scrollWidth - window.innerWidth,
+        others: scrollers.filter((el) => !allowed(el)).map(name),
+        nested: scrollers
+          .filter((el) => scrollers.some((o) => o !== el && o.contains(el)))
+          .map(name),
+      }
+    },
+    { root, strict }
+  )
   expect(found.page, "page scrolls below the viewport").toBeLessThanOrEqual(0)
   expect(found.sideways, "page scrolls sideways").toBeLessThanOrEqual(0)
-  expect(found.others, "a second vertical scroll bar").toEqual([])
+  expect(found.others, "a scroll bar outside the panes").toEqual([])
+  expect(found.nested, "a scroller inside another").toEqual([])
 }
 
 /**

@@ -8,7 +8,13 @@ import { useVoice } from "@genesy/voice/components/provider"
 import { sessionPhase } from "@genesy/voice/lib/presentation"
 import { sceneContext } from "@genesy/voice/lib/scene-context"
 import { useProposalHold } from "@/components/task/storefront-proposal"
-import { Dock } from "@/components/frame/dock"
+import {
+  Rail,
+  Sheet,
+  ConversationToggle,
+  useConversationLayout,
+} from "@/components/frame/conversation"
+import { DockLayer, DockSlot } from "@/components/frame/dock-layer"
 import { Header } from "@/components/frame/header"
 import { OrbLayer } from "@/components/frame/orb-layer"
 import { SceneBar } from "@/components/frame/scene-bar"
@@ -150,31 +156,92 @@ export function Shell({ children }: { children: React.ReactNode }) {
   )
 
   const home = pathname === "/"
+  const pane = useConversationLayout()
+  const railShown = pane.rail && pane.open
+  // A conversation started away from home shows where it started (P3-2): a closed rail opens.
+  const startingHere = voice.starting && pane.rail && !pane.open
+  useEffect(() => {
+    if (startingHere) pane.setOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startingHere])
+  const bottomDock = !railShown && !pane.sheet
   return (
     <div
-      style={{ height: "var(--flow-vh, 100dvh)" }}
-      className="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 md:gap-4 md:p-4"
+      style={
+        {
+          height: "var(--flow-vh, 100dvh)",
+          "--flow-safe-top": "env(safe-area-inset-top, 0px)",
+          // The dock's height until it is measured (its slot reserves it from the first paint).
+          "--flow-dock-h": "68px",
+        } as React.CSSProperties
+      }
+      // A double-click acts once: the layout may change under the pointer after the first click,
+      // so the second click of a double-click never reaches a control (P2-2).
+      onClickCapture={(e) => {
+        if (
+          e.detail > 1 &&
+          e.target instanceof Element &&
+          e.target.closest("button, a, [role=menuitem]")
+        ) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }}
+      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+0.5rem)] [@media(pointer:coarse)_and_(min-height:501px)]:pt-[calc(var(--flow-safe-top)+2.25rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
     >
+      {/* Floats over the frame; never takes a row, so it never pushes content. */}
       <Header phase={phase} />
-      <div className="relative flex min-h-0 flex-col">
-        {!home || resultOpen ? <SceneBar /> : null}
-        {/* The one scroll root; positioned so nothing inside (e.g. sr-only text) stretches the page. */}
-        <main
-          ref={scroller}
-          data-flow-scroll
-          className="relative min-h-0 flex-1 overflow-y-auto"
-        >
-          <div
-            className={`mx-auto flex w-full min-w-0 flex-col gap-5 max-md:gap-3 ${home ? "max-w-3xl" : "max-w-2xl"}`}
+      {/* Split view: results and the conversation are panes side by side (a sheet on a phone);
+          each pane scrolls on its own, the page never does. */}
+      <div className="relative flex min-h-0 min-w-0 gap-4 max-sm:flex-col max-sm:gap-0">
+        <div className="@container relative flex min-h-0 min-w-0 flex-1 flex-col">
+          {!home || resultOpen ? (
+            <SceneBar
+              orb={!railShown && !pane.sheet}
+              conversation={
+                pane.rail ? (
+                  <ConversationToggle
+                    open={pane.open}
+                    unread={pane.unread}
+                    onToggle={() => pane.setOpen(!pane.open)}
+                  />
+                ) : null
+              }
+            />
+          ) : null}
+          {/* The results pane's one scroller; positioned so nothing inside (e.g. sr-only text)
+              stretches the page. */}
+          <main
+            ref={scroller}
+            data-flow-scroll
+            data-flow-pane="results"
+            data-flow-content
+            id="flow-content"
+            tabIndex={-1}
+            className="relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain focus:outline-none"
           >
-            {children}
-          </div>
-        </main>
+            <div
+              className={`mx-auto flex w-full min-w-0 flex-col gap-5 max-md:gap-3 ${home && !resultOpen && !pane.conversationView ? "max-w-3xl" : ""}`}
+            >
+              {children}
+            </div>
+          </main>
+        </div>
+        {railShown ? (
+          <Rail
+            phase={phase}
+            width={pane.width}
+            maxWidth={pane.maxWidth}
+            onWidth={pane.setWidth}
+            onHide={() => pane.setOpen(false)}
+          />
+        ) : null}
+        {pane.sheet ? <Sheet phase={phase} /> : null}
         <OrbLayer />
       </div>
-      <div className="mx-auto w-full max-w-3xl min-w-0">
-        <Dock phase={phase} />
-      </div>
+      {bottomDock ? <DockSlot /> : null}
+      {/* The one dock, placed over the slot the layout shows (bottom, rail or sheet). */}
+      <DockLayer phase={phase} />
     </div>
   )
 }

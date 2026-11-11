@@ -54,15 +54,22 @@ export function Pills({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids])
 
-  if (!pills.length && !leaving.length) return null
+  // The row is drawn from the first paint, empty until suggestions arrive, so the dock never
+  // grows under the page as they load (SW8).
+  const none = !pills.length && !leaving.length
   return (
-    <div inert={disabled} className="flex min-w-0 flex-col gap-1">
+    <div
+      data-pills
+      inert={disabled}
+      aria-hidden={none || undefined}
+      className="flex min-w-0 flex-col gap-1"
+    >
       <p
         id="flow-pills-title"
-        className="text-xs text-muted-foreground"
+        className="min-h-4 text-xs text-muted-foreground [@media(max-height:500px)]:sr-only"
         aria-live="polite"
       >
-        {t(next ? "next" : "suggested")}
+        {none ? null : t(next ? "next" : "suggested")}
       </p>
       <ul
         ref={row}

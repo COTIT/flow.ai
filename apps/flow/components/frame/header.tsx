@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
 import { LogOut } from "lucide-react"
 
@@ -26,6 +26,7 @@ import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { useVoice } from "@genesy/voice/components/provider"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
 import { settleWithin } from "@/lib/settle"
+import { useHeaderReveal } from "./use-header-reveal"
 
 /** How long logout waits for the voice session to end with the still-valid login. */
 const END_VOICE_MS = 3000
@@ -39,81 +40,149 @@ export function useWorkspaceChoices() {
   return { query, choices }
 }
 
-/** App bar: name, voice status (words, not only colour), workspace and account controls. */
+/** First visit on touch: a one-time hint that the header is a swipe down away. */
+const HINT_KEY = "flow.headerHint.seen"
+
+/**
+ * App bar: name, voice status (words, not only colour), workspace and account controls.
+ * It floats over the frame and never pushes content: hidden until the pointer reaches the top
+ * edge, focus enters it, the handle is pressed or (touch) a swipe down from just below the top.
+ * Hidden it stays a focusable landmark (never aria-hidden), so Tab reaches and reveals it.
+ */
 export function Header({ phase }: { phase: SessionPhase["phase"] }) {
   const t = useTranslations()
+  const ref = useRef<HTMLElement>(null)
+  const pathname = usePathname()
+  const { shown, enter, leave, toggle } = useHeaderReveal(ref, pathname)
+  const [hint, setHint] = useState(false)
+  useEffect(() => {
+    if (!matchMedia("(pointer: coarse)").matches) return
+    try {
+      if (localStorage.getItem(HINT_KEY)) return
+      localStorage.setItem(HINT_KEY, "1")
+    } catch {
+      return
+    }
+    const show = setTimeout(() => setHint(true), 0)
+    const done = setTimeout(() => setHint(false), 4000)
+    return () => {
+      clearTimeout(show)
+      clearTimeout(done)
+    }
+  }, [])
   const logout = useLogout()
   const voice = useVoice()
-  const pathname = usePathname()
   const [leaving, setLeaving] = useState(false)
   const user = useUsersMe().data?.data.user
   const workspaceId = useSession((s) => s.workspaceId)
   const { choices } = useWorkspaceChoices()
   const current = choices.find((w) => w.id === workspaceId)
   return (
-    <header
-      data-flow-header
-      className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5">
-      <Link href="/" className="mr-auto flex min-h-11 items-center gap-2">
-        <LogoIcon aria-hidden="true" className="size-7 shrink-0" />
-        <span className="text-[15px] font-semibold">{t("flow.name")}</span>
-      </Link>
-      <p className="min-w-0 truncate text-xs text-muted-foreground max-sm:basis-full max-sm:order-last">
-        {user ? (
-          <>
-            <span className="sr-only">{t("flow.signedInAs")} </span>
-            {user.name}
-          </>
-        ) : null}
-        {user && current ? " · " : null}
-        {current ? (
-          <>
-            <span className="sr-only">{t("flow.workspace")} </span>
-            {current.display_name}
-          </>
-        ) : null}
-      </p>
-      <p
-        data-phase={phase}
-        className="flex min-h-11 items-center gap-2 text-xs font-medium tracking-wide uppercase"
+    <>
+      <a
+        href="#flow-content"
+        className="sr-only z-50 rounded-xl bg-foreground px-4 py-3 text-sm text-background focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+      >
+        {t("shell.skipToContent")}
+      </a>
+      <button
+        type="button"
+        data-flow-handle
+        aria-expanded={shown}
+        aria-controls="flow-header"
+        aria-label={t(shown ? "shell.hideHeader" : "shell.showHeader")}
+        onClick={toggle}
+        className="absolute top-0 left-1/2 z-50 hidden h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:h-7 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+2px)] [@media(pointer:coarse)]:flex"
       >
         <span
           aria-hidden
-          className={`size-2 rounded-full ${phase === "live" ? "bg-(--gold)" : phase === "ended" ? "bg-destructive" : "bg-muted-foreground"}`}
+          className="h-1.5 w-11 rounded-full bg-muted-foreground/50"
         />
-        <span className="sr-only">{t("shell.phaseLabel")}: </span>
-        {t(`shell.phase.${phase}`)}
-      </p>
-      <Link
-        href="/storefront"
-        prefetch={false}
-        aria-current={pathname === "/storefront" ? "page" : undefined}
-        className={buttonVariants({ variant: "ghost", size: "sm" })}
+      </button>
+      {hint && !shown ? (
+        <p
+          role="status"
+          className="pointer-events-none absolute top-11 left-1/2 z-50 -translate-x-1/2 rounded-full glass-strong px-3 py-1.5 text-xs whitespace-nowrap"
+        >
+          {t("shell.headerHint")}
+        </p>
+      ) : null}
+      <header
+        ref={ref}
+        id="flow-header"
+        data-flow-header
+        data-shown={shown || undefined}
+        onPointerEnter={(e) => e.pointerType === "mouse" && enter()}
+        onPointerLeave={(e) => e.pointerType === "mouse" && leave()}
+        className={`absolute inset-x-3 top-[calc(var(--flow-safe-top)+0.75rem)] z-40 flex flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5 shadow-lg transition-[translate,opacity] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity md:inset-x-4 md:top-[calc(var(--flow-safe-top)+1rem)] ${shown ? "" : "pointer-events-none -translate-y-[calc(100%+2rem)] opacity-0 motion-reduce:translate-y-0 [&:focus-within]:pointer-events-auto"}`}
       >
-        {t("flow.chat.storefront")}
-      </Link>
-      <WorkspacePicker />
-      <LocaleSwitcher />
-      <ThemeToggle label={t("common.theme")} />
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={leaving || logout.isPending}
-        onClick={async () => {
-          setLeaving(true)
-          // End the voice session while the login still works; a hung end never blocks logout.
-          await settleWithin(
-            // A throw inside end() becomes a rejection here, so logout still runs.
-            Promise.resolve().then(() => voice.end()),
-            END_VOICE_MS
-          )
-          logout.mutate()
-        }}
-      >
-        <LogOut aria-hidden="true" />
-        {t("common.logout")}
-      </Button>
-    </header>
+        <Link href="/" className="mr-auto flex min-h-11 items-center gap-2">
+          <LogoIcon aria-hidden="true" className="size-7 shrink-0" />
+          <span className="text-[15px] font-semibold">{t("flow.name")}</span>
+        </Link>
+        <p className="min-w-0 truncate text-xs text-muted-foreground max-sm:order-last max-sm:basis-full">
+          {user ? (
+            <>
+              <span className="sr-only">{t("flow.signedInAs")} </span>
+              {user.name}
+            </>
+          ) : null}
+          {user && current ? " · " : null}
+          {current ? (
+            <>
+              <span className="sr-only">{t("flow.workspace")} </span>
+              {current.display_name}
+            </>
+          ) : null}
+        </p>
+        <p
+          data-phase={phase}
+          className="flex min-h-11 items-center gap-2 text-xs font-medium tracking-wide uppercase"
+        >
+          <span
+            aria-hidden
+            className={`size-2 rounded-full ${phase === "live" ? "bg-(--gold)" : phase === "ended" ? "bg-destructive" : "bg-muted-foreground"}`}
+          />
+          <span className="sr-only">{t("shell.phaseLabel")}: </span>
+          {t(`shell.phase.${phase}`)}
+        </p>
+        <Link
+          href="/storefront"
+          prefetch={false}
+          aria-current={pathname === "/storefront" ? "page" : undefined}
+          className={buttonVariants({
+            variant: "ghost",
+            size: "sm",
+            className: "min-h-11",
+          })}
+        >
+          {t("flow.chat.storefront")}
+        </Link>
+        <WorkspacePicker />
+        {/* Every header control is a 44 px target (SW7). */}
+        <LocaleSwitcher className="min-h-11" />
+        <ThemeToggle label={t("common.theme")} className="size-11" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="min-h-11"
+          disabled={leaving || logout.isPending}
+          onClick={async () => {
+            setLeaving(true)
+            // End the voice session while the login still works; a hung end never blocks logout.
+            await settleWithin(
+              // A throw inside end() becomes a rejection here, so logout still runs.
+              Promise.resolve().then(() => voice.end()),
+              END_VOICE_MS
+            )
+            logout.mutate()
+          }}
+        >
+          <LogOut aria-hidden="true" />
+          {t("common.logout")}
+        </Button>
+      </header>
+    </>
   )
 }
 
@@ -132,7 +201,10 @@ function WorkspacePicker() {
         if (v) sessionStore.getState().selectWorkspace(v)
       }}
     >
-      <SelectTrigger aria-label={t("common.workspace")} className="max-w-48">
+      <SelectTrigger
+        aria-label={t("common.workspace")}
+        className="min-h-11 max-w-48"
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

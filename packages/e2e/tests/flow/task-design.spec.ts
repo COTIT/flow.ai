@@ -128,7 +128,7 @@ async function editReview(page: Page, api: FakeApi) {
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
   await expect(
-    page.getByRole("link", { name: /Storefront design/ })
+    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
   ).toBeVisible()
   // The frame fetched nothing: no API call, no write; only its own page, by GET.
   expect(fromFrame.filter((r) => r.method() !== "GET")).toEqual([])
@@ -285,7 +285,7 @@ test("an approval that meets a moved draft is refused in plain words", async ({
   await expect(receipt(page)).toContainText(k.receipt.title.failed)
   await expect(page.getByText(k.receipt.title.completed)).toHaveCount(0)
   await expect(
-    page.getByRole("link", { name: /Storefront design/ })
+    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
   ).toHaveCount(0)
 })
 
@@ -305,7 +305,7 @@ test.describe("the approval's answer is lost", () => {
     await expect(receipt(page)).toHaveAttribute("data-receipt", "unknown")
     await expect(receipt(page)).toContainText(k.receipt.title.unknown)
     await expect(
-      page.getByRole("link", { name: /Storefront design/ })
+      page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
     ).toHaveCount(0)
   })
 })

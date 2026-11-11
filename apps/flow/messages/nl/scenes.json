@@ -112,7 +112,10 @@
         "till_open_shifts": "{count, plural, one {# kassadienst staat nog open} other {# kassadiensten staan nog open}}",
         "lots_quarantined": "{count, plural, one {# partij in quarantaine} other {# partijen in quarantaine}}",
         "webhooks_failed": "{count, plural, one {# webhook mislukt} other {# webhooks mislukken}}"
-      }
+      },
+      "snooze": "Uitstellen",
+      "untilTomorrow": "Tot morgen",
+      "forWeek": "7 dagen"
     },
     "scene": {
       "pulse": {
@@ -148,6 +151,18 @@
       "sales": "Verkoop · {period}",
       "stock": "Stock Watch · bewaard"
     },
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "table": {
+      "product": "Product",
+      "item": "Item",
+      "order": "Bestelling",
+      "date": "Datum",
+      "total": "Totaal",
+      "invoice": "Factuur",
+      "due": "Vervalt",
+      "open": "Open",
+      "actions": "Acties",
+      "rowActions": "Acties voor {name}"
+    }
   }
 }

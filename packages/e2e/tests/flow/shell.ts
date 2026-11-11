@@ -11,7 +11,10 @@ export const dock = (page: Page) => page.getByRole("region", { name: s.dock })
 export const phase = (page: Page) => page.locator("[data-phase]")
 
 /** Waits until the orb is in `mode` and its move has finished. */
-export async function orbAt(page: Page, mode: "ambient" | "immersive" | "compact") {
+export async function orbAt(
+  page: Page,
+  mode: "ambient" | "immersive" | "compact"
+) {
   await expect(orb(page)).toHaveAttribute("data-orb", mode)
   await expect
     .poll(() => orb(page).evaluate((el) => el.getAnimations().length))
@@ -50,4 +53,16 @@ export async function expectOrbClear(page: Page, others: Locator[]) {
     if (box && drawn.height)
       expect(overlap(drawn, box), `orb covers ${other}`).toBe(false)
   }
+}
+
+/**
+ * The header floats hidden until asked for (top edge, focus, handle): reveal it the pointer way
+ * (to the top edge) before using one of its controls.
+ */
+export async function revealHeader(page: Page) {
+  const header = page.locator("[data-flow-header]")
+  const width = page.viewportSize()?.width ?? 1280
+  await page.mouse.move(width / 3, 2)
+  await expect(header).toHaveAttribute("data-shown", "true")
+  return header
 }

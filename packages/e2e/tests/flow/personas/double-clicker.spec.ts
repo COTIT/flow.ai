@@ -2,10 +2,10 @@
 // the first answer, hammers Approve / Cancel / Pause / Continue, spams Back, Enter and the orb,
 // and acts again while spinners show. Hunts duplicate writes, double navigation, stuck busy
 // states, lost or doubled cards, race errors. SIMULATED API and voice (see harness.ts).
-import type { Page, Route } from "@playwright/test"
+import type { Locator, Page, Route } from "@playwright/test"
 
 import { sc } from "../scenes-api"
-import { phase, s as shell } from "../shell"
+import { phase, revealHeader, s as shell } from "../shell"
 import {
   ACTION,
   capsule,
@@ -15,10 +15,10 @@ import {
   receipt,
   scene,
   stockReview,
-  stockRoutes,
+  stockRoutes as baseStockRoutes,
 } from "../task"
 import { startText, v, type Agent } from "../voice"
-import { expect, test, type Persona } from "./harness"
+import { expect, test, type Persona, type Step } from "./harness"
 
 const many = (p: Persona) => p.pick(["double", "triple"] as const)
 const userMessages = (agent: Agent) =>
@@ -30,6 +30,22 @@ const depth = (page: Page) => page.evaluate(() => history.length)
 function stockReadBack(api: { on: (m: string, p: string, f: () => object) => unknown }) {
   const stock = readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
   api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
+}
+
+/**
+ * The task mock's stock routes, but every proposal gets its own ticket (Office never reuses one);
+ * the shared mock names tickets by total only, so two proposals of 130 would look like one.
+ */
+async function stockRoutes(page: Page, confirmAnswer?: (ticket: string) => Record<string, unknown>) {
+  const confirms = await baseStockRoutes(page, confirmAnswer)
+  let n = 0
+  await page.route("**/api/voice/tools", async (route) => {
+    const b = (route.request().postDataJSON() ?? {}) as Record<string, unknown>
+    if (b.command !== "execute" || b.operationId !== "stock_set_levels") return route.fallback()
+    const total = (b.arguments as { body: { warehouses: { stock_lvl: number }[] } }).body.warehouses[0]!.stock_lvl
+    return route.fulfill({ json: stockReview(total, `stock-${total}-${++n}`) })
+  })
+  return confirms
 }
 
 const proposeStock = (agent: Agent, total: number) =>
@@ -95,6 +111,60 @@ async function batchRoutes(page: Page) {
   return { commands, confirms }
 }
 
+/**
+ * How a person double-clicks: the pointer stays put and each click comes 60-250 ms after the
+ * last (seeded). Whatever is under the pointer by then gets the click, as on a real screen.
+ */
+async function tap(persona: Persona, target: Locator, how: "single" | "double" | "triple" = "double") {
+  const el = target.first()
+  if (!(await el.isVisible().catch(() => false))) return false
+  if (!(await el.isEnabled().catch(() => false))) return false
+  await el.scrollIntoViewIfNeeded({ timeout: 1_000 }).catch(() => {})
+  const box = await el.boundingBox().catch(() => null)
+  if (!box) return false
+  const x = box.x + box.width / 2
+  const y = box.y + box.height / 2
+  const page = persona.page
+  for (let i = how === "single" ? 1 : how === "double" ? 2 : 3; i > 0; i--) {
+    await page.mouse.click(x, y)
+    if (i > 1) await page.waitForTimeout(persona.int(60, 250))
+  }
+  return true
+}
+
+/**
+ * Double/triple-clicks one random visible control (never logout or links leaving Flow). Unlike
+ * the harness's clickAnything, every read has a timeout: controls vanish mid-step here.
+ */
+async function hammerAnything(persona: Persona, scope: Locator, how?: "double" | "triple") {
+  const controls = scope.locator('button:visible:not([disabled]), a[href]:visible:not([target="_blank"])')
+  const count = await controls.count().catch(() => 0)
+  if (!count) return
+  const el = controls.nth(persona.int(0, count - 1))
+  const name = (await el.textContent({ timeout: 1_000 }).catch(() => "")) ?? ""
+  if (/log out|uitloggen|ondoka/i.test(name)) return
+  persona.log(`   → ${name.trim().slice(0, 40)}`)
+  await tap(persona, el, how ?? (persona.chance(0.5) ? "double" : "triple"))
+}
+
+/** Every write the browser sends to /v1 (method, path, body, when). */
+function writeLog(page: Page) {
+  const seen: { key: string; at: number }[] = []
+  page.on("request", (request) => {
+    const url = new URL(request.url())
+    if (request.method() === "GET" || !url.pathname.startsWith("/v1/")) return
+    seen.push({ key: `${request.method()} ${url.pathname} ${request.postData() ?? ""}`, at: Date.now() })
+  })
+  return seen
+}
+/** One intent, one write: the same write twice within a second is a double-click that got through. */
+function expectNoRepeatedWrites(seen: { key: string; at: number }[], known?: RegExp) {
+  const repeated = seen.filter(
+    (w, i) => !known?.test(w.key) && seen.slice(0, i).some((p) => p.key === w.key && w.at - p.at < 1_000)
+  )
+  expect(repeated.map((w) => w.key), "the same write sent twice within a second").toEqual([])
+}
+
 // ---- the long session -----------------------------------------------------------------------
 
 test("double-clicker: everything twice or three times, before the last one finished", async ({
@@ -108,19 +178,20 @@ test("double-clicker: everything twice or three times, before the last one finis
   const live = () => page.getByRole("button", { name: v.addFiles }).isVisible()
   const sceneLinks = () => page.getByRole("region", { name: sc.yourFlow }).getByRole("link")
 
-  await persona.run([
+  const writes = writeLog(page)
+  const steps: Step[] = [
     {
       name: "open a scene (double/triple)",
       weight: 3,
       run: async () => {
         const n = await sceneLinks().count()
-        if (n) await persona.click(sceneLinks().nth(persona.int(0, n - 1)), many(persona))
+        if (n) await tap(persona, sceneLinks().nth(persona.int(0, n - 1)), many(persona))
       },
     },
-    { name: "back home (double/triple)", weight: 3, run: () => persona.click(page.getByRole("button", { name: shell.backHome }), many(persona)) },
-    { name: "storefront (double)", weight: 1, run: () => persona.click(page.getByRole("link", { name: "Storefront", exact: true }), "double") },
-    { name: "orb (double/triple)", weight: 3, run: () => persona.click(page.locator("[data-orb]:not([aria-hidden])"), many(persona)) },
-    { name: "use text (triple)", weight: 2, run: () => persona.click(page.getByRole("button", { name: v.textInstead, exact: true }), "triple") },
+    { name: "back home (double/triple)", weight: 3, run: () => tap(persona, page.getByRole("button", { name: shell.backHome }), many(persona)) },
+    { name: "storefront (double)", weight: 1, run: () => tap(persona, page.getByRole("link", { name: "Storefront", exact: true }), "double") },
+    { name: "orb (double/triple)", weight: 3, run: () => tap(persona, page.locator("[data-orb]:not([aria-hidden])"), many(persona)) },
+    { name: "use text (triple)", weight: 2, run: () => tap(persona, page.getByRole("button", { name: v.textInstead, exact: true }), "triple") },
     {
       name: "ask, then Enter again and again",
       weight: 4,
@@ -138,7 +209,7 @@ test("double-clicker: everything twice or three times, before the last one finis
         const box = page.getByLabel(v.message)
         if (!(await box.isEditable().catch(() => false))) return
         await box.fill("Thanks")
-        await persona.click(page.getByRole("button", { name: v.send, exact: true }), many(persona))
+        await tap(persona, page.getByRole("button", { name: v.send, exact: true }), many(persona))
       },
     },
     {
@@ -148,22 +219,22 @@ test("double-clicker: everything twice or three times, before the last one finis
         if (await live()) proposeStock(persona.agent, persona.pick([110, 120, 130]))
       },
     },
-    { name: "approve (double/triple)", weight: 3, run: () => persona.click(scene(page).getByRole("button", { name: v.approve }), many(persona)) },
-    { name: "cancel (double)", weight: 1, run: () => persona.click(scene(page).getByRole("button", { name: v.cancel, exact: true }), "double") },
+    { name: "approve (double/triple)", weight: 3, run: () => tap(persona, scene(page).getByRole("button", { name: v.approve }), many(persona)) },
+    { name: "cancel (double)", weight: 1, run: () => tap(persona, scene(page).getByRole("button", { name: v.cancel, exact: true }), "double") },
     {
       name: "approve and cancel together",
       weight: 1,
       run: async () => {
         const s = scene(page)
         await Promise.all([
-          persona.click(s.getByRole("button", { name: v.approve }), "double"),
-          persona.click(s.getByRole("button", { name: v.cancel, exact: true }), "double"),
+          tap(persona, s.getByRole("button", { name: v.approve }), "double"),
+          tap(persona, s.getByRole("button", { name: v.cancel, exact: true }), "double"),
         ])
       },
     },
-    { name: "capsule Review (double)", weight: 2, run: () => persona.click(capsule(page).getByRole("button", { name: k.review }), many(persona)) },
-    { name: "capsule View result (double)", weight: 1, run: () => persona.click(capsule(page).getByRole("button", { name: k.openReceipt }), many(persona)) },
-    { name: "capsule Dismiss (triple)", weight: 1, run: () => persona.click(capsule(page).getByRole("button", { name: k.dismiss }), "triple") },
+    { name: "capsule Review (double)", weight: 2, run: () => tap(persona, capsule(page).getByRole("button", { name: k.review }), many(persona)) },
+    { name: "capsule View result (double)", weight: 1, run: () => tap(persona, capsule(page).getByRole("button", { name: k.openReceipt }), many(persona)) },
+    { name: "capsule Dismiss (triple)", weight: 1, run: () => tap(persona, capsule(page).getByRole("button", { name: k.dismiss }), "triple") },
     {
       name: "Back spam",
       weight: 2,
@@ -172,10 +243,33 @@ test("double-clicker: everything twice or three times, before the last one finis
       },
     },
     { name: "Forward twice", weight: 1, run: async () => { await persona.history("forward"); await persona.history("forward") } },
-    { name: "anything, twice", weight: 2, run: async () => { await persona.clickAnything(page.locator("main")); await persona.clickAnything(page.locator("main")) } },
+    { name: "anything in main, double/triple", weight: 3, run: () => hammerAnything(persona, page.locator("main")) },
+    { name: "a suggestion pill, double", weight: 2, run: () => hammerAnything(persona, page.getByRole("list", { name: shell.suggested }), "double") },
+    { name: "theme toggle (triple)", weight: 1, run: () => tap(persona, page.getByRole("button", { name: /light or dark/i }), "triple") },
+    {
+      name: "a tool request fails once, then propose and approve",
+      weight: 1,
+      run: async () => {
+        if (!(await live())) return
+        await persona.failApi(/\/api\/voice\/tools$/)
+        proposeStock(persona.agent, persona.pick([110, 120, 130]))
+        await page.waitForTimeout(300)
+        proposeStock(persona.agent, persona.pick([110, 120, 130]))
+        await tap(persona, scene(page).getByRole("button", { name: v.approve }), "double")
+      },
+    },
     { name: "Enter on whatever has focus (x3)", weight: 1, run: () => persona.keys("Enter", "Enter", "Enter") },
     { name: "reload while busy", weight: 1, run: () => persona.reload() },
-  ])
+  ]
+  await persona.run(
+    steps.map((step) => ({
+      ...step,
+      run: async () => {
+        await step.run()
+        expectNoRepeatedWrites(writes, KNOWN_P2_3)
+      },
+    }))
+  )
 })
 
 // ---- targeted races -------------------------------------------------------------------------
@@ -280,6 +374,7 @@ test("P2: capsule Review double-clicked from another page is one step in history
   await startText(page)
   proposeStock(persona.agent, 110)
   await expect(scene(page)).toContainText("Confirm action 135790")
+  await revealHeader(page)
   await page.getByRole("link", { name: "Storefront", exact: true }).click()
   await expect(page).toHaveURL(/\/storefront$/)
   const before = await depth(page)
@@ -324,6 +419,7 @@ test("P2: Back to home triple-clicked in a scene is one step in history", async 
 test("P2: the compact orb triple-clicked in a scene is one step in history", async ({ persona, page }) => {
   await page.goto("/")
   await startText(page)
+  await revealHeader(page)
   await page.getByRole("link", { name: "Storefront", exact: true }).click()
   await expect(page).toHaveURL(/\/storefront$/)
   const orbButton = page.locator('[data-orb="compact"]')
@@ -360,7 +456,7 @@ test("P2: batch Pause hammered, then Stop: approved once, stopped once", async (
   await persona.check()
 })
 
-// P2-1: "Prepare the rest" stays disabled until Genesy answers; it was guarded only by
+// P2-1: "Prepare the rest" sends its request once per click; the button is disabled only while
 // `voice.busy`, which ends as soon as the socket send returns (before the next click lands).
 test("P2-1: batch Prepare the rest, double-clicked, asks Genesy once", async ({ persona, page }) => {
   const { summary } = await pausedBatch(persona, page)
@@ -444,4 +540,150 @@ test("P2: receipt Dismiss and View result hammered", async ({ persona, page, api
   await capsule(page).getByRole("button", { name: k.dismiss }).click({ clickCount: 3 })
   await expect(capsule(page)).toHaveCount(0)
   await persona.check()
+})
+
+test("P2: Clarify Prepare change, double-clicked, asks once", async ({ persona, page }) => {
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  await page.getByLabel(v.message).fill("Update the honey stock.")
+  await page.getByLabel(v.message).press("Enter")
+  await expect(page.getByRole("log")).toContainText("Noted: Update the honey stock.")
+  persona.agent.call("products_list", { query: { q: "honey" } })
+  await expect.poll(persona.agent.results).toBe(1)
+  persona.agent.say("I found three honey products. Which one did you mean?")
+  await capsule(page).getByRole("button", { name: k.review }).click()
+  const choice = page.getByRole("form", { name: k.clarify.title })
+  await choice.getByRole("radio", { name: /Raw Honey 500g/ }).check()
+  await choice.getByLabel(k.clarify.type).selectOption({ label: k.clarify.types.set })
+  await choice.getByLabel(k.clarify.quantity).fill("120")
+  await choice.getByRole("button", { name: k.clarify.prepare }).click({ clickCount: 3 })
+  // A line sent while the agent still answers is held until its turn settles (~1.5 s).
+  const sets = () => userMessages(persona.agent).filter((m) => m.includes("Set the stock")).length
+  await expect.poll(sets, { timeout: 5_000 }).toBeGreaterThan(0)
+  await page.waitForTimeout(2_000)
+  expect(sets()).toBe(1)
+  await persona.check()
+})
+
+test("P2: while an approval is on its way: Approve, Back, Review, End, all twice", async ({
+  persona,
+  page,
+  api,
+}) => {
+  stockReadBack(api)
+  const confirms = await stockRoutes(page)
+  // The decision takes a while to come back.
+  await page.route("**/api/voice/confirm", async (route) => {
+    await new Promise((r) => setTimeout(r, 2_000))
+    return route.fallback()
+  })
+  await page.goto("/")
+  await startText(page)
+  proposeStock(persona.agent, 120)
+  const approve = scene(page).getByRole("button", { name: v.approve })
+  await approve.dblclick()
+  await persona.click(approve, "double")
+  await persona.click(page.getByRole("button", { name: shell.backHome }), "double")
+  await persona.click(capsule(page).getByRole("button", { name: k.review }), "double")
+  await persona.click(page.getByRole("button", { name: v.end }), "double")
+  await expect.poll(() => confirms.length, { timeout: 5_000 }).toBeGreaterThan(0)
+  await page.waitForTimeout(2_500)
+  expect(confirms.map((c) => c.decision)).toEqual(["approve"])
+  await persona.check()
+})
+
+test("P2: End conversation double-clicked, then Use text instead hammered", async ({ persona, page }) => {
+  await page.goto("/")
+  await startText(page)
+  await page.getByRole("button", { name: v.end }).dblclick()
+  await persona.click(page.getByRole("button", { name: v.textInstead, exact: true }), "triple")
+  await persona.click(page.getByRole("button", { name: v.textInstead, exact: true }), "double")
+  await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
+  await page.waitForTimeout(500)
+  expect(persona.agent.connections, "one new socket after the first").toBe(2)
+  await persona.check()
+})
+
+/** Up to the agent's "which product?" with the choice waiting (task state waiting_input). */
+async function askWhichProduct(persona: Persona, page: Page) {
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  await page.getByLabel(v.message).fill("Update the honey stock.")
+  await page.getByLabel(v.message).press("Enter")
+  await expect(page.getByRole("log")).toContainText("Noted: Update the honey stock.")
+  persona.agent.call("products_list", { query: { q: "honey" } })
+  await expect.poll(persona.agent.results).toBe(1)
+  persona.agent.say("I found three honey products. Which one did you mean?")
+  await expect(capsule(page)).toHaveAttribute("data-task-state", "waiting_input")
+}
+
+// P2-2: the dock's task button opens the task scene on the first click; the dock then shows a
+// suggestion pill (Morning briefing / Check pending orders) where the button was, and the second
+// click of the double-click opens that scene instead. The person lands in an unrelated scene.
+test("P2-2: View result double-clicked opens the receipt, not another scene", async ({ persona, page, api }) => {
+  stockReadBack(api)
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  proposeStock(persona.agent, 120)
+  await scene(page).getByRole("button", { name: v.approve }).click()
+  await expect(receipt(page)).toBeVisible()
+  await page.getByRole("button", { name: shell.backHome }).click()
+  const open = capsule(page).getByRole("button", { name: k.openReceipt })
+  await expect(open).toBeVisible()
+  await page.waitForTimeout(1_600) // the agent's turn has settled; the suggestions are live
+  await open.dblclick()
+  await page.waitForTimeout(1_000)
+  await expect(page).toHaveURL(/\/\?view=task$/)
+  await expect(receipt(page)).toBeVisible()
+})
+
+test("P2-2: Review double-tapped while Genesy waits for a choice opens the choice", async ({ persona, page }, info) => {
+  test.skip(info.project.name !== "flow-mobile", "the pill sits under the button at 375 only")
+  await askWhichProduct(persona, page)
+  await capsule(page).getByRole("button", { name: k.review }).dblclick()
+  await page.waitForTimeout(1_000)
+  await expect(page).toHaveURL(/\/\?view=task$/)
+  await expect(page.getByRole("form", { name: k.clarify.title })).toBeVisible()
+})
+
+/** P2-3: scene buttons stay enabled after a fast success; a second click repeats the same PUT. */
+const KNOWN_P2_3 = /^PUT \/v1\/workspace\/[^/]+\/flow\/scenes\//
+
+/** Each write button on Morning Pulse clicked several times; returns the writes seen. */
+async function hammerPulse(persona: Persona, page: Page, click: (button: Locator) => Promise<unknown>) {
+  const writes = writeLog(page)
+  await page.goto("/scenes/pulse")
+  const main = page.locator("main")
+  // Lists board: in the bento the attention list may show its row menu (⋯) instead.
+  await expect(main.getByRole("button", { name: /^(Acknowledge|Actions for .*)$/ }).first()).toBeVisible()
+  for (const name of [/^Acknowledge$/, /^Snooze until tomorrow$/, /^Snooze 7 days$/, /first$/, /Remove from Your Flow/]) {
+    const button = main.getByRole("button", { name }).first()
+    if (!(await button.isVisible().catch(() => false))) continue
+    persona.log(`hammer ${name}`)
+    await click(button)
+    await page.waitForTimeout(1_000)
+  }
+  expect(writes.length, "something was written").toBeGreaterThan(0)
+  return writes
+}
+
+test("P2: every write button on Morning Pulse, double-clicked by a person, writes once (bar P2-3)", async ({
+  persona,
+  page,
+}) => {
+  const writes = await hammerPulse(persona, page, (b) => tap(persona, b, "double"))
+  expectNoRepeatedWrites(writes, KNOWN_P2_3)
+  await persona.check()
+})
+
+// P2-3 (LOW): (a) clicks landing in the same frame (bouncy touch screens, switch devices,
+// scripted input) pass `disabled={mutation.isPending}` before React re-renders: the same PUT goes
+// twice; (b) scene buttons (Show pending orders first, Remove from Your Flow) stay enabled after
+// a fast success, so a person's second click repeats the same (idempotent) scene PUT.
+test("P2-3: same-frame clicks on Morning Pulse write buttons write once", async ({ persona, page }) => {
+  const writes = await hammerPulse(persona, page, (b) => b.click({ clickCount: 2 }))
+  expectNoRepeatedWrites(writes)
 })

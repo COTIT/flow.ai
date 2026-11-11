@@ -16,10 +16,6 @@ test.beforeEach(({ api }) => void api)
 test("SW1: a keyboard user never lands on the orb while it is scrolled out of view", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW1 open: Tab reaches the orb button after main was scrolled; it stays clipped"
-  )
   await page.goto("/")
   await expect(page.locator("[data-orb]")).toBeVisible()
   for (let i = 0; i < 60; i++) {
@@ -48,10 +44,6 @@ for (const size of [
   test(`SW2: ${size.name} leaves room for the scene itself`, async ({
     page,
   }) => {
-    test.fail(
-      !process.env.FINDINGS_RED,
-      "SW2 open: header + scene bar + dock take almost the whole height (D1/D2)"
-    )
     await page.setViewportSize({ width: size.width, height: size.height })
     await page.goto("/scenes/pulse")
     await expect(
@@ -202,10 +194,6 @@ test("SW6: a refused microphone says so in plain words, never the browser's raw 
 test("SW7: every header control is a 44 px touch target (language picker is 32 px)", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW7 open: the Language select is 122x32"
-  )
   await page.goto("/")
   await expect(page.locator("[data-flow-header]")).toBeVisible()
   await expectTapTargets(page, { within: "[data-flow-header]" })
@@ -270,8 +258,8 @@ test("SW3: a 429 says when it tries again (Retry-After) and then recovers", asyn
 for (const scene of ["pulse", "orders", "sales"]) {
   test(`SW8: /scenes/${scene} loads without layout shift`, async ({ page }) => {
     test.fail(
-      !process.env.FINDINGS_RED,
-      "SW8 open: the dock panel under the scene grows 72 px once its suggestions load (CLS 0.02 desktop, 0.19 at 375); scene cards no longer shift"
+      !process.env.FINDINGS_RED && page.viewportSize()!.width < 1024,
+      "SW8 open below 1024 px until d88bbcaf1 (card placeholders) is merged; the dock no longer shifts"
     )
     await page.goto(`/scenes/${scene}`)
     await expect(page.locator("[data-component]").first()).toBeVisible()

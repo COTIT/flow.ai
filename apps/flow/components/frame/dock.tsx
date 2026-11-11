@@ -52,6 +52,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const previewReturn = useRef<HTMLElement | null>(null)
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
+  const held = Boolean(voice.review)
   const { query: readiness, state } = useReadiness()
 
   // Clears the box only if it still holds what was sent (typing during the send stays).
@@ -108,7 +109,8 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   return (
     <section
       aria-label={t("shell.dock")}
-      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3"
+      // Short screens (phone landscape, zoomed laptop): one row, suggestions beside the field.
+      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-pills]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-pills]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
     >
       {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
       <Pills
@@ -184,16 +186,17 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           }}
         />
       ) : null}
-      {/* While an action waits for approval nothing here can be used, so nothing cancels it by accident. */}
+      {/* While an action waits for approval nothing here sends or acts, so nothing cancels it by
+          accident; the field itself stays focused and keeps what the person is typing (SW9). */}
       <form
-        inert={Boolean(voice.review)}
+        data-held={held || undefined}
         className="flex min-w-0 items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault()
-          void submit()
+          if (!held) void submit()
         }}
         onPaste={(e) => {
-          if (!voice.connected || !e.clipboardData.files.length) return
+          if (held || !voice.connected || !e.clipboardData.files.length) return
           e.preventDefault()
           voice.choose(Array.from(e.clipboardData.files))
         }}
@@ -218,6 +221,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
               size="icon"
               className="min-h-11 min-w-11"
               aria-label={t("voice.addFiles")}
+              disabled={held}
               onClick={() => picker.current?.click()}
             >
               <Paperclip aria-hidden />
@@ -242,7 +246,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
             size="icon"
             className="min-h-11 min-w-11"
             aria-label={t("voice.start")}
-            disabled={state !== "available"}
+            disabled={held || state !== "available"}
             onClick={() => void voice.start(false)}
           >
             <Mic aria-hidden />
@@ -278,7 +282,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           className="min-h-11 min-w-11"
           aria-label={t("voice.send")}
           // Unknown readiness still sends (Enter included); the start checks it first.
-          disabled={!live && !!state && state !== "available"}
+          disabled={held || (!live && !!state && state !== "available")}
         >
           <Send aria-hidden />
         </Button>

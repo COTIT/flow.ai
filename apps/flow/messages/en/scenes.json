@@ -112,7 +112,10 @@
         "till_open_shifts": "{count, plural, one {# till shift still open} other {# till shifts still open}}",
         "lots_quarantined": "{count, plural, one {# lot in quarantine} other {# lots in quarantine}}",
         "webhooks_failed": "{count, plural, one {# webhook failing} other {# webhooks failing}}"
-      }
+      },
+      "snooze": "Snooze",
+      "untilTomorrow": "Until tomorrow",
+      "forWeek": "For 7 days"
     },
     "scene": {
       "pulse": {
@@ -148,6 +151,18 @@
       "sales": "Sales · {period}",
       "stock": "Stock Watch · saved"
     },
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "table": {
+      "product": "Product",
+      "item": "Item",
+      "order": "Order",
+      "date": "Date",
+      "total": "Total",
+      "invoice": "Invoice",
+      "due": "Due",
+      "open": "Open",
+      "actions": "Actions",
+      "rowActions": "Actions for {name}"
+    }
   }
 }

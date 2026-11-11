@@ -1,6 +1,7 @@
 import { expect, test, designs } from "./storefront-api"
 import { capsule, k, scene } from "./task"
 import { fakeAgent, startText, v } from "./voice"
+import { revealHeader } from "./shell"
 
 // SIMULATED voice and batch answers (Office's batch shapes). The price sheet itself is not
 // uploaded here (attachments have their own spec): the batch is the review Office would build.
@@ -103,6 +104,7 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
   await expect(summary).toContainText("3 exceptions not included")
 
   // Leave for another scene: the task stays reachable and waits; nothing runs.
+  await revealHeader(page)
   await page.getByRole("link", { name: "Storefront" }).click()
   await expect(page).toHaveURL(/\/storefront$/)
   await expect(capsule(page)).toHaveAttribute(

@@ -35,6 +35,18 @@
       "error": "Kuna tatizo",
       "ended": "Mazungumzo yameisha"
     },
-    "offlineNavigation": "Uko nje ya mtandao. Hii itafunguka utakaporudi mtandaoni."
+    "offlineNavigation": "Uko nje ya mtandao. Hii itafunguka utakaporudi mtandaoni.",
+    "skipToContent": "Ruka hadi maudhui",
+    "menu": "Menyu",
+    "showHeader": "Onyesha kichwa",
+    "hideHeader": "Ficha kichwa",
+    "headerHint": "Telezesha chini kutoka juu kupata menyu",
+    "showConversation": "Onyesha mazungumzo",
+    "hideConversation": "Ficha mazungumzo",
+    "resizeConversation": "Badilisha upana wa mazungumzo",
+    "jumpToLatest": "Nenda kwa jipya zaidi",
+    "raiseConversation": "Inua mazungumzo",
+    "lowerConversation": "Shusha mazungumzo",
+    "newReply": "Genesy amejibu"
   }
 }
