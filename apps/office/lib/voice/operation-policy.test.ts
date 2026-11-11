@@ -460,6 +460,18 @@ describe("reviewed operation coverage", () => {
     }
   })
 
+  it("keeps Your Flow scene settings out of voice until the voice wiring change", () => {
+    for (const id of [
+      "flow_scenes_list",
+      "flow_scenes_update",
+      "flow_scenes_delete",
+      "flow_scenes_reset",
+    ]) {
+      expect(getOperation(id)?.disposition, id).toBe("internal")
+      expect(discoverTools(id, [])).toEqual([])
+    }
+  })
+
   it("keeps device and secret flows out of executable tools", () => {
     for (const id of [
       "till_login",

@@ -31,6 +31,7 @@ export * from './farm-tower/farm-tower';
 export * from './farm-villages/farm-villages';
 export * from './farm-vouchers/farm-vouchers';
 export * from './files/files';
+export * from './flow-scenes/flow-scenes';
 export * from './hourly-rates/hourly-rates';
 export * from './invites/invites';
 export * from './invoice-payments/invoice-payments';

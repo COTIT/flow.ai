@@ -19,8 +19,8 @@ use crate::{
         discounts, email_profiles, email_templates, email_verification, farm_bug_reports,
         farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market, farm_memberships,
         farm_passbook, farm_payouts, farm_pue, farm_records, farm_supply, farm_supply_corrections,
-        farm_surveys, farm_tower, farm_villages, farm_vouchers, files, hourly_rates, invites,
-        invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
+        farm_surveys, farm_tower, farm_villages, farm_vouchers, files, flow_scenes, hourly_rates,
+        invites, invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
         price_corrections, pricing, product_brands, product_categories, product_images,
         product_variants, products, relations, sales_groups, scheduled_reports, search, settings,
         shipment_methods, special_offers, stock, storage_locations, storefront, storefront_design,
@@ -140,6 +140,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(search::routes::private())
         .merge(attention::routes::private())
         .merge(scheduled_reports::routes::private())
+        .merge(flow_scenes::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())
         .merge(custom_statuses::routes::private())
