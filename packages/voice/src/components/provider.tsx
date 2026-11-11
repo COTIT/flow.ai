@@ -61,28 +61,17 @@ import {
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
 import {
+  VoiceRequestError,
+  VoiceShownError,
+  voiceErrorMessage,
+} from "../lib/errors"
+import {
   historicalProgress,
   rememberTask,
   taskOwner,
   type TaskReference,
   type BatchProgress,
 } from "../lib/continuity"
-
-class VoiceRequestError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    /** Model-only retry hints: an exact lookup schema or candidate operations. */
-    readonly hint?: {
-      message?: string
-      operation?: unknown
-      candidates?: unknown
-      reason?: string
-    }
-  ) {
-    super(message)
-  }
-}
 
 export type Attachment = {
   key: string
@@ -424,7 +413,7 @@ function Session({
         originals
       )
     } catch (e) {
-      throw new Error(
+      throw new VoiceShownError(
         t(
           e instanceof Error && e.message === "missing_reference"
             ? "missingReference"
@@ -488,7 +477,7 @@ function Session({
       if (active.current) updateBatch(result, owner)
     } catch (error) {
       if (active.current)
-        setError(error instanceof Error ? error.message : t("requestFailed"))
+        setError(voiceErrorMessage(error, t))
     }
   }
   async function stopBatch(command: "pause" | "cancel" = "pause") {
@@ -514,7 +503,14 @@ function Session({
     } catch (error) {
       if (active.current && before === generation.current) {
         setOutcome({ status: "unknown", message: t("unknown") })
-        setError(error instanceof Error ? error.message : t("requestFailed"))
+        setError(
+          voiceErrorMessage(
+            error,
+            t,
+            "requestFailed",
+            "requestErrors.unverified"
+          )
+        )
       }
     } finally {
       stoppingBatches.current.delete(key)
@@ -714,9 +710,15 @@ function Session({
         })
       }
       quiet = true
+      const shown = voiceErrorMessage(
+        e,
+        t,
+        "requestFailed",
+        "requestErrors.unverified"
+      )
       if (active.current && before === generation.current) {
         setThinking(false)
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(shown)
         setOutcome({ status: statusRead ? "unknown" : "failed" })
         if (command === "execute" && !statusRead)
           setProgress(progressOf("failed"))
@@ -728,7 +730,7 @@ function Session({
           e instanceof VoiceRequestError
             ? failureReason(e.status)
             : "unverified",
-        message: e instanceof Error ? e.message : t("requestFailed"),
+        message: shown,
       })
     } finally {
       if (!statusRead && preparing.current === before) preparing.current = null
@@ -973,7 +975,7 @@ function Session({
           )
     } catch (error) {
       if (active.current && recovered.current?.sessionId === pointer.sessionId)
-        setError(error instanceof Error ? error.message : t("recoveryError"))
+        setError(voiceErrorMessage(error, t, "recoveryError"))
     } finally {
       if (active.current) setCheckingRecovery(false)
     }
@@ -1002,7 +1004,7 @@ function Session({
         !result.review ||
         result.review.attachments
       )
-        throw new Error(t("recoveryUnavailable"))
+        throw new VoiceShownError(t("recoveryUnavailable"))
       pendingActionId.current =
         (result.data as { actionId?: string } | undefined)?.actionId ?? actionId
       reviewSession.current = pointer
@@ -1015,7 +1017,7 @@ function Session({
       updateReview(result.review)
     } catch (error) {
       if (active.current)
-        setError(error instanceof Error ? error.message : t("recoveryError"))
+        setError(voiceErrorMessage(error, t, "recoveryError"))
     } finally {
       if (active.current) setBusy(false)
     }
@@ -1187,7 +1189,7 @@ function Session({
         continuation.current = false
         switching.current = false
         setUpgrading(false)
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(voiceErrorMessage(e, t))
         setStarting(false)
         const old = session.current
         session.current = null
@@ -1243,7 +1245,7 @@ function Session({
           })
         if (old && !raw) {
           setError(t("secureUnknown"))
-          throw new Error(t("secureUnknown"))
+          throw new VoiceShownError(t("secureUnknown"))
         }
       })()
     }
@@ -1408,7 +1410,7 @@ function Session({
       try {
         await request("attachments", { id: file.receipt.id }, "DELETE")
       } catch (e) {
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(voiceErrorMessage(e, t))
         return
       }
     }
@@ -1481,7 +1483,7 @@ function Session({
               onUnauthorized
             )
             if (!response.ok)
-              throw new Error(
+              throw new VoiceShownError(
                 response.status === 413
                   ? t("fileErrors.size")
                   : response.status === 415
@@ -1497,7 +1499,7 @@ function Session({
             if (!active.current || before !== generation.current) return false
             patch(file.key, {
               state: "failed",
-              error: e instanceof Error ? e.message : t("requestFailed"),
+              error: voiceErrorMessage(e, t),
             })
             return false
           }
@@ -1558,7 +1560,7 @@ function Session({
     } catch (e) {
       if (active.current && before === generation.current) {
         setThinking(false)
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(voiceErrorMessage(e, t))
       }
       return false
     } finally {
@@ -1688,7 +1690,9 @@ function Session({
             { status: "unknown", message: t("unknown") },
             "batch"
           )
-        setError(e instanceof Error ? e.message : t("unknown"))
+        setError(
+          voiceErrorMessage(e, t, "unknown", "requestErrors.unverified")
+        )
       }
     } finally {
       dispatching.current = false

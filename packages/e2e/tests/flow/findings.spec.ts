@@ -156,10 +156,6 @@ test("SW5: a review that expires while open says so where the card was", async (
 test("SW6: a refused microphone says so in plain words, never the browser's raw error", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW6 open: the dock shows the exception text (e.g. 'denied')"
-  )
   await page.addInitScript(() => {
     navigator.mediaDevices.getUserMedia = () =>
       Promise.reject(new DOMException("denied", "NotAllowedError"))
