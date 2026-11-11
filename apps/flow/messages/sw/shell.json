@@ -46,6 +46,9 @@
     "jumpToLatest": "Nenda kwa jipya zaidi",
     "raiseConversation": "Inua mazungumzo",
     "lowerConversation": "Shusha mazungumzo",
-    "newReply": "Genesy amejibu"
+    "newReply": "Genesy amejibu",
+    "signOutTitle": "Ondoka na kumaliza mazungumzo haya?",
+    "signOutText": "Genesy itaacha kusikiliza na utaondolewa kwenye kifaa hiki.",
+    "signOutStay": "Endelea kuingia"
   }
 }

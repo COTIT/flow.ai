@@ -46,6 +46,9 @@
     "jumpToLatest": "Jump to latest",
     "raiseConversation": "Raise the conversation",
     "lowerConversation": "Lower the conversation",
-    "newReply": "Genesy replied"
+    "newReply": "Genesy replied",
+    "signOutTitle": "Sign out and end this conversation?",
+    "signOutText": "Genesy stops listening and you are signed out on this device.",
+    "signOutStay": "Stay signed in"
   }
 }

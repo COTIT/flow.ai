@@ -2,9 +2,13 @@
 // PhoneSheet) over a SIMULATED API and voice. Runs at 1280, 834 and 375 (the three projects).
 import type { Locator, Page } from "@playwright/test"
 
-import { expectNoHorizontalScroll, expectSingleScroller } from "../../src/test"
+import {
+  expectNoHorizontalScroll,
+  expectSingleScroller,
+  expectTapTargets,
+} from "../../src/test"
 import { expect, test } from "./storefront-api"
-import { s } from "./shell"
+import { revealHeader, s } from "./shell"
 import { chat, fakeAgent, send, startText, v } from "./voice"
 
 test.beforeEach(({ api }) => void api)
@@ -474,3 +478,46 @@ for (const size of [
     await expectSingleScroller(page)
     await expectNoHorizontalScroll(page)
   })
+
+test("P10-3: Log out asks first while a conversation is live; a near-miss tap never signs out at once", async ({
+  page,
+}) => {
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await revealHeader(page)
+  const logout = header(page).getByRole("button", { name: "Log out" })
+  const box = (await logout.boundingBox())!
+  // 44 px, with clear space around it.
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  // A tap a few px off its centre (touch adjustment may snap it onto the button).
+  const x = box.x + box.width / 2 + 3
+  const y = box.y + box.height / 2 + 6
+  if (test.info().project.use.hasTouch) await page.touchscreen.tap(x, y)
+  else await page.mouse.click(x, y)
+  const ask = page.getByRole("alertdialog").filter({ hasText: s.signOutTitle })
+  await expect(ask).toBeVisible()
+  await ask.getByRole("button", { name: s.signOutStay }).click()
+  await expect(ask).toHaveCount(0)
+  await expect(page).not.toHaveURL(/\/login/)
+  await expect(composer(page)).toBeVisible()
+})
+
+test("P4 / P10-1: header controls keep their place when the status changes, and are 44 px on touch at any width", async ({
+  page,
+}) => {
+  if (test.info().project.use.hasTouch) await page.setViewportSize({ width: 812, height: 375 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await page.waitForLoadState("networkidle")
+  await revealHeader(page)
+  const logout = header(page).getByRole("button", { name: "Log out" })
+  const before = (await logout.boundingBox())!
+  await expectTapTargets(page, { within: "[data-flow-header]" })
+  await startText(page)
+  await revealHeader(page)
+  await expect(page.locator("[data-phase]")).toHaveAttribute("data-phase", "live")
+  const after = (await logout.boundingBox())!
+  expect(Math.round(after.x)).toBe(Math.round(before.x))
+  expect(Math.round(after.y)).toBe(Math.round(before.y))
+})
