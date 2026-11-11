@@ -797,3 +797,79 @@ test("P10-1 / INT-2: the handle and the skip link are 44 px; status text never s
   )
   expect(out).toEqual([])
 })
+
+/** Mobile Chrome zooms the page out when anything widens the layout: it must never happen. */
+async function expectNotZoomed(page: Page, width: number) {
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  )
+  const v = await page.evaluate(() => ({
+    scale: window.visualViewport?.scale ?? 1,
+    inner: window.innerWidth,
+    scroll: document.documentElement.scrollWidth,
+  }))
+  expect(v, "never zoomed out").toEqual({ scale: 1, inner: width, scroll: width })
+}
+
+test("P10-9: rotating on a scene during a conversation never zooms the app out", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.isMobile, "mobile zoom")
+  await page.setViewportSize({ width: 375, height: 667 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  await page.getByRole("link", { name: /Morning Pulse/ }).click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  await page.waitForTimeout(700) // the orb lands
+  await expectNotZoomed(page, 375)
+  await page.setViewportSize({ width: 667, height: 375 })
+  await expectNotZoomed(page, 667)
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.waitForTimeout(700)
+  await expectNotZoomed(page, 375)
+  // At phone width list scenes are cards: no table row is wider than the screen.
+  const wide = await page.evaluate(() =>
+    [...document.querySelectorAll("tr")]
+      .filter((r) => r.getBoundingClientRect().right > innerWidth + 1)
+      .filter((r) => !r.closest(".sr-only"))
+      .map((r) => Math.round(r.getBoundingClientRect().right))
+  )
+  expect(wide).toEqual([])
+})
+
+test("P10-8: on a short, narrow screen the conversation bar's words never run into its buttons", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 667, height: 375 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  const bar = page.locator("[data-conversation-header]")
+  await expect(bar).toBeVisible()
+  const clash = await bar.evaluate((b) => {
+    const words = [...b.querySelectorAll<HTMLElement>("[role=status], p, span")].filter(
+      (el) => el.getBoundingClientRect().width > 2 && el.textContent?.trim()
+    )
+    const buttons = [...b.querySelectorAll("button")].map((x) => x.getBoundingClientRect())
+    const hit = (a: DOMRect, c: DOMRect) =>
+      a.left < c.right && a.right > c.left && a.top < c.bottom && a.bottom > c.top
+    return words
+      .filter((w) => !w.closest("button"))
+      .flatMap((w) => {
+        const r = w.getBoundingClientRect()
+        const over = buttons.some((x) => hit(r, x))
+        const cut = w.scrollWidth > w.clientWidth + 1 && getComputedStyle(w).textOverflow !== "ellipsis"
+        return over || cut ? [`${w.tagName} ${w.textContent?.slice(0, 20)} over=${over} cut=${cut}`] : []
+      })
+  })
+  expect(clash).toEqual([])
+  // The first-visit hint never sits on the conversation's bar.
+  await expect(page.getByText(s.headerHint)).toHaveCount(0)
+  await expectSingleScroller(page)
+})

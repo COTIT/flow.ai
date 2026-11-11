@@ -61,7 +61,7 @@ function Group({ group }: { group: PriorityGroup }) {
   return (
     <li
       data-group={group.kind}
-      className="flex flex-col gap-3 rounded-2xl border bg-card p-4 @max-[599px]:border-0 @max-[599px]:bg-transparent @max-[599px]:p-0 @min-[980px]:p-5"
+      className="flex flex-col gap-3 rounded-2xl border bg-card p-4 @max-[519px]:border-0 @max-[519px]:bg-transparent @max-[519px]:p-0 @min-[940px]:p-5"
     >
       {/* One title row: the title (and what it affects) left, the way to act right. */}
       <div className="flex items-start gap-3">
