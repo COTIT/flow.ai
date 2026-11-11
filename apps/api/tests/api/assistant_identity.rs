@@ -290,7 +290,7 @@ fn install() {
     });
 }
 
-async fn statements(app: &Router, uri: &str, token: &str) -> usize {
+pub(crate) async fn statements(app: &Router, uri: &str, token: &str) -> usize {
     install();
     COUNTED.with(|c| c.set(Some(0)));
     let (status, body) = get(app, uri, token).await;

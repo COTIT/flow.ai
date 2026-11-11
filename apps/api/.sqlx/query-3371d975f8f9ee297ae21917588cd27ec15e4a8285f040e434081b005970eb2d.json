@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO flow_scenes (workspace_id, user_id, scene, position, hidden, config)\n         VALUES ($1, $2, $3, $4, $5, $6)\n         ON CONFLICT (workspace_id, user_id, scene) DO UPDATE\n         SET position = EXCLUDED.position, hidden = EXCLUDED.hidden,\n             config = EXCLUDED.config, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int2",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3371d975f8f9ee297ae21917588cd27ec15e4a8285f040e434081b005970eb2d"
+}
