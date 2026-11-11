@@ -20,7 +20,9 @@ type Event = { type?: string; [key: string]: unknown }
 /** A fake agent on the ElevenLabs socket: records what the browser sends, says and calls tools. */
 export async function fakeAgent(
   page: Page,
-  onUser?: (text: string, agent: Agent) => void
+  onUser?: (text: string, agent: Agent) => void,
+  /** `refuse()` true: a new connection is closed at once (the network is down). */
+  { refuse }: { refuse?: () => boolean } = {}
 ) {
   const agent = {
     sent: [] as Event[],
@@ -51,6 +53,7 @@ export async function fakeAgent(
       agent.sent.filter((e) => e.type === "client_tool_result").length,
   }
   await page.routeWebSocket("wss://api.elevenlabs.io/**", (socket) => {
+    if (refuse?.()) return void socket.close()
     agent.connections++
     agent.emit = (event) => socket.send(JSON.stringify(event))
     agent.close = () => socket.close()

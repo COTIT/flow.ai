@@ -2,8 +2,7 @@
 // SIMULATED API and voice (see harness.ts). Seeds 3, 17, 404, 9001, 77777 green at 1280/834/375.
 import { sc } from "../scenes-api"
 import { readBack, scene, stockRoutes } from "../task"
-import { v } from "../voice"
-import { test } from "./harness"
+import { labels, test } from "./harness"
 
 test("combo: double-clicker, flaky network, two tabs", async ({
   persona,
@@ -21,7 +20,8 @@ test("combo: double-clicker, flaky network, two tabs", async ({
   await stockRoutes(page)
   await page.goto("/")
   let other: Awaited<ReturnType<typeof persona.secondTab>> | null = null
-  const live = () => page.getByRole("button", { name: v.addFiles }).isVisible()
+  const live = () =>
+    page.getByRole("button", { name: labels.addFiles }).isVisible()
   await persona.run([
     {
       name: "double-click a scene card",
@@ -40,7 +40,7 @@ test("combo: double-clicker, flaky network, two tabs", async ({
       weight: 2,
       run: () =>
         persona.click(
-          page.getByRole("button", { name: "Back to home" }),
+          page.getByRole("button", { name: labels.backHome }),
           "triple"
         ),
     },
@@ -49,7 +49,7 @@ test("combo: double-clicker, flaky network, two tabs", async ({
       weight: 2,
       run: () =>
         persona.click(
-          page.getByRole("button", { name: v.textInstead, exact: true }),
+          page.getByRole("button", { name: labels.textInstead }),
           "double"
         ),
     },
@@ -84,7 +84,7 @@ test("combo: double-clicker, flaky network, two tabs", async ({
       weight: 3,
       run: () =>
         persona.click(
-          scene(page).getByRole("button", { name: v.approve }),
+          scene(page).getByRole("button", { name: labels.approve }),
           persona.pick(["double", "triple"] as const)
         ),
     },
