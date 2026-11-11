@@ -1,7 +1,10 @@
 //! Gateway receipts use the invoice ledger exactly once, including late collections.
 use crate::common::{self, invoicing::*};
 use axum::http::{Method, StatusCode};
-use genesy_360_api::{gateway::repo::Operation, invoice_gateway as gateway, invoice_payments};
+use genesy_360_api::{
+    gateway::repo::Operation, invoice_gateway as gateway, invoice_payments,
+    payments::GlobadymeEnvironment,
+};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -134,6 +137,202 @@ async fn operation(
         .unwrap()
 }
 
+async fn production_binding(f: &F, operation: Uuid) {
+    sqlx::query("INSERT INTO payment_accounts(workspace_id,environment,merchant_id,principal_hash) VALUES($1,'production','merchant-test',decode(repeat('00',32),'hex')) ON CONFLICT DO NOTHING")
+        .bind(f.api.ws.parse::<Uuid>().unwrap()).execute(&f.api.pool).await.unwrap();
+    sqlx::query("UPDATE order_payments SET environment='production' WHERE id=$1")
+        .bind(operation)
+        .execute(&f.api.pool)
+        .await
+        .unwrap();
+}
+
+#[sqlx::test]
+async fn collection_ledger_rejects_disabled_or_wrong_realm_and_preserves_booked_receipt(
+    pool: PgPool,
+) {
+    let f = setup(pool).await;
+    let invoice = sent_invoice(&f, "10").await;
+    let source = operation(&f, invoice, None, None, 1_000).await;
+    let ws = f.api.ws.parse().unwrap();
+    for environment in [None, Some(GlobadymeEnvironment::Production)] {
+        let mut state = f.delivery_state.clone();
+        state.payments = state.payments.with_globadyme_environment(environment);
+        let mut tx = f.api.pool.begin().await.unwrap();
+        assert!(matches!(
+            gateway::apply_collection(&state, &mut tx, ws, &source, "captured-source").await,
+            Err(genesy_360_api::AppError::Unavailable(_))
+        ));
+        tx.commit().await.unwrap();
+        let values:(i64,i64)=sqlx::query_as("SELECT paid_total,(SELECT count(*) FROM invoice_payments WHERE id=$2) FROM invoices WHERE id=$1")
+            .bind(invoice).bind(source.id).fetch_one(&f.api.pool).await.unwrap();
+        assert_eq!(values, (0, 0));
+    }
+    let mut tx = f.api.pool.begin().await.unwrap();
+    gateway::apply_collection(&f.delivery_state, &mut tx, ws, &source, "captured-source")
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    let mut production = f.delivery_state.clone();
+    production.payments = production
+        .payments
+        .with_globadyme_environment(Some(GlobadymeEnvironment::Production));
+    let mut tx = f.api.pool.begin().await.unwrap();
+    assert!(matches!(
+        gateway::apply_collection(&production, &mut tx, ws, &source, "replacement-capture").await,
+        Err(genesy_360_api::AppError::Unavailable(_))
+    ));
+    tx.commit().await.unwrap();
+    let values:(i64,i64,String)=sqlx::query_as("SELECT i.paid_total,p.amount,p.provider_id FROM invoices i JOIN invoice_payments p ON p.invoice_id=i.id WHERE i.id=$1 AND p.id=$2")
+        .bind(invoice).bind(source.id).fetch_one(&f.api.pool).await.unwrap();
+    assert_eq!(values, (1_000, 1_000, "captured-source".into()));
+    let evidence: (String, Option<String>, bool) = sqlx::query_as(
+        "SELECT status,captured_transaction_id,attention FROM order_payments WHERE id=$1",
+    )
+    .bind(source.id)
+    .fetch_one(&f.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(evidence, ("open".into(), None, false));
+}
+
+#[sqlx::test]
+async fn refund_ledger_checks_its_parent_realm_without_releasing_reserved_money(pool: PgPool) {
+    let f = setup(pool).await;
+    let invoice = sent_invoice(&f, "10").await;
+    let source = operation(&f, invoice, None, None, 1_000).await;
+    let ws = f.api.ws.parse().unwrap();
+    let mut tx = f.api.pool.begin().await.unwrap();
+    gateway::apply_collection(&f.delivery_state, &mut tx, ws, &source, "source-capture")
+        .await
+        .unwrap();
+    sqlx::query("UPDATE order_payments SET status='paid',captured_transaction_id='source-capture' WHERE id=$1")
+        .bind(source.id).execute(&mut *tx).await.unwrap();
+    tx.commit().await.unwrap();
+    let (status, reply) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/credit"),
+            Some(json!({"credit_all":true})),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{reply}");
+    let note = reply["data"]["invoice_id"].as_str().unwrap();
+    assert_eq!(send(&f, note, message(&f, "manual")).await, ok());
+    let note: Uuid = note.parse().unwrap();
+    let refund = operation(&f, invoice, Some(note), Some(source.id), 500).await;
+    for environment in [None, Some(GlobadymeEnvironment::Production)] {
+        let mut state = f.delivery_state.clone();
+        state.payments = state.payments.with_globadyme_environment(environment);
+        let mut tx = f.api.pool.begin().await.unwrap();
+        assert!(matches!(
+            gateway::apply_refund(&state, &mut tx, ws, &refund, "source-capture").await,
+            Err(genesy_360_api::AppError::Unavailable(_))
+        ));
+        tx.commit().await.unwrap();
+    }
+    production_binding(&f, source.id).await;
+    let mut tx = f.api.pool.begin().await.unwrap();
+    assert!(matches!(
+        gateway::apply_refund(&f.delivery_state, &mut tx, ws, &refund, "source-capture").await,
+        Err(genesy_360_api::AppError::Unavailable(_))
+    ));
+    tx.commit().await.unwrap();
+    let before:(i64,i64,i64)=sqlx::query_as("SELECT (SELECT paid_total FROM invoices WHERE id=$1),(SELECT count(*) FROM invoice_payments WHERE id=$2),(SELECT coalesce(sum(amount),0)::bigint FROM order_payments WHERE parent_id=$3 AND kind='refund' AND status NOT IN ('failed','canceled'))")
+        .bind(note).bind(refund.id).bind(source.id).fetch_one(&f.api.pool).await.unwrap();
+    assert_eq!(before, (0, 0, 500));
+    sqlx::query("UPDATE order_payments SET environment='sandbox' WHERE id=$1")
+        .bind(source.id)
+        .execute(&f.api.pool)
+        .await
+        .unwrap();
+    let mut tx = f.api.pool.begin().await.unwrap();
+    gateway::apply_refund(&f.delivery_state, &mut tx, ws, &refund, "source-capture")
+        .await
+        .unwrap();
+    sqlx::query("UPDATE order_payments SET status='refunded' WHERE id=$1")
+        .bind(refund.id)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    let mut production = f.delivery_state.clone();
+    production.payments = production
+        .payments
+        .with_globadyme_environment(Some(GlobadymeEnvironment::Production));
+    let mut tx = f.api.pool.begin().await.unwrap();
+    assert!(matches!(
+        gateway::apply_refund(&production, &mut tx, ws, &refund, "different-capture").await,
+        Err(genesy_360_api::AppError::Unavailable(_))
+    ));
+    tx.commit().await.unwrap();
+    let totals:(i64,i64,i64)=sqlx::query_as("SELECT (SELECT paid_total FROM invoices WHERE id=$1),(SELECT paid_total FROM invoices WHERE id=$2),(SELECT amount FROM invoice_payments WHERE id=$3)")
+        .bind(invoice).bind(note).bind(refund.id).fetch_one(&f.api.pool).await.unwrap();
+    assert_eq!(totals, (1_000, -500, -500));
+}
+
+#[sqlx::test]
+async fn invoice_refund_admission_rejects_wrong_realm_before_reserving_credit(pool: PgPool) {
+    let f = setup(pool).await;
+    let invoice = sent_invoice(&f, "10").await;
+    let source = operation(&f, invoice, None, None, 1_000).await;
+    let ws = f.api.ws.parse().unwrap();
+    let mut tx = f.api.pool.begin().await.unwrap();
+    gateway::apply_collection(&f.delivery_state, &mut tx, ws, &source, "source-capture")
+        .await
+        .unwrap();
+    sqlx::query("UPDATE order_payments SET status='paid',captured_transaction_id='source-capture' WHERE id=$1")
+        .bind(source.id).execute(&mut *tx).await.unwrap();
+    tx.commit().await.unwrap();
+    let (status, reply) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/credit"),
+            Some(json!({"credit_all":true})),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{reply}");
+    let note = reply["data"]["invoice_id"].as_str().unwrap();
+    assert_eq!(send(&f, note, message(&f, "manual")).await, ok());
+    production_binding(&f, source.id).await;
+    let (status, reply) = common::send_raw(
+        &f.api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/invoices/{note}/refunds", f.api.ws),
+        Some(json!({"payment_id":source.id,"amount":"5.00"})),
+        Some(&f.api.owner),
+        &[("Idempotency-Key", "wrong-realm-refund")],
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::SERVICE_UNAVAILABLE,
+        "{}",
+        String::from_utf8_lossy(&reply)
+    );
+    let reserved: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM order_payments WHERE parent_id=$1 AND kind='refund'",
+    )
+    .bind(source.id)
+    .fetch_one(&f.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(reserved, 0);
+    let values:(i64,i64,String)=sqlx::query_as("SELECT i.paid_total,p.amount,p.provider_id FROM invoices i JOIN invoice_payments p ON p.invoice_id=i.id WHERE i.id=$1 AND p.id=$2")
+        .bind(invoice).bind(source.id).fetch_one(&f.api.pool).await.unwrap();
+    assert_eq!(values, (1_000, 1_000, "source-capture".into()));
+    let balance: i64 = sqlx::query_scalar("SELECT paid_total FROM invoices WHERE id=$1::uuid")
+        .bind(note)
+        .fetch_one(&f.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(balance, 0);
+}
+
 #[sqlx::test]
 async fn pending_refunds_reserve_credit_and_replay_the_same_request(pool: PgPool) {
     let f = setup(pool).await;
@@ -144,7 +343,7 @@ async fn pending_refunds_reserve_credit_and_replay_the_same_request(pool: PgPool
     invoice_payments::repo::lock(&mut tx, ws, invoice)
         .await
         .unwrap();
-    gateway::apply_collection(&mut tx, ws, &source, "paid-source")
+    gateway::apply_collection(&f.delivery_state, &mut tx, ws, &source, "paid-source")
         .await
         .unwrap();
     sqlx::query(
@@ -294,10 +493,10 @@ async fn late_collection_books_once_and_cannot_be_voided(pool: PgPool) {
         .await
         .unwrap()
         .unwrap();
-    gateway::apply_collection(&mut tx, ws, &op, "transaction-1")
+    gateway::apply_collection(&f.delivery_state, &mut tx, ws, &op, "transaction-1")
         .await
         .unwrap();
-    gateway::apply_collection(&mut tx, ws, &op, "transaction-1")
+    gateway::apply_collection(&f.delivery_state, &mut tx, ws, &op, "transaction-1")
         .await
         .unwrap();
     tx.commit().await.unwrap();
@@ -393,9 +592,15 @@ async fn confirmed_partial_refunds_close_only_the_credit_note_balance(pool: PgPo
     invoice_payments::repo::lock(&mut tx, ws, invoice)
         .await
         .unwrap();
-    gateway::apply_collection(&mut tx, ws, &source, "transaction-source")
-        .await
-        .unwrap();
+    gateway::apply_collection(
+        &f.delivery_state,
+        &mut tx,
+        ws,
+        &source,
+        "transaction-source",
+    )
+    .await
+    .unwrap();
     sqlx::query("UPDATE order_payments SET status='paid' WHERE id=$1")
         .bind(source.id)
         .execute(&mut *tx)
@@ -423,12 +628,24 @@ async fn confirmed_partial_refunds_close_only_the_credit_note_balance(pool: PgPo
         for id in ids {
             invoice_payments::repo::lock(&mut tx, ws, id).await.unwrap();
         }
-        gateway::apply_refund(&mut tx, ws, &refund, "transaction-refund")
-            .await
-            .unwrap();
-        gateway::apply_refund(&mut tx, ws, &refund, "transaction-refund")
-            .await
-            .unwrap();
+        gateway::apply_refund(
+            &f.delivery_state,
+            &mut tx,
+            ws,
+            &refund,
+            "transaction-refund",
+        )
+        .await
+        .unwrap();
+        gateway::apply_refund(
+            &f.delivery_state,
+            &mut tx,
+            ws,
+            &refund,
+            "transaction-refund",
+        )
+        .await
+        .unwrap();
         sqlx::query("UPDATE order_payments SET status='refunded' WHERE id=$1")
             .bind(refund.id)
             .execute(&mut *tx)
@@ -480,6 +697,113 @@ async fn manual_send(api: &common::Api, invoice: &str, contact: &str) {
 }
 
 #[sqlx::test]
+async fn shop_invoice_rejects_foreign_refund_totals_and_invalid_parent_bindings(pool: PgPool) {
+    use super::gateway_recovery::{capture, collection, refresh, world};
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    assert_eq!(refresh(&w, payment).await["status"], "paid");
+    let relation = w
+        .api
+        .with_base("/relations")
+        .create(
+            json!({"company_name":"Shop buyer","type":"business"}),
+            "relation_id",
+        )
+        .await;
+    let (status, body) = w
+        .api
+        .call(
+            Method::PATCH,
+            &format!("/{order}"),
+            Some(json!({"relation_id":relation})),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let ws: Uuid = w.api.ws.parse().unwrap();
+    let (_, foreign_parent) = collection(&w).await;
+    sqlx::query("INSERT INTO payment_accounts(workspace_id,environment,merchant_id,principal_hash,credential_revision) SELECT workspace_id,'production',merchant_id,principal_hash,credential_revision FROM payment_accounts WHERE workspace_id=$1 AND environment='sandbox'")
+        .bind(ws).execute(&w.api.pool).await.unwrap();
+    sqlx::query("UPDATE order_payments SET environment='production',status='paid',captured_transaction_id='production-capture' WHERE id=$1")
+        .bind(foreign_parent).execute(&w.api.pool).await.unwrap();
+    let refund = Uuid::now_v7();
+    sqlx::query("INSERT INTO order_payments(id,workspace_id,order_id,parent_id,kind,provider,environment,merchant_id,account_revision,request_id,status,amount,currency,decimals) SELECT $1,workspace_id,order_id,id,'refund',provider,environment,merchant_id,account_revision,$1,'refunded',300,currency,decimals FROM order_payments WHERE id=$2")
+        .bind(refund).bind(payment).execute(&w.api.pool).await.unwrap();
+    let reset = "UPDATE order_payments r SET parent_id=p.id,provider=p.provider,environment=p.environment,merchant_id=p.merchant_id,account_revision=p.account_revision,amount=300,currency=p.currency,decimals=p.decimals FROM order_payments p WHERE r.id=$1 AND p.id=$2";
+    let snapshot = "SELECT jsonb_build_object('operations',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM order_payments p WHERE p.workspace_id=$1),'accounts',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.environment) FROM payment_accounts a WHERE a.workspace_id=$1),'orders',(SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) FROM orders o WHERE o.workspace_id=$1),'invoices',(SELECT jsonb_agg(to_jsonb(i) ORDER BY i.id) FROM invoices i WHERE i.workspace_id=$1),'ledger',(SELECT jsonb_agg(to_jsonb(l) ORDER BY l.id) FROM invoice_payments l WHERE l.workspace_id=$1),'transactions',(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.transaction_id) FROM payment_transactions t WHERE t.workspace_id=$1))";
+    for statement in [
+        "UPDATE order_payments SET environment='production' WHERE id=$1",
+        "UPDATE order_payments r SET environment='production',amount=p.amount FROM order_payments p WHERE r.id=$1 AND p.id=r.parent_id",
+        "UPDATE order_payments r SET environment='production',amount=p.amount+1 FROM order_payments p WHERE r.id=$1 AND p.id=r.parent_id",
+        "UPDATE order_payments r SET parent_id=(SELECT p.id FROM order_payments p WHERE p.workspace_id=r.workspace_id AND p.environment='production' AND p.kind='payment') WHERE r.id=$1",
+        "UPDATE order_payments SET parent_id=id WHERE id=$1",
+        "UPDATE order_payments SET provider='fake',environment=NULL,merchant_id=NULL,account_revision=NULL WHERE id=$1",
+        "UPDATE order_payments SET account_revision=account_revision+1 WHERE id=$1",
+        "UPDATE order_payments SET currency=CASE WHEN currency='USD' THEN 'EUR' ELSE 'USD' END WHERE id=$1",
+        "UPDATE order_payments SET decimals=decimals+1 WHERE id=$1",
+    ] {
+        sqlx::query(reset)
+            .bind(refund)
+            .bind(payment)
+            .execute(&w.api.pool)
+            .await
+            .unwrap();
+        sqlx::query(statement)
+            .bind(refund)
+            .execute(&w.api.pool)
+            .await
+            .unwrap();
+        let before: serde_json::Value = sqlx::query_scalar(snapshot)
+            .bind(ws)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+        let (status, body) = w
+            .api
+            .call(
+                Method::POST,
+                &format!("/{order}/invoice"),
+                None,
+                &w.api.owner,
+            )
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::SERVICE_UNAVAILABLE,
+            "{statement}: {body}"
+        );
+        let after: serde_json::Value = sqlx::query_scalar(snapshot)
+            .bind(ws)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+        assert_eq!(before, after, "conversion must roll back: {statement}");
+        assert!(after["invoices"].is_null());
+        assert!(after["ledger"].is_null());
+    }
+    sqlx::query(reset)
+        .bind(refund)
+        .bind(payment)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let (status, body) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{order}/invoice"),
+            None,
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let (paid, receipt): (i64, i64) = sqlx::query_as("SELECT p.amount,l.amount FROM order_payments p JOIN invoice_payments l ON l.id=p.id WHERE p.id=$1")
+        .bind(payment).fetch_one(&w.api.pool).await.unwrap();
+    assert_eq!(receipt, paid - 300);
+}
+
+#[sqlx::test]
 async fn paid_shop_invoice_credits_refund_the_original_order_owned_capture(pool: PgPool) {
     use super::gateway_recovery::{capture, collection, posts, refresh, world};
     let w = world(pool).await;
@@ -518,6 +842,37 @@ async fn paid_shop_invoice_credits_refund_the_original_order_owned_capture(pool:
         )
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");
+    let mut production = common::state(
+        w.api.pool.clone(),
+        genesy_360_api::mail::Mailer::capture().0,
+    );
+    production.payments = production.payments.with_globadyme_environment(Some(
+        genesy_360_api::payments::GlobadymeEnvironment::Production,
+    ));
+    let (status, blocked) = common::send(
+        &genesy_360_api::build_app(production),
+        Method::POST,
+        &format!("/v1/workspace/{}/orders/{order}/invoice", w.api.ws),
+        None,
+        Some(&w.api.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{blocked}");
+    let linked: Option<Uuid> = sqlx::query_scalar(
+        "SELECT invoice_id FROM orders WHERE workspace_id=$1::uuid AND id=$2::uuid",
+    )
+    .bind(&w.api.ws)
+    .bind(&order)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert!(
+        linked.is_none(),
+        "wrong-realm receipt copy must roll back invoice conversion"
+    );
+    let receipts: i64 = sqlx::query_scalar("SELECT count(*) FROM invoice_payments WHERE workspace_id=$1::uuid AND provider='globadyme'")
+        .bind(&w.api.ws).fetch_one(&w.api.pool).await.unwrap();
+    assert_eq!(receipts, 0);
     let (status, body) = w
         .api
         .call(

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Globadyme uses a deployment-pinned realm: staging accepts sandbox accounts; production accepts production accounts. Settings reads expose read-only realm metadata outside writable data, and the payment page shows one credential slot. Cross-realm operations cannot dispatch, book receipts, release reservations or expose checkout links; existing receipts and evidence remain intact.
+
 - Incomplete Globadyme setup disables new Shop and invoice collections with `503` code `payment_setup_required`. Shop order reads expose local payment availability; existing attempts keep their bound account after provider changes. Settings list missing saved credentials, and customer payment controls stay disabled until setup is available. Ambiguous submission failures stay under review.
 
 - Globadyme hosted shop/invoice collection, provider QR, account-bound recovery and partial/full credit-note refunds (`docs/api/globadyme.md`; migration `globadyme`). Per-workspace sandbox/production slots use sealed credentials and immutable used identity. Financial submissions commit a claim before POST; ambiguous results stay reserved without replay. Settlement/chargeback evidence remains separate from immutable receipts. Workspace payment inspection and audited resolutions require native permissions; gateway financial actions stay outside autonomous voice. Production remains gated pending an official API origin.

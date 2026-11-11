@@ -147,12 +147,18 @@ pub async fn update(
         ));
     }
     let mut tx = state.db.begin().await?;
+    let stored = repo::data_for_update(&mut *tx, workspace_id)
+        .await?
+        .unwrap_or(Value::Null);
+    let sealed = repo::credential_paths(&mut *tx, workspace_id).await?;
+    crate::modules::gateway::accounts::validate_settings(
+        state,
+        &sections,
+        &input.credentials,
+        &stored,
+        &sealed,
+    )?;
     if !keeps.is_empty() {
-        // Locks the row merge writes, so the check holds until commit.
-        let stored = repo::data_for_update(&mut *tx, workspace_id)
-            .await?
-            .unwrap_or(Value::Null);
-        let sealed = repo::credential_paths(&mut *tx, workspace_id).await?;
         for path in keeps {
             if !sealed.iter().any(|s| s == path) || moved(path, &sections, &stored) {
                 return Err(AppError::field(path, RE_ENTER));

@@ -418,10 +418,15 @@ async fn paid(
 
 /// Gateway already claimed the first authoritative receipt under its operation lock.
 pub(crate) async fn apply_gateway(
+    state: &AppState,
     conn: &mut PgConnection,
     workspace_id: Uuid,
     operation: &crate::modules::gateway::repo::Operation,
 ) -> Result<(), AppError> {
+    crate::modules::gateway::accounts::require_environment(
+        state,
+        operation.environment.as_deref(),
+    )?;
     let order_id = operation
         .order_id
         .ok_or_else(|| AppError::Internal("Gateway payment has no order owner.".into()))?;

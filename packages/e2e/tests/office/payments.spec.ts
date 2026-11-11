@@ -24,6 +24,10 @@ const payment = {
   attention: false,
   invoice_id: "inv-1",
 }
+const deploymentMeta = {
+  globadyme_environment: "sandbox",
+  production_origin_verified: false,
+}
 
 test("payment reconciliation refreshes without creating a payment", async ({
   page,
@@ -143,7 +147,7 @@ test("payment settings retain masked credentials and unrelated integrations", as
     payment: {
       active_provider: "globadyme",
       enabled: true,
-      environment: "sandbox",
+      environment: "production",
       payment_providers: {
         mollie: { api_key: "********" },
         globadyme: {
@@ -154,17 +158,50 @@ test("payment settings retain masked credentials and unrelated integrations", as
             callback_secret: "********",
             previous_callback_secret: "********",
           },
+          production: {
+            merchant_id: "production-history",
+            username: "********",
+            password: "********",
+            callback_secret: "********",
+            previous_callback_secret: "********",
+          },
         },
       },
     },
   }
-  api.on("GET", "/workspace/:ws/settings", () => ({ data: integrations }))
+  api.on("GET", "/workspace/:ws/settings", () => ({
+    data: integrations,
+    meta: deploymentMeta,
+  }))
   api.on("POST", "/workspace/:ws/settings", () => ({ message: "ok" }))
   await page.goto("/settings/payments")
   await expect(
     page.getByRole("heading", { name: "Payment settings", exact: true })
   ).toBeVisible()
-  const sandbox = page.getByRole("region", { name: "Globadyme · Sandbox" })
+  const sandbox = page.getByRole("region", {
+    name: "Globadyme · Sandbox / Staging",
+  })
+  await expect(page.getByLabel("Environment", { exact: true })).toHaveValue(
+    "Sandbox / Staging"
+  )
+  await expect(page.getByLabel("Environment", { exact: true })).toHaveAttribute(
+    "readonly",
+    ""
+  )
+  await expect(
+    page.getByRole("combobox", { name: "Environment", exact: true })
+  ).toHaveCount(0)
+  await expect(page.locator("fieldset")).toHaveCount(1)
+  await expect(
+    page.getByRole("region", { name: "Globadyme · Production", exact: true })
+  ).toHaveCount(0)
+  await expect(page.locator('input[name^="production."]')).toHaveCount(0)
+  await expect(
+    page.getByRole("button", {
+      name: "Retire previous callback secret",
+      exact: true,
+    })
+  ).toHaveCount(1)
   await expect(sandbox.getByLabel("Previous callback secret")).toHaveAttribute(
     "readonly",
     ""
@@ -179,6 +216,7 @@ test("payment settings retain masked credentials and unrelated integrations", as
     integrations: {
       mail: { enabled: true },
       payment: {
+        environment: "sandbox",
         payment_providers: {
           mollie: { api_key: "********" },
           globadyme: {
@@ -189,14 +227,20 @@ test("payment settings retain masked credentials and unrelated integrations", as
               callback_secret: "********",
               previous_callback_secret: "********",
             },
+            production:
+              integrations.payment.payment_providers.globadyme.production,
           },
         },
       },
     },
   })
+  expect(call.body).not.toHaveProperty("meta")
   await expect(
-    page.getByLabel("Environment").locator('option[value="production"]')
-  ).toBeDisabled()
+    page.getByText(
+      "Production unavailable until the official provider origin is approved.",
+      { exact: true }
+    )
+  ).toHaveCount(0)
   await expectFits(page)
 })
 
@@ -422,6 +466,7 @@ test("legacy provider selection follows the deployment default", async ({
   api,
 }) => {
   api.on("GET", "/workspace/:ws/settings", () => ({
+    meta: deploymentMeta,
     data: {
       payment: {
         active_provider: "stripe",
@@ -646,11 +691,12 @@ for (const [field, label, environment, storedValue] of [
     api,
   }) => {
     api.on("GET", "/workspace/:ws/settings", () => ({
+      meta: { ...deploymentMeta, globadyme_environment: environment },
       data: {
         payment: {
           active_provider: "globadyme",
           enabled: true,
-          environment,
+          environment: environment === "sandbox" ? "production" : "sandbox",
           payment_providers: {
             globadyme: {
               sandbox: maskedCredentials,
@@ -667,7 +713,7 @@ for (const [field, label, environment, storedValue] of [
       .filter({ hasText: "Saved payment setup is incomplete" })
     await expect(notice).toBeVisible()
     await expect(notice).toContainText(
-      `Saved selected environment: ${environment === "sandbox" ? "Sandbox" : "Production"}.`
+      `Saved settings for this deployment: ${environment === "sandbox" ? "Sandbox / Staging" : "Production"}.`
     )
     await expect(notice).toContainText(
       "New online payments are unavailable until setup is complete."
@@ -675,7 +721,7 @@ for (const [field, label, environment, storedValue] of [
     await expect(notice.getByRole("listitem")).toHaveText([label])
     await page
       .getByRole("region", {
-        name: `Globadyme · ${environment === "sandbox" ? "Sandbox" : "Production"}`,
+        name: `Globadyme · ${environment === "sandbox" ? "Sandbox / Staging" : "Production"}`,
       })
       .getByLabel(label, { exact: true })
       .fill("unsaved replacement")
@@ -690,6 +736,7 @@ test("masked saved credentials are present and previous callback secret is optio
   api,
 }) => {
   api.on("GET", "/workspace/:ws/settings", () => ({
+    meta: deploymentMeta,
     data: {
       payment: {
         active_provider: "globadyme",
@@ -705,7 +752,9 @@ test("masked saved credentials are present and previous callback secret is optio
     },
   }))
   await page.goto("/settings/payments")
-  const sandbox = page.getByRole("region", { name: "Globadyme · Sandbox" })
+  const sandbox = page.getByRole("region", {
+    name: "Globadyme · Sandbox / Staging",
+  })
   await expect(sandbox).toBeVisible()
   await expect(sandbox.getByLabel("Previous callback secret")).toHaveValue("")
   await expect(
@@ -715,6 +764,197 @@ test("masked saved credentials are present and previous callback secret is optio
     page.getByText(
       "Production unavailable until the official provider origin is approved."
     )
-  ).toBeVisible()
+  ).toHaveCount(0)
   await expectFits(page)
+})
+
+test("production metadata renders one readonly production realm despite stored sandbox selection", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/settings", () => ({
+    data: {
+      payment: {
+        active_provider: "globadyme",
+        environment: "sandbox",
+        payment_providers: {
+          globadyme: {
+            sandbox: maskedCredentials,
+            production: maskedCredentials,
+          },
+        },
+      },
+    },
+    meta: { ...deploymentMeta, globadyme_environment: "production" },
+  }))
+  await page.goto("/settings/payments")
+  await expect(page.getByLabel("Environment", { exact: true })).toHaveValue(
+    "Production"
+  )
+  await expect(page.getByLabel("Environment", { exact: true })).toHaveAttribute(
+    "readonly",
+    ""
+  )
+  await expect(
+    page.getByRole("combobox", { name: "Environment", exact: true })
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole("group", { name: "Globadyme · Production", exact: true })
+  ).toBeVisible()
+  await expect(page.locator("fieldset")).toHaveCount(1)
+  await expect(page.locator('input[name^="sandbox."]')).toHaveCount(0)
+  await expect(page.getByLabel("Merchant ID", { exact: true })).toHaveCount(1)
+  const warning = page.getByText(
+    "Production unavailable until the official provider origin is approved.",
+    { exact: true }
+  )
+  await expect(warning).toBeVisible()
+  await page
+    .getByRole("combobox", { name: "Payment provider", exact: true })
+    .selectOption("")
+  await expect(warning).toHaveCount(0)
+  expect(api.calls.filter((call) => call.method === "POST")).toHaveLength(0)
+  await expectFits(page)
+})
+
+for (const withMetadata of [false, true]) {
+  test(`missing allowed server realm disables setup and saving (${withMetadata ? "null realm" : "no metadata"})`, async ({
+    page,
+    api,
+  }) => {
+    api.on("GET", "/workspace/:ws/settings", () => ({
+      data: {
+        payment: {
+          active_provider: "globadyme",
+          enabled: true,
+          environment: "sandbox",
+          payment_providers: {
+            globadyme: {
+              sandbox: {
+                ...maskedCredentials,
+                previous_callback_secret: "********",
+              },
+              production: maskedCredentials,
+            },
+          },
+        },
+      },
+      ...(withMetadata
+        ? { meta: { ...deploymentMeta, globadyme_environment: null } }
+        : {}),
+    }))
+    await page.goto("/settings/payments")
+    await expect(
+      page.getByText("Payment setup is unavailable", { exact: true })
+    ).toBeVisible()
+    await expect(page.getByLabel("Environment", { exact: true })).toHaveValue(
+      "Unavailable"
+    )
+    await expect(
+      page.getByRole("button", { name: "Save", exact: true })
+    ).toBeDisabled()
+    await expect(
+      page.getByRole("combobox", { name: "Environment", exact: true })
+    ).toHaveCount(0)
+    await expect(page.locator("fieldset")).toHaveCount(0)
+    await expect(page.getByLabel("Merchant ID", { exact: true })).toHaveCount(0)
+    await expect(
+      page.getByRole("button", {
+        name: "Retire previous callback secret",
+        exact: true,
+      })
+    ).toHaveCount(0)
+    expect(api.callsTo("POST", "/workspace/:ws/settings")).toHaveLength(0)
+    await expectFits(page)
+  })
+}
+
+test("legacy settings save without a server realm or Globadyme credentials", async ({
+  page,
+  api,
+}) => {
+  const integrations = {
+    mail: { enabled: true },
+    payment: {
+      active_provider: "stripe",
+      enabled: true,
+      environment: "production",
+      payment_providers: { mollie: { api_key: "********" } },
+    },
+  }
+  api.on("GET", "/workspace/:ws/settings", () => ({
+    data: integrations,
+    meta: { ...deploymentMeta, globadyme_environment: null },
+  }))
+  api.on("POST", "/workspace/:ws/settings", () => ({ message: "ok" }))
+  await page.goto("/settings/payments")
+  await expect(
+    page.getByRole("button", { name: "Save", exact: true })
+  ).toBeEnabled()
+  await expect(page.locator("fieldset")).toHaveCount(0)
+  await expect(page.getByLabel("Merchant ID", { exact: true })).toHaveCount(0)
+  await page
+    .getByRole("checkbox", { name: "Enable online payments", exact: true })
+    .uncheck()
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(page.getByText("Payment settings saved.")).toBeVisible()
+  expect(api.callsTo("POST", "/workspace/:ws/settings")[0]!.body).toEqual({
+    integrations: {
+      ...integrations,
+      payment: {
+        ...integrations.payment,
+        active_provider: null,
+        enabled: false,
+      },
+    },
+  })
+})
+
+test("blocked Globadyme setup can recover to legacy without changing stored slots", async ({
+  page,
+  api,
+}) => {
+  const integrations = {
+    payment: {
+      active_provider: "globadyme",
+      enabled: true,
+      environment: "sandbox",
+      payment_providers: {
+        globadyme: {
+          sandbox: {
+            ...maskedCredentials,
+            previous_callback_secret: "********",
+          },
+          production: {
+            ...maskedCredentials,
+            previous_callback_secret: "********",
+          },
+        },
+      },
+    },
+  }
+  api.on("GET", "/workspace/:ws/settings", () => ({
+    data: integrations,
+    meta: { ...deploymentMeta, globadyme_environment: null },
+  }))
+  api.on("POST", "/workspace/:ws/settings", () => ({ message: "ok" }))
+  await page.goto("/settings/payments")
+  await expect(
+    page.getByRole("button", { name: "Save", exact: true })
+  ).toBeDisabled()
+  await page
+    .getByRole("combobox", { name: "Payment provider", exact: true })
+    .selectOption("")
+  await expect(
+    page.getByRole("button", { name: "Save", exact: true })
+  ).toBeEnabled()
+  await expect(page.locator("fieldset")).toHaveCount(0)
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(page.getByText("Payment settings saved.")).toBeVisible()
+  expect(api.callsTo("POST", "/workspace/:ws/settings")[0]!.body).toEqual({
+    integrations: {
+      ...integrations,
+      payment: { ...integrations.payment, active_provider: null },
+    },
+  })
 })

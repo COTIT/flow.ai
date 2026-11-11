@@ -20,7 +20,7 @@ use genesy_360_api::{
         runner::Step,
     },
     mail::Mailer,
-    payments::{Provider, fake::Fake},
+    payments::{GlobadymeEnvironment, Provider, fake::Fake},
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha512};
@@ -183,7 +183,8 @@ pub(super) async fn world(pool: PgPool) -> World {
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     let mut api = Api::new(pool.clone(), "/orders").await;
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = Provider::Fake(Fake::default()).into();
+    state.payments = genesy_360_api::payments::Payments::from(Provider::Fake(Fake::default()))
+        .with_globadyme_environment(Some(GlobadymeEnvironment::Sandbox));
     state.payments = state.payments.with_globadyme_url(&url).unwrap();
     api.app = build_app(state.clone());
     let warehouse = api
@@ -415,6 +416,285 @@ async fn resolve(w: &World, refund: Uuid, outcome: &str) -> (StatusCode, Value) 
     w.api.with_base("/payments").call(Method::POST,&format!("/{refund}/resolve"),Some(json!({"outcome":outcome,"reason":"Provider investigated","evidence":"support-case-123"})),&w.api.owner).await
 }
 
+async fn persisted_finance(w: &World) -> Value {
+    sqlx::query_scalar("SELECT jsonb_build_object('operations',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM order_payments p WHERE p.workspace_id=$1),'orders',(SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) FROM orders o WHERE o.workspace_id=$1),'ledger',(SELECT jsonb_agg(to_jsonb(l) ORDER BY l.id) FROM invoice_payments l WHERE l.workspace_id=$1),'transactions',(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.transaction_id) FROM payment_transactions t WHERE t.workspace_id=$1),'observations',(SELECT jsonb_agg(to_jsonb(v) ORDER BY v.id) FROM payment_observations v WHERE v.workspace_id=$1),'audit',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM payment_audit a WHERE a.workspace_id=$1))")
+        .bind(w.api.ws.parse::<Uuid>().unwrap()).fetch_one(&w.api.pool).await.unwrap()
+}
+
+/// Simulate imported production history without calling the unverified production origin.
+async fn foreign_history(w: &mut World, deployment: Option<GlobadymeEnvironment>, history: &str) {
+    if history == "production" {
+        sqlx::query("INSERT INTO payment_accounts(workspace_id,environment,merchant_id,principal_hash,credential_revision,used_at) SELECT workspace_id,'production',merchant_id,principal_hash,credential_revision,used_at FROM payment_accounts WHERE workspace_id=$1::uuid AND environment='sandbox'")
+            .bind(&w.api.ws).execute(&w.api.pool).await.unwrap();
+        for statement in [
+            "UPDATE order_payments SET environment='production' WHERE workspace_id=$1::uuid AND environment='sandbox'",
+            "UPDATE payment_transactions SET environment='production' WHERE workspace_id=$1::uuid AND environment='sandbox'",
+            "UPDATE payment_observations SET environment='production' WHERE workspace_id=$1::uuid AND environment='sandbox'",
+        ] {
+            sqlx::query(statement)
+                .bind(&w.api.ws)
+                .execute(&w.api.pool)
+                .await
+                .unwrap();
+        }
+        sqlx::query(
+            "DELETE FROM payment_accounts WHERE workspace_id=$1::uuid AND environment='sandbox'",
+        )
+        .bind(&w.api.ws)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+        let key = w.state.credentials.as_ref().unwrap();
+        let path = "integrations.payment.payment_providers.globadyme.production.callback_secret";
+        let ws = w.api.ws.parse().unwrap();
+        let sealed = key.seal(ws, path, CALLBACK).unwrap();
+        sqlx::query("INSERT INTO workspace_credentials(workspace_id,path,key_id,sealed) VALUES($1,$2,$3,$4)")
+            .bind(ws).bind(path).bind(key.id()).bind(sealed).execute(&w.api.pool).await.unwrap();
+    }
+    w.state.payments = w
+        .state
+        .payments
+        .clone()
+        .with_globadyme_environment(deployment);
+    w.api.app = build_app(w.state.clone());
+}
+
+#[sqlx::test]
+async fn deployment_realm_blocks_every_existing_collection_state_without_http_or_mutation(
+    pool: PgPool,
+) {
+    use genesy_360_api::gateway::service;
+    let mut w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    let ws = w.api.ws.parse().unwrap();
+    let shown = public_order(&w, &order).await;
+    assert_eq!(shown["payment_status"], "open");
+    assert_eq!(shown["payment_attention"], false);
+    assert_eq!(shown["online_payment_enabled"], true);
+    let checked: bool =
+        sqlx::query_scalar("SELECT last_checked_at IS NOT NULL FROM order_payments WHERE id=$1")
+            .bind(payment)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert!(
+        checked,
+        "current-realm reads must retain refresh throttling"
+    );
+    let before = persisted_finance(&w).await;
+    let http = w.remote.lock().unwrap().seen.len();
+    public_order(&w, &order).await;
+    assert_eq!(persisted_finance(&w).await, before);
+    assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+    for (deployment, history) in [
+        (Some(GlobadymeEnvironment::Production), "sandbox"),
+        (None, "sandbox"),
+        (Some(GlobadymeEnvironment::Sandbox), "production"),
+    ] {
+        foreign_history(&mut w, deployment, history).await;
+        for status in ["creating", "open", "unknown", "paid"] {
+            sqlx::query("UPDATE order_payments SET status=$2,last_checked_at=NULL,claimed_at=CASE WHEN $2='creating' THEN NULL ELSE now() END,captured_transaction_id=CASE WHEN $2='paid' THEN 'retained-capture' ELSE NULL END WHERE id=$1")
+                .bind(payment).bind(status).execute(&w.api.pool).await.unwrap();
+            let before = persisted_finance(&w).await;
+            let http = w.remote.lock().unwrap().seen.len();
+            assert!(
+                service::submit(&w.state, ws, payment, "https://shop.example.com/order")
+                    .await
+                    .is_err(),
+                "{history} {status} submission must be fenced"
+            );
+            assert!(
+                service::refresh(&w.state, ws, payment).await.is_err(),
+                "{history} {status} refresh must be fenced"
+            );
+            assert_qr_blocked_without_http(&w, payment).await;
+            let display = operation(&w, payment).await;
+            assert_eq!(display["status"], status);
+            assert_eq!(display["attention"], true);
+            assert!(display["checkout_url"].is_null());
+            assert!(
+                display["attention_reason"]
+                    .as_str()
+                    .is_some_and(|reason| reason.contains("deployment")),
+                "{display}"
+            );
+            let shown = public_order(&w, &order).await;
+            assert_eq!(shown["status"], before["orders"][0]["status"]);
+            assert_eq!(shown["payment_status"], status);
+            assert_eq!(shown["payment_attention"], true);
+            assert_eq!(shown["online_payment_enabled"], false);
+            assert_eq!(persisted_finance(&w).await, before);
+            assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+        }
+    }
+    sqlx::query("INSERT INTO payment_accounts(workspace_id,environment,merchant_id,principal_hash,credential_revision) SELECT workspace_id,'sandbox',merchant_id,principal_hash,credential_revision FROM payment_accounts WHERE workspace_id=$1 AND environment='production'")
+        .bind(ws).execute(&w.api.pool).await.unwrap();
+    sqlx::query("INSERT INTO order_payments(id,workspace_id,order_id,kind,provider,environment,merchant_id,account_revision,request_id,status,amount,currency,decimals,created_at) SELECT $1,workspace_id,order_id,'payment',provider,'sandbox',merchant_id,account_revision,$1,'open',amount,currency,decimals,created_at-interval '1 day' FROM order_payments WHERE id=$2")
+        .bind(Uuid::now_v7()).bind(payment).execute(&w.api.pool).await.unwrap();
+    let before = persisted_finance(&w).await;
+    let http = w.remote.lock().unwrap().seen.len();
+    let shown = public_order(&w, &order).await;
+    assert_eq!(shown["payment_status"], "paid");
+    assert_eq!(shown["payment_attention"], true);
+    assert_eq!(
+        persisted_finance(&w).await,
+        before,
+        "foreign latest payment must not fall back to an older same-realm attempt"
+    );
+    assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+}
+
+#[sqlx::test]
+async fn wrong_realm_paid_capture_and_unknown_refund_cannot_release_reserved_money(pool: PgPool) {
+    use genesy_360_api::gateway::service;
+    let mut w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    w.remote.lock().unwrap().ambiguous_refund = true;
+    let (status, body) = refund(&w, &order, "5.00").await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let refund_id = body["data"]["refund_id"]
+        .as_str()
+        .unwrap()
+        .parse::<Uuid>()
+        .unwrap();
+    let ws = w.api.ws.parse().unwrap();
+    for (deployment, history) in [
+        (Some(GlobadymeEnvironment::Production), "sandbox"),
+        (Some(GlobadymeEnvironment::Sandbox), "production"),
+    ] {
+        foreign_history(&mut w, deployment, history).await;
+        let before = persisted_finance(&w).await;
+        let http = w.remote.lock().unwrap().seen.len();
+        for id in [payment, refund_id] {
+            assert!(service::submit(&w.state, ws, id, "").await.is_err());
+            assert!(service::refresh(&w.state, ws, id).await.is_err());
+        }
+        assert!(
+            service::confirm_refund(&w.state, ws, refund_id)
+                .await
+                .is_err()
+        );
+        for outcome in ["not_accepted", "refund_confirmed"] {
+            let (status, body) = resolve(&w, refund_id, outcome).await;
+            assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
+        }
+        let (status, body) = refund(&w, &order, "1.00").await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
+        let shown = operation(&w, payment).await;
+        assert_eq!(shown["status"], "paid");
+        assert_eq!(shown["captured_transaction_id"], "tx-1");
+        assert_eq!(shown["attention"], true);
+        assert_eq!(persisted_finance(&w).await, before);
+        assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+        let reserved: i64 = sqlx::query_scalar("SELECT sum(amount)::bigint FROM order_payments WHERE parent_id=$1 AND status NOT IN ('failed','canceled')").bind(payment).fetch_one(&w.api.pool).await.unwrap();
+        assert_eq!(reserved, 500);
+    }
+}
+
+#[sqlx::test]
+async fn allowed_refund_with_foreign_source_cannot_confirm_or_release_its_reservation(
+    pool: PgPool,
+) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    w.remote.lock().unwrap().ambiguous_refund = true;
+    let (status, body) = refund(&w, &order, "5.00").await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let refund_id = body["data"]["refund_id"]
+        .as_str()
+        .unwrap()
+        .parse::<Uuid>()
+        .unwrap();
+    sqlx::query("INSERT INTO payment_accounts(workspace_id,environment,merchant_id,principal_hash,credential_revision,used_at) SELECT workspace_id,'production',merchant_id,principal_hash,credential_revision,used_at FROM payment_accounts WHERE workspace_id=$1::uuid AND environment='sandbox'")
+        .bind(&w.api.ws).execute(&w.api.pool).await.unwrap();
+    sqlx::query("UPDATE order_payments SET environment='production' WHERE id=$1")
+        .bind(payment)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let child_realm: String =
+        sqlx::query_scalar("SELECT environment FROM order_payments WHERE id=$1")
+            .bind(refund_id)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(child_realm, "sandbox");
+    let before = persisted_finance(&w).await;
+    let http = w.remote.lock().unwrap().seen.len();
+    assert!(
+        genesy_360_api::gateway::service::confirm_refund(
+            &w.state,
+            w.api.ws.parse().unwrap(),
+            refund_id,
+        )
+        .await
+        .is_err()
+    );
+    for outcome in ["not_accepted", "refund_confirmed"] {
+        let (status, body) = resolve(&w, refund_id, outcome).await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
+    }
+    assert_eq!(persisted_finance(&w).await, before);
+    assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+    let retained: (String, String, i64) = sqlx::query_as(
+        "SELECT p.status,p.captured_transaction_id,
+                (SELECT sum(r.amount)::bigint FROM order_payments r
+                 WHERE r.parent_id=p.id AND r.status NOT IN ('failed','canceled'))
+         FROM order_payments p WHERE p.id=$1",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(retained, ("paid".into(), "tx-1".into(), 500));
+}
+
+#[sqlx::test]
+async fn wrong_realm_callbacks_and_recovery_quarantine_without_processing_money(pool: PgPool) {
+    let mut w = world(pool).await;
+    let (_, payment) = collection(&w).await;
+    capture(&w, payment);
+    for (deployment, history) in [
+        (Some(GlobadymeEnvironment::Production), "sandbox"),
+        (Some(GlobadymeEnvironment::Sandbox), "production"),
+    ] {
+        foreign_history(&mut w, deployment, history).await;
+        let before = persisted_finance(&w).await;
+        let http = w.remote.lock().unwrap().seen.len();
+        let key = w.state.credentials.take();
+        w.api.app = build_app(w.state.clone());
+        callback(&w, history, payment, CALLBACK).await;
+        w.state.credentials = key;
+        w.api.app = build_app(w.state.clone());
+        let queued: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM payment_webhook_inbox WHERE status='pending'")
+                .fetch_one(&w.api.pool)
+                .await
+                .unwrap();
+        assert_eq!(queued, 0, "wrong-realm callbacks never enqueue");
+        let realm = w.state.payments.globadyme_environment().unwrap().as_str();
+        for inbox_realm in [history, realm] {
+            sqlx::query("INSERT INTO payment_webhook_inbox(provider,workspace_id,environment,external_id,payment_id) VALUES('globadyme',$1::uuid,$2,$3,$4)")
+                .bind(&w.api.ws).bind(inbox_realm).bind(format!("old-{history}-{inbox_realm}")).bind(payment).execute(&w.api.pool).await.unwrap();
+        }
+        jobs(&w).await;
+        let done: Vec<(String,Option<String>,bool)> = sqlx::query_as("SELECT status,reason,processed_at IS NOT NULL FROM payment_webhook_inbox WHERE external_id LIKE $1 ORDER BY id")
+            .bind(format!("old-{history}-%")).fetch_all(&w.api.pool).await.unwrap();
+        assert_eq!(done.len(), 2);
+        for (status, reason, finished) in done {
+            assert_eq!(status, "rejected");
+            assert!(reason.is_some_and(|reason| reason.contains("deployment")));
+            assert!(finished);
+        }
+        assert_eq!(persisted_finance(&w).await, before);
+        assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+    }
+}
+
 #[sqlx::test]
 async fn incomplete_or_disabled_setup_never_admits_a_financial_attempt(pool: PgPool) {
     let w = world(pool).await;
@@ -487,10 +767,39 @@ async fn unavailable_storage_account_or_origin_blocks_new_payment_without_http(p
     w.api.app = build_app(w.state.clone());
     assert_setup_blocks_new_collection(&w, &order).await;
     w.state.credentials = key;
+    w.state.payments = w
+        .state
+        .payments
+        .clone()
+        .with_globadyme_environment(Some(GlobadymeEnvironment::Production));
     w.api.app = build_app(w.state.clone());
-    save_setup(&w, complete_setup("production")).await;
+    let (status, existing) = w
+        .api
+        .with_base("/settings")
+        .call(Method::GET, "", None, &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{existing}");
+    let mut production = complete_setup("production");
+    production["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"] =
+        existing["data"]["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"]
+            .clone();
+    save_setup(&w, production).await;
     assert_setup_blocks_new_collection(&w, &order).await;
-    save_setup(&w, complete_setup("sandbox")).await;
+    let (status, existing) = w
+        .api
+        .with_base("/settings")
+        .call(Method::GET, "", None, &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{existing}");
+    let mut sandbox = json!({"integrations":existing["data"]["integrations"]});
+    sandbox["integrations"]["payment"]["environment"] = json!("sandbox");
+    w.state.payments = w
+        .state
+        .payments
+        .clone()
+        .with_globadyme_environment(Some(GlobadymeEnvironment::Sandbox));
+    w.api.app = build_app(w.state.clone());
+    save_setup(&w, sandbox).await;
     sqlx::query(
         "DELETE FROM payment_accounts WHERE workspace_id=$1::uuid AND environment='sandbox'",
     )
@@ -1304,9 +1613,24 @@ async fn callback(w: &World, environment: &str, payment: Uuid, secret: &str) {
 }
 
 #[sqlx::test]
-async fn equal_provider_ids_in_two_environments_keep_separate_callback_work(pool: PgPool) {
+async fn equal_provider_ids_only_enqueue_this_deployments_callback_realm(pool: PgPool) {
     let w = world(pool).await;
-    settings(&w, "globadyme", true, false, true).await;
+    sqlx::query("INSERT INTO payment_accounts(workspace_id,environment,merchant_id,principal_hash,credential_revision) SELECT workspace_id,'production',merchant_id,principal_hash,credential_revision FROM payment_accounts WHERE workspace_id=$1::uuid AND environment='sandbox'")
+        .bind(&w.api.ws).execute(&w.api.pool).await.unwrap();
+    let key = w.state.credentials.as_ref().unwrap();
+    let path = "integrations.payment.payment_providers.globadyme.production.callback_secret";
+    let ws = w.api.ws.parse().unwrap();
+    let sealed = key.seal(ws, path, PROD_CALLBACK).unwrap();
+    sqlx::query(
+        "INSERT INTO workspace_credentials(workspace_id,path,key_id,sealed) VALUES($1,$2,$3,$4)",
+    )
+    .bind(ws)
+    .bind(path)
+    .bind(key.id())
+    .bind(sealed)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
     let (_, sandbox) = collection(&w).await;
     let other_order = new_order(&w).await;
     let production = Uuid::now_v7();
@@ -1316,13 +1640,7 @@ async fn equal_provider_ids_in_two_environments_keep_separate_callback_work(pool
     callback(&w, "production", sandbox, PROD_CALLBACK).await;
     let rows:Vec<(String,Uuid)>=sqlx::query_as("SELECT environment,payment_id FROM payment_webhook_inbox WHERE provider='globadyme' AND status='pending' ORDER BY environment")
         .fetch_all(&w.api.pool).await.unwrap();
-    assert_eq!(
-        rows,
-        vec![
-            ("production".into(), production),
-            ("sandbox".into(), sandbox)
-        ]
-    );
+    assert_eq!(rows, vec![("sandbox".into(), sandbox)]);
 }
 
 #[sqlx::test]

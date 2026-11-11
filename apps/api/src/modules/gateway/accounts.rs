@@ -19,6 +19,86 @@ pub struct Account {
     pub client: Globadyme,
 }
 
+/// Stable review reason for retained operations outside this deployment's realm.
+pub(crate) const REALM_MISMATCH: &str =
+    "Payment belongs to another deployment environment; review is required.";
+
+/// Deployment config, never workspace input, authorizes a provider realm.
+pub(crate) fn environment_allowed(state: &AppState, environment: Option<&str>) -> bool {
+    state
+        .payments
+        .globadyme_environment()
+        .is_some_and(|allowed| Some(allowed.as_str()) == environment)
+}
+
+/// Keep wrong-realm history reserved without provider I/O or ledger changes.
+pub(crate) fn require_environment(
+    state: &AppState,
+    environment: Option<&str>,
+) -> Result<(), AppError> {
+    if environment_allowed(state, environment) {
+        Ok(())
+    } else {
+        Err(AppError::Unavailable(REALM_MISMATCH))
+    }
+}
+
+/// Validate settings under their row lock before changing any realm's credentials.
+pub(crate) fn validate_settings(
+    state: &AppState,
+    sections: &Value,
+    changes: &[(&'static str, Change)],
+    stored: &Value,
+    sealed: &[String],
+) -> Result<(), AppError> {
+    let Some(integrations) = sections.get("integrations") else {
+        return Ok(());
+    };
+    let allowed = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    let payment = &integrations["payment"];
+    if payment["active_provider"].as_str() == Some("globadyme") {
+        let allowed = allowed.ok_or(AppError::PaymentSetupRequired)?;
+        if payment["environment"]
+            .as_str()
+            .is_some_and(|selected| selected != allowed)
+        {
+            return Err(AppError::field(
+                "integrations.payment.environment",
+                "Use this deployment's payment environment.",
+            ));
+        }
+    }
+    for environment in ["sandbox", "production"] {
+        if Some(environment) == allowed {
+            continue;
+        }
+        let slot = &payment["payment_providers"]["globadyme"][environment];
+        let old = &stored["integrations"]["payment"]["payment_providers"]["globadyme"][environment];
+        if slot["merchant_id"] != old["merchant_id"] {
+            return Err(AppError::field(
+                &path(environment, "merchant_id"),
+                "Other deployment credentials must be retained unchanged.",
+            ));
+        }
+        let prefix = format!("integrations.payment.payment_providers.globadyme.{environment}.");
+        for (path, change) in changes.iter().filter(|(path, _)| path.starts_with(&prefix)) {
+            if matches!(change, Change::Set(_))
+                || (matches!(change, Change::Clear)
+                    && sealed.iter().any(|stored| stored.as_str() == *path))
+            {
+                return Err(AppError::field(
+                    path,
+                    "Only this deployment's payment credentials can be changed.",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Fixed secret path; no tenant-supplied host or alternate credential namespace.
 pub fn path(environment: &str, field: &str) -> String {
     format!("integrations.payment.payment_providers.globadyme.{environment}.{field}")
@@ -31,6 +111,7 @@ pub async fn secret(
     environment: &str,
     field: &str,
 ) -> Result<Option<token::PlainSecret>, AppError> {
+    require_environment(state, Some(environment))?;
     let path = path(environment, field);
     let Some(row) = settings::repo::credential(&state.db, ws, &path).await? else {
         return Ok(None);
@@ -64,7 +145,14 @@ pub async fn select(state: &AppState, ws: Uuid) -> Result<Option<Account>, AppEr
     if config["enabled"].as_bool() != Some(true) {
         return Err(AppError::PaymentSetupRequired);
     }
-    let env = config["environment"].as_str().unwrap_or("sandbox");
+    let env = state
+        .payments
+        .globadyme_environment()
+        .ok_or(AppError::PaymentSetupRequired)?
+        .as_str();
+    if config["environment"].as_str().unwrap_or("sandbox") != env {
+        return Err(AppError::PaymentSetupRequired);
+    }
     let merchant = config["payment_providers"]["globadyme"][env]["merchant_id"]
         .as_str()
         .filter(|id| !id.trim().is_empty())
@@ -93,6 +181,7 @@ pub async fn bound(
     environment: &str,
     expected: Option<&str>,
 ) -> Result<Account, AppError> {
+    require_environment(state, Some(environment))?;
     if !matches!(environment, "sandbox" | "production") {
         return Err(AppError::NotFound);
     }
@@ -191,6 +280,9 @@ pub async fn sync(
         return Ok(());
     };
     for env in ["sandbox", "production"] {
+        if !environment_allowed(state, Some(env)) {
+            continue;
+        }
         let slot = &integrations["payment"]["payment_providers"]["globadyme"][env];
         let row: Option<(String,Vec<u8>,Option<chrono::DateTime<chrono::Utc>>)> = sqlx::query_as("SELECT merchant_id,principal_hash,used_at FROM payment_accounts WHERE workspace_id=$1 AND environment=$2 FOR UPDATE")
             .bind(ws).bind(env).fetch_optional(&mut *conn).await?;

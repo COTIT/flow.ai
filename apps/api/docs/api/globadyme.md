@@ -1,14 +1,22 @@
 # Globadyme hosted payments
 
-Globadyme supports shop checkout and payment links for sent invoices. Payments use the workspace's selected sandbox or production account. A historical operation keeps its workspace, environment and merchant binding after settings change. Existing Stripe/fake operations retain their configured adapter.
+Globadyme supports shop checkout and payment links for sent invoices. The operator pins the payment environment with `GLOBADYME_ENVIRONMENT=sandbox` or `production`; an unset value disables Globadyme and any other value fails startup. Workspace settings cannot change that deployment realm. Historical operations keep their workspace, environment and merchant binding, and run only on a deployment matching that environment. Existing Stripe/fake operations retain their configured adapter.
 
 Production collection is disabled: the published contract lists only `https://api.sbx.globadyme.com/api`. An official production origin must be confirmed and added to the server's approved origins before production can run. Workspace settings cannot supply an API host. The current currency gate requires two decimal places.
 
 ## Account setup
 
-Incomplete setup keeps new collections disabled. In **Settings → Payments**, select the environment and save its merchant ID, username, password and callback secret. The warning lists fields missing from that saved environment; masked credentials count as stored, and the previous callback secret is optional. Field presence does not verify the provider login. Shop and public invoice pages show online payment as unavailable until local setup permits it; bank details remain visible on invoices. Existing live payments keep their original account binding after new collections are disabled or another provider is selected.
+Incomplete setup keeps new collections disabled. In **Settings → Payments**, configure the environment reported by the deployment: save its merchant ID, username, password and callback secret. The warning lists fields missing from that saved environment; masked credentials count as stored, and the previous callback secret is optional. Field presence does not verify the provider login. Shop and public invoice pages show online payment as unavailable until local setup permits it; bank details remain visible on invoices. Existing live payments in the deployment's realm keep their original account binding after new collections are disabled or another provider is selected.
 
-Configure the server's existing `CREDENTIALS_KEY` before saving credentials. Open **Settings → Payments**, select Globadyme and sandbox, then enter the merchant ID, login username, password and dashboard callback secret. Configure this HTTPS callback in the merchant dashboard:
+`GET /v1/workspace/{workspace}/settings` retains its existing `data` and adds top-level deployment metadata, including for `?type=` reads:
+
+```json
+{"data":{},"meta":{"globadyme_environment":"sandbox","production_origin_verified":false}}
+```
+
+The environment is `sandbox`, `production`, or `null` when disabled. These metadata fields are server-owned and are not workspace settings. Staging Compose pins `sandbox`; production Compose pins `production` for API processes, background workers and one-off commands. Production remains unavailable while its official API origin is unverified.
+
+Configure the server's existing `CREDENTIALS_KEY` before saving credentials. On a sandbox deployment, open **Settings → Payments**, select Globadyme, then enter the merchant ID, login username, password and dashboard callback secret. Configure this HTTPS callback in the merchant dashboard:
 
 ```text
 https://<api>/v1/payments/webhooks/globadyme/<workspace-uuid>/sandbox
@@ -19,7 +27,6 @@ The settings tree is:
 ```text
 integrations.payment.active_provider = globadyme
 integrations.payment.enabled = true
-integrations.payment.environment = sandbox
 integrations.payment.payment_providers.globadyme.sandbox.merchant_id
 integrations.payment.payment_providers.globadyme.sandbox.username
 integrations.payment.payment_providers.globadyme.sandbox.password

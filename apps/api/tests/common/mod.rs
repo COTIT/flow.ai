@@ -73,7 +73,9 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         assistant_bridge_secret: None,
         files: Some(genesy_360_api::storage::Store::memory()),
         pdf: None,
-        payments: Default::default(),
+        payments: genesy_360_api::payments::Payments::default().with_globadyme_environment(Some(
+            genesy_360_api::payments::GlobadymeEnvironment::Sandbox,
+        )),
         checkout_hold_max: 500,
         signup_enabled: true,
     }

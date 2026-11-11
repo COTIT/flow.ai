@@ -79,6 +79,8 @@ pub struct Config {
     pub graph_api_url: String,
     /// `PAYMENTS_PROVIDER`: unset = no web payments (503); `fake` in debug builds only.
     pub payments_provider: Option<String>,
+    /// Operator-owned `GLOBADYME_ENVIRONMENT`; unset disables Globadyme.
+    pub globadyme_environment: Option<crate::payments::GlobadymeEnvironment>,
     /// `STRIPE_*`, read only when `PAYMENTS_PROVIDER=stripe`.
     pub stripe: Option<stripe::Settings>,
     /// `CHECKOUT_HOLD_MAX`: web orders awaiting payment per workspace (default 500), so fake
@@ -148,6 +150,7 @@ impl fmt::Debug for Config {
             .field("graph_login_url", &self.graph_login_url)
             .field("graph_api_url", &self.graph_api_url)
             .field("payments_provider", &self.payments_provider)
+            .field("globadyme_environment", &self.globadyme_environment)
             .field("stripe", &self.stripe) // masks both secrets
             .field("checkout_hold_max", &self.checkout_hold_max)
             .finish()
@@ -244,6 +247,14 @@ impl Config {
         let allow_demo_seed = flag(&get, "GENESY_ALLOW_DEMO_SEED")?;
         let skip_boot_migrations = flag(&get, "SKIP_BOOT_MIGRATIONS")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
+        let globadyme_environment = match get("GLOBADYME_ENVIRONMENT").as_deref() {
+            None => None,
+            Some("sandbox") => Some(crate::payments::GlobadymeEnvironment::Sandbox),
+            Some("production") => Some(crate::payments::GlobadymeEnvironment::Production),
+            Some(_) => {
+                return Err("GLOBADYME_ENVIRONMENT must be sandbox or production when set".into());
+            }
+        };
         let release = !cfg!(debug_assertions);
         let stripe = if payments_provider.as_deref().map(str::trim) == Some("stripe")
             || get("STRIPE_SECRET_KEY").is_some_and(|v| !v.is_empty())
@@ -317,6 +328,7 @@ impl Config {
             graph_login_url,
             graph_api_url,
             payments_provider,
+            globadyme_environment,
             stripe,
             checkout_hold_max,
             signup_enabled,
@@ -950,6 +962,35 @@ mod tests {
             Some("fake")
         );
         assert!(with("mollie").unwrap_err().contains("not a known provider"));
+    }
+
+    #[test]
+    fn globadyme_realm_is_optional_strict_and_independent_of_provider_selection() {
+        use crate::payments::GlobadymeEnvironment::{Production, Sandbox};
+        assert_eq!(
+            Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")]))
+                .unwrap()
+                .globadyme_environment,
+            None
+        );
+        for (value, expected) in [("sandbox", Sandbox), ("production", Production)] {
+            let config = Config::from_lookup(lookup(&[
+                ("DATABASE_URL", "postgres://x"),
+                ("GLOBADYME_ENVIRONMENT", value),
+            ]))
+            .unwrap();
+            assert_eq!(config.globadyme_environment, Some(expected));
+            assert!(config.payments_provider.is_none());
+        }
+        let base = lookup(&[("DATABASE_URL", "postgres://x")]);
+        for bad in ["", "Sandbox", "staging", " sandbox ", "sandbox,production"] {
+            let error = Config::from_lookup(|name| match name {
+                "GLOBADYME_ENVIRONMENT" => Some(bad.to_owned()),
+                _ => base(name),
+            })
+            .unwrap_err();
+            assert!(error.contains("GLOBADYME_ENVIRONMENT"), "{bad}: {error}");
+        }
     }
 
     fn stripe_with(pairs: &[(&str, &str)]) -> Result<Config, String> {

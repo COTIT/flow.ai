@@ -85,7 +85,7 @@ pub async fn list(
     let ops:Vec<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE workspace_id=$1 AND provider='globadyme' AND (($2 AND order_id IS NOT NULL) OR ($3 AND invoice_id IS NOT NULL)) ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5")
         .bind(access.workspace_id).bind(orders).bind(invoices).bind(per).bind((page-1)*per).fetch_all(&state.db).await?;
     Ok(axum::Json(
-        json!({"data":ops.iter().map(service::view).collect::<Vec<_>>(),"meta":{"current_page":page,"last_page":((total+per-1)/per).max(1),"per_page":per,"total":total}}),
+        json!({"data":ops.iter().map(|op| service::view(&state, op)).collect::<Vec<_>>(),"meta":{"current_page":page,"last_page":((total+per-1)/per).max(1),"per_page":per,"total":total}}),
     ))
 }
 
@@ -96,7 +96,7 @@ pub async fn detail(
     Path((_, id)): Path<(String, String)>,
 ) -> Result<Data<Value>, AppError> {
     let op = scoped(&state, &access, &id).await?;
-    let mut view = service::view(&op);
+    let mut view = service::view(&state, &op);
     let transactions:Vec<Value>=sqlx::query_scalar("SELECT evidence || jsonb_build_object('id',transaction_id,'status',status,'settled',settled,'settlementId',settlement_id,'settlementDate',settlement_date) FROM payment_transactions WHERE workspace_id=$1 AND payment_id=$2 ORDER BY first_seen_at,transaction_id LIMIT 500")
         .bind(access.workspace_id).bind(op.id).fetch_all(&state.db).await?;
     let chargebacks:Vec<Value>=sqlx::query_scalar("SELECT evidence FROM payment_chargebacks WHERE workspace_id=$1 AND payment_id=$2 ORDER BY updated_at,chargeback_id LIMIT 500")
@@ -119,6 +119,7 @@ pub async fn refresh(
     service::refresh(&state, access.workspace_id, op.id).await?;
     service::chargebacks_account(&state, &op).await?;
     Ok(Data(service::view(
+        &state,
         &repo::find(&state.db, access.workspace_id, op.id)
             .await?
             .ok_or(AppError::NotFound)?,
@@ -153,6 +154,7 @@ pub async fn resolve(
         return Err(AppError::Forbidden("Workspace administrator required."));
     }
     let op = scoped(&state, &access, &id).await?;
+    accounts::require_environment(&state, op.environment.as_deref())?;
     if op.provider != "globadyme"
         || !matches!(op.status.as_str(), "unknown" | "open")
         || (op.kind == "payment" && op.captured_transaction_id.is_some())
@@ -185,6 +187,13 @@ pub async fn resolve(
     let current = repo::find(&mut *tx, access.workspace_id, op.id)
         .await?
         .ok_or(AppError::NotFound)?;
+    accounts::require_environment(&state, current.environment.as_deref())?;
+    if let Some(parent) = current.parent_id {
+        let parent = repo::find(&mut *tx, access.workspace_id, parent)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        accounts::require_environment(&state, parent.environment.as_deref())?;
+    }
     if !matches!(current.status.as_str(), "unknown" | "open")
         || (current.kind == "payment" && current.captured_transaction_id.is_some())
         || (action == "refund_confirmed" && current.status != "unknown")
@@ -200,10 +209,11 @@ pub async fn resolve(
             .bind(access.workspace_id).bind(op.id).execute(&mut *tx).await?;
     }
     if action == "refund_confirmed" {
-        service::confirm_refund_in(&mut tx, access.workspace_id, op.id, true).await?;
+        service::confirm_refund_in(&state, &mut tx, access.workspace_id, op.id, true).await?;
     }
     tx.commit().await?;
     Ok(Data(service::view(
+        &state,
         &repo::find(&state.db, access.workspace_id, op.id)
             .await?
             .ok_or(AppError::NotFound)?,
@@ -223,6 +233,7 @@ pub async fn retire(
     if !matches!(env.as_str(), "sandbox" | "production") {
         return Err(AppError::NotFound);
     }
+    accounts::require_environment(&state, Some(&env))?;
     let mut tx = state.db.begin().await?;
     sqlx::query("SELECT workspace_id FROM settings WHERE workspace_id=$1 FOR UPDATE")
         .bind(access.workspace_id)

@@ -33,6 +33,18 @@ for chain in "$s/docker-compose.staging.yml" "$s/docker-compose.staging.yml $s/d
   docker compose $(printf -- '-f %s ' $chain) --env-file "$t/staging.env" config -q || fail "staging chain: $chain"
 done
 
+# Operator env files cannot change the realm pinned by each deployment's shared API anchor.
+printf '\nGLOBADYME_ENVIRONMENT=sandbox\n' >> "$t/prod.env"
+printf '\nGLOBADYME_ENVIRONMENT=production\n' >> "$t/staging.env"
+for service in api cli; do
+  [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- "$service" GLOBADYME_ENVIRONMENT)" == production ]] || fail "production $service payment realm"
+  [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" "$p/docker-compose.stripe.yml" -- "$service" GLOBADYME_ENVIRONMENT)" == production ]] || fail "production Stripe $service payment realm"
+done
+for service in api seed; do
+  [[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- "$service" GLOBADYME_ENVIRONMENT)" == sandbox ]] || fail "staging $service payment realm"
+  [[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" "$s/docker-compose.stripe.yml" -- "$service" GLOBADYME_ENVIRONMENT)" == sandbox ]] || fail "staging Stripe $service payment realm"
+done
+
 # Without the uploads overlay: no bucket, no key file, no CSP origin.
 [[ -z "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- api B2_UPLOADS_BUCKET)" ]] || fail "uploads on by default"
 [[ -z "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop FILES_ORIGIN)" ]] || fail "FILES_ORIGIN set by default"

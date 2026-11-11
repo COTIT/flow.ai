@@ -36,6 +36,8 @@ x-api-env: &api-env
   SIGNUP_ENABLED: "false"
   # deploy/deploy.sh runs `migrate` (cli/seed service) before swapping containers; the API never migrates at boot here.
   SKIP_BOOT_MIGRATIONS: "true"
+  # Deployment-owned realm for API workers and one-off commands; production origin stays gated.
+  GLOBADYME_ENVIRONMENT: production
   # PAYMENTS_PROVIDER unset: web payments answer 503 until a real provider is chosen.
 
 services:

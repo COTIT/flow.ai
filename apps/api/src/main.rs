@@ -105,7 +105,8 @@ async fn main() {
         config.stripe.clone(),
     )
     .expect("payments provider");
-    let mut payments = payments::Payments::from(payments);
+    let mut payments =
+        payments::Payments::from(payments).with_globadyme_environment(config.globadyme_environment);
     if let Some(settings) = config.stripe.clone() {
         payments = payments.retain(payments::Provider::Stripe(
             payments::stripe::Stripe::new(settings).expect("retained Stripe provider"),

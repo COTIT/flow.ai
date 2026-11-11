@@ -13,6 +13,25 @@ use axum::http::HeaderMap;
 use serde_json::Value;
 use uuid::Uuid;
 
+/// Deployment-owned Globadyme realm; workspace settings cannot change it.
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, utoipa::ToSchema,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum GlobadymeEnvironment {
+    Sandbox,
+    Production,
+}
+
+impl GlobadymeEnvironment {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Sandbox => "sandbox",
+            Self::Production => "production",
+        }
+    }
+}
+
 /// A payment's or refund's state, mapped from the provider's own words.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {

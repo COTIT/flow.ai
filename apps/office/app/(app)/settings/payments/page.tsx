@@ -40,6 +40,13 @@ type PaymentSettings = {
   }
 }
 type Integrations = Record<string, unknown> & { payment?: PaymentSettings }
+type SettingsResponse = {
+  data: unknown
+  meta?: {
+    globadyme_environment?: "sandbox" | "production" | null
+    production_origin_verified?: boolean
+  }
+}
 const CREDENTIAL_FIELDS = [
   "merchant_id",
   "username",
@@ -61,7 +68,7 @@ function PaymentSettings({ workspace }: { workspace: string }) {
   const queryClient = useQueryClient()
   const done = useDone()
   const queryKey = ["payment-settings", workspace]
-  const settings = useQuery({
+  const settings = useQuery<SettingsResponse>({
     queryKey,
     queryFn: ({ signal }) =>
       settingsGet(workspace, { type: "integrations" }, undefined, signal),
@@ -70,12 +77,14 @@ function PaymentSettings({ workspace }: { workspace: string }) {
   const [retire, setRetire] = React.useState<"sandbox" | "production" | null>(
     null
   )
+  const [draftProvider, setDraftProvider] = React.useState<string>()
   const save = useMutation({
     mutationFn: (integrations: Integrations) =>
       settingsUpdate(workspace, { integrations }),
     onMutate: done.clear,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey })
+      setDraftProvider(undefined)
       done.show(t("payments.settingsSaved"))
     },
   })
@@ -94,9 +103,24 @@ function PaymentSettings({ workspace }: { workspace: string }) {
   })
   const integrations = (settings.data?.data ?? {}) as Integrations
   const payment = integrations.payment ?? {}
-  const savedEnvironment =
-    payment.environment === "production" ? "production" : "sandbox"
-  const savedSlot = payment.payment_providers?.globadyme?.[savedEnvironment]
+  const selectedProvider =
+    draftProvider ??
+    (payment.active_provider === "globadyme" ? "globadyme" : "")
+  const reportedRealm = settings.data?.meta?.globadyme_environment
+  const currentRealm =
+    reportedRealm === "sandbox" || reportedRealm === "production"
+      ? reportedRealm
+      : null
+  const realmLabel = currentRealm
+    ? t(
+        currentRealm === "sandbox"
+          ? "payments.sandboxStaging"
+          : "payments.production"
+      )
+    : t("payments.environmentUnavailable")
+  const savedSlot = currentRealm
+    ? payment.payment_providers?.globadyme?.[currentRealm]
+    : undefined
   const missingFields = CREDENTIAL_FIELDS.filter((field) => {
     const value = savedSlot?.[field]
     return !(field === "merchant_id" || field === "username"
@@ -125,29 +149,32 @@ function PaymentSettings({ workspace }: { workspace: string }) {
           onSubmit={(event) => {
             event.preventDefault()
             const form = new FormData(event.currentTarget)
-            const providers = { ...payment.payment_providers }
-            const globadyme = { ...providers.globadyme }
-            for (const environment of ["sandbox", "production"] as const) {
-              const slot = { ...globadyme[environment] }
+            const provider = String(form.get("provider")) || null
+            const nextPayment: PaymentSettings = {
+              ...payment,
+              active_provider: provider,
+              enabled: form.get("enabled") === "on",
+            }
+            if (provider === "globadyme") {
+              if (!currentRealm) return
+              const providers = { ...payment.payment_providers }
+              const globadyme = { ...providers.globadyme }
+              const slot = { ...globadyme[currentRealm] }
               for (const field of CREDENTIAL_FIELDS) {
-                const value = String(form.get(`${environment}.${field}`) ?? "")
+                const value = String(form.get(`${currentRealm}.${field}`) ?? "")
                 slot[field] =
                   (field === "merchant_id" || field === "username"
                     ? value.trim()
                     : value) || null
               }
-              globadyme[environment] = slot
+              globadyme[currentRealm] = slot
+              providers.globadyme = globadyme
+              nextPayment.environment = currentRealm
+              nextPayment.payment_providers = providers
             }
-            providers.globadyme = globadyme
             save.mutate({
               ...integrations,
-              payment: {
-                ...payment,
-                active_provider: String(form.get("provider")) || null,
-                enabled: form.get("enabled") === "on",
-                environment: String(form.get("environment")),
-                payment_providers: providers,
-              },
+              payment: nextPayment,
             })
           }}
         >
@@ -161,25 +188,15 @@ function PaymentSettings({ workspace }: { workspace: string }) {
                 <select
                   name="provider"
                   className={selectClass}
-                  defaultValue={
-                    payment.active_provider === "globadyme" ? "globadyme" : ""
-                  }
+                  value={selectedProvider}
+                  onChange={(event) => setDraftProvider(event.target.value)}
                 >
                   <option value="">{t("payments.legacy")}</option>
                   <option value="globadyme">Globadyme</option>
                 </select>
               </Field>
               <Field id="payment-environment" label={t("payments.environment")}>
-                <select
-                  name="environment"
-                  className={selectClass}
-                  defaultValue={payment.environment ?? "sandbox"}
-                >
-                  <option value="sandbox">{t("payments.sandbox")}</option>
-                  <option value="production" disabled>
-                    {t("payments.production")}
-                  </option>
-                </select>
+                <Input value={realmLabel} readOnly />
               </Field>
             </div>
             <label className="flex min-h-11 items-center gap-3 text-sm">
@@ -190,12 +207,29 @@ function PaymentSettings({ workspace }: { workspace: string }) {
               />
               {t("payments.enabled")}
             </label>
-            <Notice variant="warning" title={t("payments.productionBlocked")} />
-            {payment.active_provider === "globadyme" && missingFields.length ? (
+            <p className="text-sm text-muted-foreground">
+              {t("payments.deploymentRealmHint")}
+            </p>
+            {!currentRealm && selectedProvider === "globadyme" ? (
+              <Notice variant="warning" title={t("payments.setupUnavailable")}>
+                {t("payments.setupUnavailableHint")}
+              </Notice>
+            ) : null}
+            {selectedProvider === "globadyme" &&
+            currentRealm === "production" &&
+            settings.data?.meta?.production_origin_verified !== true ? (
+              <Notice
+                variant="warning"
+                title={t("payments.productionBlocked")}
+              />
+            ) : null}
+            {currentRealm &&
+            payment.active_provider === "globadyme" &&
+            missingFields.length ? (
               <Notice variant="warning" title={t("payments.setupIncomplete")}>
                 <p>
                   {t("payments.savedSetupHint", {
-                    environment: t(`payments.${savedEnvironment}`),
+                    environment: realmLabel,
                   })}
                 </p>
                 <ul className="mt-2 list-disc pl-5">
@@ -209,80 +243,79 @@ function PaymentSettings({ workspace }: { workspace: string }) {
               {t("payments.identityHint")}
             </p>
           </Tile>
-          {(["sandbox", "production"] as const).map((environment) => (
+          {currentRealm ? (
             <Tile
-              key={environment}
-              id={`payment-${environment}`}
-              title={`Globadyme · ${t(`payments.${environment}`)}`}
+              key={currentRealm}
+              id={`payment-${currentRealm}`}
+              title={`Globadyme · ${realmLabel}`}
               span="col-span-12"
             >
-              <div className="grid gap-4 md:grid-cols-2">
-                {CREDENTIAL_FIELDS.map((field) => (
-                  <Field
-                    key={field}
-                    id={`${environment}-${field}`}
-                    label={t(`payments.credentials.${field}`)}
-                  >
-                    <Input
-                      name={`${environment}.${field}`}
-                      type="password"
-                      autoComplete="new-password"
-                      defaultValue={
-                        payment.payment_providers?.globadyme?.[environment]?.[
-                          field
-                        ] ?? ""
-                      }
-                      maxLength={2048}
-                    />
-                  </Field>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {t("payments.maskHint")}
-              </p>
-              <Field
-                id={`${environment}-previous-secret`}
-                label={t("payments.previousSecret")}
-              >
-                <Input
-                  type="password"
-                  readOnly
-                  value={
-                    payment.payment_providers?.globadyme?.[environment]
-                      ?.previous_callback_secret ?? ""
-                  }
-                />
-              </Field>
-              <p className="text-sm text-muted-foreground">
-                {t("payments.rotationHint")}
-              </p>
-              {payment.payment_providers?.globadyme?.[environment]
-                ?.previous_callback_secret ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="self-start"
-                  onClick={() => {
-                    setRetire(environment)
-                    retirement.reset()
-                  }}
+              <fieldset className="flex flex-col gap-4">
+                <legend className="sr-only">{`Globadyme · ${realmLabel}`}</legend>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {CREDENTIAL_FIELDS.map((field) => (
+                    <Field
+                      key={field}
+                      id={`${currentRealm}-${field}`}
+                      label={t(`payments.credentials.${field}`)}
+                    >
+                      <Input
+                        name={`${currentRealm}.${field}`}
+                        type="password"
+                        autoComplete="new-password"
+                        defaultValue={savedSlot?.[field] ?? ""}
+                        maxLength={2048}
+                      />
+                    </Field>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t("payments.maskHint")}
+                </p>
+                <Field
+                  id={`${currentRealm}-previous-secret`}
+                  label={t("payments.previousSecret")}
                 >
-                  {t("payments.retire")}
-                </Button>
-              ) : null}
+                  <Input
+                    type="password"
+                    readOnly
+                    value={savedSlot?.previous_callback_secret ?? ""}
+                  />
+                </Field>
+                <p className="text-sm text-muted-foreground">
+                  {t("payments.rotationHint")}
+                </p>
+                {savedSlot?.previous_callback_secret ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="self-start"
+                    onClick={() => {
+                      setRetire(currentRealm)
+                      retirement.reset()
+                    }}
+                  >
+                    {t("payments.retire")}
+                  </Button>
+                ) : null}
+              </fieldset>
             </Tile>
-          ))}
+          ) : null}
           <ApiError error={save.error} fallback={t("common.error")} />
           <Button
             type="submit"
             className="self-start"
-            disabled={save.isPending || settings.isFetching}
+            disabled={
+              (selectedProvider === "globadyme" && !currentRealm) ||
+              save.isPending ||
+              settings.isFetching
+            }
           >
             {t("invoices.save")}
           </Button>
         </form>
       )}
-      {retire ? (
+      {retire && retire === currentRealm ? (
         <Tile
           id="retire-secret"
           title={t("payments.retire")}

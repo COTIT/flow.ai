@@ -158,8 +158,12 @@ pub async fn get(state: &AppState, key: &AppKey, id: &str) -> Result<StorefrontO
     let mut conn = state.db.acquire().await?;
     let mut o = web_order(&mut conn, key.workspace_id, id, false).await?;
     let lines = repo::lines(&mut *conn, key.workspace_id, &[o.id]).await?;
-    let pending:Option<Uuid>=sqlx::query_scalar("UPDATE order_payments SET last_checked_at=now() WHERE workspace_id=$1 AND id=(SELECT id FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND provider='globadyme' ORDER BY created_at DESC,id DESC LIMIT 1) AND status IN ('open','unknown') AND (last_checked_at IS NULL OR last_checked_at<now()-interval '5 seconds') RETURNING id")
-        .bind(key.workspace_id).bind(o.id).fetch_optional(&mut *conn).await?;
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    let pending:Option<Uuid>=sqlx::query_scalar("UPDATE order_payments SET last_checked_at=now() WHERE workspace_id=$1 AND environment=$3 AND id=(SELECT id FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND provider='globadyme' ORDER BY created_at DESC,id DESC LIMIT 1) AND status IN ('open','unknown') AND (last_checked_at IS NULL OR last_checked_at<now()-interval '5 seconds') RETURNING id")
+        .bind(key.workspace_id).bind(o.id).bind(environment).fetch_optional(&mut *conn).await?;
     drop(conn);
     if let Some(payment) = pending {
         let _ = crate::modules::gateway::service::refresh(state, key.workspace_id, payment).await;
@@ -172,12 +176,19 @@ pub async fn get(state: &AppState, key: &AppKey, id: &str) -> Result<StorefrontO
         .bind(key.workspace_id).bind(o.id).fetch_optional(&state.db).await?;
     if let Some(p) = payment.as_ref().filter(|p| p.provider == "globadyme") {
         result.payment_status = Some(p.status.clone());
-        result.payment_attention = Some(p.attention);
+        result.payment_attention =
+            Some(p.attention || !accounts::environment_allowed(state, p.environment.as_deref()));
     }
     let live = payment
         .as_ref()
         .filter(|p| matches!(p.status.as_str(), "creating" | "open" | "unknown"));
     let available = match live {
+        Some(p)
+            if p.provider == "globadyme"
+                && !accounts::environment_allowed(state, p.environment.as_deref()) =>
+        {
+            Ok(Some(false))
+        }
         Some(p) if p.provider == "globadyme" && p.status == "creating" => {
             accounts::select(state, key.workspace_id)
                 .await

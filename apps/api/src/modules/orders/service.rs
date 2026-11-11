@@ -1107,12 +1107,51 @@ pub async fn returns(
 /// Book what the customer paid online (paid − refunded) on the order's new invoice, so its
 /// balance is right. A draft keeps its status until it is sent.
 async fn book_paid(
+    state: &AppState,
     conn: &mut PgConnection,
     workspace_id: Uuid,
     user_id: Uuid,
     o: &OrderRow,
     invoice_id: Uuid,
 ) -> Result<(), AppError> {
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|realm| realm.as_str());
+    let foreign: bool = sqlx::query_scalar(
+        "SELECT EXISTS(
+            SELECT 1 FROM order_payments p
+            LEFT JOIN order_payments parent
+                ON parent.workspace_id=p.workspace_id AND parent.id=p.parent_id
+            WHERE p.workspace_id=$1 AND p.order_id=$2
+              AND ((p.kind='payment' AND p.status='paid')
+                OR (p.kind='refund' AND p.status='refunded'))
+              AND (
+                (p.provider='globadyme' AND p.environment IS DISTINCT FROM $3)
+                OR (p.kind='refund' AND (p.provider='globadyme' OR parent.provider='globadyme')
+                    AND (parent.id IS NULL
+                        OR parent.kind<>'payment' OR parent.status<>'paid'
+                        OR parent.order_id IS DISTINCT FROM p.order_id
+                        OR parent.provider IS DISTINCT FROM p.provider
+                        OR parent.environment IS DISTINCT FROM $3
+                        OR parent.environment IS DISTINCT FROM p.environment
+                        OR parent.merchant_id IS DISTINCT FROM p.merchant_id
+                        OR parent.account_revision IS DISTINCT FROM p.account_revision
+                        OR parent.currency IS DISTINCT FROM p.currency
+                        OR parent.decimals IS DISTINCT FROM p.decimals))
+              )
+        )",
+    )
+    .bind(workspace_id)
+    .bind(o.id)
+    .bind(environment)
+    .fetch_one(&mut *conn)
+    .await?;
+    if foreign {
+        return Err(AppError::Unavailable(
+            crate::modules::gateway::accounts::REALM_MISMATCH,
+        ));
+    }
     let (net, paid) = super::payments::net_paid(conn, workspace_id, o.id).await?;
     let Some((provider, provider_id)) = paid.filter(|_| net > 0) else {
         return Ok(());
@@ -1228,7 +1267,7 @@ pub async fn invoice(
             let invoice_id =
                 invoices::service::create_in(conn, workspace_id, user_id, input).await?;
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
-            book_paid(conn, workspace_id, user_id, &o, invoice_id).await?;
+            book_paid(state, conn, workspace_id, user_id, &o, invoice_id).await?;
             log(conn, workspace_id, o.id, "invoiced", user_id).await
         },
     )

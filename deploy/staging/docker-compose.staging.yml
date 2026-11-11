@@ -43,6 +43,8 @@ x-api-env: &api-env
   TRUST_PROXY_HEADERS: "true"
   # Boots only because the image is built with ALLOW_FAKE_PAYMENTS=1 (see apps/api/Dockerfile).
   PAYMENTS_PROVIDER: fake
+  # Deployment-owned realm for API workers and one-off commands; never read from .env.
+  GLOBADYME_ENVIRONMENT: sandbox
   # Lets `seed-demo` write demo data; never set in production.
   GENESY_ALLOW_DEMO_SEED: "1"
   # Self-signup on, so testers can make their own workspace (API default: off).

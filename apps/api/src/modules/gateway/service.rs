@@ -25,17 +25,22 @@ use sqlx::{Connection, PgConnection};
 use uuid::Uuid;
 
 /// Safe browser/operator projection; credentials and invoice tokens never leave engine.
-pub fn view(op: &Operation) -> Value {
+pub fn view(state: &AppState, op: &Operation) -> Value {
+    let mismatch = op.provider == "globadyme"
+        && !accounts::environment_allowed(state, op.environment.as_deref());
     json!({"payment_id":op.id,"kind":op.kind,"status":op.status,"amount":op.amount,"amount_minor":op.amount.to_string(),
-        "currency":op.currency,"decimals":op.decimals,"checkout_url":if can_checkout(op) { op.checkout_url.as_deref() } else { None },
+        "currency":op.currency,"decimals":op.decimals,"checkout_url":if can_checkout(state, op) { op.checkout_url.as_deref() } else { None },
         "environment":op.environment,"merchant_id":op.merchant_id,"order_id":op.order_id,
         "invoice_id":op.invoice_id,"credit_note_id":op.credit_note_id,
-        "captured_transaction_id":op.captured_transaction_id,"attention":op.attention,
-        "attention_reason":op.attention_reason})
+        "captured_transaction_id":op.captured_transaction_id,"attention":op.attention || mismatch,
+        "attention_reason":if mismatch { Some(accounts::REALM_MISMATCH) } else { op.attention_reason.as_deref() }})
 }
 
-fn can_checkout(op: &Operation) -> bool {
-    op.kind == "payment" && op.status == "open" && !op.attention
+fn can_checkout(state: &AppState, op: &Operation) -> bool {
+    (op.provider != "globadyme" || accounts::environment_allowed(state, op.environment.as_deref()))
+        && op.kind == "payment"
+        && op.status == "open"
+        && !op.attention
 }
 
 fn down(_: Error) -> AppError {
@@ -52,7 +57,11 @@ pub async fn submit(
     let op = repo::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if op.provider != "globadyme" || op.status != "creating" || op.claimed_at.is_some() {
+    if op.provider != "globadyme" {
+        return Ok(());
+    }
+    accounts::require_environment(state, op.environment.as_deref())?;
+    if op.status != "creating" || op.claimed_at.is_some() {
         return Ok(());
     }
     let account = accounts::bound(
@@ -80,16 +89,24 @@ pub async fn submit(
         return Ok(());
     }
     let mut tx = dispatch.begin().await?;
+    lock_owner(&mut tx, ws, &op).await?;
+    let op = repo::find(&mut *tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, op.environment.as_deref())?;
+    if op.status != "creating" || op.claimed_at.is_some() {
+        return Ok(());
+    }
     if op.kind == "payment" {
         accounts::bind(&mut tx, ws, &account)
             .await
             .map_err(accounts::setup_error)?;
     }
     let refund_transaction = if op.kind == "refund" {
-        lock_owner(&mut tx, ws, &op).await?;
         let parent = repo::find(&mut *tx, ws, op.parent_id.ok_or(AppError::NotFound)?)
             .await?
             .ok_or(AppError::NotFound)?;
+        accounts::require_environment(state, parent.environment.as_deref())?;
         if parent.attention || parent.captured_transaction_id.is_none() {
             return Err(AppError::Conflict("Refund source requires reconciliation."));
         }
@@ -123,10 +140,10 @@ pub async fn submit(
                 lock_owner(&mut tx, ws, &op).await?;
                 sqlx::query("UPDATE order_payments SET submission_result=$3 WHERE workspace_id=$1 AND id=$2")
                     .bind(ws).bind(id).bind(&result.raw).execute(&mut *tx).await?;
-                confirm_refund_in(&mut tx, ws, id, false).await?;
+                confirm_refund_in(state, &mut tx, ws, id, false).await?;
                 tx.commit().await?;
             }
-            Err(e) => record_failure(&mut dispatch, ws, id, e).await?,
+            Err(e) => record_failure(state, &mut dispatch, ws, id, e).await?,
         }
     } else {
         let request = op.request_id.to_string();
@@ -150,8 +167,8 @@ pub async fn submit(
             .await;
         match result {
             Ok(result) if result.request_id == request => {
-                sqlx::query("UPDATE order_payments SET status='open',provider_id=$3,checkout_url=$4,link_id=$5,last_error=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='unknown'")
-                    .bind(ws).bind(id).bind(request).bind(result.checkout_url).bind(result.link_id).execute(&mut *dispatch).await?;
+                sqlx::query("UPDATE order_payments SET status='open',provider_id=$3,checkout_url=$4,link_id=$5,last_error=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='unknown' AND environment=$6")
+                    .bind(ws).bind(id).bind(request).bind(result.checkout_url).bind(result.link_id).bind(state.payments.globadyme_environment().map(|environment| environment.as_str())).execute(&mut *dispatch).await?;
             }
             Ok(_) => {
                 repo::attention(
@@ -162,13 +179,14 @@ pub async fn submit(
                 )
                 .await?;
             }
-            Err(e) => record_failure(&mut dispatch, ws, id, e).await?,
+            Err(e) => record_failure(state, &mut dispatch, ws, id, e).await?,
         }
     }
     Ok(())
 }
 
 async fn record_failure(
+    state: &AppState,
     conn: &mut PgConnection,
     ws: Uuid,
     id: Uuid,
@@ -176,8 +194,8 @@ async fn record_failure(
 ) -> Result<(), AppError> {
     // Explicit rejection is affirmative nonacceptance; transport/body ambiguity stays unknown.
     let refused = matches!(error, Error::Refused(_));
-    sqlx::query("UPDATE order_payments SET status=CASE WHEN $3 THEN 'failed' ELSE status END,last_error=$4,attention=NOT $3,attention_reason=CASE WHEN $3 THEN NULL ELSE 'Submission outcome is unknown; do not retry.' END,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='unknown'")
-        .bind(ws).bind(id).bind(refused).bind(if refused{"Provider rejected submission."}else{"Provider outcome is unknown."}).execute(conn).await?;
+    sqlx::query("UPDATE order_payments SET status=CASE WHEN $3 THEN 'failed' ELSE status END,last_error=$4,attention=NOT $3,attention_reason=CASE WHEN $3 THEN NULL ELSE 'Submission outcome is unknown; do not retry.' END,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='unknown' AND environment=$5")
+        .bind(ws).bind(id).bind(refused).bind(if refused{"Provider rejected submission."}else{"Provider outcome is unknown."}).bind(state.payments.globadyme_environment().map(|environment| environment.as_str())).execute(conn).await?;
     Ok(())
 }
 
@@ -226,15 +244,17 @@ pub async fn confirm_refund(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), 
     let op = repo::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, op.environment.as_deref())?;
     let mut tx = state.db.begin().await?;
     lock_owner(&mut tx, ws, &op).await?;
-    confirm_refund_in(&mut tx, ws, id, false).await?;
+    confirm_refund_in(state, &mut tx, ws, id, false).await?;
     tx.commit().await?;
     Ok(())
 }
 
 /// Atomic audited confirmation; caller holds owner/source/refund locks in canonical order.
 pub(crate) async fn confirm_refund_in(
+    state: &AppState,
     conn: &mut PgConnection,
     ws: Uuid,
     id: Uuid,
@@ -243,6 +263,13 @@ pub(crate) async fn confirm_refund_in(
     let op = repo::find(&mut *conn, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, op.environment.as_deref())?;
+    if let Some(parent) = op.parent_id {
+        let parent = repo::find(&mut *conn, ws, parent)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        accounts::require_environment(state, parent.environment.as_deref())?;
+    }
     if op.status == "refunded" && !manual {
         return Ok(());
     }
@@ -253,6 +280,7 @@ pub(crate) async fn confirm_refund_in(
     }
     if op.credit_note_id.is_some() {
         invoices::gateway::apply_refund(
+            state,
             conn,
             ws,
             &op,
@@ -279,7 +307,11 @@ pub async fn refresh(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), AppErro
     let op = repo::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if op.provider != "globadyme" || op.kind != "payment" {
+    if op.provider != "globadyme" {
+        return Ok(());
+    }
+    accounts::require_environment(state, op.environment.as_deref())?;
+    if op.kind != "payment" {
         return Ok(());
     }
     let account = accounts::bound(
@@ -299,6 +331,7 @@ pub async fn refresh(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), AppErro
     let current = repo::find(&mut *tx, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, current.environment.as_deref())?;
     let mut conflict = false;
     let mut external = false;
     let mut chargeback_observed = false;
@@ -346,9 +379,10 @@ pub async fn refresh(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), AppErro
                 .await?
                 .ok_or(AppError::NotFound)?;
             if accepted.invoice_id.is_some() {
-                invoices::gateway::apply_collection(&mut tx, ws, &accepted, &successful[0]).await?;
+                invoices::gateway::apply_collection(state, &mut tx, ws, &accepted, &successful[0])
+                    .await?;
             } else {
-                orders::payments::apply_gateway(&mut tx, ws, &accepted).await?;
+                orders::payments::apply_gateway(state, &mut tx, ws, &accepted).await?;
             }
         }
     }
@@ -399,7 +433,7 @@ pub async fn qr(state: &AppState, ws: Uuid, id: Uuid) -> Result<Vec<u8>, AppErro
     let op = repo::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if !can_checkout(&op) {
+    if !can_checkout(state, &op) {
         return Err(AppError::NotFound);
     }
     let account = accounts::bound(
@@ -448,6 +482,7 @@ pub async fn order_intent(
                 "Payment configuration changed; resume existing checkout.",
             ));
         }
+        accounts::require_environment(state, existing.environment.as_deref())?;
         live
     } else {
         let account = selection?.ok_or(AppError::Unavailable("No payment provider configured."))?;
@@ -485,7 +520,8 @@ pub async fn order_intent(
     let op = repo::find(&state.db, ws, payment)
         .await?
         .ok_or(AppError::NotFound)?;
-    let checkout_url = if can_checkout(&op) {
+    accounts::require_environment(state, op.environment.as_deref())?;
+    let checkout_url = if can_checkout(state, &op) {
         accounts::bound(
             state,
             ws,
@@ -515,10 +551,13 @@ pub async fn order_refund(
     key: Option<&Key>,
 ) -> Result<Option<Answer>, AppError> {
     let order = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
-    let relevant:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND provider='globadyme' AND status='paid')")
-        .bind(ws).bind(order).fetch_one(&state.db).await?;
-    if !relevant {
+    let sources: Vec<Operation> = sqlx::query_as("SELECT * FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND provider='globadyme' AND status='paid'")
+        .bind(ws).bind(order).fetch_all(&state.db).await?;
+    if sources.is_empty() {
         return Ok(None);
+    }
+    for source in &sources {
+        accounts::require_environment(state, source.environment.as_deref())?;
     }
     if crate::modules::assistant::preconditions::action_id().is_some() {
         return Err(AppError::Forbidden(
@@ -526,20 +565,24 @@ pub async fn order_refund(
         ));
     }
     let mut tx = state.db.begin().await?;
-    if let Some(answer) = idempotency::replay(&mut tx, ws, Actor::User(user), key).await? {
-        tx.commit().await?;
-        return Ok(Some(answer));
-    }
+    let replay = idempotency::replay(&mut tx, ws, Actor::User(user), key).await?;
     let locked = orders::repo::lock(&mut tx, ws, order)
         .await?
         .ok_or(AppError::NotFound)?;
+    let paid:Vec<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND status='paid' FOR UPDATE")
+        .bind(ws).bind(order).fetch_all(&mut *tx).await?;
+    for source in paid.iter().filter(|op| op.provider == "globadyme") {
+        accounts::require_environment(state, source.environment.as_deref())?;
+    }
+    if let Some(answer) = replay {
+        tx.commit().await?;
+        return Ok(Some(answer));
+    }
     if locked.invoice_id.is_some() {
         return Err(AppError::Conflict(
             "Refund an invoiced order through its linked credit note.",
         ));
     }
-    let paid:Vec<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND status='paid' FOR UPDATE")
-        .bind(ws).bind(order).fetch_all(&mut *tx).await?;
     if paid.len() != 1
         || paid[0].provider != "globadyme"
         || paid[0].attention
@@ -578,7 +621,7 @@ pub async fn callback(
     headers: &HeaderMap,
     body: &[u8],
 ) -> Result<(), AppError> {
-    if !matches!(env, "sandbox" | "production") {
+    if !accounts::environment_allowed(state, Some(env)) {
         return Ok(());
     }
     let Some(signature) = headers.get("signature").and_then(|v| v.to_str().ok()) else {
@@ -622,8 +665,13 @@ pub async fn drain(state: &AppState, job: &Claimed) -> Result<crate::jobs::runne
     let Some(ws) = job.workspace_id else {
         return Ok(crate::jobs::runner::Step::Done);
     };
-    let rows:Vec<(Uuid,Uuid,chrono::DateTime<Utc>)>=sqlx::query_as("SELECT id,payment_id,received_at FROM payment_webhook_inbox WHERE workspace_id=$1 AND provider='globadyme' AND status='pending' AND (attempts=0 OR received_at<now()-interval '1 minute') ORDER BY received_at,id LIMIT 50")
-        .bind(ws).fetch_all(&state.db).await?;
+    quarantine_inbox(state, Some(ws)).await?;
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    let rows:Vec<(Uuid,Uuid,chrono::DateTime<Utc>)>=sqlx::query_as("SELECT i.id,i.payment_id,i.received_at FROM payment_webhook_inbox i JOIN order_payments p ON p.workspace_id=i.workspace_id AND p.id=i.payment_id WHERE i.workspace_id=$1 AND i.provider='globadyme' AND i.status='pending' AND i.environment=$2 AND p.environment=$2 AND p.provider='globadyme' AND (i.attempts=0 OR i.received_at<now()-interval '1 minute') ORDER BY i.received_at,i.id LIMIT 50")
+        .bind(ws).bind(environment).fetch_all(&state.db).await?;
     for (inbox, payment, received) in rows {
         if refresh(state, ws, payment).await.is_ok() {
             sqlx::query("UPDATE payment_webhook_inbox SET status='processed',processed_at=now() WHERE id=$1 AND workspace_id=$2 AND status='pending' AND received_at=$3")
@@ -633,8 +681,8 @@ pub async fn drain(state: &AppState, job: &Claimed) -> Result<crate::jobs::runne
                 .bind(ws).bind(inbox).bind(received).execute(&state.db).await?;
         }
     }
-    let more:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM payment_webhook_inbox WHERE workspace_id=$1 AND provider='globadyme' AND status='pending' AND (attempts=0 OR received_at<now()-interval '1 minute'))")
-        .bind(ws).fetch_one(&state.db).await?;
+    let more:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM payment_webhook_inbox i JOIN order_payments p ON p.workspace_id=i.workspace_id AND p.id=i.payment_id WHERE i.workspace_id=$1 AND i.provider='globadyme' AND i.status='pending' AND i.environment=$2 AND p.environment=$2 AND p.provider='globadyme' AND (i.attempts=0 OR i.received_at<now()-interval '1 minute'))")
+        .bind(ws).bind(environment).fetch_one(&state.db).await?;
     Ok(if more {
         crate::jobs::runner::Step::More
     } else {
@@ -642,10 +690,26 @@ pub async fn drain(state: &AppState, job: &Claimed) -> Result<crate::jobs::runne
     })
 }
 
+/// Imported callbacks remain auditable, but can never become proof of a financial receipt.
+async fn quarantine_inbox(state: &AppState, workspace: Option<Uuid>) -> Result<(), AppError> {
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    sqlx::query("WITH stale AS (SELECT i.id FROM payment_webhook_inbox i LEFT JOIN order_payments p ON p.workspace_id=i.workspace_id AND p.id=i.payment_id WHERE i.provider='globadyme' AND i.status='pending' AND ($1::uuid IS NULL OR i.workspace_id=$1) AND ($2::text IS NULL OR i.environment IS DISTINCT FROM $2 OR p.environment IS DISTINCT FROM $2 OR p.provider IS DISTINCT FROM 'globadyme') ORDER BY i.received_at,i.id LIMIT 100 FOR UPDATE OF i SKIP LOCKED) UPDATE payment_webhook_inbox i SET status='rejected',reason=$3,processed_at=now() FROM stale WHERE i.id=stale.id")
+        .bind(workspace).bind(environment).bind(accounts::REALM_MISMATCH).execute(&state.db).await?;
+    Ok(())
+}
+
 /// Recover unsent claims, pending/unknown requests and paid observations without age cutoff.
 pub async fn sweep(state: &AppState) -> Result<(), AppError> {
-    let due:Vec<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE provider='globadyme' AND (last_checked_at IS NULL OR last_checked_at<now()-interval '15 minutes') ORDER BY last_checked_at NULLS FIRST,id LIMIT 100")
-        .fetch_all(&state.db).await?;
+    quarantine_inbox(state, None).await?;
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    let due:Vec<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE provider='globadyme' AND environment=$1 AND (last_checked_at IS NULL OR last_checked_at<now()-interval '15 minutes') ORDER BY last_checked_at NULLS FIRST,id LIMIT 100")
+        .bind(environment).fetch_all(&state.db).await?;
     for op in due {
         if op.status == "creating" && op.claimed_at.is_none() {
             let redirect = if let Some(invoice) = op.invoice_id.filter(|_| op.kind == "payment") {
@@ -673,15 +737,16 @@ pub async fn sweep(state: &AppState) -> Result<(), AppError> {
         }
         let _ = refresh(state, op.workspace_id, op.id).await;
         sqlx::query(
-            "UPDATE order_payments SET last_checked_at=now() WHERE workspace_id=$1 AND id=$2",
+            "UPDATE order_payments SET last_checked_at=now() WHERE workspace_id=$1 AND id=$2 AND environment=$3",
         )
         .bind(op.workspace_id)
         .bind(op.id)
+        .bind(environment)
         .execute(&state.db)
         .await?;
     }
-    let pending:Vec<Uuid>=sqlx::query_scalar("SELECT DISTINCT workspace_id FROM payment_webhook_inbox WHERE provider='globadyme' AND status='pending' ORDER BY workspace_id LIMIT 100")
-        .fetch_all(&state.db).await?;
+    let pending:Vec<Uuid>=sqlx::query_scalar("SELECT DISTINCT i.workspace_id FROM payment_webhook_inbox i JOIN order_payments p ON p.workspace_id=i.workspace_id AND p.id=i.payment_id WHERE i.provider='globadyme' AND i.status='pending' AND i.environment=$1 AND p.environment=$1 AND p.provider='globadyme' ORDER BY i.workspace_id LIMIT 100")
+        .bind(environment).fetch_all(&state.db).await?;
     for ws in pending {
         let job = crate::jobs::repo::NewJob {
             workspace_id: Some(ws),
@@ -697,8 +762,12 @@ pub async fn sweep(state: &AppState) -> Result<(), AppError> {
 
 /// Fair account/page cursor prevents old accounts and later pages from starving.
 pub async fn chargebacks(state: &AppState) -> Result<(), AppError> {
-    let accounts:Vec<(Uuid,String,String)>=sqlx::query_as("SELECT workspace_id,environment,merchant_id FROM payment_accounts WHERE used_at IS NOT NULL ORDER BY chargeback_checked_at NULLS FIRST,workspace_id,environment LIMIT 10")
-        .fetch_all(&state.db).await?;
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    let accounts:Vec<(Uuid,String,String)>=sqlx::query_as("SELECT workspace_id,environment,merchant_id FROM payment_accounts WHERE used_at IS NOT NULL AND environment=$1 ORDER BY chargeback_checked_at NULLS FIRST,workspace_id,environment LIMIT 10")
+        .bind(environment).fetch_all(&state.db).await?;
     for (ws, env, merchant) in accounts {
         scan_chargebacks(state, ws, &env, &merchant).await?;
     }
@@ -707,6 +776,7 @@ pub async fn chargebacks(state: &AppState) -> Result<(), AppError> {
 
 /// Explicit refresh stays inside requested account's workspace/environment boundary.
 pub async fn chargebacks_account(state: &AppState, op: &Operation) -> Result<(), AppError> {
+    accounts::require_environment(state, op.environment.as_deref())?;
     if let (Some(env), Some(merchant)) = (&op.environment, &op.merchant_id) {
         scan_chargebacks(state, op.workspace_id, env, merchant).await?;
     }
@@ -719,6 +789,7 @@ async fn scan_chargebacks(
     env: &str,
     merchant: &str,
 ) -> Result<(), AppError> {
+    accounts::require_environment(state, Some(env))?;
     let page:Option<i32>=sqlx::query_scalar("UPDATE payment_accounts SET chargeback_checked_at=now() WHERE workspace_id=$1 AND environment=$2 AND merchant_id=$3 RETURNING chargeback_page")
         .bind(ws).bind(env).bind(merchant).fetch_optional(&state.db).await?;
     let Some(page) = page else {
@@ -734,7 +805,7 @@ async fn scan_chargebacks(
         if charge.merchant_id != merchant {
             continue;
         }
-        let payment:Option<Uuid>=sqlx::query_scalar("SELECT payment_id FROM payment_transactions WHERE workspace_id=$1 AND environment=$2 AND transaction_id=$3 AND currency=$4")
+        let payment:Option<Uuid>=sqlx::query_scalar("SELECT t.payment_id FROM payment_transactions t JOIN order_payments p ON p.workspace_id=t.workspace_id AND p.id=t.payment_id WHERE t.workspace_id=$1 AND t.environment=$2 AND t.transaction_id=$3 AND t.currency=$4 AND p.environment=$2 AND p.provider='globadyme'")
             .bind(ws).bind(env).bind(&charge.transaction_id).bind(&charge.currency).fetch_optional(&state.db).await?;
         let Some(payment) = payment else {
             continue;

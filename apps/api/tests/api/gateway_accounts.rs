@@ -124,8 +124,12 @@ async fn merchant_binding_is_unique_per_environment_across_workspaces(pool: PgPo
     )
     .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    let mut production = common::state(api.pool.clone(), Mailer::capture().0);
+    production.payments = production.payments.with_globadyme_environment(Some(
+        genesy_360_api::payments::GlobadymeEnvironment::Production,
+    ));
     let (status, body) = common::send(
-        &api.app,
+        &genesy_360_api::build_app(production),
         Method::POST,
         &path,
         Some(config("production", "shared-merchant")),
@@ -144,6 +148,72 @@ async fn merchant_binding_is_unique_per_environment_across_workspaces(pool: PgPo
     .await
     .unwrap();
     assert_eq!(count, 2);
+}
+
+#[sqlx::test]
+async fn deployment_realm_blocks_settings_bypass_and_preserves_other_realm_credentials(
+    pool: PgPool,
+) {
+    use genesy_360_api::{build_app, payments::GlobadymeEnvironment};
+    let mut api = Api::new(pool, "/settings").await;
+    let mut production = common::state(api.pool.clone(), Mailer::capture().0);
+    production.payments = production
+        .payments
+        .with_globadyme_environment(Some(GlobadymeEnvironment::Production));
+    api.app = build_app(production);
+    saved(&api, config("production", "retained-production")).await;
+    let retained: (String, Vec<u8>) = sqlx::query_as(
+        "SELECT key_id,sealed FROM workspace_credentials WHERE workspace_id=$1::uuid AND path=$2",
+    )
+    .bind(&api.ws)
+    .bind(accounts::path("production", "password"))
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    api.app = build_app(common::state(api.pool.clone(), Mailer::capture().0));
+    let mut body = current(&api).await;
+    body["integrations"]["payment"]["environment"] = json!("sandbox");
+    body["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"] = config(
+        "sandbox",
+        "current-sandbox",
+    )["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"]
+        .clone();
+    saved(&api, body).await;
+    let baseline = current(&api).await;
+    for field in ["merchant_id", "username", "password", "callback_secret"] {
+        let mut forbidden = baseline.clone();
+        forbidden["integrations"]["payment"]["payment_providers"]["globadyme"]["production"]
+            [field] = json!("replacement");
+        let (status, response) = post(&api, forbidden).await;
+        assert_eq!(
+            status,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{field}: {response}"
+        );
+    }
+    let mut forbidden = baseline.clone();
+    forbidden["integrations"]["payment"]["environment"] = json!("production");
+    let (status, response) = post(&api, forbidden).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{response}");
+    assert_eq!(current(&api).await, baseline);
+    let after: (String, Vec<u8>) = sqlx::query_as(
+        "SELECT key_id,sealed FROM workspace_credentials WHERE workspace_id=$1::uuid AND path=$2",
+    )
+    .bind(&api.ws)
+    .bind(accounts::path("production", "password"))
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        after, retained,
+        "other-realm credentials must remain byte-identical"
+    );
+    let mut unknown = common::state(api.pool.clone(), Mailer::capture().0);
+    unknown.payments = unknown.payments.with_globadyme_environment(None);
+    api.app = build_app(unknown);
+    let (status, response) = post(&api, baseline).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{response}");
+    assert_eq!(response["code"], "payment_setup_required");
 }
 
 #[sqlx::test]

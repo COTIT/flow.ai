@@ -1900,8 +1900,13 @@
     "no": "No",
     "legacy": "Deployment default (legacy)",
     "setupIncomplete": "Saved payment setup is incomplete",
-    "savedSetupHint": "Saved selected environment: {environment}. New online payments are unavailable until setup is complete. Missing saved fields:",
+    "savedSetupHint": "Saved settings for this deployment: {environment}. New online payments are unavailable until setup is complete. Missing saved fields:",
     "onlineUnavailable": "Online payment is unavailable",
-    "onlineUnavailableHint": "Please use the bank details below or contact the supplier."
+    "onlineUnavailableHint": "Please use the bank details below or contact the supplier.",
+    "sandboxStaging": "Sandbox / Staging",
+    "deploymentRealmHint": "Provider account settings belong to this deployment. Staging and production use separate deployments and data. The server selects the payment environment.",
+    "setupUnavailable": "Payment setup is unavailable",
+    "setupUnavailableHint": "The server has not supplied an allowed payment environment. Ask an administrator to check this deployment before saving settings.",
+    "environmentUnavailable": "Unavailable"
   }
 }

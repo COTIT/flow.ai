@@ -6,7 +6,9 @@ Provider payments of web orders. Code: `src/payments/` (provider-neutral interfa
 
 For workspace Globadyme configuration, see [Globadyme](globadyme.md). Missing required settings, unavailable credential storage, disabled new collections or an unverified production origin return `503 {"message":"…","code":"payment_setup_required"}` before a new payment attempt is created. Customers must wait for the merchant to finish setup. Other provider or transport failures can follow an accepted submission; check the saved payment before retrying.
 
-`GET /storefront/orders/{order}` adds `online_payment_enabled` for Globadyme. It checks local configuration and sealed credentials without testing the provider login. A live attempt uses its original bound account, so switching providers or disabling new collections does not prevent resuming it. Missing or unusable bound credentials return `false`; pending-review status still takes precedence in the customer UI. Legacy provider reads omit this field.
+`GET /storefront/orders/{order}` adds `online_payment_enabled` for Globadyme. It checks local configuration and sealed credentials without testing the provider login. A live attempt uses its original bound account within the deployment's allowed realm, so switching providers or disabling new collections does not prevent resuming it. Missing or unusable bound credentials return `false`; pending-review status still takes precedence in the customer UI. Legacy provider reads omit this field.
+
+Cross-realm imported operations stay reserved for review. Provider calls, callbacks, automatic booking, audited releases and checkout links cannot cross the deployment boundary. Paid receipts and evidence remain readable; wrong-realm callbacks are ignored before credential access, and existing foreign inbox rows are retained as rejected. Invoice conversion also refuses to copy cross-realm payment amounts into a new receipt.
 
 `PAYMENTS_PROVIDER`: unset = none (payment intents answer 503 `no payment provider configured`); `fake` = the in-process test provider, debug builds only (a release build refuses to boot with it); `stripe` = Stripe Checkout. Unknown names fail at boot.
 

@@ -9585,6 +9585,14 @@
         ],
         "type": "string"
       },
+      "GlobadymeEnvironment": {
+        "description": "Deployment-owned Globadyme realm; workspace settings cannot change it.",
+        "enum": [
+          "sandbox",
+          "production"
+        ],
+        "type": "string"
+      },
       "GrantLinkRequest": {
         "description": "Grant a shop workspace a supply link.",
         "properties": {
@@ -23974,10 +23982,36 @@
         "properties": {
           "data": {
             "description": "Every section as an object, or with `?type=` that one section or dotted path (any JSON value; null when unset). Credentials print masked."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SettingsMeta",
+            "description": "Deployment-owned payment capabilities, separate from editable workspace settings."
           }
         },
         "required": [
-          "data"
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "SettingsMeta": {
+        "properties": {
+          "globadyme_environment": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GlobadymeEnvironment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "production_origin_verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "production_origin_verified"
         ],
         "type": "object"
       },

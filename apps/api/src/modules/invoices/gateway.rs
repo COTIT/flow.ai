@@ -135,9 +135,6 @@ pub async fn create_payment(
     ValidatedJson(input): ValidatedJson<CollectionRequest>,
 ) -> Result<Data<Value>, AppError> {
     let (ws, invoice) = token_target(&state, &token).await?;
-    let account = accounts::select(&state, ws)
-        .await?
-        .ok_or(AppError::Unavailable("no payment provider configured"))?;
     let mut tx = state.db.begin().await?;
     let target = ledger::lock(&mut tx, ws, invoice)
         .await?
@@ -154,6 +151,9 @@ pub async fn create_payment(
     let id = if let Some(id) = live {
         id
     } else {
+        let account = accounts::select(&state, ws)
+            .await?
+            .ok_or(AppError::Unavailable("no payment provider configured"))?;
         let currency = currencies::repo::find(&mut *tx, ws, target.currency_id)
             .await?
             .ok_or(AppError::NotFound)?;
@@ -182,7 +182,7 @@ pub async fn create_payment(
     let op = operations::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Data(engine::view(&op)))
+    Ok(Data(engine::view(&state, &op)))
 }
 
 #[utoipa::path(
@@ -202,7 +202,7 @@ pub async fn payment_status(
     let op = operations::find(&state.db, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Data(engine::view(&op)))
+    Ok(Data(engine::view(&state, &op)))
 }
 
 #[utoipa::path(
@@ -244,7 +244,9 @@ pub async fn inspect(
         .ok_or(AppError::NotFound)?;
     let ops: Vec<Operation> = sqlx::query_as("SELECT p.* FROM order_payments p LEFT JOIN orders o ON o.workspace_id=p.workspace_id AND o.id=p.order_id WHERE p.workspace_id=$1 AND p.provider='globadyme' AND (p.invoice_id=$2 OR p.credit_note_id=$2 OR o.invoice_id=$2) ORDER BY p.created_at DESC LIMIT 500")
         .bind(access.workspace_id).bind(invoice).fetch_all(&state.db).await?;
-    Ok(Data(Value::Array(ops.iter().map(engine::view).collect())))
+    Ok(Data(Value::Array(
+        ops.iter().map(|op| engine::view(&state, op)).collect(),
+    )))
 }
 
 #[utoipa::path(
@@ -298,6 +300,7 @@ async fn create_refund(
         .await?
         .filter(|op| op.kind == "payment" && op.provider == "globadyme")
         .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, candidate.environment.as_deref())?;
     if let Some(order) = candidate.order_id {
         let order = orders::repo::lock(&mut tx, ws, order)
             .await?
@@ -334,6 +337,7 @@ async fn create_refund(
     }
     let parent: Operation = sqlx::query_as("SELECT p.* FROM order_payments p LEFT JOIN orders o ON o.workspace_id=p.workspace_id AND o.id=p.order_id WHERE p.workspace_id=$1 AND p.id=$2 AND (p.invoice_id=$3 OR o.invoice_id=$3) AND p.kind='payment' AND p.provider='globadyme' AND p.status='paid' FOR UPDATE OF p")
         .bind(ws).bind(input.payment_id).bind(source_id).fetch_optional(&mut *tx).await?.ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, parent.environment.as_deref())?;
     if parent.attention || parent.captured_transaction_id.is_none() {
         return Err(AppError::Conflict(
             "Payment requires reconciliation before refunding.",
@@ -416,11 +420,13 @@ pub async fn redirect(state: &AppState, ws: Uuid, invoice: Uuid) -> Result<Strin
 
 /// Called by the gateway engine after invoice locks, before committing its paid status.
 pub async fn apply_collection(
+    state: &AppState,
     conn: &mut PgConnection,
     ws: Uuid,
     op: &Operation,
     transaction_id: &str,
 ) -> Result<(), AppError> {
+    accounts::require_environment(state, op.environment.as_deref())?;
     let invoice = op
         .invoice_id
         .ok_or(AppError::Conflict("Payment has no invoice."))?;
@@ -450,11 +456,22 @@ pub async fn apply_collection(
 
 /// A confirmed refund books only on its credit note; the source retains its original receipt.
 pub async fn apply_refund(
+    state: &AppState,
     conn: &mut PgConnection,
     ws: Uuid,
     op: &Operation,
     transaction_id: &str,
 ) -> Result<(), AppError> {
+    accounts::require_environment(state, op.environment.as_deref())?;
+    let parent = operations::find(
+        &mut *conn,
+        ws,
+        op.parent_id
+            .ok_or(AppError::Conflict("Refund has no source payment."))?,
+    )
+    .await?
+    .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, parent.environment.as_deref())?;
     let note = op
         .credit_note_id
         .ok_or(AppError::Conflict("Refund has no credit note."))?;

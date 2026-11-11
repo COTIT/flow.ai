@@ -1900,8 +1900,13 @@
     "no": "Hapana",
     "legacy": "Chaguo la usanidi (la awali)",
     "setupIncomplete": "Mipangilio ya malipo iliyohifadhiwa haijakamilika",
-    "savedSetupHint": "Mazingira yaliyochaguliwa na kuhifadhiwa: {environment}. Malipo mapya ya mtandaoni hayatapatikana hadi usanidi ukamilike. Sehemu zilizokosekana katika mipangilio iliyohifadhiwa:",
+    "savedSetupHint": "Mipangilio iliyohifadhiwa ya usanidi huu: {environment}. Malipo mapya ya mtandaoni hayatapatikana hadi usanidi ukamilike. Sehemu zilizokosekana katika mipangilio iliyohifadhiwa:",
     "onlineUnavailable": "Malipo ya mtandaoni hayapatikani",
-    "onlineUnavailableHint": "Tumia maelezo ya benki hapa chini au wasiliana na muuzaji."
+    "onlineUnavailableHint": "Tumia maelezo ya benki hapa chini au wasiliana na muuzaji.",
+    "sandboxStaging": "Sandbox / Majaribio",
+    "deploymentRealmHint": "Mipangilio ya akaunti ya malipo ni ya usanidi huu. Mazingira ya majaribio na halisi hutumia usanidi na data tofauti. Seva huchagua mazingira ya malipo.",
+    "setupUnavailable": "Mipangilio ya malipo haipatikani",
+    "setupUnavailableHint": "Seva haijatoa mazingira ya malipo yanayoruhusiwa. Mwombe msimamizi akague usanidi huu kabla ya kuhifadhi mipangilio.",
+    "environmentUnavailable": "Hayapatikani"
   }
 }

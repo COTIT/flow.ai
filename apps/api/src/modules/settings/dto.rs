@@ -2,7 +2,7 @@
 //! against its field table; unknown sections and keys are dropped. Kept credentials are
 //! taken out of the sections into their own list.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::{
@@ -24,13 +24,19 @@ use crate::{
 )]
 pub struct UpdateSettingsRequest(Map<String, Value>);
 
-// Doc-only: `GET /settings` answers `{data: …}` with a JSON value of any type.
 /// Settings read reply.
-#[allow(dead_code)]
-#[derive(utoipa::ToSchema)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct SettingsData {
     /// Every section as an object, or with `?type=` that one section or dotted path (any JSON value; null when unset). Credentials print masked.
-    data: Value,
+    pub data: Value,
+    /// Deployment-owned payment capabilities, separate from editable workspace settings.
+    pub meta: SettingsMeta,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub struct SettingsMeta {
+    pub globadyme_environment: Option<crate::payments::GlobadymeEnvironment>,
+    pub production_origin_verified: bool,
 }
 
 /// Validated sections to store, plus the uuids the service must find in this workspace.
@@ -96,4 +102,50 @@ fn take_credentials(sections: &mut Map<String, Value>) -> Vec<(&'static str, Cha
         }
     }
     out
+}
+
+#[cfg(test)]
+mod deployment_metadata_tests {
+    use super::*;
+    use crate::payments::GlobadymeEnvironment::{Production, Sandbox};
+    use serde_json::json;
+
+    #[test]
+    fn metadata_wraps_every_data_shape_without_editing_its_values() {
+        for data in [
+            json!({"integrations":{"payment":{"environment":"sandbox"}}}),
+            json!(["path value"]),
+            json!(null),
+        ] {
+            for (environment, expected) in [
+                (Some(Sandbox), json!("sandbox")),
+                (Some(Production), json!("production")),
+                (None, Value::Null),
+            ] {
+                let reply = serde_json::to_value(SettingsData {
+                    data: data.clone(),
+                    meta: SettingsMeta {
+                        globadyme_environment: environment,
+                        production_origin_verified: false,
+                    },
+                })
+                .unwrap();
+                assert_eq!(
+                    reply,
+                    json!({"data":data,"meta":{"globadyme_environment":expected,"production_origin_verified":false}})
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn deployment_environment_schema_and_wire_values_share_lowercase_enum() {
+        let schema = serde_json::to_value(
+            <crate::payments::GlobadymeEnvironment as utoipa::PartialSchema>::schema(),
+        )
+        .unwrap();
+        assert_eq!(schema["enum"], json!(["sandbox", "production"]));
+        assert_eq!(Sandbox.as_str(), "sandbox");
+        assert_eq!(Production.as_str(), "production");
+    }
 }

@@ -1,6 +1,6 @@
 //! Provider registry: selection controls new collections; bound history retains providers.
 
-use super::{Provider, globadyme::Globadyme};
+use super::{GlobadymeEnvironment, Provider, globadyme::Globadyme};
 use crate::outbound::Outbound;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -14,6 +14,7 @@ pub struct Payments {
     primary: Option<Provider>,
     retained: Vec<Provider>,
     sandbox_url: Option<String>,
+    globadyme_environment: Option<GlobadymeEnvironment>,
     clients: Arc<Mutex<HashMap<AccountKey, Globadyme>>>,
 }
 
@@ -49,6 +50,14 @@ impl Payments {
     /// No legacy collection provider configured.
     pub fn is_none(&self) -> bool {
         self.primary.is_none()
+    }
+    /// Pin Globadyme to the operator's deployment realm; None disables all its clients.
+    pub fn with_globadyme_environment(mut self, environment: Option<GlobadymeEnvironment>) -> Self {
+        self.globadyme_environment = environment;
+        self
+    }
+    pub fn globadyme_environment(&self) -> Option<GlobadymeEnvironment> {
+        self.globadyme_environment
     }
     /// Keep configured provider available after selection changes.
     pub fn retain(mut self, provider: Provider) -> Self {
@@ -94,6 +103,9 @@ impl Payments {
         username: String,
         password: String,
     ) -> Result<Globadyme, String> {
+        if self.globadyme_environment.map(GlobadymeEnvironment::as_str) != Some(environment) {
+            return Err("Globadyme account environment does not match this deployment".into());
+        }
         if environment != "sandbox" {
             return Err("Globadyme production origin has not been verified".into());
         }
@@ -133,5 +145,80 @@ impl Payments {
         clients.retain(|(ws, env, _, _), _| *ws != workspace || env != environment);
         clients.insert(key, client.clone());
         Ok(client)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn client(payments: &Payments, environment: &str) -> Result<Globadyme, String> {
+        payments
+            .globadyme(
+                Uuid::nil(),
+                environment,
+                "merchant",
+                1,
+                "user".into(),
+                "password".into(),
+            )
+            .await
+    }
+
+    #[tokio::test]
+    async fn missing_or_mismatched_realm_rejects_before_cache_or_client_creation() {
+        let disabled = Payments::default();
+        assert_eq!(disabled.globadyme_environment(), None);
+        for environment in ["sandbox", "production", "unknown"] {
+            assert!(
+                client(&disabled, environment)
+                    .await
+                    .unwrap_err()
+                    .contains("deployment")
+            );
+        }
+        let sandbox = disabled.with_globadyme_environment(Some(GlobadymeEnvironment::Sandbox));
+        assert_eq!(
+            sandbox.globadyme_environment(),
+            Some(GlobadymeEnvironment::Sandbox)
+        );
+        assert!(
+            client(&sandbox, "production")
+                .await
+                .unwrap_err()
+                .contains("deployment")
+        );
+        assert!(sandbox.clients.lock().await.is_empty());
+        client(&sandbox, "sandbox").await.unwrap();
+        let disabled = sandbox.with_globadyme_environment(None);
+        assert!(
+            !disabled.clients.lock().await.is_empty(),
+            "exercise cached-account rejection"
+        );
+        assert!(
+            client(&disabled, "sandbox")
+                .await
+                .unwrap_err()
+                .contains("deployment")
+        );
+    }
+
+    #[tokio::test]
+    async fn production_pin_keeps_unverified_origin_closed() {
+        let production =
+            Payments::default().with_globadyme_environment(Some(GlobadymeEnvironment::Production));
+        assert!(
+            client(&production, "sandbox")
+                .await
+                .unwrap_err()
+                .contains("deployment")
+        );
+        assert!(
+            client(&production, "production")
+                .await
+                .unwrap_err()
+                .contains("origin has not been verified")
+        );
+        assert!(production.clients.lock().await.is_empty());
     }
 }

@@ -52,7 +52,8 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         assistant_bridge_secret: None,
         files: None,
         pdf: None,
-        payments: Default::default(),
+        payments: crate::payments::Payments::default()
+            .with_globadyme_environment(Some(crate::payments::GlobadymeEnvironment::Sandbox)),
         checkout_hold_max: 500,
         signup_enabled: true,
     }

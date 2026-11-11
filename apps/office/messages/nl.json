@@ -1900,8 +1900,13 @@
     "no": "Nee",
     "legacy": "Standaard van installatie (bestaand)",
     "setupIncomplete": "Opgeslagen betalingsinstellingen zijn onvolledig",
-    "savedSetupHint": "Opgeslagen geselecteerde omgeving: {environment}. Nieuwe online betalingen zijn pas beschikbaar als de instellingen volledig zijn. Ontbrekende opgeslagen velden:",
+    "savedSetupHint": "Opgeslagen instellingen voor deze installatie: {environment}. Nieuwe online betalingen zijn pas beschikbaar als de instellingen volledig zijn. Ontbrekende opgeslagen velden:",
     "onlineUnavailable": "Online betalen is niet beschikbaar",
-    "onlineUnavailableHint": "Gebruik de bankgegevens hieronder of neem contact op met de leverancier."
+    "onlineUnavailableHint": "Gebruik de bankgegevens hieronder of neem contact op met de leverancier.",
+    "sandboxStaging": "Sandbox / Staging",
+    "deploymentRealmHint": "De instellingen van het betaalaccount horen bij deze installatie. Staging en productie gebruiken aparte installaties en gegevens. De server bepaalt de betaalomgeving.",
+    "setupUnavailable": "Betalingsinstellingen zijn niet beschikbaar",
+    "setupUnavailableHint": "De server heeft geen toegestane betaalomgeving opgegeven. Vraag een beheerder deze installatie te controleren voordat je instellingen opslaat.",
+    "environmentUnavailable": "Niet beschikbaar"
   }
 }

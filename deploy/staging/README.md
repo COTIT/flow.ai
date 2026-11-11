@@ -17,7 +17,7 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 
 **What staging is not:**
 
-- No real payment provider. `PAYMENTS_PROVIDER=fake`, so checkout links go to `pay.fake.test`.
+- Legacy checkout defaults to `PAYMENTS_PROVIDER=fake`. Workspace Globadyme accounts are restricted to sandbox by the Compose-pinned `GLOBADYME_ENVIRONMENT=sandbox`; API workers and the seed command share that pin.
 - No outgoing mail. Every mail lands in Mailpit.
 - No PDF renderer: those routes answer 503, as designed. File uploads answer 503 too until "Turning on file uploads" is done; staging then uses its own B2 bucket, never production's.
 - No database backups to B2: the nightly backup stays on the VPS (`../ops/README.md`).
