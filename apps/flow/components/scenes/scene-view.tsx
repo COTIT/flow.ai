@@ -19,6 +19,7 @@ import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { Freshness } from "@/components/registry/data-state"
+import { BENTO_CLASS, BENTO_GRID, bentoSize } from "@/lib/bento"
 import { BUILT_IN, keepKey, pendingFirst, sceneLayout } from "@/lib/scenes"
 import { flowStore } from "@/lib/flow-store"
 import { TTL } from "@/lib/scene-data"
@@ -85,7 +86,12 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   const visible = JSON.stringify(
     shown
       .filter((c) => !scene?.restricted.includes(c.id))
-      .map(({ id, type, metric, period: p }) => ({ id, type, metric, period: p }))
+      .map(({ id, type, metric, period: p }) => ({
+        id,
+        type,
+        metric,
+        period: p,
+      }))
   )
   useEffect(() => {
     flowStore.setState({ visible: JSON.parse(visible) })
@@ -113,6 +119,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   if (!scene) return <Skeleton className="h-40 w-full rounded-2xl" />
 
   const builtIn = (BUILT_IN as readonly string[]).includes(sceneKey)
+  const drawn = shown.filter((c) => componentFor(c.type))
   const keptKey = period ? keepKey(period) : null
   const kept =
     !!keptKey && !!list.data?.data.some((s) => s.scene === keptKey && !s.hidden)
@@ -238,18 +245,25 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
           {t("scene.studio.title")}
         </Link>
       ) : null}
-      <div className="flex flex-col gap-3">
-        {shown.map((component) => {
-          const Component = componentFor(component.type)
-          return Component ? (
-            <div key={component.id} data-component={component.id}>
-              <Component
-                component={component}
-                restricted={scene.restricted.includes(component.id)}
-              />
-            </div>
-          ) : null
-        })}
+      <div className="@container">
+        <div data-bento className={BENTO_GRID}>
+          {drawn.map((component) => {
+            const Component = componentFor(component.type)
+            return Component ? (
+              <div
+                key={component.id}
+                data-component={component.id}
+                data-size={bentoSize(component.type, drawn.length)}
+                className={`min-w-0 [&>*]:h-full ${BENTO_CLASS[bentoSize(component.type, drawn.length)]}`}
+              >
+                <Component
+                  component={component}
+                  restricted={scene.restricted.includes(component.id)}
+                />
+              </div>
+            ) : null
+          })}
+        </div>
       </div>
     </article>
   )
