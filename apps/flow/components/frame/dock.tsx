@@ -109,7 +109,8 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   return (
     <section
       aria-label={t("shell.dock")}
-      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3"
+      // Short screens (phone landscape, zoomed laptop): one row, suggestions beside the field.
+      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-pills]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-pills]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
     >
       {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
       <Pills

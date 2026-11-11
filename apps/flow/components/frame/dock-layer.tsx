@@ -47,6 +47,8 @@ export function DockSlot({ className = "" }: { className?: string }) {
 
 export function DockLayer({ phase }: { phase: SessionPhase["phase"] }) {
   const layer = useRef<HTMLDivElement>(null)
+  const shown = useRef(false)
+  const measured = useRef(-1)
   const slot = useSyncExternalStore(
     subscribe,
     () => current,
@@ -59,20 +61,32 @@ export function DockLayer({ phase }: { phase: SessionPhase["phase"] }) {
     // even for a frame, would drop the person's focus.
     if (!box || !frame || !slot) return
     let raf = 0
-    const place = () => {
+    const later = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(place)
+    }
+    function place() {
+      if (!box || !frame || !slot) return
       const to = slot.getBoundingClientRect()
       const from = frame.getBoundingClientRect()
       box.style.left = `${to.left - from.left}px`
       box.style.top = `${to.top - from.top}px`
       box.style.width = `${to.width}px`
-      box.style.visibility = "visible"
-      frame.style.setProperty("--flow-dock-h", `${box.offsetHeight}px`)
+      const height = box.offsetHeight
+      frame.style.setProperty("--flow-dock-h", `${height}px`)
+      // First load: it appears once its height has settled (two equal measures), so the page
+      // never shifts under a growing dock (SW8). After that it is never hidden again.
+      if (!shown.current) {
+        if (height === measured.current) {
+          shown.current = true
+          box.style.visibility = "visible"
+        } else {
+          measured.current = height
+          later()
+        }
+      }
     }
     place()
-    const later = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(place)
-    }
     const watch = new ResizeObserver(later)
     watch.observe(slot)
     watch.observe(frame)

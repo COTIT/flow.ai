@@ -23,7 +23,7 @@ export function SceneBar({
   const pathname = usePathname()
   const router = useRouter()
   return (
-    <div className="flex shrink-0 items-center gap-2 pb-2">
+    <div className="flex shrink-0 items-center gap-2 pb-2 [@media(max-height:500px)]:pb-1">
       <Button
         variant="ghost"
         className="min-h-11 shrink-0"

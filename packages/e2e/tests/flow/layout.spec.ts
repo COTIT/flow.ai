@@ -376,3 +376,35 @@ test("conversing: the orb steps aside (small, in the header row) and the transcr
   await expectSingleScroller(page)
   await expectNoHorizontalScroll(page)
 })
+
+for (const size of [
+  { name: "phone landscape", width: 812, height: 375 },
+  { name: "200% zoom on a laptop", width: 640, height: 400 },
+])
+  test(`SW2: on a short screen (${size.name}) the scene keeps most of the height and every control is reachable`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await expect(page.locator("[data-dock-layer]")).toBeVisible()
+    const share = await page.evaluate(
+      () =>
+        document.querySelector("[data-flow-scroll]")!.getBoundingClientRect().height /
+        window.innerHeight
+    )
+    expect(share).toBeGreaterThanOrEqual(0.55)
+    // The dock, the way home and (on request) the header stay reachable.
+    await expect(composer(page)).toBeInViewport()
+    await expect(page.getByRole("button", { name: s.backHome })).toBeInViewport()
+    for (
+      let i = 0;
+      i < 4 &&
+      !(await header(page).evaluate((h) => h.contains(document.activeElement)));
+      i++
+    )
+      await page.keyboard.press("Tab")
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })

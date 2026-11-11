@@ -170,7 +170,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           "--flow-dock-h": "68px",
         } as React.CSSProperties
       }
-      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(pointer:coarse)]:pt-[calc(var(--flow-safe-top)+2.25rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
+      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(pointer:coarse)_and_(min-height:501px)]:pt-[calc(var(--flow-safe-top)+2.25rem)] [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+0.5rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
     >
       {/* Floats over the frame; never takes a row, so it never pushes content. */}
       <Header phase={phase} />

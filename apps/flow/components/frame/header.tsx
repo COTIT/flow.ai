@@ -92,7 +92,7 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         aria-controls="flow-header"
         aria-label={t(shown ? "shell.hideHeader" : "shell.showHeader")}
         onClick={toggle}
-        className="absolute top-0 left-1/2 z-50 hidden h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(pointer:coarse)]:flex"
+        className="absolute top-0 left-1/2 z-50 hidden h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:h-7 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+2px)] [@media(pointer:coarse)]:flex"
       >
         <span
           aria-hidden
@@ -150,16 +150,22 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
           href="/storefront"
           prefetch={false}
           aria-current={pathname === "/storefront" ? "page" : undefined}
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          className={buttonVariants({
+            variant: "ghost",
+            size: "sm",
+            className: "min-h-11",
+          })}
         >
           {t("flow.chat.storefront")}
         </Link>
         <WorkspacePicker />
-        <LocaleSwitcher />
-        <ThemeToggle label={t("common.theme")} />
+        {/* Every header control is a 44 px target (SW7). */}
+        <LocaleSwitcher className="min-h-11" />
+        <ThemeToggle label={t("common.theme")} className="size-11" />
         <Button
           variant="ghost"
           size="sm"
+          className="min-h-11"
           disabled={leaving || logout.isPending}
           onClick={async () => {
             setLeaving(true)
@@ -195,7 +201,10 @@ function WorkspacePicker() {
         if (v) sessionStore.getState().selectWorkspace(v)
       }}
     >
-      <SelectTrigger aria-label={t("common.workspace")} className="max-w-48">
+      <SelectTrigger
+        aria-label={t("common.workspace")}
+        className="min-h-11 max-w-48"
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

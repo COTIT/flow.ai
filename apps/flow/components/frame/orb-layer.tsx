@@ -66,6 +66,8 @@ export function OrbLayer() {
   const layer = useRef<HTMLDivElement>(null)
   const orb = useRef<HTMLButtonElement>(null)
   const placed = useRef<OrbMode | null>(null)
+  /** Places the orb now (set while a slot is measured); focus uses it to stay in view. */
+  const placeNow = useRef<() => void>(() => {})
   const live = voice.connected || voice.starting || voice.upgrading
 
   useLayoutEffect(() => {
@@ -97,6 +99,7 @@ export function OrbLayer() {
       element.style.visibility = "visible"
     }
     place()
+    placeNow.current = place
     const later = () => {
       if (dead) return
       cancelAnimationFrame(frame)
@@ -135,6 +138,18 @@ export function OrbLayer() {
         aria-hidden={picture || undefined}
         style={{ width: BASE, height: BASE, visibility: "hidden" }}
         className="pointer-events-auto absolute top-0 left-0 origin-top-left rounded-full focus-visible:ring-4 focus-visible:ring-(--gold) focus-visible:outline-none"
+        // A keyboard user never lands on an orb scrolled out of view (SW1): bring its place in.
+        onFocus={() => {
+          const at = slot?.getBoundingClientRect()
+          const view = slot
+            ?.closest("[data-flow-scroll]")
+            ?.getBoundingClientRect()
+          if (!slot || !at || !view) return
+          if (at.top < view.top || at.bottom > view.bottom) {
+            slot.scrollIntoView({ block: "nearest" })
+            placeNow.current()
+          }
+        }}
         onClick={() => {
           if (picture) return
           if (mode === "ambient" && !live) {
