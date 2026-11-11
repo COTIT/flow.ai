@@ -22,7 +22,10 @@
     "pageNotFound": "Deze pagina bestaat niet",
     "goHome": "Naar het begin",
     "crashed": "Dit scherm werkt niet meer",
-    "crashedText": "Er is niets gewijzigd. Probeer het opnieuw.",
+    "crashedText": "Probeer het opnieuw of ga naar het begin.",
+    "loadFailed": "Deze pagina kon niet laden",
+    "loadFailedText": "Controleer je verbinding en probeer het opnieuw. Er is niets gewijzigd.",
+    "loadFailedOffline": "Je bent offline. Deze pagina laadt opnieuw zodra je weer online bent.",
     "storefront": {
       "title": "Webwinkelontwerp",
       "intro": "Bekijk opgeslagen versies voordat je wijzigingen in je winkel publiceert.",
