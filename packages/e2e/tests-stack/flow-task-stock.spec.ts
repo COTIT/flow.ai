@@ -40,7 +40,9 @@ async function voice(
 ) {
   const confirms: { decision?: string }[] = []
   const body = {
-    warehouses: [{ warehouse_id: product.warehouse.id, stock_lvl: 150 }],
+    warehouses: [
+      { warehouse_id: product.warehouse.id, stock_lvl: 150, reason: "Counted in Flow e2e" },
+    ],
   }
   await page.route("**/api/voice/readiness", (route) =>
     route.fulfill({ json: { enabled: true, ready: true } })

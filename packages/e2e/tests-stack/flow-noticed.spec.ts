@@ -1,7 +1,7 @@
 // F2 on the real stack: a product below its minimum shows in Flow noticed; acknowledging keeps
 // it (the condition is still true); raising the stock above the minimum makes it disappear.
 import scenesEn from "../../../apps/flow/messages/en/scenes.json" with { type: "json" }
-import { expect, loginFlow, test, unique } from "../src/stack"
+import { expect, loginFlow, test, unique, urls } from "../src/stack"
 import { freshOwner } from "./flow-scenes"
 
 const sc = scenesEn.scenes
@@ -12,14 +12,18 @@ test("below minimum → acknowledge (still listed) → stock raised → gone", a
 }) => {
   test.setTimeout(120_000)
   const { login, api } = await freshOwner(request, "noticed")
-  const store = (
-    await api.get<{ id: string; is_store: boolean }[]>(api.ws("/warehouses"))
-  ).find((w) => w.is_store)!
+  // A new workspace starts without warehouses: open its store first.
+  const { warehouse_id } = await api.post<{ warehouse_id: string }>(
+    api.ws("/warehouses"),
+    { name: "Shop floor", is_store: true }
+  )
+  const store = { id: warehouse_id }
   const name = `Raw Honey ${unique()}`
-  const product = await api.post<{ id: string }>(api.ws("/products"), {
-    name,
-    price: "4.00",
-  })
+  const { product_id } = await api.post<{ product_id: string }>(
+    api.ws("/products"),
+    { name, price: "4.00" }
+  )
+  const product = { id: product_id }
   // 2 on hand, workspace threshold 5 (no per-row minimum): below minimum.
   const move = (change: number) =>
     api.post(api.ws(`/products/${product.id}/stocks`), {
@@ -30,7 +34,7 @@ test("below minimum → acknowledge (still listed) → stock raised → gone", a
   await move(2)
 
   await loginFlow(page, login)
-  await page.goto("/scenes/noticed")
+  await page.goto(`${urls.flow}/scenes/noticed`)
   const item = page.locator(`[data-item="${product.id}"]`)
   await expect(item).toContainText(name)
   await item.getByRole("button", { name: sc.noticed.acknowledge }).click()

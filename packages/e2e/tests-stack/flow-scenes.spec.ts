@@ -14,7 +14,7 @@ test("pending orders first is saved by the API, restored after a new login, and 
   test.setTimeout(120_000)
   const { login, api } = await freshOwner(request, "scenes")
   await loginFlow(page, login)
-  await page.goto("/scenes/pulse")
+  await page.goto(`${urls.flow}/scenes/pulse`)
   const cards = page.locator("[data-component]")
   await expect(cards.first()).toHaveAttribute("data-component", "sales-today")
   await page.getByRole("button", { name: sc.pendingFirst }).click()
@@ -39,13 +39,13 @@ test("pending orders first is saved by the API, restored after a new login, and 
     await browser.newContext({ baseURL: urls.flow })
   ).newPage()
   await loginFlow(next, login)
-  await next.goto("/scenes/pulse")
+  await next.goto(`${urls.flow}/scenes/pulse`)
   await expect(next.locator("[data-component]").first()).toHaveAttribute(
     "data-component",
     "orders-pending"
   )
 
-  await next.goto("/")
+  await next.goto(`${urls.flow}/`)
   await next.getByRole("button", { name: sc.reset }).click()
   await next
     .getByRole("alertdialog")
