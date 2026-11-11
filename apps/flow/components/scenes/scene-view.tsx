@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -20,6 +20,7 @@ import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { Freshness } from "@/components/registry/data-state"
 import { BUILT_IN, keepKey, pendingFirst, sceneLayout } from "@/lib/scenes"
+import { flowStore } from "@/lib/flow-store"
 import { TTL } from "@/lib/scene-data"
 import {
   useRefreshOnOutcome,
@@ -75,6 +76,21 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   const remove = useFlowScenesDelete({ mutation: saved })
   const layout = sceneLayout(sceneKey)
   const scene = list.data?.data.find((s) => s.scene === sceneKey)
+  const shown = scene
+    ? period
+      ? scene.config.components.map((c) => (c.period ? { ...c, period } : c))
+      : scene.config.components
+    : []
+  // The agent knows what this scene shows (ids and types only), until the scene closes.
+  const visible = JSON.stringify(
+    shown
+      .filter((c) => !scene?.restricted.includes(c.id))
+      .map(({ id, type, metric, period: p }) => ({ id, type, metric, period: p }))
+  )
+  useEffect(() => {
+    flowStore.setState({ visible: JSON.parse(visible) })
+    return () => flowStore.setState({ visible: null })
+  }, [visible])
 
   if (!layout || (list.isSuccess && !scene))
     return <Notice variant="info" title={t("notFound")} />
@@ -97,9 +113,6 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   if (!scene) return <Skeleton className="h-40 w-full rounded-2xl" />
 
   const builtIn = (BUILT_IN as readonly string[]).includes(sceneKey)
-  const shown = period
-    ? scene.config.components.map((c) => (c.period ? { ...c, period } : c))
-    : scene.config.components
   const keptKey = period ? keepKey(period) : null
   const kept =
     !!keptKey && !!list.data?.data.some((s) => s.scene === keptKey && !s.hidden)

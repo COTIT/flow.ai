@@ -1,6 +1,8 @@
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
+import type { VisibleComponent } from "@genesy/voice/lib/scene-context"
+
 import type { OrbMode } from "./orb-geometry"
 
 type FlowState = {
@@ -25,6 +27,8 @@ type FlowState = {
   /** The record a scene has selected (ids only), for the agent's context. */
   selected: { type: string; ids: string[] } | null
   setSelected: (selected: { type: string; ids: string[] } | null) => void
+  /** What the open scene shows (ids and types only), for the agent's context. */
+  visible: VisibleComponent[] | null
 }
 
 /** Visual state of the shell; the conversation itself lives in the voice provider. */
@@ -50,6 +54,7 @@ export const flowStore = createStore<FlowState>()((set) => ({
     }),
   selected: null,
   setSelected: (selected) => set({ selected }),
+  visible: null,
 }))
 
 export const useFlow = <T,>(pick: (state: FlowState) => T) =>

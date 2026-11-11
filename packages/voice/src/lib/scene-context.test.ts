@@ -30,6 +30,31 @@ describe("scene context", () => {
     })
   })
 
+  it("lists what the scene shows by id, type, metric and period: never a value", () => {
+    expect(
+      sceneContext({
+        pathname: "/scenes/pulse",
+        visible: [
+          { id: "sales-today", type: "metric_card", metric: "sales.gross", period: "today", value: 1250 },
+          { id: "attention", type: "attention_panel" },
+        ] as never,
+      })
+    ).toEqual({
+      active_scene: "pulse",
+      visible: [
+        { id: "sales-today", type: "metric_card", metric: "sales.gross", period: "today" },
+        { id: "attention", type: "attention_panel" },
+      ],
+    })
+    // The task scene: how many results are shown and the newest one's kind.
+    expect(sceneContext({ pathname: "/results", results: ["records", "sales_daily"] })).toEqual({
+      active_scene: "results",
+      results_shown: 2,
+      latest_result: "sales_daily",
+    })
+    expect(sceneContext({ pathname: "/", visible: [], results: [] })).toEqual({ active_scene: "home" })
+  })
+
   it("wraps the context as untrusted UI state", () => {
     const sent = JSON.parse(contextUpdate({ active_scene: "home" }))
     expect(sent.flow_context).toEqual({ active_scene: "home" })
