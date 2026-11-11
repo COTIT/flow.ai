@@ -392,7 +392,9 @@ pub async fn daily(
            g AS (
                SELECT c.currency, c.decimals, d::date AS day
                FROM (SELECT DISTINCT currency, decimals FROM s) c
-               CROSS JOIN generate_series($2::date, $3::date - 1, interval '1 day') d)
+               -- timestamp overload: days must not follow the session time zone (DST).
+               CROSS JOIN generate_series($2::date::timestamp, ($3::date - 1)::timestamp,
+                                          interval '1 day') d)
            SELECT z.tz AS "tz!", g.currency AS "currency?", g.decimals AS "decimals?",
                   g.day AS "day?",
                   coalesce(s.net + s.vat, 0)::bigint AS "gross!",
@@ -408,4 +410,48 @@ pub async fn daily(
     )
     .fetch_all(db)
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    /// Days come from the workspace zone, never the session's: a DST zone on the connection
+    /// still yields each day exactly once, in order.
+    #[sqlx::test]
+    async fn daily_days_ignore_the_session_time_zone(pool: PgPool) {
+        let ws: Uuid = sqlx::query_scalar(
+            "WITH u AS (INSERT INTO users (email, first_name, last_name, password_hash)
+                        VALUES ('o@x.io', 'O', 'W', 'h') RETURNING id),
+                  w AS (INSERT INTO workspaces (name, created_by_user_id)
+                        SELECT 'acme', id FROM u RETURNING id),
+                  c AS (INSERT INTO currencies (workspace_id, name, asset_type)
+                        SELECT id, 'Euro', 'eur' FROM w RETURNING id, workspace_id),
+                  h AS (INSERT INTO warehouses (workspace_id, name, slug)
+                        SELECT id, 'Main', 'main' FROM w RETURNING id)
+             INSERT INTO orders (workspace_id, number, status, source, currency_id, warehouse_id,
+                                 subtotal, vat, total, confirmed_at)
+             SELECT c.workspace_id, n, 'completed', 'office', c.id, h.id, 100, 9, 109, t::timestamptz
+             FROM c, h, (VALUES ('1', '2026-09-06T12:00:00Z'), ('2', '2026-04-05T12:00:00Z')) v(n, t)
+             RETURNING workspace_id",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap()[0];
+        let mut conn = pool.acquire().await.unwrap();
+        // Chile: midnight skipped on 6 Sep 2026, repeated on 5 Apr 2026.
+        sqlx::query("SET TIME ZONE 'America/Santiago'")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        for (from, to) in [((2026, 9, 3), (2026, 9, 9)), ((2026, 4, 2), (2026, 4, 8))] {
+            let d = |(y, m, d)| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+            let rows = daily(&mut *conn, ws, d(from), d(to), None).await.unwrap();
+            let days: Vec<_> = rows.iter().filter_map(|r| r.day).collect();
+            let want: Vec<_> = d(from).iter_days().take_while(|x| *x < d(to)).collect();
+            assert_eq!(days, want, "{from:?}");
+            assert_eq!(rows.iter().map(|r| r.orders).sum::<i64>(), 1);
+        }
+    }
 }

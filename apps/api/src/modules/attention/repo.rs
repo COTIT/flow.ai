@@ -532,7 +532,12 @@ pub async fn overdue_invoice_items(
                SELECT i.id, i.invoice_number, i.invoice_appendix, i.due_date, i.created_at,
                       i.total - i.paid_total AS open,
                       upper(cu.asset_type) AS currency, cu.decimals,
-                      coalesce(nullif(r.company_name, ''), nullif(r.alias, ''), '') AS customer,
+                      coalesce(nullif(r.company_name, ''), nullif(r.alias, ''),
+                          (SELECT nullif(concat_ws(' ', c.first_name, c.middle_name, c.last_name), '')
+                           FROM contacts c
+                           WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
+                             AND c.deleted_at IS NULL
+                           ORDER BY c.created_at, c.id LIMIT 1)) AS customer,
                       coalesce(mk.state = 'acknowledged', false) AS acked,
                       coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
                FROM invoices i
@@ -543,7 +548,8 @@ pub async fn overdue_invoice_items(
                      AND mk.kind = 'invoices.overdue' AND mk.ref_id = i.id
                WHERE i.workspace_id = $1 AND i.deleted_at IS NULL AND NOT i.is_credit
                  AND i.status = ANY($3) AND i.due_date < $4)
-           SELECT d.id AS "ref_id!", d.customer AS "label!", d.invoice_number,
+           SELECT d.id AS "ref_id!", coalesce(d.customer, 'Unnamed customer') AS "label!",
+                  d.invoice_number,
                   d.invoice_appendix, d.open AS amount, d.currency AS "currency?",
                   d.decimals AS "decimals?", d.due_date AS since,
                   d.acked AS "acked!", d.snoozed AS "snoozed!",

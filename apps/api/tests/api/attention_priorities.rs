@@ -569,3 +569,40 @@ async fn prune_drops_stale_marks(pool: PgPool) {
         .unwrap();
     assert_eq!(left, std::slice::from_ref(&w.wax));
 }
+
+/// Overdue invoice label: relation company, else alias, else its first contact's name (as the
+/// summary's `customer_name`); never blank.
+#[sqlx::test]
+async fn overdue_invoice_label_falls_back_to_contact_name(pool: PgPool) {
+    let f = invoicing::setup(pool).await;
+    let api = &f.api;
+    let id = invoicing::draft(&f, invoicing::chairs(&f, 1, None), false).await;
+    sql(
+        &api.pool,
+        "UPDATE invoices SET status = 'pending', due_date = now() - interval '3 days'
+         WHERE id = $1::uuid AND $2 = $2",
+        &id,
+        "",
+    )
+    .await;
+    let want: String = sqlx::query_scalar(
+        "SELECT concat_ws(' ', first_name, middle_name, last_name) FROM contacts WHERE id = $1::uuid",
+    )
+    .bind(&f.contact)
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    sql(
+        &api.pool,
+        "UPDATE relations SET company_name = '', alias = '' WHERE id = $1::uuid AND $2 = $2",
+        &f.rel,
+        "",
+    )
+    .await;
+    let p = priorities(api, &api.owner).await;
+    let g = group(&p, "invoices.overdue");
+    assert_eq!(g["count"], 1, "{p}");
+    assert_eq!(g["items"][0]["ref_id"], id.as_str());
+    assert_eq!(g["items"][0]["label"], want.as_str(), "{g}");
+    assert!(!want.trim().is_empty());
+}
