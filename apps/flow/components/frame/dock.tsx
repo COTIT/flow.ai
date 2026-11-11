@@ -118,7 +118,6 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           void submit(text)
         }}
       />
-
       {state && state !== "available" && !live ? (
         <Notice
           variant={look[state].variant}
@@ -139,7 +138,6 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           {look[state].text ? t(`flow.${look[state].text}`) : null}
         </Notice>
       ) : null}
-
       {phase === "ended" ? (
         <p role="status" className="text-sm">
           {t("shell.ended")}{" "}
@@ -150,11 +148,9 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         </p>
       ) : null}
       <VoiceUnfinished />
-
       {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
       {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
       <ResumePrompt ended={phase === "ended"} /> {/* F4 */}
-
       {handoff ? (
         <Notice variant="info" title={t("flow.chat.secureTitle")}>
           {handoffHref ? (
@@ -175,13 +171,11 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           )}
         </Notice>
       ) : null}
-
       {voice.error ? (
         <p role="alert" className="text-sm text-destructive">
           {voice.error}
         </p>
       ) : null}
-
       {voice.connected ? (
         <AttachmentList
           onPreview={(file, opener) => {
@@ -190,7 +184,6 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           }}
         />
       ) : null}
-
       {/* While an action waits for approval nothing here can be used, so nothing cancels it by accident. */}
       <form
         inert={Boolean(voice.review)}

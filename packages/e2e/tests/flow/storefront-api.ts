@@ -139,11 +139,7 @@ export const previewToken = (n: number) => n.toString(16).padStart(64, "a")
  * once), DELETE revokes, GET lists newest first without tokens. `set` changes the newest link's
  * status as the server would (expiry, publish ending it).
  */
-export function previewLinks(
-  api: FakeApi,
-  initial: string[] = [],
-  ws = "w1"
-) {
+export function previewLinks(api: FakeApi, initial: string[] = [], ws = "w1") {
   let issued = 0
   const links = initial.map((status, i) => link(`seed-${i}`, status))
   function link(link_id: string, status: string) {
@@ -163,7 +159,10 @@ export function previewLinks(
       issued++
       const row = link(`link-${issued}`, "active")
       links.unshift(row)
-      return { status: 201, body: { data: { ...row, token: previewToken(issued) } } }
+      return {
+        status: 201,
+        body: { data: { ...row, token: previewToken(issued) } },
+      }
     })
     .on("DELETE", `${root(ws)}/preview-links/:link`, ({ params }) => {
       const row = links.find((l) => l.link_id === params[0])!
