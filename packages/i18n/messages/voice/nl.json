@@ -493,7 +493,13 @@
         "stock": "Voorraad",
         "till_shifts": "Open kassadiensten",
         "lots": "Partijen",
-        "webhooks": "Mislukte webhooks"
+        "webhooks": "Mislukte webhooks",
+        "stock_below_minimum": "Onder minimumvoorraad",
+        "orders_open": "Open bestellingen",
+        "invoices_overdue": "Achterstallige facturen",
+        "till_open_shifts": "Open kassadiensten",
+        "lots_quarantined": "Partijen in quarantaine",
+        "webhooks_failed": "Mislukte webhooks"
       },
       "counts": {
         "open": "Open",
@@ -504,7 +510,9 @@
         "quarantined": "Geblokkeerd",
         "holds": "Vastgehouden door bestellingen",
         "failed": "Mislukt",
-        "negative": "Negatieve voorraad"
+        "negative": "Negatieve voorraad",
+        "acknowledged": "Gezien",
+        "snoozed": "Uitgesteld"
       },
       "attempts": "{count, plural, one {# poging} other {# pogingen}}",
       "level": "Niveau {level}",

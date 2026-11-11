@@ -493,7 +493,13 @@
         "stock": "Stoo",
         "till_shifts": "Zamu za kaunta zilizo wazi",
         "lots": "Makundi",
-        "webhooks": "Webhook zilizoshindwa"
+        "webhooks": "Webhook zilizoshindwa",
+        "stock_below_minimum": "Stoo chini ya kiwango",
+        "orders_open": "Oda zilizo wazi",
+        "invoices_overdue": "Ankara zilizochelewa",
+        "till_open_shifts": "Zamu za kaunta zilizo wazi",
+        "lots_quarantined": "Loti zilizotengwa",
+        "webhooks_failed": "Webhook zilizoshindwa"
       },
       "counts": {
         "open": "Wazi",
@@ -504,7 +510,9 @@
         "quarantined": "Zimezuiwa",
         "holds": "Zimeshikiliwa na oda",
         "failed": "Zimeshindwa",
-        "negative": "Stoo hasi"
+        "negative": "Stoo hasi",
+        "acknowledged": "Imeonekana",
+        "snoozed": "Imeahirishwa"
       },
       "attempts": "{count, plural, one {jaribio #} other {majaribio #}}",
       "level": "Kiwango {level}",

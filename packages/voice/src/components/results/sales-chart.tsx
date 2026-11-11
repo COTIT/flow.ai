@@ -18,10 +18,12 @@ export function SalesChart({ views }: { views: Sales[] }) {
   const tableId = useId()
   // Account-local calendar day: the API's own date part, so the browser's zone never moves it.
   const period = (v: Sales) =>
-    t("period", {
-      from: formatDate(v.from.slice(0, 10), locale),
-      to: formatDate(v.to.slice(0, 10), locale),
-    })
+    v.from.slice(0, 10) === v.to.slice(0, 10)
+      ? formatDate(v.from.slice(0, 10), locale)
+      : t("period", {
+          from: formatDate(v.from.slice(0, 10), locale),
+          to: formatDate(v.to.slice(0, 10), locale),
+        })
   const currencies = [...new Set(views.flatMap((v) => v.rows.map((r) => r.currency)))]
   const source = views[0]?.source
   const title = t(`source.${source && t.has(`source.${source}`) ? source : "all"}`)
@@ -97,7 +99,7 @@ export function SalesChart({ views }: { views: Sales[] }) {
                 <td className="py-1 pr-2 text-right">{row ? formatMoney(row.gross, row.decimals, currency, locale) : "—"}</td>
                 <td className="py-1 pr-2 text-right">{row && row.net !== null ? formatMoney(row.net, row.decimals, currency, locale) : "—"}</td>
                 <td className="py-1 pr-2 text-right">{row && row.vat !== null ? formatMoney(row.vat, row.decimals, currency, locale) : "—"}</td>
-                <td className="py-1 pr-2 text-right">{row ? formatMoney(row.refunded, row.decimals, currency, locale) : "—"}</td>
+                <td className="py-1 pr-2 text-right">{row && row.refunded !== null ? formatMoney(row.refunded, row.decimals, currency, locale) : "—"}</td>
                 <td className="py-1 text-right">{row?.orders ?? 0}</td>
               </tr>
             ))

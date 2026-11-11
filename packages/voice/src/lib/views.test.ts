@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { resultView } from "./views"
+import { dailyAsSales, resultView } from "./views"
 
 const a = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
 const b = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5c"
@@ -187,6 +187,74 @@ describe("resultView", () => {
     expect(view.sections[2]!.items[0]).toMatchObject({ label: "Front", at: "2026-11-08T06:00:00Z", href: null })
     expect(view.sections[3]).toEqual({ key: "lots", counts: { quarantined: 1, holds: 0 }, items: [] })
     expect(view.sections[4]!.items[0]).toMatchObject({ label: "order.paid", detail: "timeout", attempts: 5 })
+  })
+
+  it("Flow noticed priorities show as attention sections in the API's order, unknown kinds left out", () => {
+    const view = resultView("attention_priorities", {
+      data: {
+        generated_at: "2026-11-11T08:00:00Z",
+        restricted: ["invoices.overdue"],
+        groups: [
+          {
+            kind: "stock.below_minimum", count: 3, open_count: 3, acknowledged_count: 1, snoozed_count: 0,
+            snoozed: false, headline_ref: a, impact: { open_orders: 8 }, actions: ["review"],
+            items: Array.from({ length: 7 }, (_, i) => ({
+              ref_id: a, label: `Honey ${i}`, available: "2.00", minimum: "5.00", shortfall: "3.00",
+              open_orders: 8, money: null, since: null, acknowledged: i === 0,
+            })),
+          },
+          {
+            kind: "orders.open", count: 1, open_count: 1, acknowledged_count: 0, snoozed_count: 0,
+            snoozed: false, headline_ref: b, impact: { open_orders: null }, actions: [],
+            items: [{ ref_id: b, label: "ORD-7", available: null, minimum: null, shortfall: null, open_orders: null,
+              money: { currency: "USD", decimals: 2, amount: 1250 }, since: "2026-11-10T09:00:00Z", acknowledged: false }],
+          },
+          { kind: "unknown.kind", count: 1, items: [] },
+        ],
+      },
+    })
+    if (view?.kind !== "attention") throw new Error("expected attention")
+    expect(view.sections.map((s) => s.key)).toEqual(["stock_below_minimum", "orders_open"])
+    const stock = view.sections[0]!
+    expect(stock.counts).toEqual({ open: 3, acknowledged: 1, snoozed: 0 })
+    expect(stock.items).toHaveLength(5)
+    expect(stock.items[0]).toMatchObject({ label: "Honey 0", level: "2.00", href: `/products/${a}`, money: null })
+    expect(view.sections[1]!.items[0]).toMatchObject({
+      label: "ORD-7",
+      money: { minor: 1250, decimals: 2, currency: "USD" },
+      at: "2026-11-10T09:00:00Z",
+      href: `/orders/${b}`,
+    })
+  })
+
+  it("daily sales keep each currency apart and become one sales bar per day, never summed", () => {
+    const view = resultView("orders_sales_daily", {
+      data: {
+        time_zone: "Africa/Nairobi",
+        from: "2026-11-09",
+        to: "2026-11-11",
+        currencies: [
+          { currency: "KES", decimals: 2, days: [
+            { date: "2026-11-09", gross: 1000, net: 860, orders: 2 },
+            { date: "2026-11-10", gross: 0, net: 0, orders: 0 },
+            { date: "bad", gross: 5, net: 5, orders: 1 },
+          ] },
+          { currency: "USD", decimals: 2, days: [{ date: "2026-11-09", gross: 500, net: 500, orders: 1 }] },
+        ],
+      },
+    })
+    if (view?.kind !== "sales_daily") throw new Error("expected sales_daily")
+    expect(view.currencies.map((c) => c.currency)).toEqual(["KES", "USD"])
+    expect(view.currencies[0]!.days).toHaveLength(2)
+    const bars = dailyAsSales(view)
+    expect(bars.map((v) => v.from)).toEqual(["2026-11-09", "2026-11-10"])
+    expect(bars[0]!.rows).toEqual([
+      { currency: "KES", decimals: 2, gross: 1000, net: 860, vat: null, refunded: null, orders: 2 },
+      { currency: "USD", decimals: 2, gross: 500, net: 500, vat: null, refunded: null, orders: 1 },
+    ])
+    expect(bars[1]!.rows.map((r) => r.currency)).toEqual(["KES"])
+    expect(resultView("orders_sales_daily", { data: { currencies: "x" } })).toBeUndefined()
+    expect(resultView("attention_priorities", { data: { groups: "x" } })).toBeUndefined()
   })
 
   it("an unexpected shape shows nothing rather than guessing", () => {

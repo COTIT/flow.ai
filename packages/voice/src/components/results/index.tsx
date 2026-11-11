@@ -6,7 +6,7 @@ import { ChevronRight, ExternalLink } from "lucide-react"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import type { Money, ResultView } from "../../lib/views"
+import { dailyAsSales, type Money, type ResultView } from "../../lib/views"
 import { fieldName } from "../../lib/helpers"
 import { useVoice } from "../provider"
 import { SalesChart } from "./sales-chart"
@@ -235,6 +235,7 @@ export function VoiceResult({ views, statusLabel }: { views: ResultView[]; statu
   if (!first) return null
   const body =
     first.kind === "sales" ? <SalesChart views={views.filter((v): v is Of<"sales"> => v.kind === "sales")} />
+    : first.kind === "sales_daily" ? <SalesChart views={dailyAsSales(first)} />
     : first.kind === "records" ? <Records view={first} />
     : first.kind === "lot_origin" ? <LotOrigin view={first} />
     : first.kind === "trail" ? <Trail view={first} />
