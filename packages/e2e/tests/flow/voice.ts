@@ -21,8 +21,11 @@ type Event = { type?: string; [key: string]: unknown }
 export async function fakeAgent(
   page: Page,
   onUser?: (text: string, agent: Agent) => void,
-  /** `refuse()` true: a new connection is closed at once (the network is down). */
-  { refuse }: { refuse?: () => boolean } = {}
+  /**
+   * `refuse()` true: a new connection is closed at once (the network is down).
+   * `files`: also answer a message sent with files (`multimodal_message`, its `text.text`).
+   */
+  { refuse, files = false }: { refuse?: () => boolean; files?: boolean } = {}
 ) {
   const agent = {
     sent: [] as Event[],
@@ -71,6 +74,8 @@ export async function fakeAgent(
         })
       if (event.type === "user_message" && onUser)
         onUser(String(event.text ?? ""), agent)
+      if (event.type === "multimodal_message" && files && onUser)
+        onUser(String((event.text as { text?: unknown } | undefined)?.text ?? ""), agent)
     })
   })
   return agent

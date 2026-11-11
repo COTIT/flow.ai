@@ -71,9 +71,11 @@ export function seedOf(): number {
   return process.env.CI ? 1 : Math.floor(Math.random() * 2 ** 31) + 1
 }
 
-/** Every approval decision the browser sent (from the mock's view): one per ticket at most. */
-export function confirmLog(page: Page) {
-  const seen: { ticket: string; decision: string }[] = []
+/** Every approval decision the browser sent (from the mock's view), added to `seen`. */
+export function confirmLog(
+  page: Page,
+  seen: { ticket: string; decision: string }[] = []
+) {
   page.on("request", (request: Request) => {
     if (new URL(request.url()).pathname !== "/api/voice/confirm") return
     try {
@@ -90,6 +92,30 @@ export function confirmLog(page: Page) {
     }
   })
   return seen
+}
+
+/**
+ * A fast, honest agent: answers each typed line (with or without files) a moment later, with its
+ * own event id; refuses to connect while the network is down.
+ */
+export function honestAgent(page: Page, net: { down: boolean }) {
+  let id = 0
+  return fakeAgent(
+    page,
+    (text, a) =>
+      setTimeout(
+        () =>
+          a.emit({
+            type: "agent_response",
+            agent_response_event: {
+              agent_response: `Noted: ${text.slice(0, 60)}`,
+              event_id: ++id,
+            },
+          }),
+        80
+      ),
+    { refuse: () => net.down, files: true }
+  )
 }
 
 /** Things that load or think; each must settle (or say what is wrong) within `ms`. */
@@ -301,9 +327,9 @@ export class Persona {
     // A tab opened after the network dropped may still see those failures.
     if (this.wentOffline) markInjected(page, /./)
     await page.route("**/v1/**", (route) => api.handle(route))
-    const agent = await fakeAgent(page, undefined, {
-      refuse: () => this.net.down,
-    })
+    // Answers like the first tab's agent; its approvals count in the same log.
+    const agent = await honestAgent(page, this.net)
+    confirmLog(page, this.confirms)
     this.pages.push(page)
     this.agents.push(agent)
     if (this.wentOffline) await this.tunnel(page)
@@ -432,25 +458,8 @@ export const test = flowTest.extend<{ persona: Persona }>({
       `[persona] ${info.title} · ${info.project.name} · PERSONA_SEED=${seed}`
     )
     void api
-    // A fast, honest agent: answers each typed line a moment later, with its own event id.
-    let id = 0
     const net = { down: false }
-    const agent = await fakeAgent(
-      page,
-      (text, a) =>
-        setTimeout(
-          () =>
-            a.emit({
-              type: "agent_response",
-              agent_response_event: {
-                agent_response: `Noted: ${text.slice(0, 60)}`,
-                event_id: ++id,
-              },
-            }),
-          80
-        ),
-      { refuse: () => net.down }
-    )
+    const agent = await honestAgent(page, net)
     await use(new Persona(page, agent, seed, { foreign: [] }, net))
   },
 })
