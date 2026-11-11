@@ -1,0 +1,134 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH d AS (\n               SELECT o.id, o.number, o.total, upper(c.asset_type) AS currency, c.decimals,\n                      o.created_at,\n                      coalesce(mk.state = 'acknowledged', false) AS acked,\n                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed\n               FROM orders o\n               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n               LEFT JOIN attention_marks mk\n                      ON mk.workspace_id = $1 AND mk.user_id = $2\n                     AND mk.kind = 'orders.open' AND mk.ref_id = o.id\n               WHERE o.workspace_id = $1 AND o.status IN ('draft', 'open'))\n           SELECT d.id AS \"ref_id!\", d.number AS \"label!\", NULL::bigint AS invoice_number,\n                  NULL::jsonb AS invoice_appendix, d.total AS amount, d.currency AS \"currency?\",\n                  d.decimals AS \"decimals?\", d.created_at AS since,\n                  d.acked AS \"acked!\", d.snoozed AS \"snoozed!\",\n                  count(*) OVER () AS \"total!\",\n                  count(*) FILTER (WHERE d.acked) OVER () AS \"acked_n!\",\n                  count(*) FILTER (WHERE d.snoozed) OVER () AS \"snoozed_n!\"\n           FROM d\n           ORDER BY d.snoozed, d.created_at, d.id\n           LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ref_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "label!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "invoice_number",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "invoice_appendix",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "total"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "decimals?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "since",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "acked!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "snoozed!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "acked_n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "snoozed_n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      false,
+      null,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "94e4dd315bfa576b5f7c0b907f83c654dcb1132a0959a00ff0d2976ba9904af3"
+}

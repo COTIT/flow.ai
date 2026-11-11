@@ -13,8 +13,8 @@ use crate::{
     },
     modules::analytics::{
         dto::{
-            CompareQuery, ExportQuery, InvoiceExport, SalesCompare, TopCustomers, TopProducts,
-            TopQuery,
+            CompareQuery, DailyQuery, ExportQuery, InvoiceExport, SalesCompare, SalesDaily,
+            TopCustomers, TopProducts, TopQuery,
         },
         service,
     },
@@ -135,4 +135,28 @@ pub async fn invoices_export(
     Ok(Data(
         service::export_invoices(&state, access.workspace_id, access.user_id, bounds).await?,
     ))
+}
+
+/// GET /sales/daily.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/sales/daily", tag = "orders",
+    operation_id = "orders_sales_daily",
+    summary = "Sales per day for a chart (daily sales, revenue trend, per day)",
+    description = "Gross (incl VAT), net and order count per local day in `[from, to)`, read in the workspace time zone (`time_zone`), same sold rule as `orders_sales_summary`. One series per currency sold in range, every day present (zero-filled); currencies never mix; nothing sold = empty `currencies`. `from`/`to` are `YYYY-MM-DD`, at most 92 days apart. Money in minor units.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), DailyQuery),
+    responses(
+        (status = 200, body = Envelope<SalesDaily>, description = "Daily series per currency"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "`from`/`to` missing or not `YYYY-MM-DD`, `to` not after `from`, over 92 days, unknown `source`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn daily(
+    State(state): State<AppState>,
+    access: Can<SalesList>,
+    Query(query): Query<DailyQuery>,
+) -> Result<Data<SalesDaily>, AppError> {
+    let q = query.daily()?;
+    Ok(Data(service::daily(&state, access.workspace_id, q).await?))
 }

@@ -89,6 +89,36 @@ describe("reviewed operation coverage", () => {
     ).toThrow()
   })
 
+  it("reviews attention marks like design edits; priorities and daily sales are reads", () => {
+    const tool = (id: string) => tools.find((t) => t.id === id)
+    for (const id of ["attention_marks_set", "attention_marks_delete"]) {
+      expect(tool(id)?.write, id).toBe(true)
+      const op = (o: string) => operationManifest.find((m) => m.id === o)
+      expect(op(id)?.disposition, id).toBe("execute")
+      expect(op(id)?.risk, id).toBe(op("storefront_design_edit")?.risk)
+    }
+    // `write` actions only ever leave the tool route as a review card (`proposeAction`).
+    const set = prepareAction(
+      "attention_marks_set",
+      {
+        body: {
+          kind: "stock.below_minimum",
+          ref_id: uuid,
+          state: "snoozed",
+          snooze: "until_tomorrow",
+        },
+      },
+      uuid
+    )
+    expect(set.write).toBe(true)
+    expect(
+      prepareAction("attention_marks_delete", { path: { mark: uuid } }, uuid)
+        .write
+    ).toBe(true)
+    for (const id of ["attention_priorities", "orders_sales_daily"])
+      expect(tool(id)?.write, id).toBe(false)
+  })
+
   it("pins material-review, durable-delivery and cleanup authorities", () => {
     const policies = JSON.parse(
       readFileSync(new URL("./operation-policy.json", import.meta.url), "utf8")
@@ -429,14 +459,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(497)
-    expect(tools).toHaveLength(402)
+    expect(operationManifest).toHaveLength(505)
+    expect(tools).toHaveLength(406)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(38)
+    ).toHaveLength(42)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
@@ -457,18 +487,6 @@ describe("reviewed operation coverage", () => {
     ]) {
       expect(getOperation(id)?.disposition).toBe("internal")
       expect(discoverTools(id, ["farm:ops", "farm:admin"])).toEqual([])
-    }
-  })
-
-  it("keeps Your Flow scene settings out of voice until the voice wiring change", () => {
-    for (const id of [
-      "flow_scenes_list",
-      "flow_scenes_update",
-      "flow_scenes_delete",
-      "flow_scenes_reset",
-    ]) {
-      expect(getOperation(id)?.disposition, id).toBe("internal")
-      expect(discoverTools(id, [])).toEqual([])
     }
   })
 

@@ -344,3 +344,114 @@ pub async fn export_lines(
     .fetch_all(db)
     .await
 }
+
+/// A day of one currency (currency None: nothing sold in range; the row only carries `tz`).
+pub struct DailyRow {
+    pub tz: String,
+    pub currency: Option<String>,
+    pub decimals: Option<i16>,
+    pub day: Option<NaiveDate>,
+    pub gross: i64,
+    pub net: i64,
+    pub orders: i64,
+}
+
+/// Sold orders per local day (`general.timezone`, UTC fallback) in `[from, to)`, every day for
+/// every currency sold in range, ordered by currency then day. One statement.
+pub async fn daily(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+    source: Option<&str>,
+) -> Result<Vec<DailyRow>, sqlx::Error> {
+    sqlx::query_as!(
+        DailyRow,
+        r#"WITH z AS (
+               SELECT coalesce((SELECT n.name FROM pg_timezone_names n
+                                WHERE n.name = (SELECT s.data #>> '{general,timezone}'
+                                                FROM settings s WHERE s.workspace_id = $1)),
+                               'UTC') AS tz),
+           s AS (
+               SELECT upper(c.asset_type) AS currency, c.decimals,
+                      (coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)
+                          AT TIME ZONE z.tz)::date AS day,
+                      sum(o.subtotal)::bigint AS net, sum(o.vat)::bigint AS vat,
+                      count(*) AS orders
+               FROM orders o
+               CROSS JOIN z
+               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+               WHERE o.workspace_id = $1
+                 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')
+                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)
+                     >= $2::date::timestamp AT TIME ZONE z.tz
+                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)
+                     < $3::date::timestamp AT TIME ZONE z.tz
+                 AND ($4::text IS NULL OR o.source = $4)
+               GROUP BY 1, 2, 3),
+           g AS (
+               SELECT c.currency, c.decimals, d::date AS day
+               FROM (SELECT DISTINCT currency, decimals FROM s) c
+               -- timestamp overload: days must not follow the session time zone (DST).
+               CROSS JOIN generate_series($2::date::timestamp, ($3::date - 1)::timestamp,
+                                          interval '1 day') d)
+           SELECT z.tz AS "tz!", g.currency AS "currency?", g.decimals AS "decimals?",
+                  g.day AS "day?",
+                  coalesce(s.net + s.vat, 0)::bigint AS "gross!",
+                  coalesce(s.net, 0)::bigint AS "net!",
+                  coalesce(s.orders, 0) AS "orders!"
+           FROM z
+           LEFT JOIN (g LEFT JOIN s ON s.currency = g.currency AND s.day = g.day) ON true
+           ORDER BY g.currency, g.day"#,
+        workspace_id,
+        from,
+        to,
+        source,
+    )
+    .fetch_all(db)
+    .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    /// Days come from the workspace zone, never the session's: a DST zone on the connection
+    /// still yields each day exactly once, in order.
+    #[sqlx::test]
+    async fn daily_days_ignore_the_session_time_zone(pool: PgPool) {
+        let ws: Uuid = sqlx::query_scalar(
+            "WITH u AS (INSERT INTO users (email, first_name, last_name, password_hash)
+                        VALUES ('o@x.io', 'O', 'W', 'h') RETURNING id),
+                  w AS (INSERT INTO workspaces (name, created_by_user_id)
+                        SELECT 'acme', id FROM u RETURNING id),
+                  c AS (INSERT INTO currencies (workspace_id, name, asset_type)
+                        SELECT id, 'Euro', 'eur' FROM w RETURNING id, workspace_id),
+                  h AS (INSERT INTO warehouses (workspace_id, name, slug)
+                        SELECT id, 'Main', 'main' FROM w RETURNING id)
+             INSERT INTO orders (workspace_id, number, status, source, currency_id, warehouse_id,
+                                 subtotal, vat, total, confirmed_at)
+             SELECT c.workspace_id, n, 'completed', 'office', c.id, h.id, 100, 9, 109, t::timestamptz
+             FROM c, h, (VALUES ('1', '2026-09-06T12:00:00Z'), ('2', '2026-04-05T12:00:00Z')) v(n, t)
+             RETURNING workspace_id",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap()[0];
+        let mut conn = pool.acquire().await.unwrap();
+        // Chile: midnight skipped on 6 Sep 2026, repeated on 5 Apr 2026.
+        sqlx::query("SET TIME ZONE 'America/Santiago'")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        for (from, to) in [((2026, 9, 3), (2026, 9, 9)), ((2026, 4, 2), (2026, 4, 8))] {
+            let d = |(y, m, d)| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+            let rows = daily(&mut *conn, ws, d(from), d(to), None).await.unwrap();
+            let days: Vec<_> = rows.iter().filter_map(|r| r.day).collect();
+            let want: Vec<_> = d(from).iter_days().take_while(|x| *x < d(to)).collect();
+            assert_eq!(days, want, "{from:?}");
+            assert_eq!(rows.iter().map(|r| r.orders).sum::<i64>(), 1);
+        }
+    }
+}

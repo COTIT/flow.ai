@@ -22,6 +22,7 @@ mod assistant_retention;
 mod assistant_review_safety;
 mod assistant_storefront_design;
 mod attention;
+mod attention_priorities;
 mod body_limits;
 mod bootstrap;
 mod checkout;

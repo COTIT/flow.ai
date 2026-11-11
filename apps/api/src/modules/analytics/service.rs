@@ -10,9 +10,10 @@ use crate::{
     modules::{
         analytics::{
             dto::{
-                Bounds, Compare, CompareCurrency, CustomerCurrency, CustomerRow, ExportTotals,
-                InvoiceExport, Named, OrderTotals, Period, ProductCurrency, ProductRow,
-                SalesCompare, Sums, Top, TopCustomers, TopProducts, VariantRef, When,
+                Bounds, Compare, CompareCurrency, CustomerCurrency, CustomerRow, Daily,
+                DailyCurrency, DailyPoint, ExportTotals, InvoiceExport, Named, OrderTotals, Period,
+                ProductCurrency, ProductRow, SalesCompare, SalesDaily, Sums, Top, TopCustomers,
+                TopProducts, VariantRef, When,
             },
             export, repo,
         },
@@ -308,4 +309,38 @@ pub async fn export_invoices(
     out.url = Some(url);
     out.expires_at = Some(link_expires);
     Ok(out)
+}
+
+/// Daily sales series per currency, zero-filled, in the workspace time zone.
+pub async fn daily(state: &AppState, workspace_id: Uuid, q: Daily) -> Result<SalesDaily, AppError> {
+    let rows = repo::daily(&state.db, workspace_id, q.from, q.to, q.source.as_deref()).await?;
+    let time_zone = rows
+        .first()
+        .map_or_else(|| "UTC".to_owned(), |r| r.tz.clone());
+    let mut currencies: Vec<DailyCurrency> = Vec::new();
+    for r in rows {
+        let (Some(currency), Some(decimals), Some(date)) = (r.currency, r.decimals, r.day) else {
+            continue;
+        };
+        let point = DailyPoint {
+            date,
+            gross: r.gross,
+            net: r.net,
+            orders: r.orders,
+        };
+        match currencies.last_mut() {
+            Some(c) if c.currency == currency => c.days.push(point),
+            _ => currencies.push(DailyCurrency {
+                currency,
+                decimals,
+                days: vec![point],
+            }),
+        }
+    }
+    Ok(SalesDaily {
+        time_zone,
+        from: q.from,
+        to: q.to,
+        currencies,
+    })
 }

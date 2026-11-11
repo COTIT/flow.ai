@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::modules::attention::dto::{
     AttentionDelivery, AttentionLot, AttentionMoney, AttentionOrder, AttentionShift,
-    AttentionStockItem,
+    AttentionStockItem, Mark, NewMark,
 };
 
 /// Order counts: draft (`OrderAction::Confirm`), open (`Pick`/`Complete`), awaiting payment.
@@ -367,4 +367,401 @@ pub async fn failed_deliveries(
         })
         .collect();
     Ok((items, total))
+}
+
+/// A below-minimum product with the caller's mark and the group totals (window counts, so the
+/// headline and the items come from one statement).
+pub struct StockRow {
+    pub ref_id: Uuid,
+    pub label: String,
+    pub available: String,
+    pub minimum: String,
+    pub shortfall: String,
+    pub open_orders: Option<i64>,
+    pub acked: bool,
+    pub snoozed: bool,
+    pub total: i64,
+    pub acked_n: i64,
+    pub snoozed_n: i64,
+    pub impact: Option<i64>,
+}
+
+/// Products whose sellable available (the `sold_out` rule) is below their minimum: Σ row
+/// `minimal_stock_level` when above 0, else `threshold`. `user`'s marks joined (nil = none);
+/// snoozed rows last; then most open orders, largest shortfall, name. `with_orders` false
+/// leaves `open_orders` and `impact` null.
+// shortcut: aggregates every tracked product like `sold_out`; same upgrade path.
+pub async fn below_minimum(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    threshold: i64,
+    with_orders: bool,
+    limit: i64,
+) -> Result<Vec<StockRow>, sqlx::Error> {
+    sqlx::query_as!(
+        StockRow,
+        r#"WITH a AS (
+               SELECT p.id, p.name,
+                      coalesce((SELECT sum(s.stock_lvl - s.reserved)
+                                FROM stocks s
+                                LEFT JOIN lots l ON l.id = s.lot_id
+                                WHERE s.workspace_id = $1 AND s.product_id = p.id
+                                  AND s.deleted_at IS NULL
+                                  AND (s.lot_id IS NULL OR (l.status = 'released'
+                                       AND (l.expires_on IS NULL
+                                            OR l.expires_on >= current_date)))),
+                               0) AS available,
+                      coalesce((SELECT sum(s.minimal_stock_level) FROM stocks s
+                                WHERE s.workspace_id = $1 AND s.product_id = p.id
+                                  AND s.deleted_at IS NULL), 0) AS row_min
+               FROM products p
+               WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock),
+           d AS (
+               SELECT a.id, a.name, a.available, b.minimum,
+                      b.minimum - a.available AS shortfall,
+                      CASE WHEN $4 THEN (
+                          SELECT count(DISTINCT ol.order_id)
+                          FROM order_lines ol
+                          JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id
+                          WHERE ol.workspace_id = $1 AND ol.product_id = a.id
+                            AND o.status IN ('draft', 'open')) END AS open_orders,
+                      coalesce(mk.state = 'acknowledged', false) AS acked,
+                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
+               FROM a
+               CROSS JOIN LATERAL (SELECT (CASE WHEN a.row_min > 0 THEN a.row_min
+                                                ELSE $3::bigint END)::numeric AS minimum) b
+               LEFT JOIN attention_marks mk
+                      ON mk.workspace_id = $1 AND mk.user_id = $2
+                     AND mk.kind = 'stock.below_minimum' AND mk.ref_id = a.id
+               WHERE a.available < b.minimum)
+           SELECT d.id AS "ref_id!", d.name AS "label!",
+                  d.available::numeric(19, 2)::text AS "available!",
+                  d.minimum::numeric(19, 2)::text AS "minimum!",
+                  d.shortfall::numeric(19, 2)::text AS "shortfall!",
+                  d.open_orders, d.acked AS "acked!", d.snoozed AS "snoozed!",
+                  count(*) OVER () AS "total!",
+                  count(*) FILTER (WHERE d.acked) OVER () AS "acked_n!",
+                  count(*) FILTER (WHERE d.snoozed) OVER () AS "snoozed_n!",
+                  CASE WHEN $4 THEN (
+                      SELECT count(DISTINCT ol.order_id)
+                      FROM order_lines ol
+                      JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id
+                      WHERE ol.workspace_id = $1 AND o.status IN ('draft', 'open')
+                        AND ol.product_id IN (SELECT id FROM d WHERE NOT d.snoozed)) END AS impact
+           FROM d
+           ORDER BY d.snoozed, d.open_orders DESC NULLS LAST, d.shortfall DESC, d.name, d.id
+           LIMIT $5"#,
+        workspace_id,
+        user_id,
+        threshold,
+        with_orders,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// An alert item of a non-stock kind with the caller's mark and the group totals.
+pub struct ItemRow {
+    pub ref_id: Uuid,
+    pub label: String,
+    pub invoice_number: Option<i64>,
+    pub invoice_appendix: Option<serde_json::Value>,
+    pub amount: Option<i64>,
+    pub currency: Option<String>,
+    pub decimals: Option<i16>,
+    pub since: Option<DateTime<Utc>>,
+    pub acked: bool,
+    pub snoozed: bool,
+    pub total: i64,
+    pub acked_n: i64,
+    pub snoozed_n: i64,
+}
+
+/// Draft and open orders, oldest first (snoozed last), with `user`'s marks.
+pub async fn open_order_items(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    limit: i64,
+) -> Result<Vec<ItemRow>, sqlx::Error> {
+    sqlx::query_as!(
+        ItemRow,
+        r#"WITH d AS (
+               SELECT o.id, o.number, o.total, upper(c.asset_type) AS currency, c.decimals,
+                      o.created_at,
+                      coalesce(mk.state = 'acknowledged', false) AS acked,
+                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
+               FROM orders o
+               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+               LEFT JOIN attention_marks mk
+                      ON mk.workspace_id = $1 AND mk.user_id = $2
+                     AND mk.kind = 'orders.open' AND mk.ref_id = o.id
+               WHERE o.workspace_id = $1 AND o.status IN ('draft', 'open'))
+           SELECT d.id AS "ref_id!", d.number AS "label!", NULL::bigint AS invoice_number,
+                  NULL::jsonb AS invoice_appendix, d.total AS amount, d.currency AS "currency?",
+                  d.decimals AS "decimals?", d.created_at AS since,
+                  d.acked AS "acked!", d.snoozed AS "snoozed!",
+                  count(*) OVER () AS "total!",
+                  count(*) FILTER (WHERE d.acked) OVER () AS "acked_n!",
+                  count(*) FILTER (WHERE d.snoozed) OVER () AS "snoozed_n!"
+           FROM d
+           ORDER BY d.snoozed, d.created_at, d.id
+           LIMIT $3"#,
+        workspace_id,
+        user_id,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Overdue invoices (unpaid, due before `today`), earliest due first (snoozed last).
+pub async fn overdue_invoice_items(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    payable: &[String],
+    today: DateTime<Utc>,
+    limit: i64,
+) -> Result<Vec<ItemRow>, sqlx::Error> {
+    sqlx::query_as!(
+        ItemRow,
+        r#"WITH d AS (
+               SELECT i.id, i.invoice_number, i.invoice_appendix, i.due_date, i.created_at,
+                      i.total - i.paid_total AS open,
+                      upper(cu.asset_type) AS currency, cu.decimals,
+                      coalesce(nullif(r.company_name, ''), nullif(r.alias, ''),
+                          (SELECT nullif(concat_ws(' ', c.first_name, c.middle_name, c.last_name), '')
+                           FROM contacts c
+                           WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
+                             AND c.deleted_at IS NULL
+                           ORDER BY c.created_at, c.id LIMIT 1)) AS customer,
+                      coalesce(mk.state = 'acknowledged', false) AS acked,
+                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
+               FROM invoices i
+               JOIN currencies cu ON cu.workspace_id = i.workspace_id AND cu.id = i.currency_id
+               LEFT JOIN relations r ON r.workspace_id = i.workspace_id AND r.id = i.relation_id
+               LEFT JOIN attention_marks mk
+                      ON mk.workspace_id = $1 AND mk.user_id = $2
+                     AND mk.kind = 'invoices.overdue' AND mk.ref_id = i.id
+               WHERE i.workspace_id = $1 AND i.deleted_at IS NULL AND NOT i.is_credit
+                 AND i.status = ANY($3) AND i.due_date < $4)
+           SELECT d.id AS "ref_id!", coalesce(d.customer, 'Unnamed customer') AS "label!",
+                  d.invoice_number,
+                  d.invoice_appendix, d.open AS amount, d.currency AS "currency?",
+                  d.decimals AS "decimals?", d.due_date AS since,
+                  d.acked AS "acked!", d.snoozed AS "snoozed!",
+                  count(*) OVER () AS "total!",
+                  count(*) FILTER (WHERE d.acked) OVER () AS "acked_n!",
+                  count(*) FILTER (WHERE d.snoozed) OVER () AS "snoozed_n!"
+           FROM d
+           ORDER BY d.snoozed, d.due_date, d.created_at, d.id
+           LIMIT $5"#,
+        workspace_id,
+        user_id,
+        payable,
+        today,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Open till shifts, oldest first (snoozed last); label = register name.
+pub async fn open_shift_items(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    limit: i64,
+) -> Result<Vec<ItemRow>, sqlx::Error> {
+    sqlx::query_as!(
+        ItemRow,
+        r#"WITH d AS (
+               SELECT s.id, r.name, s.opened_at,
+                      coalesce(mk.state = 'acknowledged', false) AS acked,
+                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
+               FROM drawer_shifts s
+               JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id
+               LEFT JOIN attention_marks mk
+                      ON mk.workspace_id = $1 AND mk.user_id = $2
+                     AND mk.kind = 'till.open_shifts' AND mk.ref_id = s.id
+               WHERE s.workspace_id = $1 AND s.closed_at IS NULL)
+           SELECT d.id AS "ref_id!", d.name AS "label!", NULL::bigint AS invoice_number,
+                  NULL::jsonb AS invoice_appendix, NULL::bigint AS amount,
+                  NULL::text AS currency, NULL::smallint AS decimals, d.opened_at AS since,
+                  d.acked AS "acked!", d.snoozed AS "snoozed!",
+                  count(*) OVER () AS "total!",
+                  count(*) FILTER (WHERE d.acked) OVER () AS "acked_n!",
+                  count(*) FILTER (WHERE d.snoozed) OVER () AS "snoozed_n!"
+           FROM d
+           ORDER BY d.snoozed, d.opened_at, d.id
+           LIMIT $3"#,
+        workspace_id,
+        user_id,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Quarantined lots, longest in quarantine first (snoozed last); label = lot code.
+pub async fn quarantined_lot_items(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    limit: i64,
+) -> Result<Vec<ItemRow>, sqlx::Error> {
+    sqlx::query_as!(
+        ItemRow,
+        r#"WITH d AS (
+               SELECT l.id, l.code, l.updated_at,
+                      coalesce(mk.state = 'acknowledged', false) AS acked,
+                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
+               FROM lots l
+               LEFT JOIN attention_marks mk
+                      ON mk.workspace_id = $1 AND mk.user_id = $2
+                     AND mk.kind = 'lots.quarantined' AND mk.ref_id = l.id
+               WHERE l.workspace_id = $1 AND l.status = 'quarantine')
+           SELECT d.id AS "ref_id!", d.code AS "label!", NULL::bigint AS invoice_number,
+                  NULL::jsonb AS invoice_appendix, NULL::bigint AS amount,
+                  NULL::text AS currency, NULL::smallint AS decimals, d.updated_at AS since,
+                  d.acked AS "acked!", d.snoozed AS "snoozed!",
+                  count(*) OVER () AS "total!",
+                  count(*) FILTER (WHERE d.acked) OVER () AS "acked_n!",
+                  count(*) FILTER (WHERE d.snoozed) OVER () AS "snoozed_n!"
+           FROM d
+           ORDER BY d.snoozed, d.updated_at, d.id
+           LIMIT $3"#,
+        workspace_id,
+        user_id,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Failed webhook deliveries, oldest first (snoozed last); label = event type.
+pub async fn failed_delivery_items(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    limit: i64,
+) -> Result<Vec<ItemRow>, sqlx::Error> {
+    sqlx::query_as!(
+        ItemRow,
+        r#"WITH d AS (
+               SELECT w.id, e.type, w.updated_at,
+                      coalesce(mk.state = 'acknowledged', false) AS acked,
+                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed
+               FROM webhook_deliveries w
+               JOIN webhook_events e ON e.workspace_id = w.workspace_id AND e.id = w.event_id
+               LEFT JOIN attention_marks mk
+                      ON mk.workspace_id = $1 AND mk.user_id = $2
+                     AND mk.kind = 'webhooks.failed' AND mk.ref_id = w.id
+               WHERE w.workspace_id = $1 AND w.status = 'failed')
+           SELECT d.id AS "ref_id!", d.type AS "label!", NULL::bigint AS invoice_number,
+                  NULL::jsonb AS invoice_appendix, NULL::bigint AS amount,
+                  NULL::text AS currency, NULL::smallint AS decimals, d.updated_at AS since,
+                  d.acked AS "acked!", d.snoozed AS "snoozed!",
+                  count(*) OVER () AS "total!",
+                  count(*) FILTER (WHERE d.acked) OVER () AS "acked_n!",
+                  count(*) FILTER (WHERE d.snoozed) OVER () AS "snoozed_n!"
+           FROM d
+           ORDER BY d.snoozed, d.updated_at, d.id
+           LIMIT $3"#,
+        workspace_id,
+        user_id,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Does `ref_id` name a live record of `kind`'s type in the workspace (`attention_ref_exists`)?
+pub async fn ref_exists(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    kind: &str,
+    ref_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT attention_ref_exists($1, $2, $3) AS "ok!""#,
+        workspace_id,
+        kind,
+        ref_id,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// Insert or replace `user_id`'s mark; a snooze ends at the next local midnight in
+/// `general.timezone` (UTC fallback) for `until_tomorrow`, else 7 days from now.
+pub async fn set_mark(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    m: &NewMark,
+) -> Result<Mark, sqlx::Error> {
+    sqlx::query_as!(
+        Mark,
+        r#"WITH z AS (
+               SELECT coalesce((SELECT n.name FROM pg_timezone_names n
+                                WHERE n.name = (SELECT s.data #>> '{general,timezone}'
+                                                FROM settings s WHERE s.workspace_id = $1)),
+                               'UTC') AS tz)
+           INSERT INTO attention_marks (workspace_id, user_id, kind, ref_id, state, snoozed_until)
+           SELECT $1, $2, $3, $4, $5,
+                  CASE $6::text
+                      WHEN 'until_tomorrow'
+                          THEN ((now() AT TIME ZONE z.tz)::date + 1)::timestamp AT TIME ZONE z.tz
+                      WHEN 'seven_days' THEN now() + interval '7 days'
+                  END
+           FROM z
+           ON CONFLICT (workspace_id, user_id, kind, ref_id) DO UPDATE
+               SET state = EXCLUDED.state, snoozed_until = EXCLUDED.snoozed_until,
+                   created_at = now()
+           RETURNING id, kind, ref_id, state, snoozed_until, created_at"#,
+        workspace_id,
+        user_id,
+        m.kind,
+        m.ref_id,
+        m.state,
+        m.snooze,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// Delete `user_id`'s mark `id`; rows removed (0 = not theirs or gone).
+pub async fn delete_mark(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    id: Uuid,
+) -> Result<u64, sqlx::Error> {
+    Ok(sqlx::query!(
+        "DELETE FROM attention_marks WHERE workspace_id = $1 AND user_id = $2 AND id = $3",
+        workspace_id,
+        user_id,
+        id,
+    )
+    .execute(db)
+    .await?
+    .rows_affected())
+}
+
+/// Drop snoozes over a day past their end, acknowledgements over 30 days old and marks whose
+/// record is gone. Rows removed.
+pub async fn prune_marks(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    Ok(sqlx::query!(
+        "DELETE FROM attention_marks m
+         WHERE (m.state = 'snoozed' AND m.snoozed_until < now() - interval '1 day')
+            OR (m.state = 'acknowledged' AND m.created_at < now() - interval '30 days')
+            OR NOT attention_ref_exists(m.workspace_id, m.kind, m.ref_id)"
+    )
+    .execute(db)
+    .await?
+    .rows_affected())
 }

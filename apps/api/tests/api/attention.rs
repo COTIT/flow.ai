@@ -77,7 +77,7 @@ fn ids(items: &Value, key: &str) -> Vec<String> {
 }
 
 /// Product `name` (tracked unless `has_stock: false` in `extra`); returns its id.
-async fn product(api: &Api, name: &str, extra: Value) -> String {
+pub async fn product(api: &Api, name: &str, extra: Value) -> String {
     let mut body = json!({ "name": name, "price": "5" });
     body.as_object_mut()
         .unwrap()
@@ -86,7 +86,7 @@ async fn product(api: &Api, name: &str, extra: Value) -> String {
 }
 
 /// Lot `code` of `product` holding `quantity` at `warehouse` (0 = stocked, then emptied).
-async fn lot(api: &Api, product: &str, code: &str, warehouse: &str, quantity: i64) -> String {
+pub async fn lot(api: &Api, product: &str, code: &str, warehouse: &str, quantity: i64) -> String {
     let lots = api.with_base("/lots");
     let id = lots
         .create(json!({ "product_id": product, "code": code }), "id")
@@ -194,7 +194,8 @@ async fn empty_workspace_has_nothing_to_do(pool: PgPool) {
     );
     assert_eq!(
         d["stock"],
-        json!({ "negative": 0, "out_of_stock": 0, "items": [] })
+        json!({ "negative": 0, "out_of_stock": 0, "items": [],
+                "below_minimum": { "count": 0, "items": [] } })
     );
     assert_eq!(d["till_shifts"], json!({ "open": 0, "items": [] }));
     assert_eq!(

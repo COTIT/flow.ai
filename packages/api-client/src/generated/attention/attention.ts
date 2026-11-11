@@ -6,27 +6,35 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
   EnvelopeAttention,
-  MessageBody
+  EnvelopeMark,
+  EnvelopePriorities,
+  MarkBody,
+  MessageBody,
+  ValidationErrorBody
 } from '../model';
 
 import { apiRequest } from '../../mutator';
-import type { ErrorType } from '../../mutator';
+import type { ErrorType , BodyType } from '../../mutator';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -130,6 +138,234 @@ export function useAttentionSummary<TData = Awaited<ReturnType<typeof attentionS
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAttentionSummaryQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Marks one attention item for the caller only. `acknowledged` keeps it listed (flagged) until its condition clears; it never changes stock, orders or invoices. `snoozed` hides it from the caller's priorities until `until_tomorrow` (next local midnight in the workspace time zone) or `seven_days`. Marking again replaces the mark. `ref_id` is the item's product, order, invoice, shift, lot or delivery id.
+ * @summary Acknowledge or snooze one noticed item for me (seen it, remind me tomorrow, snooze a week)
+ */
+export const attentionMarksSet = (
+    workspace: string,
+    markBody: BodyType<MarkBody>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeMark>(
+      {url: `/workspace/${workspace}/attention/marks`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: markBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAttentionMarksSetMutationKey = () => ['attentionMarksSet'] as const;
+
+export const getAttentionMarksSetMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attentionMarksSet>>, TError,AttentionMarksSetMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof attentionMarksSet>>, TError,AttentionMarksSetMutationVariables, TContext> => {
+
+const mutationKey = getAttentionMarksSetMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attentionMarksSet>>, AttentionMarksSetMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  attentionMarksSet(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttentionMarksSetMutationResult = NonNullable<Awaited<ReturnType<typeof attentionMarksSet>>>
+    export type AttentionMarksSetMutationBody = BodyType<MarkBody>
+    export type AttentionMarksSetMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AttentionMarksSetMutationVariables = {workspace: string;data: BodyType<MarkBody>}
+
+    /**
+ * @summary Acknowledge or snooze one noticed item for me (seen it, remind me tomorrow, snooze a week)
+ */
+export const useAttentionMarksSet = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attentionMarksSet>>, TError,AttentionMarksSetMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attentionMarksSet>>,
+        TError,
+        AttentionMarksSetMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAttentionMarksSetMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Undo my acknowledge or snooze of a noticed item
+ */
+export const attentionMarksDelete = (
+    workspace: string,
+    mark: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<void>(
+      {url: `/workspace/${workspace}/attention/marks/${mark}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAttentionMarksDeleteMutationKey = () => ['attentionMarksDelete'] as const;
+
+export const getAttentionMarksDeleteMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attentionMarksDelete>>, TError,AttentionMarksDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof attentionMarksDelete>>, TError,AttentionMarksDeleteMutationVariables, TContext> => {
+
+const mutationKey = getAttentionMarksDeleteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attentionMarksDelete>>, AttentionMarksDeleteMutationVariables> = (props) => {
+          const {workspace,mark} = props ?? {};
+
+          return  attentionMarksDelete(workspace,mark,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttentionMarksDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof attentionMarksDelete>>>
+
+    export type AttentionMarksDeleteMutationError = ErrorType<MessageBody>
+    export type AttentionMarksDeleteMutationVariables = {workspace: string;mark: string}
+
+    /**
+ * @summary Undo my acknowledge or snooze of a noticed item
+ */
+export const useAttentionMarksDelete = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attentionMarksDelete>>, TError,AttentionMarksDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof attentionMarksDelete>>,
+        TError,
+        AttentionMarksDeleteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAttentionMarksDeleteMutationOptions(options), queryClient);
+    }
+    /**
+ * Alert groups the caller may see, each with `count`, `open_count`, `acknowledged_count`, `snoozed_count` and up to 5 not-snoozed items, all from one statement per kind. Kinds: `stock.below_minimum` (sellable available below the product's minimum: summed row `minimal_stock_level` when above 0, else `product.low_stock_threshold`, default 5; `stock.list`), `orders.open` (draft or open; `order.list`), `invoices.overdue` (`invoice.list`), `till.open_shifts` (`cashregister.list`), `lots.quarantined` (any member), `webhooks.failed` (`workspace_admin`). Kinds without permission are listed in `restricted`, never zero. Stock impact: `open_orders` per item and `impact.open_orders` (distinct draft or open orders holding a listed product), null without `order.list`. Order: groups with something not snoozed first, then impact, then the kind order above. Acknowledged items stay until their condition clears. Read-only.
+ * @summary What Flow noticed: alerts grouped by kind, most urgent first (low stock below minimum, open orders, overdue invoices)
+ */
+export const attentionPriorities = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePriorities>(
+      {url: `/workspace/${workspace}/attention/priorities`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAttentionPrioritiesQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/attention/priorities`
+    ] as const;
+    }
+
+
+export const getAttentionPrioritiesQueryOptions = <TData = Awaited<ReturnType<typeof attentionPriorities>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attentionPriorities>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAttentionPrioritiesQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof attentionPriorities>>> = ({ signal }) => attentionPriorities(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof attentionPriorities>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AttentionPrioritiesQueryResult = NonNullable<Awaited<ReturnType<typeof attentionPriorities>>>
+export type AttentionPrioritiesQueryError = ErrorType<MessageBody>
+
+
+export function useAttentionPriorities<TData = Awaited<ReturnType<typeof attentionPriorities>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof attentionPriorities>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attentionPriorities>>,
+          TError,
+          Awaited<ReturnType<typeof attentionPriorities>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttentionPriorities<TData = Awaited<ReturnType<typeof attentionPriorities>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attentionPriorities>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof attentionPriorities>>,
+          TError,
+          Awaited<ReturnType<typeof attentionPriorities>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAttentionPriorities<TData = Awaited<ReturnType<typeof attentionPriorities>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attentionPriorities>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary What Flow noticed: alerts grouped by kind, most urgent first (low stock below minimum, open orders, overdue invoices)
+ */
+
+export function useAttentionPriorities<TData = Awaited<ReturnType<typeof attentionPriorities>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof attentionPriorities>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAttentionPrioritiesQueryOptions(workspace,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
