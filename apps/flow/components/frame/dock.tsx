@@ -42,6 +42,15 @@ const look: Record<
  * The same place on every screen: suggestions, what needs saying, then type / attach / talk / send.
  * Typing never opens the microphone; the unsent text survives navigation.
  */
+/**
+ * Kept outside the component: the dock moves between the bottom, the rail and the sheet (a
+ * remount), and a start asked for in one place must still send once connected in the next.
+ */
+// A start the dock asked for: once it settles, send what the box holds then, or nothing.
+const sendOnConnect = { current: false }
+// One start at a time, also across the readiness check below.
+const opening = { current: false }
+
 export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const t = useTranslations()
   const voice = useVoice()
@@ -59,8 +68,6 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     if ((await voice.send(text)) && flowStore.getState().draft === typed)
       flowStore.getState().setDraft("")
   }
-  // A start the dock asked for: once it settles, send what the box holds then, or nothing.
-  const sendOnConnect = useRef(false)
   useEffect(() => {
     if (voice.starting || !sendOnConnect.current) return
     sendOnConnect.current = false
@@ -70,9 +77,6 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     if (rest) void deliver(rest, typed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.starting, voice.connected])
-
-  // One start at a time, also across the readiness check below.
-  const opening = useRef(false)
 
   // F3: `text` lets a suggestion send its instruction exactly as typing it + Enter would.
   const submit = async (text = draft) => {

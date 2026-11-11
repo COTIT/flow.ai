@@ -100,7 +100,7 @@ async function referenceToEdit(page: Page, api: FakeApi) {
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
   await expect(
-    page.getByRole("link", { name: /Storefront design/ })
+    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
   ).toBeVisible()
 
   expect(uploads.filter((u) => u.method === "POST")).toHaveLength(1)
@@ -152,7 +152,7 @@ test("a file that says 'publish now' still needs its own publish card, and nothi
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
   await expect(
-    page.getByRole("link", { name: /Storefront design/ })
+    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
   ).toBeVisible()
 
   agent.call("storefront_design_publish", {

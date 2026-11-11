@@ -21,8 +21,7 @@ export function Immersive() {
   const heading = useRef<HTMLHeadingElement>(null)
   // Opened from the orb: the orb becomes a picture here, so focus moves into the conversation.
   useEffect(() => {
-    if (document.activeElement?.closest("[data-orb]"))
-      heading.current?.focus()
+    if (document.activeElement?.closest("[data-orb]")) heading.current?.focus()
   }, [])
   // Keep the newest line in view; the page's one scroller scrolls, the log never has its own.
   useEffect(() => {
@@ -32,7 +31,7 @@ export function Immersive() {
   return (
     <section
       aria-labelledby="flow-conversation-title"
-      className="flex flex-col items-center gap-4 py-4"
+      className="flex flex-col items-center gap-4 py-4 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-8"
     >
       <h1
         ref={heading}
@@ -42,15 +41,26 @@ export function Immersive() {
       >
         {t("shell.conversation")}
       </h1>
-      <OrbSlot name="immersive" className="size-48 sm:size-64" />
-      <OrbCaption />
-      <VoiceControls />
+      {/* Desktop: the orb column stays pinned (sticky inside the one scroller) while the
+          conversation scrolls beside it. */}
+      <div className="flex flex-col items-center gap-4 lg:sticky lg:top-0 lg:pt-6">
+        <OrbSlot name="immersive" className="size-48 sm:size-64 lg:size-48" />
+        <OrbCaption />
+        <VoiceControls />
+        <Button
+          variant="ghost"
+          className="min-h-11 max-lg:hidden"
+          onClick={() => flowStore.setState({ immersive: false })}
+        >
+          {t("shell.backHome")}
+        </Button>
+      </div>
       <div
         ref={log}
         role="log"
         aria-label={t("voice.transcript")}
         aria-live="polite"
-        className="flex min-h-16 w-full min-w-0 flex-col gap-2 px-1"
+        className="flex min-h-16 w-full min-w-0 flex-col gap-2 px-1 lg:pb-6 [&_p]:max-w-[72ch]"
       >
         <TranscriptRows
           rows={voice.messages}
@@ -72,7 +82,7 @@ export function Immersive() {
       </div>
       <Button
         variant="ghost"
-        className="min-h-11"
+        className="min-h-11 lg:hidden"
         onClick={() => flowStore.setState({ immersive: false })}
       >
         {t("shell.backHome")}
