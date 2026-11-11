@@ -1,5 +1,6 @@
 {
   "shell": {
+    "workspaceSwitched": "Switched to {name}",
     "phaseLabel": "Voice",
     "phase": {
       "ready": "Ready",

@@ -1,5 +1,6 @@
 {
   "shell": {
+    "workspaceSwitched": "Umehamia {name}",
     "phaseLabel": "Sauti",
     "phase": {
       "ready": "Tayari",
