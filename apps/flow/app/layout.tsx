@@ -8,6 +8,7 @@ import "@genesy/voice/styles/voice.css"
 import { QueryProvider } from "@genesy/api-client/query-provider"
 import { fontSans } from "@genesy/ui/lib/fonts"
 import { cn } from "@genesy/ui/lib/utils"
+import { OfflineNavigation } from "@/components/offline-navigation"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = { title: "Genesy Flow" }
@@ -34,6 +35,7 @@ export default async function RootLayout({
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>{children}</QueryProvider>
+            <OfflineNavigation />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
