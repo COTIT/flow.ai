@@ -9,7 +9,6 @@ pub struct SceneRow {
     pub scene: String,
     pub position: i16,
     pub hidden: bool,
-    pub schema_version: i16,
     pub config: Value,
 }
 
@@ -21,7 +20,7 @@ pub async fn list(
 ) -> Result<Vec<SceneRow>, sqlx::Error> {
     sqlx::query_as!(
         SceneRow,
-        "SELECT scene, position, hidden, schema_version, config FROM flow_scenes
+        "SELECT scene, position, hidden, config FROM flow_scenes
          WHERE workspace_id = $1 AND user_id = $2",
         workspace_id,
         user_id,
@@ -39,7 +38,7 @@ pub async fn one(
 ) -> Result<Option<SceneRow>, sqlx::Error> {
     sqlx::query_as!(
         SceneRow,
-        "SELECT scene, position, hidden, schema_version, config FROM flow_scenes
+        "SELECT scene, position, hidden, config FROM flow_scenes
          WHERE workspace_id = $1 AND user_id = $2 AND scene = $3 FOR UPDATE",
         workspace_id,
         user_id,

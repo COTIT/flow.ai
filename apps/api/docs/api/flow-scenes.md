@@ -35,7 +35,7 @@ Permission per component: `sales.*`, `orders.*` and `order_list` need `order.lis
 Body `{position?, hidden?, config?}`, at least one. Omitted fields keep the saved value, else the default (a new custom scene lands at position 7). `config` replaces the whole component list. Same body twice = same state (no `Idempotency-Key`).
 
 - 200 `{data: scene}`.
-- 403 when `config` adds a component the caller can't read. "Adds" means no component with the same `id`, `type` and `metric` is in the current config (saved, else default). A member who lost a right can still hide, move and reorder what they had.
+- 403 when `config` adds a component the caller can't read. "Adds" means no component with the same `id`, `type` and permission area (sales/orders, invoices, stock) is in the current config (saved, else default), so swapping `sales.gross` for `sales.net` on a kept card is not adding. A member who lost a right can still hide, move and reorder what they had.
 - 422 `scene`: unknown key, or a 21st saved scene. `config`: missing on a new custom scene, or over 8 KiB. `config.components`: more than 8. `config.components.N.<field>`: bad id, repeated id, unknown type/metric/period, metric missing or not allowed for the type, period missing. `position` outside 0-19, `hidden` not a boolean, `body` empty or unknown field.
 
 ## DELETE /v1/workspace/{workspace}/flow/scenes/{scene}
@@ -48,7 +48,7 @@ Body `{position?, hidden?, config?}`, at least one. Omitted fields keep the save
 
 ## Storage
 
-Table `flow_scenes` (migration `flow_scenes`): unique `(workspace_id, user_id, scene)`, `position` 0-19, `schema_version` = 1, `config` jsonb with `pg_column_size(config) <= 8192`. Rows cascade on workspace or user delete; no prune.
+Table `flow_scenes` (migration `flow_scenes`): unique `(workspace_id, user_id, scene)`, `position` 0-19, `schema_version` = 1, `config` jsonb with `pg_column_size(config) <= 8192`. Rows cascade on workspace or user delete; no prune. Member removal keeps them (display settings only, no data): a re-added member gets their layout back. A stored config the current vocabulary no longer accepts is skipped with a warning log (ids only): the scene reads as its default (a custom scene drops out) until the member saves it again.
 
 ## Voice
 

@@ -441,12 +441,27 @@ async fn member_who_lost_a_right_can_still_hide_and_reorder(pool: PgPool) {
     ]});
     let (status, res) = put_as(&api, &bo, "pulse", json!({ "config": swapped })).await;
     assert_eq!(status, StatusCode::OK, "{res}");
-    // Changing a restricted component's metric is adding a new one.
+    // Swapping a metric inside the same permission area is not adding.
     let changed = json!({ "components": [
-        { "id": "sales-today", "type": "metric_card", "metric": "sales.net", "period": "today" },
+        { "id": "sales-today", "type": "metric_card", "metric": "orders.draft", "period": "today" },
     ]});
-    let (status, _) = put_as(&api, &bo, "pulse", json!({ "config": changed })).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, res) = put_as(&api, &bo, "pulse", json!({ "config": changed })).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    // Moving it to another area, or a new restricted component, still is.
+    for c in [
+        json!({ "id": "sales-today", "type": "metric_card", "metric": "invoices.overdue", "period": "today" }),
+        json!({ "id": "sales-today", "type": "line_chart", "metric": "orders.draft", "period": "today" }),
+        json!({ "id": "new-card", "type": "metric_card", "metric": "sales.net", "period": "today" }),
+    ] {
+        let (status, _) = put_as(
+            &api,
+            &bo,
+            "pulse",
+            json!({ "config": { "components": [c] } }),
+        )
+        .await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{c}");
+    }
     // Restricted defaults: hiding a default scene works too.
     let (status, _) = put_as(&api, &bo, "sales", json!({ "hidden": true })).await;
     assert_eq!(status, StatusCode::OK);
@@ -556,4 +571,51 @@ async fn list_is_one_query_whatever_the_rows(pool: PgPool) {
     }
     let full = crate::assistant_identity::statements(&api.app, &uri, &api.owner).await;
     assert_eq!(empty, full, "no per-row queries");
+}
+
+#[sqlx::test]
+async fn holder_of_the_area_swaps_metrics_freely(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let bo = member_with(&api.app, &pool, &api.ws, "bo@example.com", &["order.list"]).await;
+    let card = |m: &str| {
+        json!({ "config": { "components": [
+            { "id": "card", "type": "metric_card", "metric": m, "period": "today" },
+        ]}})
+    };
+    for m in ["sales.gross", "sales.net", "orders.pending"] {
+        let (status, res) = put_as(&api, &bo, "pulse", card(m)).await;
+        assert_eq!(status, StatusCode::OK, "{m}: {res}");
+    }
+    let (status, _) = put_as(&api, &bo, "pulse", card("stock.below_minimum")).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "no stock.list");
+}
+
+/// A stored config the current vocabulary no longer accepts: the scene falls back to its
+/// default (custom scenes drop out) instead of failing the whole read.
+#[sqlx::test]
+async fn unreadable_stored_config_falls_back(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let defaults = list_as(&api, &api.owner).await;
+    put(&api, "sales_old", json!({ "config": orders_first() })).await;
+    put(&api, "pulse", json!({ "hidden": true })).await;
+    sqlx::query(
+        "UPDATE flow_scenes SET config = '{\"components\":[{\"id\":\"a\",\"type\":\"pie_chart\"}]}'",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(list_as(&api, &api.owner).await, defaults);
+    // Saving again repairs the row from the default.
+    let saved = put(&api, "pulse", json!({ "position": 2 })).await;
+    assert_eq!(saved["config"], scene(&defaults, "pulse")["config"]);
+    assert_eq!(
+        saved["hidden"], false,
+        "unreadable row starts over from the default"
+    );
+    let (status, res) = put_as(&api, &api.owner, "sales_old", json!({ "hidden": true })).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(errors(&res), ["config"]);
+    let repaired = put(&api, "sales_old", json!({ "config": orders_first() })).await;
+    assert_eq!(repaired["config"], orders_first());
 }

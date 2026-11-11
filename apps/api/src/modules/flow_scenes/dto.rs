@@ -120,9 +120,10 @@ pub struct FlowSceneConfig {
 }
 
 impl FlowComponent {
-    /// Same component for the "adds a restricted one" check: period may change freely.
+    /// Same component for the "adds a restricted one" check: id, kind and permission area;
+    /// metric (inside its area) and period may change freely.
     pub fn same(&self, other: &Self) -> bool {
-        self.id == other.id && self.kind == other.kind && self.metric == other.metric
+        self.id == other.id && self.kind == other.kind && self.permission() == other.permission()
     }
 
     /// Permission needed to read what this component shows; None = any member.
@@ -304,6 +305,13 @@ fn check_config(r: &mut Rules, config: &FlowSceneConfig) {
             _ => {}
         }
     }
+}
+
+/// True when a stored config still passes today's vocabulary.
+pub fn readable(config: &FlowSceneConfig) -> bool {
+    let mut r = Rules::default();
+    check_config(&mut r, config);
+    r.into_result().is_ok()
 }
 
 impl Validate for UpdateFlowSceneRequest {
