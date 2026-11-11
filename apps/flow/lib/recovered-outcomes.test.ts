@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { outcomeKind, unseenOutcomes } from "./recovered-outcomes"
+import { outcomeKind, settled, unseenOutcomes } from "./recovered-outcomes"
 
 const task = (status: string, actionId = "a-1", summary = "Set stock levels") => ({
   status,
@@ -46,5 +46,21 @@ describe("outcomeKind", () => {
     expect(outcomeKind("failed")).toBe("failed")
     expect(outcomeKind("unknown")).toBe("unconfirmed")
     expect(outcomeKind("partial")).toBe("unconfirmed")
+  })
+})
+
+describe("settled", () => {
+  const run = (status: string, state: string) => ({ status, data: { kind: "batch" as const, batchId: "b-1", state } })
+  it("a run still going or paused is not settled, so it is shown again with its final outcome", () => {
+    expect(settled(run("running", "running"))).toBe(false)
+    expect(settled(run("partial", "paused"))).toBe(false)
+    expect(settled(task("running"))).toBe(false)
+    expect(settled(task("queued"))).toBe(false)
+  })
+  it("a final outcome is settled: shown once, then seen", () => {
+    expect(settled(run("completed", "completed"))).toBe(true)
+    expect(settled(run("partial", "cancelled"))).toBe(true)
+    for (const status of ["completed", "failed", "unknown", "cancelled", "expired"])
+      expect(settled(task(status))).toBe(true)
   })
 })

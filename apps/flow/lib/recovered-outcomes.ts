@@ -20,3 +20,8 @@ export function unseenOutcomes(tasks: RecoveryTask[], seen: string[]) {
 /** Only "completed" ran and only "failed" did not; anything else must be checked before repeating. */
 export const outcomeKind = (status: string) =>
   status === "completed" ? "ran" : status === "failed" ? "failed" : "unconfirmed"
+
+/** A final outcome: only then is a line marked seen, so a run first shown going comes back with its end. */
+export const settled = (task: RecoveryTask) =>
+  !["running", "queued"].includes(task.status) &&
+  !["running", "paused", "approved"].includes(task.data?.state ?? "")
