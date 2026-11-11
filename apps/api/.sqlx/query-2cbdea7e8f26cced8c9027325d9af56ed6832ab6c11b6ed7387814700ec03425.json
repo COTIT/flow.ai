@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM flow_scenes WHERE workspace_id = $1 AND user_id = $2 AND scene = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2cbdea7e8f26cced8c9027325d9af56ed6832ab6c11b6ed7387814700ec03425"
+}

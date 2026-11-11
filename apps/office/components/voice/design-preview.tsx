@@ -121,6 +121,7 @@ export function VoiceDesignPreview() {
       recoveredReview: false,
       approvalHeld: false,
       holdApproval: () => undefined,
+      sendContext: () => undefined,
       progress: null,
       narration: "",
       steps:

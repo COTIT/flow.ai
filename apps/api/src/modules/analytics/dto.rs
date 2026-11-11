@@ -436,3 +436,95 @@ pub struct InvoiceExport {
     pub lines: i64,
     pub currencies: Vec<ExportTotals>,
 }
+
+/// Most days `GET /sales/daily` covers.
+pub const DAILY_DAYS_MAX: i64 = 92;
+
+/// GET /sales/daily query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct DailyQuery {
+    /// First local day (`YYYY-MM-DD`, workspace time zone).
+    #[param(required = true, value_type = String, example = "2026-10-01")]
+    pub from: Option<String>,
+    /// Day after the last (exclusive), at most 92 days after `from`.
+    #[param(required = true, value_type = String, example = "2026-11-01")]
+    pub to: Option<String>,
+    /// Only `office`, `storefront` or `till` orders.
+    pub source: Option<String>,
+}
+
+/// Validated daily query.
+pub struct Daily {
+    pub from: NaiveDate,
+    pub to: NaiveDate,
+    pub source: Option<String>,
+}
+
+fn day(r: &mut Rules, field: &str, v: Option<&str>) -> Option<NaiveDate> {
+    let Some(v) = v.map(str::trim).filter(|v| !v.is_empty()) else {
+        r.missing(field);
+        return None;
+    };
+    let d = NaiveDate::parse_from_str(v, "%Y-%m-%d").ok();
+    r.check(
+        field,
+        d.is_some(),
+        format!("The {field} must be a YYYY-MM-DD date."),
+    );
+    d
+}
+
+impl DailyQuery {
+    /// The query; 422 for a missing or non-date bound, `to` not after `from`, over 92 days,
+    /// unknown `source`.
+    pub fn daily(&self) -> Result<Daily, AppError> {
+        let mut r = Rules::default();
+        let from = day(&mut r, "from", self.from.as_deref());
+        let to = day(&mut r, "to", self.to.as_deref());
+        let source = source(&mut r, self.source.as_deref());
+        if let (Some(f), Some(t)) = (from, to) {
+            r.check("to", t > f, "The to must be after from.");
+            r.check(
+                "to",
+                t <= f || (t - f).num_days() <= DAILY_DAYS_MAX,
+                format!("The range must not pass {DAILY_DAYS_MAX} days."),
+            );
+        }
+        r.into_result()?;
+        let (Some(from), Some(to)) = (from, to) else {
+            return Err(AppError::Internal("bounds checked above".into()));
+        };
+        Ok(Daily { from, to, source })
+    }
+}
+
+/// Sales per local day, one series per currency sold in range (none sold: empty).
+#[derive(Serialize, ToSchema)]
+pub struct SalesDaily {
+    /// Zone the days are read in (`general.timezone`, else UTC).
+    #[schema(example = "Africa/Dar_es_Salaam")]
+    pub time_zone: String,
+    pub from: NaiveDate,
+    /// Exclusive.
+    pub to: NaiveDate,
+    pub currencies: Vec<DailyCurrency>,
+}
+
+/// One currency's days, every day of the range, zero-filled.
+#[derive(Serialize, ToSchema)]
+pub struct DailyCurrency {
+    #[schema(example = "EUR")]
+    pub currency: String,
+    pub decimals: i16,
+    pub days: Vec<DailyPoint>,
+}
+
+/// One local day. Minor units; gross = net + VAT.
+#[derive(Serialize, ToSchema)]
+pub struct DailyPoint {
+    pub date: NaiveDate,
+    pub gross: i64,
+    pub net: i64,
+    pub orders: i64,
+}

@@ -2409,3 +2409,18 @@ fn every_scheduled_reports_operation_is_documented() {
     assert_eq!(op["operationId"], "scheduled_reports_unsubscribe");
     assert!(op.get("security").is_none(), "public route");
 }
+
+#[test]
+fn every_flow_scenes_operation_is_documented() {
+    assert_documented(&[
+        ("/flow/scenes", "get", "flow_scenes_list", "200"),
+        ("/flow/scenes/{scene}", "put", "flow_scenes_update", "200"),
+        (
+            "/flow/scenes/{scene}",
+            "delete",
+            "flow_scenes_delete",
+            "204",
+        ),
+        ("/flow/scenes/reset", "post", "flow_scenes_reset", "204"),
+    ]);
+}

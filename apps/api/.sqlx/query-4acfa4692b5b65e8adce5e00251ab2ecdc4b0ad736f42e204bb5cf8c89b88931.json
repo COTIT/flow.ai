@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH a AS (\n               SELECT p.id, p.name,\n                      coalesce((SELECT sum(s.stock_lvl - s.reserved)\n                                FROM stocks s\n                                LEFT JOIN lots l ON l.id = s.lot_id\n                                WHERE s.workspace_id = $1 AND s.product_id = p.id\n                                  AND s.deleted_at IS NULL\n                                  AND (s.lot_id IS NULL OR (l.status = 'released'\n                                       AND (l.expires_on IS NULL\n                                            OR l.expires_on >= current_date)))),\n                               0) AS available,\n                      coalesce((SELECT sum(s.minimal_stock_level) FROM stocks s\n                                WHERE s.workspace_id = $1 AND s.product_id = p.id\n                                  AND s.deleted_at IS NULL), 0) AS row_min\n               FROM products p\n               WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock),\n           d AS (\n               SELECT a.id, a.name, a.available, b.minimum,\n                      b.minimum - a.available AS shortfall,\n                      CASE WHEN $4 THEN (\n                          SELECT count(DISTINCT ol.order_id)\n                          FROM order_lines ol\n                          JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id\n                          WHERE ol.workspace_id = $1 AND ol.product_id = a.id\n                            AND o.status IN ('draft', 'open')) END AS open_orders,\n                      coalesce(mk.state = 'acknowledged', false) AS acked,\n                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed\n               FROM a\n               CROSS JOIN LATERAL (SELECT (CASE WHEN a.row_min > 0 THEN a.row_min\n                                                ELSE $3::bigint END)::numeric AS minimum) b\n               LEFT JOIN attention_marks mk\n                      ON mk.workspace_id = $1 AND mk.user_id = $2\n                     AND mk.kind = 'stock.below_minimum' AND mk.ref_id = a.id\n               WHERE a.available < b.minimum)\n           SELECT d.id AS \"ref_id!\", d.name AS \"label!\",\n                  d.available::numeric(19, 2)::text AS \"available!\",\n                  d.minimum::numeric(19, 2)::text AS \"minimum!\",\n                  d.shortfall::numeric(19, 2)::text AS \"shortfall!\",\n                  d.open_orders, d.acked AS \"acked!\", d.snoozed AS \"snoozed!\",\n                  count(*) OVER () AS \"total!\",\n                  count(*) FILTER (WHERE d.acked) OVER () AS \"acked_n!\",\n                  count(*) FILTER (WHERE d.snoozed) OVER () AS \"snoozed_n!\",\n                  CASE WHEN $4 THEN (\n                      SELECT count(DISTINCT ol.order_id)\n                      FROM order_lines ol\n                      JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id\n                      WHERE ol.workspace_id = $1 AND o.status IN ('draft', 'open')\n                        AND ol.product_id IN (SELECT id FROM d WHERE NOT d.snoozed)) END AS impact\n           FROM d\n           ORDER BY d.snoozed, d.open_orders DESC NULLS LAST, d.shortfall DESC, d.name, d.id\n           LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ref_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "label!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "available!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "minimum!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "shortfall!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "open_orders",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "acked!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "snoozed!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "acked_n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "snoozed_n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "impact",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4acfa4692b5b65e8adce5e00251ab2ecdc4b0ad736f42e204bb5cf8c89b88931"
+}

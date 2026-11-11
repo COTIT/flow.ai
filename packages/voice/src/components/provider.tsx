@@ -27,6 +27,7 @@ import type {
 import { failureReason } from "../lib/client-contract"
 import { createTurn, endedBy, type TurnEnd } from "../lib/turn"
 import { timeZoneUpdate } from "../lib/time-zone"
+import { contextSync, type SceneContext } from "../lib/scene-context"
 import {
   attachmentProblem,
   sheetMime,
@@ -151,6 +152,8 @@ type VoiceContextValue = {
   resume: () => Promise<void>
   /** Where a server-built Office href points in this host app. */
   resolveHref: (href: string) => string
+  /** Tell the agent quietly what the person is looking at (ids only); sent while connected. */
+  sendContext: (context: SceneContext) => void
 }
 /** Host wiring; every default is Office's own, so Office passes nothing. */
 export type VoiceHost = {
@@ -734,6 +737,14 @@ function Session({
       }
     }
   }
+  const latest = useRef<{ sendContextualUpdate: (text: string) => void }>(
+    null
+  )
+  const sceneWanted = useRef<SceneContext | null>(null)
+  const [scene] = useState(() =>
+    contextSync(() => (verified.current ? latest.current : null))
+  )
+  useEffect(() => () => scene.cancel(), [scene])
   const conversation = useConversation({
     workletPaths: {
       rawAudioProcessor: `${audioBase}/rawAudioProcessor.js`,
@@ -763,6 +774,9 @@ function Session({
       setIdentityVerified(true)
       setStarting(false)
       conversation.sendContextualUpdate(timeZoneUpdate(timeZone.current))
+      // A new conversation has heard no scene yet.
+      scene.reset()
+      if (sceneWanted.current) scene.update(sceneWanted.current)
       if (continuation.current) {
         continuation.current = false
         switching.current = false
@@ -911,6 +925,9 @@ function Session({
         }
       },
     },
+  })
+  useEffect(() => {
+    latest.current = conversation
   })
   async function cleanup(current: Pick<VoiceSession, "sessionId"> | null) {
     if (!current) return
@@ -1745,6 +1762,10 @@ function Session({
         unfinished,
         resume,
         resolveHref,
+        sendContext: (context) => {
+          sceneWanted.current = context
+          scene.update(context)
+        },
       }}
     >
       {children}

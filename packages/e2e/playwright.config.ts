@@ -57,7 +57,11 @@ export default defineConfig({
       tablets: true,
     }),
     ...projectsFor("landing", { testDir: "tests/landing", baseURL: landing }),
-    ...projectsFor("flow", { testDir: "tests/flow", baseURL: flow }),
+    ...projectsFor("flow", {
+      testDir: "tests/flow",
+      baseURL: flow,
+      tablet: true,
+    }),
     // The shared checks themselves (tap targets, layout shift, motion), on inline pages.
     { name: "helpers", testDir: "tests/helpers", use: viewports.desktop },
   ],

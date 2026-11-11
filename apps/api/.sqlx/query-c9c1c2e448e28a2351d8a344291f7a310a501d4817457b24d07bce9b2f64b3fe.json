@@ -1,0 +1,93 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH z AS (\n               SELECT coalesce((SELECT n.name FROM pg_timezone_names n\n                                WHERE n.name = (SELECT s.data #>> '{general,timezone}'\n                                                FROM settings s WHERE s.workspace_id = $1)),\n                               'UTC') AS tz)\n           INSERT INTO attention_marks (workspace_id, user_id, kind, ref_id, state, snoozed_until)\n           SELECT $1, $2, $3, $4, $5,\n                  CASE $6::text\n                      WHEN 'until_tomorrow'\n                          THEN ((now() AT TIME ZONE z.tz)::date + 1)::timestamp AT TIME ZONE z.tz\n                      WHEN 'seven_days' THEN now() + interval '7 days'\n                  END\n           FROM z\n           ON CONFLICT (workspace_id, user_id, kind, ref_id) DO UPDATE\n               SET state = EXCLUDED.state, snoozed_until = EXCLUDED.snoozed_until,\n                   created_at = now()\n           RETURNING id, kind, ref_id, state, snoozed_until, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "attention_marks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "attention_marks",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "ref_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "attention_marks",
+            "name": "ref_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "attention_marks",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "snoozed_until",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "attention_marks",
+            "name": "snoozed_until"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "attention_marks",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c9c1c2e448e28a2351d8a344291f7a310a501d4817457b24d07bce9b2f64b3fe"
+}

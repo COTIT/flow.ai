@@ -14,6 +14,13 @@ export const viewports = {
   },
 }
 
+/** Flow's tablet check: an 11" iPad in portrait, touch. */
+export const tablet = {
+  ...devices["Desktop Chrome"],
+  viewport: { width: 834, height: 1112 },
+  hasTouch: true,
+}
+
 /** iPad sizes for the till (it runs on an iPad at the counter): landscape and portrait, touch. */
 export const tablets = {
   "ipad-landscape": {
@@ -30,7 +37,7 @@ export const tablets = {
 
 /**
  * Desktop and 375 px projects for one app, e.g. `...projectsFor("office", { testDir, baseURL })`.
- * `tablets: true` adds the two iPad projects.
+ * `tablets: true` adds the two iPad projects; `tablet: true` adds one 834 px portrait project.
  */
 export function projectsFor(
   app: string,
@@ -38,9 +45,14 @@ export function projectsFor(
     testDir,
     baseURL,
     tablets: withTablets = false,
-  }: { testDir: string; baseURL: string; tablets?: boolean }
+    tablet: withTablet = false,
+  }: { testDir: string; baseURL: string; tablets?: boolean; tablet?: boolean }
 ): Project[] {
-  const sizes = withTablets ? { ...viewports, ...tablets } : viewports
+  const sizes = {
+    ...viewports,
+    ...(withTablets ? tablets : {}),
+    ...(withTablet ? { tablet } : {}),
+  }
   return Object.entries(sizes).map(([name, use]) => ({
     name: `${app}-${name}`,
     testDir,
