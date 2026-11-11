@@ -443,3 +443,34 @@ test("P3-2: a conversation started away from home shows there (rail, or the phon
   }
   await expectSingleScroller(page)
 })
+
+for (const size of [
+  { width: 375, height: 812 },
+  { width: 812, height: 375 },
+])
+  test(`P4-2: ten attachments never push the dock past the screen (${size.width}×${size.height})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page)
+    await page.goto("/")
+    await startText(page)
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64"
+    )
+    await page.getByLabel(v.chooseFiles).setInputFiles(
+      Array.from({ length: 10 }, (_, i) => ({
+        name: `shelf-${i + 1}.png`,
+        mimeType: "image/png",
+        buffer: png,
+      }))
+    )
+    await expect(page.getByRole("list", { name: v.attachments })).toContainText("shelf-10.png")
+    const dockBox = (await page.locator("[data-dock-layer]").boundingBox())!
+    expect(dockBox.height).toBeLessThanOrEqual(size.height * 0.5)
+    await expect(composer(page)).toBeInViewport()
+    await expect(page.getByRole("button", { name: v.send, exact: true })).toBeInViewport()
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })

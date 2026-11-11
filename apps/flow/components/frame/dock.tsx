@@ -110,82 +110,91 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     <section
       aria-label={t("shell.dock")}
       // Short screens (phone landscape, zoomed laptop): one row, suggestions beside the field.
-      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-pills]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-pills]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
+      // Never taller than ~45% of the visible screen (P4-2): what sits above the field scrolls in
+      // the dock's own pane; the field and Send always stay in view.
+      className="flex max-h-[calc(var(--flow-vh,100dvh)*0.45)] min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-flow-pane]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-flow-pane]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
     >
-      {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
-      <Pills
-        disabled={Boolean(voice.review)}
-        ask={(text) => {
-          flowStore.getState().setDraft(text)
-          void submit(text)
-        }}
-      />
-      {state && state !== "available" && !live ? (
-        <Notice
-          variant={look[state].variant}
-          title={t(`flow.${look[state].title}`)}
-          action={
-            state === "unknown" || state === "not_ready" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={readiness.isFetching}
-                onClick={() => void readiness.refetch()}
-              >
-                {t("flow.retry")}
-              </Button>
-            ) : null
-          }
-        >
-          {look[state].text ? t(`flow.${look[state].text}`) : null}
-        </Notice>
-      ) : null}
-      {phase === "ended" ? (
-        <p role="status" className="text-sm">
-          {t("shell.ended")}{" "}
-          {voice.unfinished || voice.recoveredTasks.length
-            ? `${t("shell.preserved")} `
-            : null}
-          <span className="text-muted-foreground">{t("shell.startAgain")}</span>
-        </p>
-      ) : null}
-      <VoiceUnfinished />
-      {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
-      {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
-      <ResumePrompt ended={phase === "ended"} /> {/* F4 */}
-      {handoff ? (
-        <Notice variant="info" title={t("flow.chat.secureTitle")}>
-          {handoffHref ? (
-            <>
-              <a
-                href={handoffHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ className: "mt-2 min-h-11" })}
-              >
-                {t("flow.chat.openInOffice")}
-                <ExternalLink aria-hidden />
-              </a>
-              <p className="mt-2 text-xs">{t("flow.chat.officeSignIn")}</p>
-            </>
-          ) : (
-            t("flow.chat.officeNotLinked")
-          )}
-        </Notice>
-      ) : null}
-      {voice.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {voice.error}
-        </p>
-      ) : null}
-      {voice.connected ? (
-        <AttachmentList
-          onPreview={(file, opener) => {
-            previewReturn.current = opener
-            setPreviewKey(file.key)
+      <div
+        data-flow-pane="dock"
+        className="relative flex max-h-[calc(var(--flow-vh,100dvh)*0.45-5rem)] min-h-0 min-w-0 shrink flex-col gap-2 overflow-y-auto overscroll-y-contain [@media(max-height:500px)]:max-h-[calc(var(--flow-vh,100dvh)*0.45-1rem)]"
+      >
+        {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
+        <Pills
+          disabled={Boolean(voice.review)}
+          ask={(text) => {
+            flowStore.getState().setDraft(text)
+            void submit(text)
           }}
         />
-      ) : null}
+        {state && state !== "available" && !live ? (
+          <Notice
+            variant={look[state].variant}
+            title={t(`flow.${look[state].title}`)}
+            action={
+              state === "unknown" || state === "not_ready" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={readiness.isFetching}
+                  onClick={() => void readiness.refetch()}
+                >
+                  {t("flow.retry")}
+                </Button>
+              ) : null
+            }
+          >
+            {look[state].text ? t(`flow.${look[state].text}`) : null}
+          </Notice>
+        ) : null}
+        {phase === "ended" ? (
+          <p role="status" className="text-sm">
+            {t("shell.ended")}{" "}
+            {voice.unfinished || voice.recoveredTasks.length
+              ? `${t("shell.preserved")} `
+              : null}
+            <span className="text-muted-foreground">
+              {t("shell.startAgain")}
+            </span>
+          </p>
+        ) : null}
+        <VoiceUnfinished />
+        {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
+        {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
+        <ResumePrompt ended={phase === "ended"} /> {/* F4 */}
+        {handoff ? (
+          <Notice variant="info" title={t("flow.chat.secureTitle")}>
+            {handoffHref ? (
+              <>
+                <a
+                  href={handoffHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ className: "mt-2 min-h-11" })}
+                >
+                  {t("flow.chat.openInOffice")}
+                  <ExternalLink aria-hidden />
+                </a>
+                <p className="mt-2 text-xs">{t("flow.chat.officeSignIn")}</p>
+              </>
+            ) : (
+              t("flow.chat.officeNotLinked")
+            )}
+          </Notice>
+        ) : null}
+        {voice.error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {voice.error}
+          </p>
+        ) : null}
+        {voice.connected ? (
+          <AttachmentList
+            onPreview={(file, opener) => {
+              previewReturn.current = opener
+              setPreviewKey(file.key)
+            }}
+          />
+        ) : null}
+      </div>
       {/* While an action waits for approval nothing here sends or acts, so nothing cancels it by
           accident; the field itself stays focused and keeps what the person is typing (SW9). */}
       <form
