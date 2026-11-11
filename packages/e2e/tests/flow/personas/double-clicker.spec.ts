@@ -5,8 +5,18 @@
 import type { Page, Route } from "@playwright/test"
 
 import { sc } from "../scenes-api"
-import { s as shell } from "../shell"
-import { capsule, k, readBack, receipt, scene, stockRoutes } from "../task"
+import { phase, s as shell } from "../shell"
+import {
+  ACTION,
+  capsule,
+  k,
+  proposeStock as openStockReview,
+  readBack,
+  receipt,
+  scene,
+  stockReview,
+  stockRoutes,
+} from "../task"
 import { startText, v, type Agent } from "../voice"
 import { expect, test, type Persona } from "./harness"
 
@@ -350,10 +360,9 @@ test("P2: batch Pause hammered, then Stop: approved once, stopped once", async (
   await persona.check()
 })
 
-// P2-1: "Prepare the rest" sends its request once per click; the button is disabled only while
+// P2-1: "Prepare the rest" stays disabled until Genesy answers; it was guarded only by
 // `voice.busy`, which ends as soon as the socket send returns (before the next click lands).
 test("P2-1: batch Prepare the rest, double-clicked, asks Genesy once", async ({ persona, page }) => {
-  test.fail(true, "P2-1: each click sends another 'Prepare a new review' message")
   const { summary } = await pausedBatch(persona, page)
   await summary.getByRole("button", { name: k.batch.continue }).dblclick()
   await page.waitForTimeout(600)
@@ -365,7 +374,6 @@ test("P2-1: batch Prepare the rest, double-clicked, asks Genesy once", async ({ 
 
 // P2-1 (same root cause): the receipt's "Ask Genesy to check" on an unconfirmed outcome.
 test("P2-1: receipt Ask Genesy to check, double-clicked, asks once", async ({ persona, page, api }) => {
-  test.fail(true, "P2-1: each click sends another status question")
   stockReadBack(api)
   await stockRoutes(page, () => ({ status: "unknown", data: {} }))
   await page.goto("/")
@@ -376,6 +384,49 @@ test("P2-1: receipt Ask Genesy to check, double-clicked, asks once", async ({ pe
   await receipt(page).getByRole("button", { name: k.receipt.check }).dblclick()
   await page.waitForTimeout(600)
   expect(userMessages(persona.agent).filter((m) => m === k.receipt.checkMessage)).toHaveLength(1)
+})
+
+// P2-1 check: the resume prompt's Continue restores through `voice.restore`, which holds `busy`
+// until Office answers, so a double-click must reach Office once and open no new voice session.
+test("P2-1: resume Continue, double-clicked, restores once", async ({ persona, page }) => {
+  await stockRoutes(page)
+  const commands: string[] = []
+  await page.route("**/api/voice/tools", async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>
+    if (body.command === "status")
+      return route.fulfill({
+        json: {
+          status: "completed",
+          data: [
+            {
+              status: "awaiting_review",
+              data: {
+                actionId: ACTION(120),
+                operation: "stock_set_levels",
+                summary: "Set stock levels per warehouse",
+                recoverable: true,
+              },
+            },
+          ],
+        },
+      })
+    if (body.command === "restore") {
+      commands.push(String(body.command))
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      return route.fulfill({ json: stockReview(120, "stock-120-restored") })
+    }
+    return route.fallback()
+  })
+  await openStockReview(page, persona.agent, 120)
+  persona.agent.close()
+  await expect(phase(page)).toHaveAttribute("data-phase", "ended")
+  const prompt = page.getByRole("region", { name: k.resume.title })
+  await prompt.getByRole("button", { name: k.resume.continue }).dblclick()
+  await expect(scene(page)).toContainText(v.recoveredReviewHint)
+  await page.waitForTimeout(600)
+  expect(commands, "one restore for one Continue").toHaveLength(1)
+  expect(persona.agent.connections, "no new voice session").toBe(1)
+  await persona.check()
 })
 
 test("P2: receipt Dismiss and View result hammered", async ({ persona, page, api }) => {

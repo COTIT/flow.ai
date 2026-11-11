@@ -9,6 +9,7 @@ import { useVoice } from "@genesy/voice/components/provider"
 import { ReviewTitle } from "@genesy/voice/components/review-details"
 import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
 import { receiptOf, slotKey, stockAt, type ReadBack } from "@genesy/voice/lib/task"
+import { useOnceIntent } from "@/lib/use-once-intent"
 
 /**
  * What the approved action did, only from the server: previous values from the review's snapshot,
@@ -24,6 +25,7 @@ export function Receipt({
   const t = useTranslations("task.receipt")
   const errors = useTranslations("voice.requestErrors")
   const voice = useVoice()
+  const check = useOnceIntent(review.ticket)
   const workspace = useSession((s) => s.workspaceId) ?? ""
   const plan = receiptOf(review, outcome, undefined)
   const product = plan.readBack?.product ?? ""
@@ -113,7 +115,9 @@ export function Receipt({
             <Button
               variant="outline"
               className="min-h-11"
-              onClick={() => void voice.send(t("checkMessage"))}
+              disabled={check.pending}
+              aria-busy={check.pending}
+              onClick={() => void check.send(t("checkMessage"))}
             >
               {t("check")}
             </Button>
