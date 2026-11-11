@@ -46,6 +46,18 @@ describe("AttachmentList", () => {
     expect(out).toContain("retryReference")
   })
 
+  it("keeps ten files on one sideways row on small screens, each name whole in its title", () => {
+    const out = html(
+      Array.from({ length: 10 }, (_, n) =>
+        file({ key: `k${n}`, ordinal: n + 1, name: `shelf-${n + 1}.png` })
+      )
+    )
+    // P4-2: a growing column pushed the composer off a 375 px screen; the tray scrolls sideways.
+    expect(out).toMatch(/<ul[^>]*class="[^"]*\bflex\b[^"]*overflow-x-auto/)
+    expect(out).toContain('title="shelf-10.png"')
+    expect(out).toContain("truncate")
+  })
+
   it("cannot remove a file the agent already received", () => {
     expect(html([file({ state: "submitted" })])).not.toContain(
       "removeReference"

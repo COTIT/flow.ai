@@ -25,15 +25,20 @@ export function AttachmentList({
   const locale = useLocale()
   const voice = useVoice()
   if (!voice.attachments.length) return null
+  // Narrow or short screens get one sideways row of chips, so ten files never push the
+  // composer off a phone (P4-2); roomy screens (at least 40rem each way) keep the grid.
   return (
     <ul
       aria-label={t("attachments")}
-      className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2"
+      className="flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain [@media(min-width:40rem)_and_(min-height:40rem)]:grid [@media(min-width:40rem)_and_(min-height:40rem)]:grid-cols-2 [@media(min-width:40rem)_and_(min-height:40rem)]:overflow-visible"
     >
       {voice.attachments.map((file) => (
-        <li key={file.key} className="flex min-w-0 gap-3 py-2">
+        <li
+          key={file.key}
+          className="flex w-64 min-w-0 shrink-0 gap-3 py-1 [@media(min-width:40rem)_and_(min-height:40rem)]:w-auto [@media(min-width:40rem)_and_(min-height:40rem)]:py-2"
+        >
           <Button
-            className="size-14 min-h-11 min-w-11 shrink-0 p-0"
+            className="size-11 min-h-11 min-w-11 shrink-0 p-0 [@media(min-width:40rem)_and_(min-height:40rem)]:size-14"
             variant="ghost"
             type="button"
             aria-label={t("previewReference", {
@@ -45,7 +50,7 @@ export function AttachmentList({
               <img
                 src={file.preview}
                 alt={t("preview", { number: file.ordinal })}
-                className="size-14 shrink-0 rounded-xl object-cover"
+                className="size-11 shrink-0 rounded-xl object-cover [@media(min-width:40rem)_and_(min-height:40rem)]:size-14"
               />
             ) : sheetMime(file.file) ? (
               <FileSpreadsheet aria-hidden className="size-10 shrink-0" />
@@ -57,12 +62,11 @@ export function AttachmentList({
             <p className="truncate text-sm" title={file.name}>
               {file.ordinal}. {file.name}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {referenceSize(file.file.size, locale)}
-            </p>
-            <p role="status" className="text-xs text-muted-foreground">
-              {t(`fileStates.${file.state}`)}
-            </p>
+            {/* One line in a chip, two in the grid. */}
+            <div className="flex gap-2 text-xs text-muted-foreground [@media(min-width:40rem)_and_(min-height:40rem)]:block">
+              <p>{referenceSize(file.file.size, locale)}</p>
+              <p role="status">{t(`fileStates.${file.state}`)}</p>
+            </div>
             {file.error ? (
               <p role="alert" className="text-xs text-destructive">
                 {file.error}
