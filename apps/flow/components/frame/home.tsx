@@ -10,6 +10,7 @@ import { Button } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
+import { DiscoveryHint } from "@/components/discovery/hint" // F3
 import { useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
 import { Noticed } from "@/components/home/noticed" // F2
@@ -126,7 +127,7 @@ export function Home() {
           </p>
         </>
       ) : null}
-      {/* Slot for the discovery hint (F3). */}
+      <DiscoveryHint /> {/* F3 */}
       <Noticed /> {/* F2 */}
       <YourFlow /> {/* F2 */}
     </div>

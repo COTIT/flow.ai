@@ -17,8 +17,8 @@ import { ReviewTitle } from "@genesy/voice/components/review-details"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
 import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
+import { Pills } from "@/components/discovery/pills" // F3
 import { flowStore, useFlow } from "@/lib/flow-store"
-import { usePills } from "@/lib/pills"
 import type { Readiness } from "@/lib/readiness"
 import { useReadiness } from "@/lib/use-readiness"
 import { parseWake } from "@/lib/wake"
@@ -46,7 +46,6 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const voice = useVoice()
   const router = useRouter()
   const pathname = usePathname()
-  const pills = usePills()
   const draft = useFlow((s) => s.draft)
   const resultOpen = useFlow((s) => s.resultOpen)
   const picker = useRef<HTMLInputElement>(null)
@@ -75,8 +74,9 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   // One start at a time, also across the readiness check below.
   const opening = useRef(false)
 
-  const submit = async () => {
-    const { wake, rest } = parseWake(draft.trim())
+  // F3: `text` lets a suggestion send its instruction exactly as typing it + Enter would.
+  const submit = async (text = draft) => {
+    const { wake, rest } = parseWake(text.trim())
     const files = voice.attachments.some((file) => file.state !== "submitted")
     if (!rest && !wake && !files) return
     if (!voice.connected) {
@@ -100,7 +100,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       return
     }
     if (!rest && !files) return flowStore.getState().setDraft("")
-    void deliver(rest, draft)
+    void deliver(rest, text)
   }
 
   const handoff = voice.outcome?.handoff?.route
@@ -110,20 +110,14 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       aria-label={t("shell.dock")}
       className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3"
     >
-      {pills.length ? (
-        <ul
-          aria-label={t("shell.suggested")}
-          className="flex gap-2 overflow-x-auto"
-        >
-          {pills.map((pill) => (
-            <li key={pill.id} className="shrink-0">
-              <Button variant="outline" size="sm" onClick={pill.run}>
-                {pill.label}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
+      <Pills
+        disabled={Boolean(voice.review)}
+        ask={(text) => {
+          flowStore.getState().setDraft(text)
+          void submit(text)
+        }}
+      />
 
       {state && state !== "available" && !live ? (
         <Notice

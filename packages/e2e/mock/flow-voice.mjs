@@ -192,6 +192,8 @@ export async function flowVoice(req, res, path, send, readJson) {
             : body.decision === "approve"
               ? {
                   status: "completed",
+                  // As Office's confirm answers (actions.ts): the operation that ran.
+                  operationId: "orders_create",
                   message: "Order created.",
                   links: [{ label: "ORD-0043", href: `/orders/${FLOW_ORDER}` }],
                 }

@@ -1,0 +1,135 @@
+{
+  "discovery": {
+    "suggested": "Suggested for you",
+    "next": "Here's what you can do next",
+    "hint": {
+      "lead": "Not sure where to begin?",
+      "text": "Genesy can help you {areas}.",
+      "textGeneral": "Genesy can help you run your business by voice or text.",
+      "explore": "Explore what I can do",
+      "dismiss": "Dismiss tip",
+      "areas": {
+        "stock": "manage inventory",
+        "orders": "review orders",
+        "sales": "understand your sales",
+        "invoices": "follow up invoices"
+      }
+    },
+    "explorer": {
+      "title": "Explore what Genesy can do",
+      "text": "Pick a kind of task. Everything here uses your real permissions.",
+      "groups": {
+        "understand": "Understand",
+        "operate": "Operate",
+        "automate": "Automate",
+        "create": "Create & Personalize"
+      },
+      "example": "Try saying: “{example}”",
+      "try": "Try it",
+      "tryName": "Try {name}",
+      "reset": "Reset suggestions",
+      "resetDone": "Suggestions reset. They will learn from what you use again.",
+      "resetText": "Suggestions are ordered by what you use on this device. Nothing else is learned."
+    },
+    "status": {
+      "available": "Available",
+      "approval": "Requires approval",
+      "restricted": "Restricted",
+      "planned": "Planned"
+    },
+    "statusText": {
+      "approval": "You review and approve every change before it happens.",
+      "restricted": "Not available for your role.",
+      "planned": "Not available yet. Planned for a later version."
+    },
+    "capabilities": {
+      "morning_briefing": {
+        "label": "Morning briefing",
+        "description": "Your saved daily overview: sales, pending orders and stock that needs attention.",
+        "example": "Show my morning briefing."
+      },
+      "review_alerts": {
+        "label": "Review alerts",
+        "description": "See what Flow noticed and why it matters.",
+        "example": "What needs my attention today?"
+      },
+      "sales_perspective": {
+        "label": "Compare sales",
+        "description": "Sales day by day, compared with the period before.",
+        "example": "How do sales compare with last week?"
+      },
+      "weekly_sales": {
+        "label": "Weekly sales",
+        "description": "A short summary of this week's sales.",
+        "example": "How were sales this week?",
+        "prompt": "How were sales this week?"
+      },
+      "review_low_stock": {
+        "label": "Review low stock",
+        "description": "Products below their minimum, with the orders they affect.",
+        "example": "Which products are running low?"
+      },
+      "pending_orders": {
+        "label": "Check pending orders",
+        "description": "Orders that still need to be handled.",
+        "example": "Show my pending orders."
+      },
+      "adjust_stock": {
+        "label": "Prepare stock adjustment",
+        "description": "Set a product's stock to a new amount. You approve before anything changes.",
+        "example": "Update Raw Honey stock to 120.",
+        "prompt": "I want to adjust the stock of a product."
+      },
+      "change_price": {
+        "label": "Change a price",
+        "description": "Change a product's price. You approve before anything changes.",
+        "example": "Change the price of Mountain Coffee to 12 euros.",
+        "prompt": "I want to change the price of a product."
+      },
+      "find_product": {
+        "label": "Find a product",
+        "description": "Look up a product, its price and its stock.",
+        "example": "Find Organic Tea.",
+        "prompt": "Help me find a product."
+      },
+      "open_invoices": {
+        "label": "Open invoices",
+        "description": "Invoices that are not paid yet, overdue ones first.",
+        "example": "Which invoices are still open?",
+        "prompt": "Which invoices are still open?"
+      },
+      "schedule_weekly_report": {
+        "label": "Schedule weekly report",
+        "description": "Get a sales summary by email every week. You approve the schedule first.",
+        "example": "Every Monday at 8 AM, email me last week's sales.",
+        "prompt": "Schedule a weekly sales report for me."
+      },
+      "my_routines": {
+        "label": "My routines",
+        "description": "Your scheduled reports: pause, resume or remove them.",
+        "example": "Show my scheduled reports."
+      },
+      "conditional_monitoring": {
+        "label": "Alerts when something changes",
+        "description": "Be told when a condition is met, for example stock dropping below a level.",
+        "example": "Tell me when Raw Honey drops below 20.",
+        "prompt": "Tell me when stock drops below a level."
+      },
+      "arrange_flow": {
+        "label": "Arrange Your Flow",
+        "description": "Keep, reorder or remove the scenes on your home screen.",
+        "example": "Always show pending orders first."
+      },
+      "storefront_design": {
+        "label": "Design your storefront",
+        "description": "Preview and refine your online shop's look, then publish when you are happy.",
+        "example": "Make the homepage look more luxurious."
+      },
+      "explore": {
+        "label": "Explore possibilities",
+        "description": "Everything Genesy can do for you, by kind of task.",
+        "example": "What can you help me with?"
+      }
+    }
+  }
+}
