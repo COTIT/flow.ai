@@ -26,6 +26,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const endedByUser = useFlow((s) => s.endedByUser)
   const resultOpen = useFlow((s) => s.resultOpen)
   const selected = useFlow((s) => s.selected)
+  const visible = useFlow((s) => s.visible)
   const { phase } = sessionPhase({ ...voice, endedByUser })
   useProposalHold(voice.review)
   useTaskWatch(voice) // F4: withdrawn proposals and receipts outlive navigation
@@ -60,15 +61,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   // The agent quietly knows the scene (ids only); the provider sends only while connected.
   const send = voice.sendContext
+  const onResults = pathname === "/" && resultOpen
+  const results = onResults
+    ? voice.messages.flatMap((row) =>
+        row.role === "result" && row.views?.[0] ? [row.views[0].kind] : []
+      )
+    : []
+  const resultsKey = results.join()
   useEffect(() => {
     send(
       sceneContext({
-        pathname: pathname === "/" && resultOpen ? "/results" : pathname,
+        pathname: onResults ? "/results" : pathname,
         selected,
+        visible,
+        results,
       })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, resultOpen, selected])
+  }, [pathname, onResults, selected, visible, resultsKey])
 
   // The dock stays above a phone's keyboard: the frame follows the visual viewport.
   useEffect(() => {
