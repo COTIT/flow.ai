@@ -81,6 +81,7 @@
         "PERSONA_SEED",
         "PERSONA_STEPS",
         "PERSONA_BUDGET_MS",
+        "FINDINGS_RED",
         "E2E_DESIGN",
         "SHOP_DESIGN_ENABLED",
         "FLOW_URL"
