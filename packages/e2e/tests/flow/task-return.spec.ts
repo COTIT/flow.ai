@@ -113,3 +113,14 @@ test("another login's or workspace's memory, or a broken one, is never shown and
     ).not.toBe(foreign)
   }
 })
+
+test("a reload while a review is open never lands on an empty task scene", async ({ page }) => {
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await proposeStock(page, agent, 120)
+  await page.reload()
+  // Nothing of that conversation is left in this tab: home, never an empty "Results" scene.
+  await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
+  await expect(scene(page)).toHaveCount(0)
+  await expect(page).toHaveURL(/\/$/)
+})
