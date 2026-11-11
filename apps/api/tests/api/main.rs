@@ -115,6 +115,7 @@ mod stock_seed;
 mod stock_transfer;
 mod storage_locations;
 mod storefront;
+mod storefront_connections;
 mod storefront_design;
 mod supply_links;
 mod teams;

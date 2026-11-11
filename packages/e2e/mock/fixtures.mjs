@@ -14,6 +14,10 @@ export const FILES_PORT = 8198 + PORT_OFFSET
 export const FILES_ORIGIN = `http://127.0.0.1:${FILES_PORT}`
 /** Test-only app key; the mock refuses any other. Not a secret. */
 export const APP_KEY = "gsk_e2e_only_not_a_secret"
+export const SHOP_CONNECTIONS = [
+  "00000000-0000-4000-8000-000000000001",
+  "00000000-0000-4000-8000-000000000002",
+]
 /** The upstream body the mock sends with errors; it must never reach a page. */
 export const SECRET_BODY = "secret upstream detail"
 

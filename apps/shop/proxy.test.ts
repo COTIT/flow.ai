@@ -8,6 +8,47 @@ import sw from "./messages/sw.json"
 
 afterEach(() => vi.unstubAllEnvs())
 
+describe("workspace shop routing", () => {
+  const id = "00000000-0000-4000-8000-000000000001"
+  it("rewrites a scoped shop without a legacy key and replaces forged scope", () => {
+    vi.stubEnv("STOREFRONT_APP_KEY", "")
+    const response = proxy(
+      new NextRequest(`https://shop.test/s/${id}/shop?page=2`, {
+        headers: { "x-genesy-shop": "forged" },
+      })
+    )
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://shop.test/shop?page=2"
+    )
+    expect(response.headers.get("x-middleware-request-x-genesy-shop")).toBe(id)
+    expect(response.headers.get("Content-Security-Policy")).toContain("'nonce-")
+    expect(response.headers.get("x-genesy-shop")).toBeNull()
+  })
+  it("strips forged scope from legacy and prefetch requests", () => {
+    for (const prefetch of [false, true]) {
+      const response = proxy(
+        new NextRequest("https://shop.test/contact", {
+          headers: {
+            "x-genesy-shop": id,
+            ...(prefetch ? { purpose: "prefetch" } : {}),
+          },
+        })
+      )
+      expect(
+        response.headers.get("x-middleware-request-x-genesy-shop")
+      ).toBeNull()
+    }
+  })
+  it.each([
+    "/s/nope/shop",
+    `/s/${id}/v1/private`,
+    `/s/${id}/_next/image`,
+    `/s/${id}/about`,
+  ])("refuses invalid or private scoped route %s", (path) => {
+    expect(proxy(new NextRequest(`https://shop.test${path}`)).status).toBe(404)
+  })
+})
+
 describe("unconfigured catalog", () => {
   it.each([undefined, "", " \t "])(
     "returns safe HTML503 for missing key %j",

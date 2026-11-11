@@ -1,3 +1,8 @@
+const scope = vi.hoisted(() => ({ base: "" }))
+vi.mock("@/lib/shop-scope", () => ({
+  getShopBase: async () => scope.base,
+  getShop: async () => null,
+}))
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({
@@ -38,6 +43,7 @@ const httpError = (status: number) =>
 
 beforeEach(() => {
   vi.resetAllMocks()
+  scope.base = ""
   vi.spyOn(console, "error").mockImplementation(() => {})
   vi.stubEnv("STOREFRONT_APP_KEY", "gsk_test_key")
 })
@@ -317,5 +323,29 @@ describe("startPayment", () => {
       kind: "unavailable",
     })
     expect(api.storefrontOrdersPayment).not.toHaveBeenCalled()
+  })
+})
+
+describe("workspace connection requests", () => {
+  it("routes catalog and checkout to the connection without credentials or shared cache", async () => {
+    scope.base = "/s/00000000-0000-4000-8000-000000000001"
+    vi.stubEnv("STOREFRONT_APP_KEY", "")
+    api.storefrontProductsList.mockResolvedValue({ data: [] })
+    await listProducts(1)
+    expect(api.storefrontProductsList.mock.calls[0]![1]).toMatchObject({
+      url: "/storefront/shops/00000000-0000-4000-8000-000000000001/products",
+      fetchOptions: { cache: "no-store" },
+    })
+    expect(api.storefrontProductsList.mock.calls[0]![1].headers).toBeUndefined()
+    api.storefrontOrdersPayment.mockResolvedValue({
+      data: { status: "open", checkout_url: "https://pay.test/one" },
+    })
+    await startPayment(
+      "00000000-0000-4000-8000-000000000002",
+      "https://shop.test/return"
+    )
+    expect(api.storefrontOrdersPayment.mock.calls[0]![2].url).toBe(
+      "/storefront/shops/00000000-0000-4000-8000-000000000001/orders/00000000-0000-4000-8000-000000000002/payment"
+    )
   })
 })

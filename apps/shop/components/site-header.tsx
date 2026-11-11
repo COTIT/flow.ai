@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { getTranslations } from "next-intl/server"
 
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
@@ -11,7 +11,7 @@ import { MobileMenu } from "./mobile-menu"
 import { NavLinks } from "./nav-links"
 
 /** One glass bar: logo, the main links (a sheet on phones), language, theme, cart. */
-export async function SiteHeader() {
+export async function SiteHeader({ shopName }: { shopName?: string }) {
   const t = await getTranslations()
   const labels = Object.fromEntries(
     NAV.map(({ key }) => [key, t(`nav.${key}`)])
@@ -28,7 +28,7 @@ export async function SiteHeader() {
           aria-hidden
           className="max-w-[9.5rem] text-[15px] leading-[1.15] font-semibold tracking-[0.01em] md:max-w-none md:text-[17px]"
         >
-          {t("app.title")}
+          {shopName ?? t("app.title")}
         </span>
       </Link>
       <nav aria-label={t("nav.main")} className="hidden gap-1 md:flex">

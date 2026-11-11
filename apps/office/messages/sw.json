@@ -1771,6 +1771,27 @@
     "send": "Tuma kwa idhini"
   },
   "storefront": {
+    "connection": {
+      "title": "Muunganisho wa duka",
+      "connected": "Limeunganishwa",
+      "disconnected": "Halijaunganishwa",
+      "connectedHint": "Eneo hili la kazi lina anwani yake ya duka. Ishiriki na wateja wako.",
+      "disconnectedHint": "Unganisha eneo hili la kazi ili katalogi na viungo vya pasipoti vipatikane dukani.",
+      "connect": "Unganisha duka",
+      "disconnect": "Tenganisha duka",
+      "disconnectTitle": "Tenganisha eneo hili la kazi na duka?",
+      "disconnectText": "Katalogi na malipo mapya hayatapatikana. Maagizo na malipo yaliyopo yataendelea kupatikana. Ukiunganisha tena, anwani ya duka haitabadilika.",
+      "connectedDone": "Duka limeunganishwa.",
+      "disconnectedDone": "Duka limetenganishwa.",
+      "url": "Anwani ya duka",
+      "copy": "Nakili anwani ya duka",
+      "copied": "Anwani ya duka imenakiliwa",
+      "open": "Fungua duka",
+      "copyFailed": "Kunakili kumeshindikana. Chagua na unakili anwani ya duka hapo juu.",
+      "addressUnavailable": "Anwani ya duka haipatikani. Wasiliana na msimamizi wako.",
+      "required": "Muunganisho wa duka unahitajika",
+      "requiredHint": "Unganisha eneo hili la kazi kwenye Mipangilio → Duka, au muombe msimamizi wako, kabla ya kushiriki viungo vya pasipoti."
+    },
     "title": "Muundo wa duka",
     "intro": "Kagua matoleo yaliyohifadhiwa kabla ya kuchapisha mabadiliko kwenye duka lako.",
     "created": "Imeundwa",

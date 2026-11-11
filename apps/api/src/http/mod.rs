@@ -25,6 +25,7 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         mailer: crate::mail::Mailer::capture().0,
         frontend_url: "https://app.test".into(),
         api_public_url: "https://api.test".into(),
+        shop_public_url: Some("https://shop.test".into()),
         rate_limit: crate::RateLimit {
             burst: 1000,
             replenish: std::time::Duration::from_millis(1),

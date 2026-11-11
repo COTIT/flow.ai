@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { addLine, cartCount, setQuantity, type CartLine } from "./cart"
+import {
+  addLine,
+  cartCount,
+  createCartStore,
+  setQuantity,
+  type CartLine,
+} from "./cart"
 
 const honey = (
   quantity: number,
@@ -17,6 +23,28 @@ const honey = (
 })
 
 describe("cart lines", () => {
+  it("isolates workspace carts, including payment completion clearing", () => {
+    const saved = new Map<string, string>()
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => saved.get(key) ?? null,
+      setItem: (key: string, value: string) => saved.set(key, value),
+      removeItem: (key: string) => saved.delete(key),
+    })
+    const first = createCartStore("/s/first")
+    const second = createCartStore("/s/second")
+    const legacy = createCartStore()
+    first.getState().add(honey(2))
+    second.getState().add(honey(3))
+    first.getState().clear()
+    expect(first.getState().lines).toEqual([])
+    expect(second.getState().lines).toEqual([honey(3)])
+    expect(legacy.getState().lines).toEqual([])
+    expect(first.persist.getOptions().name).not.toBe(
+      second.persist.getOptions().name
+    )
+    expect(legacy.persist.getOptions().name).toBe("genesy.cart")
+    vi.unstubAllGlobals()
+  })
   it("adds a new line, or more of the same product and variant", () => {
     const one = addLine([], honey(1))
     expect(one).toHaveLength(1)

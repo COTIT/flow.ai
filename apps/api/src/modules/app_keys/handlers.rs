@@ -86,6 +86,7 @@ pub async fn create(
         (status = 204, description = "Revoked (also when it already was)"),
         (status = 403, body = MessageBody, description = "Inactive membership, or caller not a workspace admin"),
         (status = 404, body = MessageBody, description = "Unknown workspace or key, or caller not a member"),
+        (status = 409, body = MessageBody, description = "Managed Shop actor: disconnect its Shop connection instead"),
     ),
     security(("bearer" = []))
 )]

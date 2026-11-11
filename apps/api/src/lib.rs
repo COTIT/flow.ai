@@ -64,6 +64,8 @@ pub struct AppState {
     pub frontend_url: std::sync::Arc<str>,
     /// This API's public origin, for links that must hit the API (email verification).
     pub api_public_url: std::sync::Arc<str>,
+    /// Trusted deployed Shop origin, independent of shopper-supplied request headers.
+    pub shop_public_url: Option<std::sync::Arc<str>>,
     /// Applied to public auth routes only, per client IP.
     pub rate_limit: RateLimit,
     /// Applied to authenticated routes, per session (bearer token).

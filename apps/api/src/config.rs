@@ -30,6 +30,8 @@ pub struct Config {
     pub frontend_url: String,
     /// Public origin of this API, for links that must hit the API (email verification).
     pub api_public_url: String,
+    /// Fixed Shop origin for public connection checkout returns; absent disables that payment edge.
+    pub shop_public_url: Option<String>,
     pub smtp_url: String,
     pub mail_from: String,
     /// Public auth routes: requests allowed at once per client IP.
@@ -199,6 +201,7 @@ impl Config {
 
         let frontend_url = base_url(&get, "FRONTEND_URL")?;
         let api_public_url = base_url(&get, "API_PUBLIC_URL")?;
+        let shop_public_url = shop_origin(&get)?;
         let smtp_url = get("SMTP_URL").ok_or("SMTP_URL not set")?;
         // Invite codes and SMTP credentials travel over this link: plain SMTP only on request.
         let smtp_tls = smtp_url.starts_with("smtps://") || query_has(&smtp_url, "tls=required");
@@ -304,6 +307,7 @@ impl Config {
             token_ttl_days,
             frontend_url,
             api_public_url,
+            shop_public_url,
             smtp_url,
             mail_from,
             rate_limit_burst,
@@ -504,6 +508,27 @@ fn base_url(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<String, 
     Ok(url.trim_end_matches('/').to_owned())
 }
 
+/// Checkout returns use one operator-owned origin, never Host/Origin supplied by a shopper.
+fn shop_origin(get: &impl Fn(&str) -> Option<String>) -> Result<Option<String>, String> {
+    let Some(value) = get("SHOP_PUBLIC_URL").filter(|value| !value.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let invalid = || "SHOP_PUBLIC_URL must be an https origin (http only on localhost)".to_owned();
+    let url = reqwest::Url::parse(&value).map_err(|_| invalid())?;
+    let local = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
+    if (url.scheme() != "https" && !(url.scheme() == "http" && local))
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.path() != "/"
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(invalid());
+    }
+    Ok(Some(url.origin().ascii_serialization()))
+}
+
 /// A pool size within 1..=100. Empty counts as unset: compose passes `${GENESY_…:-}`.
 fn pool_size(
     get: &impl Fn(&str) -> Option<String>,
@@ -539,6 +564,33 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn shop_checkout_origin_is_optional_and_cannot_carry_credentials_or_paths() {
+        assert_eq!(super::shop_origin(&|_| None).unwrap(), None);
+        for value in [
+            "https://shop.test",
+            "https://shop.test/",
+            "http://localhost:3000",
+        ] {
+            let origin = super::shop_origin(&|_| Some(value.to_owned()))
+                .unwrap()
+                .unwrap();
+            assert_eq!(origin, value.trim_end_matches('/'));
+        }
+        for value in [
+            "http://shop.test",
+            "https://user:secret@shop.test",
+            "https://shop.test/s/one",
+            "https://shop.test?next=evil",
+            "https://shop.test#evil",
+        ] {
+            assert!(
+                super::shop_origin(&|_| Some(value.to_owned())).is_err(),
+                "{value}"
+            );
+        }
+    }
+
     use super::*;
 
     /// Required vars besides DATABASE_URL, so each test only spells out what it checks.

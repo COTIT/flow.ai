@@ -1,5 +1,6 @@
 //! Storefront catalog reads and shared authoritative public product materialization.
 
+pub mod connections;
 pub mod dto;
 pub mod handlers;
 pub mod repo;

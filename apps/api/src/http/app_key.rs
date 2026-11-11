@@ -23,11 +23,48 @@ pub struct AppKey {
     pub id: Uuid,
     pub workspace_id: Uuid,
     scopes: Vec<String>,
+    connection_id: Option<Uuid>,
     /// Same in-flight cap as members, with the key in the user's place.
     _slot: Slot,
 }
 
 impl AppKey {
+    /// Public connections reuse a stable restricted app actor, never its bearer secret.
+    pub(crate) async fn for_connection(
+        state: &AppState,
+        id: Uuid,
+        workspace_id: Uuid,
+        scopes: Vec<String>,
+    ) -> Result<Self, AppError> {
+        Ok(Self {
+            id,
+            workspace_id,
+            scopes,
+            connection_id: Some(id),
+            _slot: state.slots.take(id, workspace_id).await?,
+        })
+    }
+
+    /// Serialize new checkout admission with disconnect; historical reads/payments stay live.
+    pub(crate) async fn require_active_connection(
+        &self,
+        conn: &mut sqlx::PgConnection,
+    ) -> Result<(), AppError> {
+        if let Some(id) = self.connection_id {
+            let active: Option<bool> = sqlx::query_scalar(
+                "SELECT active FROM storefront_connections WHERE workspace_id=$1 AND id=$2 FOR SHARE",
+            )
+            .bind(self.workspace_id)
+            .bind(id)
+            .fetch_optional(conn)
+            .await?;
+            if active != Some(true) {
+                return Err(AppError::NotFound);
+            }
+        }
+        Ok(())
+    }
+
     /// 403 unless the key holds `scope`.
     pub fn require(&self, scope: &str) -> Result<(), AppError> {
         if self.scopes.iter().any(|s| s == scope) {
@@ -51,6 +88,7 @@ impl FromRequestParts<AppState> for AppKey {
             id: key.id,
             workspace_id: key.workspace_id,
             scopes: key.scopes,
+            connection_id: None,
             _slot: slot,
         })
     }

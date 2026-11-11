@@ -107,6 +107,9 @@ export async function fakeApi(page: Page) {
     .on("GET", "/me", () => ({ data: { user: me } }))
     .on("GET", "/workspace/:ws/orders", () => paged([]))
     .on("GET", "/workspace/:ws/supply-links", () => paged([]))
+    .on("GET", "/workspace/:ws/storefront/connection", () => ({
+      data: { id: null, active: false, name: "Ilundo Honey Co." },
+    }))
     // Every order page reads its trail; older orders have none.
     .on("GET", "/workspace/:ws/orders/:order/events", () => paged([]))
     // Every product page lists its sizes; specs that care override this.

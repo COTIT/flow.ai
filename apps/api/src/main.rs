@@ -141,6 +141,7 @@ async fn main() {
             )),
         frontend_url: config.frontend_url.as_str().into(),
         api_public_url: config.api_public_url.as_str().into(),
+        shop_public_url: config.shop_public_url.as_deref().map(Into::into),
         rate_limit: RateLimit {
             burst: config.rate_limit_burst,
             replenish: Duration::from_secs(config.rate_limit_replenish_secs),

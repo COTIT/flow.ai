@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { useLocale, useTranslations } from "next-intl"
 import { ShoppingBagIcon } from "lucide-react"
 

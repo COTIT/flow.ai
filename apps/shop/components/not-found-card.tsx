@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/shop-link"
 
 import { buttonVariants } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"

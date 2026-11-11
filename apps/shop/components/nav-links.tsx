@@ -1,11 +1,12 @@
 "use client"
 
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { usePathname } from "next/navigation"
 
 import { cn } from "@genesy/ui/lib/utils"
 
 import { NAV } from "@/lib/nav"
+import { useShop } from "@/lib/shop-context"
 
 /** The main links; the current section is marked for screen readers and by style. */
 export function NavLinks({
@@ -18,11 +19,15 @@ export function NavLinks({
   onNavigate?: () => void
 }) {
   const path = usePathname()
-  return NAV.map(({ href, key }) => {
+  const { base } = useShop()
+  const visible = base ? NAV.filter(({ key }) => key === "shop") : NAV
+  const localPath =
+    base && path.startsWith(base) ? path.slice(base.length) || "/" : path
+  return visible.map(({ href, key }) => {
     const here =
-      path === href ||
-      path.startsWith(`${href}/`) ||
-      (href === "/shop" && path.startsWith("/products/"))
+      localPath === href ||
+      localPath.startsWith(`${href}/`) ||
+      (href === "/shop" && localPath.startsWith("/products/"))
     return (
       <Link
         key={key}

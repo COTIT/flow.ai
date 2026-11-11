@@ -5,6 +5,7 @@ import { apiRequest } from "@genesy/api-client/mutator"
 import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
 
 import "./api"
+import { getShopBase } from "./shop-scope"
 
 /** Short fixed reason only: never payloads, headers, keys or error text. */
 const legacy = (reason: string) => {
@@ -14,16 +15,22 @@ const legacy = (reason: string) => {
 
 /** Design freshness stays separate from existing catalog cache contracts. */
 export async function getPublishedDesign(): Promise<StorefrontPublishedDesign | null> {
-  if (process.env.SHOP_DESIGN_ENABLED !== "true") return null
+  const base = await getShopBase()
+  if (!base && process.env.SHOP_DESIGN_ENABLED !== "true") return null
   const key = process.env.STOREFRONT_APP_KEY
-  if (!key) return legacy("no app key")
+  if (!base && !key) return legacy("no app key")
   try {
     const { data } = await apiRequest<{
       data: StorefrontPublishedDesign | null
     }>(
-      { url: "/storefront/pages/home", method: "GET" },
       {
-        headers: { Authorization: `Bearer ${key}` },
+        url: base
+          ? `/storefront/shops/${base.slice(3)}/pages/home`
+          : "/storefront/pages/home",
+        method: "GET",
+      },
+      {
+        ...(base ? {} : { headers: { Authorization: `Bearer ${key}` } }),
         timeout: 2000,
         adapter: "fetch",
         fetchOptions: { cache: "no-store" },

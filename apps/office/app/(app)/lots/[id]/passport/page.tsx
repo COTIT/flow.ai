@@ -16,6 +16,7 @@ import {
   useLotsPassportUnpublish,
 } from "@genesy/api-client/endpoints/lots"
 import { useProductsGet } from "@genesy/api-client/endpoints/products"
+import { useStorefrontConnectionGet } from "@genesy/api-client/endpoints/storefront-connection"
 import type {
   Block,
   FileResource,
@@ -39,6 +40,7 @@ import { Bento, DetailSkeleton, Tile, type Tone } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"
 import { Capped, Done, LoadError, useDone } from "@/components/states"
+import { storefrontUrl } from "@/lib/storefront-url"
 
 import { ListEditor } from "./list-editor"
 import { bpToPercent, percentToBp, toPublic } from "./to-public"
@@ -143,6 +145,9 @@ function Editor({
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   // Name and brand for the preview, when the member may read products.
+  const connection = useStorefrontConnectionGet(workspaceId, {
+    query: { retry: false },
+  })
   const product = useProductsGet(workspaceId, lot.product_id, undefined, {
     query: { enabled: useCan("product.view") },
   })
@@ -181,7 +186,14 @@ function Editor({
   const unsaved = JSON.stringify(draft) !== JSON.stringify(resource.draft)
   const unpublished =
     JSON.stringify(resource.draft) !== JSON.stringify(resource.published)
-  const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL
+  const publicUrl =
+    !connection.isError && !connection.isFetching
+      ? storefrontUrl(
+          process.env.NEXT_PUBLIC_SHOP_URL,
+          connection.data?.data,
+          lot.public_code
+        )
+      : null
 
   const fileSelect = (
     value: string | null | undefined,
@@ -280,7 +292,10 @@ function Editor({
   return (
     <>
       <PageHead
-        back={{ href: `/lots/${lot.id}`, label: tp("back", { code: lot.code }) }}
+        back={{
+          href: `/lots/${lot.id}`,
+          label: tp("back", { code: lot.code }),
+        }}
         title={t("lots.passport")}
         description={unsaved ? tp("saveFirst") : undefined}
         actions={
@@ -396,13 +411,21 @@ function Editor({
           }}
         >
           <Tile id="pp-story-card" title={tp("fields.story")} span="">
-            <Field id="pp-title" label={tp("fields.title")} errors={errors.title}>
+            <Field
+              id="pp-title"
+              label={tp("fields.title")}
+              errors={errors.title}
+            >
               <Input
                 value={draft.title ?? ""}
                 onChange={(e) => set({ title: e.target.value || null })}
               />
             </Field>
-            <Field id="pp-intro" label={tp("fields.intro")} errors={errors.intro}>
+            <Field
+              id="pp-intro"
+              label={tp("fields.intro")}
+              errors={errors.intro}
+            >
               <Textarea
                 value={draft.intro ?? ""}
                 onChange={(e) => set({ intro: e.target.value || null })}
@@ -439,7 +462,9 @@ function Editor({
                   value={draft.map?.label ?? ""}
                   onChange={(e) =>
                     draft.map &&
-                    set({ map: { ...draft.map, label: e.target.value || null } })
+                    set({
+                      map: { ...draft.map, label: e.target.value || null },
+                    })
                   }
                 />
               </Field>
@@ -452,7 +477,10 @@ function Editor({
             label={tp("fields.story")}
             items={draft.story ?? []}
             onChange={(story) => set({ story })}
-            kind={(b) => ({ label: tp(`add.${b.kind}`), tone: blockTone[b.kind] })}
+            kind={(b) => ({
+              label: tp(`add.${b.kind}`),
+              tone: blockTone[b.kind],
+            })}
             summary={blockSummary}
             render={(b, setB, i) => (
               <StoryBlock
@@ -622,10 +650,10 @@ function Editor({
             >
               {tp("livePreview")}
             </h2>
-            {resource.published && shopUrl ? (
+            {resource.published && publicUrl ? (
               <a
                 className={buttonVariants({ variant: "ghost", size: "sm" })}
-                href={`${shopUrl}/b/${lot.public_code}`}
+                href={publicUrl}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -634,6 +662,24 @@ function Editor({
               </a>
             ) : null}
           </div>
+          {resource.published &&
+          !publicUrl &&
+          !connection.isPending &&
+          !connection.isFetching ? (
+            connection.isError ? (
+              <LoadError
+                error={connection.error}
+                onRetry={() => void connection.refetch()}
+              />
+            ) : (
+              <Notice
+                variant="warning"
+                title={t("storefront.connection.required")}
+              >
+                {t("storefront.connection.requiredHint")}
+              </Notice>
+            )
+          ) : null}
           <Card className="gap-0 overflow-hidden p-5">
             <PassportView
               passport={toPublic(
@@ -652,7 +698,8 @@ function Editor({
                 product: {
                   name: product.data?.data.name ?? "",
                   brand: product.data?.data.brand ?? null,
-                  short_description: product.data?.data.short_description ?? null,
+                  short_description:
+                    product.data?.data.short_description ?? null,
                 },
                 farmers: [],
               }}
@@ -665,7 +712,6 @@ function Editor({
     </>
   )
 }
-
 
 /** Percent typed by a person, stored as integer basis points; bad input is flagged, not guessed. */
 function PercentInput({

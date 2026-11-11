@@ -1771,6 +1771,27 @@
     "send": "Send for approval"
   },
   "storefront": {
+    "connection": {
+      "title": "Shop connection",
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "connectedHint": "This workspace has its own Shop address. Share it with your customers.",
+      "disconnectedHint": "Connect this workspace to make its catalog and passport links available in Shop.",
+      "connect": "Connect Shop",
+      "disconnect": "Disconnect Shop",
+      "disconnectTitle": "Disconnect this workspace from Shop?",
+      "disconnectText": "The catalog and new checkout will become unavailable. Existing orders and payments remain available. Reconnecting keeps the same Shop address.",
+      "connectedDone": "Shop connected.",
+      "disconnectedDone": "Shop disconnected.",
+      "url": "Shop address",
+      "copy": "Copy Shop address",
+      "copied": "Shop address copied",
+      "open": "Open Shop",
+      "copyFailed": "Copy failed. Select and copy the Shop address above.",
+      "addressUnavailable": "The Shop address is unavailable. Contact your administrator.",
+      "required": "Shop connection required",
+      "requiredHint": "Connect this workspace in Settings → Storefront, or ask your administrator, before sharing passport links."
+    },
     "title": "Storefront design",
     "intro": "Review saved revisions before publishing changes to your shop.",
     "created": "Created",

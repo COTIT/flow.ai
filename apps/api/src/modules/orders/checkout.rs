@@ -85,6 +85,7 @@ pub async fn create(
 ) -> Result<Answer, AppError> {
     let ws = key.workspace_id;
     let mut tx = state.db.begin().await?;
+    key.require_active_connection(&mut tx).await?;
     if let Some(a) = idempotency::replay(&mut tx, ws, Actor::AppKey(key.id), idem.as_ref()).await? {
         return Ok(a);
     }

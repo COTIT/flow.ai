@@ -1771,6 +1771,27 @@
     "send": "Ter goedkeuring sturen"
   },
   "storefront": {
+    "connection": {
+      "title": "Winkelverbinding",
+      "connected": "Verbonden",
+      "disconnected": "Niet verbonden",
+      "connectedHint": "Deze werkruimte heeft een eigen winkeladres. Deel het met je klanten.",
+      "disconnectedHint": "Verbind deze werkruimte om de catalogus en paspoortlinks in de winkel beschikbaar te maken.",
+      "connect": "Winkel verbinden",
+      "disconnect": "Winkel ontkoppelen",
+      "disconnectTitle": "Deze werkruimte van de winkel ontkoppelen?",
+      "disconnectText": "De catalogus en nieuwe betalingen worden onbeschikbaar. Bestaande bestellingen en betalingen blijven beschikbaar. Opnieuw verbinden behoudt hetzelfde winkeladres.",
+      "connectedDone": "Winkel verbonden.",
+      "disconnectedDone": "Winkel ontkoppeld.",
+      "url": "Winkeladres",
+      "copy": "Winkeladres kopiëren",
+      "copied": "Winkeladres gekopieerd",
+      "open": "Winkel openen",
+      "copyFailed": "Kopiëren mislukt. Selecteer en kopieer het winkeladres hierboven.",
+      "addressUnavailable": "Het winkeladres is niet beschikbaar. Neem contact op met je beheerder.",
+      "required": "Winkelverbinding vereist",
+      "requiredHint": "Verbind deze werkruimte via Instellingen → Winkelontwerp of vraag je beheerder voordat je paspoortlinks deelt."
+    },
     "title": "Webwinkelontwerp",
     "intro": "Bekijk opgeslagen versies voordat je wijzigingen in je winkel publiceert.",
     "created": "Aangemaakt",

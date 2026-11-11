@@ -20,6 +20,7 @@ import type {
 
 import "./api"
 import { isUuid, isPublicCode } from "./passport"
+import { getShopBase } from "./shop-scope"
 
 /** Axios request options, as the generated calls take them. */
 type RequestOptions = NonNullable<Parameters<typeof storefrontProductsGet>[1]>
@@ -38,7 +39,15 @@ export const PAGE_SIZE = 24
  * Request options for every storefront call. The app key is a server secret: this module
  * is server-only, and the build checks no client file mentions it.
  */
-function options(): RequestOptions {
+async function options(path: string): Promise<RequestOptions> {
+  const base = await getShopBase()
+  if (base)
+    return {
+      url: path.replace(/^\/storefront/, `/storefront/shops/${base.slice(3)}`),
+      timeout: 8000,
+      adapter: "fetch",
+      fetchOptions: { cache: "no-store" },
+    }
   const key = process.env.STOREFRONT_APP_KEY
   if (!key) {
     console.error("storefront: STOREFRONT_APP_KEY is not set")
@@ -64,7 +73,7 @@ async function call<T>(
   /** What a 404 means instead of not-found, when the page can do without it. */
   missing?: () => T
 ): Promise<T> {
-  const opts = options()
+  const opts = await options(path)
   try {
     return await request(opts)
   } catch (error) {
@@ -183,7 +192,7 @@ export async function createOrder(
   body: CheckoutRequest,
   idempotencyKey: string
 ): Promise<CreateOrderResult> {
-  const o = options()
+  const o = await options("/storefront/orders")
   try {
     const { data } = await storefrontOrdersCreate(body, {
       ...fresh(o),
@@ -226,7 +235,7 @@ export async function startPayment(
     const { data } = await storefrontOrdersPayment(
       orderId,
       { redirect_url: redirectUrl },
-      fresh(options())
+      fresh(await options(path))
     )
     if (
       (data as typeof data & { attention?: boolean }).attention ||

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation"
 import { parseCheckout } from "@/lib/checkout-input"
 import { isUuid } from "@/lib/passport"
 import { createOrder, startPayment, type PaymentResult } from "@/lib/storefront"
+import { getShopBase } from "@/lib/shop-scope"
+import { shopPath } from "@/lib/shop-path"
 
 export type CheckoutState = {
   missing?: string[]
@@ -28,7 +30,7 @@ export async function placeOrder(
     return result.kind === "invalid"
       ? { errors: result.errors }
       : { problem: result.kind }
-  redirect(`/orders/${result.order.id}`)
+  redirect(shopPath(await getShopBase(), `/orders/${result.order.id}`))
 }
 
 export type PayState = {
@@ -41,7 +43,10 @@ export async function payOrder(_: PayState, form: FormData): Promise<PayState> {
   if (!isUuid(id)) return { problem: "not_payable" }
   // shortcut: localhost default for dev; every deploy must set SITE_URL.
   const site = process.env.SITE_URL ?? "http://localhost:3000"
-  const result = await startPayment(id, `${site}/orders/${id}`)
+  const result = await startPayment(
+    id,
+    `${site}${shopPath(await getShopBase(), `/orders/${id}`)}`
+  )
   if (!result.ok) return { problem: result.kind }
   // The URL comes from the API (the provider); still, only ever send people to http(s).
   if (!/^https?:\/\//.test(result.checkoutUrl))

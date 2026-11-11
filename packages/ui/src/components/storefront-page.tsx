@@ -23,6 +23,7 @@ export type StorefrontPageProps = {
     shopCta: string
   }
   preview?: boolean
+  basePath?: string
 }
 
 const mobileColumns: Record<number, string> = {
@@ -53,6 +54,7 @@ export function StorefrontPage({
   locale,
   labels,
   preview = false,
+  basePath = "",
 }: StorefrontPageProps) {
   if (!canRenderStorefrontPage(document, collections)) return null
   return (
@@ -101,7 +103,7 @@ export function StorefrontPage({
                   </span>
                 ) : (
                   <a
-                    href="/shop"
+                    href={`${basePath}/shop`}
                     className={cn(buttonVariants({ size: "lg" }), "min-h-11")}
                   >
                     {labels.shopCta}
@@ -148,7 +150,9 @@ export function StorefrontPage({
                   return (
                     <li key={product.id} className="flex min-w-0">
                       <Card
-                        {...(!preview && { href: `/products/${product.id}` })}
+                        {...(!preview && {
+                          href: `${basePath}/products/${product.id}`,
+                        })}
                         className="flex w-full min-w-0 flex-col overflow-hidden rounded-[18px] glass outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
                       >
                         {product.images[0] ? (

@@ -9,6 +9,7 @@ import { URL } from "node:url"
 
 import {
   APP_KEY,
+  SHOP_CONNECTIONS,
   LOT,
   MOCK_ORIGIN,
   MOCK_PORT,
@@ -547,7 +548,7 @@ const image = (label) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect width="1200" height="600" fill="${tones[[...label].reduce((n, c) => n + c.charCodeAt(0), 0) % tones.length]}"/><text x="600" y="300" fill="#fff" font-size="64" text-anchor="middle">${label}</text></svg>`
 
 const handler = async (req, res) => {
-  const path = new URL(req.url, MOCK_ORIGIN).pathname
+  let path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
   if (designSuite && path === "/__design" && req.method === "POST") {
     const { mode } = await readJson(req)
@@ -572,7 +573,13 @@ const handler = async (req, res) => {
     return send(res, 200, image(path.slice(7)), "image/svg+xml")
   if (!path.startsWith("/v1/storefront/"))
     return send(res, 404, { message: "Not found." })
-  if (req.headers.authorization !== `Bearer ${APP_KEY}`)
+  const shop = path.match(/^\/v1\/storefront\/shops\/([^/]+)(\/.*)?$/)
+  if (shop) {
+    if (!SHOP_CONNECTIONS.includes(shop[1])) return send(res, 404, { message: "Not found." })
+    if (!shop[2]) return send(res, 200, { data: { id: shop[1], active: true, name: shop[1] === SHOP_CONNECTIONS[0] ? "First shop" : "Second shop" } })
+    path = `/v1/storefront${shop[2]}`
+  }
+  if (!shop && req.headers.authorization !== `Bearer ${APP_KEY}`)
     return send(res, 401, { message: "Unauthenticated." })
 
   const failing = { message: SECRET_BODY }

@@ -3,6 +3,8 @@ import { getLocale, getTranslations } from "next-intl/server"
 
 import { Passport } from "@/components/passport"
 import { getLot } from "@/lib/storefront"
+import { getShopBase } from "@/lib/shop-scope"
+import { shopPath } from "@/lib/shop-path"
 
 type Props = { params: Promise<{ code: string }> }
 
@@ -13,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     lot.passport.intro?.slice(0, 160) ??
     lot.product.short_description ??
     undefined
-  const url = `/b/${lot.public_code}`
+  const url = shopPath(await getShopBase(), `/b/${lot.public_code}`)
   // No og:image: banner links are signed and expire within minutes.
   return {
     title,

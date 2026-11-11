@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { useLocale, useTranslations } from "next-intl"
 import { ShoppingBagIcon, Trash2Icon } from "lucide-react"
 

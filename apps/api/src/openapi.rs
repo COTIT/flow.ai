@@ -178,6 +178,8 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(settings::routes::private())
         .merge(app_keys::routes::private())
         .merge(storefront::routes::private())
+        .merge(storefront::connections::private())
+        .merge(storefront::connections::public())
         .merge(storefront_design::routes::private())
         .merge(product_images::routes::private())
         .merge(webhooks::routes::private())

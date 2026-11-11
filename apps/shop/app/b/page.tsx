@@ -7,6 +7,8 @@ import { Notice } from "@genesy/ui/components/notice"
 import { PageIntro } from "@/components/page-intro"
 import { TraceForm } from "@/components/trace-form"
 import { isPublicCode, normalizeCode } from "@/lib/passport"
+import { getShopBase } from "@/lib/shop-scope"
+import { shopPath } from "@/lib/shop-path"
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("trace"))("title") }
@@ -21,7 +23,7 @@ export default async function TracePage({
   const raw = (await searchParams).code
   const typed = typeof raw === "string" ? raw : ""
   const code = normalizeCode(typed)
-  if (isPublicCode(code)) redirect(`/b/${code}`)
+  if (isPublicCode(code)) redirect(shopPath(await getShopBase(), `/b/${code}`))
   const t = await getTranslations()
   return (
     <>

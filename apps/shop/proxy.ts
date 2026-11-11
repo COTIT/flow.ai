@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { NextResponse, NextRequest } from "next/server"
 import { LOCALE_COOKIE, pickLocale } from "@genesy/i18n/locales"
 import { securityHeaders } from "@genesy/security/headers"
 import { cspProxy } from "@genesy/security/proxy"
@@ -6,6 +6,7 @@ import { cspProxy } from "@genesy/security/proxy"
 import en from "./messages/en.json"
 import nl from "./messages/nl.json"
 import sw from "./messages/sw.json"
+import { SHOP_HEADER, shopBase } from "./lib/shop-path"
 
 // shortcut: frames refused everywhere; pass { frameAncestors } here once a shop page must be embedded.
 // FILES_ORIGIN: the file storage host serving the signed passport images (one exact origin).
@@ -24,6 +25,29 @@ function html(value: string) {
 /** Return a real unavailable status before catalog rendering can fail. */
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
+  const forwarded = new Headers(request.headers)
+  // The visible URL is the only source of scope; clients cannot override it with headers.
+  forwarded.delete(SHOP_HEADER)
+  if (path === "/s" || path.startsWith("/s/")) {
+    const match = /^\/s\/([^/]+)(\/.*)?$/.exec(path)
+    const base = shopBase(match?.[1] ?? null)
+    const target = match?.[2] ?? "/"
+    if (
+      !base ||
+      !/^\/(?:shop|cart|checkout|b(?:\/[^/]+)?|products\/[^/]+|orders\/[^/]+)?$/.test(
+        target
+      )
+    )
+      return new NextResponse("Shop page not found", { status: 404 })
+    forwarded.set(SHOP_HEADER, base.slice(3))
+    const destination = request.nextUrl.clone()
+    destination.pathname = target
+    return secured(
+      new NextRequest(request, { headers: forwarded }),
+      destination
+    )
+  }
+  request = new NextRequest(request, { headers: forwarded })
   const needsCatalog =
     ["/", "/shop", "/checkout"].includes(path) ||
     ["/products/", "/orders/", "/b/"].some((prefix) => path.startsWith(prefix))
@@ -58,7 +82,7 @@ export function proxy(request: NextRequest) {
     request.headers.has("next-router-prefetch") ||
     request.headers.get("purpose") === "prefetch"
   )
-    return NextResponse.next()
+    return NextResponse.next({ request: { headers: forwarded } })
   return secured(request)
 }
 

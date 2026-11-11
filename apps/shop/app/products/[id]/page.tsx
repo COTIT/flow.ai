@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { getLocale, getTranslations } from "next-intl/server"
 import {
   ArrowLeftIcon,
@@ -24,22 +24,25 @@ import { ProductGallery } from "@/components/product-gallery"
 import { isSoldOut } from "@/components/stock-badge"
 import { card, cardTitle, h2, tag } from "@/lib/look"
 import { getLot, getProduct } from "@/lib/storefront"
+import { getShopBase } from "@/lib/shop-scope"
+import { shopPath } from "@/lib/shop-path"
 
 type Props = { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const product = await getProduct(id)
+  const url = shopPath(await getShopBase(), `/products/${product.id}`)
   const description =
     product.short_description ?? product.description?.slice(0, 160) ?? undefined
   return {
     title: product.name,
     description,
-    alternates: { canonical: `/products/${product.id}` },
+    alternates: { canonical: url },
     openGraph: {
       title: product.name,
       description,
-      url: `/products/${product.id}`,
+      url,
     },
   }
 }
@@ -56,6 +59,7 @@ const gold =
  * without one (or when that read fails) the card is left out and the photo spans one row.
  */
 export default async function ProductPage({ params }: Props) {
+  const base = await getShopBase()
   const { id } = await params
   const [t, tp, tb, locale, product] = await Promise.all([
     getTranslations(),
@@ -206,13 +210,15 @@ export default async function ProductPage({ params }: Props) {
           <p className="max-w-[760px] whitespace-pre-line text-muted-foreground">
             {product.description ?? t("product.noDescription")}
           </p>
-          <Link
-            href="/stories"
-            className="inline-flex min-h-11 w-fit items-center gap-1.5 font-medium underline-offset-4 hover:underline md:min-h-8"
-          >
-            {t("product.people")}
-            <ChevronRightIcon aria-hidden className="size-4" />
-          </Link>
+          {!base && (
+            <Link
+              href="/stories"
+              className="inline-flex min-h-11 w-fit items-center gap-1.5 font-medium underline-offset-4 hover:underline md:min-h-8"
+            >
+              {t("product.people")}
+              <ChevronRightIcon aria-hidden className="size-4" />
+            </Link>
+          )}
           {product.labels.length ? (
             <div className="flex flex-wrap gap-2">
               {product.labels.map((label) => (

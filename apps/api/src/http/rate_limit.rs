@@ -119,6 +119,7 @@ struct Session(AnyIp);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum SessionKey {
     Token([u8; 32]),
+    Shop(uuid::Uuid),
     Ip(IpAddr),
 }
 
@@ -126,6 +127,19 @@ impl KeyExtractor for Session {
     type Key = SessionKey;
 
     fn extract<T>(&self, req: &Request<T>) -> Result<SessionKey, GovernorError> {
+        // Public Shop calls share their managed actor's bucket; rotating headers cannot evade it.
+        let path = req
+            .uri()
+            .path()
+            .strip_prefix("/v1")
+            .unwrap_or(req.uri().path());
+        if let Some(id) = path
+            .strip_prefix("/storefront/shops/")
+            .and_then(|rest| rest.split('/').next())
+            .and_then(|id| uuid::Uuid::parse_str(id).ok())
+        {
+            return Ok(SessionKey::Shop(id));
+        }
         // App keys get their own bucket too: a shop server shouldn't share its IP's.
         Ok(
             match bearer(req.headers()).or_else(|| app_key::bearer(req.headers())) {
@@ -207,6 +221,33 @@ fn too_many(err: GovernorError) -> Response<Body> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn public_shop_bucket_is_bound_to_connection_not_supplied_bearer() {
+        let session = super::Session(super::AnyIp(super::ClientIp {
+            trust_forwarded: false,
+        }));
+        let id = uuid::Uuid::now_v7();
+        let first = axum::http::Request::builder()
+            .uri(format!("/v1/storefront/shops/{id}/products"))
+            .header("authorization", format!("Bearer {}", "a".repeat(64)))
+            .body(())
+            .unwrap();
+        let other = axum::http::Request::builder()
+            .uri(format!("/v1/storefront/shops/{id}/orders"))
+            .header("authorization", format!("Bearer {}", "b".repeat(64)))
+            .body(())
+            .unwrap();
+        use tower_governor::key_extractor::KeyExtractor;
+        assert_eq!(
+            session.extract(&first).unwrap(),
+            super::SessionKey::Shop(id)
+        );
+        assert_eq!(
+            session.extract(&first).unwrap(),
+            session.extract(&other).unwrap()
+        );
+    }
+
     use super::*;
 
     fn ip(s: &str) -> IpAddr {

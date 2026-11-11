@@ -34,6 +34,7 @@ x-api-env: &api-env
   RUST_LOG: ${RUST_LOG:-genesy_360_api=info,tower_http=info}
   FRONTEND_URL: https://staging-office.genesy.app
   API_PUBLIC_URL: https://staging-api.genesy.app
+  SHOP_PUBLIC_URL: https://staging-shop.genesy.app
   # Mailpit catches every mail; nothing leaves the VPS.
   SMTP_URL: smtp://mailpit:1025
   SMTP_ALLOW_INSECURE: "true"
