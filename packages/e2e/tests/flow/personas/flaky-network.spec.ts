@@ -300,8 +300,7 @@ test("probe: the gateway answers an HTML 502 when starting", async ({ persona, p
 /** The dock's alert, where the voice provider puts its errors. */
 const alertText = async (page: Page) => (await page.getByRole("alert").allInnerTexts()).join(" | ")
 
-test.describe("P6-1: a dropped or garbled voice request shows the browser's raw error", () => {
-  test.fail()
+test.describe("P6-1: a dropped or garbled voice request says so in plain words", () => {
   test("P6-1a: Use text instead while offline", async ({ persona, page }) => {
     await page.goto("/")
     await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
