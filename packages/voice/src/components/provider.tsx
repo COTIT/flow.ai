@@ -27,6 +27,7 @@ import type {
 import { failureReason } from "../lib/client-contract"
 import { createTurn, endedBy, type TurnEnd } from "../lib/turn"
 import { timeZoneUpdate } from "../lib/time-zone"
+import { agentOverride, greetingHint, type Opening } from "../lib/greeting"
 import { contextSync, type SceneContext } from "../lib/scene-context"
 import {
   attachmentProblem,
@@ -127,7 +128,8 @@ type VoiceContextValue = {
   stopBatch: (command?: "pause" | "cancel") => Promise<void>
   refreshBatch: () => Promise<void>
   closeRecovery: () => Promise<void>
-  start: (textOnly: boolean) => Promise<void>
+  /** opening "command": the user typed first, so the agent answers instead of greeting. */
+  start: (textOnly: boolean, opening?: Opening) => Promise<void>
   upgrade: () => Promise<void>
   end: () => Promise<void>
   toggleMute: () => void
@@ -1118,7 +1120,7 @@ function Session({
     // The active canonical batch fixes identity; every poll rechecks ownership server-side.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, review?.kind, review?.batchId])
-  async function start(onlyText: boolean, continuing = false) {
+  async function start(onlyText: boolean, continuing = false, opening?: Opening) {
     if (starting || session.current) return
     const before = ++generation.current
     sessionLocale.current = sessionLanguage(locale)
@@ -1151,13 +1153,15 @@ function Session({
         stream.getTracks().forEach((track) => track.stop())
       }
       if (!active.current || before !== generation.current) return
-      const issued = await request<VoiceSession & { timeZone?: string }>(
-        "session",
-        {
-          locale,
-          textOnly: onlyText,
-        }
-      )
+      const issued = await request<
+        VoiceSession & { timeZone?: string; greeting?: string }
+      >("session", {
+        locale,
+        textOnly: onlyText,
+        greeting: continuing
+          ? undefined
+          : greetingHint(opening, recoveredTasks.length),
+      })
       timeZone.current = issued.timeZone
       if (!active.current || before !== generation.current) {
         void cleanup(issued)
@@ -1171,7 +1175,10 @@ function Session({
         connectionType: "websocket",
         textOnly: onlyText,
         overrides: {
-          agent: { language: sessionLanguage(sessionLocale.current) },
+          agent: agentOverride(
+            sessionLanguage(sessionLocale.current),
+            issued.greeting
+          ),
         },
       })
     } catch (e) {
@@ -1739,7 +1746,7 @@ function Session({
         stopBatch,
         refreshBatch,
         closeRecovery,
-        start,
+        start: (textOnly, opening) => start(textOnly, false, opening),
         upgrade,
         end,
         micMode,

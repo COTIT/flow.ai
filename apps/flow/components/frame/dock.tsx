@@ -93,7 +93,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         if (!rest) flowStore.getState().setDraft("")
         // Sent from the box once connected; a start that fails sends nothing later.
         sendOnConnect.current = true
-        await voice.start(true)
+        await voice.start(true, "command")
       } finally {
         opening.current = false
       }
