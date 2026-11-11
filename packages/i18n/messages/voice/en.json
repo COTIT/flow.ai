@@ -124,6 +124,9 @@
     "upgrading": "Enabling voice…",
     "upgradeNotice": "Voice is ready. Earlier messages stay here. Restate your request and share references again.",
     "microphoneDenied": "Microphone access was refused. Your text conversation is still active.",
+    "microphoneMissing": "No microphone was found. Connect one, or keep typing.",
+    "offline": "You're offline. Reconnect, then try again.",
+    "connectionLost": "Couldn't reach Genesy. Check your connection and try again.",
     "upgradeFailed": "Voice could not start. Your earlier messages remain here.",
     "batchProgress": "Batch progress",
     "batchSteps": "Ordered batch steps",
@@ -537,7 +540,17 @@
       "effect": {
         "archive": "It will be archived, not deleted."
       },
-      "warningsTitle": "Before you approve"
+      "warningsTitle": "Before you approve",
+      "breakdown": {
+        "products": "Top products",
+        "customers": "Top customers",
+        "walkIn": "Walk-in sales (no customer)"
+      },
+      "compare": {
+        "title": "Sales compared",
+        "change": "{change} vs {period}",
+        "noBase": "No sales in {period} to compare with"
+      }
     },
     "suggestions": "Suggestions",
     "tryPrompt": "Try: “{prompt}”",

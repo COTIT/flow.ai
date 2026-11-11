@@ -5,8 +5,18 @@
 import type { Locator, Page, Route } from "@playwright/test"
 
 import { sc } from "../scenes-api"
-import { revealHeader, s as shell } from "../shell"
-import { capsule, k, readBack, receipt, scene, stockReview, stockRoutes as baseStockRoutes } from "../task"
+import { phase, revealHeader, s as shell } from "../shell"
+import {
+  ACTION,
+  capsule,
+  k,
+  proposeStock as openStockReview,
+  readBack,
+  receipt,
+  scene,
+  stockReview,
+  stockRoutes as baseStockRoutes,
+} from "../task"
 import { startText, v, type Agent } from "../voice"
 import { expect, test, type Persona, type Step } from "./harness"
 
@@ -470,6 +480,49 @@ test("P2-1: receipt Ask Genesy to check, double-clicked, asks once", async ({ pe
   await receipt(page).getByRole("button", { name: k.receipt.check }).dblclick()
   await page.waitForTimeout(600)
   expect(userMessages(persona.agent).filter((m) => m === k.receipt.checkMessage)).toHaveLength(1)
+})
+
+// P2-1 check: the resume prompt's Continue restores through `voice.restore`, which holds `busy`
+// until Office answers, so a double-click must reach Office once and open no new voice session.
+test("P2-1: resume Continue, double-clicked, restores once", async ({ persona, page }) => {
+  await stockRoutes(page)
+  const commands: string[] = []
+  await page.route("**/api/voice/tools", async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>
+    if (body.command === "status")
+      return route.fulfill({
+        json: {
+          status: "completed",
+          data: [
+            {
+              status: "awaiting_review",
+              data: {
+                actionId: ACTION(120),
+                operation: "stock_set_levels",
+                summary: "Set stock levels per warehouse",
+                recoverable: true,
+              },
+            },
+          ],
+        },
+      })
+    if (body.command === "restore") {
+      commands.push(String(body.command))
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      return route.fulfill({ json: stockReview(120, "stock-120-restored") })
+    }
+    return route.fallback()
+  })
+  await openStockReview(page, persona.agent, 120)
+  persona.agent.close()
+  await expect(phase(page)).toHaveAttribute("data-phase", "ended")
+  const prompt = page.getByRole("region", { name: k.resume.title })
+  await prompt.getByRole("button", { name: k.resume.continue }).dblclick()
+  await expect(scene(page)).toContainText(v.recoveredReviewHint)
+  await page.waitForTimeout(600)
+  expect(commands, "one restore for one Continue").toHaveLength(1)
+  expect(persona.agent.connections, "no new voice session").toBe(1)
+  await persona.check()
 })
 
 test("P2: receipt Dismiss and View result hammered", async ({ persona, page, api }) => {

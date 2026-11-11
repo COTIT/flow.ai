@@ -7,6 +7,7 @@
       "text": "Genesy can help you {areas}.",
       "textGeneral": "Genesy can help you run your business by voice or text.",
       "explore": "Explore what I can do",
+      "whatCanDo": "What can Genesy do?",
       "dismiss": "Dismiss tip",
       "areas": {
         "stock": "manage inventory",

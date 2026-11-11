@@ -119,22 +119,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const send = voice.sendContext
   const onResults = pathname === "/" && resultOpen
   const results = onResults
-    ? voice.messages.flatMap((row) =>
-        row.role === "result" && row.views?.[0] ? [row.views[0].kind] : []
-      )
+    ? voice.messages.filter((row) => row.role === "result" && row.views?.[0])
     : []
-  const resultsKey = results.join()
+  const context = sceneContext({
+    pathname: onResults ? "/results" : pathname,
+    selected,
+    visible,
+    results,
+    reviewOpen: !!voice.review,
+  })
+  // Sent again only when what it says changes (a redraw in place keeps ids but not the drawing).
+  const contextKey = JSON.stringify(context)
   useEffect(() => {
-    send(
-      sceneContext({
-        pathname: onResults ? "/results" : pathname,
-        selected,
-        visible,
-        results,
-      })
-    )
+    send(context)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, onResults, selected, visible, resultsKey])
+  }, [contextKey])
 
   // The dock stays above a phone's keyboard: the frame follows the visual viewport.
   useEffect(() => {

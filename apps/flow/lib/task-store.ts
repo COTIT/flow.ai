@@ -4,6 +4,7 @@ import { createStore } from "zustand/vanilla"
 
 import { useSession } from "@genesy/api-client/auth"
 import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
+import type { RecoveryTask } from "@genesy/voice/lib/recovery"
 
 type TaskState = {
   /** Whose task this is (`ownerKey`): nothing here is shown to another workspace or login. */
@@ -107,6 +108,25 @@ export function loadTask(owner: string): Partial<TaskState> {
   return {}
 }
 
+/**
+ * P6-3: the outcome of an approval that was on its way when this tab reloaded, from Office's
+ * status. The review carries no action id, so a batch matches by its id and an action by its
+ * operation (the newest listed). Only "completed" is confirmed; anything else must be checked,
+ * never repeated. Null while Office has not said.
+ */
+export function approvalOutcome(
+  decided: VoiceReview,
+  tasks: RecoveryTask[]
+): VoiceOutcome | null {
+  const task = tasks.find((t) =>
+    decided.batchId
+      ? t.data?.batchId === decided.batchId
+      : !t.data?.batchId && t.data?.operation === decided.operationId
+  )
+  if (!task || task.status === "awaiting_review") return null
+  return { status: task.status === "completed" ? "completed" : "unknown" }
+}
+
 /** What a review leaving means: withdrawn (cancelled, never sent), decided (answered), or nothing. */
 export function reviewLeft(
   before: VoiceReview | null,
@@ -130,6 +150,9 @@ export function useTaskWatch(voice: {
   review: VoiceReview | null
   outcome: VoiceOutcome | null
   starting: boolean
+  busy: boolean
+  progress: { status: string } | null
+  recoveredTasks: RecoveryTask[]
 }) {
   const last = useRef<VoiceReview | null>(null)
   // The outcome showing while the review was open belongs to earlier work, never to this review.
@@ -154,6 +177,20 @@ export function useTaskWatch(voice: {
     const next = reviewLeft(before, review, outcome, earlier.current)
     if (next && taskStore.getState().owner === owner) taskStore.setState(next)
   }, [review, outcome, owner])
+  // P6-3: an approval on its way is kept as decided with no answer yet, so a reload finds it.
+  const approving = Boolean(review && voice.busy && voice.progress?.status === "running")
+  useEffect(() => {
+    if (approving && review && taskStore.getState().owner === owner)
+      taskStore.setState({ decided: review, result: null, withdrawn: null })
+  }, [approving, review, owner])
+  // After the reload: Office's status answers it (the confirm is never sent again).
+  const { recoveredTasks } = voice
+  useEffect(() => {
+    const { decided, result } = taskStore.getState()
+    if (review || !decided || result || taskStore.getState().owner !== owner) return
+    const answer = approvalOutcome(decided, recoveredTasks)
+    if (answer) taskStore.setState({ result: answer })
+  }, [review, recoveredTasks, owner])
   useEffect(() => {
     if (starting) taskStore.setState({ ...EMPTY, owner }, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps

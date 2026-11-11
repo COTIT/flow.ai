@@ -92,13 +92,21 @@ const body = (route: Route) => (route.request().postDataJSON() ?? {}) as Json
  */
 export async function stockRoutes(page: Page, confirmAnswer?: (ticket: string) => Json) {
   const confirms: Json[] = []
+  // Every proposal gets its own ticket, as Office's do: the first for a total is `stock-<total>`,
+  // a later one for the same total `stock-<total>-<n>`.
+  const proposed = new Map<number, number>()
   await page.route("**/api/voice/tools", async (route) => {
     const b = body(route)
     if (b.command !== "execute") return route.fallback()
     if (b.operationId === "products_list") return route.fulfill({ json: products })
     if (b.operationId === "stock_set_levels") {
       const args = b.arguments as { body: { warehouses: { stock_lvl: number }[] } }
-      return route.fulfill({ json: stockReview(args.body.warehouses[0]!.stock_lvl) })
+      const total = args.body.warehouses[0]!.stock_lvl
+      const n = (proposed.get(total) ?? 0) + 1
+      proposed.set(total, n)
+      return route.fulfill({
+        json: stockReview(total, n === 1 ? `stock-${total}` : `stock-${total}-${n}`),
+      })
     }
     return route.fallback()
   })

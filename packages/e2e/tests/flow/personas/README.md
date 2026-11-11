@@ -46,6 +46,17 @@ test("double-clicker: ...", async ({ persona, page, api }) => {
   task stays reachable; no `foreign` text (another workspace or login); no action approved twice
   (from the confirm requests the browser sent); no console errors or failed requests except the
   ones a step injected (`failApi`, `offline`).
+- Mock honesty: give every proposal its own ticket, as Office does (`stockReview(total, \`stock-${total}-${n}\`)`);
+  `stockRoutes`' default ticket repeats for the same total, so two separate proposals of 130 would
+  look like one action approved twice. Agent answers need their own `event_id` (see `harness.ts`), or
+  the provider merges rows. Neither is a Flow bug.
+- Labels: use `labels` from the harness (logout, dock, backHome, message, send, textInstead,
+  addFiles, approve), which match every Flow language, so a persona may switch the language.
+- `persona.offline(context, true)` is a real outage: every routed (mocked) request is aborted,
+  open agent sockets drop and new ones are refused until `offline(context, false)`.
+- Header auto-hide (layout build): once it lands, call `revealHeader(page)` (tests/flow/shell.ts)
+  before clicking a header control; `clickAnything` only picks visible controls, so it never
+  clicks a hidden header.
 - Allowed failures are injected per page with `markInjected` (from `src/test.ts`); everything
   else still fails the test.
 

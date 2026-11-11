@@ -52,7 +52,12 @@ function SalesCard({
   const rows = query.data?.data.currencies ?? []
   const label = t(`metric.${metric.replace(".", "_")}`)
   return (
-    <DataState query={query} empty={!rows.length} emptyTitle={t("noSales")}>
+    <DataState
+      query={query}
+      empty={!rows.length}
+      emptyTitle={t("noSales")}
+      reserve={86}
+    >
       <Card label={label} sub={t(`period.${period}`)}>
         {rows.map((row) => (
           <p key={row.currency} className="text-2xl font-semibold tabular-nums">
@@ -79,7 +84,7 @@ function CountCard({ metric }: { metric: FlowMetric }) {
   const value = query.data ? COUNTS[metric]!(query.data.data) : undefined
   if (value === null) return <Restricted title={label} />
   return (
-    <DataState query={query} empty={false} emptyTitle="">
+    <DataState query={query} empty={false} emptyTitle="" reserve={86}>
       <Card label={label} sub={t("now")}>
         <p className="text-2xl font-semibold tabular-nums">{value}</p>
       </Card>

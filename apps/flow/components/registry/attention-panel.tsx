@@ -14,6 +14,7 @@ import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatQty } from "@genesy/ui/lib/format"
 import { usePriorities, useWorkspace } from "@/lib/use-scene-data"
+import { useSyncGuard } from "@/lib/use-sync-guard"
 import { DataState, Restricted } from "./data-state"
 import { RecordTable } from "./record-table"
 import type { RegistryProps } from "./types"
@@ -42,6 +43,10 @@ function Group({ group }: { group: PriorityGroup }) {
         ]),
     },
   })
+  const once = useSyncGuard()
+  const send = (data: Parameters<typeof mark.mutate>[0]["data"]) =>
+    // A second click in the same frame must not send the same write again.
+    void once(() => mark.mutateAsync({ workspace: ws, data }).catch(() => null))
   const can = (action: string) => group.actions.includes(action)
   const review = REVIEW[group.kind]
   const kindKey = `noticed.kind.${group.kind.replace(".", "_")}`
@@ -104,10 +109,8 @@ function Group({ group }: { group: PriorityGroup }) {
               | { state: "acknowledged" }
               | { state: "snoozed"; snooze: "until_tomorrow" | "seven_days" }
           ) =>
-            mark.mutate({
-              workspace: ws,
-              data: { kind: group.kind, ref_id: item.ref_id, ...data },
-            })
+            // P2-3a: through the same-frame guard, never mark.mutate directly.
+            send({ kind: group.kind, ref_id: item.ref_id, ...data })
           const snooze = can("snooze")
             ? {
                 label: t("noticed.snooze"),

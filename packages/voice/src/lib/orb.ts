@@ -385,13 +385,15 @@ export type OrbVoice = {
   capturePaused: boolean
   speaking: boolean
   error: string
+  /** The error only says a review lapsed: not a failure, so the orb stays calm. */
+  expired?: boolean
   unfinished: "stalled" | "dropped" | null
   review: unknown
   messages: readonly unknown[]
 }
 
 export function orbState(v: OrbVoice): OrbState {
-  if (v.error) return "error"
+  if (v.error && !v.expired) return "error"
   if (v.unfinished) return "recovering"
   if (v.starting || v.upgrading) return "connecting"
   if (!v.connected) return v.messages.length ? "ended" : "idle"

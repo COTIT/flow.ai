@@ -160,7 +160,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         <VoiceUnfinished />
         {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
         {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
-        <ResumePrompt ended={phase === "ended"} /> {/* F4 */}
+        <ResumePrompt idle={!live} /> {/* F4; P5-1: also after a reload, never while starting */}
         {handoff ? (
           <Notice variant="info" title={t("flow.chat.secureTitle")}>
             {handoffHref ? (

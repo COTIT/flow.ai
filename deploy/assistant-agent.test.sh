@@ -54,12 +54,38 @@ assert 'end with one direct question' in prompt,'missing or mismatched file must
 assert 'never revert anything by yourself' in prompt,'undo must be a new review card'
 assert 'meta.total for how many' in prompt,'counts must come from meta.total'
 assert '[File import]' in prompt and 'never copy prices yourself' in prompt,'file import block missing'
-for line in ['Ok, got that','just finalizing','please read and approve the card','Oké, begrepen','lees de kaart en keur hem goed','Sawa, nimeelewa','tafadhali soma kadi na uidhinishe']:
-    assert line in prompt,'four-beat talk-back script missing: '+line
+# Talk-back is style guidance, not a script: fixed lines made the agent sound robotic.
+for script in ['Ok, got that, let me check it for you.','Oké, begrepen, ik zoek het even voor je uit.','Sawa, nimeelewa, niruhusu nikuangalie.','Approved, just finalizing.','Here is what I\'ll do, please read and approve the card.']:
+    assert script not in prompt,'talk-back must not be a fixed script: '+script
+for rule in ['only when a lookup will take a moment','never the same opener twice in a row','say nothing before an instant answer','illustrations only, never repeat them verbatim']:
+    assert rule in prompt,'talk-back style rule missing: '+rule
+assert prompt.count('never repeat them verbatim')>=3,'acknowledgement, progress and review examples must all be marked as illustrations'
+assert 'never read an approval code or phrase aloud and never approve yourself' in prompt,'talk-back must keep the approval rules'
+agent_overrides=config['platform_settings']['overrides']['conversation_config_override']['agent']
+assert agent_overrides['first_message'] is True,"Office's contextual greeting needs the first_message override"
+assert agent_overrides['prompt']['prompt'] is False and agent_overrides['language'] is True,'only the greeting and language may be overridden'
+firsts=[agent['first_message']]+[preset['overrides']['agent']['first_message'] for preset in config['conversation_config']['language_presets'].values()]
+assert all(0<len(text)<=60 for text in firsts),'the fallback greeting stays short and neutral'
 assert 'call the same wait:true again' in prompt,'agent must keep waiting after a running progress result'
 assert 'you may call execute_genesy_tool directly' in prompt and 'Effects still require discovering' in prompt,'direct lookup contract missing'
 assert 'You cannot approve actions yourself.' in prompt and 'Approval codes and exact confirmation phrases are private' in prompt,'approval rules changed'
 assert 'The top search result includes its full input schema' in prompt,'agent must execute after one search when the top match fits'
+assert '[Results on screen]' in prompt and 'never read the points or items one by one' in prompt,'summary rule for pictures on screen missing'
+assert 'say why in one sentence and offer the closest kind' in prompt,'refused chart kind must be explained with the closest fit'
+assert '[Flow context]' in prompt and '[/Flow context]' in prompt and 'UNTRUSTED UI state' in prompt,'Flow context block missing'
+assert 'saved period' in prompt,'Flow context period caveat missing'
+assert 'replaces' in prompt and 'presentation' in prompt and 'Reads stay reads' in prompt,'change-in-place contract missing'
+assert 'Never invent data to fit a chart' in prompt,'charts must never fake data'
+kinds=['line','sparkline','bar','hbar','pie','donut','kpi','delta','meter','table','list','timeline','map']
+for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table'}.items():
+    assert f'{shape}: {allowed}' in prompt,'chart kinds per data shape missing: '+shape
+assert 'flow_scenes_update' in prompt and 'review card' in prompt,'scene chart changes must stay a reviewed write'
+params=execute['parameters']
+assert params['required']==['operation_id','arguments_json'],'presentation and replaces stay optional'
+assert params['properties']['presentation']['type']=='string' and params['properties']['presentation']['enum']==kinds,'presentation must offer every chart kind'
+assert params['properties']['replaces']['type']=='string','replaces names the picture to redraw'
+assert 'presentation, replaces' in source,'Office must forward presentation and replaces'
+assert 'superseded or cancelled has no answer' in prompt and 'never retry it' in prompt,'a superseded or cancelled tool result must be silent, never retried'
 turn=config['conversation_config']['turn']
 assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==180,'idle: one check-in after 20 s silence, end after 180 s'
 assert config['conversation_config']['conversation']['max_duration_seconds']==1800,'long tool chains need a 30-minute conversation limit'

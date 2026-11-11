@@ -82,13 +82,22 @@ describe("Office messages", () => {
       const { acknowledged, snoozed, ...counts } = results.counts
       expect(acknowledged).toBeDefined()
       expect(snoozed).toBeDefined()
+      // Added since (voice results): labels of the breakdown and comparison pictures.
+      const { breakdown, compare, ...unchanged } = results as typeof results & { breakdown?: unknown; compare?: unknown }
+      expect(breakdown).toBeDefined()
+      expect(compare).toBeDefined()
+      // Added since (P6-1/SW6): plain-words lines for a dropped line, offline, no microphone.
+      const { connectionLost, offline, microphoneMissing, ...rest } =
+        voice as typeof voice & Record<string, unknown>
+      for (const text of [connectionLost, offline, microphoneMissing])
+        expect(text).toBeDefined()
       expect(
         hash({
-          ...voice,
+          ...rest,
           pages,
           resources,
           reviewFields,
-          results: { ...results, sections, counts },
+          results: { ...unchanged, sections, counts },
         })
       ).toBe(VOICE[locale])
     }

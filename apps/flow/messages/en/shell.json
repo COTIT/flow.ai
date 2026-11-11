@@ -35,6 +35,7 @@
       "error": "Something went wrong",
       "ended": "Conversation ended"
     },
+    "offlineNavigation": "You're offline. This opens when you're back online.",
     "skipToContent": "Skip to content",
     "menu": "Menu",
     "showHeader": "Show the header",

@@ -44,7 +44,8 @@ import {
   type VoiceProgress,
 } from "../lib/helpers"
 import { batchAttachmentReferences, voiceRequestBody } from "../lib/multipart"
-import { withView } from "../lib/rows"
+import { replaceView, withView } from "../lib/rows"
+import { oneSlot } from "../lib/slot"
 import {
   createOutcomeWait,
   readRecovery,
@@ -60,6 +61,12 @@ import {
 } from "../lib/approval-hold"
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
+import { isBlankMessage } from "../lib/blank"
+import {
+  VoiceRequestError,
+  VoiceShownError,
+  voiceErrorMessage,
+} from "../lib/errors"
 import {
   historicalProgress,
   rememberTask,
@@ -67,22 +74,6 @@ import {
   type TaskReference,
   type BatchProgress,
 } from "../lib/continuity"
-
-class VoiceRequestError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    /** Model-only retry hints: an exact lookup schema or candidate operations. */
-    readonly hint?: {
-      message?: string
-      operation?: unknown
-      candidates?: unknown
-      reason?: string
-    }
-  ) {
-    super(message)
-  }
-}
 
 export type Attachment = {
   key: string
@@ -115,6 +106,8 @@ type VoiceContextValue = {
   steps: string[]
   narration: string
   error: string
+  /** `error` only says an open review lapsed (P8-2): the dock shows it, the orb stays calm. */
+  expired?: boolean
   recovery: RecoveryPointer | null
   recoveredTasks: RecoveryTask[]
   checkingRecovery: boolean
@@ -424,7 +417,7 @@ function Session({
         originals
       )
     } catch (e) {
-      throw new Error(
+      throw new VoiceShownError(
         t(
           e instanceof Error && e.message === "missing_reference"
             ? "missingReference"
@@ -464,13 +457,17 @@ function Session({
         mergeTranscript(rows, { role, text, id, ...(href ? { href } : {}) })
       )
   }
-  function showLinks(outcome: VoiceOutcome) {
+  function showLinks(outcome: VoiceOutcome, operation?: string) {
     for (const link of outcome.links ?? [])
       add("link", link.label ?? t("openRecord"), undefined, resolveHref(link.href))
     // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
     const view = outcome.view
     if (view && active.current)
-      setMessages((rows) => withView(rows, view, crypto.randomUUID()))
+      setMessages((rows) =>
+        outcome.replaces
+          ? replaceView(rows, outcome.replaces, view, operation, crypto.randomUUID())
+          : withView(rows, view, crypto.randomUUID(), operation)
+      )
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id
@@ -488,7 +485,7 @@ function Session({
       if (active.current) updateBatch(result, owner)
     } catch (error) {
       if (active.current)
-        setError(error instanceof Error ? error.message : t("requestFailed"))
+        setError(voiceErrorMessage(error, t))
     }
   }
   async function stopBatch(command: "pause" | "cancel" = "pause") {
@@ -514,7 +511,14 @@ function Session({
     } catch (error) {
       if (active.current && before === generation.current) {
         setOutcome({ status: "unknown", message: t("unknown") })
-        setError(error instanceof Error ? error.message : t("requestFailed"))
+        setError(
+          voiceErrorMessage(
+            error,
+            t,
+            "requestFailed",
+            "requestErrors.unverified"
+          )
+        )
       }
     } finally {
       stoppingBatches.current.delete(key)
@@ -525,6 +529,16 @@ function Session({
       )
         void query.invalidateQueries()
     }
+  }
+  /**
+   * The SDK sends whatever a client tool settles with on its socket, and throws if that closed.
+   * A result for a conversation that is over stays ours (tool() already recorded it): never settle.
+   */
+  async function delivered(result: Promise<string>) {
+    const owner = session.current
+    const value = await result
+    if (owner && session.current === owner && verified.current) return value
+    return new Promise<string>(() => {})
   }
   async function tool(
     command: "discover" | "execute",
@@ -544,15 +558,25 @@ function Session({
     if (
       !verified.current ||
       !session.current ||
-      (!statusRead &&
-        (proposal.current ||
-          dispatching.current ||
-          preparing.current === before))
+      (!statusRead && (proposal.current || dispatching.current))
     )
       return JSON.stringify({ status: "failed", message: t("finishReview") })
+    // P6-2: still one request at a time; a call made meanwhile waits and goes next (newest wins).
+    if (!statusRead && preparing.current === before) {
+      const turn = await slot.wait(
+        () => active.current && before === generation.current
+      )
+      if (turn === "run") return tool(command, body)
+      return JSON.stringify(
+        turn === "superseded"
+          ? { status: "superseded", message: "Replaced by a newer request" }
+          : { status: "cancelled" }
+      )
+    }
     if (!statusRead && document.visibilityState !== "visible")
       return JSON.stringify({ status: "paused", message: t("recoveryHint") })
     if (!statusRead) preparing.current = before
+    const settled = statusRead ? undefined : slot.begin()
     let quiet = false // failed or awaiting review: no thinking row afterwards
     setToolRequests((count) => count + 1)
     turn.toolStart()
@@ -684,7 +708,7 @@ function Session({
         turnEnd.current("answered", 0)
       } else if (command === "execute") {
         setOutcome({ ...result, operationId: String(body.operationId) })
-        showLinks(result)
+        showLinks(result, String(body.operationId))
         if (result.reason && ["failed", "unknown"].includes(result.status))
           setError(t(`requestErrors.${result.reason}`))
       }
@@ -714,9 +738,15 @@ function Session({
         })
       }
       quiet = true
+      const shown = voiceErrorMessage(
+        e,
+        t,
+        "requestFailed",
+        "requestErrors.unverified"
+      )
       if (active.current && before === generation.current) {
         setThinking(false)
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(shown)
         setOutcome({ status: statusRead ? "unknown" : "failed" })
         if (command === "execute" && !statusRead)
           setProgress(progressOf("failed"))
@@ -728,10 +758,11 @@ function Session({
           e instanceof VoiceRequestError
             ? failureReason(e.status)
             : "unverified",
-        message: e instanceof Error ? e.message : t("requestFailed"),
+        message: shown,
       })
     } finally {
       if (!statusRead && preparing.current === before) preparing.current = null
+      settled?.()
       if (active.current && before === generation.current) {
         setToolRequests((count) => Math.max(0, count - 1))
         turn.toolEnd()
@@ -744,6 +775,7 @@ function Session({
     null
   )
   const sceneWanted = useRef<SceneContext | null>(null)
+  const [slot] = useState(oneSlot)
   const [scene] = useState(() =>
     contextSync(() => (verified.current ? latest.current : null))
   )
@@ -848,7 +880,8 @@ function Session({
       updateReview(null)
     },
     onError: () => {
-      if (active.current) {
+      // A conversation that is over has nothing left to report (e.g. a late send on its socket).
+      if (active.current && session.current) {
         setThinking(false)
         setError(t("requestFailed"))
         setStarting(false)
@@ -908,13 +941,18 @@ function Session({
     },
     clientTools: {
       discover_genesy_tools: ({ query: search }) =>
-        tool("discover", { query: search }),
-      execute_genesy_tool: ({ operation_id, arguments_json }) => {
+        delivered(tool("discover", { query: search })),
+      execute_genesy_tool: ({ operation_id, arguments_json, presentation, replaces }) => {
         try {
-          return tool("execute", {
-            operationId: operation_id,
-            arguments: JSON.parse(String(arguments_json)),
-          })
+          return delivered(
+            tool("execute", {
+              operationId: operation_id,
+              arguments: JSON.parse(String(arguments_json)),
+              // How to draw a read and which picture it redraws; Office checks both.
+              ...(presentation ? { presentation } : {}),
+              ...(replaces ? { replaces } : {}),
+            })
+          )
         } catch {
           if (active.current && verified.current) {
             setThinking(false)
@@ -973,7 +1011,7 @@ function Session({
           )
     } catch (error) {
       if (active.current && recovered.current?.sessionId === pointer.sessionId)
-        setError(error instanceof Error ? error.message : t("recoveryError"))
+        setError(voiceErrorMessage(error, t, "recoveryError"))
     } finally {
       if (active.current) setCheckingRecovery(false)
     }
@@ -1002,7 +1040,7 @@ function Session({
         !result.review ||
         result.review.attachments
       )
-        throw new Error(t("recoveryUnavailable"))
+        throw new VoiceShownError(t("recoveryUnavailable"))
       pendingActionId.current =
         (result.data as { actionId?: string } | undefined)?.actionId ?? actionId
       reviewSession.current = pointer
@@ -1015,7 +1053,7 @@ function Session({
       updateReview(result.review)
     } catch (error) {
       if (active.current)
-        setError(error instanceof Error ? error.message : t("recoveryError"))
+        setError(voiceErrorMessage(error, t, "recoveryError"))
     } finally {
       if (active.current) setBusy(false)
     }
@@ -1187,7 +1225,7 @@ function Session({
         continuation.current = false
         switching.current = false
         setUpgrading(false)
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(voiceErrorMessage(e, t))
         setStarting(false)
         const old = session.current
         session.current = null
@@ -1243,7 +1281,7 @@ function Session({
           })
         if (old && !raw) {
           setError(t("secureUnknown"))
-          throw new Error(t("secureUnknown"))
+          throw new VoiceShownError(t("secureUnknown"))
         }
       })()
     }
@@ -1408,7 +1446,7 @@ function Session({
       try {
         await request("attachments", { id: file.receipt.id }, "DELETE")
       } catch (e) {
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(voiceErrorMessage(e, t))
         return
       }
     }
@@ -1426,6 +1464,7 @@ function Session({
     const selected = files.current.filter(
       (file) => file.state !== "submitted" && (!onlyKey || file.key === onlyKey)
     )
+    if (isBlankMessage(text)) text = ""
     if (!text.trim() && !selected.length) return false
     // Once the agent is working, a new message would make the provider drop that answer: hold it.
     if (!fromQueue && !selected.length && turn.working && !proposal.current) {
@@ -1481,7 +1520,7 @@ function Session({
               onUnauthorized
             )
             if (!response.ok)
-              throw new Error(
+              throw new VoiceShownError(
                 response.status === 413
                   ? t("fileErrors.size")
                   : response.status === 415
@@ -1497,7 +1536,7 @@ function Session({
             if (!active.current || before !== generation.current) return false
             patch(file.key, {
               state: "failed",
-              error: e instanceof Error ? e.message : t("requestFailed"),
+              error: voiceErrorMessage(e, t),
             })
             return false
           }
@@ -1558,7 +1597,7 @@ function Session({
     } catch (e) {
       if (active.current && before === generation.current) {
         setThinking(false)
-        setError(e instanceof Error ? e.message : t("requestFailed"))
+        setError(voiceErrorMessage(e, t))
       }
       return false
     } finally {
@@ -1688,7 +1727,9 @@ function Session({
             { status: "unknown", message: t("unknown") },
             "batch"
           )
-        setError(e instanceof Error ? e.message : t("unknown"))
+        setError(
+          voiceErrorMessage(e, t, "unknown", "requestErrors.unverified")
+        )
       }
     } finally {
       dispatching.current = false
@@ -1736,6 +1777,8 @@ function Session({
         ),
         narration: progress?.narration ?? "",
         error,
+        // shortcut: matches the translated expiry text; a language switch while it shows makes the orb read "error" until the next message. Upgrade to an error kind if error ever carries a code.
+        expired: error === t("expired"),
         recovery,
         recoveredTasks,
         checkingRecovery,

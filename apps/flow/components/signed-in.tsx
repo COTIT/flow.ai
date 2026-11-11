@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
+import { sessionStore } from "@genesy/api-client/session"
 import { GenesyVoiceProvider } from "@genesy/voice/components/provider"
 import { Shell } from "@/components/shell"
+import { useDraftKeeper } from "@/lib/draft-keeper"
 import { flowHref } from "@/lib/links"
 import { followOtherTabs } from "@/lib/other-tabs"
 
@@ -31,11 +33,16 @@ export function SignedIn({
     [office]
   )
 
+  useDraftKeeper()
   // A logout, login or workspace switch in another tab reaches this one too.
   React.useEffect(() => followOtherTabs(client), [client])
 
   React.useEffect(() => {
-    if (hydrated && !token) router.replace("/login")
+    if (!hydrated || token) return
+    // After an expired login, back to the same place (the login page checks `next`); a logout by choice starts at home.
+    const here = window.location.pathname + window.location.search
+    const back = sessionStore.getState().expired && here !== "/"
+    router.replace(back ? `/login?next=${encodeURIComponent(here)}` : "/login")
   }, [hydrated, token, router])
 
   if (!hydrated || !token) return null

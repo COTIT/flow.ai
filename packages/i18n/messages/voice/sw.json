@@ -124,6 +124,9 @@
     "upgrading": "Inawasha sauti…",
     "upgradeNotice": "Sauti iko tayari. Ujumbe wa awali unabaki hapa. Eleza ombi lako tena na ushiriki marejeo tena.",
     "microphoneDenied": "Ruhusa ya maikrofoni imekataliwa. Mazungumzo yako ya maandishi bado yanaendelea.",
+    "microphoneMissing": "Hakuna maikrofoni iliyopatikana. Unganisha moja, au endelea kuandika.",
+    "offline": "Huna mtandao. Unganisha tena, kisha ujaribu tena.",
+    "connectionLost": "Genesy haipatikani. Angalia muunganisho wako kisha ujaribu tena.",
     "upgradeFailed": "Sauti haikuweza kuanza. Ujumbe wako wa awali unabaki hapa.",
     "batchProgress": "Maendeleo ya mfululizo",
     "batchSteps": "Hatua za mfululizo kwa mpangilio",
@@ -537,7 +540,17 @@
       "effect": {
         "archive": "Itahifadhiwa kwenye kumbukumbu, si kufutwa."
       },
-      "warningsTitle": "Kabla ya kuidhinisha"
+      "warningsTitle": "Kabla ya kuidhinisha",
+      "breakdown": {
+        "products": "Bidhaa zinazouzwa zaidi",
+        "customers": "Wateja wakuu",
+        "walkIn": "Mauzo ya papo hapo (bila mteja)"
+      },
+      "compare": {
+        "title": "Mauzo yakilinganishwa",
+        "change": "{change} ukilinganisha na {period}",
+        "noBase": "Hakuna mauzo katika {period} ya kulinganisha"
+      }
     },
     "suggestions": "Mapendekezo",
     "tryPrompt": "Jaribu: “{prompt}”",

@@ -6,6 +6,7 @@ import {
   expectTapTargets,
   markInjected,
 } from "../../src/test"
+import { HONEY, SPICES, TEA, sc, sceneWorld } from "./scenes-api"
 import { expect, test } from "./storefront-api"
 import { readBack, receipt, scene, stockReview, stockRoutes } from "./task"
 import { fakeAgent, startText, v } from "./voice"
@@ -61,10 +62,6 @@ for (const size of [
 test("SW3: a component the API refuses (403) says it is not available for the role, at once", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW3 open: a 403 is retried (~10 s of Refreshing…) and ends as a generic error"
-  )
   markInjected(page, /\/sales-summary/)
   await page.route(/\/sales-summary/, (route) =>
     route.fulfill({
@@ -100,10 +97,6 @@ test("SW4: after Approve from the keyboard, focus stays in the task (never lost 
   page,
   api,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW4 open: the Approve button unmounts and focus falls to <body>"
-  )
   stockReadBack(api)
   const agent = await fakeAgent(page)
   await stockRoutes(page)
@@ -120,13 +113,39 @@ test("SW4: after Approve from the keyboard, focus stays in the task (never lost 
     .toBe(true)
 })
 
+// The review never takes focus from someone typing. (The dock's field itself still loses focus when
+// the task scene opens: a separate layout finding, reported to the parent.)
+test("SW4: a review proposed while the person types never takes their focus", async ({
+  page,
+  api,
+}) => {
+  stockReadBack(api)
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  const message = page.getByLabel(v.message)
+  await message.fill("and also")
+  propose(agent)
+  await expect(scene(page)).toContainText("Confirm action 135790")
+  await page.waitForTimeout(300)
+  await expect(page.locator("#flow-review-title")).not.toBeFocused()
+})
+
+test("SW4: a review that opens takes focus from the page", async ({ page, api }) => {
+  stockReadBack(api)
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  propose(agent)
+  await expect(page.locator("#flow-review-title")).toBeFocused()
+})
+
 test("SW5: a review that expires while open says so where the card was", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW5 open: the card vanishes; the open scene shows only 'Answers show here'"
-  )
   const agent = await fakeAgent(page)
   await page.route("**/api/voice/tools", (route) => {
     const body = route.request().postDataJSON() as {
@@ -147,15 +166,17 @@ test("SW5: a review that expires while open says so where the card was", async (
   await expect(scene(page)).toContainText("This review expired", {
     timeout: 6_000,
   })
+  // One way forward: asking again sends one plain request for a fresh proposal.
+  await scene(page).getByRole("button", { name: "Ask again" }).dblclick()
+  await expect
+    .poll(() => agent.sent.filter((e) => e.type === "user_message").length)
+    .toBe(1)
+  await expect(scene(page)).not.toContainText("This review expired")
 })
 
 test("SW6: a refused microphone says so in plain words, never the browser's raw error", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW6 open: the dock shows the exception text (e.g. 'denied')"
-  )
   await page.addInitScript(() => {
     navigator.mediaDevices.getUserMedia = () =>
       Promise.reject(new DOMException("denied", "NotAllowedError"))
@@ -178,6 +199,62 @@ test("SW7: every header control is a 44 px touch target (language picker is 32 p
   await expectTapTargets(page, { within: "[data-flow-header]" })
 })
 
+const salesCard = (page: import("@playwright/test").Page) =>
+  page.locator('[data-component="sales-today"]')
+
+test("SW3: a 403 is asked once, with no retry button and no raw code", async ({
+  page,
+}) => {
+  let asked = 0
+  markInjected(page, /\/sales-summary/)
+  await page.route(/\/sales-summary/, (route) => {
+    asked++
+    return route.fulfill({ status: 403, json: { message: "no" } })
+  })
+  await page.goto("/scenes/pulse")
+  await expect(salesCard(page)).toContainText("Not available for your role")
+  await expect(salesCard(page).getByRole("button")).toHaveCount(0)
+  await expect(salesCard(page)).not.toContainText("403")
+  expect(asked).toBe(1)
+})
+
+test("SW3: a 404 says it is not available any more, without retrying", async ({
+  page,
+}) => {
+  let asked = 0
+  markInjected(page, /\/sales-summary/)
+  await page.route(/\/sales-summary/, (route) => {
+    asked++
+    return route.fulfill({ status: 404, json: { message: "gone" } })
+  })
+  await page.goto("/scenes/pulse")
+  await expect(salesCard(page)).toContainText("isn't available any more")
+  expect(asked).toBe(1)
+})
+
+test("SW3: a 429 says when it tries again (Retry-After) and then recovers", async ({
+  page,
+}) => {
+  let asked = 0
+  markInjected(page, /\/sales-summary/)
+  await page.route(/\/sales-summary/, (route) => {
+    if (++asked > 1) return route.fallback()
+    return route.fulfill({
+      status: 429,
+      headers: {
+        "retry-after": "3",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "*",
+      },
+      json: { message: "slow down" },
+    })
+  })
+  await page.goto("/scenes/pulse")
+  await expect(salesCard(page)).toContainText("Busy, trying again in 3 seconds")
+  await expect(salesCard(page)).not.toContainText("Busy", { timeout: 8_000 })
+  expect(asked).toBeGreaterThan(1)
+})
+
 for (const scene of ["pulse", "orders", "sales"]) {
   test(`SW8: /scenes/${scene} loads without layout shift`, async ({ page }) => {
     // Below 1024 px it passes or fails by load timing until d88bbcaf1 (card placeholders) is
@@ -192,3 +269,80 @@ for (const scene of ["pulse", "orders", "sales"]) {
     await expectNoLayoutShift(page)
   })
 }
+
+// P2-3a: two clicks in one frame (bouncy touch screen, switch device, script) used to pass
+// `disabled={isPending}` before React re-rendered, so the same write went out twice.
+const twice = {
+  "two clicks in one task": (b: import("@playwright/test").Locator) =>
+    b.evaluate((el: HTMLElement) => {
+      el.click()
+      el.click()
+    }),
+  "clickCount 2": (b: import("@playwright/test").Locator) =>
+    b.click({ clickCount: 2 }),
+}
+
+for (const [how, click] of Object.entries(twice)) {
+  test(`P2-3a: Acknowledge and Snooze write once on ${how}`, async ({
+    page,
+    api,
+  }) => {
+    sceneWorld(api)
+    await page.goto("/scenes/noticed")
+    const stock = page.locator('[data-group="stock.below_minimum"]')
+    const buttons: [string, string][] = [
+      [HONEY, sc.noticed.acknowledge],
+      [TEA, sc.noticed.snoozeTomorrow],
+      [SPICES, sc.noticed.snoozeWeek],
+    ]
+    for (const [ref, name] of buttons) {
+      const before = api.callsTo("PUT", "/workspace/w1/attention/marks").length
+      await click(
+        stock.locator(`[data-item="${ref}"]`).getByRole("button", { name })
+      )
+      await expect
+        .poll(() => api.callsTo("PUT", "/workspace/w1/attention/marks").length)
+        .toBeGreaterThan(before)
+      await page.waitForTimeout(500)
+      expect(
+        api.callsTo("PUT", "/workspace/w1/attention/marks").length - before,
+        `${name} on ${how}`
+      ).toBe(1)
+    }
+  })
+}
+
+test("P2-3a: Pause on My Routines writes once on two clicks in one task", async ({
+  page,
+  api,
+}) => {
+  const row = {
+    id: "r1",
+    active: true,
+    report: "sales_summary",
+    frequency: "weekly",
+    weekday: 1,
+    day_of_month: null,
+    hour: 7,
+    email: "amina@genesy.test",
+    time_zone: "Africa/Dar_es_Salaam",
+    created_at: "2026-11-01T07:00:00Z",
+    next_run_at: "2026-11-16T04:00:00Z",
+    last_run_at: null,
+    last_outcome: null,
+    paused_reason: null,
+  }
+  api
+    .on("GET", "/workspace/w1/scheduled-reports", () => ({ data: [row] }))
+    .on("POST", "/workspace/w1/scheduled-reports/:id", ({ body }) => ({
+      data: { ...row, ...(body as object) },
+    }))
+  await page.goto("/scenes/routines")
+  await twice["two clicks in one task"](
+    page.locator('[data-report="r1"]').getByRole("button", { name: sc.pause })
+  )
+  await page.waitForTimeout(800)
+  expect(
+    api.callsTo("POST", "/workspace/w1/scheduled-reports/r1")
+  ).toHaveLength(1)
+})

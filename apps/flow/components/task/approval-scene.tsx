@@ -9,6 +9,7 @@ import { flowStore, useFlow } from "@/lib/flow-store"
 import { useTask } from "@/lib/task-store"
 import { BatchReview } from "./batch-review"
 import { Clarify } from "./clarify"
+import { Expired } from "./expired"
 import { Receipt } from "./receipt"
 import { ResultsList, ReviewPanel } from "./results"
 import { Withdrawn } from "./withdrawn"
@@ -49,6 +50,7 @@ export function ApprovalScene() {
         {t("results")}
       </h1>
       <Withdrawn />
+      <Expired />
       <Clarify />
       <BatchReview />
       <ReviewPanel withButtons />

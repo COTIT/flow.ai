@@ -42,6 +42,8 @@ export type VoiceOutcome = {
   links?: { label: string | null; href: string }[]
   /** Chart or cards the server built from a read result; shown, never spoken. */
   view?: ResultView
+  /** The on-screen picture this read redraws in place (Office checked it is a read). */
+  replaces?: string
   /** Why it did not complete (`failureReason` key); the agent says it in plain words. */
   reason?: string
   /** Client-only: the operation this execute result answered (picks the follow-up chip). */
