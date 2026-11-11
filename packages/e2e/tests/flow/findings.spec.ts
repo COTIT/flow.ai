@@ -29,10 +29,6 @@ test("SW4: after Approve from the keyboard, focus stays in the task (never lost 
   page,
   api,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW4 open: the Approve button unmounts and focus falls to <body>"
-  )
   stockReadBack(api)
   const agent = await fakeAgent(page)
   await stockRoutes(page)
@@ -47,6 +43,36 @@ test("SW4: after Approve from the keyboard, focus stays in the task (never lost 
   await expect
     .poll(() => page.evaluate(() => document.activeElement !== document.body))
     .toBe(true)
+})
+
+// The review never takes focus from someone typing. (The dock's field itself still loses focus when
+// the task scene opens: a separate layout finding, reported to the parent.)
+test("SW4: a review proposed while the person types never takes their focus", async ({
+  page,
+  api,
+}) => {
+  stockReadBack(api)
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  const message = page.getByLabel(v.message)
+  await message.fill("and also")
+  propose(agent)
+  await expect(scene(page)).toContainText("Confirm action 135790")
+  await page.waitForTimeout(300)
+  await expect(page.locator("#flow-review-title")).not.toBeFocused()
+})
+
+test("SW4: a review that opens takes focus from the page", async ({ page, api }) => {
+  stockReadBack(api)
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await page.goto("/")
+  await startText(page)
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  propose(agent)
+  await expect(page.locator("#flow-review-title")).toBeFocused()
 })
 
 test("SW5: a review that expires while open says so where the card was", async ({
@@ -76,4 +102,9 @@ test("SW5: a review that expires while open says so where the card was", async (
   await expect(scene(page)).toContainText("This review expired", {
     timeout: 6_000,
   })
+}).dblclick()
+  await expect
+    .poll(() => agent.sent.filter((e) => e.type === "user_message").length)
+    .toBe(1)
+  await expect(scene(page)).not.toContainText("This review expired")
 })

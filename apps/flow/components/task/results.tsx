@@ -14,6 +14,7 @@ import {
   ReviewList,
   ReviewTitle,
 } from "@genesy/voice/components/review-details"
+import { useTakeFocus } from "@/lib/use-take-focus"
 import { designKind, StorefrontProposal } from "./storefront-proposal"
 
 /** The results of this conversation, newest first; each can be focused from its transcript line. */
@@ -47,6 +48,7 @@ export function ResultsList({ rows }: { rows: TranscriptRow[] }) {
 export function ReviewPanel({ withButtons }: { withButtons: boolean }) {
   const t = useTranslations("voice")
   const voice = useVoice()
+  const heading = useTakeFocus<HTMLHeadingElement>(voice.review?.ticket)
   if (!voice.review) return null
   const design = designKind(voice.review)
   return (
@@ -54,7 +56,7 @@ export function ReviewPanel({ withButtons }: { withButtons: boolean }) {
       aria-labelledby="flow-review-title"
       className="flex min-w-0 flex-col gap-3 rounded-2xl border border-(--gold) p-4"
     >
-      <h3 id="flow-review-title" className="text-sm font-semibold">
+      <h3 ref={heading} tabIndex={-1} id="flow-review-title" className="text-sm font-semibold">
         {t("review")}: <ReviewTitle review={voice.review} />
       </h3>
       <ReviewDiff review={voice.review}>
