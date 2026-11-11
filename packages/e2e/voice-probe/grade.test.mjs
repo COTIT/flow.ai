@@ -170,6 +170,15 @@ test("narration detection", () => {
     "Sekunde moja…",
     "Acha niangalie.",
     "Natafuta oda zako.",
+    // Template beat 1 examples (nl, sw), kept in sync with deploy/assistant-agent.template.json.
+    "Momentje, ik kijk even naar je bestellingen van vandaag…",
+    "Even kijken hoe de voorraad honing ervoor staat…",
+    "Ik haal je verkoopcijfers op…",
+    "Ik zoek het meteen voor je op…",
+    "Subiri kidogo, naangalia oda za leo…",
+    "Ngoja niangalie stoo ya asali…",
+    "Nafungua mauzo yako sasa hivi…",
+    "Sekunde moja, natafuta hiyo…",
   ])
     assert.ok(isNarration(ack), ack)
   for (const answer of ["Je hebt vandaag 3 bestellingen.", "Er staan 3 bestellingen open.", "Una oda 3 leo.", "Goed, je hebt 3 bestellingen open.", "Sure: 2 products are out of stock."])
