@@ -9,7 +9,7 @@ import {
 } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
-import { chat, fakeAgent, send, startText, v } from "./voice"
+import { chat, fakeAgent, send, startText, v, watch } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -619,3 +619,24 @@ for (const size of [
     await composer(page).click({ trial: true })
     await room("scene with the conversation")
   })
+
+test("P4-1: a draft of only invisible characters is never sent", async ({ page }) => {
+  const agent = await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await composer(page).fill("​​⁠")
+  await composer(page).press("Enter")
+  await page.waitForTimeout(600)
+  const typed = agent.sent.filter((e) => e.type === "user_message")
+  expect(typed).toEqual([])
+})
+
+test("P4-1: invisible characters typed on home start no conversation", async ({ page }) => {
+  await fakeAgent(page)
+  const sessions = watch(page, "session")
+  await page.goto("/")
+  await composer(page).fill("​ ​")
+  await composer(page).press("Enter")
+  await page.waitForTimeout(800)
+  expect(sessions.filter((r) => r.method === "POST")).toHaveLength(0)
+})
