@@ -332,3 +332,19 @@ test.describe("P6-1: a dropped or garbled voice request says so in plain words",
     expect(await alertText(page)).not.toMatch(RAW)
   })
 })
+
+test.describe("P6-4: the socket drops while a tool is still answering", () => {
+  test("P6-4: the late tool result goes into a closed socket (console errors, misleading alert)", async ({ persona, page }) => {
+    await page.goto("/")
+    await startText(page)
+    await delay(page, /\/api\/voice\/tools/, 2500)
+    persona.agent.call("products_list", {})
+    await page.waitForTimeout(300)
+    persona.agent.close()
+    await expect(page.locator("[data-phase]").first()).toHaveAttribute("data-phase", "ended")
+    await page.waitForTimeout(3500)
+    await persona.check()
+    // The session already ended; a tool answering afterwards is not a new failure to report.
+    expect(await alertText(page)).not.toContain("could not be completed")
+  })
+})
