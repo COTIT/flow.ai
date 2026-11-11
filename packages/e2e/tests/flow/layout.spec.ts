@@ -554,3 +554,23 @@ for (const size of [
     expect(frame).toBeLessThanOrEqual(visible + 1)
     await expect(composer(page)).toBeFocused()
   })
+
+test("charts fill their tile, with day labels and the lowest and highest value (at a glance)", async ({
+  page,
+}) => {
+  await page.goto("/scenes/pulse")
+  const chart = page.locator('[data-chart="line"]').first()
+  await expect(chart.locator("svg").first()).toBeVisible()
+  const fill = await chart.evaluate((section) => {
+    const svg = section.querySelector("svg")!.getBoundingClientRect()
+    const head = section.querySelector("h3")!.getBoundingClientRect()
+    const box = section.getBoundingClientRect()
+    // The drawing takes most of the room under the title.
+    return svg.height / (box.bottom - head.bottom)
+  })
+  expect(fill).toBeGreaterThanOrEqual(0.5)
+  // One label per day (7 days), and the range of the line.
+  await expect(chart.locator("[data-day]")).toHaveCount(7)
+  await expect(chart.locator("[data-range=max]")).toBeVisible()
+  await expect(chart.locator("[data-range=min]")).toBeVisible()
+})

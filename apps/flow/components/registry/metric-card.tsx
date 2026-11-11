@@ -62,7 +62,7 @@ function SalesCard({
               row.currency,
               locale
             )}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
+            <span className="ml-2 text-xs font-normal whitespace-nowrap text-muted-foreground">
               {t("orders", { count: row.orders })}
             </span>
           </p>
