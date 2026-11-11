@@ -1,6 +1,6 @@
-import { Conversation } from "@/components/conversation/conversation"
+import { Home as FlowHome } from "@/components/frame/home"
 
-/** The assistant is the whole app: talk, see results, review, act. */
+/** Home: the orb, what Flow noticed, your scenes; the conversation grows out of it. */
 export default function Home() {
-  return <Conversation />
+  return <FlowHome />
 }

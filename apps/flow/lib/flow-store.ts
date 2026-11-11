@@ -13,6 +13,8 @@ type FlowState = {
   /** Home shows the result scene (results and the action to review). */
   resultOpen: boolean
   setResultOpen: (open: boolean) => void
+  /** The result to bring into view when the result scene opens. */
+  resultFocus: string | null
   /** The person ended the last conversation here; cleared when a new one starts. */
   endedByUser: boolean
   started: () => void
@@ -33,6 +35,7 @@ export const flowStore = createStore<FlowState>()((set) => ({
   setImmersive: (immersive) => set({ immersive }),
   resultOpen: false,
   setResultOpen: (resultOpen) => set({ resultOpen }),
+  resultFocus: null,
   endedByUser: false,
   started: () => set({ endedByUser: false, immersive: true }),
   ended: () => set({ endedByUser: true, immersive: false, resultOpen: false }),
@@ -41,8 +44,9 @@ export const flowStore = createStore<FlowState>()((set) => ({
     set((state) => {
       if (element) return { slots: { ...state.slots, [name]: element } }
       if (!state.slots[name]) return state
-      const { [name]: _, ...rest } = state.slots
-      return { slots: rest }
+      const slots = { ...state.slots }
+      delete slots[name]
+      return { slots }
     }),
   selected: null,
   setSelected: (selected) => set({ selected }),

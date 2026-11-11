@@ -35,8 +35,9 @@ test("two workspaces: switching changes the shown and saved workspace", async ({
     .getByRole("option", { name: RUAHA.display_name, exact: true })
     .click()
   await expect(picker).toContainText(RUAHA.display_name)
+  // The header names who and where (the picker, when shown, also does).
   await expect(
-    page.getByRole("main").getByText(RUAHA.display_name)
+    page.locator("[data-flow-header] p", { hasText: RUAHA.display_name })
   ).toBeVisible()
   expect(await saved(page)).toBe("w2")
   await expectNoHorizontalScroll(page)
@@ -54,8 +55,9 @@ test("the saved workspace is gone: the member chooses another", async ({
   await expect(page.getByText("Choose a workspace")).toBeVisible()
   await page.getByRole("button", { name: RUAHA.display_name }).click()
   await expect(page.getByText("Choose a workspace")).toHaveCount(0)
+  // The header names who and where (the picker, when shown, also does).
   await expect(
-    page.getByRole("main").getByText(RUAHA.display_name)
+    page.locator("[data-flow-header] p", { hasText: RUAHA.display_name })
   ).toBeVisible()
   expect(await saved(page)).toBe("w2")
 })
