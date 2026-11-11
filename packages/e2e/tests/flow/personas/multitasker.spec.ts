@@ -60,6 +60,9 @@ async function setup(persona: Persona, page: Page, api: import("../../office/fak
   return { ledger, tabs, syncForeign }
 }
 
+/** Steps per walk: PERSONA_STEPS wins; CI runs a short walk (suite budget), local runs the full one. */
+const STEPS = Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 40)
+
 test("multitasker: two or three tabs on one login, random walk", async ({ persona, page, api }) => {
   const { ledger, tabs, syncForeign } = await setup(persona, page, api)
   await page.emulateMedia({ colorScheme: persona.chance(0.5) ? "dark" : "light" })
@@ -224,7 +227,7 @@ test("multitasker: two or three tabs on one login, random walk", async ({ person
         }),
       },
     ],
-    {}
+    { count: STEPS }
   )
   console.log(
     `[multitasker] tabs=${tabs.length} reviews=${ledger.reviews.size} decisions=${ledger.decisions.length} ` +

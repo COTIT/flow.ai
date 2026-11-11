@@ -284,12 +284,15 @@ test("P10-4: a scene on a phone in landscape shows its content", async ({ person
   const main = await page.locator("[data-flow-scroll]").boundingBox()
   expect(main?.height ?? 0, "height left for the scene").toBeGreaterThanOrEqual(120)
 })
-test.fail("P10-4: home on a small phone in landscape shows its content", async ({ persona, page }) => {
+test("P10-4: home on a small phone in landscape shows its content", async ({ persona, page }) => {
   void persona
   await page.setViewportSize({ width: 568, height: 320 })
   await page.goto("/")
-  // 0 px today: "Use text instead" sits at y≈518, under the dock, and cannot be tapped.
-  await expect(page.getByRole("button", { name: labels.textInstead })).toBeInViewport({ timeout: 3_000 })
+  // Fixed (layout.spec P10-4): the start button is reachable by scrolling and never under the dock.
+  const start = page.getByRole("button", { name: labels.textInstead })
+  await start.scrollIntoViewIfNeeded()
+  await expect(start).toBeInViewport({ timeout: 3_000 })
+  await start.click({ trial: true })
   const main = await page.locator("[data-flow-scroll]").boundingBox()
   expect(main?.height ?? 0, "height left for home").toBeGreaterThanOrEqual(120)
 })

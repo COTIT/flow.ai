@@ -380,9 +380,9 @@ test.describe("P6-5: approving while offline strands the review", () => {
 })
 
 test.describe("P6-6: a link or Back to home in a tunnel leaves Flow for the browser's error page", () => {
+  // Next reports the RSC fetch it could not make offline, before the offline guard keeps Flow.
+  test.use({ allow: { consolePrefix: ["Failed to fetch RSC payload for "] } })
   test("P6-6a: Back to home from a scene, offline", async ({ persona, page }) => {
-    // Still open: Next logs "Failed to fetch RSC payload" (console error) when Back to home runs offline.
-    test.fail()
     await page.goto("/scenes/orders")
     await expect(page.getByRole("button", { name: shell.backHome })).toBeVisible()
     await page.getByLabel(v.message).fill("Draft I am still typing")

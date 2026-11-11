@@ -5,7 +5,7 @@
 import type { Page } from "@playwright/test"
 
 import { sc } from "../scenes-api"
-import { k, readBack, scene, stockRoutes } from "../task"
+import { ACTION, k, readBack, scene, stockReview, stockRoutes } from "../task"
 import { v } from "../voice"
 import { expect, test, type Persona } from "./harness"
 import { batchRoutes, hide, logInAgain, photo, Server, sleep, tray } from "./idle-returner.helpers"
@@ -169,11 +169,22 @@ test.describe("findings", () => {
     await expect(page).toHaveURL(new RegExp(`${where}$`))
   })
 
-  // P8-4: Approve pressed after the login expired: the confirm is refused (401, nothing ran), the
+  // P8-4 (fixed, regression guard): Approve pressed after the login expired: the confirm is refused (401, nothing ran), the
   // person logs in again and the review is simply gone. Nothing says it did not run or offers it
   // again, so they cannot tell whether the change happened.
-  test.fail("P8-4 an approve refused by an expired login is reachable (or said not to have run) after logging in", async ({ persona, page, api }) => {
+  test("P8-4 an approve refused by an expired login is reachable (or said not to have run) after logging in", async ({ persona, page, api }) => {
     const { confirms, server } = await setup(persona, page, api)
+    // Office still holds the review (the refused confirm never reached it): its task list says so.
+    await page.route("**/api/voice/tools", async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      if (body.command === "status")
+        return route.fulfill({
+          json: { status: "completed", data: [{ status: "awaiting_review", data: { actionId: ACTION(120), operation: "stock_set_levels", summary: "Set stock levels per warehouse", recoverable: true } }] },
+        })
+      if (body.command === "restore") return route.fulfill({ json: stockReview(120, "stock-120-restored") })
+      return route.fallback()
+    })
+    await server.attach(page) // the login check answers first
     await propose(persona, page)
     server.expire(page)
     await scene(page).getByRole("button", { name: v.approve }).click()
@@ -326,10 +337,17 @@ test.describe("a running batch", () => {
     await expect(line).not.toContainText(k.working)
   })
 
-  // P8-6: the login expires while a run is going; after logging in again the run (still going, or
+  // P8-6 (fixed, regression guard): the login expires while a run is going; after logging in again the run (still going, or
   // paused, at Office) is nowhere: no progress, no line about it, so the person cannot tell what ran.
-  test.fail("P8-6 a run going when the login expired is reachable after logging in again", async ({ persona, page, api }) => {
+  test("P8-6 a run going when the login expired is reachable after logging in again", async ({ persona, page, api }) => {
     const { batch, server } = await run(persona, page, api)
+    // Office's task list for this session: the run, paused by the expired login.
+    await page.route("**/api/voice/tools", async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      if (body.command !== "status") return route.fallback()
+      return route.fulfill({ json: { status: "completed", data: [{ status: "partial", data: { kind: "batch", batchId: "b-1", state: "paused", nextIndex: 8, summary: "Update 21 supplier purchase prices", recoverable: false, steps: [] } }] } })
+    })
+    await server.attach(page)
     server.expire(page)
     await sleep(page, 30 * MIN, { hidden: false })
     await expect(page).toHaveURL(LOGIN)

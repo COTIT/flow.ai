@@ -30,6 +30,9 @@ const KEYS = [
   "ArrowLeft", "Home", "End", "PageDown", "ControlOrMeta+a", "ControlOrMeta+z", "F5x", "x", "?",
 ]
 
+/** Steps per walk: PERSONA_STEPS wins; CI runs a short walk (suite budget), local runs the full one. */
+const STEPS = Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 40)
+
 test("dumb breaker: garbage, empty sends, bursts, random taps, nonsense order", async ({
   persona,
   page,
@@ -228,7 +231,8 @@ test("dumb breaker: garbage, empty sends, bursts, random taps, nonsense order", 
         }
         await expectNotBroken(persona, dialogs)
       },
-    }))
+    })),
+    { count: STEPS }
   )
 })
 
