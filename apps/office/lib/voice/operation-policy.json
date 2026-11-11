@@ -15974,6 +15974,151 @@
     },
     "confirmationFields": []
   },
+  "storefront_design_preview_link_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/storefront/pages/home/preview-links",
+    "disposition": "internal",
+    "reason": "Preview links mint and resolve bearer secrets; voice never issues, lists, revokes or resolves them. Staff manage them in Flow.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped links"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#preview_link_create",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/preview_link.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_preview_links": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/storefront/pages/home/preview-links",
+    "disposition": "internal",
+    "reason": "Preview links mint and resolve bearer secrets; voice never issues, lists, revokes or resolves them. Staff manage them in Flow.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped links"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#preview_links",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/preview_link.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_preview_link_revoke": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/storefront/pages/home/preview-links/{link}",
+    "disposition": "internal",
+    "reason": "Preview links mint and resolve bearer secrets; voice never issues, lists, revokes or resolves them. Staff manage them in Flow.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Owner or workspace_admin; active membership and workspace-scoped links"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#preview_link_revoke",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/preview_link.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_design_preview_resolve": {
+    "method": "POST",
+    "path": "/storefront/preview",
+    "disposition": "internal",
+    "reason": "Preview links mint and resolve bearer secrets; voice never issues, lists, revokes or resolves them. Staff manage them in Flow.",
+    "authorization": {
+      "schemes": ["app_key"],
+      "boundary": "device",
+      "allOf": ["catalog:read"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "AppKey workspace must own the link; unrevoked, unexpired, current unpublished draft only"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront_design/handlers.rs#preview_resolve",
+        "apps/api/src/modules/storefront_design/dto.rs",
+        "apps/api/src/modules/storefront_design/preview_link.rs",
+        "apps/api/src/modules/storefront_design/repo.rs",
+        "apps/api/src/modules/assistant/service.rs",
+        "apps/api/src/modules/storefront/service.rs"
+      ],
+      "requirements": [
+        {
+          "app_key": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "storefront_design_restore": {
     "method": "POST",
     "path": "/workspace/{workspace}/storefront/pages/home/restore",
