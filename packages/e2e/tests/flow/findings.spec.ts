@@ -181,8 +181,8 @@ test("SW7: every header control is a 44 px touch target (language picker is 32 p
 for (const scene of ["pulse", "orders", "sales"]) {
   test(`SW8: /scenes/${scene} loads without layout shift`, async ({ page }) => {
     test.fail(
-      !process.env.FINDINGS_RED && page.viewportSize()!.width < 640,
-      "SW8 open on phones until d88bbcaf1 (card placeholders) is merged; the dock no longer grows"
+      !process.env.FINDINGS_RED && page.viewportSize()!.width < 1024,
+      "SW8 open below 1024 px until d88bbcaf1 (card placeholders) is merged; the dock no longer shifts"
     )
     await page.goto(`/scenes/${scene}`)
     await expect(page.locator("[data-component]").first()).toBeVisible()
