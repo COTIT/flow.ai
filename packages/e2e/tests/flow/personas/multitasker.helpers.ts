@@ -230,8 +230,8 @@ export const savedWorkspace = (page: Page) =>
     .catch(() => null)
 /** Picks the other workspace in this tab's header picker, as a person would. */
 export async function switchWorkspace(page: Page, to: string) {
+  await showHeader(page)
   const t = L[await localeOf(page)]
-  await revealHeader(page).catch(() => {})
   const picker = page.getByRole("combobox", { name: t.workspace })
   if (!(await picker.isVisible().catch(() => false))) return false
   await picker.click({ timeout: 2_000 }).catch(() => {})
@@ -245,22 +245,26 @@ export async function switchWorkspace(page: Page, to: string) {
   return true
 }
 export async function setLanguage(page: Page, to: Locale) {
+  await showHeader(page)
   const t = L[await localeOf(page)]
-  await revealHeader(page).catch(() => {})
   const select = page.getByRole("combobox", { name: t.language })
   if (!(await select.isVisible().catch(() => false))) return false
   await select.selectOption(to, { timeout: 2_000 }).catch(() => {})
   return true
 }
 export async function logOut(page: Page) {
-  const t = L[await localeOf(page)]
-  await revealHeader(page).catch(() => {})
-  if (!(await clickIf(page, t.logout, false))) return false
-  // While a conversation or task is live, Flow asks first; the person confirms.
+  await showHeader(page)
+  const label = L[await localeOf(page)].logout
+  const done = await clickIf(page, label, false)
+  // While a conversation or task is live, Log out asks first (P10-3): confirm.
   const ask = page.getByRole("alertdialog")
-  if (await ask.waitFor({ state: "visible", timeout: 1_000 }).then(() => true, () => false))
-    await ask.getByRole("button", { name: t.logout }).click({ timeout: 2_000 })
-  return true
+  if (done && (await ask.waitFor({ state: "visible", timeout: 1_000 }).then(() => true, () => false)))
+    await ask.getByRole("button", { name: label }).click({ timeout: 2_000 }).catch(() => {})
+  return done
+}
+/** The header floats hidden until asked for (D2): reveal it before using its controls. */
+async function showHeader(page: Page) {
+  await revealHeader(page).catch(() => {})
 }
 /** The login page, with or without the `?next=` way back. */
 export const LOGIN = /\/login(\?next=[^&]*)?$/

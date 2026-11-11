@@ -9,7 +9,7 @@ import {
 } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
-import { chat, fakeAgent, send, startText, v } from "./voice"
+import { chat, fakeAgent, send, startText, v, watch } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -554,3 +554,89 @@ for (const size of [
     expect(frame).toBeLessThanOrEqual(visible + 1)
     await expect(composer(page)).toBeFocused()
   })
+
+test("charts fill their tile, with day labels and the lowest and highest value (at a glance)", async ({
+  page,
+}) => {
+  await page.goto("/scenes/pulse")
+  const chart = page.locator('[data-chart="line"]').first()
+  await expect(chart.locator("svg").first()).toBeVisible()
+  const fill = await chart.evaluate((section) => {
+    const svg = section.querySelector("svg")!.getBoundingClientRect()
+    const head = section.querySelector("h3")!.getBoundingClientRect()
+    const box = section.getBoundingClientRect()
+    // The drawing takes most of the room under the title.
+    return svg.height / (box.bottom - head.bottom)
+  })
+  expect(fill).toBeGreaterThanOrEqual(0.5)
+  // One label per day (7 days), and the range of the line.
+  await expect(chart.locator("[data-day]")).toHaveCount(7)
+  await expect(chart.locator("[data-range=max]")).toBeVisible()
+  await expect(chart.locator("[data-range=min]")).toBeVisible()
+})
+
+// P10-4: phone landscape. The chrome never eats the height: the content keeps >= 120 px, every
+// control is tappable, nothing overflows.
+for (const size of [
+  { width: 740, height: 360 },
+  { width: 812, height: 375 },
+  { width: 667, height: 375 },
+  { width: 568, height: 320 },
+])
+  test(`P10-4: phone landscape ${size.width}×${size.height}: home, conversation and a scene keep room`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+    const room = async (where: string) => {
+      const h = await page
+        .locator("[data-flow-scroll]")
+        .evaluate((m) => m.getBoundingClientRect().height)
+      expect(h, `${where}: content height`).toBeGreaterThanOrEqual(120)
+      await expectSingleScroller(page)
+      await expectNoHorizontalScroll(page)
+    }
+    await page.goto("/")
+    const start = page.getByRole("button", { name: v.textInstead, exact: true })
+    await start.scrollIntoViewIfNeeded()
+    await start.click({ trial: true }) // reachable and not under the dock
+    await room("home")
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await page.getByRole("button", { name: s.backHome }).click({ trial: true })
+    await room("scene")
+    await page.goto("/")
+    await startText(page)
+    await send(page, "Hello")
+    await expect(page.getByRole("log").first()).toContainText("Answer: Hello")
+    await composer(page).click({ trial: true })
+    await page.getByRole("button", { name: v.send, exact: true }).click({ trial: true })
+    await room("conversation")
+    // A scene while the conversation goes on (the phone sheet, or the rail).
+    await page.getByRole("button", { name: s.backHome }).first().click()
+    await page.getByRole("link", { name: /Morning Pulse/ }).click()
+    await expect(page).toHaveURL(/\/scenes\/pulse$/)
+    await composer(page).click({ trial: true })
+    await room("scene with the conversation")
+  })
+
+test("P4-1: a draft of only invisible characters is never sent", async ({ page }) => {
+  const agent = await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await composer(page).fill("​​⁠")
+  await composer(page).press("Enter")
+  await page.waitForTimeout(600)
+  const typed = agent.sent.filter((e) => e.type === "user_message")
+  expect(typed).toEqual([])
+})
+
+test("P4-1: invisible characters typed on home start no conversation", async ({ page }) => {
+  await fakeAgent(page)
+  const sessions = watch(page, "session")
+  await page.goto("/")
+  await composer(page).fill("​ ​")
+  await composer(page).press("Enter")
+  await page.waitForTimeout(800)
+  expect(sessions.filter((r) => r.method === "POST")).toHaveLength(0)
+})

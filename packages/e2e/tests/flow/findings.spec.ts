@@ -6,6 +6,7 @@ import {
   expectTapTargets,
   markInjected,
 } from "../../src/test"
+import { rowAction } from "./lists"
 import { HONEY, SPICES, TEA, sc, sceneWorld } from "./scenes-api"
 import { expect, test } from "./storefront-api"
 import { readBack, receipt, scene, stockReview, stockRoutes } from "./task"
@@ -132,13 +133,18 @@ test("SW4: a review proposed while the person types never takes their focus", as
   await expect(page.locator("#flow-review-title")).not.toBeFocused()
 })
 
-test("SW4: a review that opens takes focus from the page", async ({ page, api }) => {
+test("SW4: a review that opens takes focus from the page", async ({
+  page,
+  api,
+}) => {
   stockReadBack(api)
   const agent = await fakeAgent(page)
   await stockRoutes(page)
   await page.goto("/")
   await startText(page)
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur()
+  )
   propose(agent)
   await expect(page.locator("#flow-review-title")).toBeFocused()
 })
@@ -278,8 +284,19 @@ const twice = {
       el.click()
       el.click()
     }),
-  "clickCount 2": (b: import("@playwright/test").Locator) =>
-    b.click({ clickCount: 2 }),
+  "clickCount 2": async (b: import("@playwright/test").Locator) => {
+    await b.click({ clickCount: 2 })
+    // On a menu item the second click lands on what is under it (Snooze ▾ opens again).
+    // Settled once the closing menu is gone and every open menu has its trigger expanded.
+    const menus = b.page().getByRole("menu")
+    const reopened = b
+      .page()
+      .locator('[aria-haspopup="menu"][aria-expanded="true"]')
+    await expect
+      .poll(async () => (await menus.count()) - (await reopened.count()))
+      .toBe(0)
+    if (await reopened.count()) await b.page().keyboard.press("Escape")
+  },
 }
 
 for (const [how, click] of Object.entries(twice)) {
@@ -290,16 +307,16 @@ for (const [how, click] of Object.entries(twice)) {
     sceneWorld(api)
     await page.goto("/scenes/noticed")
     const stock = page.locator('[data-group="stock.below_minimum"]')
-    const buttons: [string, string][] = [
-      [HONEY, sc.noticed.acknowledge],
-      [TEA, sc.noticed.snoozeTomorrow],
-      [SPICES, sc.noticed.snoozeWeek],
-    ]
-    for (const [ref, name] of buttons) {
+    // Each control as this width shows it (inline, Snooze ▾ or the ⋯ row menu); the press that
+    // writes is the doubled one.
+    const actions = [
+      [HONEY, "acknowledge"],
+      [TEA, "tomorrow"],
+      [SPICES, "week"],
+    ] as const
+    for (const [ref, name] of actions) {
       const before = api.callsTo("PUT", "/workspace/w1/attention/marks").length
-      await click(
-        stock.locator(`[data-item="${ref}"]`).getByRole("button", { name })
-      )
+      await rowAction(page, stock.locator(`[data-item="${ref}"]`), name, click)
       await expect
         .poll(() => api.callsTo("PUT", "/workspace/w1/attention/marks").length)
         .toBeGreaterThan(before)
@@ -308,6 +325,8 @@ for (const [how, click] of Object.entries(twice)) {
         api.callsTo("PUT", "/workspace/w1/attention/marks").length - before,
         `${name} on ${how}`
       ).toBe(1)
+      await page.keyboard.press("Escape") // a menu the second click left open
+      await expect(page.getByRole("menu")).toHaveCount(0)
     }
   })
 }

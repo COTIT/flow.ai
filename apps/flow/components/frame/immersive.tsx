@@ -20,8 +20,10 @@ export function Immersive() {
   const log = useRef<HTMLDivElement>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   // Opened from the orb: the orb becomes a picture here, so focus moves into the conversation.
+  // Likewise when the control that brought us here is gone (a review cancelled, P9-1).
   useEffect(() => {
-    if (document.activeElement?.closest("[data-orb]")) heading.current?.focus()
+    const active = document.activeElement
+    if (active === document.body || active?.closest("[data-orb]")) heading.current?.focus()
   }, [])
   // Keep the newest line in view; the page's one scroller scrolls, the log never has its own.
   useEffect(() => {

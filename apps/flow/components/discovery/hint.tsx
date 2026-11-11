@@ -9,6 +9,7 @@ import { useRights } from "@genesy/api-client/rights"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { dismissHint, readActivity } from "@/lib/activity"
 import { useActivityKey } from "@/lib/pills"
+import { useTakeFocus } from "@/lib/use-take-focus"
 
 /** Uses after which the hint has done its job. */
 const FAMILIAR = 5
@@ -29,6 +30,8 @@ export function DiscoveryHint() {
   const rights = useRights()
   const key = useActivityKey()
   const [dismissed, setDismissed] = useState(false)
+  // P9-1: the Dismiss button goes away; keyboard focus moves to the link that replaces the tip.
+  const link = useTakeFocus<HTMLAnchorElement>(dismissed)
   if (!key || !rights.read) return null
   const { uses, hintDismissed } = readActivity(key)
   const total = Object.values(uses).reduce((sum, use) => sum + use.n, 0)
@@ -36,6 +39,7 @@ export function DiscoveryHint() {
   if (dismissed || hintDismissed || total >= FAMILIAR)
     return (
       <Link
+        ref={link}
         href="/explore"
         className={buttonVariants({
           variant: "ghost",

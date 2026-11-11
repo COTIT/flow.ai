@@ -14,6 +14,7 @@ import {
 } from "@genesy/voice/components/attachments"
 import { useVoice } from "@genesy/voice/components/provider"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
+import { isBlankMessage } from "@genesy/voice/lib/blank"
 import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
 import { Pills } from "@/components/discovery/pills" // F3
@@ -68,7 +69,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     if (!voice.connected) return
     const typed = flowStore.getState().draft
     const { rest } = parseWake(typed.trim())
-    if (rest) void deliver(rest, typed)
+    if (rest && !isBlankMessage(rest)) void deliver(rest, typed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.starting, voice.connected])
 
@@ -77,7 +78,10 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
 
   // F3: `text` lets a suggestion send its instruction exactly as typing it + Enter would.
   const submit = async (text = draft) => {
-    const { wake, rest } = parseWake(text.trim())
+    const parsed = parseWake(text.trim())
+    const { wake } = parsed
+    // Only invisible characters (zero-width marks survive trim): nothing to send (P4-1).
+    const rest = isBlankMessage(parsed.rest) ? "" : parsed.rest
     const files = voice.attachments.some((file) => file.state !== "submitted")
     if (!rest && !wake && !files) return
     if (!voice.connected) {
@@ -160,7 +164,10 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         <VoiceUnfinished />
         {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
         {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
-        <ResumePrompt idle={!live} /> {/* F4; P5-1: also after a reload, never while starting */}
+        <ResumePrompt
+          idle={!(voice.connected || voice.starting || voice.upgrading)}
+        />{" "}
+        {/* F4; P5-1: also after a reload, never while starting */}
         {handoff ? (
           <Notice variant="info" title={t("flow.chat.secureTitle")}>
             {handoffHref ? (

@@ -347,3 +347,12 @@
     text-transform: uppercase;
   }
 }
+
+/* Forced colours (Windows High Contrast) drop box-shadow focus rings: draw focus as an outline
+   there (P9-2). Outside any layer, so it wins over `outline-none` utilities. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid;
+    outline-offset: 2px;
+  }
+}
