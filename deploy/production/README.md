@@ -6,16 +6,17 @@ The live Genesy stack on the VPS. It runs the API with its own Postgres, the app
 
 It is a separate compose project, `genesy-prod`. It never touches the `control360` or `genesy-prod-green` projects, and its router names (`genesy-production-*`) don't clash with theirs.
 
-| Host                | Service | Container port |
-| ------------------- | ------- | -------------- |
-| `api.genesy.app`    | api     | 8080           |
-| `shop.genesy.app`   | shop    | 3000           |
-| `office.genesy.app` | office  | 3000           |
-| `till.genesy.app`   | till    | 3000           |
-| `flow.genesy.app`   | flow    | 3000           |
-| `field.genesy.app`  | field   | 8080           |
-| `genesy.app`        | landing | 3000           |
-| `www.genesy.app`    | landing (301 to `https://genesy.app`) | 3000 |
+| Host                  | Service                                                 | Container port |
+| --------------------- | ------------------------------------------------------- | -------------- |
+| `api.genesy.app`      | api                                                     | 8080           |
+| `shop.genesy.app`     | shop                                                    | 3000           |
+| `office.genesy.app`   | office                                                  | 3000           |
+| `till.genesy.app`     | till                                                    | 3000           |
+| `flow.genesy.app`     | flow                                                    | 3000           |
+| `app.ruahaenergy.com` | field                                                   | 8080           |
+| `field.genesy.app`    | field (301 to `https://app.ruahaenergy.com`, path kept) | 8080           |
+| `genesy.app`          | landing                                                 | 3000           |
+| `www.genesy.app`      | landing (301 to `https://genesy.app`)                   | 3000           |
 
 **How it differs from staging** (`../staging/README.md`):
 
@@ -28,7 +29,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 - **Field release flag off.** `VITE_FEATURE_RESOURCES=off` hides equipment, loans and requests; no demo banner.
 - **Uploads in the production B2 bucket, once its key is in** ("Turning on file uploads"); until then, and always on staging, file routes answer 503. No PDF renderer yet: those routes answer 503 too.
 
-Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till`, `field` and `flow` records, plus the apex (`@`) and `www` for the landing page. The landing page's contact address is `CONTACT_EMAIL` in `.env.production` (default `hello@genesy.app`, a placeholder).
+Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till`, `field` and `flow` records, plus the apex (`@`) and `www` for the landing page. The field app's own host, `app.ruahaenergy.com`, is an A (`185.77.96.44`) and AAAA (`2a02:4780:d:ca37::1`) record named `app` in RUAHA's GoDaddy zone `ruahaenergy.com`; that zone's other records (apex and `www` on Webflow, mail) are not ours. The landing page's contact address is `CONTACT_EMAIL` in `.env.production` (default `hello@genesy.app`, a placeholder).
 
 ## Files
 
@@ -106,7 +107,6 @@ Deployment timings go to stderr and `deploy/production/deploys.log`. Include bac
 migration, health and cleanup time when comparing releases. Human waiting between promotions
 is measured separately.
 
-
 Only deploy a commit whose `ci` workflow passed on `main`, including its two `images` jobs (api and web), which pushed `ghcr.io/cotit/genesy-<app>:<sha>`, and that staging already runs. The VPS can't reach GitHub's git, so the commit comes over in a git bundle:
 
 ```bash
@@ -158,12 +158,12 @@ After a build, the prune caps the build cache at 10 GB (`docker builder prune --
 
 Every container has a CPU, memory and process ceiling (`deploy.resources.limits`). Without one, a runaway container could take the whole VPS, which it shares with staging, CI and other projects. These are ceilings, not reservations.
 
-| Service | CPUs | Memory |
-| --- | --- | --- |
-| db | 1.5 | 2 GB (`shm_size` 256 MB) |
-| api | 1.5 | 1 GB |
-| shop, office, till, landing, flow | 0.5 each | 512 MB each |
-| field | 0.25 | 128 MB |
+| Service                           | CPUs     | Memory                   |
+| --------------------------------- | -------- | ------------------------ |
+| db                                | 1.5      | 2 GB (`shm_size` 256 MB) |
+| api                               | 1.5      | 1 GB                     |
+| shop, office, till, landing, flow | 0.5 each | 512 MB each              |
+| field                             | 0.25     | 128 MB                   |
 
 Staging runs smaller limits with a quarter of production's CPU weight (`cpu_shares: 256`), so production wins when both are busy. A container that goes over its memory is killed and restarted (`restart: unless-stopped`). The `vps-watch` alert reports that as a restart loop. If it happens, raise that service's limit here. Check real use with `docker stats --no-stream`.
 
@@ -271,10 +271,10 @@ Product images, documents and farm photos go to the existing production B2 bucke
 
 The bucket gets **two keys that can't see each other's files**:
 
-| Key name | Bucket | File name prefix | Capabilities | Used by |
-| --- | --- | --- | --- | --- |
-| `genesy-prod-uploads` | the production bucket | `genesy/` | `listBuckets, readFiles, writeFiles, deleteFiles` | the API (this section) |
-| `genesy-prod-db-backups` | the production bucket | `db-backups/` | `listBuckets, writeFiles` (**no** `readFiles`, **no** `deleteFiles`) | `backup.sh` (`../ops/README.md`) |
+| Key name                 | Bucket                | File name prefix | Capabilities                                                         | Used by                          |
+| ------------------------ | --------------------- | ---------------- | -------------------------------------------------------------------- | -------------------------------- |
+| `genesy-prod-uploads`    | the production bucket | `genesy/`        | `listBuckets, readFiles, writeFiles, deleteFiles`                    | the API (this section)           |
+| `genesy-prod-db-backups` | the production bucket | `db-backups/`    | `listBuckets, writeFiles` (**no** `readFiles`, **no** `deleteFiles`) | `backup.sh` (`../ops/README.md`) |
 
 A bug in the API can't touch the backups, and the backup script can't read or change customer files. The backup key can't even read old dumps back, so someone who takes over the VPS can't download or wipe them. Never use one key for both jobs.
 
@@ -285,6 +285,7 @@ A bug in the API can't touch the backups, and the backup script can't read or ch
    ```
 
    It prints the key ID and the application key once. Check it with `b2 key list --long`.
+
 2. **On the VPS:** write the application key (asked without echo):
 
    ```bash

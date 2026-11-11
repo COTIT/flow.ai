@@ -207,10 +207,19 @@ services:
     networks: [internal, edge]
     labels:
       <<: *edge-labels
-      traefik.http.routers.genesy-production-field.rule: Host(`field.genesy.app`)
+      # RUAHA's own domain (DNS in RUAHA's GoDaddy); the old genesy host 301s to it.
+      traefik.http.routers.genesy-production-field.rule: Host(`app.ruahaenergy.com`)
       traefik.http.routers.genesy-production-field.entrypoints: ${TRAEFIK_ENTRYPOINT}
       traefik.http.routers.genesy-production-field.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
       traefik.http.services.genesy-production-field.loadbalancer.server.port: "8080"
+      traefik.http.routers.genesy-production-field-old.rule: Host(`field.genesy.app`)
+      traefik.http.routers.genesy-production-field-old.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-field-old.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.routers.genesy-production-field-old.service: genesy-production-field
+      traefik.http.routers.genesy-production-field-old.middlewares: genesy-production-field-to-ruaha
+      traefik.http.middlewares.genesy-production-field-to-ruaha.redirectregex.regex: ^https?://field\.genesy\.app/(.*)
+      traefik.http.middlewares.genesy-production-field-to-ruaha.redirectregex.replacement: https://app.ruahaenergy.com/$${1}
+      traefik.http.middlewares.genesy-production-field-to-ruaha.redirectregex.permanent: "true"
 
   # One-off API commands (`create-owner`), on demand: `... --profile cli run --rm cli <command>`.
   # Its own service without Traefik labels, so a one-off container never receives web traffic.
