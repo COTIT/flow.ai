@@ -190,6 +190,7 @@
   "apps/api/src/modules/storefront_design/dto.rs": "829f6212b1357d6c794a2a40da9488dda88946272f61044fa8b5384ae294df11",
   "apps/api/src/modules/storefront_design/edit.rs": "a6f8b86b45e810d8c3586776b2ae28e0cc26f1974adf84b0b77f118545b6144e",
   "apps/api/src/modules/storefront_design/handlers.rs": "0e3938e6c8c16f1f4a93322955b13f66b9ebd850df0856333ff5413e85ec4530",
+  "apps/api/src/modules/storefront_design/preview_link.rs": "83215b0b1c848c2ac9d807ec0a1926693722b014d906e384a85724083a009321",
   "apps/api/src/modules/storefront_design/repo.rs": "299a7cdcb377be1ea9660160511aaed36433dd164e3df75073a9c21c95e01b26",
   "apps/api/src/modules/storefront_design/service.rs": "660e579f5b2c54f4c6573583fb123a5becfd49d94ef371aa00ca01dbe86f26f2",
   "apps/api/src/modules/supply_chain/handlers.rs": "408ea547f27bcc3a69b11c76bb4d80533163b83aab3eae1fb3bf9b164b70026f",
@@ -226,6 +227,5 @@
   "apps/api/src/modules/workspaces/handlers.rs": "9766a5f326a08ba1db481f15cfa6a6e00cdc8446f98761a5cdcac7fa5edf4297",
   "apps/api/src/modules/workspaces/service.rs": "6b8b6c901d71387f37a1c0eadbf237fd4d97b17953e48a512bbf36aaf74909f6",
   "apps/api/src/money.rs": "ec8929ded1c344ea115e88323e3d348017948219920c361d066deb656d5c3b1f",
-  "apps/api/src/openapi.rs": "381a7b981e1d97cbcbb5728562ea24bbee686104d6fc0de029585d38fb425a83",
-  "apps/api/src/modules/storefront_design/preview_link.rs": "83215b0b1c848c2ac9d807ec0a1926693722b014d906e384a85724083a009321"
+  "apps/api/src/openapi.rs": "381a7b981e1d97cbcbb5728562ea24bbee686104d6fc0de029585d38fb425a83"
 }
