@@ -58,7 +58,7 @@ export function TaskCapsule() {
     >
       <p className="mr-auto min-w-0 text-sm">
         <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          {ended ? t(`states.${view.state}`) : t("working")}
+          {ended || view.state === "paused" ? t(`states.${view.state}`) : t("working")}
         </span>{" "}
         {subject ? (
           <span className="font-semibold break-words">
