@@ -1,15 +1,16 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
-import { useTranslations } from "next-intl"
-import { useQueryClient } from "@tanstack/react-query"
+import { useState, useSyncExternalStore } from "react"
+import { useFormatter, useTranslations } from "next-intl"
+import { useQueryClient, type QueryCache } from "@tanstack/react-query"
 import { Lock } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
-import { freshness } from "@/lib/freshness"
+import { ageLabel, freshness } from "@/lib/freshness"
+import { freshnessClock } from "@/lib/freshness-clock"
 import { isSceneData } from "@/lib/use-scene-data"
 
 /** The part of a TanStack query a component's states depend on. */
@@ -74,44 +75,80 @@ export function DataState({
   return <>{children}</>
 }
 
-const tick = (notify: () => void) => {
-  const id = setInterval(notify, 1000)
-  return () => clearInterval(id)
+/** Everything the line says, as one short key: a re-render happens only when it changes. */
+function shown(
+  q: { updatedAt: number; fetching: boolean; failed: boolean },
+  staleAfter: number
+) {
+  if (!q.updatedAt) return null
+  const now = Date.now()
+  const state = freshness({ ...q, now, staleAfter })
+  return { state, label: ageLabel(now - q.updatedAt) }
 }
 
-/** "Updated 32 s ago" / "Refreshing…" / "Data may be outdated" for the data the visible scene shows. */
+/** The queries behind the visible scene: when the oldest answered, and whether any is refetching or failed. */
+function readScenes(cache: QueryCache) {
+  const queries = cache.findAll({
+    predicate: (q) => isSceneData(q.queryKey) && q.getObserversCount() > 0,
+  })
+  const answered = queries.filter((q) => q.state.dataUpdatedAt)
+  return {
+    updatedAt: answered.length
+      ? Math.min(...answered.map((q) => q.state.dataUpdatedAt))
+      : 0,
+    fetching: queries.some((q) => q.state.fetchStatus === "fetching"),
+    // A query that never answered (e.g. a role without that data) has no shown data to age.
+    failed: answered.some((q) => q.state.status === "error"),
+  }
+}
+
+/** "Updated just now" / "Updated 5 min ago" / "Refreshing…" / "Data may be outdated" for the data the visible scene shows. */
 export function Freshness({ staleAfter }: { staleAfter: number }) {
   const t = useTranslations("scenes")
-  const now = useSyncExternalStore(
-    tick,
-    () => Math.floor(Date.now() / 1000) * 1000,
-    () => 0
-  )
-  const queries = useQueryClient()
-    .getQueryCache()
-    .findAll({
-      predicate: (q) => isSceneData(q.queryKey) && q.getObserversCount() > 0,
+  const format = useFormatter()
+  const cache = useQueryClient().getQueryCache()
+  const input = readScenes(cache)
+  // Re-render when a scene query changes (first answer, refetch) as well as when the clock ticks.
+  // Stable identity: a new one each render would restart the clock's countdown.
+  const [subscribe] = useState(() => (notify: () => void) => {
+    const off = freshnessClock.subscribe(notify, () => {
+      const { updatedAt } = readScenes(cache)
+      return updatedAt ? Date.now() - updatedAt : 0
     })
-    .map((q) => ({
-      isPending: q.state.status === "pending",
-      isError: q.state.status === "error",
-      isFetching: q.state.fetchStatus === "fetching",
-      dataUpdatedAt: q.state.dataUpdatedAt,
-      refetch: () => undefined,
-    }))
-  const answered = queries.filter((q) => q.dataUpdatedAt)
-  if (!now || !answered.length) return null
-  const state = freshness({
-    updatedAt: Math.min(...answered.map((q) => q.dataUpdatedAt)),
-    fetching: queries.some((q) => q.isFetching),
-    // A query that never answered (e.g. a role without that data) has no shown data to age.
-    failed: answered.some((q) => q.isError),
-    now,
-    staleAfter,
+    const unwatch = cache.subscribe(notify)
+    return () => {
+      off()
+      unwatch()
+    }
   })
+  useSyncExternalStore(
+    subscribe,
+    () => {
+      const live = readScenes(cache)
+      const v = shown(live, staleAfter)
+      return v && `${v.state.kind}/${JSON.stringify(v.label)}/${live.updatedAt}`
+    },
+    () => null
+  )
+  const view = shown(input, staleAfter)
+  if (!view) return null
+  const { state, label } = view
   const text = {
     loading: "",
-    fresh: t("fresh", { seconds: state.seconds }),
+    fresh: {
+      now: () => t("freshNow"),
+      minutes: () =>
+        t("freshMinutes", {
+          minutes: label.kind === "minutes" ? label.minutes : 0,
+        }),
+      at: () =>
+        t("freshAt", {
+          time: format.dateTime(new Date(input.updatedAt), {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }),
+    }[label.kind](),
     refreshing: t("refreshing"),
     stale: t("stale"),
     failed: t("refreshFailed"),
@@ -119,7 +156,7 @@ export function Freshness({ staleAfter }: { staleAfter: number }) {
   return (
     <p data-freshness={state.kind} className="text-xs text-muted-foreground">
       {text}
-      {/* Only changes worth hearing: the ticking "Updated 32 s ago" is never announced. */}
+      {/* Only changes worth hearing: the quiet "Updated 5 min ago" is never announced. */}
       <span aria-live="polite" className="sr-only">
         {state.kind === "fresh" ? "" : text}
       </span>
