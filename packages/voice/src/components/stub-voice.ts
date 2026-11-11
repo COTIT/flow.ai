@@ -19,6 +19,7 @@ export function stubVoice(overrides: Partial<VoiceContextValue> = {}): VoiceCont
     messages: [],
     attachments: [],
     review: null,
+    decided: null,
     outcome: null,
     batchProgress: null,
     progress: null,

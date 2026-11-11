@@ -126,6 +126,7 @@
     "microphoneDenied": "Ruhusa ya maikrofoni imekataliwa. Mazungumzo yako ya maandishi bado yanaendelea.",
     "microphoneMissing": "Hakuna maikrofoni iliyopatikana. Unganisha moja, au endelea kuandika.",
     "offline": "Huna mtandao. Unganisha tena, kisha ujaribu tena.",
+    "offlineNotSent": "Huna mtandao. Hakuna kilichotumwa; idhinisha tena ukirudi mtandaoni.",
     "connectionLost": "Genesy haipatikani. Angalia muunganisho wako kisha ujaribu tena.",
     "upgradeFailed": "Sauti haikuweza kuanza. Ujumbe wako wa awali unabaki hapa.",
     "batchProgress": "Maendeleo ya mfululizo",

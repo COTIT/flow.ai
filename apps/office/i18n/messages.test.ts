@@ -83,9 +83,20 @@ describe("Office messages", () => {
       expect(acknowledged).toBeDefined()
       expect(snoozed).toBeDefined()
       // Added since (P6-1/SW6): plain-words lines for a dropped line, offline, no microphone.
-      const { connectionLost, offline, microphoneMissing, ...rest } =
-        voice as typeof voice & Record<string, unknown>
-      for (const text of [connectionLost, offline, microphoneMissing])
+      // P6-5: an approval made offline was never sent.
+      const {
+        connectionLost,
+        offline,
+        offlineNotSent,
+        microphoneMissing,
+        ...rest
+      } = voice as typeof voice & Record<string, unknown>
+      for (const text of [
+        connectionLost,
+        offline,
+        offlineNotSent,
+        microphoneMissing,
+      ])
         expect(text).toBeDefined()
       expect(
         hash({

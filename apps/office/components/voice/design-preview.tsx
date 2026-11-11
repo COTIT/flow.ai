@@ -107,6 +107,7 @@ export function VoiceDesignPreview() {
       attachments: [],
       review:
         state === "review" ? review : state === "review-batch" ? batch : null,
+      decided: null,
       outcome:
         state === "completed"
           ? { status: "completed", message: "Stock levels updated." }
