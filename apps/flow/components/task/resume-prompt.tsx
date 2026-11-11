@@ -7,7 +7,7 @@ import { useSession } from "@genesy/api-client/auth"
 import { Button } from "@genesy/ui/components/button"
 import { useVoice } from "@genesy/voice/components/provider"
 import { outcomeKind, unseenOutcomes } from "@/lib/recovered-outcomes"
-import { taskStore, useTask } from "@/lib/task-store"
+import { approvalOutcome, taskStore, useTask } from "@/lib/task-store"
 
 const seenKey = (workspace: string) => `flow-seen-outcomes:${workspace}`
 function readSeen(workspace: string | null): string[] {
@@ -34,7 +34,11 @@ export function ResumePrompt({ idle }: { idle: boolean }) {
   const workspace = useSession((s) => s.workspaceId)
   // Read once per mount: lines stay up while shown here, and are gone on the next visit.
   const [seen] = useState(() => readSeen(workspace))
-  const outcomes = idle && !dismissed ? unseenOutcomes(voice.recoveredTasks, seen) : []
+  const decided = useTask((s) => s.decided)
+  // The task card already shows its own approval's outcome (P6-3): never named twice.
+  const outcomes = (idle && !dismissed ? unseenOutcomes(voice.recoveredTasks, seen) : []).filter(
+    (o) => !decided || !approvalOutcome(decided, [o.task])
+  )
   const shown = outcomes.map((o) => o.id).join(",")
   useEffect(() => {
     if (!workspace || !shown) return

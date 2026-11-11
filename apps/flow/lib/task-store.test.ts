@@ -1,7 +1,7 @@
 import { beforeEach, expect, it } from "vitest"
 
 import type { VoiceReview } from "@genesy/voice/lib/client-contract"
-import { loadTask, ownerKey, reviewLeft, saveTask, taskFor } from "./task-store"
+import { approvalOutcome, loadTask, ownerKey, reviewLeft, saveTask, taskFor } from "./task-store"
 
 const review = (ticket: string) => ({ ticket }) as VoiceReview
 const earlier = { status: "completed", data: [] }
@@ -114,4 +114,30 @@ it("an unreadable or nobody's memory is dropped; an empty task keeps nothing", (
     resumeDismissed: false,
   })
   expect(store.size).toBe(0)
+})
+
+// P6-3: an approval on its way when the tab reloaded is resolved from Office's status, never re-sent.
+const approved = { ticket: "t", operationId: "stock_set_levels", summary: "Set stock levels" } as VoiceReview
+const status = (s: string, operation = "stock_set_levels") => ({ status: s, data: { actionId: "a", operation } })
+
+it("an approval in flight resolves to its receipt once Office says it completed", () => {
+  expect(approvalOutcome(approved, [status("completed")])).toEqual({ status: "completed" })
+})
+
+it("running, unknown or failed after a reload: not confirmed yet, never 'not done'", () => {
+  for (const s of ["running", "unknown", "failed", "partial"])
+    expect(approvalOutcome(approved, [status(s)])).toEqual({ status: "unknown" })
+})
+
+it("waits while Office has not answered or lists only other operations", () => {
+  expect(approvalOutcome(approved, [])).toBeNull()
+  expect(approvalOutcome(approved, [status("completed", "products_update")])).toBeNull()
+  expect(approvalOutcome(approved, [status("awaiting_review")])).toBeNull()
+})
+
+it("a batch is matched by its own id", () => {
+  const batch = { ticket: "b", kind: "batch", batchId: "b-1" } as VoiceReview
+  const task = { status: "completed", data: { batchId: "b-1", kind: "batch" as const } }
+  expect(approvalOutcome(batch, [task])).toEqual({ status: "completed" })
+  expect(approvalOutcome(batch, [{ ...task, data: { ...task.data, batchId: "b-2" } }])).toBeNull()
 })

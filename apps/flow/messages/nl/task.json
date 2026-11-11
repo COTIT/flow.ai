@@ -61,7 +61,8 @@
       "unknownText": "Herhaal het niet: het kan al gebeurd zijn. Genesy controleert de vastgelegde uitkomst.",
       "check": "Vraag Genesy het te controleren",
       "checkMessage": "Controleer of mijn laatst goedgekeurde wijziging is voltooid. Herhaal haar niet.",
-      "next": "Volgende"
+      "next": "Volgende",
+      "approved": "Goedgekeurd: {value}"
     },
     "clarify": {
       "title": "Welk product bedoelde je?",
