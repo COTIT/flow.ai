@@ -298,6 +298,8 @@ jobs:
       TURBO_TELEMETRY_DISABLED: "1"
       # The field app's equipment and catalogue screens sit behind a build-time release flag; e2e checks them.
       VITE_FEATURE_RESOURCES: "on"
+      # Office bakes the Shop address into its build (passport and Shop connection links); e2e checks them.
+      NEXT_PUBLIC_SHOP_URL: "https://shop.genesy.test"
     steps:
       # Before checkout: without git it downloads a tarball, and generate:check needs git diff.
       - run: |
