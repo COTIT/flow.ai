@@ -63,13 +63,16 @@ function Group({ group }: { group: PriorityGroup }) {
       data-group={group.kind}
       className="flex flex-col gap-3 rounded-2xl border bg-card p-4 @max-[599px]:border-0 @max-[599px]:bg-transparent @max-[599px]:p-0 @min-[980px]:p-5"
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 className="mr-auto font-semibold">{heading}</h2>
-        {group.impact.open_orders ? (
-          <span className="text-xs text-muted-foreground">
-            {t("noticed.affects", { count: group.impact.open_orders })}
-          </span>
-        ) : null}
+      {/* One title row: the title (and what it affects) left, the way to act right. */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold">{heading}</h2>
+          {group.impact.open_orders ? (
+            <p className="text-xs text-muted-foreground">
+              {t("noticed.affects", { count: group.impact.open_orders })}
+            </p>
+          ) : null}
+        </div>
         {/* Lists board: the way to act sits in the group's header row, never under the list. */}
         {review && can("review") ? (
           <Link
