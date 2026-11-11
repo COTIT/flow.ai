@@ -40,6 +40,9 @@ pub struct Pruned {
     pub scheduled_report_runs: u64,
     /// Resolved assistant actions older than 90 days; unresolved claims stay.
     pub assistant_actions: u64,
+    /// Attention marks: snoozes over a day past their end, acknowledgements over 30 days, marks
+    /// whose record is gone.
+    pub attention_marks: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -61,6 +64,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         webhook_events: webhooks::prune_events(db).await?,
         till_sessions: till::prune_sessions(db).await?,
         scheduled_report_runs: crate::modules::scheduled_reports::repo::prune_runs(db).await?,
+        attention_marks: crate::modules::attention::repo::prune_marks(db).await?,
     })
 }
 
@@ -174,6 +178,7 @@ mod tests {
                 webhook_events: 0,
                 till_sessions: 0,
                 scheduled_report_runs: 0,
+                attention_marks: 0,
             }
         );
         assert_eq!(

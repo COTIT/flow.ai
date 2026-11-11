@@ -30,6 +30,7 @@ import type {
   EnvelopeOrderResource,
   EnvelopeRefundCreated,
   EnvelopeSalesCompare,
+  EnvelopeSalesDaily,
   EnvelopeSalesSummary,
   EnvelopeTopCustomers,
   LinesQuantityRequest,
@@ -37,6 +38,7 @@ import type {
   OrdersEventsParams,
   OrdersListParams,
   OrdersSalesCompareParams,
+  OrdersSalesDailyParams,
   OrdersSalesSummaryParams,
   OrdersTopCustomersParams,
   PaginatedOrderEventResource,
@@ -1243,6 +1245,107 @@ export function useOrdersSalesCompare<TData = Awaited<ReturnType<typeof ordersSa
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getOrdersSalesCompareQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Gross (incl VAT), net and order count per local day in `[from, to)`, read in the workspace time zone (`time_zone`), same sold rule as `orders_sales_summary`. One series per currency sold in range, every day present (zero-filled); currencies never mix; nothing sold = empty `currencies`. `from`/`to` are `YYYY-MM-DD`, at most 92 days apart. Money in minor units.
+ * @summary Sales per day for a chart (daily sales, revenue trend, per day)
+ */
+export const ordersSalesDaily = (
+    workspace: string,
+    params: OrdersSalesDailyParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSalesDaily>(
+      {url: `/workspace/${workspace}/sales/daily`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getOrdersSalesDailyQueryKey = (workspace: string,
+    params?: OrdersSalesDailyParams,) => {
+    return [
+    `/workspace/${workspace}/sales/daily`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getOrdersSalesDailyQueryOptions = <TData = Awaited<ReturnType<typeof ordersSalesDaily>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: OrdersSalesDailyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesDaily>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getOrdersSalesDailyQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof ordersSalesDaily>>> = ({ signal }) => ordersSalesDaily(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof ordersSalesDaily>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type OrdersSalesDailyQueryResult = NonNullable<Awaited<ReturnType<typeof ordersSalesDaily>>>
+export type OrdersSalesDailyQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useOrdersSalesDaily<TData = Awaited<ReturnType<typeof ordersSalesDaily>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesDailyParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesDaily>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersSalesDaily>>,
+          TError,
+          Awaited<ReturnType<typeof ordersSalesDaily>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersSalesDaily<TData = Awaited<ReturnType<typeof ordersSalesDaily>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesDailyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesDaily>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersSalesDaily>>,
+          TError,
+          Awaited<ReturnType<typeof ordersSalesDaily>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersSalesDaily<TData = Awaited<ReturnType<typeof ordersSalesDaily>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesDailyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesDaily>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Sales per day for a chart (daily sales, revenue trend, per day)
+ */
+
+export function useOrdersSalesDaily<TData = Awaited<ReturnType<typeof ordersSalesDaily>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: OrdersSalesDailyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersSalesDaily>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getOrdersSalesDailyQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

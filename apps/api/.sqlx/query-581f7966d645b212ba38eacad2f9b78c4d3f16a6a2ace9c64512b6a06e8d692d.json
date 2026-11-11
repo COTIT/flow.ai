@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH d AS (\n               SELECT l.id, l.code, l.updated_at,\n                      coalesce(mk.state = 'acknowledged', false) AS acked,\n                      coalesce(mk.state = 'snoozed' AND mk.snoozed_until > now(), false) AS snoozed\n               FROM lots l\n               LEFT JOIN attention_marks mk\n                      ON mk.workspace_id = $1 AND mk.user_id = $2\n                     AND mk.kind = 'lots.quarantined' AND mk.ref_id = l.id\n               WHERE l.workspace_id = $1 AND l.status = 'quarantine')\n           SELECT d.id AS \"ref_id!\", d.code AS \"label!\", NULL::bigint AS invoice_number,\n                  NULL::jsonb AS invoice_appendix, NULL::bigint AS amount,\n                  NULL::text AS currency, NULL::smallint AS decimals, d.updated_at AS since,\n                  d.acked AS \"acked!\", d.snoozed AS \"snoozed!\",\n                  count(*) OVER () AS \"total!\",\n                  count(*) FILTER (WHERE d.acked) OVER () AS \"acked_n!\",\n                  count(*) FILTER (WHERE d.snoozed) OVER () AS \"snoozed_n!\"\n           FROM d\n           ORDER BY d.snoozed, d.updated_at, d.id\n           LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ref_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "label!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "invoice_number",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "invoice_appendix",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "since",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "acked!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "snoozed!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "acked_n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "snoozed_n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "581f7966d645b212ba38eacad2f9b78c4d3f16a6a2ace9c64512b6a06e8d692d"
+}

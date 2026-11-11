@@ -6,11 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AttentionStockItem } from './attentionStockItem';
+import type { BelowMinimum } from './belowMinimum';
 
 /**
  * Store stock rows below zero, and stock-tracked products sold out.
  */
 export interface AttentionStock {
+  /** Products below their minimum (see `BelowMinimum`). */
+  below_minimum: BelowMinimum;
   /** Sold-out products, lowest available first, at most 5. */
   items: AttentionStockItem[];
   /** Rows the negative-stock list shows (store warehouses, level below 0). */

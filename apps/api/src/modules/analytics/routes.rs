@@ -10,5 +10,6 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::top_customers))
         .routes(routes!(handlers::top_products))
         .routes(routes!(handlers::compare))
+        .routes(routes!(handlers::daily))
         .routes(routes!(handlers::invoices_export))
 }
