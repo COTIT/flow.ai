@@ -337,7 +337,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
         }
       }}
       style={{ height: open ? "62%" : undefined }}
-      className="flex min-h-0 shrink-0 flex-col gap-2 rounded-t-3xl glass-strong px-3 pb-3 shadow-[0_-8px_32px_rgb(28_27_24/0.14)] transition-[height] duration-240 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none max-sm:-mx-3 max-sm:-mb-3"
+      className="flex min-h-0 shrink-0 flex-col gap-2 rounded-t-3xl glass-strong px-3 pb-3 shadow-[0_-8px_32px_rgb(28_27_24/0.14)] transition-[height] duration-240 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none max-sm:-mx-3 max-sm:-mb-3 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:pb-2 max-sm:[@media(max-height:500px)]:-mx-2 max-sm:[@media(max-height:500px)]:-mb-2"
     >
       <button
         ref={handle}
@@ -357,7 +357,8 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
             go({ type: "drag", dy })
           }
         }}
-        className="flex h-11 w-32 shrink-0 touch-none justify-center self-center pt-2.5 focus-visible:outline-2 focus-visible:outline-(--gold)"
+        // Short screens (phone landscape): a slimmer handle, so the results keep their room.
+        className="flex h-11 w-32 shrink-0 touch-none justify-center self-center pt-2.5 focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:h-6 [@media(max-height:500px)]:pt-1.5"
       >
         <span
           aria-hidden
@@ -365,7 +366,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
         />
       </button>
       <div className="flex min-w-0 items-center gap-2.5">
-        <OrbSlot name="compact" className="size-11" />
+        <OrbSlot name="compact" className="size-11 [@media(max-height:500px)]:size-8" />
         {open ? (
           <p className="text-sm text-muted-foreground">
             {t(`shell.phase.${phase}`)}
