@@ -755,3 +755,41 @@ test.describe("touch gestures (P10-5..7)", () => {
     await expect(page.locator("[data-conversation-header]")).toHaveCount(0)
   })
 })
+
+test("P10-1 / INT-2: the handle and the skip link are 44 px; status text never sticks out", async ({
+  page,
+}) => {
+  await page.goto("/scenes/pulse")
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+  if (test.info().project.use.hasTouch) {
+    for (const size of [null, { width: 667, height: 375 }]) {
+      if (size) await page.setViewportSize(size)
+      const handle = (await page.locator("[data-flow-handle]").boundingBox())!
+      expect(handle.height).toBeGreaterThanOrEqual(44)
+      expect(handle.width).toBeGreaterThanOrEqual(44)
+    }
+  }
+  await page.keyboard.press("Tab")
+  const skip = page.getByRole("link", { name: s.skipToContent })
+  await expect(skip).toBeFocused()
+  expect((await skip.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  // Rotation with a draft: no status line is wider than its box unless it ellipsizes.
+  await composer(page).fill("A draft that stays while the phone turns")
+  await page.setViewportSize({ width: 667, height: 375 })
+  await page.setViewportSize({ width: 375, height: 667 })
+  const out = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[role="status"]')]
+      .filter((el) => el.offsetParent !== null && !el.closest(".sr-only"))
+      .filter((el) => {
+        const r = el.getBoundingClientRect()
+        return r.width > 2 && r.height > 2 // visually hidden labels are not on screen
+      })
+      .filter(
+        (el) =>
+          el.scrollWidth > el.clientWidth + 1 &&
+          getComputedStyle(el).textOverflow !== "ellipsis"
+      )
+      .map((el) => `${el.tagName} ${el.textContent?.slice(0, 30)}`)
+  )
+  expect(out).toEqual([])
+})
