@@ -16,7 +16,20 @@ const nextConfig: NextConfig = {
     "@genesy/i18n",
     "@genesy/security",
   ],
-  headers: async () => [{ source: "/:path*", headers: securityHeaders }],
+  headers: async () => [
+    // Everything except /preview: one rule per path, so no header is sent twice.
+    { source: "/:path((?!preview(?:/|$)).*)", headers: securityHeaders },
+    // Preview links carry a bearer token in the path: no Referer, no index, no cache.
+    {
+      source: "/preview/:path*",
+      headers: [
+        ...securityHeaders.filter((h) => h.key !== "Referrer-Policy"),
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        { key: "Cache-Control", value: "no-store" },
+      ],
+    },
+  ],
   // The browser calls same-origin /v1 and Next forwards it: the backend sends no CORS headers.
   rewrites: async () => [
     { source: "/v1/:path*", destination: `${apiUrl}/:path*` },

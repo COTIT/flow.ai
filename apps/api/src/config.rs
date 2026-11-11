@@ -48,6 +48,10 @@ pub struct Config {
     pub private_ip_rate_limit_burst: u32,
     /// Milliseconds until one more request is allowed per client IP.
     pub private_ip_rate_limit_replenish_ms: u64,
+    /// Storefront preview-link resolves allowed at once per app key.
+    pub preview_rate_limit_burst: u32,
+    /// Milliseconds until one more preview-link resolve is allowed per app key.
+    pub preview_rate_limit_replenish_ms: u64,
     /// Requests one workspace may have in flight; default half the request pool.
     pub workspace_max_inflight: u32,
     /// Requests one user may have in flight; default a quarter of the request pool, at least 2.
@@ -127,6 +131,11 @@ impl fmt::Debug for Config {
             .field(
                 "private_ip_rate_limit_replenish_ms",
                 &self.private_ip_rate_limit_replenish_ms,
+            )
+            .field("preview_rate_limit_burst", &self.preview_rate_limit_burst)
+            .field(
+                "preview_rate_limit_replenish_ms",
+                &self.preview_rate_limit_replenish_ms,
             )
             .field("workspace_max_inflight", &self.workspace_max_inflight)
             .field("user_max_inflight", &self.user_max_inflight)
@@ -219,6 +228,10 @@ impl Config {
         let private_ip_rate_limit_burst = positive(&get, "PRIVATE_IP_RATE_LIMIT_BURST", 600)?;
         let private_ip_rate_limit_replenish_ms =
             positive(&get, "PRIVATE_IP_RATE_LIMIT_REPLENISH_MS", 5)?;
+        // Default 30 at once, then 1 per 2 s per Shop key: reviewers fit, token scans don't.
+        let preview_rate_limit_burst = positive(&get, "PREVIEW_RATE_LIMIT_BURST", 30)?;
+        let preview_rate_limit_replenish_ms =
+            positive(&get, "PREVIEW_RATE_LIMIT_REPLENISH_MS", 2000)?;
         // Half the pool per workspace, a quarter per user (at least 2): one tenant's or one
         // user's slow requests leave the rest to everyone else.
         let workspace_max_inflight = positive(
@@ -299,6 +312,8 @@ impl Config {
             private_rate_limit_replenish_ms,
             private_ip_rate_limit_burst,
             private_ip_rate_limit_replenish_ms,
+            preview_rate_limit_burst,
+            preview_rate_limit_replenish_ms,
             workspace_max_inflight,
             user_max_inflight,
             request_timeout_secs,

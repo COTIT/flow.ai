@@ -150,6 +150,11 @@ async fn main() {
             replenish: Duration::from_millis(config.private_ip_rate_limit_replenish_ms),
             trust_forwarded: config.trust_proxy_headers,
         },
+        preview_rate_limit: RateLimit {
+            burst: config.preview_rate_limit_burst,
+            replenish: Duration::from_millis(config.preview_rate_limit_replenish_ms),
+            trust_forwarded: config.trust_proxy_headers,
+        },
         slots: Slots::new(WorkspaceSlots {
             per_workspace: config.workspace_max_inflight,
             per_user: config.user_max_inflight,

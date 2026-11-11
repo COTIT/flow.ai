@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.page_id,l.revision_id,l.expires_at FROM storefront_preview_links l JOIN storefront_pages p ON p.workspace_id=l.workspace_id AND p.id=l.page_id WHERE l.token_hash=$2 AND l.workspace_id=$1 AND l.revoked_at IS NULL AND l.expires_at>now() AND p.draft_revision_id=l.revision_id AND p.published_revision_id IS DISTINCT FROM l.revision_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "page_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storefront_preview_links",
+            "name": "page_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "revision_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storefront_preview_links",
+            "name": "revision_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "storefront_preview_links",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b42d3997c1166bf03af784f1ded9e3d268aa1342d178ac5feb445050c02d6021"
+}

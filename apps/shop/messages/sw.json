@@ -388,5 +388,13 @@
     "mary": "Jalada la kitabu cha picha The Mary: mkulima mwanamke amebeba jembe, kimechorwa na Benard Omondi",
     "benard": "Picha iliyochorwa ya msanii Benard Omondi akitabasamu, mbele ya vilima vya savana",
     "nafasi": "Nostalgic Memories ya Pascal Masegesse: santuri ya zamani juu ya kiti mbele ya michoro nyekundu na buluu"
+  },
+  "preview": {
+    "banner": "Onyesho ambalo halijachapishwa",
+    "revision": "Toleo {id}",
+    "expires": "Linaisha {time} UTC",
+    "expiredTitle": "Onyesho hili limeisha muda",
+    "expiredBody": "Toleo la duka ambalo halijachapishwa bado lipo kwenye eneo lako la kazi.",
+    "backToFlow": "Rudi kwenye Genesy Flow"
   }
 }

@@ -428,14 +428,17 @@ pub fn operations_ready() -> bool {
     OPS.get().is_some()
 }
 
-/// Design routes outside voice for good: whole-document save, previews, public read.
+/// Design routes outside voice for good: whole-document save, previews, preview links
+/// (they mint and resolve bearer secrets), public reads.
 fn closed_design_route(method: &str, path: &str) -> bool {
     let home = path
         .split_once("/storefront/pages/home")
         .map(|(_, rest)| rest);
     path == "/v1/storefront/pages/home"
+        || path.starts_with("/v1/storefront/preview")
         || method == "POST" && home == Some("/revisions")
         || matches!(home, Some("/preview" | "/edits/preview"))
+        || home.is_some_and(|rest| rest.starts_with("/preview-links"))
 }
 
 /// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
@@ -584,6 +587,11 @@ mod tests {
             ("POST", format!("{home}/edits/preview")),
             ("GET", format!("{home}/preview")),
             ("GET", "/v1/storefront/pages/home".to_owned()),
+            ("POST", format!("{home}/preview-links")),
+            ("GET", format!("{home}/preview-links")),
+            ("GET", format!("{home}/preview-links?revision_id=x")),
+            ("DELETE", format!("{home}/preview-links/l")),
+            ("POST", "/v1/storefront/preview".to_owned()),
         ] {
             assert!(resolve_operation(method, &path).is_err(), "{method} {path}");
         }

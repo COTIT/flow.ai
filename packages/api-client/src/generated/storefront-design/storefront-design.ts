@@ -29,14 +29,21 @@ import type {
   EnvelopeStorefrontDesignEditPreview,
   EnvelopeStorefrontDesignPreview,
   EnvelopeStorefrontDesignState,
+  EnvelopeStorefrontPreviewDesign,
+  EnvelopeStorefrontPreviewLink,
+  EnvelopeStorefrontPreviewLinkIssued,
   EnvelopeValue,
+  EnvelopeVecStorefrontPreviewLink,
   MessageBody,
   PaginatedStorefrontDesignRevisionSummary,
   StorefrontDesignEdit,
+  StorefrontDesignPreviewLinksParams,
   StorefrontDesignPreviewParams,
   StorefrontDesignRevisionsParams,
   StorefrontDesignSave,
   StorefrontDesignSelect,
+  StorefrontPreviewLinkCreate,
+  StorefrontPreviewResolve,
   UnprocessableBody,
   ValidationErrorBody
 } from '../model';
@@ -157,6 +164,73 @@ export function useStorefrontDesignPublished<TData = Awaited<ReturnType<typeof s
 
 
 /**
+ * @summary Shop server resolves preview token for its own workspace; any dead or foreign token is 404.
+ */
+export const storefrontDesignPreviewResolve = (
+    storefrontPreviewResolve: BodyType<StorefrontPreviewResolve>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontPreviewDesign>(
+      {url: `/storefront/preview`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: storefrontPreviewResolve, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontDesignPreviewResolveMutationKey = () => ['storefrontDesignPreviewResolve'] as const;
+
+export const getStorefrontDesignPreviewResolveMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewResolve>>, TError,StorefrontDesignPreviewResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewResolve>>, TError,StorefrontDesignPreviewResolveMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontDesignPreviewResolveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontDesignPreviewResolve>>, StorefrontDesignPreviewResolveMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  storefrontDesignPreviewResolve(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontDesignPreviewResolveMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontDesignPreviewResolve>>>
+    export type StorefrontDesignPreviewResolveMutationBody = BodyType<StorefrontPreviewResolve>
+    export type StorefrontDesignPreviewResolveMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type StorefrontDesignPreviewResolveMutationVariables = {data: BodyType<StorefrontPreviewResolve>}
+
+    /**
+ * @summary Shop server resolves preview token for its own workspace; any dead or foreign token is 404.
+ */
+export const useStorefrontDesignPreviewResolve = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewResolve>>, TError,StorefrontDesignPreviewResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontDesignPreviewResolve>>,
+        TError,
+        StorefrontDesignPreviewResolveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontDesignPreviewResolveMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Introspect only reviewed component capabilities and Rust-generated document schema.
  */
 export const storefrontDesignCapabilities = (
@@ -577,6 +651,240 @@ export function useStorefrontDesignPreview<TData = Awaited<ReturnType<typeof sto
 
 
 /**
+ * @summary Newest 50 preview links of one revision with status; never tokens.
+ */
+export const storefrontDesignPreviewLinks = (
+    workspace: string,
+    params: StorefrontDesignPreviewLinksParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecStorefrontPreviewLink>(
+      {url: `/workspace/${workspace}/storefront/pages/home/preview-links`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontDesignPreviewLinksQueryKey = (workspace: string,
+    params?: StorefrontDesignPreviewLinksParams,) => {
+    return [
+    `/workspace/${workspace}/storefront/pages/home/preview-links`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getStorefrontDesignPreviewLinksQueryOptions = <TData = Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: StorefrontDesignPreviewLinksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontDesignPreviewLinksQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>> = ({ signal }) => storefrontDesignPreviewLinks(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontDesignPreviewLinksQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>>
+export type StorefrontDesignPreviewLinksQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useStorefrontDesignPreviewLinks<TData = Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: StorefrontDesignPreviewLinksParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontDesignPreviewLinks<TData = Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: StorefrontDesignPreviewLinksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontDesignPreviewLinks<TData = Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: StorefrontDesignPreviewLinksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Newest 50 preview links of one revision with status; never tokens.
+ */
+
+export function useStorefrontDesignPreviewLinks<TData = Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: StorefrontDesignPreviewLinksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontDesignPreviewLinksQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Issue expiring full-page preview link for current unpublished draft; token shown once.
+ */
+export const storefrontDesignPreviewLinkCreate = (
+    workspace: string,
+    storefrontPreviewLinkCreate: BodyType<StorefrontPreviewLinkCreate>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontPreviewLinkIssued>(
+      {url: `/workspace/${workspace}/storefront/pages/home/preview-links`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: storefrontPreviewLinkCreate, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontDesignPreviewLinkCreateMutationKey = () => ['storefrontDesignPreviewLinkCreate'] as const;
+
+export const getStorefrontDesignPreviewLinkCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinkCreate>>, TError,StorefrontDesignPreviewLinkCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinkCreate>>, TError,StorefrontDesignPreviewLinkCreateMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontDesignPreviewLinkCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontDesignPreviewLinkCreate>>, StorefrontDesignPreviewLinkCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  storefrontDesignPreviewLinkCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontDesignPreviewLinkCreateMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontDesignPreviewLinkCreate>>>
+    export type StorefrontDesignPreviewLinkCreateMutationBody = BodyType<StorefrontPreviewLinkCreate>
+    export type StorefrontDesignPreviewLinkCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type StorefrontDesignPreviewLinkCreateMutationVariables = {workspace: string;data: BodyType<StorefrontPreviewLinkCreate>}
+
+    /**
+ * @summary Issue expiring full-page preview link for current unpublished draft; token shown once.
+ */
+export const useStorefrontDesignPreviewLinkCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinkCreate>>, TError,StorefrontDesignPreviewLinkCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontDesignPreviewLinkCreate>>,
+        TError,
+        StorefrontDesignPreviewLinkCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontDesignPreviewLinkCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Revoke preview link now; repeat answers same row.
+ */
+export const storefrontDesignPreviewLinkRevoke = (
+    workspace: string,
+    link: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontPreviewLink>(
+      {url: `/workspace/${workspace}/storefront/pages/home/preview-links/${link}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontDesignPreviewLinkRevokeMutationKey = () => ['storefrontDesignPreviewLinkRevoke'] as const;
+
+export const getStorefrontDesignPreviewLinkRevokeMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinkRevoke>>, TError,StorefrontDesignPreviewLinkRevokeMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinkRevoke>>, TError,StorefrontDesignPreviewLinkRevokeMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontDesignPreviewLinkRevokeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontDesignPreviewLinkRevoke>>, StorefrontDesignPreviewLinkRevokeMutationVariables> = (props) => {
+          const {workspace,link} = props ?? {};
+
+          return  storefrontDesignPreviewLinkRevoke(workspace,link,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontDesignPreviewLinkRevokeMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontDesignPreviewLinkRevoke>>>
+
+    export type StorefrontDesignPreviewLinkRevokeMutationError = ErrorType<MessageBody>
+    export type StorefrontDesignPreviewLinkRevokeMutationVariables = {workspace: string;link: string}
+
+    /**
+ * @summary Revoke preview link now; repeat answers same row.
+ */
+export const useStorefrontDesignPreviewLinkRevoke = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontDesignPreviewLinkRevoke>>, TError,StorefrontDesignPreviewLinkRevokeMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontDesignPreviewLinkRevoke>>,
+        TError,
+        StorefrontDesignPreviewLinkRevokeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontDesignPreviewLinkRevokeMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Publish exactly current reviewed draft; atomically move pointer and append audit.
  */
 export const storefrontDesignPublish = (
