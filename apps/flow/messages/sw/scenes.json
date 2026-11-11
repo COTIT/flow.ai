@@ -21,6 +21,8 @@
     "refresh": "Onyesha upya",
     "restricted": "Haipatikani kwa jukumu lako",
     "retry": "Jaribu tena",
+    "busy": "Kuna shughuli nyingi, tunajaribu tena baada ya {seconds, plural, one {sekunde #} other {sekunde #}}.",
+    "gone": "Hii haipatikani tena.",
     "failed": "Imeshindwa kupakia hiki.",
     "notFound": "Onyesho hili halipo.",
     "sceneError": "Onyesho hili halikuweza kuonyeshwa. Mazungumzo yako hayajaathirika.",

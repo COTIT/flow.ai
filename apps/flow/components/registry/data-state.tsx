@@ -11,6 +11,7 @@ import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { ageLabel, freshness } from "@/lib/freshness"
 import { freshnessClock } from "@/lib/freshness-clock"
+import { sceneError } from "@/lib/scene-errors"
 import { isSceneData } from "@/lib/use-scene-data"
 
 /** The part of a TanStack query a component's states depend on. */
@@ -19,6 +20,9 @@ export type Query = {
   isError: boolean
   isFetching: boolean
   dataUpdatedAt: number
+  error?: unknown
+  /** The last failed try while retries are still running. */
+  failureReason?: unknown
   refetch: () => unknown
 }
 
@@ -53,8 +57,21 @@ export function DataState({
   children: React.ReactNode
 }) {
   const t = useTranslations("scenes")
+  const waiting = sceneError(query.failureReason)
+  if (query.isPending && waiting.kind === "busy")
+    return (
+      <Notice
+        variant="info"
+        title={t("busy", { seconds: Math.ceil(waiting.retryAfter) })}
+      />
+    )
   if (query.isPending)
     return <Skeleton data-loading="" className="h-24 w-full rounded-2xl" />
+  const failure = sceneError(query.error)
+  if (query.isError && !query.dataUpdatedAt && failure.kind === "forbidden")
+    return <Notice variant="info" title={t("restricted")} />
+  if (query.isError && !query.dataUpdatedAt && failure.kind === "missing")
+    return <EmptyState title={t("gone")} className="py-6" />
   if (query.isError && !query.dataUpdatedAt)
     return (
       <Notice

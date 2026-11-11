@@ -21,6 +21,8 @@
     "refresh": "Refresh",
     "restricted": "Not available for your role",
     "retry": "Try again",
+    "busy": "Busy, trying again in {seconds, plural, one {# second} other {# seconds}}.",
+    "gone": "This isn't available any more.",
     "failed": "Couldn't load this.",
     "notFound": "This scene doesn't exist.",
     "sceneError": "This scene couldn't be shown. Your conversation is unaffected.",
