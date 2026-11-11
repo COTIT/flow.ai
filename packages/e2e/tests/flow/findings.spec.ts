@@ -275,6 +275,8 @@ for (const scene of ["pulse", "orders", "sales"]) {
  * the item in the Snooze menu, or in the row menu (⋯).
  */
 async function actionOf(page: import("@playwright/test").Page, row: import("@playwright/test").Locator, name: string) {
+  // Decide only once the row's own controls are drawn.
+  await expect(row.getByRole("button").first()).toBeVisible()
   const inline = row.getByRole("button", { name, exact: true })
   if (await inline.isVisible()) return inline
   const more = row.getByRole("button", { name: /^Actions for / })

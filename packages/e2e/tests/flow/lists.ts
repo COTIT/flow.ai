@@ -12,6 +12,8 @@ export async function rowAction(
   row: Locator,
   action: "acknowledge" | "tomorrow" | "week"
 ) {
+  // Decide only once the row's own controls are drawn.
+  await expect(row.getByRole("button").first()).toBeVisible()
   const more = row.getByRole("button", { name: /^Actions for / })
   if (await more.isVisible()) {
     await more.click()

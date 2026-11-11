@@ -63,12 +63,29 @@ function Group({ group }: { group: PriorityGroup }) {
       data-group={group.kind}
       className="flex flex-col gap-3 rounded-2xl border bg-card p-4 @max-[599px]:border-0 @max-[599px]:bg-transparent @max-[599px]:p-0 @min-[980px]:p-5"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-semibold">{heading}</h2>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className="mr-auto font-semibold">{heading}</h2>
         {group.impact.open_orders ? (
           <span className="text-xs text-muted-foreground">
             {t("noticed.affects", { count: group.impact.open_orders })}
           </span>
+        ) : null}
+        {/* Lists board: the way to act sits in the group's header row, never under the list. */}
+        {review && can("review") ? (
+          <Link
+            href={review}
+            className={buttonVariants({
+              variant: "outline",
+              size: "sm",
+              className: "min-h-11 shrink-0 rounded-full",
+            })}
+          >
+            {t(
+              group.kind === "orders.open"
+                ? "noticed.reviewOrders"
+                : "noticed.reviewStock"
+            )}
+          </Link>
         ) : null}
       </div>
       {mark.isError ? <Notice variant="error" title={t("saveFailed")} /> : null}
@@ -149,22 +166,6 @@ function Group({ group }: { group: PriorityGroup }) {
           }
         }}
       />
-      {review && can("review") ? (
-        <Link
-          href={review}
-          className={buttonVariants({
-            variant: "outline",
-            size: "sm",
-            className: "min-h-11 self-start",
-          })}
-        >
-          {t(
-            group.kind === "orders.open"
-              ? "noticed.reviewOrders"
-              : "noticed.reviewStock"
-          )}
-        </Link>
-      ) : null}
     </li>
   )
 }

@@ -86,6 +86,7 @@ test("row actions work from the keyboard", async ({ page, api }) => {
   await page.goto("/scenes/noticed")
   const tea = item(page, TEA)
   await expect(tea).toBeVisible()
+  await expect(tea.getByRole("button").first()).toBeVisible()
   const more = tea.getByRole("button", { name: /^Actions for / })
   const trigger = (await more.isVisible())
     ? more
@@ -93,7 +94,13 @@ test("row actions work from the keyboard", async ({ page, api }) => {
   await trigger.focus()
   await page.keyboard.press("Enter")
   await expect(page.getByRole("menu")).toBeVisible()
-  await page.keyboard.press("Enter") // the first item
+  // Keyboard focus moves into the menu (an item, or the menu itself first).
+  await expect
+    .poll(() => page.evaluate(() => !!document.activeElement?.closest("[role=menu]")))
+    .toBe(true)
+  if (!(await page.evaluate(() => document.activeElement?.getAttribute("role") === "menuitem")))
+    await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("Enter")
   await expect
     .poll(() => api.callsTo("PUT", "/workspace/w1/attention/marks").length)
     .toBe(1)

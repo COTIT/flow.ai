@@ -640,3 +640,27 @@ test("P4-1: invisible characters typed on home start no conversation", async ({ 
   await page.waitForTimeout(800)
   expect(sessions.filter((r) => r.method === "POST")).toHaveLength(0)
 })
+
+for (const size of [
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+  { width: 834, height: 1112 },
+])
+  test(`at a glance: Morning Pulse's first screen shows whole tiles above the dock (${size.width}×${size.height})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await page.goto("/scenes/pulse")
+    await expect(page.locator("[data-chart] svg").first()).toBeVisible()
+    await expect(page.locator("[data-dock-layer]")).toBeVisible()
+    const cut = await page.evaluate(() => {
+      const dock = document.querySelector("[data-dock-layer]")!.getBoundingClientRect().top
+      return [...document.querySelectorAll<HTMLElement>("[data-component]")]
+        .map((el) => ({ id: el.dataset.component, box: el.getBoundingClientRect() }))
+        .filter(({ box }) => box.top < dock && box.bottom > dock + 1)
+        .map(({ id, box }) => `${id} ends ${Math.round(box.bottom - dock)} px under the dock`)
+    })
+    expect(cut).toEqual([])
+    // The chart's day labels are on screen.
+    await expect(page.locator("[data-chart] [data-day]").first()).toBeInViewport()
+  })
