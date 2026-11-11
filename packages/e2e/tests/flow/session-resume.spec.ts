@@ -273,3 +273,34 @@ test.describe("a run going when the login expired", () => {
     expect(commands.filter((c) => c !== "status" && c !== "prepare")).toEqual([])
   })
 })
+
+test("a run shown while going is named again once it ends, then never again", async ({ page }) => {
+  await fakeAgent(page)
+  let atOffice: object = batchTask("running", 4)
+  await page.route("**/api/voice/tools", async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>
+    if (body.command === "status") return route.fulfill({ json: { status: "completed", data: [atOffice] } })
+    return route.fallback()
+  })
+  await page.goto("/")
+  await startText(page) // a conversation in this tab: its recovery pointer is kept
+  const prompt = page.getByRole("region", { name: k.resume.outcomes })
+
+  // Each visit is a reload: the conversation is gone, the run at Office is not.
+  await page.reload()
+  await expect(prompt).toContainText("Running.")
+  await expect(prompt).toContainText("4 updated · 0 failed · 17 not run")
+  await page.reload()
+  await expect(prompt).toContainText("Running.") // still going: not marked seen
+
+  atOffice = {
+    status: "completed",
+    data: { ...batchTask("completed", 21).data, state: "completed" },
+  }
+  await page.reload()
+  await expect(prompt).toContainText("Update 21 supplier purchase prices · it ran.")
+  await expect(prompt).toContainText("21 updated · 0 failed · 0 not run · 0 need checking")
+  await page.reload()
+  await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
+  await expect(prompt).toHaveCount(0)
+})

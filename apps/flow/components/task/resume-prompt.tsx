@@ -8,7 +8,7 @@ import { Button } from "@genesy/ui/components/button"
 import { useVoice } from "@genesy/voice/components/provider"
 import { batchCounts } from "@genesy/voice/lib/task"
 import { dockAsk } from "@/lib/pills"
-import { outcomeKind, unseenOutcomes } from "@/lib/recovered-outcomes"
+import { outcomeKind, settled, unseenOutcomes } from "@/lib/recovered-outcomes"
 import { approvalOutcome, taskStore, useTask } from "@/lib/task-store"
 
 const seenKey = (workspace: string) => `flow-seen-outcomes:${workspace}`
@@ -42,7 +42,8 @@ export function ResumePrompt({ idle }: { idle: boolean }) {
   const outcomes = (idle && !dismissed ? unseenOutcomes(voice.recoveredTasks, seen) : []).filter(
     (o) => !decided || !approvalOutcome(decided, [o.task])
   )
-  const shown = outcomes.map((o) => o.id).join(",")
+  // Only final outcomes become seen: a run shown while going or paused is named again when it ends.
+  const shown = outcomes.filter((o) => settled(o.task)).map((o) => o.id).join(",")
   useEffect(() => {
     if (!workspace || !shown) return
     try {
