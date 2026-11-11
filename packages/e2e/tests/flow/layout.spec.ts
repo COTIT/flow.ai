@@ -777,6 +777,10 @@ test("P10-1 / INT-2: the handle and the skip link are 44 px; status text never s
   await composer(page).fill("A draft that stays while the phone turns")
   await page.setViewportSize({ width: 667, height: 375 })
   await page.setViewportSize({ width: 375, height: 667 })
+  // What is painted: resize events fire in the next rendering step.
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  )
   const out = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLElement>('[role="status"]')]
       .filter((el) => el.offsetParent !== null && !el.closest(".sr-only"))
