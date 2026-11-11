@@ -27,6 +27,14 @@ const VOICE = {
 }
 
 // Review-card field names added for storefront design facts (body, category_id existed).
+const FLOW_NOTICED_SECTIONS = [
+  "stock_below_minimum",
+  "orders_open",
+  "invoices_overdue",
+  "till_open_shifts",
+  "lots_quarantined",
+  "webhooks_failed",
+]
 const DESIGN_FIELDS = [
   "theme",
   "heading",
@@ -48,6 +56,10 @@ describe("Office messages", () => {
         pages: Record<string, unknown>
         resources: Record<string, unknown>
         reviewFields: Record<string, unknown>
+        results: {
+          sections: Record<string, unknown>
+          counts: Record<string, unknown>
+        }
       }
       // Added since (2C): the read-only storefront page of the assistant's page tool.
       const { storefront, ...pages } = voice.pages
@@ -60,9 +72,25 @@ describe("Office messages", () => {
         expect(reviewFields[key], key).toBeDefined()
         delete reviewFields[key]
       }
-      expect(hash({ ...voice, pages, resources, reviewFields })).toBe(
-        VOICE[locale]
-      )
+      // Added since (Flow v9 V1): Flow noticed section and mark labels of the attention view.
+      const results = voice.results
+      const sections = { ...results.sections }
+      for (const key of FLOW_NOTICED_SECTIONS) {
+        expect(sections[key], key).toBeDefined()
+        delete sections[key]
+      }
+      const { acknowledged, snoozed, ...counts } = results.counts
+      expect(acknowledged).toBeDefined()
+      expect(snoozed).toBeDefined()
+      expect(
+        hash({
+          ...voice,
+          pages,
+          resources,
+          reviewFields,
+          results: { ...results, sections, counts },
+        })
+      ).toBe(VOICE[locale])
     }
   )
 
