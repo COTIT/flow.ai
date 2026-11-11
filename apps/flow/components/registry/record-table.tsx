@@ -77,6 +77,7 @@ export function RecordTable<R>({
 }) {
   const t = useTranslations("scenes")
   const withActions = !!actions && rows.some((r) => actions(r))
+  if (!rows.length) return null
   return (
     <table
       role="table"
@@ -106,7 +107,7 @@ export function RecordTable<R>({
             <th
               role="columnheader"
               scope="col"
-              className="px-3 pb-2 text-right font-medium"
+              className="w-px px-3 pb-2 text-right font-medium whitespace-nowrap"
             >
               <span className="@min-[600px]:@max-[979px]:sr-only">
                 {t("table.actions")}
@@ -168,7 +169,7 @@ export function RecordTable<R>({
               {withActions ? (
                 <td
                   role="cell"
-                  className="px-3 py-1 align-middle @max-[599px]:col-span-3 @max-[599px]:p-0 @max-[599px]:pt-1"
+                  className="px-3 py-1 align-middle whitespace-nowrap @max-[599px]:col-span-3 @max-[599px]:whitespace-normal @max-[599px]:p-0 @max-[599px]:pt-1"
                 >
                   {act ? <Actions name={name(row)} act={act} /> : null}
                 </td>

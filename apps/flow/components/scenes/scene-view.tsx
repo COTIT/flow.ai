@@ -139,13 +139,16 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
 
   return (
     <article aria-labelledby="scene-title" className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h1 id="scene-title" className="text-xl font-semibold">
-          {title(scene)}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t(`scene.${layout}.lead`)}
-        </p>
+      {/* Main board: the title on the left, its freshness and actions on the right. */}
+      <header className="flex flex-wrap items-end gap-x-4 gap-y-1">
+        <div className="mr-auto min-w-0">
+          <h1 id="scene-title" className="text-xl font-semibold">
+            {title(scene)}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t(`scene.${layout}.lead`)}
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Freshness staleAfter={TTL.attention} />
           <Button

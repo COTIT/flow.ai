@@ -60,7 +60,7 @@ export function Immersive() {
           className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl glass-strong px-3 py-2"
         >
           <OrbSlot name="compact" className="size-12" />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 text-left [&>*]:justify-start [&>*]:text-left">
             <OrbCaption />
           </div>
           <VoiceControls />

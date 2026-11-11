@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 
+import { expect } from "../../src/test"
 import { sc } from "./scenes-api"
 
 /**
@@ -19,7 +20,8 @@ export async function rowAction(
       tomorrow: sc.noticed.snoozeTomorrow,
       week: sc.noticed.snoozeWeek,
     }[action]
-    return page.getByRole("menuitem", { name: label, exact: true }).click()
+    await page.getByRole("menuitem", { name: label, exact: true }).click()
+    return expect(page.getByRole("menu")).toHaveCount(0)
   }
   if (action === "acknowledge")
     return row
@@ -32,4 +34,5 @@ export async function rowAction(
       exact: true,
     })
     .click()
+  await expect(page.getByRole("menu")).toHaveCount(0)
 }

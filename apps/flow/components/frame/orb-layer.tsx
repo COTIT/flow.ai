@@ -110,6 +110,12 @@ export function OrbLayer() {
     resize.observe(slot)
     const scroller = slot.closest("[data-flow-scroll]")
     scroller?.addEventListener("scroll", later, { passive: true })
+    // A slot can move without resizing (the phone sheet rising, the rail opening): follow any
+    // pane that changes size, and any transition that ends.
+    const host = box.parentElement
+    host?.addEventListener("transitionend", later)
+    for (const pane of Array.from(host?.children ?? []))
+      if (pane !== box) resize.observe(pane)
     window.visualViewport?.addEventListener("resize", later)
     void document.fonts?.ready.then(later)
     return () => {
@@ -118,6 +124,7 @@ export function OrbLayer() {
       cancelAnimationFrame(frame)
       resize.disconnect()
       scroller?.removeEventListener("scroll", later)
+      host?.removeEventListener("transitionend", later)
       window.visualViewport?.removeEventListener("resize", later)
     }
   }, [slot, mode])
@@ -126,7 +133,8 @@ export function OrbLayer() {
   return (
     <div
       ref={layer}
-      className="pointer-events-none absolute inset-0 overflow-clip"
+      // Above the panes' sticky header rows (z-10), below the dock layer and the header.
+      className="pointer-events-none absolute inset-0 z-20 overflow-clip"
     >
       <button
         ref={orb}
