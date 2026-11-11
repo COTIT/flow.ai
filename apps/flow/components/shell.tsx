@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation"
 import { useVoice } from "@genesy/voice/components/provider"
 import { sessionPhase } from "@genesy/voice/lib/presentation"
 import { sceneContext } from "@genesy/voice/lib/scene-context"
-import { useProposalHold } from "@/components/conversation/storefront-proposal"
+import { useProposalHold } from "@/components/task/storefront-proposal"
 import { Dock } from "@/components/frame/dock"
 import { Header } from "@/components/frame/header"
 import { OrbLayer } from "@/components/frame/orb-layer"
 import { SceneBar } from "@/components/frame/scene-bar"
 import { flowStore, useFlow } from "@/lib/flow-store"
+import { useTaskWatch } from "@/lib/task-store" // F4
 
 export { useWorkspaceChoices } from "@/components/frame/header"
 
@@ -27,6 +28,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const selected = useFlow((s) => s.selected)
   const { phase } = sessionPhase({ ...voice, endedByUser })
   useProposalHold(voice.review)
+  useTaskWatch(voice) // F4: withdrawn proposals and receipts outlive navigation
 
   // Lifecycle: a start opens the conversation; losing the connection marks it ended.
   const wasConnected = useRef(false)
@@ -39,8 +41,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
     wasConnected.current = voice.connected
   }, [voice.connected, voice.upgrading])
 
-  // A new action to approve opens the result scene on home; once decided, the scene it opened
-  // closes again so the conversation shows the outcome (a scene the person opened stays).
+  // A new action to approve opens the result scene on home; once cancelled, the scene it opened
+  // closes again; once approved it stays, as the approval turns into its receipt. // F4
   const ticket = voice.review?.ticket
   const openedForReview = useRef(false)
   useEffect(() => {
@@ -50,7 +52,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       flowStore.setState({ resultOpen: true })
     } else if (openedForReview.current) {
       openedForReview.current = false
-      flowStore.setState({ resultOpen: false })
+      if (voice.outcome?.status === "cancelled")
+        flowStore.setState({ resultOpen: false })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket])

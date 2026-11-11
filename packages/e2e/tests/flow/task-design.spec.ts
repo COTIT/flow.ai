@@ -14,6 +14,7 @@ import {
 } from "./storefront-api"
 import type { FakeApi } from "../office/fake-api"
 import { chat, fakeAgent, startText, v, watch } from "./voice"
+import { k, receipt } from "./task"
 
 // SIMULATED voice (fake ElevenLabs socket + mock upstream) and a faked API: a storefront design
 // review in the conversation, with the page it leads to shown before approval.
@@ -279,17 +280,10 @@ test("an approval that meets a moved draft is refused in plain words", async ({
   )
   await proposalFrame(page)
   await actions.getByRole("button", { name: v.approve }).click()
-  // The transcript line says it failed; no success line and no record link.
-  await expect(
-    page
-      .locator('[data-role="action"]')
-      .filter({ hasText: v.taskStates.failed })
-  ).toBeVisible()
-  await expect(
-    page
-      .locator('[data-role="action"]')
-      .filter({ hasText: v.taskStates.completed })
-  ).toHaveCount(0)
+  // The approval turns into a "not done" receipt; no success and no record link.
+  await expect(receipt(page)).toHaveAttribute("data-receipt", "failed")
+  await expect(receipt(page)).toContainText(k.receipt.title.failed)
+  await expect(page.getByText(k.receipt.title.completed)).toHaveCount(0)
   await expect(
     page.getByRole("link", { name: /Storefront design/ })
   ).toHaveCount(0)
@@ -308,9 +302,8 @@ test.describe("the approval's answer is lost", () => {
     const { actions } = await propose(page, "storefront_design_edit", edit())
     await proposalFrame(page)
     await actions.getByRole("button", { name: v.approve }).click()
-    await expect(
-      page.getByRole("status").filter({ hasText: v.activity.unknown })
-    ).toBeVisible()
+    await expect(receipt(page)).toHaveAttribute("data-receipt", "unknown")
+    await expect(receipt(page)).toContainText(k.receipt.title.unknown)
     await expect(
       page.getByRole("link", { name: /Storefront design/ })
     ).toHaveCount(0)

@@ -1,0 +1,102 @@
+{
+  "task": {
+    "label": "Kazi inayoendelea",
+    "working": "Genesy inafanya kazi",
+    "states": {
+      "preparing": "Inaandaa",
+      "running": "Inaendelea",
+      "waiting_input": "Inakusubiri",
+      "needs_approval": "Inahitaji idhini",
+      "paused": "Imesitishwa",
+      "failed": "Imeshindikana",
+      "partial": "Imekamilika kwa sehemu",
+      "completed": "Imekamilika",
+      "cancelled": "Imeghairiwa",
+      "unknown": "Inakagua"
+    },
+    "milestones": {
+      "preparing": "Inaandaa mabadiliko.",
+      "preparingReview": "Inaandaa ukaguzi.",
+      "waitingInput": "Inasubiri chaguo lako.",
+      "waitingConfirmation": "Inasubiri uthibitisho.",
+      "executing": "Inatekeleza mabadiliko yaliyoidhinishwa.",
+      "paused": "Imesitishwa. Hakuna kitakachoendelea hadi uamue.",
+      "completed": "Imethibitishwa na Genesy.",
+      "partial": "Sehemu tu imefanyika.",
+      "failed": "Haikufanyika.",
+      "cancelled": "Hakuna kilichobadilishwa.",
+      "checking": "Inakagua kama mabadiliko yamekamilika."
+    },
+    "counts": "{done} kati ya {total} zimefanyika · {failed} zimeshindikana · {notRun} hazijaendeshwa · {unknown} zinahitaji ukaguzi",
+    "review": "Kagua",
+    "pause": "Sitisha",
+    "openReceipt": "Tazama matokeo",
+    "dismiss": "Funga",
+    "withdrawn": "Imeondolewa · haikutumwa kamwe",
+    "receipt": {
+      "title": {
+        "completed": "Mabadiliko yamethibitishwa",
+        "partial": "Imefanyika kwa sehemu",
+        "failed": "Haikufanyika",
+        "cancelled": "Imeghairiwa · hakuna kilichobadilishwa",
+        "unknown": "Inakagua kama mabadiliko yamekamilika"
+      },
+      "operation": "Kitendo",
+      "record": "Rekodi",
+      "previous": "Awali",
+      "new": "Mpya",
+      "status": "Hali",
+      "reference": "Kumbukumbu",
+      "statuses": {
+        "completed": "Imethibitishwa",
+        "partial": "Imekamilika kwa sehemu",
+        "failed": "Imeshindikana",
+        "cancelled": "Imeghairiwa",
+        "unknown": "Bado haijathibitishwa"
+      },
+      "reading": "Inasoma thamani ya sasa…",
+      "readFailed": "Imekamilika; thamani ya sasa haikuweza kupakiwa.",
+      "unconfirmed": "Imekamilika; thamani ya sasa haikuweza kuthibitishwa.",
+      "refresh": "Onyesha upya",
+      "unknownText": "Usirudie: huenda tayari imefanyika. Genesy inakagua matokeo yaliyorekodiwa.",
+      "check": "Iombe Genesy ikague",
+      "checkMessage": "Kagua kama mabadiliko yangu ya mwisho yaliyoidhinishwa yamekamilika. Usiyarudie.",
+      "next": "Inayofuata"
+    },
+    "clarify": {
+      "title": "Ulimaanisha bidhaa ipi?",
+      "adjust": "Nirekebishe hisa vipi?",
+      "type": "Aina ya marekebisho",
+      "types": {
+        "choose": "Chagua bidhaa tu",
+        "set": "Weka jumla ya kiasi",
+        "add": "Ongeza kwenye hisa",
+        "remove": "Toa kwenye hisa"
+      },
+      "quantity": "Kiasi",
+      "quantityHint": "Idadi kamili ya vipimo.",
+      "continue": "Endelea",
+      "prepare": "Andaa mabadiliko",
+      "say": {
+        "choose": "Namaanisha {product}.",
+        "set": "Weka hisa ya {product} kuwa jumla ya vipimo {quantity}.",
+        "add": "Ongeza vipimo {quantity} kwenye hisa ya {product}.",
+        "remove": "Toa vipimo {quantity} kwenye hisa ya {product}."
+      }
+    },
+    "batch": {
+      "matched": "{count, plural, one {badiliko # limelingana} other {mabadiliko # yamelingana}}",
+      "exceptions": "{count, plural, =0 {hakuna vighairi} one {kighairi # hakijajumuishwa: hakuna kinachoandikwa} other {vighairi # havijajumuishwa: hakuna kinachoandikwa}}",
+      "result": "{done} zimesasishwa · {failed} zimeshindikana · {notRun} hazijaendeshwa · {unknown} zinahitaji ukaguzi",
+      "continue": "Andaa zilizobaki",
+      "continueText": "Kazi iliyositishwa haiendelei yenyewe. Genesy inaandaa ukaguzi mpya kwa mabadiliko ambayo hayakuendeshwa.",
+      "continueMessage": "Andaa ukaguzi mpya kwa mabadiliko {count} ambayo hayakuendeshwa."
+    },
+    "resume": {
+      "title": "Endelea ulipoachia",
+      "awaiting": "{summary} · inasubiri idhini yako.",
+      "continue": "Endelea na ukaguzi",
+      "dismiss": "Funga"
+    }
+  }
+}

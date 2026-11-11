@@ -19,7 +19,7 @@ import { useWorkspaceChoices } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
 import { OrbSlot } from "./orb-layer"
-import { ResultScene } from "./result-scene"
+import { ApprovalScene } from "@/components/task/approval-scene" // F4
 
 const greeting = (hour: number) =>
   hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"
@@ -94,7 +94,7 @@ export function Home() {
         ))}
       </div>
     )
-  if (resultOpen) return <ResultScene />
+  if (resultOpen) return <ApprovalScene /> // F4
   if (live && immersive) return <Immersive />
   return (
     <div className="flex flex-col items-center gap-5 py-6 text-center max-md:py-3">

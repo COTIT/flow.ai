@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
 import { flowStore } from "@/lib/flow-store"
+import { TaskCapsule } from "@/components/task/capsule" // F4
 import { OrbSlot } from "./orb-layer"
 
 /** Above every scene: the way home and the compact orb's fixed place (it never scrolls). */
@@ -17,7 +18,7 @@ export function SceneBar() {
     <div className="flex shrink-0 items-center gap-2 pb-2">
       <Button
         variant="ghost"
-        className="mr-auto min-h-11"
+        className="min-h-11 shrink-0"
         onClick={() => {
           // Closing results returns to the conversation; leaving a scene returns to home.
           if (pathname === "/") return flowStore.setState({ resultOpen: false })
@@ -28,6 +29,9 @@ export function SceneBar() {
         <ArrowLeft aria-hidden />
         {t("backHome")}
       </Button>
+      <div className="min-w-0 flex-1">
+        <TaskCapsule /> {/* F4: the task stays reachable in every scene */}
+      </div>
       <OrbSlot name="compact" className="size-11" />
     </div>
   )

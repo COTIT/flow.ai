@@ -184,6 +184,8 @@ export async function flowVoice(req, res, path, send, readJson) {
               String(body.ticket).startsWith("flow-design-")
             ? {
                 status: "completed",
+                // As Office answers: the assistant action id is the audit reference.
+                actionId: "0193f6b0-1c2d-7e3f-8a9b-bbbbbbbbbbbb",
                 message: "Saved as a new draft.",
                 links: [
                   { label: "Storefront design", href: "/settings/storefront" },
@@ -194,10 +196,15 @@ export async function flowVoice(req, res, path, send, readJson) {
                   status: "completed",
                   // As Office's confirm answers (actions.ts): the operation that ran.
                   operationId: "orders_create",
+                  actionId: "0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa",
                   message: "Order created.",
                   links: [{ label: "ORD-0043", href: `/orders/${FLOW_ORDER}` }],
                 }
-              : { status: "cancelled", message: "Nothing was changed." }
+              : {
+                  status: "cancelled",
+                  actionId: "0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa",
+                  message: "Nothing was changed.",
+                }
       ),
       true
     )
