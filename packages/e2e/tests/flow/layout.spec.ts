@@ -521,3 +521,36 @@ test("P4 / P10-1: header controls keep their place when the status changes, and 
   expect(Math.round(after.x)).toBe(Math.round(before.x))
   expect(Math.round(after.y)).toBe(Math.round(before.y))
 })
+
+for (const size of [
+  { width: 320, height: 568, keyboard: 0.42 },
+  { width: 812, height: 375, keyboard: 0.55 },
+])
+  test(`P10-2: with the keyboard up (${size.width}×${size.height}, ${size.keyboard * 100}%) the field and Send stay above it`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await composer(page).focus()
+    const visible = Math.round(size.height * (1 - size.keyboard))
+    // The on-screen keyboard: the visual viewport shrinks and says so.
+    await page.evaluate((h) => {
+      Object.defineProperty(window.visualViewport, "height", { configurable: true, get: () => h })
+      window.visualViewport!.dispatchEvent(new Event("resize"))
+    }, visible)
+    await expect
+      .poll(async () => {
+        const field = (await composer(page).boundingBox())!
+        const send = (await page.getByRole("button", { name: v.send, exact: true }).boundingBox())!
+        return Math.max(field.y + field.height, send.y + send.height)
+      })
+      .toBeLessThanOrEqual(visible)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    // The frame fits the visible part: nothing of it hangs below the keyboard's edge.
+    const frame = await page
+      .locator("[data-dock-layer]")
+      .evaluate((el) => (el.offsetParent as HTMLElement).getBoundingClientRect().bottom)
+    expect(frame).toBeLessThanOrEqual(visible + 1)
+    await expect(composer(page)).toBeFocused()
+  })
