@@ -305,7 +305,13 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
             <DialogClose render={<Button type="button" variant="outline" />}>
               {t("actions.cancel")}
             </DialogClose>
-            <Button type="submit" disabled={receive.isPending}>
+            {/* Empty required pickers would block the submit silently: wait for both lists. */}
+            <Button
+              type="submit"
+              disabled={
+                receive.isPending || products.isPending || warehouses.isPending
+              }
+            >
               {t("supply.receive")}
             </Button>
           </DialogFooter>

@@ -10,6 +10,7 @@ import { URL } from "node:url"
 import { flowVoice } from "./flow-voice.mjs"
 import {
   APP_KEY,
+  SHOP_CONNECTIONS,
   LOT,
   MOCK_ORIGIN,
   MOCK_PORT,
@@ -26,6 +27,10 @@ import {
   LONG_NAME,
   NO_PROVIDER_EMAIL,
   PROVIDER_DOWN_EMAIL,
+  UNKNOWN_PAYMENT_EMAIL,
+  EXISTING_UNKNOWN_PAYMENT_EMAIL,
+  PAYMENT_SETUP_REQUIRED_EMAIL,
+  STALE_PAYMENT_SETUP_EMAIL,
   PREVIEW,
   PRODUCT,
   REFUNDED_EMAIL,
@@ -430,6 +435,12 @@ const view = ({
   expires_at,
   paid_at,
   lines,
+  unknownPayment,
+  paymentAttempts,
+  paymentUnderReview,
+  paymentSetupRequired,
+  stalePaymentSetup,
+  providerDown,
 }) => ({
   id,
   number,
@@ -442,6 +453,20 @@ const view = ({
   expires_at,
   paid_at,
   lines,
+  ...(unknownPayment ||
+  paymentSetupRequired ||
+  stalePaymentSetup ||
+  providerDown
+    ? { payment_attempts: paymentAttempts }
+    : {}),
+  ...(paymentSetupRequired ||
+  paymentUnderReview ||
+  (stalePaymentSetup && paymentAttempts > 0)
+    ? { online_payment_enabled: false }
+    : {}),
+  ...(paymentUnderReview || (unknownPayment && paymentAttempts > 0)
+    ? { payment_status: "unknown", payment_attention: true }
+    : {}),
 })
 
 const readJson = (req) =>
@@ -511,6 +536,13 @@ function placeOrder(body, key) {
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
     noProvider: email === NO_PROVIDER_EMAIL,
     providerDown: email === PROVIDER_DOWN_EMAIL,
+    unknownPayment:
+      email === UNKNOWN_PAYMENT_EMAIL ||
+      email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
+    paymentUnderReview: email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
+    paymentSetupRequired: email === PAYMENT_SETUP_REQUIRED_EMAIL,
+    stalePaymentSetup: email === STALE_PAYMENT_SETUP_EMAIL,
+    paymentAttempts: 0,
     latePayment: email === LATE_PAYMENT_EMAIL,
     cancelPayment: email === CANCEL_PAYMENT_EMAIL,
     reads: 0,
@@ -531,7 +563,7 @@ const image = (label) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect width="1200" height="600" fill="${tones[[...label].reduce((n, c) => n + c.charCodeAt(0), 0) % tones.length]}"/><text x="600" y="300" fill="#fff" font-size="64" text-anchor="middle">${label}</text></svg>`
 
 const handler = async (req, res) => {
-  const path = new URL(req.url, MOCK_ORIGIN).pathname
+  let path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
   // Fake Office voice server for Flow's proxy (VOICE_UPSTREAM_URL is this origin).
   if (path === "/api/voice/readiness" && req.method === "GET")
@@ -568,7 +600,21 @@ const handler = async (req, res) => {
     return send(res, 200, image(path.slice(7)), "image/svg+xml")
   if (!path.startsWith("/v1/storefront/"))
     return send(res, 404, { message: "Not found." })
-  if (req.headers.authorization !== `Bearer ${APP_KEY}`)
+  const shop = path.match(/^\/v1\/storefront\/shops\/([^/]+)(\/.*)?$/)
+  if (shop) {
+    if (!SHOP_CONNECTIONS.includes(shop[1]))
+      return send(res, 404, { message: "Not found." })
+    if (!shop[2])
+      return send(res, 200, {
+        data: {
+          id: shop[1],
+          active: true,
+          name: shop[1] === SHOP_CONNECTIONS[0] ? "First shop" : "Second shop",
+        },
+      })
+    path = `/v1/storefront${shop[2]}`
+  }
+  if (!shop && req.headers.authorization !== `Bearer ${APP_KEY}`)
     return send(res, 401, { message: "Unauthenticated." })
 
   const failing = { message: SECRET_BODY }
@@ -638,12 +684,30 @@ const handler = async (req, res) => {
         })
       return send(res, 200, { data: view(order) })
     }
+    order.paymentAttempts++
+    if (order.paymentSetupRequired || order.stalePaymentSetup)
+      return send(res, 503, {
+        code: "payment_setup_required",
+        message: SECRET_BODY,
+      })
     if (order.noProvider)
       return send(res, 503, { message: "no payment provider configured" })
-    if (order.providerDown)
+    if (order.providerDown) {
+      order.paymentUnderReview = true
       return send(res, 503, { message: "payment provider unavailable" })
+    }
     if (order.status !== "awaiting_payment")
       return send(res, 409, { message: "conflict" })
+    if (order.unknownPayment) {
+      return send(res, 200, {
+        data: {
+          payment_id: `pay_${order.id}`,
+          status: "unknown",
+          checkout_url: null,
+          attention: true,
+        },
+      })
+    }
     order.redirect = (await readJson(req)).redirect_url
     return send(res, 200, {
       data: {

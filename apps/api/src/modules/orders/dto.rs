@@ -641,6 +641,16 @@ pub struct StorefrontOrder {
     pub paid_at: Option<DateTime<Utc>>,
     /// What was ordered, in order.
     pub lines: Vec<StorefrontOrderLine>,
+    /// Bound gateway submission state; absent before first collection.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_status: Option<String>,
+    /// Gateway evidence needs operator review; never initiate another charge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_attention: Option<bool>,
+    /// Local Globadyme setup permits a new collection or resuming this bound live attempt.
+    /// Absent for legacy providers; this does not verify the provider login or connection.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub online_payment_enabled: Option<bool>,
 }
 
 /// One line of a web order, as the customer may see it.

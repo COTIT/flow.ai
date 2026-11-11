@@ -61,7 +61,7 @@ async fn run_jobs(pool: &PgPool) {
         files: None,
         http: Outbound::new(&["127.0.0.1".to_owned()]).unwrap(),
         credentials: Some(Arc::new(CredentialKey::from_hex(CREDENTIALS_KEY).unwrap())),
-        payments: None,
+        payments: Default::default(),
     };
     while let Some(job) = repo::claim(pool, kinds::KINDS, 100, Duration::from_secs(60))
         .await

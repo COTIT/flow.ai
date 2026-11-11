@@ -191,7 +191,7 @@ async fn drain_payments(state: &AppState, fake: &Fake) -> Result<(), AppError> {
         files: None,
         http: Outbound::new(&[]).map_err(|e| AppError::Internal(e.to_string()))?,
         credentials: None,
-        payments: Some(Provider::Fake(fake.clone())),
+        payments: Provider::Fake(fake.clone()).into(),
     };
     while let Some(job) = jobs::repo::claim(
         &state.db,
@@ -266,7 +266,7 @@ pub async fn run_with_photos(
     // The seed's own Fake provider settles web payments (Q8): those rows say `fake`.
     let fake = Fake::default();
     let mut seed_state = state.clone();
-    seed_state.payments = Some(Provider::Fake(fake.clone()));
+    seed_state.payments = Provider::Fake(fake.clone()).into();
     seed_state.signup_enabled = true;
     for limit in [
         &mut seed_state.rate_limit,

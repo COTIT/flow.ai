@@ -114,7 +114,8 @@ async fn queue(
     sqlx::query!(
         "INSERT INTO payment_webhook_inbox (provider, workspace_id, external_id)
          VALUES ($1, $2, $3)
-         ON CONFLICT (provider, workspace_id, external_id) WHERE status = 'pending'
+         ON CONFLICT (provider, workspace_id, external_id)
+         WHERE status = 'pending' AND provider <> 'globadyme'
          DO UPDATE SET received_at = now()",
         provider,
         workspace_id,
@@ -165,7 +166,7 @@ async fn receive_for(
     headers: &HeaderMap,
     body: &[u8],
 ) -> Result<(), AppError> {
-    let Some(p) = state.payments.as_ref().filter(|p| p.name() == provider) else {
+    let Some(p) = state.payments.provider(provider) else {
         return Ok(());
     };
     let Some(id) = p.webhook_id(headers, body) else {
@@ -197,9 +198,23 @@ async fn receive_for(
 /// Job `payment_inbox` (one per workspace): re-fetch and apply pending inbox rows, oldest
 /// first. A row closes only if no new webhook for it arrived during the fetch.
 pub async fn drain(ctx: &Ctx, job: &Claimed) -> Result<Step, AppError> {
-    let (Some(p), Some(ws)) = (ctx.payments.as_ref(), job.workspace_id) else {
+    let mut step = if let Some(state) = ctx.invoice_state.as_ref() {
+        crate::modules::gateway::service::drain(state, job).await?
+    } else {
+        Step::Done
+    };
+    let Some(ws) = job.workspace_id else {
         return Ok(Step::Done);
     };
+    for p in ctx.payments.providers() {
+        if matches!(drain_provider(ctx, p, ws).await?, Step::More) {
+            step = Step::More;
+        }
+    }
+    Ok(step)
+}
+
+async fn drain_provider(ctx: &Ctx, p: &Provider, ws: Uuid) -> Result<Step, AppError> {
     for _ in 0..DRAIN_CHUNK {
         let mut tx = ctx.db.begin().await?;
         let row = sqlx::query!(
@@ -250,8 +265,8 @@ async fn payment_row(
 ) -> Result<Option<PaymentRow>, sqlx::Error> {
     sqlx::query_as!(
         PaymentRow,
-        "SELECT id, order_id, kind, parent_id, amount, currency FROM order_payments
-         WHERE workspace_id = $1 AND provider = $2 AND provider_id = $3",
+        r#"SELECT id, order_id AS "order_id!", kind, parent_id, amount, currency FROM order_payments
+         WHERE workspace_id = $1 AND provider = $2 AND provider_id = $3 AND order_id IS NOT NULL"#,
         workspace_id,
         provider,
         external_id,
@@ -264,10 +279,11 @@ async fn payment_row(
 /// inbox drain would; false when it couldn't (unknown, mismatch, provider down).
 pub async fn settle_now(
     state: &AppState,
+    provider: &str,
     workspace_id: Uuid,
     external_id: &str,
 ) -> Result<bool, AppError> {
-    let Some(p) = state.payments.as_ref() else {
+    let Some(p) = state.payments.provider(provider) else {
         return Ok(false);
     };
     Ok(settle(&state.db, p, workspace_id, external_id)
@@ -400,6 +416,34 @@ async fn paid(
     Ok(())
 }
 
+/// Gateway already claimed the first authoritative receipt under its operation lock.
+pub(crate) async fn apply_gateway(
+    state: &AppState,
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    operation: &crate::modules::gateway::repo::Operation,
+) -> Result<(), AppError> {
+    crate::modules::gateway::accounts::require_environment(
+        state,
+        operation.environment.as_deref(),
+    )?;
+    let order_id = operation
+        .order_id
+        .ok_or_else(|| AppError::Internal("Gateway payment has no order owner.".into()))?;
+    let order = orders::lock(conn, workspace_id, order_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let row = PaymentRow {
+        id: operation.id,
+        order_id,
+        kind: operation.kind.clone(),
+        parent_id: operation.parent_id,
+        amount: operation.amount,
+        currency: operation.currency.clone(),
+    };
+    paid(conn, workspace_id, &order, &row).await
+}
+
 /// A full refund of `row` the system owes (late payment, no stock); once per payment.
 async fn auto_refund(
     conn: &mut PgConnection,
@@ -407,22 +451,24 @@ async fn auto_refund(
     order_id: Uuid,
     row: &PaymentRow,
 ) -> Result<(), sqlx::Error> {
-    let provider: String =
-        sqlx::query_scalar!("SELECT provider FROM order_payments WHERE id = $1", row.id)
-            .fetch_one(&mut *conn)
-            .await?;
-    let done = sqlx::query!(
-        "INSERT INTO order_payments (workspace_id, order_id, kind, provider, parent_id, auto,
-                                     amount, currency)
-         VALUES ($1, $2, 'refund', $3, $4, true, $5, $6)
+    let refund_id = Uuid::now_v7();
+    let done = sqlx::query(
+        "INSERT INTO order_payments (id, request_id, workspace_id, order_id, kind, provider,
+                                     parent_id, auto, amount, currency, environment, merchant_id,
+                                     account_revision, decimals, customer_id, country, payer_name,
+                                     payer_email, captured_transaction_id)
+         SELECT $1, $1, p.workspace_id, p.order_id, 'refund', p.provider, p.id, true,
+                p.amount, p.currency, p.environment, p.merchant_id, p.account_revision,
+                p.decimals, p.customer_id, p.country, p.payer_name, p.payer_email,
+                p.captured_transaction_id
+         FROM order_payments p
+         WHERE p.workspace_id = $2 AND p.order_id = $3 AND p.id = $4
          ON CONFLICT (parent_id) WHERE kind = 'refund' AND auto DO NOTHING",
-        workspace_id,
-        order_id,
-        provider,
-        row.id,
-        row.amount,
-        row.currency,
     )
+    .bind(refund_id)
+    .bind(workspace_id)
+    .bind(order_id)
+    .bind(row.id)
     .execute(&mut *conn)
     .await?;
     if done.rows_affected() == 1 {
@@ -529,15 +575,22 @@ async fn refund_at_provider(
 /// refunds right away, others after a minute; given up after an hour), queue a re-fetch of
 /// payments and refunds left open 15 minutes, and re-drive pending inboxes.
 pub async fn sweep(ctx: &Ctx) -> Result<Step, AppError> {
-    let Some(p) = ctx.payments.as_ref() else {
-        return Ok(Step::Done);
-    };
+    if let Some(state) = ctx.invoice_state.as_ref() {
+        crate::modules::gateway::service::sweep(state).await?;
+    }
+    for p in ctx.payments.providers() {
+        sweep_provider(ctx, p).await?;
+    }
+    Ok(Step::Done)
+}
+
+async fn sweep_provider(ctx: &Ctx, p: &Provider) -> Result<Step, AppError> {
     let due = sqlx::query_as!(
         Creating,
-        r#"SELECT id, workspace_id, order_id, kind, parent_id, amount, currency, redirect_url,
+        r#"SELECT id, workspace_id, order_id AS "order_id!", kind, parent_id, amount, currency, redirect_url,
                   webhook_url, created_at < now() - interval '1 hour' AS "expired!"
            FROM order_payments
-           WHERE provider = $1 AND status = 'creating'
+           WHERE provider = $1 AND status = 'creating' AND order_id IS NOT NULL
              AND ((kind = 'refund' AND attempts = 0) OR updated_at < now() - interval '1 minute')
            ORDER BY updated_at LIMIT 100"#,
         p.name(),
@@ -657,7 +710,7 @@ pub fn refund_receipt(answer: &Answer) -> Option<RefundReceipt> {
         })
 }
 
-async fn bind_refund(
+pub(crate) async fn bind_refund(
     conn: &mut PgConnection,
     workspace: Uuid,
     user: Uuid,
@@ -686,6 +739,18 @@ pub async fn refund(
     amount: Decimal,
     key: Option<Key>,
 ) -> Result<Answer, AppError> {
+    if let Some(answer) = crate::modules::gateway::service::order_refund(
+        state,
+        workspace_id,
+        user_id,
+        id,
+        amount,
+        key.as_ref(),
+    )
+    .await?
+    {
+        return Ok(answer);
+    }
     let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
     let mut tx = state.db.begin().await?;
     if let Some(a) =
@@ -763,7 +828,7 @@ pub async fn refund(
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
     bind_refund(&mut tx, workspace_id, user_id, &answer).await?;
     tx.commit().await?;
-    if let Some(p) = state.payments.as_ref().filter(|p| p.name() == pay.provider) {
+    if let Some(p) = state.payments.provider(&pay.provider) {
         refund_at_provider(
             &state.db,
             p,

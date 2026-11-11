@@ -159,7 +159,7 @@
       },
       "provider_down": {
         "title": "De betaaldienst reageert niet",
-        "body": "Er is niets afgeschreven. Probeer het zo opnieuw."
+        "body": "Controleer de betaalstatus van je bestelling of neem contact met ons op voordat je opnieuw betaalt."
       },
       "not_payable": {
         "title": "Deze bestelling kan niet meer betaald worden",
@@ -167,7 +167,15 @@
       },
       "unavailable": {
         "title": "Betalen kon niet starten",
-        "body": "Er is niets afgeschreven. Probeer het over een minuut opnieuw."
+        "body": "Probeer het over een minuut opnieuw. Neem contact op met de winkel als je hulp nodig hebt."
+      },
+      "setup_required": {
+        "title": "Online betalen is momenteel niet beschikbaar",
+        "body": "Je bestelling is opgeslagen. Neem contact op met de winkel om te betalen."
+      },
+      "pending_review": {
+        "title": "Betaling wacht op controle",
+        "body": "De aanbieder heeft deze betaling nog niet bevestigd. Wacht of neem contact met ons op voordat je opnieuw betaalt."
       }
     },
     "cancelledBody": "De artikelen zijn terug op de plank. Je kunt ze opnieuw bestellen.",
@@ -176,7 +184,7 @@
     "retry": "Opnieuw proberen",
     "waitingLong": {
       "title": "We wachten nog op de betaling",
-      "body": "De betaaldienst heeft hem nog niet bevestigd. Heb je betaald? Controleer het over een minuut opnieuw. Zo niet, gebruik Nu betalen hieronder.",
+      "body": "De aanbieder heeft de betaling nog niet bevestigd. Controleer over een minuut opnieuw of neem contact met ons op voordat je opnieuw betaalt.",
       "action": "Opnieuw controleren"
     },
     "loadFailed": {

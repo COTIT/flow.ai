@@ -67,23 +67,24 @@ type Cart = {
 }
 
 /** The browser's cart, kept in localStorage (`genesy.cart`). Rehydrated after first render. */
-export const cartStore = createStore<Cart>()(
-  persist(
-    (set) => ({
-      lines: [],
-      add: (line) => set((s) => ({ lines: addLine(s.lines, line) })),
-      setQuantity: (productId, variantId, quantity) =>
-        set((s) => ({
-          lines: setQuantity(s.lines, productId, variantId, quantity),
-        })),
-      clear: () => set({ lines: [] }),
-    }),
-    {
-      name: "genesy.cart",
-      storage: createJSONStorage(() => localStorage),
-      partialize: ({ lines }) => ({ lines }),
-      // Server HTML has an empty cart; read storage after the first render so they match.
-      skipHydration: true,
-    }
+export const createCartStore = (base = "") =>
+  createStore<Cart>()(
+    persist(
+      (set) => ({
+        lines: [],
+        add: (line) => set((s) => ({ lines: addLine(s.lines, line) })),
+        setQuantity: (productId, variantId, quantity) =>
+          set((s) => ({
+            lines: setQuantity(s.lines, productId, variantId, quantity),
+          })),
+        clear: () => set({ lines: [] }),
+      }),
+      {
+        name: `genesy.cart${base ? `:${base}` : ""}`,
+        storage: createJSONStorage(() => localStorage),
+        partialize: ({ lines }) => ({ lines }),
+        // Server HTML has an empty cart; read storage after the first render so they match.
+        skipHydration: true,
+      }
+    )
   )
-)

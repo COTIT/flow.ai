@@ -15,6 +15,14 @@ pub const RE_ENTER: &str = "Enter this credential again.";
 /// not here: they stay refused.
 pub const PATHS: &[&str] = &[
     "smtp.password",
+    "integrations.payment.payment_providers.globadyme.sandbox.username",
+    "integrations.payment.payment_providers.globadyme.sandbox.password",
+    "integrations.payment.payment_providers.globadyme.sandbox.callback_secret",
+    "integrations.payment.payment_providers.globadyme.sandbox.previous_callback_secret",
+    "integrations.payment.payment_providers.globadyme.production.username",
+    "integrations.payment.payment_providers.globadyme.production.password",
+    "integrations.payment.payment_providers.globadyme.production.callback_secret",
+    "integrations.payment.payment_providers.globadyme.production.previous_callback_secret",
     "integrations.payment.payment_providers.mollie.api_key",
     "integrations.payment.payment_providers.pay.api_code",
     "integrations.payment.payment_providers.pay.api_token",
@@ -36,12 +44,13 @@ mod tests {
 
     #[test]
     fn the_table_check_lists_every_path() {
-        let migration = include_str!("../../../migrations/20261021151609_credentials.up.sql");
+        let migration = include_str!("../../../migrations/20261110060000_globadyme.up.sql");
         for path in PATHS {
             assert!(migration.contains(&format!("'{path}'")), "{path}");
         }
         assert_eq!(
-            migration.matches("'smtp.").count() + migration.matches("'integrations.").count(),
+            migration.matches("'smtp.password'").count()
+                + migration.matches("'integrations.").count(),
             PATHS.len()
         );
     }

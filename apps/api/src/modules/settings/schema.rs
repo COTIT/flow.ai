@@ -21,6 +21,14 @@ pub const SECRET_REFUSED: &str = "This integration isn't supported.";
 /// mask for a stored kept one (`credentials::PATHS`), null otherwise.
 pub const SECRET_PATHS: &[&str] = &[
     "smtp.password",
+    "integrations.payment.payment_providers.globadyme.sandbox.username",
+    "integrations.payment.payment_providers.globadyme.sandbox.password",
+    "integrations.payment.payment_providers.globadyme.sandbox.callback_secret",
+    "integrations.payment.payment_providers.globadyme.sandbox.previous_callback_secret",
+    "integrations.payment.payment_providers.globadyme.production.username",
+    "integrations.payment.payment_providers.globadyme.production.password",
+    "integrations.payment.payment_providers.globadyme.production.callback_secret",
+    "integrations.payment.payment_providers.globadyme.production.previous_callback_secret",
     "integrations.payment.payment_providers.mollie.api_key",
     "integrations.payment.payment_providers.pay.api_code",
     "integrations.payment.payment_providers.pay.api_token",
@@ -279,6 +287,14 @@ const TERMINAL: &[Field] = &[
     f("simulation", Rule::Bool),
 ];
 
+const GLOBADYME_SLOT: &[Field] = &[
+    f("merchant_id", Rule::Text(255)),
+    f("username", Rule::Credential(255)),
+    f("password", Rule::Credential(1000)),
+    f("callback_secret", Rule::Credential(1000)),
+    f("previous_callback_secret", Rule::Credential(1000)),
+];
+
 const INTEGRATIONS: &[Field] = &[
     f(
         "fulfillment",
@@ -300,10 +316,22 @@ const INTEGRATIONS: &[Field] = &[
     f(
         "payment",
         Rule::Object(&[
-            f("active_provider", Rule::Text(LONG)),
+            f(
+                "active_provider",
+                Rule::OneOf(&["globadyme", "stripe", "fake", "mollie", "pay"]),
+            ),
+            f("enabled", Rule::Bool),
+            f("environment", Rule::OneOf(&["sandbox", "production"])),
             f(
                 "payment_providers",
                 Rule::Object(&[
+                    f(
+                        "globadyme",
+                        Rule::Object(&[
+                            f("sandbox", Rule::Object(GLOBADYME_SLOT)),
+                            f("production", Rule::Object(GLOBADYME_SLOT)),
+                        ]),
+                    ),
                     // Laravel: any length; real keys are under 50 chars.
                     f(
                         "mollie",
@@ -530,7 +558,11 @@ pub fn defaults(section: &str) -> Option<Value> {
         "integrations" => json!({
             "fulfillment": { "active_provider": null, "fulfillment_providers": {
                 "sendcloud": { "public": null, "secret": null, "countries": [] } } },
-            "payment": { "active_provider": null, "payment_providers": {
+            "payment": { "active_provider": null, "enabled": true, "environment": "sandbox", "payment_providers": {
+                "globadyme": {
+                    "sandbox": {"merchant_id":null,"username":null,"password":null,"callback_secret":null,"previous_callback_secret":null},
+                    "production": {"merchant_id":null,"username":null,"password":null,"callback_secret":null,"previous_callback_secret":null}
+                },
                 "mollie": { "api_key": null },
                 "pay": { "api_code": null, "api_token": null, "service_id": null,
                          "terminals": [] } } },
@@ -608,11 +640,14 @@ pub fn section(
 }
 
 /// Laravel's global TrimStrings + ConvertEmptyStringsToNull middleware, applied to the whole
-/// input before validation: strings are trimmed (not `password`) and blank ones become null.
+/// input before validation: secret bytes stay exact; other strings trim and blanks become null.
 fn laravel_input(v: &Value, key: &str) -> Value {
     match v {
         Value::String(s) => {
-            let t = if key == "password" {
+            let t = if matches!(
+                key,
+                "password" | "callback_secret" | "previous_callback_secret"
+            ) {
                 s.as_str()
             } else {
                 s.trim()

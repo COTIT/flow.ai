@@ -1,3 +1,7 @@
+vi.mock("@/lib/shop-scope", () => ({
+  getShopBase: async () => "",
+  getShop: async () => null,
+}))
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { readFileSync } from "node:fs"

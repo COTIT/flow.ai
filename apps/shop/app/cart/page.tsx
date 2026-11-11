@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { getTranslations } from "next-intl/server"
 
 import { buttonVariants } from "@genesy/ui/components/button"

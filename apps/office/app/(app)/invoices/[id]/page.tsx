@@ -356,7 +356,16 @@ export default function InvoicePage({
                   <TableRow key={pay.id}>
                     <TableCell>{formatDate(pay.date, locale)}</TableCell>
                     <TableCell data-m="sub">
-                      {t(`payMethods.${pay.payment_method}`)}
+                      {pay.provider === "globadyme" ? (
+                        <>
+                          <span>{pay.provider}</span>
+                          <code className="mt-1 block text-xs break-all">
+                            {pay.id}
+                          </code>
+                        </>
+                      ) : (
+                        t(`payMethods.${pay.payment_method}`)
+                      )}
                     </TableCell>
                     <TableCell
                       data-m="right"
@@ -366,14 +375,16 @@ export default function InvoicePage({
                     </TableCell>
                     {mayVoid ? (
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="max-md:min-h-11"
-                          onClick={() => setVoiding(pay.id)}
-                        >
-                          {t("invoices.voidPayment")}
-                        </Button>
+                        {pay.provider !== "globadyme" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="max-md:min-h-11"
+                            onClick={() => setVoiding(pay.id)}
+                          >
+                            {t("invoices.voidPayment")}
+                          </Button>
+                        ) : null}
                       </TableCell>
                     ) : null}
                   </TableRow>

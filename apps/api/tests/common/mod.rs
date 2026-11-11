@@ -44,6 +44,7 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         mailer,
         frontend_url: FRONTEND_URL.into(),
         api_public_url: API_PUBLIC_URL.into(),
+        shop_public_url: Some("https://shop.test".into()),
         rate_limit: RateLimit {
             burst: 10_000,
             replenish: std::time::Duration::from_millis(1),
@@ -78,7 +79,9 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         assistant_bridge_secret: None,
         files: Some(genesy_360_api::storage::Store::memory()),
         pdf: None,
-        payments: None,
+        payments: genesy_360_api::payments::Payments::default().with_globadyme_environment(Some(
+            genesy_360_api::payments::GlobadymeEnvironment::Sandbox,
+        )),
         checkout_hold_max: 500,
         signup_enabled: true,
     }

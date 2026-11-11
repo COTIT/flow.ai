@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO payment_webhook_inbox (provider, workspace_id, external_id)\n         VALUES ($1, $2, $3)\n         ON CONFLICT (provider, workspace_id, external_id)\n         WHERE status = 'pending' AND provider <> 'globadyme'\n         DO UPDATE SET received_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d423fe56eae4c417eda4edd28d88b86e3dec84741413da851272c9e40fdbc2ec"
+}

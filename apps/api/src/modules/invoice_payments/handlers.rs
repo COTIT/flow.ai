@@ -33,6 +33,7 @@ permissions! {
         (status = 201, body = Envelope<PaymentCreated>, description = "Recorded; returns the new id"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoicepayment.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 409, body = MessageBody, description = "A pending gateway refund reserves the invoice or settle credit note"),
         (status = 422, body = UnprocessableBody, description = "Invalid input or Idempotency-Key, key reused for another request, invoice not open, credit note, amount invalid or too many payments"),
     ),
     security(("bearer" = []))
@@ -55,6 +56,7 @@ pub async fn create(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoicepayment.delete`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, invoice or payment, or caller not a member"),
+        (status = 409, body = MessageBody, description = "Gateway receipts cannot be voided, or a pending gateway refund reserves this invoice"),
         (status = 422, body = UnprocessableBody, description = "Invalid Idempotency-Key, or key reused for another request"),
     ),
     security(("bearer" = []))
@@ -87,6 +89,7 @@ pub async fn void(
         (status = 400, body = MessageBody, description = "Only a pending credit note can be marked as credited"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.credit`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 409, body = MessageBody, description = "A pending gateway refund reserves this credit note"),
         (status = 422, body = UnprocessableBody, description = "Invalid input or Idempotency-Key, or key reused for another request"),
     ),
     security(("bearer" = []))

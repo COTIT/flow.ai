@@ -30,6 +30,7 @@ import {
   PageHead,
 } from "@/components/list"
 import { Done, LoadError, NoAccess, useDone } from "@/components/states"
+import { StorefrontConnection } from "@/components/storefront-connection"
 import { useRights } from "@/lib/can"
 
 /** Administration-only review of saved storefront designs. */
@@ -106,6 +107,7 @@ function StorefrontSettings({
         title={t("storefront.title")}
         description={t("storefront.intro")}
       />
+      <StorefrontConnection workspaceId={workspaceId} token={token} />
       <Done message={done.message} />
       <ApiError
         // A 409 shows only the translated conflict notice below.

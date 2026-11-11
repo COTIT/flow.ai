@@ -146,6 +146,30 @@ test("receive: cancel sends nothing; the body is exact; opens the new batch", as
   })
 })
 
+test("receive: can't be sent until the product and warehouse pickers have loaded", async ({
+  page,
+  api,
+}) => {
+  transfersApi(api)
+  // Held warehouses leave an empty required picker; a submit then would be blocked by the
+  // browser with nothing sent and nothing on screen.
+  let release!: () => void
+  const held = new Promise<void>((r) => (release = r))
+  await page.route("**/v1/workspace/w1/warehouses*", async (route) => {
+    await held
+    await api.handle(route)
+  })
+  await page.goto("/supply/transfers")
+  await page.getByRole("button", { name: "Receive batch ILU-H-2026-01" }).click()
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
+  await expect(dialog.getByRole("button", { name: "Receive" })).toBeDisabled()
+  release()
+  await dialog.getByRole("button", { name: "Receive" }).click()
+  await expect(page).toHaveURL(/\/lots\/lot-9\?done=received$/)
+  expect(api.callsTo("POST", "/workspace/:ws/supply-transfers/:id/receive")).toHaveLength(1)
+})
+
 test.describe(() => {
   test.use({
     allow: {

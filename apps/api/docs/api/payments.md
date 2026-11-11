@@ -4,6 +4,12 @@ Provider payments of web orders. Code: `src/payments/` (provider-neutral interfa
 
 ## Configuration
 
+For workspace Globadyme configuration, see [Globadyme](globadyme.md). Missing required settings, unavailable credential storage, disabled new collections or an unverified production origin return `503 {"message":"…","code":"payment_setup_required"}` before a new payment attempt is created. Customers must wait for the merchant to finish setup. Other provider or transport failures can follow an accepted submission; check the saved payment before retrying.
+
+`GET /storefront/orders/{order}` adds `online_payment_enabled` for Globadyme. It checks local configuration and sealed credentials without testing the provider login. A live attempt uses its original bound account within the deployment's allowed realm, so switching providers or disabling new collections does not prevent resuming it. Missing or unusable bound credentials return `false`; pending-review status still takes precedence in the customer UI. Legacy provider reads omit this field.
+
+Cross-realm imported operations stay reserved for review. Provider calls, callbacks, automatic booking, audited releases and checkout links cannot cross the deployment boundary. Paid receipts and evidence remain readable; wrong-realm callbacks are ignored before credential access, and existing foreign inbox rows are retained as rejected. Invoice conversion also refuses to copy cross-realm payment amounts into a new receipt.
+
 `PAYMENTS_PROVIDER`: unset = none (payment intents answer 503 `no payment provider configured`); `fake` = the in-process test provider, debug builds only (a release build refuses to boot with it); `stripe` = Stripe Checkout. Unknown names fail at boot.
 
 **The fake's pay page (dev and staging).** With `fake`, a payment's `checkout_url` is `{API_PUBLIC_URL}/v1/payments/fake/{id}`, a page on this API showing the amount with **Pay** and **Cancel** buttons.
@@ -67,3 +73,7 @@ A provider is one `Provider` variant plus one file in `src/payments/`. It must:
 7. Widen the `provider` CHECKs of `order_payments` and `payment_webhook_inbox` in its own migration (Stripe's: `payments_stripe`, which also allows ids up to 255 characters), and add its name to `payments::select`.
 
 Tests it must pass (run the existing payment suites with the provider faked at its HTTP edge): the same webhook 5× gives one paid order; a "paid" claim the provider doesn't confirm changes nothing; a mismatched amount is rejected; a request killed after the provider call is recovered once by the sweep; a late payment re-holds stock or is refunded exactly once; refunds respect what is left; an invoice books paid − refunded.
+
+## Globadyme accounts and unknown submissions
+
+See [Globadyme hosted payments](globadyme.md) for workspace account selection, callback signatures, one-shot submission recovery, exact transaction evidence, QR and settlement/chargeback inspection. Existing Stripe/fake retry behavior remains provider-specific. An unknown Globadyme submission stays live and reserved; never repeat its financial POST.

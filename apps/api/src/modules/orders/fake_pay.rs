@@ -26,7 +26,7 @@ fn fake_page(
     state: &AppState,
     id: &str,
 ) -> Result<(crate::payments::fake::Fake, PayPage), AppError> {
-    let Some(Provider::Fake(fake)) = state.payments.as_ref() else {
+    let Some(Provider::Fake(fake)) = state.payments.provider("fake") else {
         return Err(AppError::NotFound);
     };
     let page = fake.page(id).ok_or(AppError::NotFound)?;
@@ -119,7 +119,7 @@ pub async fn decide(
         fake.set_status(&id, status);
         // Applied now, so Pay right after Cancel finds no live payment to hand back; the
         // queued re-fetch is the fallback when that can't happen.
-        if !payments::settle_now(&state, p.workspace_id, &id).await? {
+        if !payments::settle_now(&state, "fake", p.workspace_id, &id).await? {
             let ws = p.workspace_id.to_string();
             payments::receive(&state, "fake", &ws, &headers, format!("id={id}").as_bytes()).await?;
         }

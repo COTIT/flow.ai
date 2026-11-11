@@ -64,8 +64,19 @@ pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<
         None if name == "meta" => at(&stored["meta"], rest).clone(),
         None => Value::Null,
         Some(_) if rest.is_empty() => read_section(name, &stored[name]),
+        Some(_)
+            if name == "integrations"
+                && rest == "payment.enabled"
+                && stored[name]["payment"]["active_provider"].as_str() == Some("globadyme") =>
+        {
+            Value::Bool(stored[name]["payment"]["enabled"].as_bool() == Some(true))
+        }
         Some(default) => {
-            let merged = schema::overlay(&default, &stored[name]);
+            let merged = if name == "integrations" {
+                read_section(name, &stored[name])
+            } else {
+                schema::overlay(&default, &stored[name])
+            };
             let found = at(&merged, rest);
             if php_falsy(found) {
                 at(&default, rest).clone()
@@ -136,12 +147,18 @@ pub async fn update(
         ));
     }
     let mut tx = state.db.begin().await?;
+    let stored = repo::data_for_update(&mut *tx, workspace_id)
+        .await?
+        .unwrap_or(Value::Null);
+    let sealed = repo::credential_paths(&mut *tx, workspace_id).await?;
+    crate::modules::gateway::accounts::validate_settings(
+        state,
+        &sections,
+        &input.credentials,
+        &stored,
+        &sealed,
+    )?;
     if !keeps.is_empty() {
-        // Locks the row merge writes, so the check holds until commit.
-        let stored = repo::data_for_update(&mut *tx, workspace_id)
-            .await?
-            .unwrap_or(Value::Null);
-        let sealed = repo::credential_paths(&mut *tx, workspace_id).await?;
         for path in keeps {
             if !sealed.iter().any(|s| s == path) || moved(path, &sections, &stored) {
                 return Err(AppError::field(path, RE_ENTER));
@@ -150,6 +167,16 @@ pub async fn update(
     }
     // Settings row first: its lock queues same-workspace saves before any credential row.
     repo::merge(&mut *tx, workspace_id, user_id, &sections).await?;
+    crate::modules::gateway::accounts::sync(
+        state,
+        &mut tx,
+        workspace_id,
+        user_id,
+        &sections,
+        &input.credentials,
+        &mut clears,
+    )
+    .await?;
     for (path, key_id, sealed) in &sets {
         repo::put_credential(&mut *tx, workspace_id, path, key_id, sealed, user_id).await?;
     }
@@ -220,6 +247,10 @@ fn read_section(name: &str, stored: &Value) -> Value {
         return Value::Null;
     };
     let mut v = schema::overlay(&default, stored);
+    if name == "integrations" && stored["payment"]["active_provider"].as_str() == Some("globadyme")
+    {
+        v["payment"]["enabled"] = Value::Bool(stored["payment"]["enabled"].as_bool() == Some(true));
+    }
     if name == "cash_register" {
         cash_register_out(&mut v);
     }

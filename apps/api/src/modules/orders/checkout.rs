@@ -8,6 +8,8 @@ use serde_json::json;
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
+use crate::modules::gateway::{accounts, repo::Operation};
+
 use crate::{
     AppState,
     error::AppError,
@@ -58,6 +60,9 @@ pub fn minimal(o: &OrderRow, lines: &[LineRow]) -> StorefrontOrder {
         total: o.total,
         expires_at: o.expires_at,
         paid_at: o.paid_at,
+        payment_status: None,
+        payment_attention: None,
+        online_payment_enabled: None,
     }
 }
 
@@ -80,6 +85,7 @@ pub async fn create(
 ) -> Result<Answer, AppError> {
     let ws = key.workspace_id;
     let mut tx = state.db.begin().await?;
+    key.require_active_connection(&mut tx).await?;
     if let Some(a) = idempotency::replay(&mut tx, ws, Actor::AppKey(key.id), idem.as_ref()).await? {
         return Ok(a);
     }
@@ -151,14 +157,70 @@ async fn web_order(
 /// The shop's view of one of its orders.
 pub async fn get(state: &AppState, key: &AppKey, id: &str) -> Result<StorefrontOrder, AppError> {
     let mut conn = state.db.acquire().await?;
-    let o = web_order(&mut conn, key.workspace_id, id, false).await?;
+    let mut o = web_order(&mut conn, key.workspace_id, id, false).await?;
     let lines = repo::lines(&mut *conn, key.workspace_id, &[o.id]).await?;
-    Ok(minimal(&o, &lines))
+    let environment = state
+        .payments
+        .globadyme_environment()
+        .map(|environment| environment.as_str());
+    let pending:Option<Uuid>=sqlx::query_scalar("UPDATE order_payments SET last_checked_at=now() WHERE workspace_id=$1 AND environment=$3 AND id=(SELECT id FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' AND provider='globadyme' ORDER BY created_at DESC,id DESC LIMIT 1) AND status IN ('open','unknown') AND (last_checked_at IS NULL OR last_checked_at<now()-interval '5 seconds') RETURNING id")
+        .bind(key.workspace_id).bind(o.id).bind(environment).fetch_optional(&mut *conn).await?;
+    drop(conn);
+    if let Some(payment) = pending {
+        let _ = crate::modules::gateway::service::refresh(state, key.workspace_id, payment).await;
+        o = repo::find(&state.db, key.workspace_id, o.id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+    }
+    let mut result = minimal(&o, &lines);
+    let payment:Option<Operation>=sqlx::query_as("SELECT * FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND kind='payment' ORDER BY created_at DESC,id DESC LIMIT 1")
+        .bind(key.workspace_id).bind(o.id).fetch_optional(&state.db).await?;
+    if let Some(p) = payment.as_ref().filter(|p| p.provider == "globadyme") {
+        result.payment_status = Some(p.status.clone());
+        result.payment_attention =
+            Some(p.attention || !accounts::environment_allowed(state, p.environment.as_deref()));
+    }
+    let live = payment
+        .as_ref()
+        .filter(|p| matches!(p.status.as_str(), "creating" | "open" | "unknown"));
+    let available = match live {
+        Some(p)
+            if p.provider == "globadyme"
+                && !accounts::environment_allowed(state, p.environment.as_deref()) =>
+        {
+            Ok(Some(false))
+        }
+        Some(p) if p.provider == "globadyme" && p.status == "creating" => {
+            accounts::select(state, key.workspace_id)
+                .await
+                .map(|a| Some(a.is_some()))
+        }
+        Some(p) if p.provider == "globadyme" => accounts::bound(
+            state,
+            key.workspace_id,
+            p.environment.as_deref().unwrap_or(""),
+            p.merchant_id.as_deref(),
+        )
+        .await
+        .map(|_| Some(true))
+        .map_err(accounts::setup_error),
+        Some(_) => Ok(None),
+        None => accounts::select(state, key.workspace_id)
+            .await
+            .map(|a| a.map(|_| true)),
+    };
+    result.online_payment_enabled = match available {
+        Ok(value) => value,
+        Err(AppError::PaymentSetupRequired) => Some(false),
+        Err(error) => return Err(error),
+    };
+    Ok(result)
 }
 
 /// A live payment row of an order.
 struct LivePayment {
     id: Uuid,
+    provider: String,
     status: String,
     checkout_url: Option<String>,
 }
@@ -186,10 +248,7 @@ pub async fn intent(
     input: PaymentInput,
 ) -> Result<PaymentIntentResource, AppError> {
     let ws = key.workspace_id;
-    let provider = state
-        .payments
-        .as_ref()
-        .ok_or(AppError::Unavailable(NO_PROVIDER))?;
+    let configuration = crate::modules::gateway::accounts::configuration(state, ws).await?;
     let mut tx = state.db.begin().await?;
     let o = web_order(&mut tx, ws, id, true).await?;
     let payable = o.status == "awaiting_payment" && o.expires_at.is_some_and(|e| e > Utc::now());
@@ -198,15 +257,35 @@ pub async fn intent(
     }
     let live = sqlx::query_as!(
         LivePayment,
-        "SELECT id, status, checkout_url FROM order_payments
+        "SELECT id, provider, status, checkout_url FROM order_payments
          WHERE workspace_id = $1 AND order_id = $2 AND kind = 'payment'
-           AND status IN ('creating', 'open')
+           AND status IN ('creating', 'open', 'unknown')
          FOR UPDATE",
         ws,
         o.id,
     )
     .fetch_optional(&mut *tx)
     .await?;
+    if live.as_ref().is_some_and(|p| p.provider == "globadyme")
+        || (live.is_none() && configuration["active_provider"].as_str() == Some("globadyme"))
+    {
+        tx.commit().await?;
+        return crate::modules::gateway::service::order_intent(state, key, id, input).await;
+    }
+    if live.is_none() && configuration["enabled"].as_bool() == Some(false) {
+        return Err(AppError::Unavailable("New online payments are disabled."));
+    }
+    let provider = match live.as_ref() {
+        Some(p) => state.payments.provider(&p.provider),
+        None => match configuration["active_provider"].as_str() {
+            Some("stripe" | "fake") => configuration["active_provider"]
+                .as_str()
+                .and_then(|name| state.payments.provider(name)),
+            None => state.payments.as_ref(),
+            Some(_) => None,
+        },
+    }
+    .ok_or(AppError::Unavailable(NO_PROVIDER))?;
     let payment_id = match live {
         Some(p) if p.status == "open" && p.checkout_url.is_some() => {
             tx.commit().await?;

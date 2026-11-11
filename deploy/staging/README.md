@@ -18,7 +18,7 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 
 **What staging is not:**
 
-- No real payment provider. `PAYMENTS_PROVIDER=fake`, so checkout links go to `pay.fake.test`.
+- Legacy checkout defaults to `PAYMENTS_PROVIDER=fake`. Workspace Globadyme accounts are restricted to sandbox by the Compose-pinned `GLOBADYME_ENVIRONMENT=sandbox`; API workers and the seed command share that pin.
 - No outgoing mail. Every mail lands in Mailpit.
 - No PDF renderer: those routes answer 503, as designed. File uploads answer 503 too until "Turning on file uploads" is done; staging then uses its own B2 bucket, never production's.
 - No database backups to B2: the nightly backup stays on the VPS (`../ops/README.md`).
@@ -278,3 +278,9 @@ It:
 - checks that the API booted with fake payments.
 
 When it finishes, it removes its containers and volume, deletes only the images that were not there before, and runs `docker builder prune -af`. Other containers (`genesy-dev-pg`, `genesy-pg-*`) are never touched.
+
+## Globadyme verification
+
+Use a disposable staging database and the branch source for migration, SQLx, API and browser checks. Keep the live staging data out of test fixtures. Follow the normal backup/readiness deployment flow before exposing the branch; the migration refuses a destructive downgrade once gateway account or financial history exists. Application rollback requires schema compatibility, and financial data must never be restored over newer money activity.
+
+Workspace sandbox account setup and provider smoke checks are in [Globadyme hosted payments](../../apps/api/docs/api/globadyme.md). Production collection remains gated pending an official origin. No sandbox/live provider payment is proven by loopback tests alone.

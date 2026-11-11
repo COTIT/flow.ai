@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { getTranslations } from "next-intl/server"
 import { MailIcon } from "lucide-react"
 
@@ -11,8 +11,21 @@ const link =
   "inline-flex min-h-11 items-center rounded-sm underline-offset-4 hover:underline md:min-h-8"
 
 /** Navy card (a quiet glass edge in dark mode): who we are, links, newsletter by email. */
-export async function SiteFooter() {
+export async function SiteFooter({ shopName }: { shopName?: string }) {
   const t = await getTranslations()
+  if (shopName)
+    return (
+      <footer className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] bg-primary p-7 text-primary-foreground">
+        <p className="font-semibold">{shopName}</p>
+        <Link href="/shop" className={link}>
+          {t("nav.shop")}
+        </Link>
+        <p className="flex items-center gap-2 text-xs">
+          <LogoIcon aria-hidden className="h-auto w-5" />
+          {t("footer.tracedWith")}
+        </p>
+      </footer>
+    )
   const email = t("content.email")
   return (
     <footer className="grid gap-8 rounded-[24px] bg-primary p-7 text-primary-foreground md:grid-cols-[1.4fr_1fr_1.4fr] md:p-10 dark:border dark:border-(--hair) dark:bg-white/4 dark:text-foreground">

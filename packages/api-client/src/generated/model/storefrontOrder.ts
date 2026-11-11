@@ -23,8 +23,24 @@ export interface StorefrontOrder {
   /** What was ordered, in order. */
   lines: StorefrontOrderLine[];
   number: string;
+  /**
+     * Local Globadyme setup permits a new collection or resuming this bound live attempt.
+     * Absent for legacy providers; this does not verify the provider login or connection.
+     * @nullable
+     */
+  online_payment_enabled?: boolean | null;
   /** @nullable */
   paid_at: string | null;
+  /**
+     * Gateway evidence needs operator review; never initiate another charge.
+     * @nullable
+     */
+  payment_attention?: boolean | null;
+  /**
+     * Bound gateway submission state; absent before first collection.
+     * @nullable
+     */
+  payment_status?: string | null;
   /** `awaiting_payment`, `open` (paid), `cancelled` (expired), `completed`, ... */
   status: string;
   /** Minor units, excl VAT. */

@@ -25,8 +25,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  EnvelopeValue,
   MessageBody,
-  PayChoice
+  PayChoice,
+  PaymentsGatewayListParams,
+  Resolution
 } from '../model';
 
 import { apiRequest } from '../../mutator';
@@ -217,6 +220,75 @@ export const usePaymentsFakeDecide = <TError = ErrorType<void | MessageBody>,
       return useMutation(getPaymentsFakeDecideMutationOptions(options), queryClient);
     }
     /**
+ * @summary Signed Globadyme status callback
+ */
+export const paymentsGlobadymeWebhook = (
+    workspace: string,
+    environment: string,
+    paymentsGlobadymeWebhookBody: BodyType<string>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<void>(
+      {url: `/payments/webhooks/globadyme/${workspace}/${environment}`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: paymentsGlobadymeWebhookBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsGlobadymeWebhookMutationKey = () => ['paymentsGlobadymeWebhook'] as const;
+
+export const getPaymentsGlobadymeWebhookMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGlobadymeWebhook>>, TError,PaymentsGlobadymeWebhookMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof paymentsGlobadymeWebhook>>, TError,PaymentsGlobadymeWebhookMutationVariables, TContext> => {
+
+const mutationKey = getPaymentsGlobadymeWebhookMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof paymentsGlobadymeWebhook>>, PaymentsGlobadymeWebhookMutationVariables> = (props) => {
+          const {workspace,environment,data} = props ?? {};
+
+          return  paymentsGlobadymeWebhook(workspace,environment,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PaymentsGlobadymeWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof paymentsGlobadymeWebhook>>>
+    export type PaymentsGlobadymeWebhookMutationBody = BodyType<string>
+    export type PaymentsGlobadymeWebhookMutationError = ErrorType<MessageBody>
+    export type PaymentsGlobadymeWebhookMutationVariables = {workspace: string;environment: string;data: BodyType<string>}
+
+    /**
+ * @summary Signed Globadyme status callback
+ */
+export const usePaymentsGlobadymeWebhook = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGlobadymeWebhook>>, TError,PaymentsGlobadymeWebhookMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof paymentsGlobadymeWebhook>>,
+        TError,
+        PaymentsGlobadymeWebhookMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPaymentsGlobadymeWebhookMutationOptions(options), queryClient);
+    }
+    /**
  * For providers that hold one fixed endpoint (Stripe: `https://<api>/v1/payments/webhooks/stripe`). The `Stripe-Signature` header is checked on the raw body before anything is read; then only the Checkout Session or Refund id is taken. The workspace comes from our own payment row for that id, and the status is re-fetched from the provider. The answer is an empty 200 whatever the body holds (bad signature, unknown id, other events). At most 64 KiB.
  * @summary Payment provider event, one endpoint for every workspace
  */
@@ -356,4 +428,407 @@ export const usePaymentsWebhook = <TError = ErrorType<MessageBody>,
         TContext
       > => {
       return useMutation(getPaymentsWebhookMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary List bound payment operations
+ */
+export const paymentsGatewayList = (
+    workspace: string,
+    params?: PaymentsGatewayListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<unknown>(
+      {url: `/workspace/${workspace}/payments`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsGatewayListQueryKey = (workspace: string,
+    params?: PaymentsGatewayListParams,) => {
+    return [
+    `/workspace/${workspace}/payments`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getPaymentsGatewayListQueryOptions = <TData = Awaited<ReturnType<typeof paymentsGatewayList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: PaymentsGatewayListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsGatewayListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsGatewayList>>> = ({ signal }) => paymentsGatewayList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsGatewayListQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsGatewayList>>>
+export type PaymentsGatewayListQueryError = ErrorType<MessageBody>
+
+
+export function usePaymentsGatewayList<TData = Awaited<ReturnType<typeof paymentsGatewayList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params: undefined |  PaymentsGatewayListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsGatewayList>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsGatewayList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsGatewayList<TData = Awaited<ReturnType<typeof paymentsGatewayList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: PaymentsGatewayListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsGatewayList>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsGatewayList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsGatewayList<TData = Awaited<ReturnType<typeof paymentsGatewayList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: PaymentsGatewayListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List bound payment operations
+ */
+
+export function usePaymentsGatewayList<TData = Awaited<ReturnType<typeof paymentsGatewayList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: PaymentsGatewayListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsGatewayListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Retire previous callback secret with audit evidence
+ */
+export const paymentsGlobadymeCallbackRetire = (
+    workspace: string,
+    environment: string,
+    resolution: BodyType<Resolution>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/payments/globadyme/${environment}/callback-secret/retire`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resolution, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsGlobadymeCallbackRetireMutationKey = () => ['paymentsGlobadymeCallbackRetire'] as const;
+
+export const getPaymentsGlobadymeCallbackRetireMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGlobadymeCallbackRetire>>, TError,PaymentsGlobadymeCallbackRetireMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof paymentsGlobadymeCallbackRetire>>, TError,PaymentsGlobadymeCallbackRetireMutationVariables, TContext> => {
+
+const mutationKey = getPaymentsGlobadymeCallbackRetireMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof paymentsGlobadymeCallbackRetire>>, PaymentsGlobadymeCallbackRetireMutationVariables> = (props) => {
+          const {workspace,environment,data} = props ?? {};
+
+          return  paymentsGlobadymeCallbackRetire(workspace,environment,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PaymentsGlobadymeCallbackRetireMutationResult = NonNullable<Awaited<ReturnType<typeof paymentsGlobadymeCallbackRetire>>>
+    export type PaymentsGlobadymeCallbackRetireMutationBody = BodyType<Resolution>
+    export type PaymentsGlobadymeCallbackRetireMutationError = ErrorType<MessageBody>
+    export type PaymentsGlobadymeCallbackRetireMutationVariables = {workspace: string;environment: string;data: BodyType<Resolution>}
+
+    /**
+ * @summary Retire previous callback secret with audit evidence
+ */
+export const usePaymentsGlobadymeCallbackRetire = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGlobadymeCallbackRetire>>, TError,PaymentsGlobadymeCallbackRetireMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof paymentsGlobadymeCallbackRetire>>,
+        TError,
+        PaymentsGlobadymeCallbackRetireMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPaymentsGlobadymeCallbackRetireMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Inspect owned transaction and chargeback evidence
+ */
+export const paymentsGatewayGet = (
+    workspace: string,
+    payment: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/payments/${payment}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsGatewayGetQueryKey = (workspace: string,
+    payment: string,) => {
+    return [
+    `/workspace/${workspace}/payments/${payment}`
+    ] as const;
+    }
+
+
+export const getPaymentsGatewayGetQueryOptions = <TData = Awaited<ReturnType<typeof paymentsGatewayGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    payment: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsGatewayGetQueryKey(workspace,payment);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsGatewayGet>>> = ({ signal }) => paymentsGatewayGet(workspace,payment, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && payment !== null && payment !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsGatewayGetQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsGatewayGet>>>
+export type PaymentsGatewayGetQueryError = ErrorType<MessageBody>
+
+
+export function usePaymentsGatewayGet<TData = Awaited<ReturnType<typeof paymentsGatewayGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsGatewayGet>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsGatewayGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsGatewayGet<TData = Awaited<ReturnType<typeof paymentsGatewayGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsGatewayGet>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsGatewayGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsGatewayGet<TData = Awaited<ReturnType<typeof paymentsGatewayGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Inspect owned transaction and chargeback evidence
+ */
+
+export function usePaymentsGatewayGet<TData = Awaited<ReturnType<typeof paymentsGatewayGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsGatewayGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsGatewayGetQueryOptions(workspace,payment,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Refresh authoritative payment evidence
+ */
+export const paymentsGatewayRefresh = (
+    workspace: string,
+    payment: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/payments/${payment}/refresh`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsGatewayRefreshMutationKey = () => ['paymentsGatewayRefresh'] as const;
+
+export const getPaymentsGatewayRefreshMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGatewayRefresh>>, TError,PaymentsGatewayRefreshMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof paymentsGatewayRefresh>>, TError,PaymentsGatewayRefreshMutationVariables, TContext> => {
+
+const mutationKey = getPaymentsGatewayRefreshMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof paymentsGatewayRefresh>>, PaymentsGatewayRefreshMutationVariables> = (props) => {
+          const {workspace,payment} = props ?? {};
+
+          return  paymentsGatewayRefresh(workspace,payment,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PaymentsGatewayRefreshMutationResult = NonNullable<Awaited<ReturnType<typeof paymentsGatewayRefresh>>>
+
+    export type PaymentsGatewayRefreshMutationError = ErrorType<MessageBody>
+    export type PaymentsGatewayRefreshMutationVariables = {workspace: string;payment: string}
+
+    /**
+ * @summary Refresh authoritative payment evidence
+ */
+export const usePaymentsGatewayRefresh = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGatewayRefresh>>, TError,PaymentsGatewayRefreshMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof paymentsGatewayRefresh>>,
+        TError,
+        PaymentsGatewayRefreshMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPaymentsGatewayRefreshMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Record audited provider-confirmed resolution
+ */
+export const paymentsGatewayResolve = (
+    workspace: string,
+    payment: string,
+    resolution: BodyType<Resolution>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/payments/${payment}/resolve`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resolution, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsGatewayResolveMutationKey = () => ['paymentsGatewayResolve'] as const;
+
+export const getPaymentsGatewayResolveMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGatewayResolve>>, TError,PaymentsGatewayResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof paymentsGatewayResolve>>, TError,PaymentsGatewayResolveMutationVariables, TContext> => {
+
+const mutationKey = getPaymentsGatewayResolveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof paymentsGatewayResolve>>, PaymentsGatewayResolveMutationVariables> = (props) => {
+          const {workspace,payment,data} = props ?? {};
+
+          return  paymentsGatewayResolve(workspace,payment,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PaymentsGatewayResolveMutationResult = NonNullable<Awaited<ReturnType<typeof paymentsGatewayResolve>>>
+    export type PaymentsGatewayResolveMutationBody = BodyType<Resolution>
+    export type PaymentsGatewayResolveMutationError = ErrorType<MessageBody>
+    export type PaymentsGatewayResolveMutationVariables = {workspace: string;payment: string;data: BodyType<Resolution>}
+
+    /**
+ * @summary Record audited provider-confirmed resolution
+ */
+export const usePaymentsGatewayResolve = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsGatewayResolve>>, TError,PaymentsGatewayResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof paymentsGatewayResolve>>,
+        TError,
+        PaymentsGatewayResolveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPaymentsGatewayResolveMutationOptions(options), queryClient);
     }

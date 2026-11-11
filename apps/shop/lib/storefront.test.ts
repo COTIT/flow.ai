@@ -1,3 +1,8 @@
+const scope = vi.hoisted(() => ({ base: "" }))
+vi.mock("@/lib/shop-scope", () => ({
+  getShopBase: async () => scope.base,
+  getShop: async () => null,
+}))
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({
@@ -38,6 +43,7 @@ const httpError = (status: number) =>
 
 beforeEach(() => {
   vi.resetAllMocks()
+  scope.base = ""
   vi.spyOn(console, "error").mockImplementation(() => {})
   vi.stubEnv("STOREFRONT_APP_KEY", "gsk_test_key")
 })
@@ -235,6 +241,20 @@ describe("getOrder", () => {
 })
 
 describe("startPayment", () => {
+  it.each([
+    { status: "unknown", checkout_url: null },
+    { status: "creating", checkout_url: null },
+    { status: "open", checkout_url: null },
+    { status: "open", checkout_url: "https://pay.example/1", attention: true },
+  ])("keeps uncertain payment %j under review", async (payment) => {
+    api.storefrontOrdersPayment.mockResolvedValue({
+      data: { payment_id: "x", ...payment },
+    })
+    expect(await startPayment(ORDER_ID, "https://shop.test/orders/1")).toEqual({
+      ok: false,
+      kind: "pending_review",
+    })
+  })
   it("returns where to send the customer, coming back to the order page", async () => {
     api.storefrontOrdersPayment.mockResolvedValue({
       data: {
@@ -253,15 +273,79 @@ describe("startPayment", () => {
   })
 
   it.each([
+    [
+      503,
+      {
+        code: "payment_setup_required",
+        message: "no payment provider configured",
+      },
+      "setup_required",
+    ],
+    [
+      503,
+      {
+        code: "payment_setup_required",
+        message: "Geheime configuratiegegevens",
+      },
+      "setup_required",
+    ],
     [503, { message: "no payment provider configured" }, "no_provider"],
-    [503, { message: "provider unavailable" }, "provider_down"],
+    [503, { message: "provider unavailable" }, "pending_review"],
     [409, { message: "conflict" }, "not_payable"],
-    [500, { message: "secret" }, "unavailable"],
+    [500, { message: "secret" }, "pending_review"],
+    [502, { message: "secret" }, "pending_review"],
+    [504, { message: "secret" }, "pending_review"],
   ])("maps %i %j to %s", async (status, data, kind) => {
     api.storefrontOrdersPayment.mockRejectedValue(errorWith(status, data))
     expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
       ok: false,
       kind,
     })
+  })
+
+  it.each([
+    new Error("network connection closed"),
+    Object.assign(new Error("timeout after dispatch"), {
+      code: "ECONNABORTED",
+    }),
+  ])("keeps uncertain transport failure under review", async (error) => {
+    api.storefrontOrdersPayment.mockRejectedValue(error)
+    expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
+      ok: false,
+      kind: "pending_review",
+    })
+  })
+
+  it("does not dispatch when the local shop key is missing", async () => {
+    vi.stubEnv("STOREFRONT_APP_KEY", "")
+    expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
+      ok: false,
+      kind: "unavailable",
+    })
+    expect(api.storefrontOrdersPayment).not.toHaveBeenCalled()
+  })
+})
+
+describe("workspace connection requests", () => {
+  it("routes catalog and checkout to the connection without credentials or shared cache", async () => {
+    scope.base = "/s/00000000-0000-4000-8000-000000000001"
+    vi.stubEnv("STOREFRONT_APP_KEY", "")
+    api.storefrontProductsList.mockResolvedValue({ data: [] })
+    await listProducts(1)
+    expect(api.storefrontProductsList.mock.calls[0]![1]).toMatchObject({
+      url: "/storefront/shops/00000000-0000-4000-8000-000000000001/products",
+      fetchOptions: { cache: "no-store" },
+    })
+    expect(api.storefrontProductsList.mock.calls[0]![1].headers).toBeUndefined()
+    api.storefrontOrdersPayment.mockResolvedValue({
+      data: { status: "open", checkout_url: "https://pay.test/one" },
+    })
+    await startPayment(
+      "00000000-0000-4000-8000-000000000002",
+      "https://shop.test/return"
+    )
+    expect(api.storefrontOrdersPayment.mock.calls[0]![2].url).toBe(
+      "/storefront/shops/00000000-0000-4000-8000-000000000001/orders/00000000-0000-4000-8000-000000000002/payment"
+    )
   })
 })

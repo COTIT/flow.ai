@@ -31,8 +31,11 @@ import type {
   EnvelopeInvoiceExport,
   EnvelopeInvoiceResource,
   EnvelopePublicInvoice,
+  EnvelopeValue,
   InvoiceBody,
   InvoiceDeliveryReply,
+  InvoiceGatewayCollectionRequest,
+  InvoiceGatewayRefundRequest,
   InvoiceListPage,
   InvoicesExportParams,
   InvoicesListParams,
@@ -148,6 +151,259 @@ export function useInvoicesPublic<TData = Awaited<ReturnType<typeof invoicesPubl
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getInvoicesPublicQueryOptions(token,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Read an invoice payment status
+ */
+export const invoicesGatewayStatus = (
+    token: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/invoices/fetch-from-hashed/${token}/payment`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesGatewayStatusQueryKey = (token: string,) => {
+    return [
+    `/invoices/fetch-from-hashed/${token}/payment`
+    ] as const;
+    }
+
+
+export const getInvoicesGatewayStatusQueryOptions = <TData = Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError = ErrorType<MessageBody>>(token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInvoicesGatewayStatusQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof invoicesGatewayStatus>>> = ({ signal }) => invoicesGatewayStatus(token, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InvoicesGatewayStatusQueryResult = NonNullable<Awaited<ReturnType<typeof invoicesGatewayStatus>>>
+export type InvoicesGatewayStatusQueryError = ErrorType<MessageBody>
+
+
+export function useInvoicesGatewayStatus<TData = Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError = ErrorType<MessageBody>>(
+ token: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesGatewayStatus>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesGatewayStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesGatewayStatus<TData = Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError = ErrorType<MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesGatewayStatus>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesGatewayStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesGatewayStatus<TData = Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError = ErrorType<MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read an invoice payment status
+ */
+
+export function useInvoicesGatewayStatus<TData = Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError = ErrorType<MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayStatus>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInvoicesGatewayStatusQueryOptions(token,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Start or resume an invoice payment
+ */
+export const invoicesGatewayCreate = (
+    token: string,
+    invoiceGatewayCollectionRequest: BodyType<InvoiceGatewayCollectionRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/invoices/fetch-from-hashed/${token}/payment`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: invoiceGatewayCollectionRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesGatewayCreateMutationKey = () => ['invoicesGatewayCreate'] as const;
+
+export const getInvoicesGatewayCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesGatewayCreate>>, TError,InvoicesGatewayCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invoicesGatewayCreate>>, TError,InvoicesGatewayCreateMutationVariables, TContext> => {
+
+const mutationKey = getInvoicesGatewayCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invoicesGatewayCreate>>, InvoicesGatewayCreateMutationVariables> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  invoicesGatewayCreate(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvoicesGatewayCreateMutationResult = NonNullable<Awaited<ReturnType<typeof invoicesGatewayCreate>>>
+    export type InvoicesGatewayCreateMutationBody = BodyType<InvoiceGatewayCollectionRequest>
+    export type InvoicesGatewayCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type InvoicesGatewayCreateMutationVariables = {token: string;data: BodyType<InvoiceGatewayCollectionRequest>}
+
+    /**
+ * @summary Start or resume an invoice payment
+ */
+export const useInvoicesGatewayCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesGatewayCreate>>, TError,InvoicesGatewayCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invoicesGatewayCreate>>,
+        TError,
+        InvoicesGatewayCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvoicesGatewayCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Read an invoice payment QR image
+ */
+export const invoicesGatewayQr = (
+    token: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<Blob>(
+      {url: `/invoices/fetch-from-hashed/${token}/payment/qr`, method: 'GET',
+        responseType: 'blob', signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesGatewayQrQueryKey = (token: string,) => {
+    return [
+    `/invoices/fetch-from-hashed/${token}/payment/qr`
+    ] as const;
+    }
+
+
+export const getInvoicesGatewayQrQueryOptions = <TData = Awaited<ReturnType<typeof invoicesGatewayQr>>, TError = ErrorType<MessageBody>>(token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayQr>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInvoicesGatewayQrQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof invoicesGatewayQr>>> = ({ signal }) => invoicesGatewayQr(token, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayQr>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InvoicesGatewayQrQueryResult = NonNullable<Awaited<ReturnType<typeof invoicesGatewayQr>>>
+export type InvoicesGatewayQrQueryError = ErrorType<MessageBody>
+
+
+export function useInvoicesGatewayQr<TData = Awaited<ReturnType<typeof invoicesGatewayQr>>, TError = ErrorType<MessageBody>>(
+ token: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayQr>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesGatewayQr>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesGatewayQr>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesGatewayQr<TData = Awaited<ReturnType<typeof invoicesGatewayQr>>, TError = ErrorType<MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayQr>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesGatewayQr>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesGatewayQr>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesGatewayQr<TData = Awaited<ReturnType<typeof invoicesGatewayQr>>, TError = ErrorType<MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayQr>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read an invoice payment QR image
+ */
+
+export function useInvoicesGatewayQr<TData = Awaited<ReturnType<typeof invoicesGatewayQr>>, TError = ErrorType<MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayQr>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInvoicesGatewayQrQueryOptions(token,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -890,6 +1146,105 @@ export const useInvoicesDuplicate = <TError = ErrorType<MessageBody>,
       return useMutation(getInvoicesDuplicateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Inspect invoice payments and refunds
+ */
+export const invoicesGatewayInspect = (
+    workspace: string,
+    invoice: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/invoices/${invoice}/gateway`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesGatewayInspectQueryKey = (workspace: string,
+    invoice: string,) => {
+    return [
+    `/workspace/${workspace}/invoices/${invoice}/gateway`
+    ] as const;
+    }
+
+
+export const getInvoicesGatewayInspectQueryOptions = <TData = Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError = ErrorType<MessageBody>>(workspace: string,
+    invoice: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInvoicesGatewayInspectQueryKey(workspace,invoice);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof invoicesGatewayInspect>>> = ({ signal }) => invoicesGatewayInspect(workspace,invoice, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && invoice !== null && invoice !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InvoicesGatewayInspectQueryResult = NonNullable<Awaited<ReturnType<typeof invoicesGatewayInspect>>>
+export type InvoicesGatewayInspectQueryError = ErrorType<MessageBody>
+
+
+export function useInvoicesGatewayInspect<TData = Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    invoice: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesGatewayInspect>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesGatewayInspect>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesGatewayInspect<TData = Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    invoice: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof invoicesGatewayInspect>>,
+          TError,
+          Awaited<ReturnType<typeof invoicesGatewayInspect>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvoicesGatewayInspect<TData = Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    invoice: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Inspect invoice payments and refunds
+ */
+
+export function useInvoicesGatewayInspect<TData = Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    invoice: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invoicesGatewayInspect>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInvoicesGatewayInspectQueryOptions(workspace,invoice,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Render the invoice as a PDF
  */
 export const invoicesPreview = (
@@ -997,6 +1352,75 @@ export function useInvoicesPreview<TData = Awaited<ReturnType<typeof invoicesPre
 
 
 /**
+ * @summary Refund a credit note through its source payment
+ */
+export const invoicesGatewayRefund = (
+    workspace: string,
+    invoice: string,
+    invoiceGatewayRefundRequest: BodyType<InvoiceGatewayRefundRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/invoices/${invoice}/refunds`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: invoiceGatewayRefundRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesGatewayRefundMutationKey = () => ['invoicesGatewayRefund'] as const;
+
+export const getInvoicesGatewayRefundMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesGatewayRefund>>, TError,InvoicesGatewayRefundMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invoicesGatewayRefund>>, TError,InvoicesGatewayRefundMutationVariables, TContext> => {
+
+const mutationKey = getInvoicesGatewayRefundMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invoicesGatewayRefund>>, InvoicesGatewayRefundMutationVariables> = (props) => {
+          const {workspace,invoice,data} = props ?? {};
+
+          return  invoicesGatewayRefund(workspace,invoice,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvoicesGatewayRefundMutationResult = NonNullable<Awaited<ReturnType<typeof invoicesGatewayRefund>>>
+    export type InvoicesGatewayRefundMutationBody = BodyType<InvoiceGatewayRefundRequest>
+    export type InvoicesGatewayRefundMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type InvoicesGatewayRefundMutationVariables = {workspace: string;invoice: string;data: BodyType<InvoiceGatewayRefundRequest>}
+
+    /**
+ * @summary Refund a credit note through its source payment
+ */
+export const useInvoicesGatewayRefund = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesGatewayRefund>>, TError,InvoicesGatewayRefundMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invoicesGatewayRefund>>,
+        TError,
+        InvoicesGatewayRefundMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvoicesGatewayRefundMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Email a sent invoice again
  */
 export const invoicesResend = (

@@ -144,7 +144,7 @@ pub struct Ctx {
     /// Opens webhook secrets; None fails deliveries until configured.
     pub credentials: Option<std::sync::Arc<crate::CredentialKey>>,
     /// Web payments (re-fetches, retried creates, refunds); None leaves them waiting.
-    pub payments: Option<crate::payments::Provider>,
+    pub payments: crate::payments::Payments,
 }
 
 /// The runner's handler over `dispatch`.
@@ -228,7 +228,7 @@ mod tests {
             files: None,
             http: Outbound::new(&[]).unwrap(),
             credentials: None,
-            payments: None,
+            payments: Default::default(),
         }
     }
 

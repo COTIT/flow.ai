@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/shop-link"
 
 import { cn } from "@genesy/ui/lib/utils"
 

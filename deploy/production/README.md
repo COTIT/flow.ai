@@ -21,6 +21,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 
 - **No Mailpit.** Mail goes to the real SMTP server in `secrets/smtp_url`.
 - **No fake payments.** The API image is the default build, which refuses `PAYMENTS_PROVIDER=fake`. Web payments answer 503 until Stripe is turned on ("Turning on Stripe").
+- **Production payment realm.** Compose pins `GLOBADYME_ENVIRONMENT=production` for the API, workers and CLI. Workspace settings cannot select sandbox; Globadyme remains blocked until its official production API origin is verified.
 - **No demo seed, no self-signup.** `GENESY_ALLOW_DEMO_SEED` is unset and `SIGNUP_ENABLED=false` (also the API default). The first account comes from `create-owner`; everyone else is invited.
 - **External Postgres volume.** It is called `genesy-prod-pg` and you make it by hand, so no `down -v` can delete it.
 - **No `noindex` header, no IP allow-list.**

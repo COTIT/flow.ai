@@ -14,6 +14,10 @@ export const FILES_PORT = 8198 + PORT_OFFSET
 export const FILES_ORIGIN = `http://127.0.0.1:${FILES_PORT}`
 /** Test-only app key; the mock refuses any other. Not a secret. */
 export const APP_KEY = "gsk_e2e_only_not_a_secret"
+export const SHOP_CONNECTIONS = [
+  "00000000-0000-4000-8000-000000000001",
+  "00000000-0000-4000-8000-000000000002",
+]
 /** The upstream body the mock sends with errors; it must never reach a page. */
 export const SECRET_BODY = "secret upstream detail"
 
@@ -92,6 +96,11 @@ export const LATE_PAYMENT_EMAIL = "late-payment@e2e.test"
 export const EXPIRED_EMAIL = "expired@e2e.test"
 /** Orders placed with this email get a 503 from the payment provider (it is down). */
 export const PROVIDER_DOWN_EMAIL = "provider-down@e2e.test"
+export const UNKNOWN_PAYMENT_EMAIL = "unknown-payment@e2e.test"
+export const EXISTING_UNKNOWN_PAYMENT_EMAIL =
+  "existing-unknown-payment@e2e.test"
+export const PAYMENT_SETUP_REQUIRED_EMAIL = "payment-setup-required@e2e.test"
+export const STALE_PAYMENT_SETUP_EMAIL = "stale-payment-setup@e2e.test"
 /** Checkout with this email gets the API's 429 (too many web orders waiting). */
 export const BUSY_EMAIL = "busy@e2e.test"
 /** Reading this order fails with a 503 (API trouble while loading the order page). */

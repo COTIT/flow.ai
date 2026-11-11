@@ -25,11 +25,18 @@ pub struct Message(pub &'static str);
 #[schema(description = "A short message: `ok` after an action, or what went wrong.")]
 pub struct MessageBody {
     message: &'static str,
+    /// Stable machine-readable reason, when the caller must distinguish setup from retry.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    code: Option<&'static str>,
 }
 
 impl IntoResponse for Message {
     fn into_response(self) -> Response {
-        Json(MessageBody { message: self.0 }).into_response()
+        Json(MessageBody {
+            message: self.0,
+            code: None,
+        })
+        .into_response()
     }
 }
 
