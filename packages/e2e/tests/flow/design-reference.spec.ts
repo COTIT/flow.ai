@@ -18,7 +18,6 @@ import { chat, fakeAgent, send, startText, v, watch } from "./voice"
 
 const fixture = (name: string) =>
   new URL(`../../voice-probe/fixtures/${name}`, import.meta.url).pathname
-const narrow = (page: Page) => page.viewportSize()!.width < 1024
 
 const edit = {
   body: {
@@ -35,15 +34,10 @@ const edit = {
   },
 }
 
-/** The review region (wide) or sheet (narrow), and where its buttons are. */
+/** The result scene a review opens by itself; its buttons are inside it. */
 function reviewArea(page: Page) {
-  const review = narrow(page)
-    ? page.getByRole("dialog", { name: chat.results })
-    : page.getByRole("region", { name: chat.results })
-  const actions = narrow(page)
-    ? review
-    : page.getByRole("group", { name: chat.reviewPending })
-  return { review, actions }
+  const review = page.getByRole("region", { name: chat.results })
+  return { review, actions: review }
 }
 
 /** Shares one reference file with a message; resolves once the agent has the provider file id. */
@@ -130,7 +124,7 @@ test("a reference screenshot leads to one design edit review; nothing of the fil
 test.describe("on a tablet (834 px)", () => {
   test.use({ viewport: { width: 834, height: 1194 } })
 
-  test("the reference leads to the edit review in the sheet", async ({
+  test("the reference leads to the edit review in the result scene", async ({
     page,
     api,
   }) => {

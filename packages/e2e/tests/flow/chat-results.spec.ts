@@ -4,6 +4,7 @@ import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import { chat, fakeAgent, FLOW_ORDER, OFFICE, startText, v } from "./voice"
+import { s } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -12,31 +13,22 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page, flowApi())
 })
 
-const narrow = (page: Page) => page.viewportSize()!.width < 1024
-
-/** Where results show: the right pane on wide screens, the sheet (opened from the line) on small ones. */
-async function results(page: Page, line?: number) {
-  if (!narrow(page)) return page.getByRole("region", { name: chat.results })
-  if (line !== undefined)
-    await page
-      .getByRole("log")
-      .getByRole("button", { name: chat.viewResult })
-      .nth(line)
-      .click()
-  else
-    await page
-      .getByRole("button", { name: new RegExp(`^${chat.results}`) })
-      .click()
-  return page.getByRole("dialog", { name: chat.results })
+/** Opens the result scene from the nth result line of the conversation. */
+async function results(page: Page, line: number) {
+  await page
+    .getByRole("log")
+    .getByRole("button", { name: chat.showResult })
+    .nth(line)
+    .click()
+  return page.getByRole("region", { name: chat.results })
 }
 
-test("before any answer the results side says what will show there, no placeholder chart", async ({
+test("before any answer there is no result scene and no placeholder chart", async ({
   page,
 }) => {
   await page.goto("/")
-  const pane = await results(page)
-  await expect(pane.getByText(chat.resultsEmpty)).toBeVisible()
-  await expect(pane.getByText(chat.resultsEmptyText)).toBeVisible()
+  await expect(page.getByText(v.welcome)).toBeVisible()
+  await expect(page.getByRole("region", { name: chat.results })).toHaveCount(0)
   await expect(page.locator("[data-chart]")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })
@@ -50,7 +42,7 @@ test("a list answer shows in the results with record links to Office in a new ta
   agent.call("orders_list")
   await expect.poll(agent.results).toBe(1)
   const line = page.getByRole("log").getByRole("button", {
-    name: narrow(page) ? chat.viewResult : chat.showResult,
+    name: chat.showResult,
   })
   await expect(line).toBeVisible()
   const pane = await results(page, 0)
@@ -63,10 +55,10 @@ test("a list answer shows in the results with record links to Office in a new ta
     pane.getByRole("link", { name: v.results.openAll })
   ).toHaveAttribute("href", `${OFFICE}/orders`)
   await expectNoHorizontalScroll(page)
-  if (narrow(page)) {
-    await page.getByRole("button", { name: chat.closeResults }).click()
-    await expect(pane).toBeHidden()
-  }
+  // Back from the scene returns to the same conversation.
+  await page.getByRole("button", { name: s.backHome }).click()
+  await expect(pane).toBeHidden()
+  await expect(line).toBeVisible()
 })
 
 test("a sales answer draws its chart in the results", async ({ page }) => {

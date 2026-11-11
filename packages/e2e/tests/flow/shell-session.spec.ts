@@ -38,6 +38,7 @@ test("opening Flow starts nothing: no session, no microphone, no socket", async 
     page.getByRole("button", { name: v.textInstead, exact: true })
   ).toBeVisible()
   await expect(page.getByText(v.welcome)).toBeVisible()
+  await expect(page.getByText(v.micHint)).toBeVisible()
   // Give a stray auto-start time to show itself.
   await page.waitForTimeout(500)
   expect(sessions).toEqual([])
@@ -70,7 +71,7 @@ test("a text conversation starts on click, carries messages both ways and ends",
     .poll(() => sessions.some((s) => s.method === "DELETE"))
     .toBe(true)
   // Ending clears the conversation: nothing of it stays on screen.
-  await expect(log).not.toContainText("Hello from Flow")
+  await expect(page.getByText("Hello from Flow")).toHaveCount(0)
 })
 
 test("the header links to the storefront review", async ({ page }) => {

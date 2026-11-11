@@ -1,0 +1,39 @@
+{
+  "shell": {
+    "phaseLabel": "Sauti",
+    "phase": {
+      "ready": "Tayari",
+      "live": "Katika mazungumzo",
+      "ended": "Imeisha"
+    },
+    "morning": "Habari za asubuhi.",
+    "afternoon": "Habari za mchana.",
+    "evening": "Habari za jioni.",
+    "flowTitle": "Kila kitu katika mtiririko wako.",
+    "flowText": "Ongea, andika au fungua onyesho. Genesy anaendeleza mazungumzo unapozunguka.",
+    "orbStart": "Ongea na Genesy",
+    "orbOpen": "Fungua mazungumzo",
+    "conversation": "Mazungumzo",
+    "backHome": "Rudi mwanzo",
+    "ended": "Kipindi cha sauti kimeisha.",
+    "preserved": "Kazi yako imehifadhiwa.",
+    "startAgain": "Anza tena kwa duara, maikrofoni au kwa kuandika.",
+    "dock": "Muulize Genesy",
+    "placeholder": "Muulize au mwambie Genesy…",
+    "suggested": "Imependekezwa kwako",
+    "mic": "Maikrofoni",
+    "switchVoice": "Badili kwenda sauti",
+    "orb": {
+      "idle": "Genesy yuko tayari",
+      "connecting": "Inaunganisha",
+      "listening": "Anasikiliza",
+      "thinking": "Anafikiri",
+      "speaking": "Anaongea",
+      "waiting": "Inasubiri idhini yako",
+      "executing": "Inashughulikia",
+      "recovering": "Inarejesha",
+      "error": "Kuna tatizo",
+      "ended": "Mazungumzo yameisha"
+    }
+  }
+}

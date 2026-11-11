@@ -275,3 +275,22 @@ export function notIncludedRows(review: VoiceReview): NotIncludedRow[] {
     ]
   })
 }
+
+export type SessionPhase =
+  | { phase: "ready" | "live" }
+  | { phase: "ended"; reason: "user" | "dropped" }
+
+/** READY / IN CONVERSATION / ENDED over the provider's flags; `endedByUser` is the host's own record. */
+export function sessionPhase(state: {
+  connected?: boolean
+  starting?: boolean
+  upgrading?: boolean
+  unfinished?: "stalled" | "dropped" | null
+  endedByUser?: boolean
+}): SessionPhase {
+  if (state.connected || state.starting || state.upgrading)
+    return { phase: "live" }
+  if (state.unfinished === "dropped") return { phase: "ended", reason: "dropped" }
+  if (state.endedByUser) return { phase: "ended", reason: "user" }
+  return { phase: "ready" }
+}

@@ -1,0 +1,47 @@
+import type { Locator, Page } from "@playwright/test"
+
+import shellEn from "../../../../apps/flow/messages/en/shell.json" with { type: "json" }
+import { expect } from "../../src/test"
+
+/** Flow shell texts (header phase, dock, orb). */
+export const s = shellEn.shell
+
+export const orb = (page: Page) => page.locator("[data-orb]")
+export const dock = (page: Page) => page.getByRole("region", { name: s.dock })
+export const phase = (page: Page) => page.locator("[data-phase]")
+
+/** Waits until the orb is in `mode` and its move has finished. */
+export async function orbAt(page: Page, mode: "ambient" | "immersive" | "compact") {
+  await expect(orb(page)).toHaveAttribute("data-orb", mode)
+  await expect
+    .poll(() => orb(page).evaluate((el) => el.getAnimations().length))
+    .toBe(0)
+  await expect(orb(page)).toBeVisible()
+}
+
+type Box = { x: number; y: number; width: number; height: number }
+const overlap = (a: Box, b: Box) =>
+  a.x < b.x + b.width - 0.5 &&
+  b.x < a.x + a.width - 0.5 &&
+  a.y < b.y + b.height - 0.5 &&
+  b.y < a.y + a.height - 0.5
+
+/** The orb is drawn exactly on its slot and covers none of `others`. */
+export async function expectOrbClear(page: Page, others: Locator[]) {
+  const mode = await orb(page).getAttribute("data-orb")
+  const ball = (await orb(page).boundingBox())!
+  const slot = (await page.locator(`[data-orb-slot="${mode}"]`).boundingBox())!
+  const side = Math.min(slot.width, slot.height)
+  expect(Math.abs(ball.width - side), "orb fills its slot").toBeLessThan(1.5)
+  expect(
+    Math.abs(ball.x + ball.width / 2 - (slot.x + slot.width / 2)),
+    "orb centred on its slot"
+  ).toBeLessThan(1.5)
+  expect(
+    Math.abs(ball.y + ball.height / 2 - (slot.y + slot.height / 2))
+  ).toBeLessThan(1.5)
+  for (const other of others) {
+    const box = await other.boundingBox()
+    if (box) expect(overlap(ball, box), `orb covers ${other}`).toBe(false)
+  }
+}
