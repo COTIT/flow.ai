@@ -8,11 +8,22 @@ import { fakeAgent, startText, v } from "./voice"
 const steps = (done: number, total = 21) =>
   Array.from({ length: total }, (_, i) => ({
     status: i < done ? "completed" : "not_started",
-    data: { actionId: `a-${i}`, operation: "products_update", summary: `Price ${i}` },
+    data: {
+      actionId: `a-${i}`,
+      operation: "products_update",
+      summary: `Price ${i}`,
+    },
   }))
 const paused = {
   status: "partial",
-  data: { kind: "batch", batchId: "b-1", state: "paused", nextIndex: 8, recoverable: false, steps: steps(8) },
+  data: {
+    kind: "batch",
+    batchId: "b-1",
+    state: "paused",
+    nextIndex: 8,
+    recoverable: false,
+    steps: steps(8),
+  },
 }
 
 test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; pause; the rest needs a new review", async ({
@@ -57,6 +68,21 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
           },
         },
       })
+    // The provider polls status every second while a run is busy; a slow device can poll once.
+    if (body.command === "status")
+      return route.fulfill({
+        json: {
+          status: "partial",
+          data: {
+            kind: "batch",
+            batchId: "b-1",
+            state: "running",
+            nextIndex: 4,
+            recoverable: false,
+            steps: steps(4),
+          },
+        },
+      })
     if (body.command === "pause") {
       release()
       return route.fulfill({ json: paused })
@@ -79,7 +105,10 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
   // Leave for another scene: the task stays reachable and waits; nothing runs.
   await page.getByRole("link", { name: "Storefront" }).click()
   await expect(page).toHaveURL(/\/storefront$/)
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await expect(capsule(page)).toHaveAttribute(
+    "data-task-state",
+    "needs_approval"
+  )
   await capsule(page).getByRole("button", { name: k.review }).click()
   await expect(page).toHaveURL(/\/$/)
   await expect(summary).toContainText("21 changes matched")
@@ -89,9 +118,14 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
   await scene(page).getByRole("button", { name: v.approve }).click()
   await scene(page).getByRole("button", { name: k.pause }).click()
   await expect(summary).toHaveAttribute("data-batch", "paused")
-  await expect(summary).toContainText("8 updated · 0 failed · 13 not run · 0 need checking")
+  await expect(summary).toContainText(
+    "8 updated · 0 failed · 13 not run · 0 need checking"
+  )
   await expect(page.getByText(/24 (updated|changes)/)).toHaveCount(0)
-  expect(batch.map((b) => b.command)).toEqual(["prepare", "pause"])
+  expect(batch.map((b) => b.command).filter((c) => c !== "status")).toEqual([
+    "prepare",
+    "pause",
+  ])
 
   // Continue asks Genesy for a NEW review of what did not run; nothing resumes by itself.
   await summary.getByRole("button", { name: k.batch.continue }).click()
