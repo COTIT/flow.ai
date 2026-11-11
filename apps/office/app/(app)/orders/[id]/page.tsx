@@ -452,7 +452,7 @@ export default function OrderPage({
             <div className="flex items-center gap-3">
               <span
                 aria-hidden="true"
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] text-[13px] font-semibold text-[#0a183a]"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] text-[13px] font-semibold text-gold-foreground"
               >
                 {initials(name)}
               </span>

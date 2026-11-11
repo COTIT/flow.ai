@@ -40,6 +40,40 @@
   }
 }
 
+/* GenesyOrb: the state text is screen-reader only while the orb moves, shown under the still orb. */
+.genesy-orb-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.genesy-orb[data-reduced="true"] > .genesy-orb-label {
+  inset: 100% 0 auto;
+  width: auto;
+  height: auto;
+  margin-top: 8px;
+  overflow: visible;
+  clip-path: none;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .genesy-orb > .genesy-orb-label {
+    inset: 100% 0 auto;
+    width: auto;
+    height: auto;
+    margin-top: 8px;
+    overflow: visible;
+    clip-path: none;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+  }
+}
+
 /* The composer's text box (vendored PromptBar) grows up to a fifth of the screen. */
 .theme-glass .voice-composer textarea {
   min-height: 48px;

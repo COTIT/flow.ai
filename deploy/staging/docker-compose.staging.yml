@@ -123,6 +123,8 @@ services:
     environment:
       API_URL: http://api:8080/v1
       SITE_URL: https://staging-shop.genesy.app
+      # Expired preview-link page links back here.
+      FLOW_URL: https://staging-flow.genesy.app
       # App key (scope catalog:read) made in the staging office; empty until then (shop answers 503).
       STOREFRONT_APP_KEY: ${STOREFRONT_APP_KEY:-}
       SHOP_DESIGN_ENABLED: ${SHOP_DESIGN_ENABLED:-false}

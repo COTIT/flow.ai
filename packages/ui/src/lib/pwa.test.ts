@@ -7,8 +7,8 @@ describe("webManifest", () => {
     name: "Genesy Till",
     shortName: "Till",
     startUrl: "/sale",
-    themeColor: "#0a183a",
-    backgroundColor: "#ffffff",
+    themeColor: "#1a1a19",
+    backgroundColor: "#faf8f3",
   })
 
   it("opens full screen like an app, at the given start page", () => {
@@ -19,8 +19,8 @@ describe("webManifest", () => {
       start_url: "/sale",
       scope: "/",
       display: "standalone",
-      theme_color: "#0a183a",
-      background_color: "#ffffff",
+      theme_color: "#1a1a19",
+      background_color: "#faf8f3",
     })
   })
 

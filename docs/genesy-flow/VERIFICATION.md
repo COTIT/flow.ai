@@ -3,6 +3,17 @@
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
 
+## Storefront expiring preview links (2026-11-11)
+
+API (`storefront_design` preview links: create/list/revoke + public resolve by Shop app key), Shop `/preview/[token]`, FLOW_URL in deploy. Child commits `21b075282`…`619bc25d4`.
+
+| Check | Result |
+| --- | --- |
+| Child runs (disposable PG; 54320 never touched) | Migration up/down/up; API storefront 52 (9 new: create/list/revoke, member 403, cross-workspace, expired, revoked, tampered, publish/supersede ends link, rate limit, token never in idempotency rows or errors); OpenAPI 70; Shop vitest 112; Playwright storefront-design 33 (desktop/375/tablet: banner + real layout, expired page, one `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, no commerce requests); real stack issue → open → revoke → expired, publish ends link; compose.test.sh |
+| Security review (independent) | No critical/high/medium; 2 lows fixed test-first (single Referrer-Policy, explicit no-store) |
+| Full gate, clean checkout (main + branch) | API: fmt, clippy, 2119 cargo tests passed / 0 failed (after the 429 `Retry-After` doc fix); web turbo 42/43 + Office rerun 663/663 (load flake in `checkpoint.test.ts`); fake-API e2e 7/7 tasks; storefront-design 33; voice-dev 12; stack 209 passed / 1 skipped |
+| Known exposure (user-accepted) | VPS Traefik access log records request paths, so `/preview/<token>` appears there; limited by 48 h default expiry, revoke, and links ending on publish/new draft |
+
 ## Local full-stack check of Flow on main `106b83325` (2026-11-11)
 
 Real API, Office and Flow from `pnpm --filter @genesy/e2e stack:up` (seeded, assistant off), in-app browser. Owner login → conversation (two panes on desktop, one pane + Results button at 375 px); storefront design created through the real API (save 201, publish 200, Phase 3 typed edit 201); `/storefront` shows draft/published with distinct short codes; preview frame measured 375 / 834 / 1280 px inner width, one h1, no links, no page overflow; no console errors; all API calls 200 (one aborted `_rsc` prefetch, known noise).

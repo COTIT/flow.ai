@@ -127,7 +127,7 @@ test("badge tones, table cells and skeleton follow the mockup", async ({ page })
       return color
     })
   )
-  expect(tones).toEqual(["rgb(122, 90, 30)", "rgb(180, 35, 24)", "rgb(58, 83, 120)"])
+  expect(tones).toEqual(["rgb(122, 90, 30)", "rgb(180, 35, 24)", "rgb(87, 83, 78)"])
 
   const dot = await page.evaluate(() => {
     const el = document.createElement("span")

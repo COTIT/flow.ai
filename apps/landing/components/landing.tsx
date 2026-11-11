@@ -132,10 +132,10 @@ export async function Landing({ locale }: { locale: Locale }) {
                   width="14"
                   height="5"
                   rx="2"
-                  fill="#0a183a"
+                  fill="#1c1b18"
                 />
               </g>
-              <g fill="#0a183a" transform="translate(100 230)">
+              <g fill="#1c1b18" transform="translate(100 230)">
                 <g className="bees">
                   <g className="bee">
                     <ellipse
@@ -184,16 +184,16 @@ export async function Landing({ locale }: { locale: Locale }) {
                   width="44"
                   height="12"
                   rx="3"
-                  fill="#0a183a"
+                  fill="#1c1b18"
                 />
                 <path
                   d="M2 14h52v58a10 10 0 0 1-10 10H12A10 10 0 0 1 2 72Z"
                   fill="url(#g)"
                 />
                 <rect x="12" y="36" width="32" height="24" rx="3" fill="#fff" />
-                <rect x="17" y="41" width="10" height="10" fill="#0a183a" />
-                <rect x="30" y="42" width="10" height="3" fill="#456087" />
-                <rect x="30" y="48" width="8" height="3" fill="#456087" />
+                <rect x="17" y="41" width="10" height="10" fill="#1c1b18" />
+                <rect x="30" y="42" width="10" height="3" fill="#5f5c55" />
+                <rect x="30" y="48" width="8" height="3" fill="#5f5c55" />
               </g>
             </svg>
           </div>
@@ -349,11 +349,11 @@ export async function Landing({ locale }: { locale: Locale }) {
                   <svg viewBox="0 0 280 120" width="100%" aria-hidden="true">
                     <path
                       d="M0 80 C 70 50 140 60 200 75 S 260 60 280 70 V120 H0Z"
-                      fill="#b9c9d6"
+                      fill="#d9d3c8"
                     />
                     <path
                       d="M0 100 C 90 80 180 95 280 90 V120 H0Z"
-                      fill="#456087"
+                      fill="#5f5c55"
                     />
                     <circle cx="220" cy="38" r="18" fill="#efc977" />
                   </svg>
@@ -444,7 +444,7 @@ export async function Landing({ locale }: { locale: Locale }) {
               <a className="btn btn-primary" href={contact}>
                 {t("contact.button")}
               </a>
-              <p style={{ fontSize: "14px", color: "#b4c3d3" }}>
+              <p style={{ fontSize: "14px", color: "#a8a69e" }}>
                 {t("contact.note")}
               </p>
             </div>

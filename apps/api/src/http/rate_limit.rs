@@ -161,6 +161,14 @@ pub fn apply_private(
     layer(router, per_ip, any_ip(per_ip))
 }
 
+/// Wrap one route group in its own per-session (bearer or app key) limit; no key: client IP.
+pub fn apply_session(router: Router<AppState>, limit: RateLimit) -> Router<AppState> {
+    let key = Session(AnyIp(ClientIp {
+        trust_forwarded: limit.trust_forwarded,
+    }));
+    layer(router, limit, key)
+}
+
 fn layer<K>(router: Router<AppState>, limit: RateLimit, key: K) -> Router<AppState>
 where
     K: KeyExtractor + Send + Sync + 'static,

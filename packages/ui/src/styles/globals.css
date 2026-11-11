@@ -43,6 +43,7 @@
   --color-background: var(--background);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
+  --color-gold-ink: var(--gold-ink);
   --color-teal: var(--teal);
   --color-teal-foreground: var(--teal-foreground);
   --color-info: var(--info);
@@ -61,30 +62,32 @@
 :root {
   /* Genesy brand (style guide 04.2025, gate G7). Every app and component reads these.
      Contrast pairs are checked against WCAG AA in tokens.test.ts. */
-  --background: #ffffff;
-  --foreground: #0a183a;
+  --background: #faf8f3;
+  --foreground: #1c1b18;
   --card: #ffffff;
-  --card-foreground: #0a183a;
+  --card-foreground: #1c1b18;
   --popover: #ffffff;
-  --popover-foreground: #0a183a;
-  --primary: #0a183a;
+  --popover-foreground: #1c1b18;
+  --primary: #1c1b18;
   --primary-foreground: #ffffff;
-  --secondary: #f2f6f7;
-  --secondary-foreground: #0a183a;
-  --muted: #f2f6f7;
-  --muted-foreground: #456087;
-  --accent: #f2f6f7;
-  --accent-foreground: #0a183a;
+  --secondary: #f3efe6;
+  --secondary-foreground: #1c1b18;
+  --muted: #f3efe6;
+  --muted-foreground: #5f5c55;
+  --accent: #f3efe6;
+  --accent-foreground: #1c1b18;
   --destructive: #b42318;
-  --border: #d1dce5;
-  --input: #d1dce5;
+  --border: #e4dfd6;
+  --input: #d9d3c8;
   --ring: #01909b;
-  /* Gold is too light for text on white: use it as a ground under navy text, or decoration. */
+  /* Gold is too light for text on white: use it as a ground under dark text, or decoration. */
   --gold: #d0a55f;
-  --gold-foreground: #0a183a;
-  /* Navy on teal is 4.54:1, just over AA: teal only behind short labels or large text. */
+  --gold-foreground: #1c1b18;
+  /* Gold text on light surfaces (5.5:1 on white); --gold itself stays a ground or decoration. */
+  --gold-ink: #8a6116;
+  /* Teal sits behind short labels or large text only. #141413, not #1c1b18: that is 4.48:1 on teal, under AA. */
   --teal: #01909b;
-  --teal-foreground: #0a183a;
+  --teal-foreground: #141413;
   --gold-gradient: linear-gradient(
     90deg,
     #956e46 0%,
@@ -94,49 +97,50 @@
     #956e46 100%
   );
   /* Notice/state accents (borders, tints). Text on them stays foreground, so no contrast pair. */
-  --info: #456087;
+  --info: #57534e;
   --success: #01909b;
   --warning: #d0a55f;
   --chart-1: #01909b;
   --chart-2: #d0a55f;
-  --chart-3: #456087;
+  --chart-3: #8a877f;
   --chart-4: #8b8171;
-  --chart-5: #0a183a;
+  --chart-5: #1c1b18;
   --radius: 0.375rem;
-  --sidebar: #f2f6f7;
-  --sidebar-foreground: #0a183a;
-  --sidebar-primary: #0a183a;
+  --sidebar: #f3efe6;
+  --sidebar-foreground: #1c1b18;
+  --sidebar-primary: #1c1b18;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #d1dce5;
-  --sidebar-accent-foreground: #0a183a;
-  --sidebar-border: #d1dce5;
+  --sidebar-accent: #e9e3d8;
+  --sidebar-accent-foreground: #1c1b18;
+  --sidebar-border: #e4dfd6;
   --sidebar-ring: #01909b;
 }
 
-/* Navy is the brand's own dark ground; gold takes over as the primary colour. */
+/* Neutral near-black dark mode; gold takes over as the primary colour. */
 .dark {
-  --background: #0a183a;
-  --foreground: #f2f6f7;
-  --card: #13234d;
-  --card-foreground: #f2f6f7;
-  --popover: #13234d;
-  --popover-foreground: #f2f6f7;
+  --background: #1a1a19;
+  --foreground: #f5f4f0;
+  --card: #262624;
+  --card-foreground: #f5f4f0;
+  --popover: #262624;
+  --popover-foreground: #f5f4f0;
   --primary: #efc977;
-  --primary-foreground: #0a183a;
-  --secondary: #1b2c57;
-  --secondary-foreground: #f2f6f7;
-  --muted: #1b2c57;
-  --muted-foreground: #b4c3d3;
-  --accent: #1b2c57;
-  --accent-foreground: #f2f6f7;
+  --primary-foreground: #1c1b18;
+  --secondary: #30302e;
+  --secondary-foreground: #f5f4f0;
+  --muted: #30302e;
+  --muted-foreground: #a8a69e;
+  --accent: #30302e;
+  --accent-foreground: #f5f4f0;
   --destructive: #f97066;
   --border: rgb(255 255 255 / 12%);
   --input: rgb(255 255 255 / 18%);
   --ring: #efc977;
   --gold: #efc977;
-  --gold-foreground: #0a183a;
+  --gold-foreground: #1c1b18;
+  --gold-ink: #efc977;
   --teal: #01909b;
-  --teal-foreground: #0a183a;
+  --teal-foreground: #141413;
   --gold-gradient: linear-gradient(
     90deg,
     #956e46 0%,
@@ -145,20 +149,20 @@
     #efc977 84%,
     #956e46 100%
   );
-  --info: #8fa6c8;
+  --info: #a8a69e;
   --success: #01909b;
   --warning: #efc977;
   --chart-1: #01909b;
   --chart-2: #efc977;
-  --chart-3: #8fa6c8;
+  --chart-3: #a8a69e;
   --chart-4: #b5ab9b;
-  --chart-5: #f2f6f7;
-  --sidebar: #13234d;
-  --sidebar-foreground: #f2f6f7;
+  --chart-5: #f5f4f0;
+  --sidebar: #1f1f1d;
+  --sidebar-foreground: #f5f4f0;
   --sidebar-primary: #efc977;
-  --sidebar-primary-foreground: #0a183a;
-  --sidebar-accent: #1b2c57;
-  --sidebar-accent-foreground: #f2f6f7;
+  --sidebar-primary-foreground: #1c1b18;
+  --sidebar-accent: #30302e;
+  --sidebar-accent-foreground: #f5f4f0;
   --sidebar-border: rgb(255 255 255 / 12%);
   --sidebar-ring: #efc977;
 }
@@ -168,51 +172,45 @@
    Contrast of text on --glass-solid and --ground-base is checked in tokens.test.ts. */
 .theme-glass {
   --radius: 0.75rem;
-  --ground-base: #eef3f5;
-  --ground:
-    radial-gradient(1100px 640px at 4% -8%, rgb(1 144 155 / 13%), transparent 62%),
-    radial-gradient(900px 560px at 102% 2%, rgb(208 165 95 / 17%), transparent 58%),
-    radial-gradient(1000px 760px at 55% 112%, rgb(69 96 135 / 12%), transparent 62%),
-    #eef3f5;
+  --ground-base: #faf8f3;
+  --ground: radial-gradient(1100px 640px at 4% -8%, rgb(208 165 95 / 12%), transparent 62%),
+    #faf8f3;
   --glass: rgb(255 255 255 / 64%);
   --glass-strong: rgb(255 255 255 / 80%);
   --glass-subtle: rgb(255 255 255 / 50%);
-  --glass-solid: #f8fafb;
+  --glass-solid: #ffffff;
   --glass-border: rgb(255 255 255 / 85%);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 95%);
-  --glass-shadow: 0 1px 2px rgb(10 24 58 / 4%), 0 10px 30px -12px rgb(10 24 58 / 16%);
+  --glass-shadow: 0 1px 2px rgb(28 27 24 / 4%), 0 10px 30px -12px rgb(28 27 24 / 14%);
   --glass-blur: 12px;
   /* State icons: darker than --info/--success/--warning so they stay visible on their tint. */
-  --tone-info: #3a5378;
+  --tone-info: #57534e;
   --tone-success: #016a73;
   --tone-warning: #7a5a1e;
   --tone-error: #b42318;
   /* Fields, hairlines and status tints (glass.css --field, --hair, --c-*). */
   --field: rgb(255 255 255 / 78%);
-  --field-border: rgb(10 24 58 / 16%);
-  --hair: rgb(10 24 58 / 8%);
-  --hair-2: rgb(10 24 58 / 14%);
-  --tint-info: rgb(69 96 135 / 12%);
+  --field-border: rgb(28 27 24 / 16%);
+  --hair: rgb(28 27 24 / 8%);
+  --hair-2: rgb(28 27 24 / 14%);
+  --tint-info: rgb(28 27 24 / 6%);
   --tint-success: rgb(1 144 155 / 13%);
   --tint-warning: rgb(208 165 95 / 22%);
   --tint-error: rgb(180 35 24 / 10%);
 }
 
 .dark .theme-glass {
-  --ground-base: #0a183a;
-  --ground:
-    radial-gradient(1100px 640px at 0% -10%, rgb(1 144 155 / 22%), transparent 60%),
-    radial-gradient(900px 600px at 100% 0%, rgb(69 96 135 / 30%), transparent 60%),
-    radial-gradient(900px 700px at 60% 115%, rgb(208 165 95 / 10%), transparent 60%),
-    #0a183a;
-  --glass: rgb(27 44 87 / 56%);
-  --glass-strong: rgb(19 35 77 / 78%);
+  --ground-base: #1a1a19;
+  --ground: radial-gradient(1100px 640px at 0% -10%, rgb(239 201 119 / 6%), transparent 60%),
+    #1a1a19;
+  --glass: rgb(38 38 36 / 72%);
+  --glass-strong: rgb(38 38 36 / 88%);
   --glass-subtle: rgb(255 255 255 / 4.5%);
-  --glass-solid: #13234d;
+  --glass-solid: #262624;
   --glass-border: rgb(255 255 255 / 10%);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 8%);
   --glass-shadow: 0 1px 2px rgb(0 0 0 / 20%), 0 14px 36px -14px rgb(0 0 0 / 55%);
-  --tone-info: #b4c3d3;
+  --tone-info: #a8a69e;
   --tone-success: #6fd6dd;
   --tone-warning: #efc977;
   --tone-error: #fda29b;
@@ -220,7 +218,7 @@
   --field-border: rgb(255 255 255 / 18%);
   --hair: rgb(255 255 255 / 8%);
   --hair-2: rgb(255 255 255 / 16%);
-  --tint-info: rgb(143 166 200 / 16%);
+  --tint-info: rgb(255 255 255 / 8%);
   --tint-success: rgb(1 144 155 / 22%);
   --tint-warning: rgb(239 201 119 / 16%);
   --tint-error: rgb(249 112 102 / 16%);
@@ -383,7 +381,7 @@
   height: 18px;
 }
 .theme-glass .group\/button.bg-primary {
-  box-shadow: 0 6px 16px -8px rgb(10 24 58 / 50%);
+  box-shadow: 0 6px 16px -8px rgb(28 27 24 / 50%);
 }
 .theme-glass .group\/button.border-border:not(:hover, :focus-visible, [aria-expanded="true"]) {
   background-color: var(--field);

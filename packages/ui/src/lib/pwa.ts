@@ -49,8 +49,8 @@ export function pwaMetadata(title: string): Pick<Metadata, "appleWebApp" | "icon
 /** Browser bar colour, matching the light and dark page backgrounds of packages/ui. */
 export const pwaViewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a183a" },
+    { media: "(prefers-color-scheme: light)", color: "#faf8f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1a19" },
   ],
 }
 
