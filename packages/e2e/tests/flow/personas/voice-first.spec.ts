@@ -371,7 +371,7 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
 })
 
 test.describe("P7-3: an agent tool call outside a user turn, then silence: Thinking… forever", () => {
-  test.fail()
+  // Fixed: regression guard.
   test("P7-3: the agent runs a read on its own and says nothing after it", async ({ persona, page }) => {
     await page.clock.install()
     await page.goto("/")
