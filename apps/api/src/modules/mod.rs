@@ -36,6 +36,7 @@ pub mod farm_tower;
 pub mod farm_villages;
 pub mod farm_vouchers;
 pub mod files;
+pub mod flow_scenes;
 pub mod hourly_rates;
 pub mod invites;
 pub mod invoice_payments;

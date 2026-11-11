@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT scene, position, hidden, schema_version, config FROM flow_scenes\n         WHERE workspace_id = $1 AND user_id = $2 AND scene = $3 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scene",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "flow_scenes",
+            "name": "scene"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "position",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "flow_scenes",
+            "name": "position"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "hidden",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "flow_scenes",
+            "name": "hidden"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "schema_version",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "flow_scenes",
+            "name": "schema_version"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "config",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "flow_scenes",
+            "name": "config"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f19d8d0edac81c54d4d988679a0f4200c143d9308d96ee3103bb80365fed222e"
+}

@@ -16196,5 +16196,145 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "flow_scenes_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/flow/scenes",
+    "disposition": "internal",
+    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Caller's own rows only (workspace_id and user_id); another workspace is 404",
+        "Adding a component needs that component's read permission (order.list, invoice.list, stock.list)"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_scenes/handlers.rs#list",
+        "apps/api/src/modules/flow_scenes/service.rs",
+        "apps/api/src/modules/flow_scenes/dto.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "flow_scenes_update": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/flow/scenes/{scene}",
+    "disposition": "internal",
+    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Caller's own rows only (workspace_id and user_id); another workspace is 404",
+        "Adding a component needs that component's read permission (order.list, invoice.list, stock.list)"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_scenes/handlers.rs#update",
+        "apps/api/src/modules/flow_scenes/service.rs",
+        "apps/api/src/modules/flow_scenes/dto.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "flow_scenes_delete": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/flow/scenes/{scene}",
+    "disposition": "internal",
+    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Caller's own rows only (workspace_id and user_id); another workspace is 404",
+        "Adding a component needs that component's read permission (order.list, invoice.list, stock.list)"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_scenes/handlers.rs#delete",
+        "apps/api/src/modules/flow_scenes/service.rs",
+        "apps/api/src/modules/flow_scenes/dto.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "flow_scenes_reset": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/flow/scenes/reset",
+    "disposition": "internal",
+    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Caller's own rows only (workspace_id and user_id); another workspace is 404",
+        "Adding a component needs that component's read permission (order.list, invoice.list, stock.list)"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_scenes/handlers.rs#reset",
+        "apps/api/src/modules/flow_scenes/service.rs",
+        "apps/api/src/modules/flow_scenes/dto.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }

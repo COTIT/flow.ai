@@ -6701,6 +6701,18 @@
         ],
         "type": "object"
       },
+      "Envelope_FlowScene": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FlowScene"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_GroupCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -8215,6 +8227,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_FlowScene": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FlowScene"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_LoginIssue": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -9416,6 +9443,147 @@
       },
       "FinancialSummary": {
         "description": "Placeholder money figures until invoices are ported; keys depend on `lite`.",
+        "type": "object"
+      },
+      "FlowComponent": {
+        "additionalProperties": false,
+        "description": "One component of a scene: what to show, never the shown values.",
+        "properties": {
+          "id": {
+            "description": "Unique in its scene, `^[a-z0-9-]{1,32}$`.",
+            "example": "sales-today",
+            "type": "string"
+          },
+          "metric": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FlowMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FlowPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/FlowComponentType"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "type": "object"
+      },
+      "FlowComponentType": {
+        "description": "Component kind. `metric_card`, `line_chart`, `bar_chart`, `comparison` need `metric` and `period`; list kinds take no `metric`.",
+        "enum": [
+          "metric_card",
+          "line_chart",
+          "bar_chart",
+          "comparison",
+          "order_list",
+          "stock_list",
+          "attention_panel",
+          "invoice_table",
+          "report_list"
+        ],
+        "type": "string"
+      },
+      "FlowMetric": {
+        "description": "Metric key. sales.* and orders.* need `order.list`, invoices.* `invoice.list`, stock.* `stock.list`.",
+        "enum": [
+          "sales.gross",
+          "sales.net",
+          "orders.pending",
+          "orders.draft",
+          "stock.below_minimum",
+          "invoices.overdue",
+          "invoices.unpaid"
+        ],
+        "type": "string"
+      },
+      "FlowPeriod": {
+        "description": "Period a component shows.",
+        "enum": [
+          "today",
+          "yesterday",
+          "this_week",
+          "last_week",
+          "last_7_days",
+          "this_month"
+        ],
+        "type": "string"
+      },
+      "FlowScene": {
+        "description": "One Your Flow scene: built-in default or the caller's saved settings. `restricted` lists component ids the caller's role can't read; Flow shows them as not available, never their values.",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/FlowSceneConfig"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "position": {
+            "description": "0 to 19; scenes sort by position, then key.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "restricted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "saved": {
+            "description": "True when the caller saved this scene; false = Rust default.",
+            "type": "boolean"
+          },
+          "scene": {
+            "example": "pulse",
+            "type": "string"
+          },
+          "schema_version": {
+            "description": "Config format version; 1.",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "scene",
+          "position",
+          "hidden",
+          "saved",
+          "schema_version",
+          "config",
+          "restricted"
+        ],
+        "type": "object"
+      },
+      "FlowSceneConfig": {
+        "additionalProperties": false,
+        "description": "A scene's display config.",
+        "properties": {
+          "components": {
+            "description": "In display order, at most 8.",
+            "items": {
+              "$ref": "#/components/schemas/FlowComponent"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "components"
+        ],
         "type": "object"
       },
       "FollowUpInput": {
@@ -28404,6 +28572,39 @@
             "maxLength": 2000,
             "type": [
               "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "UpdateFlowSceneRequest": {
+        "additionalProperties": false,
+        "description": "PUT body: any of the three; omitted ones keep the saved value (else the default).",
+        "properties": {
+          "config": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FlowSceneConfig",
+                "description": "Required on a new custom scene. Replaces the whole component list."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hidden": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "position": {
+            "description": "0 to 19.",
+            "example": 0,
+            "format": "int64",
+            "type": [
+              "integer",
               "null"
             ]
           }
@@ -72844,6 +73045,598 @@
         "summary": "Get a file and a fresh download URL",
         "tags": [
           "files"
+        ]
+      }
+    },
+    "/workspace/{workspace}/flow/scenes": {
+      "get": {
+        "description": "The caller's own Flow scenes here: built-in defaults merged with what the caller saved, sorted by position then key. Display settings only, no business values. `restricted` lists component ids the caller's role can't read.",
+        "operationId": "flow_scenes_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_FlowScene"
+                }
+              }
+            },
+            "description": "The caller's scenes"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My Flow scenes (Your Flow layout: which cards and charts, order, hidden)",
+        "tags": [
+          "flow_scenes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/flow/scenes/reset": {
+      "post": {
+        "description": "Drops every scene setting the caller saved in this workspace. Other members' settings stay.",
+        "operationId": "flow_scenes_reset",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Defaults restored"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset my Flow to the defaults",
+        "tags": [
+          "flow_scenes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/flow/scenes/{scene}": {
+      "delete": {
+        "description": "Drops the caller's saved settings for one scene: a built-in goes back to its default, a custom scene disappears. Nothing saved is fine (204).",
+        "operationId": "flow_scenes_delete",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scene key",
+            "in": "path",
+            "name": "scene",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default restored"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown scene key"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore one of my Flow scenes to its default (or remove a custom scene)",
+        "tags": [
+          "flow_scenes"
+        ]
+      },
+      "put": {
+        "description": "Saves the caller's settings for one scene. Omitted fields keep the saved value, else the default. `config` replaces the component list. A new custom scene (`sales_*`, `stock_*`) needs `config`. At most 20 saved scenes per member per workspace. Sending the same body again changes nothing.",
+        "operationId": "flow_scenes_update",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Built-in scene (pulse, stock, noticed, orders, sales, routines, studio) or custom `sales_*` / `stock_*`",
+            "in": "path",
+            "name": "scene",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFlowSceneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_FlowScene"
+                }
+              }
+            },
+            "description": "Saved scene"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or config adds a component the caller's role can't read"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown scene, type, metric or period; bad or repeated component id; more than 8 components; config over 8 KiB; position outside 0..19; empty body; unknown field; new custom scene without config; 20 scenes already"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change one of my Flow scenes (reorder, hide, pick cards and charts)",
+        "tags": [
+          "flow_scenes"
         ]
       }
     },
