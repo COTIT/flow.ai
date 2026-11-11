@@ -65,9 +65,9 @@ const batch: VoiceReview = {
   ],
 }
 const transcript = [
-  { role: "agent", text: "Hi, I'm your Genesy assistant. What would you like to do?" },
+  { role: "agent", text: "Good morning. What shall we start with?" },
   { role: "user", text: "Set the honey stock to 120 jars, we got the Ruaha delivery." },
-  { role: "agent", text: "Ok got that, let me check it for you." },
+  { role: "agent", text: "Checking the honey stock first…" },
 ]
 
 export function VoiceDesignPreview() {

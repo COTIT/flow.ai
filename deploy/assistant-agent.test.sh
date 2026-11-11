@@ -54,8 +54,18 @@ assert 'end with one direct question' in prompt,'missing or mismatched file must
 assert 'never revert anything by yourself' in prompt,'undo must be a new review card'
 assert 'meta.total for how many' in prompt,'counts must come from meta.total'
 assert '[File import]' in prompt and 'never copy prices yourself' in prompt,'file import block missing'
-for line in ['Ok, got that','just finalizing','please read and approve the card','Oké, begrepen','lees de kaart en keur hem goed','Sawa, nimeelewa','tafadhali soma kadi na uidhinishe']:
-    assert line in prompt,'four-beat talk-back script missing: '+line
+# Talk-back is style guidance, not a script: fixed lines made the agent sound robotic.
+for script in ['Ok, got that, let me check it for you.','Oké, begrepen, ik zoek het even voor je uit.','Sawa, nimeelewa, niruhusu nikuangalie.','Approved, just finalizing.','Here is what I\'ll do, please read and approve the card.']:
+    assert script not in prompt,'talk-back must not be a fixed script: '+script
+for rule in ['only when a lookup will take a moment','never the same opener twice in a row','say nothing before an instant answer','illustrations only, never repeat them verbatim']:
+    assert rule in prompt,'talk-back style rule missing: '+rule
+assert prompt.count('never repeat them verbatim')>=3,'acknowledgement, progress and review examples must all be marked as illustrations'
+assert 'never read an approval code or phrase aloud and never approve yourself' in prompt,'talk-back must keep the approval rules'
+agent_overrides=config['platform_settings']['overrides']['conversation_config_override']['agent']
+assert agent_overrides['first_message'] is True,"Office's contextual greeting needs the first_message override"
+assert agent_overrides['prompt']['prompt'] is False and agent_overrides['language'] is True,'only the greeting and language may be overridden'
+firsts=[agent['first_message']]+[preset['overrides']['agent']['first_message'] for preset in config['conversation_config']['language_presets'].values()]
+assert all(0<len(text)<=60 for text in firsts),'the fallback greeting stays short and neutral'
 assert 'call the same wait:true again' in prompt,'agent must keep waiting after a running progress result'
 assert 'you may call execute_genesy_tool directly' in prompt and 'Effects still require discovering' in prompt,'direct lookup contract missing'
 assert 'You cannot approve actions yourself.' in prompt and 'Approval codes and exact confirmation phrases are private' in prompt,'approval rules changed'
