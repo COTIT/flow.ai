@@ -53,7 +53,11 @@ export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
     if (r.failure()?.errorText !== "net::ERR_ABORTED")
       problems.push(`request failed: ${r.url()} ${r.failure()?.errorText}`)
   })
-  page.on("pageerror", (e) => problems.push(`page error: ${e.message}`))
+  page.on("pageerror", (e) => {
+    // The browser's own offline error page: its scripts are not the app's (e.g. a reload offline).
+    if (page.url().startsWith("chrome-error://")) return
+    problems.push(`page error: ${e.message}`)
+  })
   page.on("console", (m) => {
     if (m.type() !== "error") return
     // Chrome logs every >= 400 response; the response check above already judged it.

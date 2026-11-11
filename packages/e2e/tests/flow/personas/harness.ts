@@ -257,7 +257,9 @@ export class Persona {
       direction === "back" ? this.page.goBack() : this.page.goForward()
     ).catch(() => {})
   }
+  /** A reload while offline would only show the browser's error page: skipped, not a break. */
   async reload() {
+    if (this.net.down) return this.log("  (reload skipped: offline)")
     await this.page.reload().catch(() => {})
   }
   /**
@@ -276,6 +278,11 @@ export class Persona {
       for (const agent of this.agents) agent.close()
     }
     await context.setOffline(on)
+    // Back online: a tab that showed the browser's offline error page loads Flow again.
+    if (!on)
+      for (const page of this.pages)
+        if (!page.isClosed() && page.url().startsWith("chrome-error://"))
+          await page.reload().catch(() => {})
   }
   private wentOffline = false
   private tunnels = new WeakSet<Page>()
@@ -393,6 +400,8 @@ export class Persona {
   async check() {
     for (const page of this.pages) {
       if (page.isClosed()) continue
+      // The browser's offline error page (a navigation while down): judged once back online.
+      if (page.url().startsWith("chrome-error://")) continue
       // A click may still be navigating: judge the page it lands on, not the one it leaves.
       await page
         .waitForLoadState("domcontentloaded", { timeout: 10_000 })
