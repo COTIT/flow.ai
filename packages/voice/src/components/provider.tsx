@@ -61,6 +61,7 @@ import {
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
 import { isBlankMessage } from "../lib/blank"
+import { watchCapture } from "../lib/capture-watch"
 import {
   VoiceRequestError,
   VoiceShownError,
@@ -1369,6 +1370,14 @@ function Session({
     conversation.sendUserActivity()
     if (activeBatch.current) void stopBatch("pause")
   }
+  // The microphone taken away mid-call (unplugged, revoked): pause like a hidden page does.
+  const pauseLatest = useRef(pauseCapture)
+  pauseLatest.current = pauseCapture
+  useEffect(() => {
+    // No mediaDevices (insecure page, tests): no microphone to lose.
+    if (navigator.mediaDevices)
+      return watchCapture(navigator.mediaDevices, () => pauseLatest.current())
+  }, [])
   useEffect(() => {
     const visibility = () => {
       if (document.visibilityState !== "visible") {
