@@ -14,6 +14,7 @@ import commonSw from "../../../../../packages/i18n/messages/sw.json" with { type
 import { expect, markInjected, watchProblems } from "../../../src/test"
 import type { FakeApi } from "../../office/fake-api"
 import { ACTION, stockReview } from "../task"
+import { revealHeader } from "../shell"
 import { fakeAgent, type Agent } from "../voice"
 import type { Persona } from "./harness"
 
@@ -229,6 +230,7 @@ export const savedWorkspace = (page: Page) =>
     .catch(() => null)
 /** Picks the other workspace in this tab's header picker, as a person would. */
 export async function switchWorkspace(page: Page, to: string) {
+  await showHeader(page)
   const t = L[await localeOf(page)]
   const picker = page.getByRole("combobox", { name: t.workspace })
   if (!(await picker.isVisible().catch(() => false))) return false
@@ -243,6 +245,7 @@ export async function switchWorkspace(page: Page, to: string) {
   return true
 }
 export async function setLanguage(page: Page, to: Locale) {
+  await showHeader(page)
   const t = L[await localeOf(page)]
   const select = page.getByRole("combobox", { name: t.language })
   if (!(await select.isVisible().catch(() => false))) return false
@@ -250,7 +253,18 @@ export async function setLanguage(page: Page, to: Locale) {
   return true
 }
 export async function logOut(page: Page) {
-  return clickIf(page, L[await localeOf(page)].logout, false)
+  await showHeader(page)
+  const label = L[await localeOf(page)].logout
+  const done = await clickIf(page, label, false)
+  // While a conversation or task is live, Log out asks first (P10-3): confirm.
+  const ask = page.getByRole("alertdialog")
+  if (done && (await ask.waitFor({ state: "visible", timeout: 1_000 }).then(() => true, () => false)))
+    await ask.getByRole("button", { name: label }).click({ timeout: 2_000 }).catch(() => {})
+  return done
+}
+/** The header floats hidden until asked for (D2): reveal it before using its controls. */
+async function showHeader(page: Page) {
+  await revealHeader(page).catch(() => {})
 }
 
 // ---- invariants of this persona -------------------------------------------------------------

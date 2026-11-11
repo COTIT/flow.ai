@@ -325,6 +325,8 @@ for (const [how, click] of Object.entries(twice)) {
         api.callsTo("PUT", "/workspace/w1/attention/marks").length - before,
         `${name} on ${how}`
       ).toBe(1)
+      await page.keyboard.press("Escape") // a menu the second click left open
+      await expect(page.getByRole("menu")).toHaveCount(0)
     }
   })
 }
