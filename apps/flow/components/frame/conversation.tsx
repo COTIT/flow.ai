@@ -357,7 +357,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
         />
       </button>
       <div className="flex min-w-0 items-center gap-2.5">
-        <OrbSlot name="compact" className="size-9" />
+        <OrbSlot name="compact" className="size-11" />
         {open ? (
           <p className="text-sm text-muted-foreground">
             {t(`shell.phase.${phase}`)}

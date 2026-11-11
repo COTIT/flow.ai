@@ -54,7 +54,14 @@ export function OrbLayer() {
   const voice = useVoice()
   const immersive = useFlow((s) => s.immersive)
   const resultOpen = useFlow((s) => s.resultOpen)
-  const mode = orbMode({ pathname, resultOpen, immersive })
+  const conversing = voice.messages.length > 0
+  const mode = orbMode({ pathname, resultOpen, immersive, conversing })
+  // In the conversation itself the orb is only a picture of it (the controls sit beside it).
+  const picture =
+    pathname === "/" &&
+    immersive &&
+    !resultOpen &&
+    (voice.connected || voice.starting || voice.upgrading)
   const slot = useFlow((s) => s.slots[mode])
   const layer = useRef<HTMLDivElement>(null)
   const orb = useRef<HTMLButtonElement>(null)
@@ -112,8 +119,7 @@ export function OrbLayer() {
     }
   }, [slot, mode])
 
-  const label =
-    mode === "ambient" && !live ? t("orbStart") : t("orbOpen")
+  const label = mode === "ambient" && !live ? t("orbStart") : t("orbOpen")
   return (
     <div
       ref={layer}
@@ -125,12 +131,12 @@ export function OrbLayer() {
         data-orb={mode}
         aria-label={label}
         // In the conversation the orb is only a picture; elsewhere it opens or starts it.
-        tabIndex={mode === "immersive" ? -1 : 0}
-        aria-hidden={mode === "immersive" || undefined}
+        tabIndex={picture ? -1 : 0}
+        aria-hidden={picture || undefined}
         style={{ width: BASE, height: BASE, visibility: "hidden" }}
         className="pointer-events-auto absolute top-0 left-0 origin-top-left rounded-full focus-visible:ring-4 focus-visible:ring-(--gold) focus-visible:outline-none"
         onClick={() => {
-          if (mode === "immersive") return
+          if (picture) return
           if (mode === "ambient" && !live) {
             void voice.start(false)
             return

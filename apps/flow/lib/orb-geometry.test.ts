@@ -19,19 +19,26 @@ describe("orb mode", () => {
       "compact"
     )
     expect(orbMode({ pathname: "/", immersive: true })).toBe("immersive")
+    // Once the conversation has content the orb steps aside: small, the chat gets the height.
+    expect(orbMode({ pathname: "/", immersive: true, conversing: true })).toBe(
+      "compact"
+    )
+    expect(orbMode({ pathname: "/", conversing: true })).toBe("ambient")
     expect(orbMode({ pathname: "/" })).toBe("ambient")
   })
 })
 
 describe("slot transform", () => {
   it("places the base-size orb on the slot, relative to the layer", () => {
-    expect(slotTransform(rect(140, 100, 320, 320), rect(40, 60, 1200, 700), 320))
-      .toEqual({ x: 100, y: 40, scale: 1 })
+    expect(
+      slotTransform(rect(140, 100, 320, 320), rect(40, 60, 1200, 700), 320)
+    ).toEqual({ x: 100, y: 40, scale: 1 })
   })
 
   it("scales down and centres in a non-square slot", () => {
-    expect(slotTransform(rect(1000, 80, 48, 64), rect(0, 60, 1200, 700), 320))
-      .toEqual({ x: 1000, y: 28, scale: 0.15 })
+    expect(
+      slotTransform(rect(1000, 80, 48, 64), rect(0, 60, 1200, 700), 320)
+    ).toEqual({ x: 1000, y: 28, scale: 0.15 })
   })
 })
 

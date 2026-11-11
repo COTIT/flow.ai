@@ -345,3 +345,34 @@ test("SW9: the composer is one stable field: focus and draft survive a review op
   expect(await same()).toBe(true)
   await expectSingleScroller(page)
 })
+
+test("conversing: the orb steps aside (small, in the header row) and the transcript gets the height", async ({
+  page,
+}) => {
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "Hello")
+  await expect(page.getByRole("log")).toContainText("Answer: Hello")
+  const header = page.locator("[data-conversation-header]")
+  await expect(header).toBeVisible()
+  // The orb glides into the header row and stays visible there, at most 56 px.
+  await expect
+    .poll(async () => {
+      const o = (await page.locator("[data-orb]").boundingBox())!
+      const h = (await header.boundingBox())!
+      return o.width <= 56 && o.y >= h.y - 1 && o.y + o.height <= h.y + h.height + 1
+    })
+    .toBe(true)
+  await expect(page.locator("[data-orb]")).toBeVisible()
+  // The transcript has at least 70% of the screen above the dock.
+  const room = await page.evaluate(() => {
+    const main = document.querySelector("[data-flow-scroll]")!.getBoundingClientRect()
+    const head = document.querySelector("[data-conversation-header]")!.getBoundingClientRect()
+    const dock = document.querySelector("[data-dock-layer]")!.getBoundingClientRect()
+    return (main.bottom - head.bottom) / (window.innerHeight - dock.height)
+  })
+  expect(room).toBeGreaterThanOrEqual(0.7)
+  await expectSingleScroller(page)
+  await expectNoHorizontalScroll(page)
+})
