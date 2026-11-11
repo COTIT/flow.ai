@@ -10,5 +10,10 @@
  * A short message: `ok` after an action, or what went wrong.
  */
 export interface MessageBody {
+  /**
+     * Stable machine-readable reason, when the caller must distinguish setup from retry.
+     * @nullable
+     */
+  code?: string | null;
   message: string;
 }

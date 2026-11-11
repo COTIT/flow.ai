@@ -567,6 +567,8 @@ pub struct PublicInvoice {
     /// The workspace's company profile (no credit limit).
     #[schema(value_type = Object)]
     company_details: Value,
+    /// New hosted collections enabled with complete account configuration.
+    online_payment_enabled: Option<bool>,
     #[schema(required = true)]
     due_date: Option<DateTime<Utc>>,
     items: Vec<PublicInvoiceItem>,

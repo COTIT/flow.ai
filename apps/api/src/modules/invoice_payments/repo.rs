@@ -46,7 +46,7 @@ pub async fn lock(
 pub struct NewPayment<'a> {
     pub id: Uuid,
     pub invoice_id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub date: NaiveDate,
     pub amount: i64,
     pub description: Option<&'a str>,
@@ -66,7 +66,7 @@ pub async fn insert(
 ) -> Result<(), sqlx::Error> {
     let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
     let invoices: Vec<Uuid> = rows.iter().map(|r| r.invoice_id).collect();
-    let users: Vec<Uuid> = rows.iter().map(|r| r.user_id).collect();
+    let users: Vec<Option<Uuid>> = rows.iter().map(|r| r.user_id).collect();
     let dates: Vec<NaiveDate> = rows.iter().map(|r| r.date).collect();
     let amounts: Vec<i64> = rows.iter().map(|r| r.amount).collect();
     let descriptions: Vec<Option<&str>> = rows.iter().map(|r| r.description).collect();
@@ -88,7 +88,7 @@ pub async fn insert(
         workspace_id,
         &ids,
         &invoices,
-        &users,
+        &users as &[Option<Uuid>],
         &dates,
         &amounts,
         &descriptions as &[Option<&str>],

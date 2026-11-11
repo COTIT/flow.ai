@@ -225,7 +225,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 417, "reviewed capability count changed");
+    assert_eq!(selected.len(), 428, "reviewed capability count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool);
     let mut exercised = BTreeSet::new();
@@ -246,7 +246,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         );
         assert!(exercised.insert(id));
     }
-    assert_eq!(exercised.len(), 417);
+    assert_eq!(exercised.len(), 428);
 }
 
 #[sqlx::test]
@@ -258,7 +258,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 228, "reviewed effect count changed");
+    assert_eq!(selected.len(), 233, "reviewed effect count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool.clone());
     let (owner, workspace) =
@@ -366,7 +366,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 228);
+    assert_eq!(exercised.len(), 233);
 }
 
 #[sqlx::test]
@@ -385,7 +385,7 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
         .collect();
     assert_eq!(
         selected.len(),
-        278,
+        282,
         "reviewed permission-protected count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -433,7 +433,111 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 278);
+    assert_eq!(exercised.len(), 282);
+}
+
+#[sqlx::test]
+async fn gateway_reads_enforce_the_payment_owner_permission_without_list_view_substitution(
+    pool: PgPool,
+) {
+    use uuid::Uuid;
+
+    let f = common::invoicing::setup_with(pool, false).await;
+    let invoice = common::invoicing::draft(
+        &f,
+        json!([{"title":"Work","quantity":1,"price":"10","vat":0}]),
+        false,
+    )
+    .await;
+    let order = f
+        .api
+        .with_base("/orders")
+        .create(
+            json!({"lines":[{"product_id":f.product,"quantity":1}]}),
+            "order_id",
+        )
+        .await;
+    let ws: Uuid = f.api.ws.parse().unwrap();
+    let invoice_payment = Uuid::now_v7();
+    let order_payment = Uuid::now_v7();
+    sqlx::query("INSERT INTO payment_accounts (workspace_id,environment,merchant_id,principal_hash) VALUES ($1,'sandbox','permission-test',decode(repeat('00',32),'hex'))")
+        .bind(ws).execute(&f.api.pool).await.unwrap();
+    for (id, invoice_id, order_id) in [
+        (
+            invoice_payment,
+            Some(invoice.parse::<Uuid>().unwrap()),
+            None,
+        ),
+        (order_payment, None, Some(order.parse::<Uuid>().unwrap())),
+    ] {
+        sqlx::query("INSERT INTO order_payments (id,workspace_id,invoice_id,order_id,kind,provider,environment,merchant_id,account_revision,request_id,status,amount,currency,decimals,customer_id,country,payer_name) VALUES ($1,$2,$3,$4,'payment','globadyme','sandbox','permission-test',1,$1,'open',1000,'EUR',2,$1::text,'NL','Client')")
+            .bind(id).bind(ws).bind(invoice_id).bind(order_id).execute(&f.api.pool).await.unwrap();
+    }
+    let payments = f.api.with_base("/payments");
+    for (email, grants, visible, allowed, denied, invoice_view) in [
+        (
+            "invoice-list-order-view@example.test",
+            vec!["invoice.list", "order.view"],
+            invoice_payment,
+            order_payment,
+            invoice_payment,
+            false,
+        ),
+        (
+            "order-list-invoice-view@example.test",
+            vec!["order.list", "invoice.view"],
+            order_payment,
+            invoice_payment,
+            order_payment,
+            true,
+        ),
+    ] {
+        let token = common::member_with(&f.api.app, &f.api.pool, &f.api.ws, email, &grants).await;
+        let (status, reply) = payments.call(Method::GET, "", None, &token).await;
+        assert_eq!(status, StatusCode::OK, "{reply}");
+        let rows = reply["data"].as_array().unwrap();
+        assert_eq!(
+            rows.len(),
+            1,
+            "list must filter by the owner's list permission"
+        );
+        assert_eq!(rows[0]["payment_id"], visible.to_string());
+        let (status, reply) = payments
+            .call(Method::GET, &format!("/{allowed}"), None, &token)
+            .await;
+        assert_eq!(status, StatusCode::OK, "{reply}");
+        assert_eq!(reply["data"]["payment_id"], allowed.to_string());
+        for (method, path) in [
+            (Method::GET, format!("/{denied}")),
+            (Method::POST, format!("/{denied}/refresh")),
+        ] {
+            let (status, reply) = payments.call(method, &path, None, &token).await;
+            assert_eq!(
+                status,
+                StatusCode::FORBIDDEN,
+                "other-owner view permission cannot read or reconcile this payment: {reply}"
+            );
+        }
+        let (status, reply) = f
+            .api
+            .call(Method::GET, &format!("/{invoice}/gateway"), None, &token)
+            .await;
+        assert_eq!(
+            status,
+            if invoice_view {
+                StatusCode::OK
+            } else {
+                StatusCode::FORBIDDEN
+            },
+            "{reply}"
+        );
+    }
+    let changed: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM order_payments WHERE workspace_id=$1 AND (claimed_at IS NOT NULL OR status <> 'open'))")
+        .bind(ws).fetch_one(&f.api.pool).await.unwrap();
+    assert!(
+        !changed,
+        "permission checks must not dispatch or reconcile payments"
+    );
 }
 
 #[sqlx::test]
@@ -450,7 +554,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         .collect();
     assert_eq!(
         selected.len(),
-        85,
+        91,
         "reviewed collection boundary count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -518,7 +622,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 85);
+    assert_eq!(exercised.len(), 91);
 }
 
 #[sqlx::test]

@@ -1,23 +1,25 @@
 "use client"
 
-import { useEffect, useSyncExternalStore } from "react"
+import { useContext, useEffect, useSyncExternalStore } from "react"
 import { useStore } from "zustand"
 
-import { cartStore } from "./cart"
+import { CartContext } from "@/components/shop-provider"
 
-const hydrated = {
-  subscribe: (done: () => void) => cartStore.persist.onFinishHydration(done),
-  get: () => cartStore.persist.hasHydrated(),
+export function useCartStore() {
+  const store = useContext(CartContext)
+  if (!store) throw new Error("ShopProvider is missing")
+  return store
 }
 
 /** The cart's lines and actions; `ready` is false until localStorage has been read. */
 export function useCart() {
+  const cartStore = useCartStore()
   useEffect(() => {
     if (!cartStore.persist.hasHydrated()) void cartStore.persist.rehydrate()
-  }, [])
+  }, [cartStore])
   const ready = useSyncExternalStore(
-    hydrated.subscribe,
-    hydrated.get,
+    (done) => cartStore.persist.onFinishHydration(done),
+    () => cartStore.persist.hasHydrated(),
     () => false
   )
   return { ...useStore(cartStore), ready }

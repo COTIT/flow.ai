@@ -9,7 +9,7 @@ use serde::{
     Deserialize, Deserializer,
     de::{
         DeserializeSeed, Error, IgnoredAny, MapAccess, SeqAccess, Visitor,
-        value::MapAccessDeserializer,
+        value::{MapAccessDeserializer, StringDeserializer},
     },
 };
 use serde_json::{Map, Number, Value};
@@ -110,7 +110,55 @@ impl<'de> Visitor<'de> for ScalarVisitor {
         drain_seq(seq).map(Scalar::Container)
     }
     fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Scalar, A::Error> {
-        drain_map(map).map(Scalar::Container)
+        match number_or_map(map)? {
+            NumberOrMap::Number(n) => Ok(Scalar::Number(n)),
+            NumberOrMap::Map(map) => drain_map(map).map(Scalar::Container),
+        }
+    }
+}
+
+enum NumberOrMap<A> {
+    Number(Number),
+    Map(FirstKey<A>),
+}
+
+// With arbitrary_precision, serde_json delivers numbers through its private map protocol.
+fn number_or_map<'de, A: MapAccess<'de>>(mut map: A) -> Result<NumberOrMap<A>, A::Error> {
+    let first = map.next_key::<String>()?;
+    let number = first.as_deref() == Some("$serde_json::private::Number");
+    let map = FirstKey { first, rest: map };
+    if number {
+        Number::deserialize(MapAccessDeserializer::new(map)).map(NumberOrMap::Number)
+    } else {
+        Ok(NumberOrMap::Map(map))
+    }
+}
+
+struct FirstKey<A> {
+    first: Option<String>,
+    rest: A,
+}
+
+impl<'de, A: MapAccess<'de>> MapAccess<'de> for FirstKey<A> {
+    type Error = A::Error;
+
+    fn next_key_seed<K: DeserializeSeed<'de>>(
+        &mut self,
+        seed: K,
+    ) -> Result<Option<K::Value>, Self::Error> {
+        match self.first.take() {
+            Some(key) => seed
+                .deserialize(StringDeserializer::<A::Error>::new(key))
+                .map(Some),
+            None => self.rest.next_key_seed(seed),
+        }
+    }
+
+    fn next_value_seed<V: DeserializeSeed<'de>>(
+        &mut self,
+        seed: V,
+    ) -> Result<V::Value, Self::Error> {
+        self.rest.next_value_seed(seed)
     }
 }
 
@@ -158,7 +206,7 @@ pub struct RawItem {
 
 /// Most nodes (values, keys included) a `Capped` keeps.
 pub const MAX_NODES: usize = 1000;
-/// Most bytes of keys and strings a `Capped` keeps (one node can be a 2 MiB string).
+/// Most bytes of keys, strings and exact numbers a `Capped` keeps.
 pub const MAX_BYTES: usize = 16 * 1024;
 
 /// A JSON value kept only while it has at most `MAX_NODES` nodes and `MAX_BYTES` of text; a
@@ -213,6 +261,11 @@ impl Budget<'_> {
         }
         ok
     }
+
+    fn number(&self, n: Number) -> Option<Value> {
+        self.spend_text(n.as_str().len())
+            .then_some(Value::Number(n))
+    }
 }
 
 impl<'de> DeserializeSeed<'de> for Budget<'_> {
@@ -237,15 +290,16 @@ impl<'de> Visitor<'de> for Budget<'_> {
         Ok(self.spend().then_some(Value::Bool(v)))
     }
     fn visit_i64<E: Error>(self, v: i64) -> Result<Self::Value, E> {
-        Ok(self.spend().then(|| Value::from(v)))
+        Ok(self.number(v.into()))
     }
     fn visit_u64<E: Error>(self, v: u64) -> Result<Self::Value, E> {
-        Ok(self.spend().then(|| Value::from(v)))
+        Ok(self.number(v.into()))
     }
     fn visit_f64<E: Error>(self, v: f64) -> Result<Self::Value, E> {
-        Ok(self
-            .spend()
-            .then(|| Number::from_f64(v).map_or(Value::Null, Value::Number)))
+        Ok(match Number::from_f64(v) {
+            Some(n) => self.number(n),
+            None => self.spend().then_some(Value::Null),
+        })
     }
     fn visit_str<E: Error>(self, v: &str) -> Result<Self::Value, E> {
         Ok(self
@@ -268,7 +322,11 @@ impl<'de> Visitor<'de> for Budget<'_> {
         }
         Ok(out.map(Value::Array))
     }
-    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+    fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
+        let mut map = match number_or_map(map)? {
+            NumberOrMap::Number(n) => return Ok(self.number(n)),
+            NumberOrMap::Map(map) => map,
+        };
         let mut out = self.spend().then(Map::new);
         while let Some(k) = map.next_key::<String>()? {
             let v = if self.spend_text(k.len()) {
@@ -310,7 +368,11 @@ impl<'de> Visitor<'de> for RowVisitor {
         f.write_str("an item")
     }
     fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Row, A::Error> {
-        RawItem::deserialize(MapAccessDeserializer::new(map)).map(|i| Row::Item(Box::new(i)))
+        match number_or_map(map)? {
+            NumberOrMap::Number(_) => Ok(Row::NotObject),
+            NumberOrMap::Map(map) => RawItem::deserialize(MapAccessDeserializer::new(map))
+                .map(|i| Row::Item(Box::new(i))),
+        }
     }
     fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Row, A::Error> {
         drain_seq(seq).map(|_| Row::NotObject)
@@ -455,12 +517,15 @@ mod tests {
             (r#"{"v":null}"#, false),
             (r#"{"v":0}"#, false),
             (r#"{"v":0.0}"#, false),
+            (r#"{"v":-0.0}"#, false),
+            (r#"{"v":0e5}"#, false),
             (r#"{"v":"0"}"#, false),
             (r#"{"v":""}"#, false),
             (r#"{"v":false}"#, false),
             (r#"{"v":[]}"#, false),
             (r#"{"v":{}}"#, false),
             (r#"{"v":1}"#, true),
+            (r#"{"v":1.25e-3}"#, true),
             (r#"{"v":"00"}"#, true),
             (r#"{"v":" "}"#, true),
             (r#"{"v":true}"#, true),
@@ -468,6 +533,23 @@ mod tests {
             (r#"{"v":{"a":1}}"#, true),
         ] {
             assert_eq!(scalar(json).truthy(), truthy, "{json}");
+        }
+    }
+
+    #[test]
+    fn exact_numbers_stay_scalar() {
+        for number in [
+            "0.0",
+            "-0.0",
+            "1.25e-3",
+            "18446744073709551616",
+            "123456789012345678901.1234567890123456789",
+        ] {
+            let parsed = scalar(&format!(r#"{{"v":{number}}}"#));
+            let expected: Value = serde_json::from_str(number).unwrap();
+            assert!(matches!(parsed, Scalar::Number(_)), "{number}");
+            assert_eq!(parsed.filled(), Some(expected.clone()), "{number}");
+            assert_eq!(parsed.echo(), expected, "{number}");
         }
     }
 
@@ -529,10 +611,87 @@ mod tests {
         assert!(matches!(capped(&deep), Capped::Value(_)));
         // One node, too many bytes; a sibling after the oversized value is still skipped.
         let long = |n: usize| format!(r#"{{"v":{{"a":"{}","b":1}}}}"#, "x".repeat(n));
-        assert!(matches!(capped(&long(MAX_BYTES - 2)), Capped::Value(_)));
-        assert_eq!(capped(&long(MAX_BYTES)), Capped::TooLarge);
+        // Keys "a" and "b" plus the retained number "1" consume three bytes.
+        assert!(matches!(capped(&long(MAX_BYTES - 3)), Capped::Value(_)));
+        assert_eq!(capped(&long(MAX_BYTES - 2)), Capped::TooLarge);
         let key = format!(r#"{{"v":{{"{}":1}}}}"#, "k".repeat(MAX_BYTES + 1));
         assert_eq!(capped(&key), Capped::TooLarge);
+    }
+
+    #[test]
+    fn capped_keeps_exact_numbers_within_budget() {
+        let nested = r#"{"a":[0.0,-0.0,1.25e-3,{"b":123456789012345678901.1234567890123456789}]}"#;
+        assert_eq!(
+            capped(&format!(r#"{{"v":{nested}}}"#)),
+            Capped::Value(serde_json::from_str(nested).unwrap())
+        );
+        let number = |len: usize| format!(r#"{{"v":0.{}}}"#, "1".repeat(len - 2));
+        assert!(matches!(
+            capped(&number(MAX_BYTES)),
+            Capped::Value(Value::Number(_))
+        ));
+        assert_eq!(capped(&number(MAX_BYTES + 1)), Capped::TooLarge);
+        let exhausted = format!(r#"{{"v":[0.{},{{"later":1.25}}]}}"#, "1".repeat(MAX_BYTES));
+        assert_eq!(capped(&exhausted), Capped::TooLarge);
+    }
+
+    #[test]
+    fn capped_counts_cumulative_integer_bytes() {
+        for number in ["18446744073709551615", "-9223372036854775808"] {
+            let count = MAX_BYTES / number.len();
+            let prefix = vec![number; count].join(",");
+            let remaining = MAX_BYTES - count * number.len();
+            let list = |tail_len| format!(r#"{{"v":[{prefix},{}]}}"#, "1".repeat(tail_len));
+            assert!(
+                matches!(capped(&list(remaining)), Capped::Value(_)),
+                "{number}"
+            );
+            assert_eq!(capped(&list(remaining + 1)), Capped::TooLarge, "{number}");
+            let oversized = format!(r#"{{"v":[{}]}}"#, vec![number; MAX_NODES - 1].join(","));
+            assert_eq!(capped(&oversized), Capped::TooLarge, "{number}");
+        }
+    }
+
+    #[test]
+    fn numeric_items_and_rows_keep_their_invalid_shape() {
+        for number in ["0.0", "-0.0", "1.25e-3", "18446744073709551616"] {
+            assert!(
+                matches!(serde_json::from_str::<Items>(number), Ok(Items::NotList)),
+                "{number}"
+            );
+            assert!(
+                matches!(serde_json::from_str::<Row>(number), Ok(Row::NotObject)),
+                "{number}"
+            );
+        }
+        let Ok(Items::List(rows)) =
+            serde_json::from_str::<Items>(r#"[0.0,1.25e-3,{"price":2.50,"quantity":1.25}]"#)
+        else {
+            panic!("list expected");
+        };
+        assert!(matches!(rows[0], Row::NotObject));
+        assert!(matches!(rows[1], Row::NotObject));
+        assert!(matches!(&rows[2], Row::Item(i)
+            if i.price.filled() == Some(serde_json::from_str("2.50").unwrap())
+                && i.quantity.filled() == Some(serde_json::from_str("1.25").unwrap())));
+        for malformed in ["01", "1.", "1e", "--1"] {
+            assert!(
+                serde_json::from_str::<Scalar>(malformed).is_err(),
+                "{malformed}"
+            );
+            assert!(
+                serde_json::from_str::<Capped>(malformed).is_err(),
+                "{malformed}"
+            );
+            assert!(
+                serde_json::from_str::<Row>(malformed).is_err(),
+                "{malformed}"
+            );
+            assert!(
+                serde_json::from_str::<Items>(malformed).is_err(),
+                "{malformed}"
+            );
+        }
     }
 
     #[test]

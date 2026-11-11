@@ -1,4 +1,11 @@
-import { choose, expect, expectFits, type FakeApi, paged, test } from "./fake-api"
+import {
+  choose,
+  expect,
+  expectFits,
+  type FakeApi,
+  paged,
+  test,
+} from "./fake-api"
 
 const product = { id: "prod-honey", name: "AFM Honey 500g" }
 const passport = {
@@ -206,6 +213,13 @@ test("the batch page: product and origin, status, passport and edit link", async
   api,
 }) => {
   lotsApi(api)
+  api.on("GET", "/workspace/:ws/storefront/connection", () => ({
+    data: {
+      id: "01950000-0000-7000-8000-000000000001",
+      active: true,
+      name: "Ilundo Honey Co.",
+    },
+  }))
   await page.goto("/lots/lot-1")
   await expect(page.getByRole("heading", { name: "ILU-2026-01" })).toBeVisible()
   await expect(page.getByText("AFM Honey 500g, Ilundo, Tanzania")).toBeVisible()
@@ -216,7 +230,9 @@ test("the batch page: product and origin, status, passport and edit link", async
   await expect(status.getByText("Released", { exact: true })).toBeVisible()
   const pass = page.getByRole("region", { name: "Passport" })
   await expect(pass.getByText("Published v3")).toBeVisible()
-  await expect(pass.getByText("/b/7K3M9Q2XRT")).toBeVisible()
+  await expect(
+    pass.getByText(/\/s\/01950000-0000-7000-8000-000000000001\/b\/7K3M9Q2XRT$/)
+  ).toBeVisible()
   await expect(
     pass.getByRole("link", { name: "Edit passport" })
   ).toHaveAttribute("href", "/lots/lot-1/passport")
@@ -234,6 +250,20 @@ test("a passport never published shows as a draft", async ({ page, api }) => {
       exact: true,
     })
   ).toBeVisible()
+})
+
+test("an unconnected workspace cannot copy a global passport link", async ({
+  page,
+  api,
+}) => {
+  lotsApi(api)
+  await page.goto("/lots/lot-1")
+  const pass = page.getByRole("region", { name: "Passport", exact: true })
+  await expect(
+    pass.getByText("Shop connection required", { exact: true })
+  ).toBeVisible()
+  await expect(pass.getByRole("button", { name: "Copy link" })).toHaveCount(0)
+  await expect(pass.getByText("/b/7K3M9Q2XRT", { exact: true })).toHaveCount(0)
 })
 
 test("recall asks first; keeping it sends nothing", async ({ page, api }) => {
@@ -268,10 +298,15 @@ test("recall from the status field, confirmed: saved and history shows the chang
   })
   // Recalled is final: the picker offers only the moves the API lists, so it locks.
   await expect(page.getByRole("combobox", { name: "Status" })).toBeDisabled()
-  await expect(page.getByRole("button", { name: "Recall this batch…" })).toHaveCount(0)
+  await expect(
+    page.getByRole("button", { name: "Recall this batch…" })
+  ).toHaveCount(0)
 })
 
-test("the status picker offers only the API's next statuses", async ({ page, api }) => {
+test("the status picker offers only the API's next statuses", async ({
+  page,
+  api,
+}) => {
   const lots = lotsApi(api)
   lots[0]!.status = "quarantine"
   lots[0]!.next_statuses = ["released", "recalled"]
@@ -289,10 +324,19 @@ test("a recalled batch lists the orders no other batch could take over", async (
   lots[0]!.status = "recalled"
   lots[0]!.next_statuses = []
   api.on("GET", "/workspace/:ws/lots/:lot/holds", () => ({
-    data: [{ order_id: "ord-7", number: "ORD-0007", warehouse_id: "wh-1", quantity: "3.00" }],
+    data: [
+      {
+        order_id: "ord-7",
+        number: "ORD-0007",
+        warehouse_id: "wh-1",
+        quantity: "3.00",
+      },
+    ],
   }))
   await page.goto("/lots/lot-1")
-  const holds = page.getByRole("region", { name: "Orders waiting on this batch" })
+  const holds = page.getByRole("region", {
+    name: "Orders waiting on this batch",
+  })
   await expect(holds.getByText("3.00 held")).toBeVisible()
   await expect(holds.getByRole("link", { name: "ORD-0007" })).toHaveAttribute(
     "href",
@@ -300,7 +344,10 @@ test("a recalled batch lists the orders no other batch could take over", async (
   )
 })
 
-test("a received batch whose source was recalled says so", async ({ page, api }) => {
+test("a received batch whose source was recalled says so", async ({
+  page,
+  api,
+}) => {
   const lots = lotsApi(api)
   Object.assign(lots[0]!, {
     received_from: {
@@ -311,7 +358,9 @@ test("a received batch whose source was recalled says so", async ({ page, api })
     },
   })
   await page.goto("/lots/lot-1")
-  await expect(page.getByText("The source batch was recalled by the supplier.")).toBeVisible()
+  await expect(
+    page.getByText("The source batch was recalled by the supplier.")
+  ).toBeVisible()
 })
 
 test("history says who did it: a name, the system, or a user who left", async ({
@@ -319,7 +368,10 @@ test("history says who did it: a name, the system, or a user who left", async ({
   api,
 }) => {
   lotsApi(api)
-  const event = (id: string, user: { id: string; name: string | null } | null) => ({
+  const event = (
+    id: string,
+    user: { id: string; name: string | null } | null
+  ) => ({
     id,
     kind: "updated",
     from_status: null,
@@ -339,25 +391,42 @@ test("history says who did it: a name, the system, or a user who left", async ({
   await page.goto("/lots/lot-1")
   const history = page.getByRole("region", { name: "History" })
   // On a phone the column is hidden (OfficeLot's `m-hide`), so read the cells, not the a11y tree.
-  const who = (row: number) => history.locator("tbody tr").nth(row).locator("td").nth(2)
+  const who = (row: number) =>
+    history.locator("tbody tr").nth(row).locator("td").nth(2)
   await expect(who(0)).toHaveText("Romeo T.")
   await expect(who(1)).toHaveText("System")
   await expect(who(2)).toHaveText("—")
   if ((page.viewportSize()?.width ?? 0) >= 768)
-    await expect(history.getByRole("columnheader", { name: "Who" })).toBeVisible()
+    await expect(
+      history.getByRole("columnheader", { name: "Who" })
+    ).toBeVisible()
   await expectFits(page)
 })
 
 // Each field of the new-batch form, a value the API refuses for it, and the label it sits under.
 const createFields = [
-  { field: "code", label: "Batch code", message: "The code may only hold letters, digits and dashes." },
-  { field: "produced_on", label: "Produced on", message: "Produced on may not be in the future." },
-  { field: "best_before", label: "Best before", message: "Best before must be on or after produced on." },
+  {
+    field: "code",
+    label: "Batch code",
+    message: "The code may only hold letters, digits and dashes.",
+  },
+  {
+    field: "produced_on",
+    label: "Produced on",
+    message: "Produced on may not be in the future.",
+  },
+  {
+    field: "best_before",
+    label: "Best before",
+    message: "Best before must be on or after produced on.",
+  },
 ]
 
 for (const f of createFields)
   test.describe(() => {
-    test.use({ allow: { responses: [{ url: "/v1/workspace/w1/lots", status: 422 }] } })
+    test.use({
+      allow: { responses: [{ url: "/v1/workspace/w1/lots", status: 422 }] },
+    })
 
     test(`/lots new batch: the API's 422 on ${f.field} shows at ${f.label}`, async ({
       page,
@@ -366,15 +435,24 @@ for (const f of createFields)
       lotsApi(api)
       api.on("POST", "/workspace/:ws/lots", () => ({
         status: 422,
-        body: { message: "The given data was invalid.", errors: { [f.field]: [f.message] } },
+        body: {
+          message: "The given data was invalid.",
+          errors: { [f.field]: [f.message] },
+        },
       }))
       await page.goto("/lots")
       await page.getByRole("button", { name: "New batch" }).click()
       const dialog = page.getByRole("dialog")
       await dialog.getByLabel("Batch code").fill("ILU 2026/02")
       await dialog.getByRole("button", { name: "Save" }).click()
-      await expect(dialog.getByText(f.message), `/lots create ${f.field}`).toBeVisible()
-      await expect(dialog.getByLabel(f.label)).toHaveAttribute("aria-invalid", "true")
+      await expect(
+        dialog.getByText(f.message),
+        `/lots create ${f.field}`
+      ).toBeVisible()
+      await expect(dialog.getByLabel(f.label)).toHaveAttribute(
+        "aria-invalid",
+        "true"
+      )
       await expect(page).toHaveURL(/\/lots$/)
       await expectFits(page)
     })
@@ -389,8 +467,14 @@ for (const w of [
     route: "/lots",
     run: async (page: import("@playwright/test").Page) => {
       await page.getByRole("button", { name: "New batch" }).click()
-      await page.getByRole("dialog").getByLabel("Batch code").fill("ILU-2026-02")
-      await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
+      await page
+        .getByRole("dialog")
+        .getByLabel("Batch code")
+        .fill("ILU-2026-02")
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Save" })
+        .click()
     },
   },
   {
@@ -400,7 +484,9 @@ for (const w of [
     url: "/v1/workspace/w1/lots/lot-1",
     route: "/lots/lot-1",
     run: async (page: import("@playwright/test").Page) => {
-      await page.getByRole("combobox", { name: "Status" }).selectOption("quarantine")
+      await page
+        .getByRole("combobox", { name: "Status" })
+        .selectOption("quarantine")
       await page.getByRole("button", { name: "Save" }).click()
     },
   },
@@ -420,7 +506,9 @@ for (const w of [
       await page.goto(w.route)
       await w.run(page)
       await expect(
-        page.getByRole("alert").filter({ hasText: "This action is unauthorized." }),
+        page
+          .getByRole("alert")
+          .filter({ hasText: "This action is unauthorized." }),
         `${w.route} ${w.write} 403`
       ).toBeVisible()
       await expect(page).toHaveURL(new RegExp(`${w.route}$`))
@@ -445,7 +533,9 @@ test("/lots/[id] recall: a network failure says so and keeps it on sale; recalli
   })
   await page.goto("/lots/lot-1")
   const recall = async () => {
-    await page.getByRole("combobox", { name: "Status" }).selectOption("recalled")
+    await page
+      .getByRole("combobox", { name: "Status" })
+      .selectOption("recalled")
     await page.getByRole("button", { name: "Save" }).click()
     await page
       .getByRole("alertdialog")
@@ -454,7 +544,9 @@ test("/lots/[id] recall: a network failure says so and keeps it on sale; recalli
   }
   await recall()
   await expect(
-    page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+    page
+      .getByRole("alert")
+      .filter({ hasText: "Something went wrong. Try again." })
   ).toBeVisible()
   const status = page.getByRole("region", { name: "Status" })
   await expect(status.getByText("Released", { exact: true })).toBeVisible()

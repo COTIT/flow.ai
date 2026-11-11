@@ -25,6 +25,7 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         mailer: crate::mail::Mailer::capture().0,
         frontend_url: "https://app.test".into(),
         api_public_url: "https://api.test".into(),
+        shop_public_url: Some("https://shop.test".into()),
         rate_limit: crate::RateLimit {
             burst: 1000,
             replenish: std::time::Duration::from_millis(1),
@@ -57,7 +58,8 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         assistant_bridge_secret: None,
         files: None,
         pdf: None,
-        payments: None,
+        payments: crate::payments::Payments::default()
+            .with_globadyme_environment(Some(crate::payments::GlobadymeEnvironment::Sandbox)),
         checkout_hold_max: 500,
         signup_enabled: true,
     }

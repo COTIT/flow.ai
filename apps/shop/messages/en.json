@@ -159,7 +159,7 @@
       },
       "provider_down": {
         "title": "The payment service isn't answering",
-        "body": "Nothing was charged. Please try again in a moment."
+        "body": "Please check your order's payment status or contact us before trying again."
       },
       "not_payable": {
         "title": "This order can't be paid any more",
@@ -167,7 +167,15 @@
       },
       "unavailable": {
         "title": "Payment couldn't start",
-        "body": "Nothing was charged. Please try again in a minute."
+        "body": "Please try again in a minute. Contact the shop if you need help."
+      },
+      "setup_required": {
+        "title": "Online payment is currently unavailable",
+        "body": "Your order is saved. Please contact the shop to arrange payment."
+      },
+      "pending_review": {
+        "title": "Payment pending review",
+        "body": "The provider has not confirmed this payment. Please wait or contact us before trying another payment."
       }
     },
     "cancelledBody": "The items went back on the shelf. You can order them again.",
@@ -176,7 +184,7 @@
     "retry": "Try again",
     "waitingLong": {
       "title": "Still waiting for the payment",
-      "body": "The payment provider hasn't confirmed it yet. If you paid, check again in a minute; if not, use Pay now below.",
+      "body": "The provider has not confirmed payment yet. Check again in a minute or contact us before trying another payment.",
       "action": "Check again"
     },
     "loadFailed": {

@@ -72,6 +72,9 @@ pub enum AppError {
     /// 503 with a message: a feature whose backing service isn't configured.
     #[error("{0}")]
     Unavailable(&'static str),
+    /// 503 with a stable code: new payment admission needs merchant setup, not a retry.
+    #[error("Online payments require merchant setup.")]
+    PaymentSetupRequired,
     /// 404. Same body for "missing" and "exists but not yours", so ids can't be probed.
     #[error("not found")]
     NotFound,
@@ -243,6 +246,14 @@ impl IntoResponse for AppError {
                 Json(json!({ "message": message })),
             )
                 .into_response(),
+            Self::PaymentSetupRequired => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({
+                    "message": "Online payments are unavailable until the shop finishes payment setup.",
+                    "code": "payment_setup_required"
+                })),
+            )
+                .into_response(),
             Self::NotFound => (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "message": "The requested resource could not be found." })),
@@ -321,6 +332,14 @@ mod tests {
         let (status, body) = render(AppError::Unavailable("Off.")).await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(body, json!({ "message": "Off." }));
+    }
+
+    #[tokio::test]
+    async fn incomplete_payment_setup_has_a_stable_nonretryable_code() {
+        let (status, body) = render(AppError::PaymentSetupRequired).await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(body["code"], "payment_setup_required");
+        assert_eq!(body.as_object().unwrap().len(), 2);
     }
 
     #[tokio::test]

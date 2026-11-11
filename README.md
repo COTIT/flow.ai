@@ -51,6 +51,11 @@ Rust handlers ──▶ apps/api/openapi.json ──▶ orval ──▶ packages
 
 ## Storefront design foundation
 
+Connect each workspace in Office → Settings → Storefront → Connect Shop. Its stable
+`/s/{connection}` address works immediately without app keys, environment-file edits
+or restarts. Disconnect blocks new shopping; existing orders keep their original
+connection. Staging and production use separate databases and payment environments.
+
 Owners and workspace admins review API-authored home-page revisions in Office at
 `/settings/storefront`. Drafts stay private until explicitly published. The Shop's
 server-only `SHOP_DESIGN_ENABLED` flag defaults to `false`; enabling it renders a

@@ -9004,7 +9004,9 @@
       "boundary": "workspace",
       "allOf": ["order.delete"],
       "anyOf": [],
-      "predicates": [],
+      "predicates": [
+        "Globadyme refunds reject assistant execution at runtime; only legacy-provider refunds retain approved assistant review."
+      ],
       "authority": [
         "apps/api/src/modules/orders/handlers.rs#refund",
         "apps/api/src/modules/orders/service.rs",
@@ -9014,7 +9016,10 @@
         "apps/api/src/modules/orders/handlers.rs",
         "apps/api/src/modules/orders/payments.rs",
         "apps/api/src/modules/assistant/repo.rs",
-        "apps/api/src/http/assistant.rs"
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/gateway/accounts.rs"
       ],
       "roleAnyOf": [],
       "requirements": [
@@ -16342,6 +16347,786 @@
     },
     "confirmationFields": []
   },
+  "payments_gateway_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/payments",
+    "disposition": "execute",
+    "reason": "Staff read; backend checks the payment owner and its exact native permission.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": ["invoice.list", "order.list"],
+      "predicates": [
+        "Server returns only invoice-owned operations with invoice.list or order-owned operations with order.list; no cross-owner access."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#list",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/payments/{payment}",
+    "disposition": "execute",
+    "reason": "Staff read; backend checks the payment owner and its exact native permission.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": ["invoice.view", "order.view"],
+      "predicates": [
+        "Server checks invoice.view for invoice-owned operations and order.view for order-owned operations, in the current workspace."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#detail",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_refresh": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/payments/{payment}/refresh",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": ["invoice.view", "order.view"],
+      "predicates": [
+        "Server checks invoice.view for invoice-owned operations and order.view for order-owned operations, in the current workspace.",
+        "Reconciliation may apply provider financial receipts; never an autonomous assistant capability."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#refresh",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_gateway_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/payments/{payment}/resolve",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [
+        "Unknown gateway submissions or open collections with affirmative closed/no-charge evidence only; audited reason and provider evidence required; cannot mark a collection paid."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#resolve",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_globadyme_callback_retire": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/payments/globadyme/{environment}/callback-secret/retire",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "predicates": [
+        "Explicit audited retirement of the previous environment callback secret."
+      ],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#retire",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "credential"],
+    "risk": "secret",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "payments_globadyme_webhook": {
+    "method": "POST",
+    "path": "/payments/webhooks/globadyme/{workspace}/{environment}",
+    "disposition": "external",
+    "reason": "Signed provider callback scoped to workspace and immutable account environment; never a staff assistant tool.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/gateway/handlers.rs#callback",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_create": {
+    "method": "POST",
+    "path": "/invoices/fetch-from-hashed/{token}/payment",
+    "disposition": "external",
+    "reason": "Public token-scoped payer checkout; monetary amount is server-owned and provider credentials remain private.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#create_payment",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_status": {
+    "method": "GET",
+    "path": "/invoices/fetch-from-hashed/{token}/payment",
+    "disposition": "external",
+    "reason": "Public token-scoped authoritative payment reconciliation; never exposed as a staff read tool.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#payment_status",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_qr": {
+    "method": "GET",
+    "path": "/invoices/fetch-from-hashed/{token}/payment/qr",
+    "disposition": "external",
+    "reason": "Public token-scoped provider QR image proxy; never a staff assistant tool.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#payment_qr",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_inspect": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/invoices/{invoice}/gateway",
+    "disposition": "execute",
+    "reason": "Staff read; backend checks the payment owner and its exact native permission.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["invoice.view"],
+      "anyOf": [],
+      "predicates": [
+        "Invoice and operation ownership must match the active workspace."
+      ],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#inspect",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_gateway_refund": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/invoices/{invoice}/refunds",
+    "disposition": "internal",
+    "reason": "Gateway money, reconciliation and administration require explicit review in the native Office UI.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["invoice.credit"],
+      "anyOf": [],
+      "predicates": [
+        "Source-linked pending credit note, exact decimal balance and Idempotency-Key required; native UI only."
+      ],
+      "authority": [
+        "apps/api/src/modules/invoices/gateway.rs#refund",
+        "apps/api/src/modules/gateway/service.rs",
+        "apps/api/src/modules/gateway/repo.rs",
+        "apps/api/src/modules/gateway/accounts.rs",
+        "apps/api/src/modules/assistant/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "money"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_connection_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/storefront/connection",
+    "disposition": "internal",
+    "reason": "Shop connections are managed explicitly in Office Settings; Voice never connects or disconnects a workspace.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": ["Active membership in the requested workspace"],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#get_connection",
+        "apps/api/src/http/workspace.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_connection_update": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/storefront/connection",
+    "disposition": "internal",
+    "reason": "Shop connections are managed explicitly in Office Settings; Voice never connects or disconnects a workspace.",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["workspace_admin"],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": ["Owner or workspace_admin; active workspace membership"],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#update_connection",
+        "apps/api/src/http/workspace.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record", "credential"],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_get": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#get_shop",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_products_list": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}/products",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#products",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_products_get": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}/products/{product}",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#product",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_categories": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}/categories",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#categories",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_lots_get": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}/lots/{code}",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#lot",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_design": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}/pages/home",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#design",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_orders_create": {
+    "method": "POST",
+    "path": "/storefront/shops/{connection}/orders",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#create_order",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "idempotency_key"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_orders_get": {
+    "method": "GET",
+    "path": "/storefront/shops/{connection}/orders/{order}",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#order",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "storefront_shop_orders_payment": {
+    "method": "POST",
+    "path": "/storefront/shops/{connection}/orders/{order}/payment",
+    "disposition": "external",
+    "reason": "Public connection-scoped Shop route; connection identity and resource ownership are checked server-side. Never substitute staff bearer access.",
+    "authorization": {
+      "schemes": [],
+      "boundary": "public",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Connection-scoped managed Shop identity; active connection or matching historical order"
+      ],
+      "authority": [
+        "apps/api/src/modules/storefront/connections.rs#payment",
+        "apps/api/src/http/app_key.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": []
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "attention_marks_delete": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/attention/marks/{mark}",
+    "disposition": "execute",
+    "reason": "Member's own attention mark: changes only what the caller sees, never stock, orders or invoices; backend rechecks access",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own marks only (workspace_id and user_id); another member's or workspace's is 404"
+      ],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#delete_mark",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "attention_marks_set": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/attention/marks",
+    "disposition": "execute",
+    "reason": "Member's own attention mark: changes only what the caller sees, never stock, orders or invoices; backend rechecks access",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own marks only (workspace_id and user_id); another member's or workspace's is 404",
+        "The kind's list permission (stock.list, order.list, invoice.list, cashregister.list, workspace_admin) checked on every write; ref must be a live record of that kind in this workspace"
+      ],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#set_mark",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "attention_priorities": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/attention/priorities",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#priorities",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "flow_scenes_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/flow/scenes",
@@ -16376,9 +17161,9 @@
     },
     "confirmationFields": []
   },
-  "flow_scenes_update": {
-    "method": "PUT",
-    "path": "/workspace/{workspace}/flow/scenes/{scene}",
+  "flow_scenes_reset": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/flow/scenes/reset",
     "disposition": "execute",
     "reason": "Member's own Flow display settings; changes only what the caller sees, never business records; every change goes through the review card; backend rechecks access",
     "authorization": {
@@ -16388,11 +17173,10 @@
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
-        "Caller's own rows only (workspace_id and user_id); another workspace is 404",
-        "Adding a component needs that component's read permission (order.list, invoice.list, stock.list)"
+        "Caller's own rows only (workspace_id and user_id); another workspace is 404"
       ],
       "authority": [
-        "apps/api/src/modules/flow_scenes/handlers.rs#update",
+        "apps/api/src/modules/flow_scenes/handlers.rs#reset",
         "apps/api/src/modules/flow_scenes/service.rs",
         "apps/api/src/modules/flow_scenes/dto.rs"
       ],
@@ -16445,138 +17229,6 @@
     },
     "confirmationFields": []
   },
-  "flow_scenes_reset": {
-    "method": "POST",
-    "path": "/workspace/{workspace}/flow/scenes/reset",
-    "disposition": "execute",
-    "reason": "Member's own Flow display settings; changes only what the caller sees, never business records; every change goes through the review card; backend rechecks access",
-    "authorization": {
-      "schemes": ["bearer"],
-      "boundary": "workspace",
-      "allOf": [],
-      "anyOf": [],
-      "roleAnyOf": [],
-      "predicates": [
-        "Caller's own rows only (workspace_id and user_id); another workspace is 404"
-      ],
-      "authority": [
-        "apps/api/src/modules/flow_scenes/handlers.rs#reset",
-        "apps/api/src/modules/flow_scenes/service.rs",
-        "apps/api/src/modules/flow_scenes/dto.rs"
-      ],
-      "requirements": [
-        {
-          "bearer": []
-        }
-      ]
-    },
-    "effects": ["record"],
-    "risk": "write",
-    "handoff": null,
-    "reconciliation": [],
-    "retry": {
-      "mode": "reconcile_only"
-    },
-    "confirmationFields": []
-  },
-  "attention_priorities": {
-    "method": "GET",
-    "path": "/workspace/{workspace}/attention/priorities",
-    "disposition": "execute",
-    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
-    "authorization": {
-      "schemes": ["bearer"],
-      "boundary": "workspace",
-      "allOf": [],
-      "anyOf": [],
-      "predicates": [],
-      "authority": [
-        "apps/api/src/modules/attention/handlers.rs#priorities",
-        "apps/api/src/modules/attention/service.rs"
-      ],
-      "roleAnyOf": [],
-      "requirements": [
-        {
-          "bearer": []
-        }
-      ]
-    },
-    "effects": [],
-    "risk": "read",
-    "handoff": null,
-    "reconciliation": [],
-    "retry": {
-      "mode": "reconcile_only"
-    },
-    "confirmationFields": []
-  },
-  "attention_marks_set": {
-    "method": "PUT",
-    "path": "/workspace/{workspace}/attention/marks",
-    "disposition": "execute",
-    "reason": "Member's own attention mark: changes only what the caller sees, never stock, orders or invoices; backend rechecks access",
-    "authorization": {
-      "schemes": ["bearer"],
-      "boundary": "workspace",
-      "allOf": [],
-      "anyOf": [],
-      "predicates": [
-        "Caller's own marks only (workspace_id and user_id); another member's or workspace's is 404",
-        "The kind's list permission (stock.list, order.list, invoice.list, cashregister.list, workspace_admin) checked on every write; ref must be a live record of that kind in this workspace"
-      ],
-      "authority": [
-        "apps/api/src/modules/attention/handlers.rs#set_mark",
-        "apps/api/src/modules/attention/service.rs"
-      ],
-      "roleAnyOf": [],
-      "requirements": [
-        {
-          "bearer": []
-        }
-      ]
-    },
-    "effects": ["record"],
-    "risk": "write",
-    "handoff": null,
-    "reconciliation": [],
-    "retry": {
-      "mode": "reconcile_only"
-    },
-    "confirmationFields": []
-  },
-  "attention_marks_delete": {
-    "method": "DELETE",
-    "path": "/workspace/{workspace}/attention/marks/{mark}",
-    "disposition": "execute",
-    "reason": "Member's own attention mark: changes only what the caller sees, never stock, orders or invoices; backend rechecks access",
-    "authorization": {
-      "schemes": ["bearer"],
-      "boundary": "workspace",
-      "allOf": [],
-      "anyOf": [],
-      "predicates": [
-        "Caller's own marks only (workspace_id and user_id); another member's or workspace's is 404"
-      ],
-      "authority": [
-        "apps/api/src/modules/attention/handlers.rs#delete_mark",
-        "apps/api/src/modules/attention/service.rs"
-      ],
-      "roleAnyOf": [],
-      "requirements": [
-        {
-          "bearer": []
-        }
-      ]
-    },
-    "effects": ["record"],
-    "risk": "write",
-    "handoff": null,
-    "reconciliation": [],
-    "retry": {
-      "mode": "reconcile_only"
-    },
-    "confirmationFields": []
-  },
   "orders_sales_daily": {
     "method": "GET",
     "path": "/workspace/{workspace}/sales/daily",
@@ -16601,6 +17253,41 @@
     },
     "effects": [],
     "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "flow_scenes_update": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/flow/scenes/{scene}",
+    "disposition": "execute",
+    "reason": "Member's own Flow display settings; changes only what the caller sees, never business records; every change goes through the review card; backend rechecks access",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Caller's own rows only (workspace_id and user_id); another workspace is 404",
+        "Adding a component needs that component's read permission (order.list, invoice.list, stock.list)"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_scenes/handlers.rs#update",
+        "apps/api/src/modules/flow_scenes/service.rs",
+        "apps/api/src/modules/flow_scenes/dto.rs"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
     "handoff": null,
     "reconciliation": [],
     "retry": {

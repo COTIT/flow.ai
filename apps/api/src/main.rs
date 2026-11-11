@@ -105,6 +105,13 @@ async fn main() {
         config.stripe.clone(),
     )
     .expect("payments provider");
+    let mut payments =
+        payments::Payments::from(payments).with_globadyme_environment(config.globadyme_environment);
+    if let Some(settings) = config.stripe.clone() {
+        payments = payments.retain(payments::Provider::Stripe(
+            payments::stripe::Stripe::new(settings).expect("retained Stripe provider"),
+        ));
+    }
     if payments.is_none() {
         tracing::warn!("PAYMENTS_PROVIDER not set: web payments answer 503");
     }
@@ -134,6 +141,7 @@ async fn main() {
             )),
         frontend_url: config.frontend_url.as_str().into(),
         api_public_url: config.api_public_url.as_str().into(),
+        shop_public_url: config.shop_public_url.as_deref().map(Into::into),
         rate_limit: RateLimit {
             burst: config.rate_limit_burst,
             replenish: Duration::from_secs(config.rate_limit_replenish_secs),

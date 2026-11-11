@@ -23,7 +23,19 @@ const shipped = JSON.stringify(keywords)
 const thresholds = { minGaps: 2, minWorkspaces: 2, soloGaps: 5 }
 // Each planHeal replays the probe fixture through discoverTools (~0.5 s), so each plan is built once.
 const plan = planHeal(triaged, keywords, thresholds)
-const loose = planHeal(triaged, keywords, {
+// Pin an eligible money write: broad payment words can correctly select an internal gateway.
+const moneyCluster = {
+  ...find("card payment refund"),
+  kind: "discoverability" as const,
+  domain: "invoices",
+  op: "invoices_credit",
+  found: false,
+  words: ["credit", "invoice", "rebate"],
+  intent: "credit invoice rebate",
+  intents: ["credit invoice rebate"],
+}
+const moneyPlan = planHeal([moneyCluster], keywords, thresholds)
+const loose = planHeal([...triaged, moneyCluster], keywords, {
   ...thresholds,
   minWorkspaces: 1,
   minGaps: 1,
@@ -152,11 +164,11 @@ describe("planHeal", () => {
   })
 
   it("skips one workspace's few gaps unless the thresholds allow it", () => {
-    expect(plan.skipped.map((s) => s.op)).toContain(
-      "invoice_payments_mark_as_credited"
+    expect(moneyPlan.skipped.map((s) => s.op)).toContain(
+      "invoices_credit"
     )
     expect(loose.proposals.map((p) => p.op)).toContain(
-      "invoice_payments_mark_as_credited"
+      "invoices_credit"
     )
   })
 
@@ -165,7 +177,7 @@ describe("planHeal", () => {
       false
     )
     expect(
-      loose.proposals.find((p) => p.op === "invoice_payments_mark_as_credited")!
+      loose.proposals.find((p) => p.op === "invoices_credit")!
         .review
     ).toBe(true)
   })

@@ -83,7 +83,7 @@ async fn run(state: &AppState) {
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
-        payments: None,
+        payments: Default::default(),
     };
     let job = Claimed {
         id: Uuid::now_v7(),

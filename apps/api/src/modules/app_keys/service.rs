@@ -51,6 +51,18 @@ pub async fn list(
 /// Revoke a key of this workspace (again is fine), else 404.
 pub async fn revoke(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
     let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
+    let managed: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM storefront_connections WHERE workspace_id=$1 AND id=$2)",
+    )
+    .bind(workspace_id)
+    .bind(id)
+    .fetch_one(&state.db)
+    .await?;
+    if managed {
+        return Err(AppError::Conflict(
+            "This key belongs to a Shop connection. Disconnect the Shop instead.",
+        ));
+    }
     repo::revoke(&state.db, workspace_id, id)
         .await?
         .then_some(())

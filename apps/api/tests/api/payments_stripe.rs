@@ -306,7 +306,7 @@ async fn world(pool: PgPool) -> W {
     );
     let mut api = Api::new(pool.clone(), "/orders").await;
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = Some(stripe.clone());
+    state.payments = stripe.clone().into();
     api.app = build_app(state);
     let main = api
         .with_base("/warehouses")
@@ -411,7 +411,7 @@ async fn drain(w: &W) {
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
-        payments: Some(w.stripe.clone()),
+        payments: w.stripe.clone().into(),
     };
     while let Some(job) = repo::claim(
         &w.api.pool,

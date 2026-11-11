@@ -69,7 +69,7 @@ pub async fn get(
 /// POST /storefront/orders/{order}/payment -> `{data: intent}`.
 #[utoipa::path(
     post, path = "/storefront/orders/{order}/payment", tag = "storefront",
-    operation_id = "storefront_orders_payment", summary = "Start or resume the payment", description = "503 `no payment provider configured` without a provider; 503 while the provider is down (retry).",
+    operation_id = "storefront_orders_payment", summary = "Start or resume the payment", description = "503 with code `payment_setup_required` when merchant setup is incomplete or new collections are disabled; retrying cannot complete setup. Legacy providers return 503 `no payment provider configured` without a provider. Other failures can follow an accepted submission: check the order before retrying.",
     params(("order" = Uuid, Path, description = "Order id")),
     request_body = PaymentRequest,
     responses(

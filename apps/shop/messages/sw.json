@@ -159,7 +159,7 @@
       },
       "provider_down": {
         "title": "Huduma ya malipo haijibu",
-        "body": "Hakuna kilichotozwa. Tafadhali jaribu tena baada ya muda mfupi."
+        "body": "Tafadhali angalia hali ya malipo ya oda yako au wasiliana nasi kabla ya kujaribu tena."
       },
       "not_payable": {
         "title": "Oda hii haiwezi kulipwa tena",
@@ -167,7 +167,15 @@
       },
       "unavailable": {
         "title": "Malipo hayakuweza kuanza",
-        "body": "Hakuna kilichotozwa. Tafadhali jaribu tena baada ya dakika moja."
+        "body": "Tafadhali jaribu tena baada ya dakika moja. Wasiliana na duka ikiwa unahitaji msaada."
+      },
+      "setup_required": {
+        "title": "Malipo ya mtandaoni hayapatikani kwa sasa",
+        "body": "Oda yako imehifadhiwa. Tafadhali wasiliana na duka ili kupanga malipo."
+      },
+      "pending_review": {
+        "title": "Malipo yanasubiri ukaguzi",
+        "body": "Mtoa huduma hajathibitisha malipo haya. Subiri au wasiliana nasi kabla ya kujaribu malipo mengine."
       }
     },
     "cancelledBody": "Bidhaa zimerudishwa stoo. Unaweza kuziagiza tena.",
@@ -176,7 +184,7 @@
     "retry": "Jaribu tena",
     "waitingLong": {
       "title": "Bado tunasubiri malipo",
-      "body": "Huduma ya malipo bado haijayathibitisha. Kama umelipa, kagua tena baada ya dakika moja; kama bado, tumia Lipa sasa hapa chini.",
+      "body": "Mtoa huduma hajathibitisha malipo bado. Angalia tena baada ya dakika moja au wasiliana nasi kabla ya kujaribu malipo mengine.",
       "action": "Kagua tena"
     },
     "loadFailed": {

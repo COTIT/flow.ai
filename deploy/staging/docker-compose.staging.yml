@@ -34,6 +34,7 @@ x-api-env: &api-env
   RUST_LOG: ${RUST_LOG:-genesy_360_api=info,tower_http=info}
   FRONTEND_URL: https://staging-office.genesy.app
   API_PUBLIC_URL: https://staging-api.genesy.app
+  SHOP_PUBLIC_URL: https://staging-shop.genesy.app
   # Mailpit catches every mail; nothing leaves the VPS.
   SMTP_URL: smtp://mailpit:1025
   SMTP_ALLOW_INSECURE: "true"
@@ -43,6 +44,8 @@ x-api-env: &api-env
   TRUST_PROXY_HEADERS: "true"
   # Boots only because the image is built with ALLOW_FAKE_PAYMENTS=1 (see apps/api/Dockerfile).
   PAYMENTS_PROVIDER: fake
+  # Deployment-owned realm for API workers and one-off commands; never read from .env.
+  GLOBADYME_ENVIRONMENT: sandbox
   # Lets `seed-demo` write demo data; never set in production.
   GENESY_ALLOW_DEMO_SEED: "1"
   # Self-signup on, so testers can make their own workspace (API default: off).

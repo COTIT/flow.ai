@@ -17,6 +17,8 @@ const restored = "01950000-0000-7000-8000-000000000003"
 // Screen readers hear the revision number and save date, never the UUID.
 const draftButton = /^Preview revision 2, saved /
 const publishedButton = /^Preview revision 1, saved /
+const connectionPath = "/workspace/:ws/storefront/connection"
+const connectionId = "01950000-0000-7000-8000-000000000010"
 
 function designs(api: FakeApi) {
   let version = 2
@@ -63,6 +65,115 @@ function designs(api: FakeApi) {
     })
   return state
 }
+
+test("connect, copy and disconnect Shop without changing its stable address", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  let active = false
+  let id: string | null = null
+  const state = () => ({ data: { id, active, name: "Ilundo Honey Co." } })
+  api.on("GET", connectionPath, state).on("PUT", connectionPath, ({ body }) => {
+    active = (body as { active: boolean }).active
+    if (active) id = connectionId
+    return state()
+  })
+  await page.goto("/settings/storefront")
+  const card = page.getByRole("region", {
+    name: "Shop connection",
+    exact: true,
+  })
+  await expect(card.getByText("Not connected", { exact: true })).toBeVisible()
+  await expect(card.getByRole("link", { name: "Open Shop" })).toHaveCount(0)
+  await card.getByRole("button", { name: "Connect Shop", exact: true }).click()
+  await expect(card.getByText("Connected", { exact: true })).toBeVisible()
+  const address = await card
+    .getByLabel("Shop address", { exact: true })
+    .inputValue()
+  expect(address).toMatch(new RegExp(`/s/${connectionId}$`))
+  await expect(card.getByRole("link", { name: "Open Shop" })).toHaveAttribute(
+    "href",
+    address
+  )
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string) => {
+          ;(window as unknown as { copiedShop: string }).copiedShop = value
+        },
+      },
+    })
+  )
+  await card.getByRole("button", { name: "Copy Shop address" }).click()
+  await expect(
+    card.getByRole("button", { name: "Shop address copied" })
+  ).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { copiedShop: string }).copiedShop
+    )
+  ).toBe(address)
+  await card
+    .getByRole("button", { name: "Disconnect Shop", exact: true })
+    .click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Cancel", exact: true })
+    .click()
+  expect(api.callsTo("PUT", connectionPath)).toHaveLength(1)
+  await card
+    .getByRole("button", { name: "Disconnect Shop", exact: true })
+    .click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Disconnect Shop", exact: true })
+    .click()
+  await expect(card.getByText("Not connected", { exact: true })).toBeVisible()
+  await expect(card.getByRole("link", { name: "Open Shop" })).toHaveCount(0)
+  await card.getByRole("button", { name: "Connect Shop", exact: true }).click()
+  await expect(card.getByLabel("Shop address", { exact: true })).toHaveValue(
+    address
+  )
+  expect(api.callsTo("PUT", connectionPath).map((call) => call.body)).toEqual([
+    { active: true },
+    { active: false },
+    { active: true },
+  ])
+})
+
+test("workspace switch scopes Shop metadata and sends no disconnect", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  api.on("GET", connectionPath, ({ params }) => ({
+    data: {
+      id: params[0] === "w1" ? connectionId : null,
+      active: params[0] === "w1",
+      name: params[0] === "w1" ? "Ilundo Honey Co." : "Other Co",
+    },
+  }))
+  await page.goto("/settings/storefront")
+  await page
+    .getByRole("button", { name: "Disconnect Shop", exact: true })
+    .click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Cancel", exact: true })
+    .click()
+  await openMenu(page)
+  await choose(page, "Workspace", "Other Co")
+  await expect(
+    page
+      .getByRole("region", { name: "Shop connection", exact: true })
+      .getByText("Not connected", { exact: true })
+  ).toBeVisible()
+  await expect(page.getByRole("alertdialog")).toHaveCount(0)
+  await expect(page.getByRole("link", { name: "Open Shop" })).toHaveCount(0)
+  expect(api.callsTo("PUT", connectionPath)).toHaveLength(0)
+})
 
 test("storefront preview is read-only; publish requires confirmation and exact reviewed version", async ({
   page,

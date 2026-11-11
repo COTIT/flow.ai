@@ -30,6 +30,8 @@ pub struct Config {
     pub frontend_url: String,
     /// Public origin of this API, for links that must hit the API (email verification).
     pub api_public_url: String,
+    /// Fixed Shop origin for public connection checkout returns; absent disables that payment edge.
+    pub shop_public_url: Option<String>,
     pub smtp_url: String,
     pub mail_from: String,
     /// Public auth routes: requests allowed at once per client IP.
@@ -83,6 +85,8 @@ pub struct Config {
     pub graph_api_url: String,
     /// `PAYMENTS_PROVIDER`: unset = no web payments (503); `fake` in debug builds only.
     pub payments_provider: Option<String>,
+    /// Operator-owned `GLOBADYME_ENVIRONMENT`; unset disables Globadyme.
+    pub globadyme_environment: Option<crate::payments::GlobadymeEnvironment>,
     /// `STRIPE_*`, read only when `PAYMENTS_PROVIDER=stripe`.
     pub stripe: Option<stripe::Settings>,
     /// `CHECKOUT_HOLD_MAX`: web orders awaiting payment per workspace (default 500), so fake
@@ -157,6 +161,7 @@ impl fmt::Debug for Config {
             .field("graph_login_url", &self.graph_login_url)
             .field("graph_api_url", &self.graph_api_url)
             .field("payments_provider", &self.payments_provider)
+            .field("globadyme_environment", &self.globadyme_environment)
             .field("stripe", &self.stripe) // masks both secrets
             .field("checkout_hold_max", &self.checkout_hold_max)
             .finish()
@@ -205,6 +210,7 @@ impl Config {
 
         let frontend_url = base_url(&get, "FRONTEND_URL")?;
         let api_public_url = base_url(&get, "API_PUBLIC_URL")?;
+        let shop_public_url = shop_origin(&get)?;
         let smtp_url = get("SMTP_URL").ok_or("SMTP_URL not set")?;
         // Invite codes and SMTP credentials travel over this link: plain SMTP only on request.
         let smtp_tls = smtp_url.starts_with("smtps://") || query_has(&smtp_url, "tls=required");
@@ -257,10 +263,22 @@ impl Config {
         let allow_demo_seed = flag(&get, "GENESY_ALLOW_DEMO_SEED")?;
         let skip_boot_migrations = flag(&get, "SKIP_BOOT_MIGRATIONS")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
+        let globadyme_environment = match get("GLOBADYME_ENVIRONMENT").as_deref() {
+            None => None,
+            Some("sandbox") => Some(crate::payments::GlobadymeEnvironment::Sandbox),
+            Some("production") => Some(crate::payments::GlobadymeEnvironment::Production),
+            Some(_) => {
+                return Err("GLOBADYME_ENVIRONMENT must be sandbox or production when set".into());
+            }
+        };
         let release = !cfg!(debug_assertions);
-        let stripe = match payments_provider.as_deref().map(str::trim) {
-            Some("stripe") => Some(stripe_settings(&get, release)?),
-            _ => None,
+        let stripe = if payments_provider.as_deref().map(str::trim) == Some("stripe")
+            || get("STRIPE_SECRET_KEY").is_some_and(|v| !v.is_empty())
+            || get("STRIPE_SECRET_KEY_FILE").is_some_and(|v| !v.is_empty())
+        {
+            Some(stripe_settings(&get, release)?)
+        } else {
+            None
         };
         crate::payments::select(payments_provider.as_deref(), release, stripe.clone())?;
         let credentials_key = get("CREDENTIALS_KEY")
@@ -302,6 +320,7 @@ impl Config {
             token_ttl_days,
             frontend_url,
             api_public_url,
+            shop_public_url,
             smtp_url,
             mail_from,
             rate_limit_burst,
@@ -328,6 +347,7 @@ impl Config {
             graph_login_url,
             graph_api_url,
             payments_provider,
+            globadyme_environment,
             stripe,
             checkout_hold_max,
             signup_enabled,
@@ -503,6 +523,27 @@ fn base_url(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<String, 
     Ok(url.trim_end_matches('/').to_owned())
 }
 
+/// Checkout returns use one operator-owned origin, never Host/Origin supplied by a shopper.
+fn shop_origin(get: &impl Fn(&str) -> Option<String>) -> Result<Option<String>, String> {
+    let Some(value) = get("SHOP_PUBLIC_URL").filter(|value| !value.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let invalid = || "SHOP_PUBLIC_URL must be an https origin (http only on localhost)".to_owned();
+    let url = reqwest::Url::parse(&value).map_err(|_| invalid())?;
+    let local = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
+    if (url.scheme() != "https" && !(url.scheme() == "http" && local))
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.path() != "/"
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(invalid());
+    }
+    Ok(Some(url.origin().ascii_serialization()))
+}
+
 /// A pool size within 1..=100. Empty counts as unset: compose passes `${GENESY_…:-}`.
 fn pool_size(
     get: &impl Fn(&str) -> Option<String>,
@@ -538,6 +579,33 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn shop_checkout_origin_is_optional_and_cannot_carry_credentials_or_paths() {
+        assert_eq!(super::shop_origin(&|_| None).unwrap(), None);
+        for value in [
+            "https://shop.test",
+            "https://shop.test/",
+            "http://localhost:3000",
+        ] {
+            let origin = super::shop_origin(&|_| Some(value.to_owned()))
+                .unwrap()
+                .unwrap();
+            assert_eq!(origin, value.trim_end_matches('/'));
+        }
+        for value in [
+            "http://shop.test",
+            "https://user:secret@shop.test",
+            "https://shop.test/s/one",
+            "https://shop.test?next=evil",
+            "https://shop.test#evil",
+        ] {
+            assert!(
+                super::shop_origin(&|_| Some(value.to_owned())).is_err(),
+                "{value}"
+            );
+        }
+    }
+
     use super::*;
 
     /// Required vars besides DATABASE_URL, so each test only spells out what it checks.
@@ -963,6 +1031,35 @@ mod tests {
         assert!(with("mollie").unwrap_err().contains("not a known provider"));
     }
 
+    #[test]
+    fn globadyme_realm_is_optional_strict_and_independent_of_provider_selection() {
+        use crate::payments::GlobadymeEnvironment::{Production, Sandbox};
+        assert_eq!(
+            Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")]))
+                .unwrap()
+                .globadyme_environment,
+            None
+        );
+        for (value, expected) in [("sandbox", Sandbox), ("production", Production)] {
+            let config = Config::from_lookup(lookup(&[
+                ("DATABASE_URL", "postgres://x"),
+                ("GLOBADYME_ENVIRONMENT", value),
+            ]))
+            .unwrap();
+            assert_eq!(config.globadyme_environment, Some(expected));
+            assert!(config.payments_provider.is_none());
+        }
+        let base = lookup(&[("DATABASE_URL", "postgres://x")]);
+        for bad in ["", "Sandbox", "staging", " sandbox ", "sandbox,production"] {
+            let error = Config::from_lookup(|name| match name {
+                "GLOBADYME_ENVIRONMENT" => Some(bad.to_owned()),
+                _ => base(name),
+            })
+            .unwrap_err();
+            assert!(error.contains("GLOBADYME_ENVIRONMENT"), "{bad}: {error}");
+        }
+    }
+
     fn stripe_with(pairs: &[(&str, &str)]) -> Result<Config, String> {
         let base = [
             ("DATABASE_URL", "postgres://x"),
@@ -998,13 +1095,23 @@ mod tests {
             assert!(err.starts_with(var), "{var}={bad}: {err}");
             assert!(!err.contains("abc"), "value echoed: {err}");
         }
-        // Not chosen: the settings are not read at all.
-        let none = Config::from_lookup(lookup(&[
+        let none = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")])).unwrap();
+        assert!(none.stripe.is_none());
+        // Historical obligations retain Stripe even when it is no longer the default.
+        let retained = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("STRIPE_SECRET_KEY", "sk_test_abc"),
+            ("STRIPE_WEBHOOK_SECRET", "whsec_abc"),
+        ]))
+        .unwrap();
+        assert!(retained.stripe.is_some());
+        let err = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
             ("STRIPE_SECRET_KEY", "nonsense"),
         ]))
-        .unwrap();
-        assert!(none.stripe.is_none());
+        .unwrap_err();
+        assert!(err.starts_with("STRIPE_SECRET_KEY"), "{err}");
+        assert!(!err.contains("nonsense"), "value echoed: {err}");
     }
 
     #[test]

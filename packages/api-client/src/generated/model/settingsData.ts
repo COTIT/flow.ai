@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { SettingsMeta } from './settingsMeta';
 
 /**
  * Settings read reply.
@@ -12,4 +13,6 @@
 export interface SettingsData {
   /** Every section as an object, or with `?type=` that one section or dotted path (any JSON value; null when unset). Credentials print masked. */
   data: unknown;
+  /** Deployment-owned payment capabilities, separate from editable workspace settings. */
+  meta: SettingsMeta;
 }

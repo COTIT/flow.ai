@@ -20,6 +20,7 @@ import type {
 
 import "./api"
 import { isUuid, isPublicCode } from "./passport"
+import { getShopBase } from "./shop-scope"
 
 /** Axios request options, as the generated calls take them. */
 type RequestOptions = NonNullable<Parameters<typeof storefrontProductsGet>[1]>
@@ -38,7 +39,15 @@ export const PAGE_SIZE = 24
  * Request options for every storefront call. The app key is a server secret: this module
  * is server-only, and the build checks no client file mentions it.
  */
-function options(): RequestOptions {
+async function options(path: string): Promise<RequestOptions> {
+  const base = await getShopBase()
+  if (base)
+    return {
+      url: path.replace(/^\/storefront/, `/storefront/shops/${base.slice(3)}`),
+      timeout: 8000,
+      adapter: "fetch",
+      fetchOptions: { cache: "no-store" },
+    }
   const key = process.env.STOREFRONT_APP_KEY
   if (!key) {
     console.error("storefront: STOREFRONT_APP_KEY is not set")
@@ -64,7 +73,7 @@ async function call<T>(
   /** What a 404 means instead of not-found, when the page can do without it. */
   missing?: () => T
 ): Promise<T> {
-  const opts = options()
+  const opts = await options(path)
   try {
     return await request(opts)
   } catch (error) {
@@ -183,7 +192,7 @@ export async function createOrder(
   body: CheckoutRequest,
   idempotencyKey: string
 ): Promise<CreateOrderResult> {
-  const o = options()
+  const o = await options("/storefront/orders")
   try {
     const { data } = await storefrontOrdersCreate(body, {
       ...fresh(o),
@@ -207,7 +216,13 @@ export type PaymentResult =
   | { ok: true; checkoutUrl: string }
   | {
       ok: false
-      kind: "no_provider" | "provider_down" | "not_payable" | "unavailable"
+      kind:
+        | "no_provider"
+        | "provider_down"
+        | "not_payable"
+        | "unavailable"
+        | "pending_review"
+        | "setup_required"
     }
 
 /** Starts (or resumes) the payment; the provider sends the customer back to `redirectUrl`. */
@@ -220,8 +235,14 @@ export async function startPayment(
     const { data } = await storefrontOrdersPayment(
       orderId,
       { redirect_url: redirectUrl },
-      fresh(options())
+      fresh(await options(path))
     )
+    if (
+      (data as typeof data & { attention?: boolean }).attention ||
+      data.status === "unknown" ||
+      (!data.checkout_url && ["creating", "open"].includes(data.status))
+    )
+      return { ok: false, kind: "pending_review" }
     return data.checkout_url
       ? { ok: true, checkoutUrl: data.checkout_url }
       : { ok: false, kind: "not_payable" }
@@ -229,17 +250,18 @@ export async function startPayment(
     if (error instanceof StorefrontUnavailable)
       return { ok: false, kind: "unavailable" }
     const { status, data } = failure(error)
-    const message = (data as { message?: string })?.message
-    if (status === 503)
-      return {
-        ok: false,
-        kind:
-          message === "no payment provider configured"
-            ? "no_provider"
-            : "provider_down",
-      }
+    const { message, code } = (data ?? {}) as {
+      message?: string
+      code?: string
+    }
+    if (status === 503 && code === "payment_setup_required")
+      return { ok: false, kind: "setup_required" }
+    if (status === 503 && message === "no payment provider configured")
+      return { ok: false, kind: "no_provider" }
     if (status === 409) return { ok: false, kind: "not_payable" }
     console.error(`storefront: POST ${path} failed:`, status ?? "network")
+    if (status === undefined || status >= 500)
+      return { ok: false, kind: "pending_review" }
     return { ok: false, kind: "unavailable" }
   }
 }

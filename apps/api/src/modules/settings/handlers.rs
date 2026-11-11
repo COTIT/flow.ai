@@ -1,20 +1,22 @@
 //! HTTP edge for /v1/workspace/{workspace}/settings. Reads need `setting.get` (Laravel checked
 //! `setting.view`, which no team can hold), writes `setting.update`.
 
-use axum::extract::{Query, State};
+use axum::{
+    Json,
+    extract::{Query, State},
+};
 use serde::Deserialize;
-use serde_json::Value;
 
 use crate::{
     AppState,
     error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
-        response::{Data, Message, MessageBody},
+        response::{Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::settings::{
-        dto::{SettingsData, UpdateSettingsRequest},
+        dto::{SettingsData, SettingsMeta, UpdateSettingsRequest},
         service,
     },
 };
@@ -51,7 +53,7 @@ pub async fn get(
     State(state): State<AppState>,
     access: Can<SettingGet>,
     Query(q): Query<TypeQuery>,
-) -> Result<Data<Value>, AppError> {
+) -> Result<Json<SettingsData>, AppError> {
     let kind = q.kind.as_deref().map(str::trim).filter(|k| !k.is_empty());
     let data = match kind {
         Some(k) if k.chars().count() > 255 => {
@@ -63,7 +65,13 @@ pub async fn get(
         Some(k) => service::by_type(&state, access.workspace_id, k).await?,
         None => service::all(&state, access.workspace_id).await?,
     };
-    Ok(Data(data))
+    Ok(Json(SettingsData {
+        data,
+        meta: SettingsMeta {
+            globadyme_environment: state.payments.globadyme_environment(),
+            production_origin_verified: false,
+        },
+    }))
 }
 
 /// POST /settings -> `{"message":"ok"}`.

@@ -140,9 +140,7 @@ describe("reviewed operation coverage", () => {
         uuid
       ).write
     ).toBe(true)
-    expect(
-      prepareAction("flow_scenes_reset", {}, uuid).write
-    ).toBe(true)
+    expect(prepareAction("flow_scenes_reset", {}, uuid).write).toBe(true)
   })
 
   it("pins material-review, durable-delivery and cleanup authorities", () => {
@@ -485,14 +483,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(505)
-    expect(tools).toHaveLength(410)
+    expect(operationManifest).toHaveLength(527)
+    expect(tools).toHaveLength(413)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(38)
+    ).toHaveLength(44)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)

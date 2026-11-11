@@ -38,7 +38,7 @@ async fn world(pool: PgPool) -> W {
     let mut api = Api::new(pool.clone(), "/orders").await;
     let fake = Fake::default();
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = Some(Provider::Fake(fake.clone()));
+    state.payments = Provider::Fake(fake.clone()).into();
     api.app = build_app(state);
     let main = api
         .with_base("/warehouses")
@@ -137,7 +137,7 @@ async fn run(w: &W, kinds_: &[&str]) {
         files: None,
         http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
-        payments: Some(Provider::Fake(w.fake.clone())),
+        payments: Provider::Fake(w.fake.clone()).into(),
     };
     while let Some(job) = repo::claim(&w.api.pool, kinds_, 100, Duration::from_secs(60))
         .await
@@ -963,7 +963,7 @@ async fn a_restarted_fake_still_creates_payments(pool: PgPool) {
     // "Restart": a fresh in-memory fake on the same database.
     w.fake = Fake::default();
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = Some(Provider::Fake(w.fake.clone()));
+    state.payments = Provider::Fake(w.fake.clone()).into();
     w.api.app = build_app(state);
     let (_, second) = awaiting(&w, 1).await;
     assert_ne!(first, second, "a new id after the restart");
@@ -1057,7 +1057,7 @@ async fn a_refund_amount_is_decimal_text_the_api_converts(pool: PgPool) {
 async fn assistant_refund_world(pool: PgPool) -> W {
     let mut w = world(pool.clone()).await;
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = Some(Provider::Fake(w.fake.clone()));
+    state.payments = Provider::Fake(w.fake.clone()).into();
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
         genesy_360_api::AssistantSecret::new(super::assistant_preconditions::BRIDGE.into())
             .unwrap(),

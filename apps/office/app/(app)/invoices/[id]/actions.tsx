@@ -36,6 +36,7 @@ import { Notice } from "@genesy/ui/components/notice"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
+import { InvoiceRefund } from "@/components/invoice-refund"
 import { Done, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
@@ -168,6 +169,7 @@ export function NextStep({
 
   return (
     <Tile id="invoice-next" title={t("invoices.nextStep")} span="col-span-4">
+      <InvoiceRefund invoice={inv} onChanged={onChanged} />
       <Done message={done.message} />
       <div role="status">
         {delivery ? (

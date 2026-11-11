@@ -17,6 +17,10 @@ For invite and verification emails, point `SMTP_URL` at a local Mailpit (`smtp:/
 
 Builds without a database: set `SQLX_OFFLINE=true` and the `query!` macros read the committed `.sqlx/` cache. On a laptop also set `CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0` to keep `target/` small.
 
+## Globadyme
+
+Workspace payment accounts, callback setup, invoice refunds and recovery are documented in [Globadyme hosted payments](docs/api/globadyme.md). Sandbox uses the published provider origin; production stays disabled until an official origin is approved. Existing configured Stripe/fake clients remain available for historical operations after workspace selection changes.
+
 ## Environment
 
 All read once at boot. A missing required var stops the server with the var name. The table lists the common ones; `src/config.rs` is the full list (uploads, jobs, per-key and per-workspace limits, mail allow-lists, credentials key) and `.env.example` has working local values.

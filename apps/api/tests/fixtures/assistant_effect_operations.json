@@ -5,6 +5,8 @@
   "effectOperationIds": [
     "app_keys_create",
     "app_keys_revoke",
+    "attention_marks_delete",
+    "attention_marks_set",
     "contacts_create",
     "contacts_delete",
     "contacts_update",
@@ -95,6 +97,9 @@
     "farm_vouchers_void",
     "files_create",
     "files_delete",
+    "flow_scenes_delete",
+    "flow_scenes_reset",
+    "flow_scenes_update",
     "hourly_rates_create",
     "hourly_rates_delete",
     "hourly_rates_update",

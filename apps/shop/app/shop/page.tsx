@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { getLocale, getTranslations } from "next-intl/server"
 
 import { Button, buttonVariants } from "@genesy/ui/components/button"
@@ -10,6 +10,7 @@ import { CategoryChips } from "@/components/category-chips"
 import { ProductCard } from "@/components/product-card"
 import { card, h2, prose, warm } from "@/lib/look"
 import { listCategories, listProducts } from "@/lib/storefront"
+import { getShop } from "@/lib/shop-scope"
 
 type Props = {
   searchParams: Promise<{ page?: string; category?: string }>
@@ -42,6 +43,7 @@ export default async function ShopPage({ searchParams }: Props) {
     : undefined
   const unknown = Boolean(params.category) && !chosen
   const products = unknown ? null : await listProducts(page, chosen?.id)
+  const shop = await getShop()
   const labels = {
     inStock: t("product.inStock"),
     low: t("product.low"),
@@ -61,7 +63,7 @@ export default async function ShopPage({ searchParams }: Props) {
           {chosen?.name ?? t("catalog.title")}
         </h1>
         <p className={cn(prose, "text-muted-foreground")}>
-          {chosen?.description ?? t("app.tagline")}
+          {chosen?.description ?? shop?.name ?? t("app.tagline")}
         </p>
         {categories.length ? (
           <CategoryChips

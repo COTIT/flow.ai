@@ -6,6 +6,8 @@ import { Input } from "@genesy/ui/components/input"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { goldChip, tile } from "@/lib/look"
+import { getShopBase } from "@/lib/shop-scope"
+import { shopPath } from "@/lib/shop-path"
 
 /** Code under the QR -> its passport. A plain GET form: works before any script loads. */
 export async function TraceForm({
@@ -20,7 +22,7 @@ export async function TraceForm({
   const t = await getTranslations("trace")
   return (
     <form
-      action="/b"
+      action={shopPath(await getShopBase(), "/b")}
       method="get"
       className={cn(tile, "flex flex-col gap-3 p-5", className)}
     >

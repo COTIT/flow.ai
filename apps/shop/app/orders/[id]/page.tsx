@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import Link from "@/components/shop-link"
 import { getLocale, getTranslations } from "next-intl/server"
 
 import { Badge } from "@genesy/ui/components/badge"
@@ -90,6 +90,11 @@ export default async function OrderPage({ params }: Props) {
               action={
                 <PayButton
                   orderId={order.id}
+                  setupRequired={order.online_payment_enabled === false}
+                  pendingReview={
+                    order.payment_attention === true ||
+                    order.payment_status === "unknown"
+                  }
                   label={t("payAmount", { amount: money(order.total) })}
                 />
               }

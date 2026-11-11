@@ -28,6 +28,11 @@ export interface PublicInvoice {
   invoice_nr: string | null;
   is_credit: boolean;
   items: PublicInvoiceItem[];
+  /**
+     * New hosted collections enabled with complete account configuration.
+     * @nullable
+     */
+  online_payment_enabled?: boolean | null;
   /** The token in the link. */
   payment_hash: string;
   payment_method: string;

@@ -20,6 +20,7 @@ import {
   useLotsUpdate,
 } from "@genesy/api-client/endpoints/lots"
 import { useProductsGet } from "@genesy/api-client/endpoints/products"
+import { useStorefrontConnectionGet } from "@genesy/api-client/endpoints/storefront-connection"
 import type { UpdateLotRequest } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Badge } from "@genesy/ui/components/badge"
@@ -42,6 +43,7 @@ import { Bento, Chip, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, ListPager, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
+import { storefrontUrl } from "@/lib/storefront-url"
 
 import { LotFields } from "../lot-fields"
 import { FarmerCount, FarmerCredits } from "./farmer-credits"
@@ -85,6 +87,9 @@ export default function LotPage({
     { query: { enabled: lot.isSuccess && viewProduct } }
   )
   const passport = useLotsPassportGet(workspaceId, id, known)
+  const connection = useStorefrontConnectionGet(workspaceId, {
+    query: { enabled: lot.isSuccess, retry: false },
+  })
   const holds = useLotsHolds(workspaceId, id, known)
   // The same first page the Farmer credits card reads (one request): its village groups.
   const credits = useLotsFarmerCredits(workspaceId, id, { page: 1 }, known)
@@ -128,8 +133,14 @@ export default function LotPage({
       />
     )
   const current = lot.data.data
-  const publicPath = `/b/${current.public_code}`
-  const shopUrl = process.env.NEXT_PUBLIC_SHOP_URL
+  const publicUrl =
+    !connection.isError && !connection.isFetching
+      ? storefrontUrl(
+          process.env.NEXT_PUBLIC_SHOP_URL,
+          connection.data?.data,
+          current.public_code
+        )
+      : null
   const pp = passport.data?.data
   const description = [product.data?.data.name, current.origin]
     .filter(Boolean)
@@ -227,48 +238,63 @@ export default function LotPage({
             ) : null
           }
         >
-          <SubTile className="flex items-center gap-3">
-            <QrCode
-              aria-hidden="true"
-              className="size-6 shrink-0"
-              strokeWidth={1.75}
-            />
-            <div className="min-w-0 grow">
-              <p className="font-mono text-sm font-semibold break-all">
-                {publicPath}
-              </p>
-              {pp ? (
-                <p className="text-xs text-muted-foreground">
-                  {!pp.published
-                    ? t("passport.notPublished")
-                    : JSON.stringify(pp.draft) === JSON.stringify(pp.published)
-                      ? t("lots.draftMatches")
-                      : t("passport.draftDiffers")}
+          {publicUrl ? (
+            <SubTile className="flex items-center gap-3">
+              <QrCode
+                aria-hidden="true"
+                className="size-6 shrink-0"
+                strokeWidth={1.75}
+              />
+              <div className="min-w-0 grow">
+                <p className="font-mono text-sm font-semibold break-all">
+                  {publicUrl}
                 </p>
-              ) : null}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={copied ? t("lots.linkCopied") : t("lots.copyLink")}
-              onClick={() =>
-                void navigator.clipboard
-                  .writeText(
-                    `${shopUrl ?? window.location.origin}${publicPath}`
-                  )
-                  .then(() => setCopied(true))
-                  // No clipboard (denied, insecure page): the path stays readable beside it.
-                  .catch(() => setCopied(false))
-              }
+                {pp ? (
+                  <p className="text-xs text-muted-foreground">
+                    {!pp.published
+                      ? t("passport.notPublished")
+                      : JSON.stringify(pp.draft) ===
+                          JSON.stringify(pp.published)
+                        ? t("lots.draftMatches")
+                        : t("passport.draftDiffers")}
+                  </p>
+                ) : null}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={copied ? t("lots.linkCopied") : t("lots.copyLink")}
+                onClick={() =>
+                  void navigator.clipboard
+                    .writeText(publicUrl)
+                    .then(() => setCopied(true))
+                    // No clipboard (denied, insecure page): the path stays readable beside it.
+                    .catch(() => setCopied(false))
+                }
+              >
+                {copied ? (
+                  <Check aria-hidden="true" />
+                ) : (
+                  <Copy aria-hidden="true" />
+                )}
+              </Button>
+            </SubTile>
+          ) : connection.isPending || connection.isFetching ? (
+            <Skeleton className="h-16 w-full" />
+          ) : connection.isError ? (
+            <LoadError
+              error={connection.error}
+              onRetry={() => void connection.refetch()}
+            />
+          ) : (
+            <Notice
+              variant="warning"
+              title={t("storefront.connection.required")}
             >
-              {copied ? (
-                <Check aria-hidden="true" />
-              ) : (
-                <Copy aria-hidden="true" />
-              )}
-            </Button>
-          </SubTile>
+              {t("storefront.connection.requiredHint")}
+            </Notice>
+          )}
           {passport.isError ? (
             <LoadError
               error={passport.error}

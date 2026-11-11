@@ -1093,7 +1093,13 @@ pub async fn public(state: &AppState, token: &str) -> Result<Value, AppError> {
     if let Some(account) = company.get_mut("account").and_then(Value::as_object_mut) {
         account.remove("credit_limit");
     }
-    Ok(resource::public(
-        &row, &lines, &summary, token, currency, company,
-    ))
+    let mut public = resource::public(&row, &lines, &summary, token, currency, company);
+    public["online_payment_enabled"] = serde_json::json!(
+        crate::modules::gateway::accounts::select(state, workspace_id)
+            .await
+            .ok()
+            .flatten()
+            .is_some()
+    );
+    Ok(public)
 }
