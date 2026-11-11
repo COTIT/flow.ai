@@ -25,11 +25,15 @@ import {
   probeRange,
   TTL,
 } from "./scene-data"
+import { retryDelay, shouldRetry } from "./scene-errors"
 
 const live = (ms: number) => ({
   staleTime: ms,
   refetchInterval: ms,
   refetchIntervalInBackground: false,
+  // Flow's own rules (the shared client keeps TanStack's defaults): a refusal is not retried.
+  retry: shouldRetry,
+  retryDelay,
 })
 
 export const useWorkspace = () => useSession((s) => s.workspaceId) ?? ""

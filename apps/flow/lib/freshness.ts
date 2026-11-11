@@ -25,3 +25,18 @@ export function freshness({
   if (now - updatedAt > 2 * staleAfter) return { kind: "stale", seconds }
   return { kind: "fresh", seconds }
 }
+
+export type AgeLabel =
+  { kind: "now" } | { kind: "minutes"; minutes: number } | { kind: "at" }
+
+/** Coarse age of shown data: just now, whole minutes, then the clock time of the update. */
+export function ageLabel(ageMs: number): AgeLabel {
+  if (ageMs < 60_000) return { kind: "now" }
+  if (ageMs < 3_600_000)
+    return { kind: "minutes", minutes: Math.floor(ageMs / 60_000) }
+  return { kind: "at" }
+}
+
+/** How long until the shown text can next change: twice a minute while young, once after 10 min. */
+export const nextTickDelay = (ageMs: number) =>
+  ageMs < 600_000 ? 30_000 : 60_000
