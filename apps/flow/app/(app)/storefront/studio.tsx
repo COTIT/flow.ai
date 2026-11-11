@@ -145,6 +145,21 @@ function Review({
     hadReview.current = Boolean(voice.review)
   }, [voice.review, queryClient, workspaceId])
 
+  // While a request waits for its draft, ask now and then: the draft can also come from a path
+  // that never opens a review here (another tab, the agent's own save).
+  React.useEffect(() => {
+    if (!preparing) return
+    const timer = setInterval(() => {
+      void queryClient.invalidateQueries({
+        queryKey: getStorefrontDesignGetQueryKey(workspaceId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: getStorefrontDesignRevisionsQueryKey(workspaceId),
+      })
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [preparing, queryClient, workspaceId])
+
   const request = (text?: string) => {
     studioStore.setState({ awaiting: { from: draftId } })
     setBrief(false)

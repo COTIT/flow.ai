@@ -23,6 +23,9 @@ import {
   useStudio,
 } from "@/lib/studio"
 
+/** Time left until an ISO instant (negative once passed). */
+const msUntil = (iso: string) => new Date(iso).getTime() - Date.now()
+
 const TITLE = {
   none: "readyTitle",
   active: "readyTitle",
@@ -112,7 +115,7 @@ export function PreviewLinkCard({
   const expires = view.link?.status === "active" ? view.link.expires_at : null
   React.useEffect(() => {
     if (!expires) return
-    const wait = new Date(expires).getTime() - Date.now()
+    const wait = msUntil(expires)
     if (wait > 2 ** 31 - 1) return
     const timer = setTimeout(() => void links.refetch(), Math.max(0, wait) + 1000)
     return () => clearTimeout(timer)

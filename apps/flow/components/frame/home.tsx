@@ -12,6 +12,7 @@ import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
 import { useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
+import { StudioResume } from "@/components/studio/resume" // F5
 import { useWorkspaceChoices } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
@@ -124,6 +125,7 @@ export function Home() {
           </p>
         </>
       ) : null}
+      <StudioResume /> {/* F5 */}
       {/* Slots for the discovery hint (F3), Flow noticed and Your Flow (F2). */}
     </div>
   )
