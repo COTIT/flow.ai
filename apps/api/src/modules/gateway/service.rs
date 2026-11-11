@@ -81,13 +81,36 @@ pub async fn submit(
     let mut dispatch = state.db.acquire().await?;
     // Session fence closes on cancellation; never return advisory-locked session to pool.
     dispatch.close_on_drop();
+    let fence = format!("globadyme:{ws}:{id}");
     let active: bool = sqlx::query_scalar("SELECT pg_try_advisory_lock(hashtextextended($1,0))")
-        .bind(format!("globadyme:{ws}:{id}"))
+        .bind(&fence)
         .fetch_one(&mut *dispatch)
         .await?;
     if !active {
         return Ok(());
     }
+    let result = dispatch_fenced(state, &mut dispatch, ws, id, op, account, redirect_url).await;
+    // Close-on-drop frees fence only after backend exit; next caller would see stale "busy".
+    if let Err(error) = sqlx::query("SELECT pg_advisory_unlock(hashtextextended($1,0))")
+        .bind(&fence)
+        .execute(&mut *dispatch)
+        .await
+    {
+        tracing::warn!(%error, payment = %id, "dispatch fence unlock failed; connection close releases it");
+    }
+    result
+}
+
+/// Fenced part of `submit`: claim, provider call, result write. Caller holds and releases fence.
+async fn dispatch_fenced(
+    state: &AppState,
+    dispatch: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+    op: Operation,
+    account: accounts::Account,
+    redirect_url: &str,
+) -> Result<(), AppError> {
     let mut tx = dispatch.begin().await?;
     lock_owner(&mut tx, ws, &op).await?;
     let op = repo::find(&mut *tx, ws, id)
@@ -143,7 +166,7 @@ pub async fn submit(
                 confirm_refund_in(state, &mut tx, ws, id, false).await?;
                 tx.commit().await?;
             }
-            Err(e) => record_failure(state, &mut dispatch, ws, id, e).await?,
+            Err(e) => record_failure(state, dispatch, ws, id, e).await?,
         }
     } else {
         let request = op.request_id.to_string();
@@ -179,7 +202,7 @@ pub async fn submit(
                 )
                 .await?;
             }
-            Err(e) => record_failure(state, &mut dispatch, ws, id, e).await?,
+            Err(e) => record_failure(state, dispatch, ws, id, e).await?,
         }
     }
     Ok(())

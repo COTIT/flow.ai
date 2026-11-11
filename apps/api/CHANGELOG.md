@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Globadyme submit releases its per-payment dispatch fence (session advisory lock) before returning, on success and on every error. The fence used to outlive the call until the closed connection's backend exited, so a submit right after a refused one (setup disabled) could skip as "already dispatching" and the Shop got `200` `creating` without a checkout link instead of `503` `payment_setup_required`; refund resolution could also see a finished dispatch as still active. Cancellation still frees it by closing the connection. Single dispatch unchanged.
+
 - Globadyme uses a deployment-pinned realm: staging accepts sandbox accounts; production accepts production accounts. Settings reads expose read-only realm metadata outside writable data, and the payment page shows one credential slot. Cross-realm operations cannot dispatch, book receipts, release reservations or expose checkout links; existing receipts and evidence remain intact.
 
 - Incomplete Globadyme setup disables new Shop and invoice collections with `503` code `payment_setup_required`. Shop order reads expose local payment availability; existing attempts keep their bound account after provider changes. Settings list missing saved credentials, and customer payment controls stay disabled until setup is available. Ambiguous submission failures stay under review.
