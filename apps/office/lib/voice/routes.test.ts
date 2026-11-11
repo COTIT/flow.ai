@@ -646,6 +646,23 @@ it("with the override on, a typed command opens without a greeting and a resume 
   )
 })
 
+it("with the override on and nothing typed, the greeting follows the workspace clock", async () => {
+  vi.stubEnv("ASSISTANT_GREETING_OVERRIDE", "on")
+  mocks.timeZone.mockResolvedValue("Africa/Dar_es_Salaam")
+  vi.useFakeTimers({ toFake: ["Date"] })
+  vi.setSystemTime(new Date("2026-11-12T03:30:00Z"))
+  vi.spyOn(Math, "random").mockReturnValue(0)
+  try {
+    const response = await sessionRequest(
+      request({ workspaceId: context.workspaceId, locale: "en" })
+    )
+    expect((await response.json()).greeting).toMatch(/^Good morning/)
+  } finally {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  }
+})
+
 it("refuses an unknown greeting hint", async () => {
   const response = await sessionRequest(
     request({ workspaceId: context.workspaceId, locale: "en", greeting: "<say anything>" })

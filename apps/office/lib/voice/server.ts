@@ -18,6 +18,9 @@ export type VoiceContext = {
   workspaceId: string
   permissions: string[]
   apiUrl: string
+  /** From /me; only the session greeting uses them. */
+  userId?: string
+  firstName?: string
   sessionId?: string
   language?: string
   nativeSecure?: boolean
@@ -146,7 +149,11 @@ export async function verifyLogin(base: VoiceContext): Promise<VoiceContext> {
     throw new VoiceError("You do not have access to this workspace.", 403)
   const me = (await profile.json()) as {
     data: {
-      user: { permissions: { workspace: string; permissions: string[] }[] }
+      user: {
+        id?: string
+        first_name?: string
+        permissions: { workspace: string; permissions: string[] }[]
+      }
     }
   }
   const permissions = [
@@ -166,7 +173,12 @@ export async function verifyLogin(base: VoiceContext): Promise<VoiceContext> {
       )
     )
   }
-  return { ...base, permissions }
+  return {
+    ...base,
+    permissions,
+    userId: me.data?.user?.id,
+    firstName: me.data?.user?.first_name,
+  }
 }
 
 /** Only known farm roles become claims; Rust rechecks resource scope. */
