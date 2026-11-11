@@ -22,7 +22,10 @@
     "pageNotFound": "Ukurasa huu haupo",
     "goHome": "Nenda mwanzo",
     "crashed": "Skrini hii imeacha kufanya kazi",
-    "crashedText": "Hakuna kilichobadilishwa. Jaribu tena.",
+    "crashedText": "Jaribu tena, au nenda mwanzo.",
+    "loadFailed": "Ukurasa huu haukuweza kupakia",
+    "loadFailedText": "Angalia muunganisho wako, kisha ujaribu tena. Hakuna kilichobadilishwa.",
+    "loadFailedOffline": "Uko nje ya mtandao. Ukurasa huu utapakia tena ukirudi mtandaoni.",
     "storefront": {
       "title": "Muundo wa duka",
       "intro": "Kagua matoleo yaliyohifadhiwa kabla ya kuchapisha mabadiliko kwenye duka lako.",
