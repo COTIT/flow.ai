@@ -176,6 +176,8 @@ test("a preview link opens the draft on the Shop until revoked, and publishing e
       [first.link_id, "revoked"],
     ])
   } finally {
+    // Leave the page first: Next prefetches header links, which would hit the stopped Shop.
+    await page.goto("about:blank")
     child.kill("SIGTERM")
     expect(startupErrors).not.toMatch(
       /EADDRINUSE|Could not find a production build/

@@ -45,9 +45,13 @@ test("a real Flow login shows the member, the workspace and Office's assistant s
   const me = await request.get(`${urls.api}/v1/me`, { headers })
   const { name } = (await me.json()).data.user as { name: string }
   await loginFlow(page, owner)
-  // The conversation header names the member (not the login email) and the workspace.
-  await expect(page.getByRole("main").getByText(name)).toBeVisible()
-  await expect(page.getByRole("main").getByText(afm.display_name)).toBeVisible()
+  // The Flow banner names the member (not the login email) and the workspace (v9 shell).
+  await expect(
+    page.getByRole("banner").getByText(name, { exact: false })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("banner").getByText(afm.display_name, { exact: false })
+  ).toBeVisible()
   await expect(
     page.getByRole("status").filter({ hasText: "The assistant is turned off" })
   ).toBeVisible()
