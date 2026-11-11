@@ -8,9 +8,10 @@ import { StorefrontPage } from "@genesy/ui/components/storefront-page"
 import { card } from "@/lib/look"
 import { getPreviewDesign } from "@/lib/storefront-design"
 
-// Bearer link: never indexed; next.config adds no-referrer, noindex and no-store headers too.
+// Bearer link: robots meta here; the Referrer-Policy, X-Robots-Tag and Cache-Control headers
+// come from next.config `/preview/:path*`.
 export const metadata: Metadata = { robots: { index: false, follow: false } }
-// Every request re-checks the link: no cached render (Cache-Control no-store).
+// Render per request so every view re-checks the link with the API.
 export const dynamic = "force-dynamic"
 
 /**

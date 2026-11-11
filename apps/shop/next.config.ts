@@ -17,13 +17,16 @@ const nextConfig: NextConfig = {
     "@genesy/security",
   ],
   headers: async () => [
-    { source: "/:path*", headers: securityHeaders },
-    // Preview links carry a bearer token in the path: never leak it in Referer, never index it.
+    // Everything except /preview: one rule per path, so no header is sent twice.
+    { source: "/:path((?!preview(?:/|$)).*)", headers: securityHeaders },
+    // Preview links carry a bearer token in the path: no Referer, no index, no cache.
     {
       source: "/preview/:path*",
       headers: [
+        ...securityHeaders.filter((h) => h.key !== "Referrer-Policy"),
         { key: "Referrer-Policy", value: "no-referrer" },
         { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        { key: "Cache-Control", value: "no-store" },
       ],
     },
   ],

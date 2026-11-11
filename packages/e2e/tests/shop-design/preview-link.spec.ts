@@ -1,6 +1,6 @@
 import design from "../../../../apps/api/tests/fixtures/storefront-design-v1.json" with { type: "json" }
 import { PREVIEW } from "../../mock/fixtures.mjs"
-import type { Page, Request } from "@playwright/test"
+import type { Page, Request, Response } from "@playwright/test"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 
 /** Every browser request the page makes, to prove the preview body never does commerce. */
@@ -8,6 +8,18 @@ function record(page: Page) {
   const seen: Request[] = []
   page.on("request", (r) => seen.push(r))
   return seen
+}
+
+/** Each header once, with one value: no global rule doubling or weakening the preview's. */
+async function expectPreviewHeaders(response: Response | null) {
+  const all = await response!.headersArray()
+  const values = (name: string) =>
+    all.filter((h) => h.name.toLowerCase() === name).map((h) => h.value)
+  expect(values("referrer-policy")).toEqual(["no-referrer"])
+  expect(values("x-robots-tag")).toEqual(["noindex, nofollow"])
+  expect(values("cache-control")).toHaveLength(1)
+  expect(values("cache-control")[0]).toContain("no-store")
+  expect(values("x-content-type-options")).toEqual(["nosniff"])
 }
 
 function expectNoCommerce(seen: Request[]) {
@@ -26,10 +38,7 @@ test("valid preview link shows the draft in the real shop, inert and unindexed",
 }, testInfo) => {
   const seen = record(page)
   const response = await page.goto(`/preview/${PREVIEW.live}`)
-  const headers = response!.headers()
-  expect(headers["referrer-policy"]).toBe("no-referrer")
-  expect(headers["x-robots-tag"]).toBe("noindex, nofollow")
-  expect(headers["cache-control"]).toContain("no-store")
+  await expectPreviewHeaders(response)
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     "content",
     "noindex, nofollow"
@@ -79,8 +88,7 @@ for (const [name, token] of [
   test(`${name} preview link shows the expired page`, async ({ page }) => {
     const seen = record(page)
     const response = await page.goto(`/preview/${token}`)
-    expect(response!.headers()["referrer-policy"]).toBe("no-referrer")
-    expect(response!.headers()["x-robots-tag"]).toBe("noindex, nofollow")
+    await expectPreviewHeaders(response)
     await expect(
       page.getByRole("heading", { level: 1, name: "This preview has expired" })
     ).toBeVisible()
@@ -98,3 +106,27 @@ for (const [name, token] of [
     expectNoCommerce(seen)
   })
 }
+
+test.describe("outside /preview", () => {
+  // A path that only starts like /preview: the preview rule must not reach it.
+  test.use({
+    allow: {
+      responses: [{ url: "/previews-are-not-preview-links", status: 404 }],
+    },
+  })
+
+  test("pages outside /preview keep the shared referrer policy", async ({
+    page,
+  }) => {
+    for (const path of ["/", "/shop", "/previews-are-not-preview-links"]) {
+      const response = await page.goto(path)
+      const all = await response!.headersArray()
+      expect(
+        all
+          .filter((h) => h.name.toLowerCase() === "referrer-policy")
+          .map((h) => h.value),
+        path
+      ).toEqual(["strict-origin-when-cross-origin"])
+    }
+  })
+})

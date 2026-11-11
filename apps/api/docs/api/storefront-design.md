@@ -67,6 +67,8 @@ A full-page preview link opens one unpublished draft on the Shop at `/preview/{t
 
 Link rows are the audit record (who issued and revoked, with login ids); a trigger refuses every change except one revoke and every delete except the workspace cascade. Issue and revoke log the link and workspace ids at info level, never the token. Responses carry `Cache-Control: no-store`.
 
+The token sits in the Shop page path, so `/preview/<token>` paths appear in the host proxy (Traefik) access log. Accepted by the user: exposure is limited by the 48 h default expiry, revoke, and links ending on publish or a new draft.
+
 ## Document v1
 
 Use the shared fixture at `apps/api/tests/fixtures/storefront-design-v1.json` for an API-driven initial draft. Draft authoring UI and conversational edits belong to later phases.
