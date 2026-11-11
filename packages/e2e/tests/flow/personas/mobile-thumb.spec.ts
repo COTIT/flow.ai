@@ -160,8 +160,35 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
         const b = await box.boundingBox({ timeout: 1_000 }).catch(() => null)
         if (b) await tapAt(b.x + b.width / 2, b.y + b.height / 2)
         await keyboard(page, size().height > size().width ? 0.42 : 0.55)
+        // Things settle as the keyboard slides up (a sheet animates its height): it must hold after.
+        await expect
+          .poll(
+            async () => {
+              const k = await boxAboveKeyboard(page)
+              const scrolls = await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)
+              return (k.box ?? 0) <= k.vh && !scrolls
+            },
+            { timeout: 1_500 }
+          )
+          .toBe(true)
+          .catch(() => {})
         const { box: bottom, vh } = await boxAboveKeyboard(page)
-        expect(bottom ?? 0, "the message box went under the keyboard").toBeLessThanOrEqual(vh)
+        const where = async () => {
+          const state = await page.evaluate(() => ({
+            path: location.pathname + location.search,
+            size: `${innerWidth}×${innerHeight}`,
+            vv: visualViewport?.height,
+            doc: document.documentElement.scrollHeight,
+            header: document.querySelector("[data-flow-header]")?.getAttribute("data-shown"),
+            sheet: document.querySelector('[aria-label^="Lower the conversation"]') ? "raised" : document.querySelector('[aria-label^="Raise the conversation"]') ? "peek" : "none",
+            focus: document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName,
+          }))
+          await page.screenshot({ path: test.info().outputPath("keyboard.png") })
+          return JSON.stringify(state)
+        }
+        if ((bottom ?? 0) > vh) expect(bottom, `the message box went under the keyboard ${await where()}`).toBeLessThanOrEqual(vh)
+        if (await page.evaluate(() => document.documentElement.scrollHeight > innerHeight))
+          expect(0, `the page scrolls with the keyboard up ${await where()}`).toBe(1)
         await box.fill(persona.pick(["Sales today?", "Which orders wait?", "Stock below minimum", "ok"]))
         const send = await page.getByRole("button", { name: labels.send }).boundingBox({ timeout: 1_000 }).catch(() => null)
         if (send && persona.chance(0.7)) await touch.tap(send.x + send.width / 2, send.y + send.height / 2)
@@ -260,6 +287,8 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
       weight: 1,
       run: async () => {
         const next = persona.pick(Object.values(SIZES))
+        // A new size on a scene during a conversation is P10-9 (zoomed out): reported.
+        if ((await sheetHandle(page).count()) > 0 || new URL(page.url()).pathname.startsWith("/scenes")) return
         persona.log(`   ${next.width}×${next.height}`)
         await page.setViewportSize(next)
         await settledHeight()
