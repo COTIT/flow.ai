@@ -56,6 +56,7 @@ export function stubVoice(overrides: Partial<VoiceContextValue> = {}): VoiceCont
     unfinished: null,
     resume: later,
     resolveHref: (href) => href,
+    sendContext: () => {},
     ...overrides,
   }
 }

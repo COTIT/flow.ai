@@ -91,10 +91,11 @@ export function watch(page: Page, route: string) {
   return seen
 }
 
-/** Starts a text conversation from the start controls. */
+/** Starts a text conversation from the start controls; returns once it is connected. */
 export async function startText(page: Page) {
   await page.getByRole("button", { name: v.textInstead, exact: true }).click()
-  await expect(page.getByLabel(v.message)).toBeVisible()
+  // The dock's attach button exists only while connected.
+  await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
 }
 
 /** Sends one typed message. */

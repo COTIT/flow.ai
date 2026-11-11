@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { chat, fakeAgent, v } from "./voice"
+import { fakeAgent, v } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -44,36 +44,23 @@ test("the whole conversation works from the keyboard", async ({ page }) => {
   await expectFitsScreen(page)
 })
 
+// Tablet portrait and landscape share the one shell layout (no results pane or sheet any more).
 for (const size of [
-  { name: "tablet portrait", width: 834, height: 1194, panes: 1 },
-  { name: "tablet landscape", width: 1024, height: 768, panes: 2 },
+  { name: "tablet portrait", width: 834, height: 1194 },
+  { name: "tablet landscape", width: 1024, height: 768 },
 ]) {
   test.describe(size.name, () => {
     test.use({ viewport: { width: size.width, height: size.height } })
 
-    test(`shows ${size.panes === 2 ? "two panes" : "one column and a results sheet"}, nothing clipped`, async ({
+    test("home, the orb and the dock are on screen, nothing clipped", async ({
       page,
     }) => {
       await page.goto("/")
       await expect(
         page.getByRole("button", { name: v.textInstead, exact: true })
       ).toBeInViewport()
-      if (size.panes === 2) {
-        await expect(
-          page.getByRole("region", { name: chat.results })
-        ).toBeVisible()
-      } else {
-        await expect(
-          page.getByRole("region", { name: chat.results })
-        ).toHaveCount(0)
-        await page
-          .getByRole("button", { name: new RegExp(`^${chat.results}`) })
-          .click()
-        await expect(
-          page.getByRole("dialog", { name: chat.results })
-        ).toBeVisible()
-        await page.getByRole("button", { name: chat.closeResults }).click()
-      }
+      await expect(page.locator("[data-orb]")).toBeInViewport()
+      await expect(page.getByLabel(v.message)).toBeInViewport()
       await expectFitsScreen(page)
     })
   })
