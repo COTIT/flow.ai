@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { exactOrigin, flowHref, OFFICE_PAGES } from "./links"
+import { exactOrigin, flowHref, OFFICE_PAGES, shopPreviewHref } from "./links"
 
 const OFFICE = "https://office.genesy.test"
 const ID = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
@@ -133,5 +133,32 @@ describe("flowHref", () => {
     expect(flowHref("/orders", null)).toBe("")
     expect(flowHref(`/orders/${ID}`, null)).toBe("")
     expect(flowHref("/voice/secure?operation=app_keys_create", null)).toBe("")
+  })
+})
+
+describe("shopPreviewHref", () => {
+  const SHOP = "https://shop.genesy.test"
+  const TOKEN = "0123456789abcdef".repeat(4)
+
+  it("opens /preview/<token> on the Shop origin", () => {
+    expect(shopPreviewHref(TOKEN, SHOP)).toBe(`${SHOP}/preview/${TOKEN}`)
+  })
+
+  it("refuses without a Shop origin", () => {
+    expect(shopPreviewHref(TOKEN, null)).toBe("")
+  })
+
+  it.each([
+    "",
+    TOKEN.slice(1),
+    TOKEN + "0",
+    TOKEN.toUpperCase(),
+    "g".repeat(64),
+    `../${TOKEN.slice(3)}`,
+    `${TOKEN.slice(1)}/`,
+    `${TOKEN.slice(1)}?`,
+    `${TOKEN.slice(1)}#`,
+  ])("refuses token %j", (token) => {
+    expect(shopPreviewHref(token, SHOP)).toBe("")
   })
 })

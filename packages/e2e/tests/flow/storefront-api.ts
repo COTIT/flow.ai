@@ -97,6 +97,8 @@ export function designs(api: FakeApi, ws = "w1", heading?: string) {
   })
   const ids = ws === "w1" ? [draft, published] : [otherDraft]
   api
+    // No preview link yet; previewLinks() overrides this.
+    .on("GET", `${root(ws)}/preview-links`, () => ({ data: [] }))
     .on("GET", root(ws), state)
     .on("GET", `${root(ws)}/revisions`, () =>
       paged(
@@ -127,6 +129,53 @@ export function designs(api: FakeApi, ws = "w1", heading?: string) {
       version++
       return { status: 201, body: state() }
     })
+}
+
+/** A preview token as the API issues it (64 hex); the n-th issued one. */
+export const previewToken = (n: number) => n.toString(16).padStart(64, "a")
+
+/**
+ * Expiring preview links of the draft: POST issues an active 48 h link with a fresh token (shown
+ * once), DELETE revokes, GET lists newest first without tokens. `set` changes the newest link's
+ * status as the server would (expiry, publish ending it).
+ */
+export function previewLinks(
+  api: FakeApi,
+  initial: string[] = [],
+  ws = "w1"
+) {
+  let issued = 0
+  const links = initial.map((status, i) => link(`seed-${i}`, status))
+  function link(link_id: string, status: string) {
+    return {
+      link_id,
+      revision_id: ws === "w1" ? draft : otherDraft,
+      status,
+      created_at: "2026-11-11T12:00:00Z",
+      created_by: "u1",
+      expires_at: "2026-11-13T12:00:00Z",
+      revoked_at: status === "revoked" ? "2026-11-11T13:00:00Z" : null,
+    }
+  }
+  api
+    .on("GET", `${root(ws)}/preview-links`, () => ({ data: links }))
+    .on("POST", `${root(ws)}/preview-links`, () => {
+      issued++
+      const row = link(`link-${issued}`, "active")
+      links.unshift(row)
+      return { status: 201, body: { data: { ...row, token: previewToken(issued) } } }
+    })
+    .on("DELETE", `${root(ws)}/preview-links/:link`, ({ params }) => {
+      const row = links.find((l) => l.link_id === params[0])!
+      row.status = "revoked"
+      row.revoked_at = "2026-11-11T13:00:00Z"
+      return { data: row }
+    })
+  return {
+    set: (status: string) => {
+      links[0]!.status = status
+    },
+  }
 }
 
 /**

@@ -15,6 +15,7 @@ import { useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
 import { Noticed } from "@/components/home/noticed" // F2
 import { YourFlow } from "@/components/home/your-flow" // F2
+import { StudioResume } from "@/components/studio/resume" // F5
 import { useWorkspaceChoices } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
@@ -127,6 +128,7 @@ export function Home() {
           </p>
         </>
       ) : null}
+      <StudioResume /> {/* F5 */}
       <DiscoveryHint /> {/* F3 */}
       <Noticed /> {/* F2 */}
       <YourFlow /> {/* F2 */}
