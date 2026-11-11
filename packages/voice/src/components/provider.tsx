@@ -60,6 +60,7 @@ import {
 } from "../lib/approval-hold"
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
+import { isBlankMessage } from "../lib/blank"
 import {
   VoiceRequestError,
   VoiceShownError,
@@ -1428,6 +1429,7 @@ function Session({
     const selected = files.current.filter(
       (file) => file.state !== "submitted" && (!onlyKey || file.key === onlyKey)
     )
+    if (isBlankMessage(text)) text = ""
     if (!text.trim() && !selected.length) return false
     // Once the agent is working, a new message would make the provider drop that answer: hold it.
     if (!fromQueue && !selected.length && turn.working && !proposal.current) {
