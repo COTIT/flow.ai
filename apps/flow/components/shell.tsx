@@ -139,14 +139,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const view = window.visualViewport
     if (!view) return
+    // Never taller than the window: mid-rotation the visual viewport can lag behind it (INT-2).
     const fit = () =>
       document.documentElement.style.setProperty(
         "--flow-vh",
-        `${view.height}px`
+        `${Math.min(view.height, window.innerHeight)}px`
       )
     fit()
     view.addEventListener("resize", fit)
-    return () => view.removeEventListener("resize", fit)
+    window.addEventListener("resize", fit)
+    return () => {
+      view.removeEventListener("resize", fit)
+      window.removeEventListener("resize", fit)
+    }
   }, [])
 
   // Leaving the signed-in app (logout, another login) forgets the visual state.

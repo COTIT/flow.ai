@@ -94,10 +94,13 @@ export function DockLayer({ phase }: { phase: SessionPhase["phase"] }) {
     watch.observe(frame)
     watch.observe(box)
     window.visualViewport?.addEventListener("resize", later)
+    // A rotation or window resize re-places it at once, never a frame late (INT-2).
+    window.addEventListener("resize", place)
     return () => {
       cancelAnimationFrame(raf)
       watch.disconnect()
       window.visualViewport?.removeEventListener("resize", later)
+      window.removeEventListener("resize", place)
     }
   }, [slot])
   return (
