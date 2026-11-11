@@ -169,6 +169,8 @@ describe("orbState (voice session → orb)", () => {
     [{ unfinished: "dropped" }, "recovering"],
     [{ unfinished: "stalled", speaking: true }, "recovering"],
     [{ error: "Mic blocked", speaking: true }, "error"],
+    // P8-2: a lapsed review is not a failure; the dock still says it expired.
+    [{ error: "This review expired.", expired: true, textOnly: true }, "idle"],
   ])("%j → %s", (patch, expected) => {
     expect(orbState({ ...voice, ...patch })).toBe(expected)
   })
