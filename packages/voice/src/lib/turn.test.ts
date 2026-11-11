@@ -57,6 +57,35 @@ it("agent lines outside a turn and stop() end nothing", async () => {
   expect(turn.open).toBe(false)
 })
 
+// P7-3: the agent ran a tool on its own (no user turn) and then said nothing.
+it("ends 'quiet' when the agent goes silent after a tool call of its own", async () => {
+  turn.toolStart()
+  turn.toolEnd()
+  await vi.advanceTimersByTimeAsync(STALL_MS - 1)
+  expect(ends).toEqual([])
+  await vi.advanceTimersByTimeAsync(1)
+  expect(ends.map((e) => e.kind)).toEqual(["quiet"])
+  await vi.advanceTimersByTimeAsync(STALL_MS * 2)
+  expect(ends).toHaveLength(1)
+})
+
+it("an agent line after its own tool call ends nothing", async () => {
+  turn.toolStart()
+  turn.toolEnd()
+  turn.agentLine()
+  await vi.advanceTimersByTimeAsync(STALL_MS * 2)
+  expect(ends).toEqual([])
+})
+
+it("a user request during that wait takes over and ends as a user turn", async () => {
+  turn.toolStart()
+  turn.toolEnd()
+  await vi.advanceTimersByTimeAsync(STALL_MS - 1000)
+  turn.begin()
+  await vi.advanceTimersByTimeAsync(STALL_MS)
+  expect(ends.map((e) => e.kind)).toEqual(["stalled"])
+})
+
 it.each([
   [{ reason: "user" }, "user"],
   [{ reason: "agent" }, "ended_by_agent"],
