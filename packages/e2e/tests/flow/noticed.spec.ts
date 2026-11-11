@@ -1,5 +1,6 @@
 // F2: Flow noticed prioritisation over a SIMULATED API. Production test E; checklist B, S.
 import { expect, test } from "./storefront-api"
+import { rowAction } from "./lists"
 import { HONEY, SPICES, TEA, sc, sceneWorld } from "./scenes-api"
 
 // Every test signs in and gets the stand-in API, also those that never touch `api`.
@@ -22,8 +23,8 @@ test("acknowledge keeps the alert, snooze hides it, a cleared condition removes 
   ).toHaveCount(0)
 
   const honey = stock.locator(`[data-item="${HONEY}"]`)
-  await honey.getByRole("button", { name: sc.noticed.acknowledge }).click()
-  await expect(honey.locator("[data-acknowledged]")).toHaveText(
+  await rowAction(page, honey, "acknowledge")
+  await expect(honey.locator("[data-acknowledged]:visible")).toHaveText(
     sc.noticed.acknowledged
   )
   expect(api.callsTo("PUT", "/workspace/w1/attention/marks")[0]!.body).toEqual({
@@ -32,10 +33,7 @@ test("acknowledge keeps the alert, snooze hides it, a cleared condition removes 
     state: "acknowledged",
   })
 
-  await stock
-    .locator(`[data-item="${TEA}"]`)
-    .getByRole("button", { name: sc.noticed.snoozeWeek })
-    .click()
+  await rowAction(page, stock.locator(`[data-item="${TEA}"]`), "week")
   await expect(stock.locator(`[data-item="${TEA}"]`)).toHaveCount(0)
   await expect(stock).toContainText(
     "2 products below their minimum stock levels"
