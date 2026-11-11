@@ -2,20 +2,12 @@
 // random moments, slow 3G, requests dropped mid-flight, answers late or out of order, reloads
 // while waiting, the voice socket lost mid-turn. SIMULATED API and voice (see harness.ts).
 // Here: only P6-3 (the rest of this persona lives on its own branch).
-import type { Page } from "@playwright/test"
 
 import { markInjected } from "../../../src/test"
 import { readBack, scene, stockRoutes } from "../task"
 import { startText, v } from "../voice"
 import { expect, test } from "./harness"
 
-async function delay(page: Page, path: RegExp, ms: number, times = 1) {
-  let left = times
-  await page.route(path, async (route) => {
-    if (left-- > 0) await new Promise((r) => setTimeout(r, ms))
-    await route.fallback().catch(() => {})
-  })
-}
 
 
 test.describe("P6-3: reloading while an approval is on its way loses the task", () => {
@@ -41,7 +33,14 @@ test.describe("P6-3: reloading while an approval is on its way loses the task", 
         body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 120 }] },
       })
       await expect(scene(page)).toContainText("Confirm action 135790")
-      await delay(page, /\/api\/voice\/confirm/, 3000)
+      // The approval leaves the page and is held 3 s; a reload then cancels the held request in
+      // this browser, so "sent" counts it at the moment it left (Office would have it).
+      const sent: string[] = []
+      await page.route(/\/api\/voice\/confirm/, async (route) => {
+        sent.push(route.request().url())
+        await new Promise((r) => setTimeout(r, 3000))
+        await route.fallback().catch(() => {})
+      })
       markInjected(page, /\/api\/voice\/confirm/)
       await scene(page).getByRole("button", { name: v.approve }).click()
       // The approval is on the wire (Office will get it), the answer not back yet: the person reloads.
@@ -50,7 +49,15 @@ test.describe("P6-3: reloading while an approval is on its way loses the task", 
       await persona.reload()
       // The person must learn what happened to the change they approved (or that it is being checked).
       await expect(page.locator("body")).toContainText(/Set stock levels|Raw Honey 500g/, { timeout: 8_000 })
+      // Office's answer decides what the card says: confirmed only when it completed.
+      await page.goto("/?view=task")
+      await expect(page.locator("[data-receipt]")).toHaveAttribute(
+        "data-receipt",
+        officeSays === "completed" ? "completed" : "unknown"
+      )
       await persona.check()
-      expect(confirms, "the approval reached Office once").toHaveLength(1)
+      // The route stays across the reload, so a second send would be counted here too.
+      expect(sent, "the approval left once, never again after the reload").toHaveLength(1)
+      expect(confirms.length, "Office got it at most once").toBeLessThanOrEqual(1)
     })
 })
