@@ -29,6 +29,8 @@ export type TranscriptRow = {
   views?: ResultView[]
   /** Office page a "link" row opens. */
   href?: string
+  /** The read a "result" row came from, so the agent can redo or refine it. */
+  operation?: string
 }
 
 /** Office pages and https: the agent-text links Office opens. */

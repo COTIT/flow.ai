@@ -1,6 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { TranscriptRow } from "./helpers"
 import { contextSync, contextUpdate, sceneContext } from "./scene-context"
+import type { ResultView } from "./views"
+
+const daily = {
+  kind: "sales_daily" as const,
+  from: "2026-11-03",
+  to: "2026-11-10",
+  time_zone: "UTC",
+  currencies: [{ currency: "TZS", decimals: 0, days: [{ date: "2026-11-03", gross: 987654, net: 900000, orders: 3 }] }],
+}
+const records = {
+  kind: "records" as const,
+  resource: "orders" as const,
+  total: 7,
+  href: "/orders",
+  rows: [{ id: "o1", label: "Neema Shop", detail: "Neema", status: "open", money: { minor: 125050, decimals: 2, currency: "USD" }, stock: null, href: "/orders/o1" }],
+}
+const picture = (id: string, view: ResultView, operation?: string): TranscriptRow => ({
+  id,
+  role: "result",
+  text: "",
+  views: [view],
+  ...(operation ? { operation } : {}),
+})
 
 describe("scene context", () => {
   it("names the scene from the path and carries ids only", () => {
@@ -30,6 +54,30 @@ describe("scene context", () => {
     })
   })
 
+  it("names each result picture by its stable id, newest first, with the read it came from", () => {
+    expect(
+      sceneContext({
+        pathname: "/results",
+        results: [{ id: "u", role: "user", text: "trend" }, picture("r1", records, "orders_list"), picture("r2", daily, "orders_sales_daily")],
+        reviewOpen: true,
+      })
+    ).toEqual({
+      active_scene: "results",
+      results_shown: 2,
+      latest_result: "sales_daily",
+      pictures: [
+        { id: "r2", kind: "sales_daily", operation: "orders_sales_daily", period: { from: "2026-11-03", to: "2026-11-10" } },
+        { id: "r1", kind: "records", operation: "orders_list" },
+      ],
+      review_open: true,
+    })
+  })
+
+  it("never carries a value: no amount, name, currency, status or record link", () => {
+    const sent = contextUpdate(sceneContext({ pathname: "/results", results: [picture("r1", records), picture("r2", daily)] }))
+    for (const leak of ["987654", "125050", "Neema", "/orders/o1", "TZS", "USD", "open"]) expect(sent).not.toContain(leak)
+  })
+
   it("lists what the scene shows by id, type, metric and period: never a value", () => {
     expect(
       sceneContext({
@@ -47,7 +95,7 @@ describe("scene context", () => {
       ],
     })
     // The task scene: how many results are shown and the newest one's kind.
-    expect(sceneContext({ pathname: "/results", results: ["records", "sales_daily"] })).toEqual({
+    expect(sceneContext({ pathname: "/results", results: [picture("r1", records), picture("r2", daily)] })).toMatchObject({
       active_scene: "results",
       results_shown: 2,
       latest_result: "sales_daily",

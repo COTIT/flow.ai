@@ -464,13 +464,13 @@ function Session({
         mergeTranscript(rows, { role, text, id, ...(href ? { href } : {}) })
       )
   }
-  function showLinks(outcome: VoiceOutcome) {
+  function showLinks(outcome: VoiceOutcome, operation?: string) {
     for (const link of outcome.links ?? [])
       add("link", link.label ?? t("openRecord"), undefined, resolveHref(link.href))
     // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
     const view = outcome.view
     if (view && active.current)
-      setMessages((rows) => withView(rows, view, crypto.randomUUID()))
+      setMessages((rows) => withView(rows, view, crypto.randomUUID(), operation))
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id
@@ -684,7 +684,7 @@ function Session({
         turnEnd.current("answered", 0)
       } else if (command === "execute") {
         setOutcome({ ...result, operationId: String(body.operationId) })
-        showLinks(result)
+        showLinks(result, String(body.operationId))
         if (result.reason && ["failed", "unknown"].includes(result.status))
           setError(t(`requestErrors.${result.reason}`))
       }

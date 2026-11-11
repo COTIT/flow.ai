@@ -21,6 +21,11 @@ describe("withView", () => {
     expect(withView(one, records, "r2").at(-1)).toMatchObject({ id: "r2", views: [records] })
   })
 
+  it("remembers which read a new picture came from", () => {
+    expect(withView([user], records, "r1", "orders_list").at(-1)).toMatchObject({ id: "r1", operation: "orders_list" })
+    expect(withView([user], records, "r1").at(-1)).not.toHaveProperty("operation")
+  })
+
   it("keeps at most 200 rows like the rest of the transcript", () => {
     const rows = Array.from({ length: 200 }, (_, i): TranscriptRow => ({ id: `${i}`, role: "agent", text: "x" }))
     expect(withView(rows, records, "r")).toHaveLength(200)

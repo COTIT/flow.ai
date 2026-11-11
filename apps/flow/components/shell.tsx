@@ -63,11 +63,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const send = voice.sendContext
   const onResults = pathname === "/" && resultOpen
   const results = onResults
-    ? voice.messages.flatMap((row) =>
-        row.role === "result" && row.views?.[0] ? [row.views[0].kind] : []
-      )
+    ? voice.messages.filter((row) => row.role === "result" && row.views?.[0])
     : []
-  const resultsKey = results.join()
+  const resultsKey = results.map((row) => `${row.id}:${row.views![0]!.kind}`).join()
   useEffect(() => {
     send(
       sceneContext({
@@ -75,10 +73,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         selected,
         visible,
         results,
+        reviewOpen: !!voice.review,
       })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, onResults, selected, visible, resultsKey])
+  }, [pathname, onResults, selected, visible, resultsKey, !!voice.review])
 
   // The dock stays above a phone's keyboard: the frame follows the visual viewport.
   useEffect(() => {
