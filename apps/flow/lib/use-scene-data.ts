@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -130,8 +130,14 @@ export function useRefreshScenes() {
 export function useRefreshOnOutcome() {
   const refresh = useRefreshScenes()
   const outcome = useVoice().outcome
+  // The outcome present at mount was already shown before this scene opened: only a new one refreshes.
+  const seen = useRef(outcome)
   useEffect(() => {
-    if (outcome) void refresh()
+    if (!outcome || outcome === seen.current) return
+    seen.current = outcome
+    void refresh()
+    // `refresh` is a new closure each render over a stable query client; depending on it would
+    // refetch on every render, so only the outcome triggers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outcome])
 }

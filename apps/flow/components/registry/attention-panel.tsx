@@ -14,7 +14,8 @@ import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatQty } from "@genesy/ui/lib/format"
 import { usePriorities, useWorkspace } from "@/lib/use-scene-data"
-import { DataState } from "./data-state"
+import { DataState, Restricted } from "./data-state"
+import type { RegistryProps } from "./types"
 
 /** Where "Review" goes for a kind; kinds without a scene get no review link. */
 export const REVIEW: Partial<Record<string, string>> = {
@@ -49,9 +50,9 @@ function Group({ group }: { group: PriorityGroup }) {
       className="flex flex-col gap-2 rounded-2xl border bg-card p-4"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-semibold">
+        <h2 className="font-semibold">
           {t.has(kindKey) ? t(kindKey, { count: group.count }) : group.kind}
-        </h3>
+        </h2>
         {group.impact.open_orders ? (
           <span className="text-xs text-muted-foreground">
             {t("noticed.affects", { count: group.impact.open_orders })}
@@ -165,7 +166,14 @@ function Group({ group }: { group: PriorityGroup }) {
 }
 
 /** Flow noticed in full: every readable group, its items, and only the actions the API offers. */
-export function AttentionPanel(): React.ReactNode {
+export function AttentionPanel({ restricted }: RegistryProps) {
+  const t = useTranslations("scenes")
+  // Restricted: say so and never ask (an empty answer would read as "all clear").
+  if (restricted) return <Restricted title={t("noticed.label")} />
+  return <Priorities />
+}
+
+function Priorities() {
   const t = useTranslations("scenes")
   const query = usePriorities()
   const groups = (query.data?.data.groups ?? []).filter((g) => g.count > 0)

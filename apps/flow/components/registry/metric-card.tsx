@@ -92,7 +92,8 @@ export function MetricCard({ component, restricted }: RegistryProps) {
   const t = useTranslations("scenes")
   const metric = component.metric
   if (!metric) return null
-  if (restricted) return <Restricted title={t(`metric.${metric.replace(".", "_")}`)} />
+  if (restricted)
+    return <Restricted title={t(`metric.${metric.replace(".", "_")}`)} />
   if (metric === "sales.gross" || metric === "sales.net")
     return <SalesCard metric={metric} period={component.period ?? "today"} />
   return <CountCard metric={metric} />

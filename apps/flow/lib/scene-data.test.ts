@@ -97,3 +97,24 @@ describe("TTL", () => {
     expect(TTL.series).toBe(300_000)
   })
 })
+
+describe("comparePeriod this_month never spills into the current month", () => {
+  it("on 31 March compares 1-28 February (stops at 1 March)", () => {
+    expect(comparePeriod("this_month", "2026-03-31")).toEqual({
+      from: "2026-02-01",
+      to: "2026-03-01",
+    })
+  })
+  it("on 30 March in a leap year stops at 1 March", () => {
+    expect(comparePeriod("this_month", "2028-03-30")).toEqual({
+      from: "2028-02-01",
+      to: "2028-03-01",
+    })
+  })
+  it("on 29 February compares 1-29 January", () => {
+    expect(comparePeriod("this_month", "2028-02-29")).toEqual({
+      from: "2028-01-01",
+      to: "2028-01-30",
+    })
+  })
+})

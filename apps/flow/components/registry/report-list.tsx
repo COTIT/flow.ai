@@ -13,10 +13,17 @@ import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatDateTime } from "@genesy/ui/lib/format"
 import { useReports, useWorkspace } from "@/lib/use-scene-data"
-import { DataState } from "./data-state"
+import { DataState, Restricted } from "./data-state"
+import type { RegistryProps } from "./types"
 
 /** My Routines: the caller's own scheduled reports. Creating one stays a reviewed voice action. */
-export function ReportList(): React.ReactNode {
+export function ReportList({ restricted }: RegistryProps) {
+  const t = useTranslations("scenes")
+  if (restricted) return <Restricted title={t("reports")} />
+  return <Reports />
+}
+
+function Reports() {
   const t = useTranslations("scenes")
   const locale = useLocale()
   const ws = useWorkspace()

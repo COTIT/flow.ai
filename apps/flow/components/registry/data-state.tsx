@@ -117,12 +117,12 @@ export function Freshness({ staleAfter }: { staleAfter: number }) {
     failed: t("refreshFailed"),
   }[state.kind]
   return (
-    <p
-      data-freshness={state.kind}
-      aria-live="polite"
-      className="text-xs text-muted-foreground"
-    >
+    <p data-freshness={state.kind} className="text-xs text-muted-foreground">
       {text}
+      {/* Only changes worth hearing: the ticking "Updated 32 s ago" is never announced. */}
+      <span aria-live="polite" className="sr-only">
+        {state.kind === "fresh" ? "" : text}
+      </span>
     </p>
   )
 }

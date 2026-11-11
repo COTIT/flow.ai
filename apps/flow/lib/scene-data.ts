@@ -50,7 +50,9 @@ export function comparePeriod(period: FlowPeriod, today: string): Range {
     const first = new Date(parse(from))
     first.setUTCMonth(first.getUTCMonth() - 1)
     const start = iso(first.getTime())
-    return { from: start, to: shift(start, (parse(to) - parse(from)) / DAY) }
+    const end = shift(start, (parse(to) - parse(from)) / DAY)
+    // Last month is shorter on 29-31 March etc.: stop at the 1st, never count this month.
+    return { from: start, to: end < from ? end : from }
   }
   return { from: shift(from, -7), to: shift(to, -7) }
 }

@@ -107,11 +107,15 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
     body: Parameters<typeof update.mutate>[0]["data"],
     key = sceneKey,
     done = t("saved")
-  ) =>
+  ) => {
+    // A new write: no stale "Saved", no old error from the other mutation (its own resets on mutate).
+    say("")
+    remove.reset()
     update.mutate(
       { workspace: ws, scene: key, data: body },
       { onSuccess: () => say(done) }
     )
+  }
 
   return (
     <article aria-labelledby="scene-title" className="flex flex-col gap-4">
@@ -190,6 +194,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
             className="min-h-11"
             disabled={update.isPending || remove.isPending}
             onClick={() => {
+              say("")
               const home = { onSuccess: () => router.push("/") }
               if (builtIn)
                 update.mutate(

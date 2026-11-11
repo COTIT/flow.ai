@@ -123,5 +123,6 @@ describe("registry", () => {
       expect(componentFor(type)).not.toBeNull()
     expect(componentFor("pie_chart")).toBeNull()
     expect(componentFor("toString")).toBeNull()
-  })
+    // Importing the whole registry (UI, api-client) is slow on a cold, busy machine.
+  }, 30_000)
 })

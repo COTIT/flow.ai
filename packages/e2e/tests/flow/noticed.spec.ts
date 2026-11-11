@@ -91,3 +91,39 @@ test.describe("priorities down", () => {
     })
   })
 })
+
+test("a restricted attention or report panel says so and never asks for its data", async ({
+  page,
+  api,
+}) => {
+  const scene = (key: string, id: string, type: string) => ({
+    scene: key,
+    position: 0,
+    hidden: false,
+    saved: false,
+    schema_version: 1,
+    config: { components: [{ id, type }] },
+    restricted: [id],
+  })
+  api.on("GET", "/workspace/w1/flow/scenes", () => ({
+    data: [
+      scene("noticed", "attention", "attention_panel"),
+      scene("routines", "reports", "report_list"),
+    ],
+  }))
+  for (const [path, title] of [
+    ["/scenes/noticed", "Flow noticed"],
+    ["/scenes/routines", "My Routines"],
+  ] as const) {
+    await page.goto(path)
+    await expect(
+      page.getByRole("heading", { level: 1, name: title })
+    ).toBeVisible()
+    await expect(page.locator("[data-restricted]")).toContainText(sc.restricted)
+    await expect(page.getByText(sc.noticed.calm)).toHaveCount(0)
+  }
+  expect(api.callsTo("GET", "/workspace/w1/attention/priorities")).toHaveLength(
+    0
+  )
+  expect(api.callsTo("GET", "/workspace/w1/scheduled-reports")).toHaveLength(0)
+})
