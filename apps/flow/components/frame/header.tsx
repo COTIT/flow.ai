@@ -14,6 +14,7 @@ import {
 import { sessionStore } from "@genesy/api-client/session"
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import { LogoIcon } from "@genesy/ui/components/logo"
 import {
   Select,
@@ -77,6 +78,22 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
   const workspaceId = useSession((s) => s.workspaceId)
   const { choices } = useWorkspaceChoices()
   const current = choices.find((w) => w.id === workspaceId)
+  const [asking, setAsking] = useState(false)
+  const live =
+    voice.connected ||
+    voice.starting ||
+    voice.upgrading ||
+    Boolean(voice.review)
+  const signOut = async () => {
+    setLeaving(true)
+    // End the voice session while the login still works; a hung end never blocks logout.
+    await settleWithin(
+      // A throw inside end() becomes a rejection here, so logout still runs.
+      Promise.resolve().then(() => voice.end()),
+      END_VOICE_MS
+    )
+    logout.mutate()
+  }
   return (
     <>
       <a
@@ -113,7 +130,13 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         data-flow-header
         data-shown={shown || undefined}
         onPointerEnter={(e) => e.pointerType === "mouse" && enter()}
-        onPointerLeave={(e) => e.pointerType === "mouse" && leave()}
+        // Sliding in, it passes under a pointer resting at the top edge: leaving upwards is not
+        // a leave (moving down into the page still is, via the page's own pointer moves).
+        onPointerLeave={(e) =>
+          e.pointerType === "mouse" &&
+          e.clientY > e.currentTarget.getBoundingClientRect().top &&
+          leave()
+        }
         className={`absolute inset-x-3 top-[calc(var(--flow-safe-top)+0.75rem)] z-40 flex flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5 shadow-lg transition-[translate,opacity] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity md:inset-x-4 md:top-[calc(var(--flow-safe-top)+1rem)] ${shown ? "" : "pointer-events-none -translate-y-[calc(100%+2rem)] opacity-0 motion-reduce:translate-y-0 [&:focus-within]:pointer-events-auto"}`}
       >
         <Link href="/" className="mr-auto flex min-h-11 items-center gap-2">
@@ -137,7 +160,8 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         </p>
         <p
           data-phase={phase}
-          className="flex min-h-11 items-center gap-2 text-xs font-medium tracking-wide uppercase"
+          // A fixed minimum width: a status change never shifts the controls after it (P4).
+          className="flex min-h-11 min-w-40 items-center gap-2 text-xs font-medium tracking-wide whitespace-nowrap uppercase"
         >
           <span
             aria-hidden
@@ -165,22 +189,27 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         <Button
           variant="ghost"
           size="sm"
-          className="min-h-11"
+          // Last, 44 px, with clear space: a near-miss tap never lands on it (P10-3).
+          className="ml-2 min-h-11"
           disabled={leaving || logout.isPending}
-          onClick={async () => {
-            setLeaving(true)
-            // End the voice session while the login still works; a hung end never blocks logout.
-            await settleWithin(
-              // A throw inside end() becomes a rejection here, so logout still runs.
-              Promise.resolve().then(() => voice.end()),
-              END_VOICE_MS
-            )
-            logout.mutate()
+          onClick={() => {
+            // While a conversation or a task is live, signing out ends it: ask first.
+            if (live) setAsking(true)
+            else void signOut()
           }}
         >
           <LogOut aria-hidden="true" />
           {t("common.logout")}
         </Button>
+        <ConfirmDialog
+          open={asking}
+          onOpenChange={setAsking}
+          title={t("shell.signOutTitle")}
+          description={t("shell.signOutText")}
+          confirm={t("common.logout")}
+          cancel={t("shell.signOutStay")}
+          onConfirm={() => void signOut()}
+        />
       </header>
     </>
   )

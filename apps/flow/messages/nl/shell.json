@@ -47,6 +47,9 @@
     "jumpToLatest": "Naar het nieuwste",
     "raiseConversation": "Gesprek omhoog",
     "lowerConversation": "Gesprek omlaag",
-    "newReply": "Genesy antwoordde"
+    "newReply": "Genesy antwoordde",
+    "signOutTitle": "Afmelden en dit gesprek beëindigen?",
+    "signOutText": "Genesy stopt met luisteren en je wordt op dit apparaat afgemeld.",
+    "signOutStay": "Aangemeld blijven"
   }
 }

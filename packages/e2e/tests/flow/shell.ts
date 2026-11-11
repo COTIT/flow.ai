@@ -62,7 +62,19 @@ export async function expectOrbClear(page: Page, others: Locator[]) {
 export async function revealHeader(page: Page) {
   const header = page.locator("[data-flow-header]")
   const width = page.viewportSize()?.width ?? 1280
+  // From below, so a second call still crosses the top edge (a move to the same point fires nothing).
+  await page.mouse.move(width / 3, 200)
   await page.mouse.move(width / 3, 2)
   await expect(header).toHaveAttribute("data-shown", "true")
+  // Settled: it slides in, so wait until two reads of its place agree.
+  let last = -1
+  await expect
+    .poll(async () => {
+      const y = Math.round((await header.boundingBox())?.y ?? -1)
+      const same = y === last && y >= 0
+      last = y
+      return same
+    })
+    .toBe(true)
   return header
 }

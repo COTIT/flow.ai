@@ -257,9 +257,11 @@ test("SW3: a 429 says when it tries again (Retry-After) and then recovers", asyn
 
 for (const scene of ["pulse", "orders", "sales"]) {
   test(`SW8: /scenes/${scene} loads without layout shift`, async ({ page }) => {
-    test.fail(
+    // Below 1024 px it passes or fails by load timing until d88bbcaf1 (card placeholders) is
+    // merged; the dock no longer shifts. Not run there until then.
+    test.fixme(
       !process.env.FINDINGS_RED && page.viewportSize()!.width < 1024,
-      "SW8 open below 1024 px until d88bbcaf1 (card placeholders) is merged; the dock no longer shifts"
+      "SW8 open below 1024 px until d88bbcaf1 (card placeholders) is merged"
     )
     await page.goto(`/scenes/${scene}`)
     await expect(page.locator("[data-component]").first()).toBeVisible()

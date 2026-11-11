@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -93,6 +93,11 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
         period: p,
       }))
   )
+  const writing = useRef(false)
+  // A write is done once the saved scenes are read again (its success refetches them).
+  useEffect(() => {
+    writing.current = false
+  }, [list.dataUpdatedAt])
   useEffect(() => {
     flowStore.setState({ visible: JSON.parse(visible) })
     return () => flowStore.setState({ visible: null })
@@ -119,6 +124,9 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   if (!scene) return <Skeleton className="h-40 w-full rounded-2xl" />
 
   const builtIn = (BUILT_IN as readonly string[]).includes(sceneKey)
+  // Already in that order: nothing to do until the order changes.
+  const ordered =
+    JSON.stringify(pendingFirst(scene.config)) === JSON.stringify(scene.config)
   const drawn = shown.filter((c) => componentFor(c.type))
   const keptKey = period ? keepKey(period) : null
   const kept =
@@ -128,12 +136,19 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
     key = sceneKey,
     done = t("saved")
   ) => {
+    // One write per press, however fast the next press comes (P2-3b): held until the saved
+    // scenes are read again, or the write fails.
+    if (writing.current) return
+    writing.current = true
     // A new write: no stale "Saved", no old error from the other mutation (its own resets on mutate).
     say("")
     remove.reset()
     update.mutate(
       { workspace: ws, scene: key, data: body },
-      { onSuccess: () => say(done) }
+      {
+        onSuccess: () => say(done),
+        onError: () => (writing.current = false),
+      }
     )
   }
 
@@ -165,7 +180,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
               variant="outline"
               size="sm"
               className="min-h-11"
-              disabled={update.isPending}
+              disabled={update.isPending || ordered}
               onClick={() =>
                 write(
                   { config: pendingFirst(scene.config) },
@@ -217,8 +232,13 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
             className="min-h-11"
             disabled={update.isPending || remove.isPending}
             onClick={() => {
+              if (writing.current) return
+              writing.current = true
               say("")
-              const home = { onSuccess: () => router.push("/") }
+              const home = {
+                onSuccess: () => router.push("/"),
+                onError: () => (writing.current = false),
+              }
               if (builtIn)
                 update.mutate(
                   { workspace: ws, scene: sceneKey, data: { hidden: true } },

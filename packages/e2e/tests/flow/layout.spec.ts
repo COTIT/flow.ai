@@ -2,9 +2,13 @@
 // PhoneSheet) over a SIMULATED API and voice. Runs at 1280, 834 and 375 (the three projects).
 import type { Locator, Page } from "@playwright/test"
 
-import { expectNoHorizontalScroll, expectSingleScroller } from "../../src/test"
+import {
+  expectNoHorizontalScroll,
+  expectSingleScroller,
+  expectTapTargets,
+} from "../../src/test"
 import { expect, test } from "./storefront-api"
-import { s } from "./shell"
+import { revealHeader, s } from "./shell"
 import { chat, fakeAgent, send, startText, v } from "./voice"
 
 test.beforeEach(({ api }) => void api)
@@ -443,3 +447,110 @@ test("P3-2: a conversation started away from home shows there (rail, or the phon
   }
   await expectSingleScroller(page)
 })
+
+for (const size of [
+  { width: 375, height: 812 },
+  { width: 812, height: 375 },
+])
+  test(`P4-2: ten attachments never push the dock past the screen (${size.width}×${size.height})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page)
+    await page.goto("/")
+    await startText(page)
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64"
+    )
+    await page.getByLabel(v.chooseFiles).setInputFiles(
+      Array.from({ length: 10 }, (_, i) => ({
+        name: `shelf-${i + 1}.png`,
+        mimeType: "image/png",
+        buffer: png,
+      }))
+    )
+    await expect(page.getByRole("list", { name: v.attachments })).toContainText("shelf-10.png")
+    const dockBox = (await page.locator("[data-dock-layer]").boundingBox())!
+    expect(dockBox.height).toBeLessThanOrEqual(size.height * 0.5)
+    await expect(composer(page)).toBeInViewport()
+    await expect(page.getByRole("button", { name: v.send, exact: true })).toBeInViewport()
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })
+
+test("P10-3: Log out asks first while a conversation is live; a near-miss tap never signs out at once", async ({
+  page,
+}) => {
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await revealHeader(page)
+  const logout = header(page).getByRole("button", { name: "Log out" })
+  const box = (await logout.boundingBox())!
+  // 44 px, with clear space around it.
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  // A tap a few px off its centre (touch adjustment may snap it onto the button).
+  const x = box.x + box.width / 2 + 3
+  const y = box.y + box.height / 2 + 6
+  if (test.info().project.use.hasTouch) await page.touchscreen.tap(x, y)
+  else await page.mouse.click(x, y)
+  const ask = page.getByRole("alertdialog").filter({ hasText: s.signOutTitle })
+  await expect(ask).toBeVisible()
+  await ask.getByRole("button", { name: s.signOutStay }).click()
+  await expect(ask).toHaveCount(0)
+  await expect(page).not.toHaveURL(/\/login/)
+  await expect(composer(page)).toBeVisible()
+})
+
+test("P4 / P10-1: header controls keep their place when the status changes, and are 44 px on touch at any width", async ({
+  page,
+}) => {
+  if (test.info().project.use.hasTouch) await page.setViewportSize({ width: 812, height: 375 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await page.waitForLoadState("networkidle")
+  await revealHeader(page)
+  const logout = header(page).getByRole("button", { name: "Log out" })
+  const before = (await logout.boundingBox())!
+  await expectTapTargets(page, { within: "[data-flow-header]" })
+  await startText(page)
+  await revealHeader(page)
+  await expect(page.locator("[data-phase]")).toHaveAttribute("data-phase", "live")
+  const after = (await logout.boundingBox())!
+  expect(Math.round(after.x)).toBe(Math.round(before.x))
+  expect(Math.round(after.y)).toBe(Math.round(before.y))
+})
+
+for (const size of [
+  { width: 320, height: 568, keyboard: 0.42 },
+  { width: 812, height: 375, keyboard: 0.55 },
+])
+  test(`P10-2: with the keyboard up (${size.width}×${size.height}, ${size.keyboard * 100}%) the field and Send stay above it`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await composer(page).focus()
+    const visible = Math.round(size.height * (1 - size.keyboard))
+    // The on-screen keyboard: the visual viewport shrinks and says so.
+    await page.evaluate((h) => {
+      Object.defineProperty(window.visualViewport, "height", { configurable: true, get: () => h })
+      window.visualViewport!.dispatchEvent(new Event("resize"))
+    }, visible)
+    await expect
+      .poll(async () => {
+        const field = (await composer(page).boundingBox())!
+        const send = (await page.getByRole("button", { name: v.send, exact: true }).boundingBox())!
+        return Math.max(field.y + field.height, send.y + send.height)
+      })
+      .toBeLessThanOrEqual(visible)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    // The frame fits the visible part: nothing of it hangs below the keyboard's edge.
+    const frame = await page
+      .locator("[data-dock-layer]")
+      .evaluate((el) => (el.offsetParent as HTMLElement).getBoundingClientRect().bottom)
+    expect(frame).toBeLessThanOrEqual(visible + 1)
+    await expect(composer(page)).toBeFocused()
+  })

@@ -59,6 +59,11 @@ test("logging out ends the voice session first, then shows no conversation", asy
   await send(page, "private question")
   await expect(page.getByRole("log")).toContainText("Private answer")
   await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
+  // A live conversation: Log out asks first (P10-3).
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Log out" })
+    .click()
   await expect(page).toHaveURL("/login")
   expect(order[0]).toBe("voice:Bearer e2e-token")
   expect(order).toContain("logout")
@@ -78,6 +83,11 @@ test("a voice end that hangs never blocks logging out", async ({ page }) => {
   await startText(page)
   const started = Date.now()
   await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
+  // A live conversation: Log out asks first (P10-3).
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Log out" })
+    .click()
   await expect(page).toHaveURL("/login", { timeout: 10_000 })
   expect(Date.now() - started).toBeLessThan(8_000)
 })
