@@ -225,7 +225,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 417, "reviewed capability count changed");
+    assert_eq!(selected.len(), 421, "reviewed capability count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool);
     let mut exercised = BTreeSet::new();
@@ -246,7 +246,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         );
         assert!(exercised.insert(id));
     }
-    assert_eq!(exercised.len(), 417);
+    assert_eq!(exercised.len(), 421);
 }
 
 #[sqlx::test]
@@ -258,7 +258,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 228, "reviewed effect count changed");
+    assert_eq!(selected.len(), 230, "reviewed effect count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool.clone());
     let (owner, workspace) =
@@ -366,7 +366,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 228);
+    assert_eq!(exercised.len(), 230);
 }
 
 #[sqlx::test]
@@ -385,7 +385,7 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
         .collect();
     assert_eq!(
         selected.len(),
-        278,
+        279,
         "reviewed permission-protected count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -433,7 +433,7 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 278);
+    assert_eq!(exercised.len(), 279);
 }
 
 #[sqlx::test]
@@ -450,7 +450,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         .collect();
     assert_eq!(
         selected.len(),
-        85,
+        88,
         "reviewed collection boundary count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -518,7 +518,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 85);
+    assert_eq!(exercised.len(), 88);
 }
 
 #[sqlx::test]

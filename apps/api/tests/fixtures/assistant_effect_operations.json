@@ -5,6 +5,8 @@
   "effectOperationIds": [
     "app_keys_create",
     "app_keys_revoke",
+    "attention_marks_delete",
+    "attention_marks_set",
     "contacts_create",
     "contacts_delete",
     "contacts_update",
