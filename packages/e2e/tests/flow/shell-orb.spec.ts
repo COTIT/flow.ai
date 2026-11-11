@@ -20,6 +20,9 @@ test("one orb moves home → conversation → scene → conversation → home, n
   await expect(genesy).toHaveCount(1)
   await expect(genesy).toHaveAttribute("data-state", "idle")
   await expect(genesy.getByRole("status")).toHaveText(s.orb.idle)
+  // The approved design orb at every size: five SVG strands in a glass body, never the WebGL sheets.
+  await expect(genesy.locator("svg path")).toHaveCount(5)
+  await expect(genesy.locator("canvas")).toHaveCount(0)
   await expectOrbClear(page, [
     header,
     dock(page),

@@ -5,11 +5,9 @@ import {
   createOrb,
   orbFps,
   orbFrame,
-  orbMode,
   orbState,
   settleOrb,
   stepOrb,
-  strandsProps,
   type OrbState,
   type OrbVoice,
 } from "./orb"
@@ -136,35 +134,6 @@ describe("orbFrame (SVG)", () => {
   })
 })
 
-describe("strandsProps (WebGL layer)", () => {
-  const props = (s: OrbState, theme: "dark" | "light" = "dark", level = 0) =>
-    strandsProps(settleOrb(createOrb(s), s, level), theme)
-
-  it("follows the approved table", () => {
-    expect(props("idle").energy).toBeCloseTo(0.35, 2)
-    expect(props("connecting").thickness).toBeCloseTo(0.8, 2)
-    expect(props("thinking").speed).toBeGreaterThan(props("idle").speed)
-    expect(props("executing").speed).toBeCloseTo(3, 1)
-    expect(props("waiting").energy).toBeCloseTo(0.1, 2)
-    expect(props("error").speed).toBeCloseTo(0, 2)
-    expect(props("ended").opacity).toBeLessThan(props("idle").opacity)
-  })
-
-  it("drives the strands with the voice only while listening or speaking", () => {
-    expect(props("listening").listening).toBe(true)
-    expect(props("speaking", "dark", 0.6).level).toBeGreaterThan(0.4)
-    expect(props("thinking", "dark", 0.6).level).toBe(0)
-  })
-
-  it("leads with teal while listening, gold while speaking, red on error", () => {
-    expect(props("listening").colors[0]).not.toBe(props("speaking").colors[0])
-    expect(props("speaking").colors[0]).toBe("#efc977")
-    expect(props("error").colors[0]).toBe("#fda29b")
-    expect(props("idle", "light").lightMode).toBe(true)
-    expect(props("idle", "light").colors[0]).toBe("#b8862b")
-  })
-})
-
 describe("orbState (voice session → orb)", () => {
   const voice: OrbVoice = {
     connected: true,
@@ -206,13 +175,6 @@ describe("orbState (voice session → orb)", () => {
 })
 
 describe("render choices", () => {
-  it("uses WebGL only for big orbs with WebGL2 and motion", () => {
-    expect(orbMode({ size: 256, webgl2: true, reduced: false })).toBe("webgl")
-    expect(orbMode({ size: 63, webgl2: true, reduced: false })).toBe("svg")
-    expect(orbMode({ size: 256, webgl2: false, reduced: false })).toBe("svg")
-    expect(orbMode({ size: 256, webgl2: true, reduced: true })).toBe("svg")
-  })
-
   it("runs 60 fps on desktop, 30 on touch and small orbs", () => {
     expect(orbFps(256, false)).toBe(60)
     expect(orbFps(256, true)).toBe(30)

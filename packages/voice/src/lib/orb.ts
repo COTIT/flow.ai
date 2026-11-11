@@ -52,7 +52,6 @@ const PAL = {
   },
 } as const
 
-// energy/thick feed the WebGL strands (approved "How to build it" table); the rest the SVG orb.
 const BASE = {
   amp: 6,
   ampL: 0,
@@ -75,8 +74,6 @@ const BASE = {
   sparks: 0,
   breathe: 1,
   swell: 0,
-  energy: 0.35,
-  thick: 1.1,
 }
 type Params = typeof BASE
 
@@ -93,8 +90,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     arcSpeed: 240,
     spread: 0.25,
     breathe: 0,
-    energy: 0.2,
-    thick: 0.8,
   },
   listening: {
     amp: 5,
@@ -108,7 +103,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     spread: 0.95,
     breathe: 0,
     swell: 0.025,
-    energy: 0.3,
   },
   thinking: {
     amp: 15,
@@ -121,7 +115,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     spread: 1,
     sparks: 1,
     breathe: 0,
-    energy: 0.6,
   },
   speaking: {
     amp: 8,
@@ -135,7 +128,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     spread: 1,
     breathe: 0,
     swell: 0.06,
-    energy: 0.7,
   },
   waiting: {
     amp: 2.5,
@@ -146,7 +138,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     rimPulse: 1,
     spread: 0.15,
     breathe: 0,
-    energy: 0.1,
   },
   executing: {
     amp: 4,
@@ -158,7 +149,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     arcSpeed: 320,
     spread: 0.4,
     breathe: 0,
-    energy: 0.25,
   },
   recovering: {
     amp: 8,
@@ -172,7 +162,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     dash: 1,
     spread: 0.6,
     breathe: 0,
-    energy: 0.3,
   },
   error: {
     amp: 0,
@@ -183,7 +172,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     rim: 0.65,
     spread: 0,
     breathe: 0,
-    energy: 0,
   },
   ended: {
     amp: 1,
@@ -194,7 +182,6 @@ const PRESETS: Record<OrbState, Partial<Params>> = {
     fade: 0.5,
     spread: 0.2,
     breathe: 0,
-    energy: 0.1,
   },
 }
 
@@ -286,8 +273,6 @@ const mix = (a: string | Rgb, b: string | Rgb, f: number): Rgb => {
   return [0, 1, 2].map((i) => A[i]! + (B[i]! - A[i]!) * k) as Rgb
 }
 const css = (c: Rgb) => `rgb(${c.map(Math.round).join(",")})`
-const hex = (c: Rgb) =>
-  "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")
 const path = (pts: [number, number][]) => {
   let d = `M${pts[0]![0]},${pts[0]![1].toFixed(1)}`
   for (let i = 1; i < pts.length - 1; i++) {
@@ -387,30 +372,6 @@ export function orbFrame(sim: OrbSim, theme: OrbTheme) {
 }
 export type OrbFrame = ReturnType<typeof orbFrame>
 
-/** Props for the WebGL Strands layer, per the approved "How to build it" table. */
-export function strandsProps(sim: OrbSim, theme: OrbTheme) {
-  const pal = PAL[theme]
-  const { x, t } = sim
-  const voiced = Math.max(0, Math.min(1, x.ampL / 46))
-  const red = (c: Rgb) => hex(mix(c, pal.R, x.red))
-  return {
-    colors: [
-      red(mix(pal.G, pal.T, x.teal)),
-      red(rgb(pal.T)),
-      red(mix(pal.P, pal.T, x.teal * 0.5)),
-    ],
-    energy: x.energy,
-    speed: x.speed,
-    thickness: x.thick,
-    glow: 1.2 * (1 + 0.5 * sim.lvl * voiced),
-    intensity: 1.4 * (1 - x.flicker * 0.45 * (1 + Math.sin(t * 9)) * 0.5),
-    opacity: 0.45 + 0.55 * x.fade,
-    listening: x.teal > 0.5 && x.ampL > 1,
-    level: sim.lvl * voiced,
-    lightMode: theme === "light",
-  }
-}
-
 /** The voice-session flags the orb reads (a structural subset of the provider's value). */
 export type OrbVoice = {
   connected: boolean
@@ -441,13 +402,6 @@ export function orbState(v: OrbVoice): OrbState {
   if (!v.textOnly && !v.muted && !v.capturePaused) return "listening"
   return "idle"
 }
-
-/** WebGL only for big orbs (one GPU context per page); small, still or no-WebGL2 orbs are SVG. */
-export const orbMode = (o: {
-  size: number
-  webgl2: boolean
-  reduced: boolean
-}) => (!o.reduced && o.webgl2 && o.size >= 64 ? "webgl" : "svg")
 
 export const orbFps = (size: number, coarse: boolean) =>
   coarse || size < 100 ? 30 : 60
