@@ -2,6 +2,7 @@
 // test.fail() with its id until a fix lands (then the fixer drops the mark). SIMULATED API + voice.
 // Findings list: side-session notes, child-stress-test-findings.md.
 import { expectNoLayoutShift, markInjected } from "../../src/test"
+import { HONEY, SPICES, TEA, sc, sceneWorld } from "./scenes-api"
 import { expect, test } from "./storefront-api"
 
 test.beforeEach(({ api }) => void api)
@@ -145,3 +146,80 @@ for (const scene of ["pulse", "orders", "sales"]) {
     await expectNoLayoutShift(page)
   })
 }
+
+// P2-3a: two clicks in one frame (bouncy touch screen, switch device, script) used to pass
+// `disabled={isPending}` before React re-rendered, so the same write went out twice.
+const twice = {
+  "two clicks in one task": (b: import("@playwright/test").Locator) =>
+    b.evaluate((el: HTMLElement) => {
+      el.click()
+      el.click()
+    }),
+  "clickCount 2": (b: import("@playwright/test").Locator) =>
+    b.click({ clickCount: 2 }),
+}
+
+for (const [how, click] of Object.entries(twice)) {
+  test(`P2-3a: Acknowledge and Snooze write once on ${how}`, async ({
+    page,
+    api,
+  }) => {
+    sceneWorld(api)
+    await page.goto("/scenes/noticed")
+    const stock = page.locator('[data-group="stock.below_minimum"]')
+    const buttons: [string, string][] = [
+      [HONEY, sc.noticed.acknowledge],
+      [TEA, sc.noticed.snoozeTomorrow],
+      [SPICES, sc.noticed.snoozeWeek],
+    ]
+    for (const [ref, name] of buttons) {
+      const before = api.callsTo("PUT", "/workspace/w1/attention/marks").length
+      await click(
+        stock.locator(`[data-item="${ref}"]`).getByRole("button", { name })
+      )
+      await expect
+        .poll(() => api.callsTo("PUT", "/workspace/w1/attention/marks").length)
+        .toBeGreaterThan(before)
+      await page.waitForTimeout(500)
+      expect(
+        api.callsTo("PUT", "/workspace/w1/attention/marks").length - before,
+        `${name} on ${how}`
+      ).toBe(1)
+    }
+  })
+}
+
+test("P2-3a: Pause on My Routines writes once on two clicks in one task", async ({
+  page,
+  api,
+}) => {
+  const row = {
+    id: "r1",
+    active: true,
+    report: "sales_summary",
+    frequency: "weekly",
+    weekday: 1,
+    day_of_month: null,
+    hour: 7,
+    email: "amina@genesy.test",
+    time_zone: "Africa/Dar_es_Salaam",
+    created_at: "2026-11-01T07:00:00Z",
+    next_run_at: "2026-11-16T04:00:00Z",
+    last_run_at: null,
+    last_outcome: null,
+    paused_reason: null,
+  }
+  api
+    .on("GET", "/workspace/w1/scheduled-reports", () => ({ data: [row] }))
+    .on("POST", "/workspace/w1/scheduled-reports/:id", ({ body }) => ({
+      data: { ...row, ...(body as object) },
+    }))
+  await page.goto("/scenes/routines")
+  await twice["two clicks in one task"](
+    page.locator('[data-report="r1"]').getByRole("button", { name: sc.pause })
+  )
+  await page.waitForTimeout(800)
+  expect(
+    api.callsTo("POST", "/workspace/w1/scheduled-reports/r1")
+  ).toHaveLength(1)
+})
