@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { ExternalLink, Mic, MicOff, Paperclip, Send } from "lucide-react"
 
@@ -13,10 +13,11 @@ import {
   AttachmentPreview,
 } from "@genesy/voice/components/attachments"
 import { useVoice } from "@genesy/voice/components/provider"
-import { ReviewTitle } from "@genesy/voice/components/review-details"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
 import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
+import { TaskCapsule } from "@/components/task/capsule" // F4
+import { ResumePrompt } from "@/components/task/resume-prompt" // F4
 import { flowStore, useFlow } from "@/lib/flow-store"
 import { usePills } from "@/lib/pills"
 import type { Readiness } from "@/lib/readiness"
@@ -44,7 +45,6 @@ const look: Record<
 export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const t = useTranslations()
   const voice = useVoice()
-  const router = useRouter()
   const pathname = usePathname()
   const pills = usePills()
   const draft = useFlow((s) => s.draft)
@@ -157,30 +157,9 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       ) : null}
       <VoiceUnfinished />
 
-      {voice.review && !(resultOpen && pathname === "/") ? (
-        <div
-          role="group"
-          aria-labelledby="flow-review-pending"
-          className="flex flex-wrap items-center gap-2 rounded-xl border border-(--gold) p-2"
-        >
-          <p id="flow-review-pending" className="mr-auto text-sm">
-            <span className="font-semibold">
-              {t("flow.chat.reviewPending")}
-            </span>
-            {": "}
-            <ReviewTitle review={voice.review} />
-          </p>
-          <Button
-            className="min-h-11"
-            onClick={() => {
-              flowStore.setState({ resultOpen: true })
-              if (pathname !== "/") router.push("/")
-            }}
-          >
-            {t("flow.chat.openReview")}
-          </Button>
-        </div>
-      ) : null}
+      {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
+      {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
+      <ResumePrompt ended={phase === "ended"} /> {/* F4 */}
 
       {handoff ? (
         <Notice variant="info" title={t("flow.chat.secureTitle")}>

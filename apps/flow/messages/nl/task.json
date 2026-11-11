@@ -1,0 +1,101 @@
+{
+  "task": {
+    "label": "Actieve taak",
+    "working": "Genesy is bezig",
+    "states": {
+      "preparing": "Voorbereiden",
+      "running": "Bezig",
+      "waiting_input": "Wacht op jou",
+      "needs_approval": "Goedkeuring nodig",
+      "paused": "Gepauzeerd",
+      "failed": "Mislukt",
+      "partial": "Deels voltooid",
+      "completed": "Voltooid",
+      "cancelled": "Geannuleerd",
+      "unknown": "Controleren"
+    },
+    "milestones": {
+      "preparing": "Wijzigingen voorbereiden.",
+      "preparingReview": "De controle voorbereiden.",
+      "waitingInput": "Wacht op je keuze.",
+      "waitingConfirmation": "Wacht op bevestiging.",
+      "executing": "Goedgekeurde wijzigingen uitvoeren.",
+      "paused": "Gepauzeerd. Er draait niets meer tot je beslist.",
+      "completed": "Bevestigd door Genesy.",
+      "partial": "Slechts een deel is gedaan.",
+      "failed": "Het is niet gedaan.",
+      "cancelled": "Er is niets gewijzigd.",
+      "checking": "Controleren of de wijziging is voltooid."
+    },
+    "counts": "{done} van {total} gedaan · {failed} mislukt · {notRun} niet uitgevoerd · {unknown} te controleren",
+    "review": "Bekijken",
+    "pause": "Pauzeren",
+    "openReceipt": "Resultaat bekijken",
+    "dismiss": "Sluiten",
+    "withdrawn": "Ingetrokken · nooit verzonden",
+    "receipt": {
+      "title": {
+        "completed": "Wijziging bevestigd",
+        "partial": "Deels gedaan",
+        "failed": "Niet gedaan",
+        "cancelled": "Geannuleerd · niets gewijzigd",
+        "unknown": "Controleren of de wijziging is voltooid"
+      },
+      "operation": "Handeling",
+      "record": "Record",
+      "previous": "Vorige",
+      "new": "Nieuw",
+      "status": "Status",
+      "reference": "Referentie",
+      "statuses": {
+        "completed": "Bevestigd",
+        "partial": "Deels voltooid",
+        "failed": "Mislukt",
+        "cancelled": "Geannuleerd",
+        "unknown": "Nog niet bevestigd"
+      },
+      "reading": "Huidige waarde lezen…",
+      "readFailed": "Voltooid; de huidige waarde kon niet worden geladen.",
+      "refresh": "Vernieuwen",
+      "unknownText": "Herhaal het niet: het kan al gebeurd zijn. Genesy controleert de vastgelegde uitkomst.",
+      "check": "Vraag Genesy het te controleren",
+      "checkMessage": "Controleer of mijn laatst goedgekeurde wijziging is voltooid. Herhaal haar niet.",
+      "next": "Volgende"
+    },
+    "clarify": {
+      "title": "Welk product bedoelde je?",
+      "adjust": "Hoe moet ik de voorraad aanpassen?",
+      "type": "Soort aanpassing",
+      "types": {
+        "choose": "Alleen het product kiezen",
+        "set": "Totale hoeveelheid instellen",
+        "add": "Aan voorraad toevoegen",
+        "remove": "Uit voorraad halen"
+      },
+      "quantity": "Hoeveelheid",
+      "quantityHint": "Een heel aantal eenheden.",
+      "continue": "Doorgaan",
+      "prepare": "Wijziging voorbereiden",
+      "say": {
+        "choose": "Ik bedoel {product}.",
+        "set": "Zet de voorraad van {product} op een totaal van {quantity} eenheden.",
+        "add": "Voeg {quantity} eenheden toe aan de voorraad van {product}.",
+        "remove": "Haal {quantity} eenheden uit de voorraad van {product}."
+      }
+    },
+    "batch": {
+      "matched": "{count, plural, one {# wijziging gevonden} other {# wijzigingen gevonden}}",
+      "exceptions": "{count, plural, =0 {geen uitzonderingen} one {# uitzondering niet opgenomen: er wordt niets voor geschreven} other {# uitzonderingen niet opgenomen: er wordt niets voor geschreven}}",
+      "result": "{done} bijgewerkt · {failed} mislukt · {notRun} niet uitgevoerd · {unknown} te controleren",
+      "continue": "De rest voorbereiden",
+      "continueText": "Gepauzeerd werk gaat niet vanzelf verder. Genesy bereidt een nieuwe controle voor de wijzigingen die niet zijn uitgevoerd.",
+      "continueMessage": "Bereid een nieuwe controle voor de {count} wijzigingen die niet zijn uitgevoerd."
+    },
+    "resume": {
+      "title": "Ga verder waar je was",
+      "awaiting": "{summary} · wacht op je goedkeuring.",
+      "continue": "Controle hervatten",
+      "dismiss": "Sluiten"
+    }
+  }
+}
