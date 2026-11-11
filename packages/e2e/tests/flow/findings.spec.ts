@@ -152,3 +152,24 @@ test("SW5: a review that expires while open says so where the card was", async (
     timeout: 6_000,
   })
 })
+
+test("SW6: a refused microphone says so in plain words, never the browser's raw error", async ({
+  page,
+}) => {
+  test.fail(
+    !process.env.FINDINGS_RED,
+    "SW6 open: the dock shows the exception text (e.g. 'denied')"
+  )
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("denied", "NotAllowedError"))
+  })
+  await fakeAgent(page)
+  await page.goto("/")
+  await page.getByRole("button", { name: v.start }).first().click()
+  const dock = page.getByRole("region", { name: "Ask Genesy" })
+  await expect(dock.getByRole("alert")).toContainText(
+    /Microphone access was refused/
+  )
+  await expect(dock).not.toContainText(/\bdenied\b/)
+})
