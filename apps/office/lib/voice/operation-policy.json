@@ -16345,8 +16345,8 @@
   "flow_scenes_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/flow/scenes",
-    "disposition": "internal",
-    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "disposition": "execute",
+    "reason": "Member's own Flow display settings (component type, metric, period; never values); backend rechecks access and each component's read permission",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -16380,8 +16380,8 @@
   "flow_scenes_update": {
     "method": "PUT",
     "path": "/workspace/{workspace}/flow/scenes/{scene}",
-    "disposition": "internal",
-    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "disposition": "execute",
+    "reason": "Member's own Flow display settings; changes only what the caller sees, never business records; every change goes through the review card; backend rechecks access",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -16415,8 +16415,8 @@
   "flow_scenes_delete": {
     "method": "DELETE",
     "path": "/workspace/{workspace}/flow/scenes/{scene}",
-    "disposition": "internal",
-    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "disposition": "execute",
+    "reason": "Member's own Flow display settings; changes only what the caller sees, never business records; every change goes through the review card; backend rechecks access",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
@@ -16450,8 +16450,8 @@
   "flow_scenes_reset": {
     "method": "POST",
     "path": "/workspace/{workspace}/flow/scenes/reset",
-    "disposition": "internal",
-    "reason": "Member's own Flow display settings; the Flow UI writes them directly. Voice edits through the review card wait for the voice wiring change.",
+    "disposition": "execute",
+    "reason": "Member's own Flow display settings; changes only what the caller sees, never business records; every change goes through the review card; backend rechecks access",
     "authorization": {
       "schemes": ["bearer"],
       "boundary": "workspace",
