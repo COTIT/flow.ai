@@ -235,7 +235,7 @@ export function VoiceResult({ views, statusLabel }: { views: ResultView[]; statu
   if (!first) return null
   const body =
     first.kind === "sales" ? <SalesChart views={views.filter((v): v is Of<"sales"> => v.kind === "sales")} />
-    : first.kind === "sales_daily" ? <SalesChart views={dailyAsSales(first)} />
+    : first.kind === "sales_daily" ? <SalesChart views={dailyAsSales(first)} trend />
     : first.kind === "records" ? <Records view={first} />
     : first.kind === "lot_origin" ? <LotOrigin view={first} />
     : first.kind === "trail" ? <Trail view={first} />
