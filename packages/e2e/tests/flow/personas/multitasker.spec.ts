@@ -347,7 +347,7 @@ test.describe("findings", () => {
   // and recoverable (the tab asks, `tools` status), but the resume prompt only shows after a
   // conversation *ended* (phase "ended"); after a reload the phase is "ready", so the review,
   // its Approve and "Continue review" are all unreachable until it silently expires.
-  test.fail("P5-1 reload with a review waiting: the review (or Continue review) stays reachable", async ({ persona, page, api }) => {
+  test("P5-1 reload with a review waiting: the review (or Continue review) stays reachable", async ({ persona, page, api }) => {
     const { ledger, tabs } = await setup(persona, page, api)
     await proposeIn(tabs[0]!)
     allowAborts(page)
@@ -356,6 +356,24 @@ test.describe("findings", () => {
     const card = page.getByRole("button", { name: L.en.approve })
     const resume = page.getByRole("button", { name: "Continue review" })
     await expect(card.or(resume).first()).toBeVisible({ timeout: 5_000 })
+  })
+
+  test("P5-1 the resume prompt never shows while a new conversation is starting", async ({ persona, page, api }) => {
+    const { tabs } = await setup(persona, page, api)
+    await proposeIn(tabs[0]!)
+    allowAborts(page)
+    await page.reload()
+    const resume = page.getByRole("button", { name: "Continue review" })
+    await expect(resume).toBeVisible({ timeout: 5_000 })
+    // Hold the new session open so "connecting" lasts long enough to look at.
+    await page.route("**/api/voice/session", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1_500))
+      await route.fallback()
+    })
+    const started = startText(page)
+    await expect(resume).toHaveCount(0, { timeout: 1_000 })
+    await started
+    await expect(resume).toHaveCount(0)
   })
 })
 
@@ -432,7 +450,7 @@ test.describe("findings 2", () => {
   // The write ran (Office: completed), but B never says so: not in w2 (right), and not after
   // switching back to w1 either (the outcome is dropped with the remounted provider, the task
   // memory is reset on the owner change, and the recovered "completed" task is never shown).
-  test.fail("P5-2 an approve still on its way when another tab switches workspace: its outcome is reachable back in that workspace", async ({ persona, page, api }) => {
+  test("P5-2 an approve still on its way when another tab switches workspace: its outcome is reachable back in that workspace", async ({ persona, page, api }) => {
     const { ledger } = await setup(persona, page, api)
     const b = await openTab(persona, api, ledger, 1)
     await proposeIn(b)

@@ -83,7 +83,7 @@ export async function multitaskRoutes(page: Page, ledger: Ledger, tab: number, s
         .filter((r) => r.session === session && r.ws === ws)
         .map((r) =>
           r.decided
-            ? { status: r.decided === "approve" ? "completed" : "cancelled", data: { actionId: r.actionId } }
+            ? { status: r.decided === "approve" ? "completed" : "cancelled", data: { actionId: r.actionId, summary: "Set stock levels" } }
             : { status: "awaiting_review", data: { actionId: r.actionId, recoverable: true, summary: "Set stock levels" } }
         )
       return route.fulfill({ json: { status: "completed", data } })
