@@ -140,7 +140,21 @@ describe("record links", () => {
     // The picture is for the screen; the agent keeps the data it already gets.
     expect(
       outcomeForAgent({ status: "completed", data: [1], view: { kind: "sales" } })
-    ).toEqual({ status: "completed", data: [1] })
+    ).toMatchObject({ status: "completed", data: [1] })
+    expect(
+      outcomeForAgent({ status: "completed", data: [1], view: { kind: "sales" } })
+    ).not.toHaveProperty("view")
+  })
+  it("knows a picture is on screen, so it summarises instead of reading every point", () => {
+    const chart = outcomeForAgent({ status: "completed", data: [1, 2, 3], view: { kind: "sales_daily" } })
+    expect(chart.on_screen).toEqual({
+      kind: "chart",
+      instruction: expect.stringMatching(/one or two sentences.*never read/i),
+    })
+    expect(outcomeForAgent({ status: "completed", view: { kind: "records" } }).on_screen?.kind).toBe("list")
+    // Nothing shown, nothing claimed.
+    expect(outcomeForAgent({ status: "completed", data: [1] })).not.toHaveProperty("on_screen")
+    expect(outcomeForAgent({ status: "completed", view: { kind: "unknown_kind" } })).not.toHaveProperty("on_screen")
   })
 })
 

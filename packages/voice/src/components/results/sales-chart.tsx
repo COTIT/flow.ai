@@ -6,12 +6,14 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
 import type { ResultView } from "../../lib/views"
+import { Series } from "./series"
 
 type Sales = Extract<ResultView, { kind: "sales" }>
 
 /** Sales per period, one bar group per currency (never mixed). Bars are drawing scale only:
- * every number shown is the API's. The table carries the same numbers for screen readers. */
-export function SalesChart({ views }: { views: Sales[] }) {
+ * every number shown is the API's. The table carries the same numbers for screen readers.
+ * `trend`: a series over time (e.g. one view per day) draws one line per currency instead. */
+export function SalesChart({ views, trend = false }: { views: Sales[]; trend?: boolean }) {
   const t = useTranslations("voice.results")
   const locale = useLocale()
   const [table, setTable] = useState(false)
@@ -48,7 +50,20 @@ export function SalesChart({ views }: { views: Sales[] }) {
           {table ? t("showChart") : t("showTable")}
         </button>
       </div>
-      {table ? null : (
+      {table ? null : trend ? (
+        <div aria-hidden className="flex flex-col gap-4" data-chart="line">
+          {groups.map(({ currency, bars }) => (
+            <div key={currency} className="flex flex-col gap-1">
+              <Series line values={bars.map((b) => b.row?.gross ?? 0)} />
+              <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+                <span>{bars[0]?.label}</span>
+                <span>{currency}</span>
+                <span>{bars.at(-1)?.label}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <div aria-hidden className="flex flex-col gap-4" data-chart="">
           {groups.map(({ currency, bars, top }) => (
             <div key={currency} className="flex flex-col gap-3">

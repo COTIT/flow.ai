@@ -20,6 +20,52 @@ export type Allow = {
 type Options = { allow: Allow }
 
 /**
+ * Failures a test causes on purpose (offline, a 503 it routes), per page: the guard lets requests
+ * matching these through; everything else still fails the test.
+ */
+const injected = new WeakMap<Page, RegExp[]>()
+export function markInjected(page: Page, url: RegExp) {
+  injected.set(page, [...(injected.get(page) ?? []), url])
+}
+const isInjected = (page: Page, url: string) =>
+  injected.get(page)?.some((re) => re.test(url)) ?? false
+
+/** Records a page's problems (console errors, page errors, failed or >= 400 requests). */
+export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
+  const allowed = (allow.responses ?? []).map((a) => ({
+    href: new URL(a.url, baseURL).href,
+    status: a.status,
+  }))
+  const isAllowed = (url: string, status: number) =>
+    allowed.some((a) => a.href === url && a.status === status)
+  const problems: string[] = []
+
+  page.on("response", (r) => {
+    if (r.status() >= 400 && !isAllowed(r.url(), r.status()) && !isInjected(page, r.url()))
+      problems.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
+  })
+  const failures = (allow.failures ?? []).map(
+    (u) => new URL(u, baseURL).href
+  )
+  page.on("requestfailed", (r) => {
+    if (failures.includes(r.url()) || isInjected(page, r.url())) return
+    // Navigating away cancels Next's prefetches; that is not a failure.
+    if (r.failure()?.errorText !== "net::ERR_ABORTED")
+      problems.push(`request failed: ${r.url()} ${r.failure()?.errorText}`)
+  })
+  page.on("pageerror", (e) => problems.push(`page error: ${e.message}`))
+  page.on("console", (m) => {
+    if (m.type() !== "error") return
+    // Chrome logs every >= 400 response; the response check above already judged it.
+    if (m.text().startsWith("Failed to load resource:")) return
+    if (allow.console?.includes(m.text())) return
+    if (allow.consolePrefix?.some((p) => m.text().startsWith(p))) return
+    problems.push(`console error: ${m.text()}`)
+  })
+  return problems
+}
+
+/**
  * Playwright's `test` with a guard on every page: any console error, uncaught page error,
  * failed request or response >= 400 fails the test, unless listed in `allow`.
  */
@@ -27,39 +73,15 @@ export const test = base.extend<Options & { guard: void }>({
   allow: [{}, { option: true }],
   guard: [
     async ({ page, allow, baseURL }, use) => {
-      const allowed = (allow.responses ?? []).map((a) => ({
-        href: new URL(a.url, baseURL).href,
-        status: a.status,
-      }))
-      const isAllowed = (url: string, status: number) =>
-        allowed.some((a) => a.href === url && a.status === status)
-      const problems: string[] = []
-
-      page.on("response", (r) => {
-        if (r.status() >= 400 && !isAllowed(r.url(), r.status()))
-          problems.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
-      })
-      const failures = (allow.failures ?? []).map(
-        (u) => new URL(u, baseURL).href
-      )
-      page.on("requestfailed", (r) => {
-        if (failures.includes(r.url())) return
-        // Navigating away cancels Next's prefetches; that is not a failure.
-        if (r.failure()?.errorText !== "net::ERR_ABORTED")
-          problems.push(`request failed: ${r.url()} ${r.failure()?.errorText}`)
-      })
-      page.on("pageerror", (e) => problems.push(`page error: ${e.message}`))
-      page.on("console", (m) => {
-        if (m.type() !== "error") return
-        // Chrome logs every >= 400 response; the response check above already judged it.
-        if (m.text().startsWith("Failed to load resource:")) return
-        if (allow.console?.includes(m.text())) return
-        if (allow.consolePrefix?.some((p) => m.text().startsWith(p))) return
-        problems.push(`console error: ${m.text()}`)
-      })
-
+      const problems = watchProblems(page, allow, baseURL)
       await use()
       expect(problems, "page problems").toEqual([])
+      // Flow's shell has one scroll root; every Flow test ends with the layout checked.
+      if (
+        !page.isClosed() &&
+        (await page.locator("[data-flow-scroll]").count())
+      )
+        await expectSingleScroller(page)
     },
     { auto: true },
   ],
@@ -74,6 +96,37 @@ export async function expectNoHorizontalScroll(page: Page) {
     width: window.innerWidth,
   }))
   expect(scroll, "page scrolls sideways").toBeLessThanOrEqual(width)
+}
+
+/**
+ * One scroll root (`root`, e.g. Flow's `main[data-flow-scroll]`): the page itself never scrolls
+ * (no space below the viewport, nothing sideways) and no other element scrolls vertically.
+ */
+export async function expectSingleScroller(
+  page: Page,
+  root = "[data-flow-scroll]"
+) {
+  const found = await page.evaluate((root) => {
+    const d = document.documentElement
+    const others = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .filter((el) => {
+        if (el.matches(root)) return false
+        const y = getComputedStyle(el).overflowY
+        return /(auto|scroll)/.test(y) && el.scrollHeight > el.clientHeight + 1
+      })
+      .map(
+        (el) =>
+          `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`
+      )
+    return {
+      page: d.scrollHeight - window.innerHeight,
+      sideways: d.scrollWidth - window.innerWidth,
+      others,
+    }
+  }, root)
+  expect(found.page, "page scrolls below the viewport").toBeLessThanOrEqual(0)
+  expect(found.sideways, "page scrolls sideways").toBeLessThanOrEqual(0)
+  expect(found.others, "a second vertical scroll bar").toEqual([])
 }
 
 /**

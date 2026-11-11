@@ -110,7 +110,7 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
     "needs_approval"
   )
   await capsule(page).getByRole("button", { name: k.review }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/\?view=task$/)
   await expect(summary).toContainText("21 changes matched")
   expect(confirms).toHaveLength(0)
 

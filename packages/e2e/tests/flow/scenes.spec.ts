@@ -150,3 +150,32 @@ test("a live conversation opens Morning Pulse, then Stock Watch: orb compact, on
   expect(agent.connections).toBe(1)
   expect(sessions.filter((x) => x.method === "POST")).toHaveLength(1)
 })
+
+test("the agent quietly knows what the open scene shows (ids and types, never values)", async ({
+  page,
+}) => {
+  const agent = await fakeAgent(page)
+  await page.goto("/")
+  await startText(page)
+  const contexts = () =>
+    agent.sent
+      .filter((e) => e.type === "contextual_update")
+      .map((e) => String(e.text))
+      .filter((text) => text.includes("flow_context"))
+      .map((text) => JSON.parse(text).flow_context)
+  await page.getByRole("button", { name: shell.backHome }).click()
+  await yourFlow(page).getByRole("link", { name: /Morning Pulse/ }).click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  await expect
+    .poll(() => contexts().at(-1))
+    .toEqual({
+      active_scene: "pulse",
+      visible: [
+        { id: "sales-today", type: "metric_card", metric: "sales.gross", period: "today" },
+        { id: "orders-pending", type: "metric_card", metric: "orders.pending", period: "today" },
+        { id: "sales-trend", type: "line_chart", metric: "sales.gross", period: "last_7_days" },
+        { id: "attention", type: "attention_panel" },
+      ],
+    })
+  expect(JSON.stringify(contexts())).not.toMatch(/€|\d{3,}/)
+})

@@ -32,8 +32,8 @@ export function useOpenTask() {
   const router = useRouter()
   const pathname = usePathname()
   return () => {
-    flowStore.setState({ resultOpen: true })
-    if (pathname !== "/") router.push("/")
+    if (pathname === "/") flowStore.setState({ resultOpen: true })
+    else router.push("/?view=task")
   }
 }
 
