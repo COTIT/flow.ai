@@ -165,6 +165,8 @@ async function injectFrame(page: Page) {
     const frame = document.createElement("iframe")
     frame.src = src
     frame.title = "Injected"
+    // Pinned in a corner: a test's own frame never lengthens Flow's page.
+    frame.style.cssText = "position:fixed;bottom:0;right:0"
     document.body.append(frame)
   }, `/storefront/preview?revision=${draft}`)
   await expect
