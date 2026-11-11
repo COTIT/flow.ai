@@ -850,22 +850,14 @@
     "sw": ["kipaumbele", "muhimu", "kwanza", "kiwango", "chini"]
   },
   "attention_marks_set": {
-    "en": [
-      "snooze",
-      "acknowledge",
-      "seen",
-      "alert",
-      "later",
-      "tomorrow",
-      "dismiss"
-    ],
-    "nl": ["uitstellen", "stel", "uit", "melding", "gezien", "later", "morgen"],
-    "sw": ["ahirisha", "tahadhari", "nimeona", "baadaye", "kesho"]
+    "en": ["snooze", "acknowledge", "seen", "later", "tomorrow", "dismiss"],
+    "nl": ["uitstellen", "stel", "uit", "gezien", "later", "morgen"],
+    "sw": ["ahirisha", "nimeona", "baadaye", "kesho"]
   },
   "attention_marks_delete": {
-    "en": ["unsnooze", "unacknowledge", "alert", "again", "show it again"],
-    "nl": ["terugzetten", "terug", "melding", "opnieuw"],
-    "sw": ["rudisha", "tahadhari", "tena"]
+    "en": ["unsnooze", "unacknowledge", "show it again"],
+    "nl": ["terugzetten", "terug"],
+    "sw": ["rudisha"]
   },
   "orders_sales_daily": {
     "en": ["daily", "per day", "each day", "trend", "chart", "sales"],
@@ -885,28 +877,19 @@
       "reorder",
       "move card",
       "scene",
-      "flow",
       "pulse"
     ],
-    "nl": [
-      "altijd",
-      "toon",
-      "vastzetten",
-      "volgorde",
-      "verplaatsen",
-      "flow",
-      "scène"
-    ],
+    "nl": ["altijd", "toon", "vastzetten", "volgorde", "verplaatsen", "scène"],
     "sw": ["kila mara", "onyesha", "bandika", "panga", "dashibodi", "kwanza"]
   },
   "flow_scenes_delete": {
-    "en": ["default", "back to", "restore scene", "scene", "flow"],
+    "en": ["default", "back to", "restore scene", "scene"],
     "nl": ["standaard", "terug", "herstellen", "scène"],
     "sw": ["chaguo-msingi", "rejesha", "mpangilio"]
   },
   "flow_scenes_reset": {
-    "en": ["reset", "start over", "whole", "all scenes", "flow", "layout"],
-    "nl": ["resetten", "opnieuw beginnen", "flow", "indeling"],
+    "en": ["reset", "start over", "whole", "all scenes", "layout"],
+    "nl": ["resetten", "opnieuw beginnen", "indeling"],
     "sw": ["weka upya", "anza upya", "mpangilio", "wote"]
   }
 }
