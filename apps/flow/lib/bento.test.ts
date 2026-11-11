@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { BENTO_CLASS, bentoSize } from "./bento"
+import { BENTO_CLASS, BENTO_GRID, bentoSize } from "./bento"
 
 describe("bento sizing (one rule, every scene)", () => {
   it("metric cards and comparisons are small", () => {
@@ -37,5 +37,11 @@ describe("bento sizing (one rule, every scene)", () => {
     )
     expect(BENTO_CLASS.chart).toMatch(/row-span-2/)
     expect(BENTO_CLASS.full).toMatch(/col-span-full/)
+  })
+  it("rows are fixed tracks from 640 px: tiles never stretch to their tallest neighbour", () => {
+    expect(BENTO_GRID).toMatch(/@min-\[640px\]:auto-rows-\[132px\]/)
+    expect(BENTO_GRID).not.toMatch(/minmax\(132px,auto\)/)
+    expect(BENTO_CLASS.wide).toMatch(/@min-\[640px\]:row-span-2/)
+    expect(BENTO_CLASS.small).not.toMatch(/row-span/)
   })
 })

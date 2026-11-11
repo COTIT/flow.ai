@@ -19,7 +19,7 @@ import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { Freshness } from "@/components/registry/data-state"
-import { BENTO_CLASS, BENTO_GRID, bentoSize } from "@/lib/bento"
+import { BENTO_CLASS, BENTO_GRID, BENTO_SINGLE, bentoSize } from "@/lib/bento"
 import { BUILT_IN, keepKey, pendingFirst, sceneLayout } from "@/lib/scenes"
 import { flowStore } from "@/lib/flow-store"
 import { TTL } from "@/lib/scene-data"
@@ -28,6 +28,7 @@ import {
   useRefreshScenes,
   useWorkspace,
 } from "@/lib/use-scene-data"
+import { BentoTile } from "./bento-tile"
 
 const PERIODS: FlowPeriod[] = [
   "this_week",
@@ -269,21 +270,25 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
         </Link>
       ) : null}
       <div className="@container">
-        <div data-bento className={BENTO_GRID}>
+        <div
+          data-bento
+          className={drawn.length > 1 ? BENTO_GRID : BENTO_SINGLE}
+        >
           {drawn.map((component) => {
             const Component = componentFor(component.type)
+            const size = bentoSize(component.type, drawn.length)
             return Component ? (
-              <div
+              <BentoTile
                 key={component.id}
-                data-component={component.id}
-                data-size={bentoSize(component.type, drawn.length)}
-                className={`min-w-0 [&>*]:h-full ${BENTO_CLASS[bentoSize(component.type, drawn.length)]}`}
+                id={component.id}
+                size={size}
+                className={BENTO_CLASS[size]}
               >
                 <Component
                   component={component}
                   restricted={scene.restricted.includes(component.id)}
                 />
-              </div>
+              </BentoTile>
             ) : null
           })}
         </div>

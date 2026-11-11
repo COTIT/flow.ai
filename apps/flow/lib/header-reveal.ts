@@ -78,16 +78,16 @@ export function reveal(s: HeaderState, e: HeaderEvent): HeaderState {
 export const SWIPE_ZONE = 32
 const SWIPE_MIN = 32
 
-/** Option A: a mostly vertical swipe down, starting just below the safe area, content at its top. */
+/** Option A: a mostly vertical swipe down, starting just below the safe area. */
 export function isRevealSwipe(g: {
   startY: number
   dy: number
   dx: number
   safeTop: number
-  atTop: boolean
 }) {
+  // A swipe that starts in the reveal zone reveals wherever the content is scrolled (P10-6):
+  // the zone sits above the content, so the gesture is never the content's own scroll.
   return (
-    g.atTop &&
     g.startY >= g.safeTop + 4 &&
     g.startY <= g.safeTop + 4 + SWIPE_ZONE &&
     g.dy >= SWIPE_MIN &&

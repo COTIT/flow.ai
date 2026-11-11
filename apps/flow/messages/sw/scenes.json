@@ -163,6 +163,8 @@
       "open": "Iliyobaki",
       "actions": "Vitendo",
       "rowActions": "Vitendo vya {name}"
-    }
+    },
+    "showAll": "Onyesha yote",
+    "showLess": "Onyesha machache"
   }
 }

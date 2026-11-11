@@ -29,6 +29,8 @@ type FlowState = {
   setSelected: (selected: { type: string; ids: string[] } | null) => void
   /** What the open scene shows (ids and types only), for the agent's context. */
   visible: VisibleComponent[] | null
+  /** The phone's conversation sheet is raised (the orb moves into it). */
+  sheetRaised: boolean
 }
 
 /** Visual state of the shell; the conversation itself lives in the voice provider. */
@@ -55,7 +57,8 @@ export const flowStore = createStore<FlowState>()((set) => ({
   selected: null,
   setSelected: (selected) => set({ selected }),
   visible: null,
+  sheetRaised: false,
 }))
 
-export const useFlow = <T,>(pick: (state: FlowState) => T) =>
+export const useFlow = <T>(pick: (state: FlowState) => T) =>
   useStore(flowStore, pick)

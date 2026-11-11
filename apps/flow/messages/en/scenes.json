@@ -163,6 +163,8 @@
       "open": "Open",
       "actions": "Actions",
       "rowActions": "Actions for {name}"
-    }
+    },
+    "showAll": "Show all",
+    "showLess": "Show less"
   }
 }
