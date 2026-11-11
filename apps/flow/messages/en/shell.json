@@ -45,6 +45,7 @@
     "resizeConversation": "Resize the conversation",
     "jumpToLatest": "Jump to latest",
     "raiseConversation": "Raise the conversation",
-    "lowerConversation": "Lower the conversation"
+    "lowerConversation": "Lower the conversation",
+    "newReply": "Genesy replied"
   }
 }

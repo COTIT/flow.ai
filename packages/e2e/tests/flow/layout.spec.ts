@@ -408,3 +408,38 @@ for (const size of [
     await expectSingleScroller(page)
     await expectNoHorizontalScroll(page)
   })
+
+test("P3-2: a conversation started away from home shows there (rail, or the phone sheet)", async ({
+  page,
+}) => {
+  // Each answer is its own event, as a real agent's are.
+  let event = 0
+  await fakeAgent(page, (text, a) =>
+    a.emit({
+      type: "agent_response",
+      agent_response_event: { agent_response: `Answer: ${text}`, event_id: ++event },
+    })
+  )
+  await page.goto("/scenes/pulse")
+  await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeVisible()
+  await composer(page).fill("How were sales this week?")
+  await composer(page).press("Enter")
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  if (width(page) >= 640) {
+    // Desktop and tablet: the rail opens beside the scene with the answer.
+    await expect(rail(page)).toBeVisible()
+    await expect(rail(page).getByRole("log")).toContainText(
+      "Answer: How were sales this week?"
+    )
+    // Hidden again, a new reply is announced on its toggle.
+    await rail(page).getByRole("button", { name: s.hideConversation }).click()
+    await send(page, "And last week?")
+    await expect(
+      page.getByRole("button", { name: new RegExp(s.showConversation) })
+    ).toContainText(s.newReply)
+  } else {
+    // Phone: the sheet peeks with the last line.
+    await expect(sheet(page)).toContainText("Answer: How were sales this week?")
+  }
+  await expectSingleScroller(page)
+})

@@ -70,7 +70,9 @@ export function DockLayer({ phase }: { phase: SessionPhase["phase"] }) {
       const to = slot.getBoundingClientRect()
       const from = frame.getBoundingClientRect()
       box.style.left = `${to.left - from.left}px`
-      box.style.top = `${to.top - from.top}px`
+      // Anchored by its bottom edge (every slot sits at the bottom of its pane): a dock that
+      // grows or a row that settles never leaves it hanging past the screen.
+      box.style.bottom = `${from.bottom - to.bottom}px`
       box.style.width = `${to.width}px`
       const height = box.offsetHeight
       frame.style.setProperty("--flow-dock-h", `${height}px`)

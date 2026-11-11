@@ -159,6 +159,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const home = pathname === "/"
   const pane = useConversationLayout()
   const railShown = pane.rail && pane.open
+  // A conversation started away from home shows where it started (P3-2): a closed rail opens.
+  const startingHere = voice.starting && pane.rail && !pane.open
+  useEffect(() => {
+    if (startingHere) pane.setOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startingHere])
   const bottomDock = !railShown && !pane.sheet
   return (
     <div
@@ -170,7 +176,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
           "--flow-dock-h": "68px",
         } as React.CSSProperties
       }
-      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(pointer:coarse)_and_(min-height:501px)]:pt-[calc(var(--flow-safe-top)+2.25rem)] [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+0.5rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
+      // A double-click acts once: the layout may change under the pointer after the first click,
+      // so the second click of a double-click never reaches a control (P2-2).
+      onClickCapture={(e) => {
+        if (
+          e.detail > 1 &&
+          e.target instanceof Element &&
+          e.target.closest("button, a, [role=menuitem]")
+        ) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }}
+      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+0.5rem)] [@media(pointer:coarse)_and_(min-height:501px)]:pt-[calc(var(--flow-safe-top)+2.25rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
     >
       {/* Floats over the frame; never takes a row, so it never pushes content. */}
       <Header phase={phase} />
@@ -185,6 +203,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 pane.rail ? (
                   <ConversationToggle
                     open={pane.open}
+                    unread={pane.unread}
                     onToggle={() => pane.setOpen(!pane.open)}
                   />
                 ) : null

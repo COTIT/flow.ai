@@ -81,6 +81,7 @@ const save = (next: RailStore) => {
   listeners.forEach((l) => l())
 }
 const SERVER: RailStore = { open: {}, width: null }
+let seenReplies = 0
 const useRailStore = () =>
   useSyncExternalStore(
     (l) => {
@@ -113,6 +114,12 @@ export function useConversationLayout() {
   const context = b && b !== "phone" ? railContext(b, review) : null
   const shown = Boolean(b && talking && !fullView)
   const open = shown && !!b && railOpen({ band: b, review, stored: store.open })
+  // Replies that arrived while the rail was hidden: its toggle says so (P3-2).
+  const replies = voice.messages.length
+  const last = voice.messages.at(-1)
+  useEffect(() => {
+    if (open) seenReplies = replies
+  }, [open, replies])
   return {
     band: b,
     /** The full-width conversation (Conversation board) is open on home. */
@@ -120,6 +127,7 @@ export function useConversationLayout() {
     /** The rail exists (open or closed) beside the results. */
     rail: shown && b !== "phone",
     open,
+    unread: !open && replies > seenReplies && !!last && last.role !== "user",
     sheet: shown && b === "phone",
     width: Math.min(
       clampWidth(store.width ?? (b === "tablet" ? RAIL.tablet : RAIL.desktop)),
@@ -385,9 +393,12 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
 /** In the scene bar (Split board): hide or show the conversation rail. */
 export function ConversationToggle({
   open,
+  unread = false,
   onToggle,
 }: {
   open: boolean
+  /** Genesy replied while the rail was hidden. */
+  unread?: boolean
   onToggle: () => void
 }) {
   const t = useTranslations("shell")
@@ -404,6 +415,15 @@ export function ConversationToggle({
       <span className="@max-[600px]:sr-only">
         {t(open ? "hideConversation" : "showConversation")}
       </span>
+      {unread ? (
+        <span
+          data-unread
+          className="flex items-center gap-1.5 text-xs font-medium"
+        >
+          <span aria-hidden className="size-2 rounded-full bg-(--gold)" />
+          {t("newReply")}
+        </span>
+      ) : null}
     </Button>
   )
 }
