@@ -115,6 +115,8 @@ type VoiceContextValue = {
   steps: string[]
   narration: string
   error: string
+  /** `error` only says an open review lapsed (P8-2): the dock shows it, the orb stays calm. */
+  expired?: boolean
   recovery: RecoveryPointer | null
   recoveredTasks: RecoveryTask[]
   checkingRecovery: boolean
@@ -1736,6 +1738,8 @@ function Session({
         ),
         narration: progress?.narration ?? "",
         error,
+        // shortcut: matches the translated expiry text; a language switch while it shows makes the orb read "error" until the next message. Upgrade to an error kind if error ever carries a code.
+        expired: error === t("expired"),
         recovery,
         recoveredTasks,
         checkingRecovery,
