@@ -1,4 +1,6 @@
-import type { StorefrontPreviewLink } from "@genesy/api-client/model"
+import { useStore } from "zustand"
+import { createStore } from "zustand/vanilla"
+
 
 /** "vN" for a revision on the loaded page (newest first, append-only), else "—". */
 export function revisionLabel(
@@ -21,7 +23,7 @@ export type LinkState = "none" | "active" | "hidden" | "expired" | "revoked" | "
  * What the card shows for the draft's newest link. Active needs the token from this tab's memory;
  * without it (reload, another tab) the link exists but cannot be opened here ("hidden").
  */
-export function linkView<L extends Pick<StorefrontPreviewLink, "status">>(
+export function linkView<L extends { status: string }>(
   links: L[],
   token: string | null
 ): { state: LinkState; link: L | null } {
@@ -54,19 +56,35 @@ export function briefText({ areas, keepStructure, direction }: Brief): string {
 }
 
 /**
- * Preview tokens are shown once by the API. They live only here, in this tab's memory, for the
- * current draft: never in storage, cookies, URLs, query caches or logs. Reload forgets them.
+ * Studio state of this tab only, in memory (no persist): preview tokens, the redesign request
+ * waiting for its draft, and a dismissed resume prompt. Preview tokens are shown once by the API;
+ * they never go to storage, cookies, URLs, query caches or logs. Reload forgets all of it.
  */
-let tokens: { revisionId: string; token: string } | null = null
+type StudioState = {
+  token: { revisionId: string; token: string } | null
+  /** A brief or "another change" was sent while `from` was the draft; its successor gets a link. */
+  awaiting: { from: string | null } | null
+  dismissed: boolean
+}
+
+export const studioStore = createStore<StudioState>()(() => ({
+  token: null,
+  awaiting: null,
+  dismissed: false,
+}))
+
+export const useStudio = <T,>(pick: (state: StudioState) => T) =>
+  useStore(studioStore, pick)
 
 export function rememberToken(revisionId: string, token: string) {
-  tokens = { revisionId, token }
+  studioStore.setState({ token: { revisionId, token } })
 }
 
 export function tokenFor(revisionId: string | null | undefined): string | null {
-  return revisionId && tokens?.revisionId === revisionId ? tokens.token : null
+  const held = studioStore.getState().token
+  return revisionId && held?.revisionId === revisionId ? held.token : null
 }
 
 export function forgetTokens() {
-  tokens = null
+  studioStore.setState({ token: null })
 }
