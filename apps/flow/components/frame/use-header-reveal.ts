@@ -93,7 +93,12 @@ export function useHeaderReveal(
       const t = e.touches[0]
       if (!t || e.touches.length > 1) return (start = null)
       start = { x: t.clientX, y: t.clientY, onHeader: inHeader(e.target) }
-      if (shown.current && !start.onHeader && !el(e.target)?.closest(POPUP))
+      // The handle toggles on its own click; its touch is not "outside" (P10-5).
+      if (
+        shown.current &&
+        !start.onHeader &&
+        !el(e.target)?.closest(`${POPUP},[data-flow-handle]`)
+      )
         dispatch({ type: "outside" })
     }
     const touchend = (e: TouchEvent) => {
@@ -101,7 +106,6 @@ export function useHeaderReveal(
       if (!start || !t) return
       const dy = t.clientY - start.y
       const dx = t.clientX - start.x
-      const scroller = document.querySelector("[data-flow-scroll]")
       const safeTop =
         parseFloat(
           getComputedStyle(document.documentElement).getPropertyValue(
@@ -114,7 +118,6 @@ export function useHeaderReveal(
           dy,
           dx,
           safeTop,
-          atTop: !scroller || scroller.scrollTop <= 0,
         })
       ) {
         dispatch({ type: "swipe" })

@@ -25,6 +25,13 @@ export function Immersive() {
     const active = document.activeElement
     if (active === document.body || active?.closest("[data-orb]")) heading.current?.focus()
   }, [])
+  // Switching to voice by keyboard: its button turns disabled (or goes) while upgrading, and the
+  // browser would drop focus to the page (P9-4).
+  useEffect(() => {
+    const active = document.activeElement as HTMLButtonElement | null
+    if (voice.upgrading && (active === document.body || active?.disabled))
+      heading.current?.focus()
+  }, [voice.upgrading])
   // Keep the newest line in view; the page's one scroller scrolls, the log never has its own.
   useEffect(() => {
     const scroller = log.current?.closest("[data-flow-scroll]")

@@ -150,6 +150,10 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
             {look[state].text ? t(`flow.${look[state].text}`) : null}
           </Notice>
         ) : null}
+        {/* P9-4: always mounted, so a screen reader hears when a review arrives. */}
+        <p role="status" className="sr-only">
+          {voice.review ? t("shell.reviewReady", { summary: voice.review.summary }) : ""}
+        </p>
         {phase === "ended" ? (
           <p role="status" className="text-sm">
             {t("shell.ended")}{" "}

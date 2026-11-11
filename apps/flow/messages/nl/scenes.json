@@ -163,6 +163,8 @@
       "open": "Open",
       "actions": "Acties",
       "rowActions": "Acties voor {name}"
-    }
+    },
+    "showAll": "Alles tonen",
+    "showLess": "Minder tonen"
   }
 }

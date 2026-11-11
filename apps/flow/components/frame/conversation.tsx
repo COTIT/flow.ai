@@ -311,6 +311,11 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
   const body = useRef<HTMLDivElement>(null)
   const start = useRef<number | null>(null)
   const open = state === "open"
+  // The orb follows into the raised sheet; lowered or gone, it returns to its place.
+  useEffect(() => {
+    flowStore.setState({ sheetRaised: open })
+    return () => flowStore.setState({ sheetRaised: false })
+  }, [open])
   const go = useCallback(
     (e: SheetEvent) =>
       setState((s) => {
@@ -366,7 +371,10 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
         />
       </button>
       <div className="flex min-w-0 items-center gap-2.5">
-        <OrbSlot name="compact" className="size-11 [@media(max-height:500px)]:size-8" />
+        <OrbSlot
+          name="compact"
+          className="size-11 [@media(max-height:500px)]:size-8"
+        />
         {open ? (
           <p className="text-sm text-muted-foreground">
             {t(`shell.phase.${phase}`)}
