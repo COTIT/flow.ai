@@ -27,12 +27,20 @@ export const RUAHA = {
   display_name: "Ruaha Growers",
 }
 
+/** Flow noticed with nothing to show (the priorities reply). */
+export const NO_ALERTS = {
+  data: { generated_at: "2026-11-11T08:00:00Z", groups: [], restricted: [] },
+}
+
 /** Flow's /v1 calls for one signed-in member; override keys per test. */
 export const flowApi = (
   over: Record<string, MockReply> = {}
 ): Record<string, MockReply> => ({
   "GET /me": { body: { data: { user: AMINA } } },
   "GET /me/workspaces": { body: { data: [ILUNDO] } },
+  // F3: every signed-in screen ranks suggestions with Flow noticed; nothing noticed by default.
+  "GET /workspace/w1/attention/priorities": { body: NO_ALERTS },
+  "GET /workspace/w2/attention/priorities": { body: NO_ALERTS },
   "POST /logout": { body: { message: "Logged out." } },
   "POST /login": {
     body: {

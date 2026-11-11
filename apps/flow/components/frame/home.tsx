@@ -10,6 +10,7 @@ import { Button } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
+import { DiscoveryHint } from "@/components/discovery/hint" // F3
 import { useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
 import { useWorkspaceChoices } from "./header"
@@ -124,7 +125,8 @@ export function Home() {
           </p>
         </>
       ) : null}
-      {/* Slots for the discovery hint (F3), Flow noticed and Your Flow (F2). */}
+      <DiscoveryHint /> {/* F3 */}
+      {/* Slots for Flow noticed and Your Flow (F2). */}
     </div>
   )
 }

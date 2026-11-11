@@ -1,0 +1,135 @@
+{
+  "discovery": {
+    "suggested": "Mapendekezo kwako",
+    "next": "Hiki ndicho unachoweza kufanya sasa",
+    "hint": {
+      "lead": "Hujui pa kuanzia?",
+      "text": "Genesy inaweza kukusaidia {areas}.",
+      "textGeneral": "Genesy inaweza kukusaidia kuendesha biashara yako kwa sauti au maandishi.",
+      "explore": "Gundua ninachoweza kufanya",
+      "dismiss": "Funga dokezo",
+      "areas": {
+        "stock": "kusimamia hisa",
+        "orders": "kukagua oda",
+        "sales": "kuelewa mauzo yako",
+        "invoices": "kufuatilia ankara"
+      }
+    },
+    "explorer": {
+      "title": "Gundua Genesy inachoweza kufanya",
+      "text": "Chagua aina ya kazi. Kila kitu hapa kinatumia ruhusa zako halisi.",
+      "groups": {
+        "understand": "Elewa",
+        "operate": "Endesha",
+        "automate": "Jiendeshe",
+        "create": "Unda na binafsisha"
+      },
+      "example": "Jaribu kusema: “{example}”",
+      "try": "Jaribu",
+      "tryName": "Jaribu {name}",
+      "reset": "Weka upya mapendekezo",
+      "resetDone": "Mapendekezo yamewekwa upya. Yatajifunza tena kutokana na unachotumia.",
+      "resetText": "Mapendekezo hupangwa kwa kile unachotumia kwenye kifaa hiki. Hakuna kingine kinachojifunzwa."
+    },
+    "status": {
+      "available": "Inapatikana",
+      "approval": "Inahitaji idhini",
+      "restricted": "Imezuiwa",
+      "planned": "Imepangwa"
+    },
+    "statusText": {
+      "approval": "Unakagua na kuidhinisha kila badiliko kabla halijafanyika.",
+      "restricted": "Haipatikani kwa jukumu lako.",
+      "planned": "Bado haipatikani. Imepangwa kwa toleo lijalo."
+    },
+    "capabilities": {
+      "morning_briefing": {
+        "label": "Muhtasari wa asubuhi",
+        "description": "Muhtasari wako wa kila siku: mauzo, oda zinazosubiri na bidhaa zinazohitaji uangalizi.",
+        "example": "Nionyeshe muhtasari wangu wa asubuhi."
+      },
+      "review_alerts": {
+        "label": "Kagua tahadhari",
+        "description": "Ona kile Flow imegundua na kwa nini ni muhimu.",
+        "example": "Nini kinahitaji uangalizi wangu leo?"
+      },
+      "sales_perspective": {
+        "label": "Linganisha mauzo",
+        "description": "Mauzo kwa siku, yakilinganishwa na kipindi kilichopita.",
+        "example": "Mauzo yanalinganishwaje na wiki iliyopita?"
+      },
+      "weekly_sales": {
+        "label": "Mauzo ya wiki",
+        "description": "Muhtasari mfupi wa mauzo ya wiki hii.",
+        "example": "Mauzo yalikuwaje wiki hii?",
+        "prompt": "Mauzo yalikuwaje wiki hii?"
+      },
+      "review_low_stock": {
+        "label": "Kagua bidhaa zinazopungua",
+        "description": "Bidhaa zilizo chini ya kiwango cha chini, pamoja na oda zinazoathirika.",
+        "example": "Bidhaa zipi zinakaribia kuisha?"
+      },
+      "pending_orders": {
+        "label": "Angalia oda zinazosubiri",
+        "description": "Oda ambazo bado zinahitaji kushughulikiwa.",
+        "example": "Nionyeshe oda zangu zinazosubiri."
+      },
+      "adjust_stock": {
+        "label": "Andaa marekebisho ya hisa",
+        "description": "Weka hisa ya bidhaa kwa kiasi kipya. Unaidhinisha kabla chochote hakijabadilika.",
+        "example": "Weka hisa ya Raw Honey kuwa 120.",
+        "prompt": "Nataka kurekebisha hisa ya bidhaa."
+      },
+      "change_price": {
+        "label": "Badilisha bei",
+        "description": "Badilisha bei ya bidhaa. Unaidhinisha kabla chochote hakijabadilika.",
+        "example": "Weka bei ya Mountain Coffee kuwa euro 12.",
+        "prompt": "Nataka kubadilisha bei ya bidhaa."
+      },
+      "find_product": {
+        "label": "Tafuta bidhaa",
+        "description": "Tafuta bidhaa, bei yake na hisa yake.",
+        "example": "Tafuta Organic Tea.",
+        "prompt": "Nisaidie kupata bidhaa."
+      },
+      "open_invoices": {
+        "label": "Ankara zilizo wazi",
+        "description": "Ankara ambazo bado hazijalipwa, zilizochelewa kwanza.",
+        "example": "Ankara zipi bado ziko wazi?",
+        "prompt": "Ankara zipi bado ziko wazi?"
+      },
+      "schedule_weekly_report": {
+        "label": "Panga ripoti ya kila wiki",
+        "description": "Pokea muhtasari wa mauzo kwa barua pepe kila wiki. Unaidhinisha ratiba kwanza.",
+        "example": "Kila Jumatatu saa 2 asubuhi, nitumie mauzo ya wiki iliyopita.",
+        "prompt": "Nipangie ripoti ya mauzo ya kila wiki."
+      },
+      "my_routines": {
+        "label": "Ratiba zangu",
+        "description": "Ripoti zako zilizopangwa: sitisha, endelea au ondoa.",
+        "example": "Nionyeshe ripoti zangu zilizopangwa."
+      },
+      "conditional_monitoring": {
+        "label": "Tahadhari jambo likibadilika",
+        "description": "Pata taarifa sharti likitimia, kwa mfano hisa ikishuka chini ya kiwango.",
+        "example": "Niambie Raw Honey ikishuka chini ya 20.",
+        "prompt": "Niambie hisa ikishuka chini ya kiwango."
+      },
+      "arrange_flow": {
+        "label": "Panga Flow yako",
+        "description": "Weka, panga upya au ondoa maonyesho kwenye skrini yako ya mwanzo.",
+        "example": "Daima onyesha oda zinazosubiri kwanza."
+      },
+      "storefront_design": {
+        "label": "Buni duka lako la mtandaoni",
+        "description": "Hakiki na boresha muonekano wa duka lako, kisha chapisha ukiridhika.",
+        "example": "Fanya ukurasa wa mwanzo uonekane wa kifahari zaidi."
+      },
+      "explore": {
+        "label": "Gundua uwezekano",
+        "description": "Kila kitu Genesy inaweza kukufanyia, kwa aina ya kazi.",
+        "example": "Unaweza kunisaidia na nini?"
+      }
+    }
+  }
+}

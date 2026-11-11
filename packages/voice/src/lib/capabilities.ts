@@ -147,3 +147,235 @@ export function pickSuggestions(
 /** The one follow-up after a completed operation, from the fixed `after` mapping. */
 export const followUpFor = (list: Available[], operationId?: string) =>
   operationId ? list.find((c) => c.after?.includes(operationId)) : undefined
+
+// ---------------------------------------------------------------------------------------------
+// Genesy Flow discovery registry (pills, explorer, next actions). Office's list above is separate
+// so Office chips stay as they are. `rights` and `write` are copied from the voice tool catalog;
+// capabilities.catalog.test.ts proves they match, so nothing here is invented.
+
+export type FlowGroup = "understand" | "operate" | "automate" | "create"
+export type SceneKey =
+  | "home"
+  | "pulse"
+  | "stock"
+  | "orders"
+  | "sales"
+  | "noticed"
+  | "routines"
+  | "studio"
+  | "explore"
+
+export type FlowCapability = {
+  /** Stable key for pills and texts (`discovery.capabilities.<id>`). */
+  id: string
+  group: FlowGroup
+  /** Catalog operations it uses; empty only when planned (and for the explorer itself). */
+  ops: string[]
+  /** Union of the operations' required rights (authorization.allOf). */
+  rights: string[]
+  /** Any of the operations writes. */
+  write: boolean
+  /** `href`: open that screen directly (no AI). `prompt`: an instruction for Genesy. */
+  entry: { href: string } | { prompt: true }
+  /** Scenes where it is a contextual suggestion. */
+  scenes: SceneKey[]
+  /** Flow noticed kind that makes it relevant. */
+  attention?: string
+  /** Completed operations after which it is offered as a next action. */
+  after?: string[]
+  planned?: true
+}
+
+const STOCK_DONE = ["stock_set_levels", "stock_mutate"]
+
+export const FLOW_CAPABILITIES: FlowCapability[] = [
+  // Understand
+  {
+    id: "morning_briefing",
+    group: "understand",
+    ops: ["attention_priorities"],
+    rights: [],
+    write: false,
+    entry: { href: "/scenes/pulse" },
+    scenes: ["home", "noticed"],
+  },
+  {
+    id: "review_alerts",
+    group: "understand",
+    ops: ["attention_priorities"],
+    rights: [],
+    write: false,
+    entry: { href: "/scenes/noticed" },
+    scenes: ["home", "pulse", "stock", "orders"],
+  },
+  {
+    id: "sales_perspective",
+    group: "understand",
+    ops: ["orders_sales_daily"],
+    rights: ["order.list"],
+    write: false,
+    entry: { href: "/scenes/sales" },
+    scenes: ["pulse", "orders"],
+  },
+  {
+    id: "weekly_sales",
+    group: "understand",
+    ops: ["orders_sales_summary"],
+    rights: ["order.list"],
+    write: false,
+    entry: { prompt: true },
+    scenes: ["sales"],
+  },
+  // Operate
+  {
+    id: "review_low_stock",
+    group: "operate",
+    ops: ["stock_list"],
+    rights: ["stock.list"],
+    write: false,
+    entry: { href: "/scenes/stock" },
+    scenes: ["pulse", "noticed", "orders"],
+    attention: "stock.below_minimum",
+    after: [...STOCK_DONE, "products_update"],
+  },
+  {
+    id: "pending_orders",
+    group: "operate",
+    ops: ["orders_list"],
+    rights: ["order.list"],
+    write: false,
+    entry: { href: "/scenes/orders" },
+    scenes: ["home", "pulse", "stock", "noticed"],
+    attention: "orders.open",
+    after: [...STOCK_DONE, "orders_create"],
+  },
+  {
+    id: "adjust_stock",
+    group: "operate",
+    ops: ["stock_set_levels"],
+    rights: ["stock.set_stock_levels"],
+    write: true,
+    entry: { prompt: true },
+    scenes: ["stock"],
+  },
+  {
+    id: "change_price",
+    group: "operate",
+    ops: ["products_update"],
+    rights: ["product.update"],
+    write: true,
+    entry: { prompt: true },
+    scenes: [],
+  },
+  {
+    id: "find_product",
+    group: "operate",
+    ops: ["products_list"],
+    rights: ["product.list"],
+    write: false,
+    entry: { prompt: true },
+    scenes: ["stock"],
+    after: ["products_update"],
+  },
+  {
+    id: "open_invoices",
+    group: "operate",
+    ops: ["invoices_list"],
+    rights: ["invoice.list"],
+    write: false,
+    entry: { prompt: true },
+    scenes: ["noticed"],
+    attention: "invoices.overdue",
+  },
+  // Automate
+  {
+    id: "schedule_weekly_report",
+    group: "automate",
+    ops: ["scheduled_reports_create"],
+    rights: [],
+    write: true,
+    entry: { prompt: true },
+    scenes: ["pulse", "sales", "routines"],
+  },
+  {
+    id: "my_routines",
+    group: "automate",
+    ops: ["scheduled_reports_list"],
+    rights: [],
+    write: false,
+    entry: { href: "/scenes/routines" },
+    scenes: [],
+    after: ["scheduled_reports_create"],
+  },
+  {
+    id: "conditional_monitoring",
+    group: "automate",
+    ops: [],
+    rights: [],
+    write: false,
+    entry: { prompt: true },
+    scenes: [],
+    planned: true,
+  },
+  // Create & personalize
+  {
+    id: "arrange_flow",
+    group: "create",
+    ops: ["flow_scenes_list"],
+    rights: [],
+    write: false,
+    entry: { href: "/#your-flow" },
+    scenes: [],
+    after: STOCK_DONE,
+  },
+  {
+    id: "storefront_design",
+    group: "create",
+    ops: ["storefront_design_get"],
+    rights: ["workspace_admin"],
+    write: false,
+    entry: { href: "/storefront" },
+    scenes: [],
+    after: ["storefront_design_edit"],
+  },
+  {
+    id: "explore",
+    group: "create",
+    ops: [],
+    rights: [],
+    write: false,
+    entry: { href: "/explore" },
+    scenes: ["home"],
+  },
+]
+
+export type FlowStatus = "available" | "approval" | "restricted" | "planned"
+
+/** AVAILABLE · REQUIRES APPROVAL (every write asked of Genesy is reviewed) · RESTRICTED · PLANNED. */
+export function statusOf(
+  cap: FlowCapability,
+  may: (right: string) => boolean
+): FlowStatus {
+  if (cap.planned) return "planned"
+  if (!cap.rights.every(may)) return "restricted"
+  return cap.write && "prompt" in cap.entry ? "approval" : "available"
+}
+
+const SCENES = new Set<string>([
+  "pulse",
+  "stock",
+  "orders",
+  "sales",
+  "noticed",
+  "routines",
+])
+
+/** The scene a Flow route shows; undefined elsewhere. */
+export function sceneKey(pathname: string): SceneKey | undefined {
+  const path = pathname.replace(/\/+$/, "") || "/"
+  if (path === "/") return "home"
+  if (path === "/explore") return "explore"
+  if (path === "/storefront") return "studio"
+  const scene = path.match(/^\/scenes\/([a-z_]+)$/)?.[1]
+  return scene && SCENES.has(scene) ? (scene as SceneKey) : undefined
+}
