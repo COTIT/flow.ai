@@ -34,6 +34,7 @@
       "recovering": "Recovering",
       "error": "Something went wrong",
       "ended": "Conversation ended"
-    }
+    },
+    "offlineNavigation": "You're offline. This opens when you're back online."
   }
 }
