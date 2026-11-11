@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 
+import { useSession } from "@genesy/api-client/auth"
 import { useVoice } from "@genesy/voice/components/provider"
 import { sessionPhase } from "@genesy/voice/lib/presentation"
 import { sceneContext } from "@genesy/voice/lib/scene-context"
@@ -13,6 +14,9 @@ import { OrbLayer } from "@/components/frame/orb-layer"
 import { SceneBar } from "@/components/frame/scene-bar"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import { useTaskWatch } from "@/lib/task-store" // F4
+
+/** Whose task scene the address last showed (the shell may remount on a switch). */
+let lastOwner: string | null = null
 
 export { useWorkspaceChoices } from "@/components/frame/header"
 
@@ -58,11 +62,51 @@ export function Shell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket])
 
+  // Another workspace or login never sees this one's task scene.
+  const owner = useSession((s) => `${s.workspaceId}:${s.token}`)
+  useEffect(() => {
+    if (
+      lastOwner !== null &&
+      lastOwner !== owner &&
+      location.search.includes("view=task")
+    )
+      history.replaceState(history.state, "", location.pathname)
+    lastOwner = owner
+  }, [owner])
+
   // A new scene starts at its top, never at the scroll position of the page before.
   const scroller = useRef<HTMLElement>(null)
   useEffect(() => {
     scroller.current?.scrollTo(0, 0)
   }, [pathname, resultOpen])
+
+  // The task scene is an address (`/?view=task`): Back, Forward and reload find it again.
+  useEffect(() => {
+    const sync = () => {
+      const open =
+        location.pathname === "/" &&
+        new URLSearchParams(location.search).get("view") === "task"
+      if (flowStore.getState().resultOpen !== open)
+        flowStore.setState({ resultOpen: open })
+    }
+    sync()
+    addEventListener("popstate", sync)
+    return () => removeEventListener("popstate", sync)
+  }, [pathname])
+  useEffect(
+    () =>
+      flowStore.subscribe((state, before) => {
+        if (state.resultOpen === before.resultOpen || location.pathname !== "/")
+          return
+        const url = new URL(location.href)
+        if ((url.searchParams.get("view") === "task") === state.resultOpen)
+          return
+        if (state.resultOpen) url.searchParams.set("view", "task")
+        else url.searchParams.delete("view")
+        history.pushState(null, "", url.pathname + url.search)
+      }),
+    []
+  )
 
   // The agent quietly knows the scene (ids only); the provider sends only while connected.
   const send = voice.sendContext

@@ -1,7 +1,7 @@
-import { expect, it } from "vitest"
+import { beforeEach, expect, it } from "vitest"
 
 import type { VoiceReview } from "@genesy/voice/lib/client-contract"
-import { ownerKey, reviewLeft, taskFor } from "./task-store"
+import { loadTask, ownerKey, reviewLeft, saveTask, taskFor } from "./task-store"
 
 const review = (ticket: string) => ({ ticket }) as VoiceReview
 const earlier = { status: "completed", data: [] }
@@ -53,4 +53,65 @@ it("task state belongs to one workspace and login; anything else sees an empty t
   expect(ownerKey(null, "token-a")).toBeNull()
   expect(ownerKey("w1", null)).toBeNull()
   expect(taskFor({ ...state, owner: null }, null).decided).toBeNull()
+})
+
+// A tiny sessionStorage for node: the memory is per tab.
+const store = new Map<string, string>()
+beforeEach(() => {
+  store.clear()
+  globalThis.sessionStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  } as Storage
+})
+const secret = {
+  ...review("t1"),
+  confirmationCode: "135790",
+  confirmationPhrase: "Confirm action 135790",
+}
+const done = { status: "completed", data: [] } as never
+
+it("the kept card comes back for its owner only, without code, phrase or token", () => {
+  const owner = ownerKey("w1", "token-abcdefghijklmnopqrstuvwxyz")!
+  saveTask({
+    owner,
+    decided: secret,
+    result: done,
+    withdrawn: null,
+    resumeDismissed: false,
+  })
+  const raw = store.get("genesy.flow.task")!
+  expect(raw).not.toContain("135790")
+  expect(raw).not.toContain("token-abcdefghijklmnopqrstuvwxyz")
+  expect(loadTask(owner).decided?.ticket).toBe("t1")
+  expect(loadTask(owner).result).toEqual(done)
+  // Another login in the same workspace, or another workspace: nothing, and the entry is dropped.
+  expect(loadTask(ownerKey("w1", "other-login")!)).toEqual({})
+  expect(store.size).toBe(0)
+  saveTask({
+    owner,
+    decided: secret,
+    result: done,
+    withdrawn: null,
+    resumeDismissed: false,
+  })
+  expect(loadTask(ownerKey("w2", "token-abcdefghijklmnopqrstuvwxyz")!)).toEqual(
+    {}
+  )
+  expect(store.size).toBe(0)
+})
+
+it("an unreadable or nobody's memory is dropped; an empty task keeps nothing", () => {
+  store.set("genesy.flow.task", "{not json")
+  expect(loadTask("w1:x")).toEqual({})
+  expect(store.size).toBe(0)
+  saveTask({
+    owner: "w1:x",
+    decided: null,
+    result: null,
+    withdrawn: null,
+    resumeDismissed: false,
+  })
+  expect(store.size).toBe(0)
 })

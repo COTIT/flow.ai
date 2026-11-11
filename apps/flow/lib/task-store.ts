@@ -46,6 +46,67 @@ export const useTask = <T,>(pick: (state: TaskState) => T) => {
   return useStore(taskStore, (state) => pick(taskFor(state, owner)))
 }
 
+const MEMORY = "genesy.flow.task"
+/** The owner without its token: the workspace id plus a short hash (FNV-1a) of the login. */
+const fingerprint = (owner: string) => {
+  const [workspace, ...login] = owner.split(":")
+  let hash = 0x811c9dc5
+  for (const c of login.join(":"))
+    hash = Math.imul(hash ^ c.charCodeAt(0), 0x01000193)
+  return `${workspace}:${(hash >>> 0).toString(36)}`
+}
+/** A review as the card needs it: never its confirmation code or phrase. */
+const bare = (review: VoiceReview | null) =>
+  review ? { ...review, confirmationCode: "", confirmationPhrase: "" } : null
+
+/** Keeps the task card for this tab (sessionStorage), so a reload finds it again. */
+export function saveTask(state: TaskState) {
+  try {
+    if (!state.owner || !(state.decided || state.withdrawn))
+      return sessionStorage.removeItem(MEMORY)
+    sessionStorage.setItem(
+      MEMORY,
+      JSON.stringify({
+        owner: fingerprint(state.owner),
+        decided: bare(state.decided),
+        result: state.result,
+        withdrawn: bare(state.withdrawn),
+      })
+    )
+  } catch {
+    // Storage blocked or full: the card just isn't kept across a reload.
+  }
+}
+
+/** This owner's kept card; anything else (another login or workspace, unreadable) is dropped. */
+export function loadTask(owner: string): Partial<TaskState> {
+  try {
+    const raw = sessionStorage.getItem(MEMORY)
+    if (!raw) return {}
+    const kept = JSON.parse(raw) as Partial<TaskState> | null
+    const review = (r: unknown) =>
+      r === null || typeof (r as VoiceReview)?.ticket === "string"
+    if (
+      kept?.owner === fingerprint(owner) &&
+      review(kept.decided ?? null) &&
+      review(kept.withdrawn ?? null)
+    )
+      return {
+        decided: kept.decided ?? null,
+        result: kept.decided ? (kept.result ?? null) : null,
+        withdrawn: kept.withdrawn ?? null,
+      }
+    sessionStorage.removeItem(MEMORY)
+  } catch {
+    try {
+      sessionStorage.removeItem(MEMORY)
+    } catch {
+      // Storage blocked: nothing to drop.
+    }
+  }
+  return {}
+}
+
 /** What a review leaving means: withdrawn (cancelled, never sent), decided (answered), or nothing. */
 export function reviewLeft(
   before: VoiceReview | null,
@@ -76,9 +137,14 @@ export function useTaskWatch(voice: {
   const { review, outcome, starting } = voice
   const owner = useOwner()
   // Another workspace or login (switch, logout, another tab's login) starts from nothing.
+  useEffect(() => taskStore.subscribe(saveTask), [])
+  // A reload of this tab finds its own card again (never another owner's).
   useEffect(() => {
     if (taskStore.getState().owner !== owner)
-      taskStore.setState({ ...EMPTY, owner }, true)
+      taskStore.setState(
+        { ...EMPTY, ...(owner ? loadTask(owner) : {}), owner },
+        true
+      )
     last.current = null
   }, [owner])
   useEffect(() => {
