@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(jsonb_agg(jsonb_build_object(\n          'warehouse_id',wanted.warehouse_id,'warehouse_name',w.name,'bin_id',wanted.bin_id,\n          'bin_name',coalesce(nullif(btrim(b.bin_name),''),b.bin_code),\n          'valid',w.id IS NOT NULL AND (wanted.bin_id IS NULL OR b.id IS NOT NULL),\n          'before',trim_scale(coalesce(s.stock_lvl,0))::text,\n          'reserved',trim_scale(coalesce(s.reserved,0))::text,\n          'minimal',coalesce(s.minimal_stock_level,0),'maximum',coalesce(s.maximum_stock_level,0)\n        ) ORDER BY wanted.position),'[]'::jsonb) AS \"slots!\"\n        FROM unnest($3::uuid[],$4::uuid[]) WITH ORDINALITY AS wanted(warehouse_id,bin_id,position)\n        LEFT JOIN warehouses w ON w.workspace_id=$1 AND w.id=wanted.warehouse_id AND w.deleted_at IS NULL\n        LEFT JOIN warehouse_section_row_bins b ON b.workspace_id=$1 AND b.warehouse_id=wanted.warehouse_id AND b.id=wanted.bin_id AND b.deleted_at IS NULL\n        LEFT JOIN stocks s ON s.workspace_id=$1 AND s.product_id=$2 AND s.warehouse_id=wanted.warehouse_id\n          AND s.bin_id IS NOT DISTINCT FROM wanted.bin_id AND s.lot_id IS NULL AND s.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slots!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "da724c1b8211e64888dc0804bfb1d11224bdadb1e47ea1d9c327f74bc8d50f1b"
+}

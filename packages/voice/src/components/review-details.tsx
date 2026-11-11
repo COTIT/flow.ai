@@ -35,6 +35,7 @@ export function ReviewTitle({
         )}
       </>
     )
+  if (t.has(`operationTitles.${review.operationId}`)) return <>{t(`operationTitles.${review.operationId}`)}</>
   const { action, resource } = operationLabel(review.operationId, review.method)
   return (
     <>
