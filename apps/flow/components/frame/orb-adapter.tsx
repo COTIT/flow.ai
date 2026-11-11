@@ -1,18 +1,20 @@
 "use client"
 
-import { StrandsStatus } from "@genesy/voice/components/strands-status"
+import { useTranslations } from "next-intl"
+
+import { VoiceOrb } from "@genesy/voice/components/voice-orb"
 
 /**
- * The one place that draws the orb. Today: the shared StrandsStatus (reads the provider itself).
- * shortcut: swap for `<GenesyOrb {...useVoiceOrb()} size={size} label={…} />` once genesy-orb merges.
+ * The one place that draws the orb: the Genesy orb wired to the session, in the app theme.
+ * Its state words stay for assistive tech only; the caption under the slot shows them on screen.
  */
 export function OrbVisual({ size }: { size: number }) {
+  const t = useTranslations("shell.orb")
   return (
-    <div
-      style={{ width: size, height: size }}
-      className="[&_.voice-orb]:size-full"
-    >
-      <StrandsStatus />
-    </div>
+    <VoiceOrb
+      size={size}
+      label={(state) => t(state)}
+      className="[&_.genesy-orb-label]:sr-only!"
+    />
   )
 }

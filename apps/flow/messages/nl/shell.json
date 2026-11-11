@@ -22,6 +22,18 @@
     "placeholder": "Vraag of vertel Genesy iets…",
     "suggested": "Voorgesteld voor jou",
     "mic": "Microfoon",
-    "switchVoice": "Overschakelen naar spraak"
+    "switchVoice": "Overschakelen naar spraak",
+    "orb": {
+      "idle": "Genesy is klaar",
+      "connecting": "Verbinden",
+      "listening": "Luistert",
+      "thinking": "Denkt na",
+      "speaking": "Spreekt",
+      "waiting": "Wacht op je goedkeuring",
+      "executing": "Bezig",
+      "recovering": "Herstellen",
+      "error": "Er ging iets mis",
+      "ended": "Gesprek beëindigd"
+    }
   }
 }

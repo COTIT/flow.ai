@@ -76,3 +76,26 @@ test("text works inside a scene, in the same conversation", async ({ page, api }
     .toEqual(["Make the hero calmer"])
   expect(agent.connections).toBe(1)
 })
+
+test("text sent while the conversation is still opening is kept and goes out once connected", async ({
+  page,
+  api,
+}) => {
+  designs(api)
+  // Hold the session start so the conversation is visibly still opening.
+  await page.route("**/api/voice/session", async (route) => {
+    if (route.request().method() === "POST")
+      await new Promise((done) => setTimeout(done, 800))
+    await route.continue()
+  })
+  const agent = await fakeAgent(page)
+  await page.goto("/")
+  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  const box = dock(page).getByLabel(v.message)
+  await box.fill("Sent while opening")
+  await box.press("Enter")
+  await expect
+    .poll(() => agent.sent.filter((e) => e.type === "user_message").map((e) => e.text))
+    .toEqual(["Sent while opening"])
+  await expect(box).toHaveValue("")
+})

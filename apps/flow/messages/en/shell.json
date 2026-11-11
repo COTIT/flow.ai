@@ -22,6 +22,18 @@
     "placeholder": "Ask or tell Genesy…",
     "suggested": "Suggested for you",
     "mic": "Microphone",
-    "switchVoice": "Switch to voice"
+    "switchVoice": "Switch to voice",
+    "orb": {
+      "idle": "Genesy is ready",
+      "connecting": "Connecting",
+      "listening": "Listening",
+      "thinking": "Thinking",
+      "speaking": "Speaking",
+      "waiting": "Waiting for your approval",
+      "executing": "Working on it",
+      "recovering": "Recovering",
+      "error": "Something went wrong",
+      "ended": "Conversation ended"
+    }
   }
 }

@@ -22,6 +22,18 @@
     "placeholder": "Muulize au mwambie Genesy…",
     "suggested": "Imependekezwa kwako",
     "mic": "Maikrofoni",
-    "switchVoice": "Badili kwenda sauti"
+    "switchVoice": "Badili kwenda sauti",
+    "orb": {
+      "idle": "Genesy yuko tayari",
+      "connecting": "Inaunganisha",
+      "listening": "Anasikiliza",
+      "thinking": "Anafikiri",
+      "speaking": "Anaongea",
+      "waiting": "Inasubiri idhini yako",
+      "executing": "Inashughulikia",
+      "recovering": "Inarejesha",
+      "error": "Kuna tatizo",
+      "ended": "Mazungumzo yameisha"
+    }
   }
 }

@@ -23,23 +23,30 @@ test("one conversation survives four navigations: one socket, one session, quiet
   await expect.poll(scenes).toEqual(["home"])
   const storefront = page.getByRole("link", { name: "Storefront" })
 
+  // Each scene is told once it settles (quick hops inside the 300 ms debounce collapse).
+  const heard: string[] = ["home"]
+  const step = async (scene: string) => {
+    heard.push(scene)
+    await expect.poll(scenes).toEqual(heard)
+  }
   await storefront.click() // 1
   await orbAt(page, "compact")
+  await step("storefront")
   await page.getByRole("button", { name: s.backHome }).click() // 2
   await orbAt(page, "ambient")
+  await step("home")
   await storefront.click() // 3
   await orbAt(page, "compact")
+  await step("storefront")
   await page.getByRole("button", { name: s.orbOpen }).click() // 4
   await orbAt(page, "immersive")
+  await step("home")
 
   await expect(phase(page)).toHaveText(new RegExp(s.phase.live))
   expect(agent.connections).toBe(1)
   expect(sessions.filter((r) => r.method === "POST")).toHaveLength(1)
   expect(sessions.filter((r) => r.method === "DELETE")).toHaveLength(0)
 
-  // Scene changes reach the agent as quiet context only: ids, no spoken turn.
-  await expect
-    .poll(scenes)
-    .toEqual(["home", "storefront", "home", "storefront", "home"])
+  // Scene changes reached the agent as quiet context only: never a spoken turn.
   expect(agent.sent.filter((e) => e.type === "user_message")).toHaveLength(0)
 })

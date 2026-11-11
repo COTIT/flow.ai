@@ -15,6 +15,11 @@ test("one orb moves home → conversation → scene → conversation → home, n
   const header = page.locator("[data-flow-header]")
   await orbAt(page, "ambient")
   await expect(orb(page)).toHaveCount(1)
+  // The Genesy orb, its state in words for assistive tech only (the caption shows it on screen).
+  const genesy = orb(page).locator("[data-genesy-orb]")
+  await expect(genesy).toHaveCount(1)
+  await expect(genesy).toHaveAttribute("data-state", "idle")
+  await expect(genesy.getByRole("status")).toHaveText(s.orb.idle)
   await expectOrbClear(page, [
     header,
     dock(page),
@@ -64,5 +69,9 @@ test.describe("reduced motion", () => {
     await expect(orb(page)).toHaveAttribute("data-orb", "immersive")
     expect(await orb(page).evaluate((el) => el.getAnimations().length)).toBe(0)
     expect(await orb(page).evaluate((el) => getComputedStyle(el).transitionDuration)).toBe("0s")
+    // The still orb's words stay off screen: nothing spills over the caption below the slot.
+    await expect(orb(page).locator("[data-genesy-orb]")).toHaveAttribute("data-still", "true")
+    const words = (await orb(page).locator(".genesy-orb-label").boundingBox())!
+    expect(words.width).toBeLessThanOrEqual(1)
   })
 })

@@ -68,27 +68,30 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.connected])
 
-  // Text sent while readiness is still being checked starts the conversation once it is known.
-  const waiting = useRef(false)
-  useEffect(() => {
-    if (!waiting.current || !state) return
-    waiting.current = false
-    if (state === "available") void voice.start(true)
-    else pending.current = null
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state])
+  // One start at a time, also across the readiness check below.
+  const opening = useRef(false)
 
-  const submit = () => {
+  const submit = async () => {
     const { wake, rest } = parseWake(draft.trim())
     const files = voice.attachments.some((file) => file.state !== "submitted")
     if (!rest && !wake && !files) return
     if (!voice.connected) {
-      if (voice.starting || voice.upgrading || waiting.current) return
-      if (state && state !== "available") return
+      // Text sent while the conversation opens goes out once it is connected.
       pending.current = rest
-      if (!rest) flowStore.getState().setDraft("")
-      if (state) void voice.start(true)
-      else waiting.current = true
+      if (opening.current || voice.starting || voice.upgrading) return
+      opening.current = true
+      try {
+        // Readiness may still be on its way: ask for the latest answer, never a stale one.
+        const ready = state ?? (await readiness.refetch()).data
+        if (ready !== "available") {
+          pending.current = null
+          return
+        }
+        if (!rest) flowStore.getState().setDraft("")
+        await voice.start(true)
+      } finally {
+        opening.current = false
+      }
       return
     }
     if (!rest && !files) return flowStore.getState().setDraft("")
@@ -214,7 +217,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         className="flex min-w-0 items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault()
-          submit()
+          void submit()
         }}
         onPaste={(e) => {
           if (!voice.connected || !e.clipboardData.files.length) return
