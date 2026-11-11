@@ -61,16 +61,37 @@ export function fieldName(key: string) {
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-/** What the agent hears about an outcome: record names, never links. */
+/** The result kinds the screen draws (VoiceResult), as the agent should think of them. */
+const PICTURES: Record<string, "chart" | "list"> = {
+  sales: "chart",
+  sales_daily: "chart",
+  records: "list",
+  attention: "list",
+  lot_origin: "list",
+  trail: "list",
+}
+
+/** What the agent hears about an outcome: record names, never links; that a picture is shown. */
 export function outcomeForAgent(outcome: {
   links?: { label: string | null; href: string }[]
   [field: string]: unknown
-}) {
-  // The picture is for the screen only; the agent keeps `data`.
-  const { links, ...rest } = outcome
-  delete rest.view
+}): Record<string, unknown> & { on_screen?: { kind: "chart" | "list"; instruction: string } } {
+  // The picture is for the screen only; the agent keeps `data` so what it says stays grounded.
+  const { links, view, ...rest } = outcome
   const records = links?.flatMap((link) => (link.label ? [link.label] : []))
-  return records?.length ? { ...rest, records } : rest
+  const kind = PICTURES[(view as { kind?: string } | undefined)?.kind ?? ""]
+  return {
+    ...rest,
+    ...(records?.length ? { records } : {}),
+    ...(kind
+      ? {
+          on_screen: {
+            kind,
+            instruction: `This result is on the person's screen as a ${kind}. Answer in one or two sentences: the total or the direction and at most one notable point; never read the ${kind === "chart" ? "points" : "items"} one by one.`,
+          },
+        }
+      : {}),
+  }
 }
 export function referenceSize(bytes: number, locale: string) {
   const unit = bytes >= 1024 * 1024 ? "MiB" : bytes >= 1024 ? "KiB" : "B"
