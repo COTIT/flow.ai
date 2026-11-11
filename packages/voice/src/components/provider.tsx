@@ -45,6 +45,7 @@ import {
 } from "../lib/helpers"
 import { batchAttachmentReferences, voiceRequestBody } from "../lib/multipart"
 import { replaceView, withView } from "../lib/rows"
+import { oneSlot } from "../lib/slot"
 import {
   createOutcomeWait,
   readRecovery,
@@ -548,15 +549,25 @@ function Session({
     if (
       !verified.current ||
       !session.current ||
-      (!statusRead &&
-        (proposal.current ||
-          dispatching.current ||
-          preparing.current === before))
+      (!statusRead && (proposal.current || dispatching.current))
     )
       return JSON.stringify({ status: "failed", message: t("finishReview") })
+    // P6-2: still one request at a time; a call made meanwhile waits and goes next (newest wins).
+    if (!statusRead && preparing.current === before) {
+      const turn = await slot.wait(
+        () => active.current && before === generation.current
+      )
+      if (turn === "run") return tool(command, body)
+      return JSON.stringify(
+        turn === "superseded"
+          ? { status: "superseded", message: "Replaced by a newer request" }
+          : { status: "cancelled" }
+      )
+    }
     if (!statusRead && document.visibilityState !== "visible")
       return JSON.stringify({ status: "paused", message: t("recoveryHint") })
     if (!statusRead) preparing.current = before
+    const settled = statusRead ? undefined : slot.begin()
     let quiet = false // failed or awaiting review: no thinking row afterwards
     setToolRequests((count) => count + 1)
     turn.toolStart()
@@ -736,6 +747,7 @@ function Session({
       })
     } finally {
       if (!statusRead && preparing.current === before) preparing.current = null
+      settled?.()
       if (active.current && before === generation.current) {
         setToolRequests((count) => Math.max(0, count - 1))
         turn.toolEnd()
@@ -748,6 +760,7 @@ function Session({
     null
   )
   const sceneWanted = useRef<SceneContext | null>(null)
+  const [slot] = useState(oneSlot)
   const [scene] = useState(() =>
     contextSync(() => (verified.current ? latest.current : null))
   )

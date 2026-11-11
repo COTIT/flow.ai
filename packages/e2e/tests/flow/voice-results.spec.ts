@@ -176,3 +176,62 @@ test("a picture that is no longer on screen is never removed: the answer is adde
   await expect(results.locator('[data-chart="line"]')).toBeVisible()
   await expect(results.locator('[data-chart="donut"]')).toBeVisible()
 })
+
+// P6-2 (ported from the flaky-network persona, fb188b110): still one request at a time, but a
+// read made while another runs waits and goes next instead of being refused; the newest waiting
+// read wins the slot, an older waiting one is answered "superseded" at once.
+test("P6-2: reads made while one is answering run in turn; the latest result shows the newest", async ({ page }) => {
+  const agent = await fakeAgent(page)
+  const asked: string[] = []
+  await page.route("**/api/voice/tools", async (route) => {
+    const body = route.request().postDataJSON() as { operationId?: string; arguments?: { query?: { q?: string } } }
+    if (body?.operationId !== "products_list") return route.fallback()
+    const q = body.arguments?.query?.q ?? "?"
+    asked.push(q)
+    if (q === "old") await new Promise((r) => setTimeout(r, 2500))
+    await route.fulfill({
+      json: {
+        status: "completed",
+        data: { q },
+        view: {
+          kind: "records", resource: "products", total: 1, href: "/products",
+          rows: [{ id: ID, label: `${q.toUpperCase()} ANSWER`, detail: "x", status: null, money: null, stock: 1, href: `/products/${ID}` }],
+        },
+      },
+    })
+  })
+  await page.goto("/")
+  await startText(page)
+  const read = (q: string) =>
+    agent.emit({
+      type: "client_tool_call",
+      client_tool_call: {
+        tool_name: "execute_genesy_tool",
+        tool_call_id: `call-${q}`,
+        parameters: { operation_id: "products_list", arguments_json: JSON.stringify({ query: { q } }) },
+        expects_response: true,
+      },
+    })
+  read("old")
+  await page.waitForTimeout(200)
+  read("middle")
+  await page.waitForTimeout(100)
+  read("new")
+  await expect.poll(agent.results).toBe(3)
+  const heard = Object.fromEntries(
+    agent.sent
+      .filter((e) => e.type === "client_tool_result")
+      .map((e) => [String(e.tool_call_id), JSON.parse(String(e.result)) as Record<string, unknown>])
+  )
+  // Office ran one read at a time, in order; the superseded one never ran.
+  expect(asked).toEqual(["old", "new"])
+  expect(heard["call-middle"]).toEqual({ status: "superseded", message: "Replaced by a newer request" })
+  expect(heard["call-old"]).toMatchObject({ status: "completed", data: { q: "old" } })
+  expect(heard["call-new"]).toMatchObject({ status: "completed", data: { q: "new" } })
+  for (const answer of Object.values(heard)) expect(JSON.stringify(answer)).not.toContain("Finish the current review")
+  agent.say("Here are the products.")
+  const results = await showResults(page)
+  await expect(results.locator('[data-role="result"]').first()).toContainText("NEW ANSWER")
+  await expect(page.getByText("Finish the current review first.")).toHaveCount(0)
+  await expectNoHorizontalScroll(page)
+})

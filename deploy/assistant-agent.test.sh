@@ -75,6 +75,7 @@ assert params['required']==['operation_id','arguments_json'],'presentation and r
 assert params['properties']['presentation']['type']=='string' and params['properties']['presentation']['enum']==kinds,'presentation must offer every chart kind'
 assert params['properties']['replaces']['type']=='string','replaces names the picture to redraw'
 assert 'presentation, replaces' in source,'Office must forward presentation and replaces'
+assert 'superseded or cancelled has no answer' in prompt and 'never retry it' in prompt,'a superseded or cancelled tool result must be silent, never retried'
 turn=config['conversation_config']['turn']
 assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==180,'idle: one check-in after 20 s silence, end after 180 s'
 assert config['conversation_config']['conversation']['max_duration_seconds']==1800,'long tool chains need a 30-minute conversation limit'
