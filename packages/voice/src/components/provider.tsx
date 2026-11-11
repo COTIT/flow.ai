@@ -523,6 +523,16 @@ function Session({
         void query.invalidateQueries()
     }
   }
+  /**
+   * The SDK sends whatever a client tool settles with on its socket, and throws if that closed.
+   * A result for a conversation that is over stays ours (tool() already recorded it): never settle.
+   */
+  async function delivered(result: Promise<string>) {
+    const owner = session.current
+    const value = await result
+    if (owner && session.current === owner && verified.current) return value
+    return new Promise<string>(() => {})
+  }
   async function tool(
     command: "discover" | "execute",
     body: Record<string, unknown>
@@ -851,7 +861,8 @@ function Session({
       updateReview(null)
     },
     onError: () => {
-      if (active.current) {
+      // A conversation that is over has nothing left to report (e.g. a late send on its socket).
+      if (active.current && session.current) {
         setThinking(false)
         setError(t("requestFailed"))
         setStarting(false)
@@ -911,13 +922,15 @@ function Session({
     },
     clientTools: {
       discover_genesy_tools: ({ query: search }) =>
-        tool("discover", { query: search }),
+        delivered(tool("discover", { query: search })),
       execute_genesy_tool: ({ operation_id, arguments_json }) => {
         try {
-          return tool("execute", {
-            operationId: operation_id,
-            arguments: JSON.parse(String(arguments_json)),
-          })
+          return delivered(
+            tool("execute", {
+              operationId: operation_id,
+              arguments: JSON.parse(String(arguments_json)),
+            })
+          )
         } catch {
           if (active.current && verified.current) {
             setThinking(false)
