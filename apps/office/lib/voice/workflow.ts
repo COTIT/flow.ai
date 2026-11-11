@@ -167,6 +167,18 @@ function config(context: VoiceContext) {
   }
 }
 
+/** Refuse a new proposal before its ledger row exists; checkpointReview still rechecks (race). */
+export async function assertReviewFree(context: VoiceContext) {
+  const settings = config(context)
+  await withVoiceThread(context.sessionId!, async () => {
+    const current = await withVoiceTracing("checkpoint_state", async () =>
+      (await taskGraph()).getState(settings)
+    )
+    if (current.tasks.some((task) => task.interrupts?.length))
+      throw new VoiceError("Finish or cancel the pending review first.", 409)
+  })
+}
+
 /** Persist approval interrupt; no backend business command runs here. */
 export async function checkpointReview(
   action: PreparedAction,
