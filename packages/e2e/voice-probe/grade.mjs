@@ -3,8 +3,9 @@
 
 export const CLASSES = ["works", "partial", "missed_tool", "missing_capability", "broken", "correctly_refused"]
 
+// Optional lead-ins ("Sure, ", "Momentje, ") then a phrase that promises work, in en/nl/sw.
 const NARRATION =
-  /^((ok(ay)?|oké|sawa)[,.!]?\s*)?((got (that|it)|begrepen|nimeelewa)[,.!]?\s*)?((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one moment|just a (moment|sec)|give me a (moment|sec)|hold on|checking|looking (that|this|it) up|ninaangalia|naangalia|subiri|hebu|ngoja|ik zoek|niruhusu)\b/i
+  /^((ok(ay)?|oké|sawa|sure|right|alright|on it|prima|got (that|it)|begrepen|nimeelewa)[,.!]?\s*)*((i'?m|i am) (now )?(checking|looking|pulling|fetching|getting|searching|gathering)|let me|i'?ll (check|look|pull|fetch|get|search|find)|one (moment|sec(ond)?)|just a (moment|sec(ond)?)|give me a (moment|sec(ond)?)|hold on|bear with me|checking|looking (that|this|it) up|looking (at|into)|pulling (up|together)|fetching|grabbing|searching|momentje|(een )?ogenblik(je)?|even kijken|ik (zoek|kijk|haal|check|ga even)|ninaangalia|naangalia|niangalie|nafungua|ninafungua|natafuta|ninatafuta|subiri|hebu|ngoja|sekunde moja|acha ni\w*|niruhusu)\b/i
 
 /** A "please wait" line that promises work instead of reporting a result. */
 export const isNarration = (text) => plain(text).length < 240 && NARRATION.test(plain(text))

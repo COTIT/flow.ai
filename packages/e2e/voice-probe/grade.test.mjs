@@ -140,10 +140,40 @@ test("narration detection", () => {
   assert.ok(isNarration("I'm checking the stock now."))
   assert.ok(isNarration("Let me look that up for you, one moment."))
   assert.ok(isNarration("Ninaangalia sasa hivi."))
-  // The agent's forced pre-tool acknowledgement (template beat 1) promises work; it is never the answer.
+  // The old fixed acknowledgement, still spoken by agents published before the natural talk-back template.
   assert.ok(isNarration("Ok, got that, let me check it for you."))
   assert.ok(isNarration("Oké, begrepen, ik zoek het even voor je uit."))
   assert.ok(isNarration("Sawa, nimeelewa, niruhusu nikuangalie."))
+  // Natural, varied acknowledgements (template beat 1 is style guidance, not a script) still promise work.
+  for (const ack of [
+    "Let me look at today's orders…",
+    "Checking stock for the honey…",
+    "One moment, pulling up your sales…",
+    "Looking that up now…",
+    "Sure, one sec while I pull up your sales.",
+    "Give me a second…",
+    "Pulling up today's orders.",
+    "Fetching the stock levels now.",
+    "Right, looking at your sales now.",
+    "On it, checking the honey stock.",
+    "Bear with me, I'm gathering the numbers.",
+    "Ik zoek je bestellingen van vandaag op…",
+    "Momentje, ik kijk even naar de voorraad…",
+    "Even kijken…",
+    "Een ogenblik, ik haal je bestellingen op.",
+    "Ik kijk het even na.",
+    "Prima, ik check de voorraad.",
+    "Ngoja niangalie oda za leo…",
+    "Ninaangalia stoo ya asali…",
+    "Ngoja kidogo, nafungua mauzo yako…",
+    "Subiri kidogo, naangalia mauzo.",
+    "Sekunde moja…",
+    "Acha niangalie.",
+    "Natafuta oda zako.",
+  ])
+    assert.ok(isNarration(ack), ack)
+  for (const answer of ["Je hebt vandaag 3 bestellingen.", "Er staan 3 bestellingen open.", "Una oda 3 leo.", "Goed, je hebt 3 bestellingen open.", "Sure: 2 products are out of stock."])
+    assert.ok(!isNarration(answer), answer)
   assert.ok(!isNarration("Ok, got that: 3 orders are open."))
   assert.ok(!isNarration("You have 3 orders today."))
   assert.ok(!isNarration("I checked: 4 products are below zero."))
