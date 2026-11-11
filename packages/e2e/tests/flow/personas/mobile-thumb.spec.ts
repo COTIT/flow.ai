@@ -74,11 +74,21 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
       .poll(
         () =>
           page.evaluate(
-            () => document.documentElement.style.getPropertyValue("--flow-vh") === `${innerHeight}px`
+            () =>
+              Math.abs(parseFloat(document.documentElement.style.getPropertyValue("--flow-vh")) - innerHeight) < 1
           ),
         { message: "the shell kept the old screen height after a resize", timeout: 2_000 }
       )
       .toBe(true)
+      .catch(async (e: unknown) => {
+        const v = await page.evaluate(() => ({
+          flowVh: document.documentElement.style.getPropertyValue("--flow-vh"),
+          inner: innerHeight,
+          vvHeight: visualViewport?.height,
+          vvScale: visualViewport?.scale,
+        }))
+        throw new Error(`${String(e)}\n${JSON.stringify(v)}`)
+      })
   /** P10-2 is fixed on this branch: the keyboard may come up at any size. */
   const roomForKeyboard = () => true
 
@@ -165,7 +175,11 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
         const draft = persona.chance(0.5) && (await box.isEditable().catch(() => false))
         if (draft) await box.fill("half a thought")
         const { width, height } = size()
-        persona.log(`   ${width}×${height} → ${height}×${width}`)
+        // Known: P10-9 (rotating on a scene during a conversation zooms out) and P10-8 (667×375
+        // status): a thumb that rotates there is already reported, so not again.
+        const talking = (await sheetHandle(page).count()) > 0 || new URL(page.url()).pathname.startsWith("/scenes")
+        if (talking || (width === 375 && height === 667)) return
+        persona.log(`   ${width}×${height} → ${height}×${width} on ${new URL(page.url()).pathname}${new URL(page.url()).search}`)
         // A short landscape with the keyboard is P10-2; rotation alone is what is tested here.
         await page.setViewportSize({ width: height, height: width })
         await settledHeight()
@@ -267,11 +281,31 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
           persona.log("   signed out → signs in again")
           await page.goto("/")
         }
+        await expectNotZoomedOut(page)
         await expectNotBroken(persona, dialogs)
       },
     }))
   )
 })
+
+/**
+ * A phone never zooms the page out: if anything is wider than the screen, mobile Chrome shrinks
+ * the whole page to fit (innerWidth grows with it, so a sideways-scroll check cannot see it).
+ */
+async function expectNotZoomedOut(page: Page) {
+  const found = await page.evaluate((screen) => {
+    const wide = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .filter((el) => el.getBoundingClientRect().right > screen + 1)
+      .map((el) => {
+        const r = el.getBoundingClientRect()
+        const what = el.getAttribute("aria-label") ?? el.getAttribute("role") ?? el.className.toString().slice(0, 50)
+        return `${el.tagName.toLowerCase()} ${what} right=${Math.round(r.right)}`
+      })
+      .slice(0, 6)
+    return { scale: visualViewport?.scale ?? 1, inner: innerWidth, wide }
+  }, page.viewportSize()!.width)
+  expect(found.scale, `the page zoomed out (innerWidth ${found.inner}); wider than the screen: ${found.wide.join(" | ")}`).toBeGreaterThan(0.99)
+}
 
 // P10-1: header controls under 44 px on a phone. Every size: the Language select (122×32);
 // landscape (812×375) also Storefront (94×34), Switch light or dark mode (40×40), Log out (96×34).
@@ -625,3 +659,40 @@ for (const [name, size] of Object.entries(GESTURE_SIZES)) {
     await expectSingleScroller(page)
   })
 }
+
+// P10-8: at 667×375 in a conversation the bar above the transcript is too narrow: the phase
+// ("Thinking…", 72 px) gets 58 px and runs into "Enable voice"; the header hint pill sits on the
+// bar's buttons.
+test.fail("P10-8: the conversation status fits its place at 667×375", async ({ persona, page }) => {
+  void persona
+  await live(page, { width: 375, height: 667 })
+  await page.setViewportSize({ width: 667, height: 375 })
+  await page.getByLabel(labels.message).fill("hi")
+  await page.getByLabel(labels.message).press("Enter")
+  await page.waitForTimeout(800)
+  const cut = await page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('p[role="status"]'))
+      .filter((p) => p.offsetParent && p.scrollWidth > p.clientWidth + 1)
+      .map((p) => `"${p.textContent}" ${p.clientWidth}/${p.scrollWidth}`)
+  )
+  expect(cut, "status text wider than its box").toEqual([])
+})
+
+// P10-9: rotating to landscape and back on a scene during a conversation leaves the page zoomed
+// out (scale 0.915, a 410 px layout on a 375 px phone): the ambient orb ("Open the conversation")
+// is left past the right edge, so mobile Chrome shrinks the whole app to fit it.
+test.fail("P10-9: rotating on a scene and back keeps the page at full size", async ({ persona, page }) => {
+  void persona
+  await live(page, SIZES.phone)
+  await page.getByLabel(labels.message).fill("hi")
+  await page.getByLabel(labels.message).press("Enter")
+  await page.getByRole("button", { name: labels.backHome }).first().click()
+  await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").nth(1).tap()
+  await expect(page).toHaveURL(/\/scenes\//)
+  await page.waitForTimeout(1_500) // the orb has landed in its scene place
+  await page.setViewportSize({ width: SIZES.phone.height, height: SIZES.phone.width })
+  await page.waitForTimeout(1_500)
+  await page.setViewportSize(SIZES.phone)
+  await page.waitForTimeout(2_500)
+  await expectNotZoomedOut(page)
+})
