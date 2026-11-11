@@ -1,7 +1,11 @@
 // Open findings from the Flow stress sweep: each test reproduces one break and is marked
 // test.fail() with its id until a fix lands (then the fixer drops the mark). SIMULATED API + voice.
 // Findings list: side-session notes, child-stress-test-findings.md.
-import { markInjected } from "../../src/test"
+import {
+  expectNoLayoutShift,
+  expectTapTargets,
+  markInjected,
+} from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { readBack, receipt, scene, stockReview, stockRoutes } from "./task"
 import { fakeAgent, startText, v } from "./voice"
@@ -173,3 +177,28 @@ test("SW6: a refused microphone says so in plain words, never the browser's raw 
   )
   await expect(dock).not.toContainText(/\bdenied\b/)
 })
+
+test("SW7: every header control is a 44 px touch target (language picker is 32 px)", async ({
+  page,
+}) => {
+  test.fail(
+    !process.env.FINDINGS_RED,
+    "SW7 open: the Language select is 122x32"
+  )
+  await page.goto("/")
+  await expect(page.locator("[data-flow-header]")).toBeVisible()
+  await expectTapTargets(page, { within: "[data-flow-header]" })
+})
+
+for (const scene of ["pulse", "orders", "sales"]) {
+  test(`SW8: /scenes/${scene} loads without layout shift`, async ({ page }) => {
+    test.fail(
+      !process.env.FINDINGS_RED,
+      "SW8 open: CLS 0.02-0.23 as cards replace their placeholders"
+    )
+    await page.goto(`/scenes/${scene}`)
+    await expect(page.locator("[data-component]").first()).toBeVisible()
+    await page.waitForTimeout(1_500)
+    await expectNoLayoutShift(page)
+  })
+}
