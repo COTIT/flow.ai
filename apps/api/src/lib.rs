@@ -72,6 +72,8 @@ pub struct AppState {
     pub private_rate_limit: RateLimit,
     /// Ceiling per client IP on authenticated routes, around the per-session limit.
     pub private_ip_rate_limit: RateLimit,
+    /// Storefront preview-link resolve, per app key, inside the private limits.
+    pub preview_rate_limit: RateLimit,
     /// Requests in flight per workspace and per user, taken by `WorkspaceAccess`.
     pub slots: Slots,
     /// Longest a `/v1` request may run (then 503).
@@ -122,9 +124,16 @@ pub fn build_app(state: AppState) -> Router {
     // Item totals, invoices and file uploads take large bodies: twice the deadline of the
     // 64 KiB routes.
     let documents = openapi::documents().split_for_parts().0;
-    let private = http::timeout::body_deadline(private, state.body_deadline).merge(
-        http::timeout::body_deadline(documents, state.body_deadline * 2),
+    let previews = http::rate_limit::apply_session(
+        openapi::previews().split_for_parts().0,
+        state.preview_rate_limit,
     );
+    let private = http::timeout::body_deadline(private, state.body_deadline)
+        .merge(http::timeout::body_deadline(
+            documents,
+            state.body_deadline * 2,
+        ))
+        .merge(http::timeout::body_deadline(previews, state.body_deadline));
     let private = http::timeout::request_timeout(private, state.request_timeout);
     let private = http::assistant::apply(private, state.clone());
     let private = http::rate_limit::apply_private(

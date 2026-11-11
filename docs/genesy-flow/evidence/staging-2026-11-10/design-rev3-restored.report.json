@@ -1,0 +1,35 @@
+{
+  "label": "design-rev3-restored",
+  "results": [
+    {
+      "viewport": "desktop",
+      "steps": [
+        "ok home",
+        "ok shop + product + cart + checkout",
+        "ok passport /b/2RH1SSHG8Z",
+        "ok locale nl on /faq"
+      ],
+      "problems": []
+    },
+    {
+      "viewport": "tablet",
+      "steps": [
+        "ok home",
+        "ok shop + product + cart + checkout",
+        "ok passport /b/2RH1SSHG8Z",
+        "ok locale nl on /faq"
+      ],
+      "problems": []
+    },
+    {
+      "viewport": "mobile",
+      "steps": [
+        "ok home",
+        "ok shop + product + cart + checkout",
+        "ok passport /b/2RH1SSHG8Z",
+        "ok locale nl on /faq"
+      ],
+      "problems": []
+    }
+  ]
+}

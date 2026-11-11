@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { LOCALE_COOKIE, pickLocale } from "@genesy/i18n/locales"
 import { securityHeaders } from "@genesy/security/headers"
 import { cspProxy } from "@genesy/security/proxy"
@@ -40,14 +40,10 @@ export function proxy(request: NextRequest) {
     )
       return new NextResponse("Shop page not found", { status: 404 })
     forwarded.set(SHOP_HEADER, base.slice(3))
-    const destination = request.nextUrl.clone()
+    const destination = new URL(request.url)
     destination.pathname = target
-    return secured(
-      new NextRequest(request, { headers: forwarded }),
-      destination
-    )
+    return secured(request, destination, forwarded)
   }
-  request = new NextRequest(request, { headers: forwarded })
   const needsCatalog =
     ["/", "/shop", "/checkout"].includes(path) ||
     ["/products/", "/orders/", "/b/"].some((prefix) => path.startsWith(prefix))
@@ -83,7 +79,7 @@ export function proxy(request: NextRequest) {
     request.headers.get("purpose") === "prefetch"
   )
     return NextResponse.next({ request: { headers: forwarded } })
-  return secured(request)
+  return secured(request, undefined, forwarded)
 }
 
 // Pages only: static files, images and the /v1 forward to the backend skip it.

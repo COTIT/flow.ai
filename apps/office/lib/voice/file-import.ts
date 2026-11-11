@@ -6,7 +6,7 @@ import { proposeBatch } from "./batches"
 import { prepareAction } from "./catalog"
 import { IMPORT_PAGE, priceRows, readSheet, SHEET_TYPES } from "./sheet"
 import { VoiceError, type VoiceContext } from "./server"
-import type { VoiceOutcome } from "./client-contract"
+import type { VoiceOutcome } from "@genesy/voice/lib/client-contract"
 
 export const IMPORT_PRICES_OPERATION = "assistant_import_prices"
 

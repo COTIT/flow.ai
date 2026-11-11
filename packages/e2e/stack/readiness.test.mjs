@@ -153,6 +153,8 @@ test("the stack Office build uses its package preparation while other build path
     office.scripts.build.indexOf("prepare-voice-audio.mjs") <
       office.scripts.build.indexOf("next build")
   )
+  // Flow runs its own package build too, so the voice audio step the parent adds is picked up.
+  assert.deepEqual(nextBuildArgs("flow"), ["--filter", "@genesy/flow", "build"])
   for (const app of ["shop", "till", "landing"])
     assert.deepEqual(nextBuildArgs(app), [
       "--filter",

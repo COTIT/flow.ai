@@ -59,7 +59,7 @@ import { Sheet, SheetContent, SheetTitle } from "@genesy/ui/components/sheet"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 
-import { VoiceControls } from "@/components/voice/controls"
+import { VoiceControls } from "@genesy/voice/components/controls"
 import { rightFor, useCan, useRights } from "@/lib/can"
 
 type Item = {
@@ -200,7 +200,7 @@ export function Avatar({ initials }: { initials?: string }) {
   return (
     <span
       aria-hidden="true"
-      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] text-[13px] font-semibold text-[#0a183a]"
+      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] text-[13px] font-semibold text-gold-foreground"
     >
       {initials}
     </span>
@@ -243,7 +243,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
       {shown.map((item, i) => (
         <React.Fragment key={item.href}>
           {item.group && item.group !== shown[i - 1]?.group ? (
-            <p className="px-2.5 pt-3 pb-1.5 text-[11px] font-bold tracking-[0.08em] text-[#6b7f9c] uppercase dark:text-[#8fa6c8]">
+            <p className="px-2.5 pt-3 pb-1.5 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">
               {t(item.group)}
             </p>
           ) : null}
@@ -256,16 +256,16 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             }
             onClick={onNavigate}
             aria-current={item.href === active?.href ? "page" : undefined}
-            className="group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-foreground outline-none hover:bg-(--glass-subtle) focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:shadow-[0_8px_18px_-10px_rgb(10_24_58/60%)] max-md:h-11"
+            className="group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-foreground outline-none hover:bg-(--glass-subtle) focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:shadow-[0_8px_18px_-10px_rgb(28_27_24/60%)] max-md:h-11"
           >
             <item.icon
               aria-hidden="true"
               strokeWidth={1.75}
-              className="size-[18px] shrink-0 text-muted-foreground group-aria-[current=page]:text-gold dark:group-aria-[current=page]:text-[#0a183a]"
+              className="size-[18px] shrink-0 text-muted-foreground group-aria-[current=page]:text-gold dark:group-aria-[current=page]:text-primary-foreground"
             />
             {t(item.label)}
             {item.count && counts[item.count] > 0 ? (
-              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] px-1.5 text-[11px] font-bold text-[#0a183a] tabular-nums">
+              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] px-1.5 text-[11px] font-bold text-gold-foreground tabular-nums">
                 {counts[item.count]}
               </span>
             ) : null}

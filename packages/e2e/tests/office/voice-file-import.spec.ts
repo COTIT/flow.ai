@@ -1,5 +1,9 @@
 import { expect, expectFits, test } from "./fake-api"
-import en from "../../../../apps/office/messages/en.json" with { type: "json" }
+import officeEn from "../../../../apps/office/messages/en.json" with { type: "json" }
+import voiceEn from "../../../../packages/i18n/messages/voice/en.json" with { type: "json" }
+
+// Office hosts the shared voice texts next to its own.
+const en = { ...voiceEn, ...officeEn }
 
 const handle = "01950000-0000-7000-8000-0000000000aa"
 const batchId = "01950000-0000-7000-8000-0000000000bb"

@@ -53,6 +53,9 @@ done
 # New home renderer stays opt-in in both environments.
 [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop SHOP_DESIGN_ENABLED)" == false ]] || fail "production design renderer not disabled by default"
 [[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop SHOP_DESIGN_ENABLED)" == false ]] || fail "staging design renderer not disabled by default"
+# Expired preview links send people back to their own environment's Flow.
+[[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop FLOW_URL)" == https://flow.genesy.app ]] || fail "production shop FLOW_URL"
+[[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop FLOW_URL)" == https://staging-flow.genesy.app ]] || fail "staging shop FLOW_URL"
 
 # With it, but the bucket and key id not set: refuses, naming a missing variable (which one
 # Compose reports first differs between versions).
@@ -67,7 +70,7 @@ on=("$p/docker-compose.production.yml" "$p/docker-compose.stripe.yml" "$p/docker
 [[ "$(value "$t/prod.env" "${on[@]}" -- api B2_UPLOADS_APPLICATION_KEY_FILE)" == /run/secrets/b2_uploads_key ]] || fail "key file not passed"
 [[ "$(value "$t/prod.env" "${on[@]}" -- cli B2_UPLOADS_KEY_ID)" == 005abc ]] || fail "cli has no uploads"
 [[ "$(value "$t/prod.env" "${on[@]}" -- api PAYMENTS_PROVIDER)" == stripe ]] || fail "uploads overlay dropped stripe"
-for app in shop office; do
+for app in shop office flow; do
   [[ "$(value "$t/prod.env" "${on[@]}" -- $app FILES_ORIGIN)" == https://s3.eu-central-003.backblazeb2.com ]] || fail "$app FILES_ORIGIN"
 done
 docker compose -f "${on[0]}" -f "${on[1]}" -f "${on[2]}" --env-file "$t/prod.env" config --format json \
@@ -89,7 +92,7 @@ sv() { value "$t/staging.env" "${son[@]}" -- "$@"; }
 [[ "$(sv api B2_UPLOADS_APPLICATION_KEY_FILE)" == /run/secrets/b2_uploads_key ]] || fail "staging key file not passed"
 [[ "$(sv seed B2_UPLOADS_KEY_ID)" == 005stg ]] || fail "staging seed has no uploads"
 [[ "$(sv api PAYMENTS_PROVIDER)" == stripe ]] || fail "staging uploads overlay dropped stripe"
-for app in shop office; do
+for app in shop office flow; do
   [[ "$(sv $app FILES_ORIGIN)" == https://s3.eu-central-003.backblazeb2.com ]] || fail "staging $app FILES_ORIGIN"
 done
 docker compose -f "${son[0]}" -f "${son[1]}" -f "${son[2]}" --env-file "$t/staging.env" --profile seed config --format json \
@@ -103,5 +106,48 @@ chain() { GENESY_ROOT="$t/root" bash -c ". '$lib/lib.sh' && env_setup staging &&
 [[ "$(chain)" != *uploads* ]] || fail "staging uploads chained without a key"
 touch "$lib/staging/secrets/b2_uploads_key"
 [[ "$(chain)" == *"$lib/staging/docker-compose.uploads.yml"* ]] || fail "staging uploads not chained"
+
+# Flow: its own public host; voice goes to Office over `internal` only. With every overlay on
+# (stripe, uploads, assistant) it still holds no secret, and Office gains no public route.
+# flow_check <env file> <flow host> <office host> <middlewares or -> <files…>
+flow_check() {
+  local env_file="$1" host="$2" office="$3" mw="$4" args=()
+  shift 4
+  for f in "$@"; do args+=(-f "$f"); done
+  docker compose "${args[@]}" --env-file "$env_file" config --format json | python3 -c '
+import json, re, sys
+host, office, mw = sys.argv[1:4]
+s = json.load(sys.stdin)["services"]
+f = s.get("flow")
+assert f, "no flow service"
+assert f["image"] == "ghcr.io/cotit/genesy-flow:test", f["image"]
+assert set(f["networks"]) == {"internal", "edge"}, f["networks"]
+env = f.get("environment", {})
+# FILES_ORIGIN (CSP img-src for signed product images) comes only with the uploads overlay.
+assert set(env) - {"FILES_ORIGIN"} == {"API_URL", "VOICE_UPSTREAM_URL", "OFFICE_PUBLIC_URL"}, sorted(env)
+assert env.get("FILES_ORIGIN", "https://s3.eu-central-003.backblazeb2.com") == "https://s3.eu-central-003.backblazeb2.com", env
+assert env["VOICE_UPSTREAM_URL"] == "http://office:3000" and env["API_URL"] == "http://api:8080/v1", env
+# Links in Flow's assistant open this environment's own Office, never another one.
+assert env["OFFICE_PUBLIC_URL"] == "https://" + office, env
+assert not f.get("secrets"), f.get("secrets")
+assert not [k for k in env if re.search("SECRET|KEY|TOKEN|ELEVENLABS|BRIDGE|CHECKPOINT|LANGSMITH|ASSISTANT", k)]
+assert f.get("cap_drop") == ["ALL"] and "no-new-privileges:true" in f.get("security_opt", []), "not hardened"
+assert f.get("restart") == "unless-stopped", f.get("restart")
+l = f["labels"]
+rules = {k: v for k, v in l.items() if k.endswith(".rule")}
+assert list(rules.values()) == ["Host(`" + host + "`)"], rules
+router = next(iter(rules))[: -len(".rule")]
+assert l.get(router + ".middlewares", "-") == mw, l.get(router + ".middlewares")
+assert [v for k, v in l.items() if k.endswith(".loadbalancer.server.port")] == ["3000"]
+o = [v for k, v in s["office"]["labels"].items() if k.endswith(".rule")]
+assert o == ["Host(`" + office + "`)"], o
+' "$host" "$office" "$mw" || fail "flow service wrong: $env_file $*"
+}
+flow_check "$t/prod.env" flow.genesy.app office.genesy.app - "$p/docker-compose.production.yml"
+flow_check "$t/prod.env" flow.genesy.app office.genesy.app - "${on[@]}" "$p/docker-compose.assistant.yml"
+flow_check "$t/staging.env" staging-flow.genesy.app staging-office.genesy.app \
+  genesy-staging-allow,genesy-staging-noindex "$s/docker-compose.staging.yml"
+flow_check "$t/staging.env" staging-flow.genesy.app staging-office.genesy.app \
+  genesy-staging-allow,genesy-staging-noindex "${son[@]}" "$s/docker-compose.assistant.yml"
 
 echo "compose.test.sh: all passed"

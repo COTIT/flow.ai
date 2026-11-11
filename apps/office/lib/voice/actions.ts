@@ -6,7 +6,7 @@ import { serializeMultipart } from "./multipart"
 import { VoiceError, type VoiceContext } from "./server"
 import { voiceSetting } from "./settings"
 import { checkpointReview, createReview, verifyReview } from "./workflow"
-import { confirmationPhrase } from "./confirmation"
+import { confirmationPhrase } from "@genesy/voice/lib/confirmation"
 import { withVoiceTracing } from "./tracing"
 import { workspaceTimeZone } from "./time-zone"
 import { reviewTarget } from "./review-target"
@@ -20,7 +20,7 @@ import type {
   VoiceOutcome,
   VoiceReview,
   VoiceReviewStep,
-} from "./client-contract"
+} from "@genesy/voice/lib/client-contract"
 import type { MultipartReview } from "./multipart"
 
 export type StoredAction = {

@@ -2,7 +2,7 @@
 
 Office assistant stays disabled by default. See [assistant deployment](../ASSISTANT.md) for runtime secrets, restricted checkpoint roles, readiness and compatible rollback.
 
-The live Genesy stack on the VPS. It runs the API with its own Postgres, the five apps and the landing page, all served through the existing Traefik.
+The live Genesy stack on the VPS. It runs the API with its own Postgres, the apps (shop, office, till, field, flow) and the landing page, all served through the existing Traefik.
 
 It is a separate compose project, `genesy-prod`. It never touches the `control360` or `genesy-prod-green` projects, and its router names (`genesy-production-*`) don't clash with theirs.
 
@@ -12,6 +12,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 | `shop.genesy.app`   | shop    | 3000           |
 | `office.genesy.app` | office  | 3000           |
 | `till.genesy.app`   | till    | 3000           |
+| `flow.genesy.app`   | flow    | 3000           |
 | `field.genesy.app`  | field   | 8080           |
 | `genesy.app`        | landing | 3000           |
 | `www.genesy.app`    | landing (301 to `https://genesy.app`) | 3000 |
@@ -27,7 +28,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 - **Field release flag off.** `VITE_FEATURE_RESOURCES=off` hides equipment, loans and requests; no demo banner.
 - **Uploads in the production B2 bucket, once its key is in** ("Turning on file uploads"); until then, and always on staging, file routes answer 503. No PDF renderer yet: those routes answer 503 too.
 
-Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till` and `field` records, plus the apex (`@`) and `www` for the landing page. The landing page's contact address is `CONTACT_EMAIL` in `.env.production` (default `hello@genesy.app`, a placeholder).
+Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till`, `field` and `flow` records, plus the apex (`@`) and `www` for the landing page. The landing page's contact address is `CONTACT_EMAIL` in `.env.production` (default `hello@genesy.app`, a placeholder).
 
 ## Files
 
@@ -131,7 +132,7 @@ cd /srv/genesy-prod && deploy/deploy.sh production <green-main-sha> --bundle /tm
 
 A commit already in the checkout needs no `--bundle`. If the health check fails, the new version stays up and the script prints the rollback command. Nothing rolls back on its own: someone decides.
 
-The prune keeps the images of the live and previous version of **both** stacks: staging and production share the GHCR repositories, and the shop, till and landing images even share their tag. Never run `docker image prune -a`.
+The prune keeps the images of the live and previous version of **both** stacks: staging and production share the GHCR repositories, and the shop, till, landing and flow images even share their tag. Never run `docker image prune -a`.
 
 ## Rollback
 
@@ -161,10 +162,23 @@ Every container has a CPU, memory and process ceiling (`deploy.resources.limits`
 | --- | --- | --- |
 | db | 1.5 | 2 GB (`shm_size` 256 MB) |
 | api | 1.5 | 1 GB |
-| shop, office, till, landing | 0.5 each | 512 MB each |
+| shop, office, till, landing, flow | 0.5 each | 512 MB each |
 | field | 0.25 | 128 MB |
 
 Staging runs smaller limits with a quarter of production's CPU weight (`cpu_shares: 256`), so production wins when both are busy. A container that goes over its memory is killed and restarted (`restart: unless-stopped`). The `vps-watch` alert reports that as a restart loop. If it happens, raise that service's limit here. Check real use with `docker stats --no-stream`.
+
+## Flow (`flow.genesy.app`)
+
+Flow is its own Next container (`flow`, image `ghcr.io/cotit/genesy-flow:<sha>`, built once and shared by staging and production like till). Its server forwards `/api/voice/*` to Office over the `internal` network at `http://office:3000`; the voice agent, ElevenLabs key, bridge secret and checkpoint database stay in Office (`../ASSISTANT.md`). Flow itself takes only `API_URL`, `VOICE_UPSTREAM_URL` and `OFFICE_PUBLIC_URL` (`https://office.genesy.app`, where the assistant's Office links open; read per request, not at build), no secret, and no variable in `.env.production`. Office keeps its one public host (`office.genesy.app`); Flow adds no public route to it. When Office is down or its assistant is off, Flow's voice calls fail and the rest of Flow keeps answering.
+
+Before the first deploy of a commit that contains Flow:
+
+1. **DNS first.** Add the `flow` A and AAAA records (staging README, "DNS records") and wait until they resolve. Without them the deploy's health check still passes (it asks the local Traefik with `--resolve`), but Let's Encrypt keeps failing for that host and `vps-watch` alerts on its missing certificate on every run.
+2. **GHCR package.** The first green `images` run after the merge creates `genesy-flow`. Check its settings: visibility **private**, "Manage Actions access" lists `COTIT/genesy` with **Write**, and the machine account has **Read**. Without Read the VPS pull fails and the deploy stops before its backup and migrations.
+3. **Rollback past Flow.** A rollback to a commit from before Flow leaves the newer `flow` container running (compose does not remove services the older file lacks). Stop it by hand: `deploy/deploy.sh production compose stop flow`.
+4. **Memory.** Flow adds one Next container per environment: ceilings of 384 MB on staging and 512 MB on production ("Resource limits" above).
+
+If the VPS still has an untracked `docker-compose.nodns.yml`, give `flow` the same `traefik.enable=false` entry as the other apps.
 
 ## Running compose by hand
 

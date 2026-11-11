@@ -22,7 +22,7 @@ vi.mock("@genesy/api-client/mutator", async (real) => ({
   ...api,
 }))
 
-const { getPublishedDesign } = await import("./storefront-design")
+const { getPreviewDesign, getPublishedDesign } = await import("./storefront-design")
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -112,5 +112,62 @@ describe("published design lookup", () => {
     expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain(
       "secret transport details"
     )
+  })
+})
+
+describe("preview link lookup", () => {
+  const token = "ab".repeat(32)
+  const preview = {
+    revision_id: "f1000000-0000-4000-8000-000000000002",
+    expires_at: "2026-11-13T12:00:00Z",
+    document,
+    collections: [{ section_id: "featured-products", products: [] }],
+  }
+
+  it("posts the token in the body with the server key, timeout and no-store", async () => {
+    vi.stubEnv("SHOP_DESIGN_ENABLED", "false")
+    api.apiRequest.mockResolvedValue({ data: preview })
+    await expect(getPreviewDesign(token)).resolves.toEqual(preview)
+    const [request, options] = api.apiRequest.mock.calls[0]!
+    expect(request).toEqual({
+      url: "/storefront/preview",
+      method: "POST",
+      data: { token },
+    })
+    expect(options.headers).toEqual({ Authorization: "Bearer gsk_test_key" })
+    expect(options.timeout).toBe(2000)
+    expect(options.fetchOptions).toEqual({ cache: "no-store" })
+  })
+
+  it.each(["", "ab", "AB".repeat(32), "zz".repeat(32), `${token}0`, "../x"])(
+    "never calls the API for a token of the wrong shape (%s)",
+    async (bad) => {
+      await expect(getPreviewDesign(bad)).resolves.toBeNull()
+      expect(api.apiRequest).not.toHaveBeenCalled()
+    }
+  )
+
+  it("shows nothing without an app key", async () => {
+    vi.stubEnv("STOREFRONT_APP_KEY", "")
+    await expect(getPreviewDesign(token)).resolves.toBeNull()
+    expect(api.apiRequest).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [{ response: { status: 404 } }, "HTTP 404"],
+    [new Error("socket"), "network"],
+  ])("returns null on failure and never logs the token", async (error, reason) => {
+    api.apiRequest.mockRejectedValue(error)
+    await expect(getPreviewDesign(token)).resolves.toBeNull()
+    const logged = JSON.stringify(vi.mocked(console.warn).mock.calls)
+    expect(logged).toContain(reason)
+    expect(logged).not.toContain(token)
+  })
+
+  it("returns null for a document the renderer cannot show", async () => {
+    api.apiRequest.mockResolvedValue({
+      data: { ...preview, document: { ...document, schema_version: 99 } },
+    })
+    await expect(getPreviewDesign(token)).resolves.toBeNull()
   })
 })

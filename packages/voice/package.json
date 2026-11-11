@@ -1,0 +1,44 @@
+{
+  "name": "@genesy/voice",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@alexanderolsen/libsamplerate-js": "2.1.2",
+    "@elevenlabs/client": "1.35.0",
+    "@elevenlabs/react": "^1.21.1",
+    "@genesy/api-client": "workspace:*",
+    "@genesy/ui": "workspace:*",
+    "@tanstack/react-query": "^5.105.0",
+    "lucide-react": "^1.65.0",
+    "motion": "12.43.0",
+    "next-intl": "4.14.9",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "peerDependencies": {
+    "next": "^16"
+  },
+  "devDependencies": {
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^10",
+    "next": "16.4.3",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  },
+  "exports": {
+    "./lib/*": "./src/lib/*.ts",
+    "./components/*": "./src/components/*.tsx",
+    "./styles/*": "./src/styles/*"
+  }
+}

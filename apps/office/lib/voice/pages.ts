@@ -1,9 +1,9 @@
 import "server-only"
-import en from "@/messages/en.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 import { rightFor } from "../routes"
 import { VoiceError } from "./server"
 import { voiceText } from "./capabilities.server"
-import type { VoiceOutcome } from "./client-contract"
+import type { VoiceOutcome } from "@genesy/voice/lib/client-contract"
 
 /** Fixed office pages the assistant may point at; text in `voice.pages.<id>`. Never a model-built path. */
 export const PAGES: { id: string; route: string; record?: true }[] = [
@@ -31,6 +31,7 @@ export const PAGES: { id: string; route: string; record?: true }[] = [
   { id: "scheduled_reports", route: "/settings/scheduled-reports" },
   { id: "app_keys", route: "/settings/app-keys" },
   { id: "webhooks", route: "/settings/webhooks" },
+  { id: "storefront", route: "/settings/storefront" },
   { id: "search", route: "/search" },
 ]
 
@@ -55,7 +56,7 @@ export const pageTool = {
         enum: PAGES.map((p) => p.id),
         description: PAGES.map(
           (p) =>
-            `${p.id}: ${(en.voice.pages as Record<string, { purpose: string }>)[p.id]!.purpose}`
+            `${p.id}: ${(voiceMessages.en.voice.pages as Record<string, { purpose: string }>)[p.id]!.purpose}`
         ).join("; "),
       },
       recordId: {

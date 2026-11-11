@@ -31,16 +31,18 @@ test("when the payment takes too long, a warning says what to do and can check a
   request,
 }) => {
   await page.clock.install()
-  const path = `/orders/${await placeOrder(request)}`
-  // SSR renders the notice before hydration installs the polling timer.
-  const firstPoll = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === path &&
-      response.request().headers()["rsc"] === "1"
+  const id = await placeOrder(request)
+  // The watcher sets its 2-minute deadline after hydration, but the notice is server HTML seen
+  // before it; its first re-read (router.refresh, not a prefetch) proves the deadline is set.
+  const polled = page.waitForRequest(
+    (r) =>
+      new URL(r.url()).pathname === `/orders/${id}` &&
+      r.headers()["rsc"] === "1" &&
+      !r.headers()["next-router-prefetch"]
   )
-  await page.goto(path)
+  await page.goto(`/orders/${id}`)
   await expect(notice(page, "info", "Waiting for payment.")).toBeVisible()
-  await firstPoll
+  await polled
 
   await page.clock.fastForward("02:01")
   const warning = notice(page, "warning", "Still waiting for the payment")

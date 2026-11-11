@@ -84,7 +84,7 @@ const pills =
 const pill =
   "inline-flex h-[34px] items-center rounded-[10px] border border-transparent px-3.5 text-[13px] font-medium text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring max-md:h-11"
 const pillOn =
-  "border-(--glass-border) bg-(--glass-strong) text-foreground shadow-[var(--glass-highlight),0_2px_8px_-4px_rgb(10_24_58/25%)]"
+  "border-(--glass-border) bg-(--glass-strong) text-foreground shadow-[var(--glass-highlight),0_2px_8px_-4px_rgb(28_27_24/25%)]"
 
 /**
  * Pill links (`.seg` / `.tabs`): one of a few views, each its own address. On a phone each

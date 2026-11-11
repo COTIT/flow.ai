@@ -1,7 +1,6 @@
 "use client"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
+import { useRights as useSharedRights } from "@genesy/api-client/rights"
 
 /**
  * Whether `/me` grants `name` in the current workspace, to hide controls the API would refuse
@@ -14,24 +13,13 @@ export function useCan(name: string) {
 
 /** `may(name)` as useCan, for many names at once; `read` once `/me` has answered. */
 export function useRights() {
-  const workspaceId = useSession((s) => s.workspaceId)
-  const me = useUsersMe()
-  const granted = me.data?.data.user.permissions.find(
-    (p) => p.workspace === workspaceId
-  )?.permissions
+  const rights = useSharedRights()
   return {
-    read: me.isSuccess,
+    read: rights.read,
     may: (name: string) =>
-      Boolean(
-        granted?.some((p) =>
-          [
-            name,
-            "workspace_admin",
-            "workspace_owner",
-            ...(name === "payment.read" ? ["invoice.list", "order.list"] : []),
-          ].includes(p)
-        )
-      ),
+      rights.may(name) ||
+      (name === "payment.read" &&
+        (rights.may("invoice.list") || rights.may("order.list"))),
   }
 }
 

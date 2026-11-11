@@ -1,14 +1,14 @@
 # Full-stack e2e
 
 Headless Playwright against the **real** stack: the Rust API, a throwaway Postgres seeded with
-the demo data (`seed-demo`), and office, shop, till, field and landing built for that API. The
+the demo data (`seed-demo`), and office, shop, till, field, landing and flow built for that API. The
 specs in `tests/**` (the `e2e` task) use a fake API instead; this suite is the one that catches
 permissions, cross-app flows and seed gaps.
 
 ## Run it
 
 ```bash
-pnpm --filter @genesy/e2e stack:up       # Postgres + API + 5 apps, then leaves them running
+pnpm --filter @genesy/e2e stack:up       # Postgres + API + 6 apps, then leaves them running
 pnpm --filter @genesy/e2e exec playwright test -c playwright.stack.config.ts   # as often as you like
 pnpm --filter @genesy/e2e stack:reset    # back to the freshly seeded data (seconds; apps keep running)
 pnpm --filter @genesy/e2e stack:down     # stops everything, removes the container
@@ -19,7 +19,7 @@ Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/t
 
 - **Needs:** Docker (Postgres and the file store), Rust 1.99, the repo's `pnpm install`, Playwright's Chromium.
 - **Ports** (all + `E2E_STACK_OFFSET`, default 0): Postgres 55400, API 8400, shop 4300, office
-  4301, field 4302, till 4303, landing 4304, mail sink 2525, file store 55410. Pick another offset per checkout running at once,
+  4301, field 4302, till 4303, landing 4304, flow 4305, mail sink 2525, file store 55410. Pick another offset per checkout running at once,
   e.g. `E2E_STACK_OFFSET=20`. The fake-API suite uses 3200-3204/8199 + `E2E_PORT_OFFSET`.
 - **Containers:** `genesy-e2e-stack-<offset>`, Postgres in RAM (tmpfs), and `genesy-e2e-files-<offset>`,
   a local S3 store (Garage, pinned by digest in `stack/stack.mjs`, settings in `stack/garage.toml`) in
@@ -63,7 +63,8 @@ test("…", async ({ page, request }) => {
   today (it allowed the office's file-list 503 before the stack had a file store); keep spreading
   it into your own `allow`.
 - API lists page with `page_size` (not `per_page`) and come newest first.
-- `urls.{api,office,shop,till,field,landing}`: where each one answers.
+- `urls.{api,office,shop,till,field,landing,flow}`: where each one answers. Flow's server proxies
+  `/api/voice/*` to the stack's Office (`VOICE_UPSTREAM_URL`), as compose points it at `office:3000`.
 - `cred(app, role)`: a seeded login, as `seed-demo` printed it. Apps: `office (AFM)` (owner),
   `office (RUAHA)` (admin), `field (RUAHA)` (ops, field_officer, farmer, …), `till (AFM)`
   (device key, cashier PIN). Unknown pairs throw with the full list.
@@ -71,7 +72,7 @@ test("…", async ({ page, request }) => {
 - `notes`: the seed's other lines (storefront app key, passports, sample shop orders).
 - `apiAs(request, cred)`: `get/post/put/patch` on `/v1/…` as that member, `ws(path)` adds the
   workspace; throws on >= 400. For setup and for checking results, never instead of the UI step under test.
-- `loginOffice(page, cred)`, `loginField(page, cred)`: through the real login pages.
+- `loginOffice(page, cred)`, `loginFlow(page, cred)`, `loginField(page, cred)`: through the real login pages.
 - `pairTill(page, request)`: a register of the test's own (in the AFM store, like the seeded
   "AFM counter"), a real pairing code from the office API, pairing through `/setup`, then the
   seeded cashier's PIN. Returns `{ owner, register }`. Pairing a seeded register would end every
@@ -88,7 +89,7 @@ test("…", async ({ page, request }) => {
 ## Data rules
 
 One seed per stack, shared by every worker and both projects (a reseed per worker would mean a
-Postgres, API and five apps per worker). So:
+Postgres, API and six apps per worker). So:
 
 1. **Make your own data** where the API lets you (products, registers, customers, orders), named
    with `unique()`. Then nothing else reads or changes it.

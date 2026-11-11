@@ -45,6 +45,7 @@ export default defineConfig({
         FILES_ORIGIN,
         SITE_URL: shop,
         SHOP_DESIGN_ENABLED: "true",
+        FLOW_URL: "https://flow.example.test",
       },
     },
   ],

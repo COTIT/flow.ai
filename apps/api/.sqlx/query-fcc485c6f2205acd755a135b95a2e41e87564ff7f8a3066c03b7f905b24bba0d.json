@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id AS revision_id,r.parent_revision_id,r.created_at,r.created_by,r.restored_from_revision_id,EXISTS(SELECT 1 FROM storefront_design_events e WHERE e.workspace_id=$1 AND e.page_id=r.page_id AND e.revision_id=r.id AND e.kind='published') AS \"was_published!\" FROM storefront_design_revisions r WHERE r.workspace_id=$1 AND r.page_id=$2 ORDER BY r.created_at DESC,r.id DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "revision_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storefront_design_revisions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_revision_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storefront_design_revisions",
+            "name": "parent_revision_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "storefront_design_revisions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storefront_design_revisions",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "restored_from_revision_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storefront_design_revisions",
+            "name": "restored_from_revision_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "was_published!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "fcc485c6f2205acd755a135b95a2e41e87564ff7f8a3066c03b7f905b24bba0d"
+}

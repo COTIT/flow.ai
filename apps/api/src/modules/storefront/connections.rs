@@ -89,10 +89,10 @@ pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(get_connection, update_connection))
 }
 
-#[utoipa::path(get, path="/workspace/{workspace}/storefront/connection", tag="storefront-connection",
+#[utoipa::path(get, path="/workspace/{workspace}/storefront/connection", tag="storefront_connection",
     operation_id="storefront_connection_get", summary="Read this workspace's public Shop connection",
     params(("workspace"=Uuid,Path)),
-    responses((status=200,body=Envelope<StorefrontConnection>),(status=401,body=MessageBody),(status=404,body=MessageBody)),
+    responses((status=200,body=Envelope<StorefrontConnection>,description="Safe Shop connection metadata"),(status=401,body=MessageBody,description="Missing, invalid or expired workspace login"),(status=404,body=MessageBody,description="Unknown workspace or inactive membership")),
     security(("bearer"=[])))]
 pub async fn get_connection(
     State(state): State<AppState>,
@@ -101,11 +101,11 @@ pub async fn get_connection(
     Ok(Data(metadata(&state, access.workspace_id).await?))
 }
 
-#[utoipa::path(put, path="/workspace/{workspace}/storefront/connection", tag="storefront-connection",
+#[utoipa::path(put, path="/workspace/{workspace}/storefront/connection", tag="storefront_connection",
     operation_id="storefront_connection_update", summary="Connect or disconnect this workspace's Shop",
     params(("workspace"=Uuid,Path)),request_body=ConnectionRequest,
-    responses((status=200,body=Envelope<StorefrontConnection>),(status=401,body=MessageBody),
-        (status=403,body=MessageBody),(status=404,body=MessageBody),(status=422,body=UnprocessableBody)),
+    responses((status=200,body=Envelope<StorefrontConnection>,description="Stable Shop connection and its current publication state"),(status=401,body=MessageBody,description="Missing, invalid or expired workspace login"),
+        (status=403,body=MessageBody,description="Workspace administrator permission is required"),(status=404,body=MessageBody,description="Unknown workspace or inactive membership"),(status=422,body=UnprocessableBody,description="The active field must be a boolean")),
     security(("bearer"=[])))]
 pub async fn update_connection(
     State(state): State<AppState>,
@@ -230,12 +230,18 @@ impl FromRequestParts<AppState> for Shop {
 pub fn public() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(get_shop))
-        .routes(routes!(products, product, categories, lot, design))
-        .routes(routes!(create_order, order, payment))
+        .routes(routes!(products))
+        .routes(routes!(product))
+        .routes(routes!(categories))
+        .routes(routes!(lot))
+        .routes(routes!(design))
+        .routes(routes!(create_order))
+        .routes(routes!(order))
+        .routes(routes!(payment))
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}",tag="storefront",operation_id="storefront_shop_get",
-    params(("connection"=Uuid,Path)),responses((status=200,body=Envelope<StorefrontConnection>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path)),responses((status=200,body=Envelope<StorefrontConnection>,description="Public Shop metadata, including disconnected historical connections"),(status=404,body=MessageBody,description="Unknown connection or deleted workspace")),security())]
 pub async fn get_shop(shop: Shop) -> Data<StorefrontConnection> {
     Data(StorefrontConnection {
         id: Some(shop.key.id),
@@ -245,7 +251,7 @@ pub async fn get_shop(shop: Shop) -> Data<StorefrontConnection> {
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}/products",tag="storefront",operation_id="storefront_shop_products_list",
-    params(("connection"=Uuid,Path),ListQuery),responses((status=200,body=Paginated<StorefrontProduct>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path),ListQuery),responses((status=200,body=Paginated<StorefrontProduct>,description="One page of this Shop's sellable products"),(status=404,body=MessageBody,description="Unknown or disconnected Shop")),security())]
 pub async fn products(
     State(state): State<AppState>,
     shop: Shop,
@@ -256,7 +262,7 @@ pub async fn products(
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}/products/{product}",tag="storefront",operation_id="storefront_shop_products_get",
-    params(("connection"=Uuid,Path),("product"=Uuid,Path)),responses((status=200,body=Envelope<StorefrontProduct>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path),("product"=Uuid,Path)),responses((status=200,body=Envelope<StorefrontProduct>,description="Sellable product with its public prices and variants"),(status=404,body=MessageBody,description="Disconnected Shop or product unavailable in this workspace")),security())]
 pub async fn product(
     State(state): State<AppState>,
     shop: Shop,
@@ -267,7 +273,7 @@ pub async fn product(
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}/categories",tag="storefront",operation_id="storefront_shop_categories",
-    params(("connection"=Uuid,Path)),responses((status=200,body=Envelope<Vec<StorefrontCategory>>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path)),responses((status=200,body=Envelope<Vec<StorefrontCategory>>,description="Categories containing this Shop's sellable products"),(status=404,body=MessageBody,description="Unknown or disconnected Shop")),security())]
 pub async fn categories(
     State(state): State<AppState>,
     shop: Shop,
@@ -277,7 +283,7 @@ pub async fn categories(
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}/lots/{code}",tag="storefront",operation_id="storefront_shop_lots_get",
-    params(("connection"=Uuid,Path),("code"=String,Path)),responses((status=200,body=Envelope<PublicLot>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path),("code"=String,Path)),responses((status=200,body=Envelope<PublicLot>,description="Published batch passport in this Shop's workspace"),(status=404,body=MessageBody,description="Disconnected Shop or unpublished, unknown or foreign batch")),security())]
 pub async fn lot(
     State(state): State<AppState>,
     shop: Shop,
@@ -288,7 +294,7 @@ pub async fn lot(
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}/pages/home",tag="storefront",operation_id="storefront_shop_design",
-    params(("connection"=Uuid,Path)),responses((status=200,body=Envelope<Option<StorefrontPublishedDesign>>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path)),responses((status=200,body=Envelope<Option<StorefrontPublishedDesign>>,description="Published home design and public catalog collections, or null before publication"),(status=404,body=MessageBody,description="Unknown or disconnected Shop")),security())]
 pub async fn design(
     State(state): State<AppState>,
     shop: Shop,
@@ -299,7 +305,7 @@ pub async fn design(
 
 #[utoipa::path(post,path="/storefront/shops/{connection}/orders",tag="storefront",operation_id="storefront_shop_orders_create",
     params(("connection"=Uuid,Path),("Idempotency-Key"=Option<String>,Header)),request_body=CheckoutRequest,
-    responses((status=201,body=Envelope<StorefrontOrder>),(status=404,body=MessageBody),(status=422,body=UnprocessableBody)),security())]
+    responses((status=201,body=Envelope<StorefrontOrder>,description="Web order holding stock while awaiting payment"),(status=404,body=MessageBody,description="Unknown or disconnected Shop"),(status=422,body=UnprocessableBody,description="Invalid customer, lines or Idempotency-Key, or insufficient stock")),security())]
 pub async fn create_order(
     State(state): State<AppState>,
     shop: Shop,
@@ -311,7 +317,7 @@ pub async fn create_order(
 }
 
 #[utoipa::path(get,path="/storefront/shops/{connection}/orders/{order}",tag="storefront",operation_id="storefront_shop_orders_get",
-    params(("connection"=Uuid,Path),("order"=Uuid,Path)),responses((status=200,body=Envelope<StorefrontOrder>),(status=404,body=MessageBody)),security())]
+    params(("connection"=Uuid,Path),("order"=Uuid,Path)),responses((status=200,body=Envelope<StorefrontOrder>,description="Original Shop's order status and totals, without customer data"),(status=404,body=MessageBody,description="Unknown order or an order from another Shop actor")),security())]
 pub async fn order(
     State(state): State<AppState>,
     shop: Shop,
@@ -323,7 +329,7 @@ pub async fn order(
 
 #[utoipa::path(post,path="/storefront/shops/{connection}/orders/{order}/payment",tag="storefront",operation_id="storefront_shop_orders_payment",
     params(("connection"=Uuid,Path),("order"=Uuid,Path)),request_body=PaymentRequest,
-    responses((status=200,body=Envelope<PaymentIntentResource>),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security())]
+    responses((status=200,body=Envelope<PaymentIntentResource>,description="Original order's new or existing payment intent"),(status=404,body=MessageBody,description="Unknown order or an order from another Shop actor"),(status=409,body=MessageBody,description="The order is not awaiting payment or has expired"),(status=422,body=UnprocessableBody,description="Invalid return URL or return outside this Shop's canonical order page")),security())]
 pub async fn payment(
     State(state): State<AppState>,
     shop: Shop,

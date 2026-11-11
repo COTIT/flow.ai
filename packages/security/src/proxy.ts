@@ -14,7 +14,11 @@ export function cspProxy(
     voice?: boolean
   } = {}
 ) {
-  return function proxy(request: NextRequest, destination?: URL) {
+  return function proxy(
+    request: NextRequest,
+    destination?: URL,
+    forwarded?: Headers
+  ) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
     const csp = contentSecurityPolicy(nonce, {
       ...options,
@@ -24,7 +28,7 @@ export function cspProxy(
       dev: process.env.NODE_ENV === "development",
     })
 
-    const headers = new Headers(request.headers)
+    const headers = new Headers(forwarded ?? request.headers)
     headers.set("x-nonce", nonce)
     headers.set("Content-Security-Policy", csp)
 

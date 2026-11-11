@@ -37,6 +37,7 @@ expect "1 1 1 1" "$ROOT" "$(commit .github/workflows/ci.yml)"
 expect "1 1 1 1" "$ROOT" "$(commit deploy/ci/changes.sh)"
 expect "1 1 1 1" "$ROOT" "$(commit apps/api/src/lib.rs apps/office/app/page.tsx)"
 expect "0 1 0 1" "$ROOT" "$(commit apps/field/README.md)"
+expect "0 1 0 1" "$ROOT" "$(commit apps/flow/app/page.tsx)"
 
 # Unknown base: everything runs.
 HEAD_SHA="$(commit apps/shop/x.ts)"

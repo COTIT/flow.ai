@@ -21,6 +21,9 @@ export const SHOP_CONNECTIONS = [
 /** The upstream body the mock sends with errors; it must never reach a page. */
 export const SECRET_BODY = "secret upstream detail"
 
+/** Preview-link tokens the mock knows: `live` resolves, `dead` is expired/revoked (404). */
+export const PREVIEW = { live: "a1".repeat(32), dead: "d0".repeat(32) }
+
 export const PRODUCT = {
   honey: "11111111-1111-4111-8111-111111111111",
   wax: "22222222-2222-4222-8222-222222222222",
@@ -94,7 +97,8 @@ export const EXPIRED_EMAIL = "expired@e2e.test"
 /** Orders placed with this email get a 503 from the payment provider (it is down). */
 export const PROVIDER_DOWN_EMAIL = "provider-down@e2e.test"
 export const UNKNOWN_PAYMENT_EMAIL = "unknown-payment@e2e.test"
-export const EXISTING_UNKNOWN_PAYMENT_EMAIL = "existing-unknown-payment@e2e.test"
+export const EXISTING_UNKNOWN_PAYMENT_EMAIL =
+  "existing-unknown-payment@e2e.test"
 export const PAYMENT_SETUP_REQUIRED_EMAIL = "payment-setup-required@e2e.test"
 export const STALE_PAYMENT_SETUP_EMAIL = "stale-payment-setup@e2e.test"
 /** Checkout with this email gets the API's 429 (too many web orders waiting). */

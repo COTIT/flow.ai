@@ -4,6 +4,8 @@
 //   psql "$DATABASE_URL" -At -v triage=1 -v days=7 -f apps/api/scripts/voice-gaps.sql \
 //     | pnpm --filter @genesy/office voice:triage -- --days 7 [--out report.md]
 //   ... | pnpm --filter @genesy/office voice:heal -- [--dry-run]
+//   psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql \
+//     | pnpm --filter @genesy/office voice:demand -- --days 7 [--out demand]   (writes demand.json + demand.md)
 //
 // Flags: --input <file> (instead of stdin), --min-gaps 2, --min-workspaces 2, --solo-gaps 5.
 import { execFileSync } from "node:child_process"
@@ -31,9 +33,9 @@ const number = (name, fallback) => {
     throw new Error(`--${name} must be a whole number of at least 1`)
   return value
 }
-if (!["triage", "heal"].includes(command)) {
+if (!["triage", "heal", "demand"].includes(command)) {
   console.error(
-    "usage: voice-heal.mjs triage|heal [--input file] [--days 7] [--out file] [--dry-run]"
+    "usage: voice-heal.mjs triage|heal|demand [--input file] [--days 7] [--out file] [--dry-run]"
   )
   process.exit(2)
 }
@@ -41,7 +43,9 @@ if (!["triage", "heal"].includes(command)) {
 const raw = readFileSync(flag("input", 0), "utf8").trim()
 const rows = raw ? JSON.parse(raw) : []
 if (!Array.isArray(rows))
-  throw new Error("expected a JSON array from voice-gaps.sql -v triage=1")
+  throw new Error(
+    `expected a JSON array from voice-gaps.sql -v ${command === "demand" ? "demand" : "triage"}=1`
+  )
 const thresholds = {
   minGaps: number("min-gaps", 2),
   minWorkspaces: number("min-workspaces", 2),
@@ -58,19 +62,43 @@ const server = await createViteServer({
 })
 const keywordsFile = `${voice}keywords.json`
 const healsFile = `${voice}gap-heal.fixture.json`
-let plan, markdown
+let plan, markdown, items
 try {
   const { clusterGaps, classify, planHeal, report } =
     await server.ssrLoadModule("/lib/voice/gap-triage.ts")
-  const triaged = clusterGaps(rows).map(classify)
-  plan = planHeal(
-    triaged,
-    JSON.parse(readFileSync(keywordsFile, "utf8")),
-    thresholds
-  )
-  markdown = report(triaged, plan, { days: number("days", 7) })
+  if (command === "demand") {
+    // Demand reads only k-anonymous aggregates; fromDemandRow refuses per-row triage input.
+    const { demand, demandReport, fromDemandRow } = await server.ssrLoadModule(
+      "/lib/voice/gap-demand.ts"
+    )
+    items = demand(
+      rows.map(fromDemandRow).map(classify),
+      JSON.parse(readFileSync(`${voice}gap-demand.resolved.json`, "utf8"))
+    )
+    markdown = demandReport(items, {
+      days: number("days", 7),
+      minWorkspaces: number("k", 3),
+    })
+  } else {
+    const triaged = clusterGaps(rows).map(classify)
+    plan = planHeal(
+      triaged,
+      JSON.parse(readFileSync(keywordsFile, "utf8")),
+      thresholds
+    )
+    markdown = report(triaged, plan, { days: number("days", 7) })
+  }
 } finally {
   await server.close()
+}
+
+if (command === "demand") {
+  const out = flag("out")
+  if (out) {
+    writeFileSync(`${out}.json`, `${JSON.stringify(items, null, 2)}\n`)
+    writeFileSync(`${out}.md`, markdown)
+  } else process.stdout.write(markdown)
+  process.exit(0)
 }
 
 if (command === "triage" || rest.includes("--dry-run")) {

@@ -235,3 +235,155 @@ async fn hourly_prune_drops_gaps_after_ninety_days(pool: PgPool) {
         .unwrap();
     assert_eq!(left, [ids[1].clone()]);
 }
+
+/// Gap with these intent words, then optional follow-up; returns its id.
+async fn demand_gap(
+    app: &axum::Router,
+    ws: &str,
+    token: &str,
+    intent: &str,
+    signal: Option<Value>,
+) -> String {
+    let body = json!({"domain":"sales","language":"en","intent":intent,"tools":["sales_summary"],"outcome":"unsupported"});
+    let (status, body) = record(app, ws, token, body).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let id = body["data"]["id"].as_str().unwrap().to_owned();
+    if let Some(signal) = signal {
+        assert_eq!(follow(app, ws, &id, signal).await.0, StatusCode::OK);
+    }
+    id
+}
+
+type DemandRow = (String, String, String, i64, i64, Vec<String>, i64, i64);
+
+async fn demand(pool: &PgPool, days: i32, k: i32) -> Vec<DemandRow> {
+    sqlx::query_as("SELECT outcome,words,intent,gaps,workspaces,languages,rephrased,used_ui FROM assistant_gap_demand($1,$2)")
+        .bind(days)
+        .bind(k)
+        .fetch_all(pool)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test]
+async fn demand_counts_unique_workspaces_and_hides_small_clusters(pool: PgPool) {
+    let app = signed_app(pool.clone());
+    let mut users = vec![];
+    for (email, slug) in [
+        ("a@example.com", "aa"),
+        ("b@example.com", "bb"),
+        ("c@example.com", "cc"),
+    ] {
+        users.push(signup(&app, email, slug).await);
+    }
+    let ui = json!({"signal":"used_ui","route":"/sales"});
+    demand_gap(&app, &users[0].1, &users[0].0, "sales chart", Some(ui)).await;
+    demand_gap(&app, &users[0].1, &users[0].0, "sales chart", None).await;
+    demand_gap(
+        &app,
+        &users[1].1,
+        &users[1].0,
+        "chart sales",
+        Some(json!({"signal":"rephrased"})),
+    )
+    .await;
+    demand_gap(&app, &users[2].1, &users[2].0, "sales chart sales", None).await;
+    // One busy workspace alone never makes demand.
+    for _ in 0..6 {
+        demand_gap(&app, &users[0].1, &users[0].0, "sales calendar", None).await;
+    }
+    let rows = demand(&pool, 30, 3).await;
+    assert_eq!(rows.len(), 1, "{rows:?}");
+    let (outcome, words, intent, gaps, workspaces, languages, rephrased, used_ui) = &rows[0];
+    assert_eq!(
+        (outcome.as_str(), words.as_str()),
+        ("unsupported", "chart sales")
+    );
+    assert_eq!(intent, "sales chart");
+    assert_eq!((*gaps, *workspaces, *rephrased, *used_ui), (4, 3, 1, 1));
+    assert_eq!(languages, &["en"]);
+}
+
+#[sqlx::test]
+async fn demand_floor_hides_two_workspaces_even_when_k_is_one(pool: PgPool) {
+    let app = signed_app(pool.clone());
+    for (email, slug) in [("a@example.com", "aa"), ("b@example.com", "bb")] {
+        let (token, ws) = signup(&app, email, slug).await;
+        demand_gap(&app, &ws, &token, "sales chart", None).await;
+    }
+    assert!(demand(&pool, 30, 1).await.is_empty());
+    assert!(demand(&pool, 30, 0).await.is_empty());
+    assert!(demand(&pool, 30, -5).await.is_empty());
+}
+
+#[sqlx::test]
+async fn demand_never_returns_workspace_data(pool: PgPool) {
+    let columns: Vec<String> = sqlx::query_scalar(
+        "SELECT unnest(proargnames[pronargs+1:]) FROM pg_proc WHERE proname='assistant_gap_demand'",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        columns,
+        [
+            "domain",
+            "outcome",
+            "words",
+            "intent",
+            "gaps",
+            "workspaces",
+            "languages",
+            "rephrased",
+            "used_ui",
+            "route",
+            "tool",
+            "http_status",
+            "last_seen"
+        ]
+    );
+    let definer: bool =
+        sqlx::query_scalar("SELECT prosecdef FROM pg_proc WHERE proname='assistant_gap_demand'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(!definer, "must stay SECURITY INVOKER");
+}
+
+#[sqlx::test]
+async fn demand_window_respects_days_and_retention_cap(pool: PgPool) {
+    let app = signed_app(pool.clone());
+    let mut ids = vec![];
+    for (email, slug) in [
+        ("a@example.com", "aa"),
+        ("b@example.com", "bb"),
+        ("c@example.com", "cc"),
+    ] {
+        let (token, ws) = signup(&app, email, slug).await;
+        ids.push(demand_gap(&app, &ws, &token, "sales chart", None).await);
+    }
+    sqlx::query(
+        "UPDATE assistant_gaps SET created_at=now()-interval '7 days 12 hours' WHERE id=$1::uuid",
+    )
+    .bind(&ids[0])
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert!(demand(&pool, 7, 3).await.is_empty());
+    assert_eq!(demand(&pool, 8, 3).await[0].4, 3);
+    let last: chrono::NaiveDate =
+        sqlx::query_scalar("SELECT last_seen FROM assistant_gap_demand(8)")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(last, chrono::Utc::now().date_naive(), "day only");
+    sqlx::query("UPDATE assistant_gaps SET created_at=now()-interval '95 days' WHERE id=$1::uuid")
+        .bind(&ids[0])
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        demand(&pool, 500, 3).await.is_empty(),
+        "window caps at 90 days"
+    );
+}

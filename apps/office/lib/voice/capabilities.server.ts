@@ -1,13 +1,11 @@
 import "server-only"
-import en from "@/messages/en.json"
-import nl from "@/messages/nl.json"
-import sw from "@/messages/sw.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 import { getOperation, isToolAllowed } from "./catalog"
-import { CAPABILITIES, rotated, type Available } from "./capabilities"
+import { CAPABILITIES, rotated, type Available } from "@genesy/voice/lib/capabilities"
 
-const messages = { en, nl, sw }
+const messages = voiceMessages
 export const voiceText = (language?: string | null) =>
-  messages[(language ?? "en") as keyof typeof messages]?.voice ?? en.voice
+  messages[(language ?? "en") as keyof typeof messages]?.voice ?? messages.en.voice
 
 const runnable = (id: string) => {
   const op = getOperation(id)

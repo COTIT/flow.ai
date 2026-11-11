@@ -13,7 +13,7 @@ assert evidence['provider']['versionId'].startswith('agtvrsn_')
 for env,entry in evidence['provider'].get('applied',{}).items():
     assert env in {'development','staging','production'} and entry['versionId'].startswith('agtvrsn_')
     assert re.fullmatch('[0-9a-f]{64}',entry['governedSha256']) and re.fullmatch('[0-9a-f]{64}',entry['templateSha256'])
-source=(root.parent/'apps/office/components/voice/provider.tsx').read_text()
+source=(root.parent/'packages/voice/src/components/provider.tsx').read_text()
 assert len(template['clientTools'])==2
 for tool in template['clientTools']:
     assert tool['type']=='client' and tool['name']+': (' in source,'snapshot tool not implemented by Office'

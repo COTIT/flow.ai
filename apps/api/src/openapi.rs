@@ -221,12 +221,18 @@ pub(crate) fn documents() -> OpenApiRouter<AppState> {
         .merge(farm_bug_reports::routes::private())
 }
 
+/// Storefront preview-token resolve: app key, own rate limit in `build_app`.
+pub(crate) fn previews() -> OpenApiRouter<AppState> {
+    storefront_design::routes::previews()
+}
+
 /// Full spec, built from [`public`], [`private`] and [`documents`], as JSON.
 pub fn spec() -> Result<Value, serde_json::Error> {
     let doc = ApiDoc::openapi()
         .merge_from(public().split_for_parts().1)
         .merge_from(private().split_for_parts().1)
-        .merge_from(documents().split_for_parts().1);
+        .merge_from(documents().split_for_parts().1)
+        .merge_from(previews().split_for_parts().1);
     let mut doc = serde_json::to_value(doc)?;
     add_shared_responses(&mut doc);
     reference_named_schemas(&mut doc);

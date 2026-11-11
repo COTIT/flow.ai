@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
+import { pwaViewport } from "../lib/pwa"
+
 const css = readFileSync(join(import.meta.dirname, "globals.css"), "utf8")
 
 /** `--name: value` pairs declared directly inside `selector { … }`. */
@@ -38,11 +40,45 @@ describe("theme tokens", () => {
     expect(colours.filter((k) => !(k in dark))).toEqual([])
   })
 
-  it("carries the brand colours from the style guide", () => {
-    expect(light.primary).toBe("#0a183a")
-    expect(dark.background).toBe("#0a183a")
-    expect(light.gold).toBeDefined()
+  // Approved "Shared theme tokens" board (2026-11-11): neutral near-black dark, warm light.
+  it("uses the warm light and neutral dark grounds from the approved board", () => {
+    expect(light).toMatchObject({
+      background: "#faf8f3",
+      foreground: "#1c1b18",
+      card: "#ffffff",
+      primary: "#1c1b18",
+      muted: "#f3efe6",
+      "muted-foreground": "#5f5c55",
+      border: "#e4dfd6",
+      gold: "#d0a55f",
+      "gold-ink": "#8a6116",
+    })
+    expect(dark).toMatchObject({
+      background: "#1a1a19",
+      foreground: "#f5f4f0",
+      card: "#262624",
+      primary: "#efc977",
+      muted: "#30302e",
+      "muted-foreground": "#a8a69e",
+      sidebar: "#1f1f1d",
+      gold: "#efc977",
+      "gold-ink": "#efc977",
+    })
     expect(light.teal).toBe("#01909b")
+  })
+
+  it("leaves no navy in any token block", () => {
+    const navy = /#0a183a|#13234d|#1b2c57|#456087|#3a5378|#8fa6c8|#b4c3d3|#d1dce5|#f2f6f7|#eef3f5|#f8fafb|rgb\((10 24 58|27 44 87|19 35 77|69 96 135|143 166 200)\b/i
+    for (const block of [light, dark, glassLight, glassDark])
+      expect(Object.values(block).filter((v) => navy.test(v))).toEqual([])
+    expect(css).not.toMatch(navy)
+  })
+
+  it("colours the browser bar like the page background", () => {
+    expect(pwaViewport.themeColor).toEqual([
+      { media: "(prefers-color-scheme: light)", color: light.background },
+      { media: "(prefers-color-scheme: dark)", color: dark.background },
+    ])
   })
 
   // Text pairs a page can show; AA = 4.5:1 for normal text.
@@ -59,6 +95,9 @@ describe("theme tokens", () => {
     ["gold-foreground", "gold"],
     ["teal-foreground", "teal"],
     ["destructive", "background"],
+    ["gold-ink", "background"],
+    ["gold-ink", "card"],
+    ["info", "card"],
   ] as const
 
   describe.each([
@@ -118,7 +157,10 @@ describe("glass theme tokens", () => {
     ["light", light, glassLight],
     ["dark", dark, glassDark],
   ])("%s", (_, base, glass) => {
-    it.each(["foreground", "muted-foreground", "card-foreground"])(
+    it("the info tone on the solid glass fallback meets WCAG AA", () => {
+      expect(contrast(glass["tone-info"]!, glass["glass-solid"]!)).toBeGreaterThanOrEqual(4.5)
+    })
+    it.each(["foreground", "muted-foreground", "card-foreground", "gold-ink"])(
       "%s on the solid glass fallback meets WCAG AA",
       (fg) => {
         expect(contrast(base[fg]!, glass["glass-solid"]!)).toBeGreaterThanOrEqual(4.5)

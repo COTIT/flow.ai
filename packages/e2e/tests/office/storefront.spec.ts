@@ -183,6 +183,10 @@ test("storefront preview is read-only; publish requires confirmation and exact r
   await page.goto("/settings/storefront")
   await expect(page.getByRole("button", { name: draft })).toHaveCount(0)
   await expect(page.getByRole("button", { name: published })).toHaveCount(0)
+  // The short code is the id's random tail: ids minted in the same minute share their head.
+  const rows = page.getByRole("row")
+  await expect(rows.filter({ hasText: draft.slice(-8) })).toHaveCount(1)
+  await expect(rows.filter({ hasText: published.slice(-8) })).toHaveCount(1)
   await page.getByRole("button", { name: draftButton }).click()
   const preview = page.getByRole("region", { name: "Storefront preview" })
   await expect(

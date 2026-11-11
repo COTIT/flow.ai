@@ -37,6 +37,11 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
             replenish: std::time::Duration::from_millis(1),
             trust_forwarded: false,
         },
+        preview_rate_limit: crate::RateLimit {
+            burst: 1000,
+            replenish: std::time::Duration::from_millis(1),
+            trust_forwarded: false,
+        },
         private_ip_rate_limit: crate::RateLimit {
             burst: 1000,
             replenish: std::time::Duration::from_millis(1),

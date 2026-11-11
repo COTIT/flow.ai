@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest"
 import catalog from "./catalog.generated.json"
-import en from "@/messages/en.json"
-import nl from "@/messages/nl.json"
-import sw from "@/messages/sw.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 import {
   CAPABILITIES,
   allowedFor,
@@ -10,12 +8,26 @@ import {
   moduleFor,
   pickSuggestions,
   type Available,
-} from "./capabilities"
+} from "@genesy/voice/lib/capabilities"
 import {
   availableCapabilities,
   describeCapabilities,
+  voiceText,
 } from "./capabilities.server"
 
+describe("voiceText", () => {
+  it("reads the shared voice texts per language, English as fallback", () => {
+    expect(voiceText("nl").capabilities.open_invoices.label).toBe(
+      "Openstaande facturen"
+    )
+    expect(voiceText("xx").capabilities.open_invoices.label).toBe(
+      "Open invoices"
+    )
+    expect(voiceText(null).yes).toBe("Yes")
+  })
+})
+
+const { en, nl, sw } = voiceMessages
 const ops = new Map(catalog.map((op) => [op.id, op]))
 const opId = /\b[a-z]+(_[a-z]+)+\b/
 

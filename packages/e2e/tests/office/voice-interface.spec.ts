@@ -1,8 +1,16 @@
 import type { Page } from "@playwright/test"
 import { expect, expectFits, emptyOverview, test } from "./fake-api"
-import en from "../../../../apps/office/messages/en.json" with { type: "json" }
-import nl from "../../../../apps/office/messages/nl.json" with { type: "json" }
-import sw from "../../../../apps/office/messages/sw.json" with { type: "json" }
+import officeEn from "../../../../apps/office/messages/en.json" with { type: "json" }
+import officeNl from "../../../../apps/office/messages/nl.json" with { type: "json" }
+import officeSw from "../../../../apps/office/messages/sw.json" with { type: "json" }
+import voiceEn from "../../../../packages/i18n/messages/voice/en.json" with { type: "json" }
+import voiceNl from "../../../../packages/i18n/messages/voice/nl.json" with { type: "json" }
+import voiceSw from "../../../../packages/i18n/messages/voice/sw.json" with { type: "json" }
+
+// Office hosts the shared voice texts next to its own.
+const en = { ...voiceEn, ...officeEn }
+const nl = { ...voiceNl, ...officeNl }
+const sw = { ...voiceSw, ...officeSw }
 
 test.use({
   permissions: ["microphone"],
@@ -1083,11 +1091,8 @@ test("an open review card survives a resized window, focus loss and a stray clic
   await expect.poll(() => decisions).toEqual(["cancel"])
 })
 
-test("while a review card is open the message box cannot be reached by pointer, keyboard or Tab", async ({
-  page,
-  api: _api,
-}) => {
-  void _api
+/** Opens the text conversation and holds a review card for invoice 17 open. */
+async function openReviewCard(page: Page) {
   const native = await nativeConversation(page)
   await page.route("**/api/voice/tools", (route) =>
     route.request().postDataJSON().command === "status"
@@ -1116,9 +1121,17 @@ test("while a review card is open the message box cannot be reached by pointer, 
   const box = page.getByLabel(en.voice.message)
   await expect(box).toBeVisible()
   native.call("invoices_credit")
-  await expect(
-    page.getByRole("dialog", { name: en.voice.review })
-  ).toBeVisible()
+  const card = page.getByRole("dialog", { name: en.voice.review })
+  await expect(card).toBeVisible()
+  return { native, box, card }
+}
+
+test("while a review card is open the message box cannot be reached by pointer, keyboard or Tab", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const { native, box } = await openReviewCard(page)
   const focused = () =>
     box.evaluate(
       (el) =>
@@ -1144,6 +1157,11 @@ test("while a review card is open the message box cannot be reached by pointer, 
     await page.keyboard.press("Tab")
     expect(await focused()).toBe(false)
   }
+  // Tab ends on a card button or not, depending on timing; Space or Enter there would press it.
+  // Typing from no focused control proves only that the words never become a message.
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur()
+  )
   await page.keyboard.type("cancel it")
   await page.keyboard.press("Enter")
   expect(native.sent.filter((event) => event.type === "user_message")).toEqual(
@@ -1152,6 +1170,34 @@ test("while a review card is open the message box cannot be reached by pointer, 
   await expect(
     page.getByRole("dialog", { name: en.voice.review })
   ).toBeVisible()
+})
+
+test("after a stray click where the message box was, Tab stays in the review card and reaches Cancel and Approve", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  const { box, card } = await openReviewCard(page)
+  const rect = (await box.boundingBox())!
+  await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2)
+  const reached = new Set<string>()
+  for (let i = 0; i < 10; i++) {
+    await page.keyboard.press("Tab")
+    // Base UI wraps Tab at the card's edge on the next frame; wait for it, as a person would.
+    await page.evaluate(() => new Promise(requestAnimationFrame))
+    const name = await card.evaluate((el) => {
+      const active = document.activeElement as HTMLElement | null
+      return active && el.contains(active)
+        ? active.getAttribute("aria-label") || active.innerText.split("\n")[0]!
+        : `outside: ${active?.tagName} ${active?.getAttribute("aria-label") ?? ""}`
+    })
+    // Focus never escapes the card, so a keyboard user is never stranded behind it.
+    expect(name, `after Tab ${i + 1}`).not.toMatch(/^outside:/)
+    reached.add(name)
+  }
+  expect([...reached]).toEqual(
+    expect.arrayContaining([en.voice.cancel, en.voice.approve])
+  )
 })
 
 test("a review cancelled because the page was hidden says so in the chat and offers to prepare it again", async ({

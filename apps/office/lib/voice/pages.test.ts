@@ -1,12 +1,11 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import en from "@/messages/en.json"
-import nl from "@/messages/nl.json"
-import sw from "@/messages/sw.json"
+import { voiceMessages } from "@genesy/i18n/voice"
 import { rightFor } from "../routes"
 import { PAGES, openPage, pageTool, PAGE_TOOL } from "./pages"
 
+const { en, nl, sw } = voiceMessages
 const appDir = join(__dirname, "../../app/(app)")
 const uuid = "0195aaaa-0000-7000-8000-000000000001"
 
@@ -36,6 +35,9 @@ describe("office pages index", () => {
     const page = pageTool.body.properties.page
     expect(page.enum).toEqual(PAGES.map((p) => p.id))
     expect(page.description).toContain(en.voice.pages.product.purpose)
+    expect(page.description).toContain(
+      "overview: Today's summary of the business"
+    )
     expect(JSON.stringify(pageTool)).not.toMatch(/"\/[a-z]/)
     expect(pageTool).toMatchObject({ id: PAGE_TOOL, write: false })
   })
@@ -59,6 +61,25 @@ describe("opening a page", () => {
       { label: en.voice.pages.invoice.name, href: `/invoices/${uuid}` },
     ])
     expect(openPage({ page: "overview" }, [], "sw").links?.[0]?.href).toBe("/")
+  })
+
+  it("opens the storefront design review for admins only; it reads and changes nothing", () => {
+    expect(openPage({ page: "storefront" }, ["workspace_admin"], "en")).toEqual(
+      {
+        status: "completed",
+        data: { page: en.voice.pages.storefront.name },
+        links: [
+          {
+            label: en.voice.pages.storefront.name,
+            href: "/settings/storefront",
+          },
+        ],
+        narration: en.voice.pages.storefront.name,
+      }
+    )
+    expect(() =>
+      openPage({ page: "storefront" }, ["product.list"], "en")
+    ).toThrow(/permission/)
   })
 
   it("uses the same right as the office route", () => {

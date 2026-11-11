@@ -26,8 +26,10 @@ import type {
 
 import type {
   CheckoutRequest,
+  EnvelopeOptionStorefrontPublishedDesign,
   EnvelopePaymentIntentResource,
   EnvelopePublicLot,
+  EnvelopeStorefrontConnection,
   EnvelopeStorefrontOrder,
   EnvelopeStorefrontProduct,
   EnvelopeVecStorefrontCategory,
@@ -35,6 +37,7 @@ import type {
   PaginatedStorefrontProduct,
   PaymentRequest,
   StorefrontProductsListParams,
+  StorefrontShopProductsListParams,
   UnprocessableBody
 } from '../model';
 
@@ -648,6 +651,762 @@ export function useStorefrontProductsGet<TData = Awaited<ReturnType<typeof store
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getStorefrontProductsGetQueryOptions(product,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopGet = (
+    connection: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontConnection>(
+      {url: `/storefront/shops/${connection}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopGetQueryKey = (connection: string,) => {
+    return [
+    `/storefront/shops/${connection}`
+    ] as const;
+    }
+
+
+export const getStorefrontShopGetQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopGet>>, TError = ErrorType<MessageBody>>(connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopGetQueryKey(connection);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopGet>>> = ({ signal }) => storefrontShopGet(connection, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopGetQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopGet>>>
+export type StorefrontShopGetQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopGet<TData = Awaited<ReturnType<typeof storefrontShopGet>>, TError = ErrorType<MessageBody>>(
+ connection: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopGet<TData = Awaited<ReturnType<typeof storefrontShopGet>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopGet<TData = Awaited<ReturnType<typeof storefrontShopGet>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopGet<TData = Awaited<ReturnType<typeof storefrontShopGet>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopGetQueryOptions(connection,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopCategories = (
+    connection: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecStorefrontCategory>(
+      {url: `/storefront/shops/${connection}/categories`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopCategoriesQueryKey = (connection: string,) => {
+    return [
+    `/storefront/shops/${connection}/categories`
+    ] as const;
+    }
+
+
+export const getStorefrontShopCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopCategories>>, TError = ErrorType<MessageBody>>(connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopCategories>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopCategoriesQueryKey(connection);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopCategories>>> = ({ signal }) => storefrontShopCategories(connection, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopCategories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopCategories>>>
+export type StorefrontShopCategoriesQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopCategories<TData = Awaited<ReturnType<typeof storefrontShopCategories>>, TError = ErrorType<MessageBody>>(
+ connection: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopCategories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopCategories>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopCategories<TData = Awaited<ReturnType<typeof storefrontShopCategories>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopCategories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopCategories>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopCategories<TData = Awaited<ReturnType<typeof storefrontShopCategories>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopCategories>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopCategories<TData = Awaited<ReturnType<typeof storefrontShopCategories>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopCategories>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopCategoriesQueryOptions(connection,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopLotsGet = (
+    connection: string,
+    code: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePublicLot>(
+      {url: `/storefront/shops/${connection}/lots/${code}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopLotsGetQueryKey = (connection: string,
+    code: string,) => {
+    return [
+    `/storefront/shops/${connection}/lots/${code}`
+    ] as const;
+    }
+
+
+export const getStorefrontShopLotsGetQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError = ErrorType<MessageBody>>(connection: string,
+    code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopLotsGetQueryKey(connection,code);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopLotsGet>>> = ({ signal }) => storefrontShopLotsGet(connection,code, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined && code !== null && code !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopLotsGetQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopLotsGet>>>
+export type StorefrontShopLotsGetQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopLotsGet<TData = Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    code: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopLotsGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopLotsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopLotsGet<TData = Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopLotsGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopLotsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopLotsGet<TData = Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopLotsGet<TData = Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopLotsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopLotsGetQueryOptions(connection,code,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopOrdersCreate = (
+    connection: string,
+    checkoutRequest: BodyType<CheckoutRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontOrder>(
+      {url: `/storefront/shops/${connection}/orders`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: checkoutRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopOrdersCreateMutationKey = () => ['storefrontShopOrdersCreate'] as const;
+
+export const getStorefrontShopOrdersCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontShopOrdersCreate>>, TError,StorefrontShopOrdersCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontShopOrdersCreate>>, TError,StorefrontShopOrdersCreateMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontShopOrdersCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontShopOrdersCreate>>, StorefrontShopOrdersCreateMutationVariables> = (props) => {
+          const {connection,data} = props ?? {};
+
+          return  storefrontShopOrdersCreate(connection,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontShopOrdersCreateMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontShopOrdersCreate>>>
+    export type StorefrontShopOrdersCreateMutationBody = BodyType<CheckoutRequest>
+    export type StorefrontShopOrdersCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type StorefrontShopOrdersCreateMutationVariables = {connection: string;data: BodyType<CheckoutRequest>}
+
+    export const useStorefrontShopOrdersCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontShopOrdersCreate>>, TError,StorefrontShopOrdersCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontShopOrdersCreate>>,
+        TError,
+        StorefrontShopOrdersCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontShopOrdersCreateMutationOptions(options), queryClient);
+    }
+    export const storefrontShopOrdersGet = (
+    connection: string,
+    order: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontOrder>(
+      {url: `/storefront/shops/${connection}/orders/${order}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopOrdersGetQueryKey = (connection: string,
+    order: string,) => {
+    return [
+    `/storefront/shops/${connection}/orders/${order}`
+    ] as const;
+    }
+
+
+export const getStorefrontShopOrdersGetQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError = ErrorType<MessageBody>>(connection: string,
+    order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopOrdersGetQueryKey(connection,order);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopOrdersGet>>> = ({ signal }) => storefrontShopOrdersGet(connection,order, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined && order !== null && order !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopOrdersGetQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopOrdersGet>>>
+export type StorefrontShopOrdersGetQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopOrdersGet<TData = Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    order: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopOrdersGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopOrdersGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopOrdersGet<TData = Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopOrdersGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopOrdersGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopOrdersGet<TData = Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopOrdersGet<TData = Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopOrdersGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopOrdersGetQueryOptions(connection,order,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopOrdersPayment = (
+    connection: string,
+    order: string,
+    paymentRequest: BodyType<PaymentRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePaymentIntentResource>(
+      {url: `/storefront/shops/${connection}/orders/${order}/payment`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: paymentRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopOrdersPaymentMutationKey = () => ['storefrontShopOrdersPayment'] as const;
+
+export const getStorefrontShopOrdersPaymentMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontShopOrdersPayment>>, TError,StorefrontShopOrdersPaymentMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontShopOrdersPayment>>, TError,StorefrontShopOrdersPaymentMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontShopOrdersPaymentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontShopOrdersPayment>>, StorefrontShopOrdersPaymentMutationVariables> = (props) => {
+          const {connection,order,data} = props ?? {};
+
+          return  storefrontShopOrdersPayment(connection,order,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontShopOrdersPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontShopOrdersPayment>>>
+    export type StorefrontShopOrdersPaymentMutationBody = BodyType<PaymentRequest>
+    export type StorefrontShopOrdersPaymentMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type StorefrontShopOrdersPaymentMutationVariables = {connection: string;order: string;data: BodyType<PaymentRequest>}
+
+    export const useStorefrontShopOrdersPayment = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontShopOrdersPayment>>, TError,StorefrontShopOrdersPaymentMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontShopOrdersPayment>>,
+        TError,
+        StorefrontShopOrdersPaymentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontShopOrdersPaymentMutationOptions(options), queryClient);
+    }
+    export const storefrontShopDesign = (
+    connection: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeOptionStorefrontPublishedDesign>(
+      {url: `/storefront/shops/${connection}/pages/home`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopDesignQueryKey = (connection: string,) => {
+    return [
+    `/storefront/shops/${connection}/pages/home`
+    ] as const;
+    }
+
+
+export const getStorefrontShopDesignQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopDesign>>, TError = ErrorType<MessageBody>>(connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopDesign>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopDesignQueryKey(connection);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopDesign>>> = ({ signal }) => storefrontShopDesign(connection, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopDesign>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopDesignQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopDesign>>>
+export type StorefrontShopDesignQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopDesign<TData = Awaited<ReturnType<typeof storefrontShopDesign>>, TError = ErrorType<MessageBody>>(
+ connection: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopDesign>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopDesign>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopDesign>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopDesign<TData = Awaited<ReturnType<typeof storefrontShopDesign>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopDesign>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopDesign>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopDesign>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopDesign<TData = Awaited<ReturnType<typeof storefrontShopDesign>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopDesign>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopDesign<TData = Awaited<ReturnType<typeof storefrontShopDesign>>, TError = ErrorType<MessageBody>>(
+ connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopDesign>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopDesignQueryOptions(connection,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopProductsList = (
+    connection: string,
+    params?: StorefrontShopProductsListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedStorefrontProduct>(
+      {url: `/storefront/shops/${connection}/products`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopProductsListQueryKey = (connection: string,
+    params?: StorefrontShopProductsListParams,) => {
+    return [
+    `/storefront/shops/${connection}/products`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getStorefrontShopProductsListQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopProductsList>>, TError = ErrorType<MessageBody>>(connection: string,
+    params?: StorefrontShopProductsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopProductsListQueryKey(connection,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopProductsList>>> = ({ signal }) => storefrontShopProductsList(connection,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopProductsListQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopProductsList>>>
+export type StorefrontShopProductsListQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopProductsList<TData = Awaited<ReturnType<typeof storefrontShopProductsList>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    params: undefined |  StorefrontShopProductsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopProductsList>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopProductsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopProductsList<TData = Awaited<ReturnType<typeof storefrontShopProductsList>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    params?: StorefrontShopProductsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopProductsList>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopProductsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopProductsList<TData = Awaited<ReturnType<typeof storefrontShopProductsList>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    params?: StorefrontShopProductsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopProductsList<TData = Awaited<ReturnType<typeof storefrontShopProductsList>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    params?: StorefrontShopProductsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopProductsListQueryOptions(connection,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const storefrontShopProductsGet = (
+    connection: string,
+    product: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontProduct>(
+      {url: `/storefront/shops/${connection}/products/${product}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontShopProductsGetQueryKey = (connection: string,
+    product: string,) => {
+    return [
+    `/storefront/shops/${connection}/products/${product}`
+    ] as const;
+    }
+
+
+export const getStorefrontShopProductsGetQueryOptions = <TData = Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError = ErrorType<MessageBody>>(connection: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontShopProductsGetQueryKey(connection,product);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontShopProductsGet>>> = ({ signal }) => storefrontShopProductsGet(connection,product, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: connection !== null && connection !== undefined && product !== null && product !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontShopProductsGetQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontShopProductsGet>>>
+export type StorefrontShopProductsGetQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontShopProductsGet<TData = Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    product: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopProductsGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopProductsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopProductsGet<TData = Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontShopProductsGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontShopProductsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontShopProductsGet<TData = Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStorefrontShopProductsGet<TData = Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError = ErrorType<MessageBody>>(
+ connection: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontShopProductsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontShopProductsGetQueryOptions(connection,product,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

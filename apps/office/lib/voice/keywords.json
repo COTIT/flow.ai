@@ -634,5 +634,197 @@
     ],
     "nl": ["correcties", "openstaand", "wachtend", "goedkeuren", "goedkeuring"],
     "sw": ["marekebisho", "yanayosubiri", "idhini", "kuidhinisha"]
+  },
+  "storefront_design_get": {
+    "en": [
+      "storefront",
+      "shop page",
+      "home page",
+      "website",
+      "webshop",
+      "design",
+      "current",
+      "draft"
+    ],
+    "nl": [
+      "webwinkel",
+      "winkelpagina",
+      "startpagina",
+      "website",
+      "ontwerp",
+      "concept"
+    ],
+    "sw": [
+      "duka la mtandaoni",
+      "ukurasa wa duka",
+      "ukurasa wa mwanzo",
+      "tovuti",
+      "muundo",
+      "rasimu"
+    ]
+  },
+  "storefront_design_revisions": {
+    "en": [
+      "storefront",
+      "shop page",
+      "design",
+      "history",
+      "versions",
+      "earlier",
+      "previous"
+    ],
+    "nl": [
+      "webwinkel",
+      "ontwerp",
+      "geschiedenis",
+      "versies",
+      "eerdere",
+      "vorige"
+    ],
+    "sw": ["ukurasa wa duka", "muundo", "historia", "matoleo", "iliyopita"]
+  },
+  "storefront_design_capabilities": {
+    "en": [
+      "storefront",
+      "shop page",
+      "design",
+      "what can i change",
+      "options",
+      "sections",
+      "blocks"
+    ],
+    "nl": [
+      "webwinkel",
+      "ontwerp",
+      "wat kan ik veranderen",
+      "opties",
+      "secties",
+      "blokken"
+    ],
+    "sw": [
+      "ukurasa wa duka",
+      "muundo",
+      "naweza kubadilisha nini",
+      "chaguo",
+      "sehemu"
+    ]
+  },
+  "storefront_design_edit": {
+    "en": [
+      "storefront",
+      "shop page",
+      "home page",
+      "webshop",
+      "headline",
+      "heading",
+      "banner",
+      "hero",
+      "title",
+      "text",
+      "theme",
+      "colour",
+      "color",
+      "layout",
+      "columns",
+      "section",
+      "product grid",
+      "change",
+      "edit",
+      "move"
+    ],
+    "nl": [
+      "webwinkel",
+      "winkelpagina",
+      "startpagina",
+      "kop",
+      "koptekst",
+      "titel",
+      "tekst",
+      "thema",
+      "kleur",
+      "indeling",
+      "kolommen",
+      "sectie",
+      "veranderen",
+      "aanpassen",
+      "wijzigen"
+    ],
+    "sw": [
+      "duka la mtandaoni",
+      "ukurasa wa duka",
+      "ukurasa wa mwanzo",
+      "kichwa",
+      "kichwa cha habari",
+      "maandishi",
+      "mandhari",
+      "rangi",
+      "mpangilio",
+      "safu",
+      "sehemu",
+      "badilisha",
+      "hariri"
+    ]
+  },
+  "storefront_design_restore": {
+    "en": [
+      "storefront",
+      "shop page",
+      "design",
+      "undo",
+      "undo last change",
+      "last change",
+      "change back",
+      "go back",
+      "previous",
+      "earlier version",
+      "restore",
+      "revert"
+    ],
+    "nl": [
+      "webwinkel",
+      "ontwerp",
+      "ongedaan maken",
+      "terugzetten",
+      "vorige",
+      "eerdere versie",
+      "herstellen"
+    ],
+    "sw": [
+      "ukurasa wa duka",
+      "muundo",
+      "tendua",
+      "rudisha",
+      "toleo la awali",
+      "rejesha"
+    ]
+  },
+  "storefront_design_publish": {
+    "en": [
+      "storefront",
+      "shop page",
+      "design",
+      "publish",
+      "go live",
+      "make live",
+      "release",
+      "new design"
+    ],
+    "nl": [
+      "webwinkel",
+      "winkelontwerp",
+      "ontwerp",
+      "publiceren",
+      "publiceer",
+      "live zetten",
+      "nieuw ontwerp"
+    ],
+    "sw": [
+      "duka",
+      "ukurasa wa duka",
+      "muundo",
+      "chapisha",
+      "kuchapisha",
+      "muundo mpya"
+    ]
   }
 }

@@ -3,8 +3,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node scripts/prepare-voice-audio.mjs && next dev --port 3001",
-    "build": "node scripts/prepare-voice-audio.mjs && next build",
+    "dev": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next dev --port 3001",
+    "build": "node ../../packages/voice/scripts/prepare-voice-audio.mjs public && next build",
     "start": "next start --port 3001",
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
@@ -13,16 +13,17 @@
     "voice:generate": "node scripts/generate-voice-catalog.mjs",
     "voice:check": "node scripts/generate-voice-catalog.mjs --check",
     "voice:triage": "node scripts/voice-heal.mjs triage",
-    "voice:heal": "node scripts/voice-heal.mjs heal"
+    "voice:heal": "node scripts/voice-heal.mjs heal",
+    "voice:demand": "node scripts/voice-heal.mjs demand"
   },
   "dependencies": {
     "@alexanderolsen/libsamplerate-js": "2.1.2",
     "@elevenlabs/client": "1.35.0",
-    "@elevenlabs/react": "^1.21.1",
     "@genesy/api-client": "workspace:^",
     "@genesy/i18n": "workspace:*",
     "@genesy/security": "workspace:*",
     "@genesy/ui": "workspace:*",
+    "@genesy/voice": "workspace:*",
     "@langchain/langgraph": "^1.7.1",
     "@langchain/langgraph-checkpoint-postgres": "1.1.2",
     "@tanstack/react-query": "^5.105.0",

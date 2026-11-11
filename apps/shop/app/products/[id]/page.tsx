@@ -51,7 +51,7 @@ const crumb =
   "inline-flex min-h-11 min-w-11 items-center gap-1 hover:text-foreground md:min-h-8"
 
 const gold =
-  "bg-[image:var(--gold-gradient)] font-semibold text-[#0a183a] hover:opacity-90"
+  "bg-[image:var(--gold-gradient)] font-semibold text-gold-foreground hover:opacity-90"
 
 /**
  * Product page (bento): breadcrumb, photo, buy tile, "Where it came from" (the batch

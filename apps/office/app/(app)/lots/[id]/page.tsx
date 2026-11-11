@@ -305,7 +305,7 @@ export default function LotPage({
             href={`/lots/${id}/passport`}
             className={cn(
               buttonVariants(),
-              "bg-[image:var(--gold-gradient)] font-semibold text-[#0a183a] hover:opacity-90"
+              "bg-[image:var(--gold-gradient)] font-semibold text-gold-foreground hover:opacity-90"
             )}
           >
             {t("lots.editPassport")}

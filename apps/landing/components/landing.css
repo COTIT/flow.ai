@@ -51,16 +51,17 @@
 
 .landing {
   & {
-    --navy: #0a183a;
-    --navy-2: #13234d;
-    --navy-3: #1b2c57;
-    --mist: #f2f6f7;
-    --steel: #d1dce5;
+    /* Neutral palette (shared theme tokens, 2026-11-11); the names stay so the rules below read the same. */
+    --navy: #1c1b18;
+    --navy-2: #262624;
+    --navy-3: #30302e;
+    --mist: #f5f4f0;
+    --steel: #e4dfd6;
     --gold: #d0a55f;
     --gold-hi: #efc977;
     --taupe: #8b8171;
     --teal: #01909b;
-    --slate: #456087;
+    --slate: #5f5c55;
     --ink: #232423;
     --danger: #b42318;
     --gold-gradient: linear-gradient(
@@ -301,7 +302,7 @@
   }
   .j-steps li[aria-current]::before {
     background: var(--gold-gradient);
-    color: #0a183a;
+    color: #1c1b18;
     border-color: transparent;
   }
   .j-steps b {
@@ -400,28 +401,28 @@
     animation-play-state: paused !important;
   }
   & {
-    --bg: var(--mist);
+    --bg: #faf8f3;
     --fg: var(--navy);
     --muted: var(--slate);
     --line: var(--steel);
     --card: #fff;
     --accent: var(--teal);
     --ring: var(--teal);
-    --hill-1: #d1dce5;
-    --hill-2: #b9c9d6;
-    --hill-3: #456087;
+    --hill-1: #e4dfd6;
+    --hill-2: #d9d3c8;
+    --hill-3: #5f5c55;
   }
   .dark & {
-    --bg: #0a183a;
+    --bg: #1a1a19;
     --fg: var(--mist);
-    --muted: #b4c3d3;
+    --muted: #a8a69e;
     --line: rgb(255 255 255 / 12%);
     --card: var(--navy-2);
     --accent: #3fc1cb;
     --ring: var(--gold-hi);
-    --hill-1: #1b2c57;
-    --hill-2: #243a6b;
-    --hill-3: #456087;
+    --hill-1: #30302e;
+    --hill-2: #3a3a37;
+    --hill-3: #5f5c55;
   }
   .h1 {
     font-weight: 500;
@@ -715,7 +716,7 @@
   }
   .card.featured .muted,
   .card.featured ul {
-    color: #b4c3d3;
+    color: #a8a69e;
   }
   .card.featured .icon {
     background: rgb(239 201 119 / 15%);
@@ -742,7 +743,7 @@
     border-radius: 36px;
     padding: 12px;
     background: var(--navy);
-    box-shadow: 0 30px 60px rgb(10 24 58 / 25%);
+    box-shadow: 0 30px 60px rgb(28 27 24 / 25%);
   }
   .screen {
     background: #fff;
@@ -760,7 +761,7 @@
   }
   .screen .pic {
     height: 120px;
-    background: linear-gradient(180deg, #d1dce5, #f2f6f7);
+    background: linear-gradient(180deg, #e4dfd6, #f5f4f0);
     display: grid;
     place-items: end center;
   }
@@ -920,7 +921,7 @@
     overflow: hidden;
   }
   .scene {
-    --sky: #e4edf2;
+    --sky: #f3efe6;
     color: var(--navy);
     border-radius: 24px;
     background: var(--card);
@@ -928,7 +929,7 @@
     overflow: hidden;
   }
   .dark & .scene {
-    --sky: #13234d;
+    --sky: #30302e;
     color: var(--mist);
   }
   .scene .sky {

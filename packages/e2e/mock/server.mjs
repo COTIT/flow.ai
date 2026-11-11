@@ -7,6 +7,7 @@ import { createServer } from "node:http"
 import process from "node:process"
 import { URL } from "node:url"
 
+import { flowVoice } from "./flow-voice.mjs"
 import {
   APP_KEY,
   SHOP_CONNECTIONS,
@@ -30,6 +31,7 @@ import {
   EXISTING_UNKNOWN_PAYMENT_EMAIL,
   PAYMENT_SETUP_REQUIRED_EMAIL,
   STALE_PAYMENT_SETUP_EMAIL,
+  PREVIEW,
   PRODUCT,
   REFUNDED_EMAIL,
   SECRET_BODY,
@@ -451,9 +453,20 @@ const view = ({
   expires_at,
   paid_at,
   lines,
-  ...(unknownPayment || paymentSetupRequired || stalePaymentSetup || providerDown ? { payment_attempts: paymentAttempts } : {}),
-  ...(paymentSetupRequired || paymentUnderReview || (stalePaymentSetup && paymentAttempts > 0) ? { online_payment_enabled: false } : {}),
-  ...(paymentUnderReview || (unknownPayment && paymentAttempts > 0) ? { payment_status: "unknown", payment_attention: true } : {}),
+  ...(unknownPayment ||
+  paymentSetupRequired ||
+  stalePaymentSetup ||
+  providerDown
+    ? { payment_attempts: paymentAttempts }
+    : {}),
+  ...(paymentSetupRequired ||
+  paymentUnderReview ||
+  (stalePaymentSetup && paymentAttempts > 0)
+    ? { online_payment_enabled: false }
+    : {}),
+  ...(paymentUnderReview || (unknownPayment && paymentAttempts > 0)
+    ? { payment_status: "unknown", payment_attention: true }
+    : {}),
 })
 
 const readJson = (req) =>
@@ -523,7 +536,9 @@ function placeOrder(body, key) {
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
     noProvider: email === NO_PROVIDER_EMAIL,
     providerDown: email === PROVIDER_DOWN_EMAIL,
-    unknownPayment: email === UNKNOWN_PAYMENT_EMAIL || email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
+    unknownPayment:
+      email === UNKNOWN_PAYMENT_EMAIL ||
+      email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
     paymentUnderReview: email === EXISTING_UNKNOWN_PAYMENT_EMAIL,
     paymentSetupRequired: email === PAYMENT_SETUP_REQUIRED_EMAIL,
     stalePaymentSetup: email === STALE_PAYMENT_SETUP_EMAIL,
@@ -550,6 +565,18 @@ const image = (label) =>
 const handler = async (req, res) => {
   let path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
+  // Fake Office voice server for Flow's proxy (VOICE_UPSTREAM_URL is this origin).
+  if (path === "/api/voice/readiness" && req.method === "GET")
+    return send(res, 200, { enabled: true, ready: true })
+  // Says which credentials arrived, so a spec can prove Flow drops cookies and keeps the bearer.
+  if (path === "/api/voice/session" && req.method === "DELETE")
+    return send(res, 200, {
+      status: "ended",
+      authorization: req.headers.authorization ?? null,
+      cookie: req.headers.cookie ?? null,
+      forwardedFor: req.headers["x-forwarded-for"] ?? null,
+    })
+  if (await flowVoice(req, res, path, send, readJson)) return
   if (designSuite && path === "/__design" && req.method === "POST") {
     const { mode } = await readJson(req)
     if (!["published", "missing", "invalid", "unavailable"].includes(mode))
@@ -575,8 +602,16 @@ const handler = async (req, res) => {
     return send(res, 404, { message: "Not found." })
   const shop = path.match(/^\/v1\/storefront\/shops\/([^/]+)(\/.*)?$/)
   if (shop) {
-    if (!SHOP_CONNECTIONS.includes(shop[1])) return send(res, 404, { message: "Not found." })
-    if (!shop[2]) return send(res, 200, { data: { id: shop[1], active: true, name: shop[1] === SHOP_CONNECTIONS[0] ? "First shop" : "Second shop" } })
+    if (!SHOP_CONNECTIONS.includes(shop[1]))
+      return send(res, 404, { message: "Not found." })
+    if (!shop[2])
+      return send(res, 200, {
+        data: {
+          id: shop[1],
+          active: true,
+          name: shop[1] === SHOP_CONNECTIONS[0] ? "First shop" : "Second shop",
+        },
+      })
     path = `/v1/storefront${shop[2]}`
   }
   if (!shop && req.headers.authorization !== `Bearer ${APP_KEY}`)
@@ -592,6 +627,28 @@ const handler = async (req, res) => {
     return send(res, 200, {
       data: {
         revision_id: "019a6df0-0000-7000-8000-000000000001",
+        document,
+        collections: document.sections
+          .filter((s) => s.type === "product_grid")
+          .map((s) => ({
+            section_id: s.id,
+            products: allProducts.slice(0, s.props.limit ?? 6),
+          })),
+      },
+    })
+  }
+  if (path === "/v1/storefront/preview" && req.method === "POST") {
+    const { token } = await readJson(req)
+    if (!designSuite || token !== PREVIEW.live)
+      return send(res, 404, {
+        message: "The requested resource could not be found.",
+      })
+    const document = designFixture()
+    document.sections[0].props.heading = "Draft heading only in preview"
+    return send(res, 200, {
+      data: {
+        revision_id: "019a6df0-0000-7000-8000-000000000004",
+        expires_at: "2026-11-13T12:00:00Z",
         document,
         collections: document.sections
           .filter((s) => s.type === "product_grid")
@@ -629,7 +686,10 @@ const handler = async (req, res) => {
     }
     order.paymentAttempts++
     if (order.paymentSetupRequired || order.stalePaymentSetup)
-      return send(res, 503, { code: "payment_setup_required", message: SECRET_BODY })
+      return send(res, 503, {
+        code: "payment_setup_required",
+        message: SECRET_BODY,
+      })
     if (order.noProvider)
       return send(res, 503, { message: "no payment provider configured" })
     if (order.providerDown) {
@@ -639,7 +699,14 @@ const handler = async (req, res) => {
     if (order.status !== "awaiting_payment")
       return send(res, 409, { message: "conflict" })
     if (order.unknownPayment) {
-      return send(res, 200, { data: { payment_id: `pay_${order.id}`, status: "unknown", checkout_url: null, attention: true } })
+      return send(res, 200, {
+        data: {
+          payment_id: `pay_${order.id}`,
+          status: "unknown",
+          checkout_url: null,
+          attention: true,
+        },
+      })
     }
     order.redirect = (await readJson(req)).redirect_url
     return send(res, 200, {

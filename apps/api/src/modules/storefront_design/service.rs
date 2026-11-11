@@ -2,6 +2,7 @@
 
 use super::{
     dto::*,
+    edit,
     repo::{self, NewRevision, PageRow},
 };
 use crate::{
@@ -16,7 +17,7 @@ use uuid::Uuid;
 
 const STALE: &str = "The design changed. Reload before saving or publishing.";
 
-async fn checked_revision(
+pub(super) async fn checked_revision(
     db: &mut PgConnection,
     ws: Uuid,
     page: Uuid,
@@ -121,6 +122,181 @@ async fn finish(
     idempotency::finish(db, ws, key, &answer).await?;
     Ok(answer)
 }
+/// New draft child of current draft plus audit; `restored` marks restore over save.
+async fn append(
+    tx: &mut PgConnection,
+    access: &WorkspaceAccess,
+    page: &PageRow,
+    document: &StorefrontDesignDocument,
+    restored: Option<Uuid>,
+) -> Result<(), AppError> {
+    let ws = access.workspace_id;
+    let document = serde_json::to_value(document)
+        .map_err(|_| AppError::Internal("design serialization failed".into()))?;
+    let id = repo::insert_revision(
+        &mut *tx,
+        ws,
+        page.id,
+        NewRevision {
+            parent: page.draft_revision_id,
+            restored,
+            document: &document,
+            actor: access.user_id,
+            login: access.token_id,
+        },
+    )
+    .await?;
+    repo::draft(&mut *tx, ws, page.id, id).await?;
+    let kind = if restored.is_some() {
+        "restored"
+    } else {
+        "saved"
+    };
+    repo::event(tx, ws, page, id, kind, access.user_id, access.token_id).await?;
+    Ok(())
+}
+/// Category ids on review rows become live same-workspace names.
+async fn named(
+    db: &mut PgConnection,
+    ws: Uuid,
+    mut rows: Vec<StorefrontDesignChangeRow>,
+) -> Result<Vec<StorefrontDesignChangeRow>, AppError> {
+    let ids: Vec<Uuid> = rows
+        .iter()
+        .filter(|r| r.field == "category")
+        .flat_map(|r| [r.before.as_deref(), Some(r.after.as_str())])
+        .flatten()
+        .filter_map(|v| Uuid::parse_str(v).ok())
+        .collect();
+    if ids.is_empty() {
+        return Ok(rows);
+    }
+    let names = repo::category_names(&mut *db, ws, &ids).await?;
+    let name = |v: &str| {
+        names
+            .iter()
+            .find(|(id, _)| id.to_string() == v)
+            .map(|(_, n)| n.clone())
+    };
+    for r in rows.iter_mut().filter(|r| r.field == "category") {
+        if let Some(n) = r.before.as_deref().and_then(name) {
+            r.before = Some(n);
+        }
+        if let Some(n) = name(&r.after) {
+            r.after = n;
+        }
+    }
+    Ok(rows)
+}
+/// Edit base: current draft, or starter while page has none; any other base is stale.
+async fn edit_base(
+    db: &mut PgConnection,
+    ws: Uuid,
+    page: Option<&PageRow>,
+    input: &StorefrontDesignEdit,
+) -> Result<StorefrontDesignDocument, AppError> {
+    let draft = page.and_then(|p| p.draft_revision_id);
+    if page.map_or(0, |p| p.version) != input.expected_version || draft != input.base_revision_id {
+        return Err(AppError::Conflict(STALE));
+    }
+    match (page, draft) {
+        (Some(p), Some(id)) => Ok(checked_revision(db, ws, p.id, id).await?.document),
+        _ => Ok(starter()),
+    }
+}
+/// Guarded apply plus workspace bindings; shared by write, dry run and review facts.
+pub async fn plan_edit(
+    db: &mut PgConnection,
+    ws: Uuid,
+    page: Option<&PageRow>,
+    input: &StorefrontDesignEdit,
+) -> Result<(StorefrontDesignDocument, Vec<StorefrontDesignChangeRow>), AppError> {
+    let base = edit_base(db, ws, page, input).await?;
+    let (document, rows) = edit::apply(&base, &input.changes)?;
+    validate_bindings(db, ws, &document).await?;
+    Ok((document, named(db, ws, rows).await?))
+}
+/// Review rows for restore (draft → selected) or publish (published → draft), same guards as writes.
+pub async fn selection_rows(
+    db: &mut PgConnection,
+    ws: Uuid,
+    page: Option<&PageRow>,
+    input: &StorefrontDesignSelect,
+    publish: bool,
+) -> Result<Vec<StorefrontDesignChangeRow>, AppError> {
+    let page = page.ok_or(AppError::NotFound)?;
+    version(page, input.expected_version)?;
+    if publish {
+        if page.draft_revision_id != Some(input.revision_id) {
+            return Err(AppError::Conflict(
+                "Only the current draft can be published.",
+            ));
+        }
+        if page.published_revision_id == Some(input.revision_id) {
+            return Err(AppError::Conflict("This revision is already published."));
+        }
+    }
+    let selected = checked_revision(db, ws, page.id, input.revision_id).await?;
+    validate_bindings(db, ws, &selected.document).await?;
+    let base_id = if publish {
+        page.published_revision_id
+    } else {
+        page.draft_revision_id
+    };
+    let base = match base_id {
+        // Base that no longer validates reads as none: review shows whole selected design.
+        Some(id) => checked_revision(db, ws, page.id, id).await.ok(),
+        None => None,
+    };
+    named(
+        db,
+        ws,
+        edit::diff(base.as_ref().map(|b| &b.document), &selected.document),
+    )
+    .await
+}
+/// Targeted edit of current draft saved as new draft; replays like other writes.
+pub async fn edit(
+    db: &PgPool,
+    access: &WorkspaceAccess,
+    input: StorefrontDesignEdit,
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
+    require_key(key.as_ref())?;
+    let ws = access.workspace_id;
+    let mut tx = db.begin().await?;
+    if let Some(answer) =
+        idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
+    {
+        return Ok(answer);
+    }
+    let page = repo::lock_page(&mut tx, ws).await?;
+    let (document, _) = plan_edit(&mut tx, ws, Some(&page), &input).await?;
+    append(&mut tx, access, &page, &document, None).await?;
+    let answer = finish(&mut tx, ws, key.as_ref(), 201).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+/// Dry run of targeted edit; one read-only snapshot, stores nothing.
+pub async fn edit_preview(
+    state: &AppState,
+    ws: Uuid,
+    input: StorefrontDesignEdit,
+) -> Result<StorefrontDesignEditPreview, AppError> {
+    let mut tx = state.db.begin().await?;
+    repo::snapshot(&mut tx).await?;
+    let page = repo::page(&mut *tx, ws).await?;
+    let (document, changes) = plan_edit(&mut tx, ws, page.as_ref(), &input).await?;
+    tx.rollback().await?;
+    let collections = collections(state, ws, &document).await?;
+    Ok(StorefrontDesignEditPreview {
+        version: page.as_ref().map_or(0, |p| p.version),
+        base_revision_id: input.base_revision_id,
+        document,
+        collections,
+        changes,
+    })
+}
 /// Save complete phase-one document as new immutable draft.
 pub async fn save(
     db: &PgPool,
@@ -139,32 +315,7 @@ pub async fn save(
     let page = repo::lock_page(&mut tx, ws).await?;
     version(&page, input.expected_version)?;
     validate_bindings(&mut tx, ws, &input.document).await?;
-    let document = serde_json::to_value(&input.document)
-        .map_err(|_| AppError::Internal("design serialization failed".into()))?;
-    let id = repo::insert_revision(
-        &mut tx,
-        ws,
-        page.id,
-        NewRevision {
-            parent: page.draft_revision_id,
-            restored: None,
-            document: &document,
-            actor: access.user_id,
-            login: access.token_id,
-        },
-    )
-    .await?;
-    repo::draft(&mut tx, ws, page.id, id).await?;
-    repo::event(
-        &mut tx,
-        ws,
-        &page,
-        id,
-        "saved",
-        access.user_id,
-        access.token_id,
-    )
-    .await?;
+    append(&mut tx, access, &page, &input.document, None).await?;
     let answer = finish(&mut tx, ws, key.as_ref(), 201).await?;
     tx.commit().await?;
     Ok(answer)
@@ -188,30 +339,12 @@ pub async fn restore(
     version(&page, input.expected_version)?;
     let selected = checked_revision(&mut tx, ws, page.id, input.revision_id).await?;
     validate_bindings(&mut tx, ws, &selected.document).await?;
-    let document = serde_json::to_value(selected.document)
-        .map_err(|_| AppError::Internal("design serialization failed".into()))?;
-    let id = repo::insert_revision(
+    append(
         &mut tx,
-        ws,
-        page.id,
-        NewRevision {
-            parent: page.draft_revision_id,
-            restored: Some(input.revision_id),
-            document: &document,
-            actor: access.user_id,
-            login: access.token_id,
-        },
-    )
-    .await?;
-    repo::draft(&mut tx, ws, page.id, id).await?;
-    repo::event(
-        &mut tx,
-        ws,
+        access,
         &page,
-        id,
-        "restored",
-        access.user_id,
-        access.token_id,
+        &selected.document,
+        Some(input.revision_id),
     )
     .await?;
     let answer = finish(&mut tx, ws, key.as_ref(), 201).await?;
@@ -260,7 +393,7 @@ pub async fn publish(
     tx.commit().await?;
     Ok(answer)
 }
-async fn collections(
+pub(super) async fn collections(
     state: &AppState,
     ws: Uuid,
     doc: &StorefrontDesignDocument,

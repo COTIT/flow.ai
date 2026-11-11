@@ -2,6 +2,7 @@ import "server-only"
 import { assistantRequest } from "./bridge"
 import { GAP_COOKIE, followUp, gapCookie } from "./gap-follow-up"
 import { getOperation, operationManifest } from "./catalog"
+import { PRESENTATION_WORDS } from "./gap-demand"
 import type { VoiceContext } from "./server"
 
 /** Developer-only gap ledger: what voice could not finish. Redacted summaries only, never transcripts. */
@@ -27,6 +28,7 @@ const vocabulary = new Set([
   "and",
   "new",
   "all",
+  ...PRESENTATION_WORDS,
   ...operationManifest.flatMap((tool) => [
     ...tool.id.split("_"),
     tool.domain,

@@ -1,6 +1,4 @@
 import { createRequestConfig } from "@genesy/i18n/request"
+import { loadOfficeApp } from "./messages"
 
-export default createRequestConfig(
-  "en",
-  async (locale) => (await import(`../messages/${locale}.json`)).default
-)
+export default createRequestConfig("en", loadOfficeApp)

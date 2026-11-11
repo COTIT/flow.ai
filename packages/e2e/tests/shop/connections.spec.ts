@@ -1,7 +1,10 @@
 import { PRODUCT, SHOP_CONNECTIONS } from "../../mock/fixtures.mjs"
 import { expect, test } from "../../src/test"
 
-test("workspace catalog, carts and checkout keep their connection across two tabs", async ({ page, context }) => {
+test("workspace catalog, carts and checkout keep their connection across two tabs", async ({
+  page,
+  context,
+}) => {
   const first = `/s/${SHOP_CONNECTIONS[0]}`
   const second = `/s/${SHOP_CONNECTIONS[1]}`
   await page.goto(`${first}/products/${PRODUCT.honey}`)
@@ -24,10 +27,18 @@ test("workspace catalog, carts and checkout keep their connection across two tab
   await page.getByLabel("City").fill("New York")
   await page.getByLabel("Country").fill("US")
   await page.getByRole("button", { name: "Place order", exact: true }).click()
-  await page.waitForURL(new RegExp(`/s/${SHOP_CONNECTIONS[0]}/orders/[0-9a-f-]{36}$`))
+  await page.waitForURL(
+    new RegExp(`/s/${SHOP_CONNECTIONS[0]}/orders/[0-9a-f-]{36}$`)
+  )
   await page.getByRole("button", { name: /^Pay \$/ }).click()
-  await expect(page.getByRole("status").filter({ hasText: "Thank you! Your payment is in" })).toBeVisible()
-  await expect(page).toHaveURL(new RegExp(`/s/${SHOP_CONNECTIONS[0]}/orders/[0-9a-f-]{36}$`))
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Thank you! Your payment is in" })
+  ).toBeVisible()
+  await expect(page).toHaveURL(
+    new RegExp(`/s/${SHOP_CONNECTIONS[0]}/orders/[0-9a-f-]{36}$`)
+  )
   await expect(page.getByRole("link", { name: "Cart, empty" })).toBeVisible()
   await other.close()
 })

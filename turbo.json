@@ -22,7 +22,9 @@
     "LANGSMITH_PROJECT",
     "LANGSMITH_HIDE_INPUTS",
     "LANGSMITH_HIDE_OUTPUTS",
-    "LANGCHAIN_CALLBACKS_BACKGROUND"
+    "LANGCHAIN_CALLBACKS_BACKGROUND",
+    "VOICE_UPSTREAM_URL",
+    "OFFICE_PUBLIC_URL"
   ],
   "tasks": {
     "build": {
@@ -35,6 +37,7 @@
         "SITE_URL",
         "STOREFRONT_APP_KEY",
         "FILES_ORIGIN",
+        "FLOW_URL",
         "NEXT_OUTPUT",
         "NEXT_DIST_DIR",
         "NOINDEX",
@@ -65,7 +68,8 @@
         "@genesy/office#build",
         "@genesy/field#build",
         "@genesy/till#build",
-        "@genesy/landing#build"
+        "@genesy/landing#build",
+        "@genesy/flow#build"
       ],
       "passThroughEnv": [
         "CI",
@@ -74,7 +78,8 @@
         "E2E_PORT_OFFSET",
         "E2E_STACK_OFFSET",
         "E2E_DESIGN",
-        "SHOP_DESIGN_ENABLED"
+        "SHOP_DESIGN_ENABLED",
+        "FLOW_URL"
       ],
       "cache": false
     },

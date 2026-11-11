@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return webManifest({
     name: "Genesy Office",
     shortName: "Office",
-    themeColor: "#0a183a",
-    backgroundColor: "#ffffff",
+    themeColor: "#1a1a19",
+    backgroundColor: "#faf8f3",
   })
 }

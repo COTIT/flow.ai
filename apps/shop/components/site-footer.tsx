@@ -60,12 +60,12 @@ export async function SiteFooter({ shopName }: { shopName?: string }) {
         <p className="text-[13px] opacity-80">{t("footer.newsletterBody")}</p>
         <a
           href={mailto(email, t("footer.newsletterSubject"))}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-(image:--gold-gradient) px-4 text-[14px] font-semibold text-[#0a183a]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-(image:--gold-gradient) px-4 text-[14px] font-semibold text-gold-foreground"
         >
           <MailIcon aria-hidden className="size-4" />
           {t("footer.newsletterCta")}
         </a>
-        <LocaleSwitcher className="mt-2 h-11 border-white/30 bg-transparent text-[13px] text-inherit md:h-10 [&>option]:text-[#0a183a]" />
+        <LocaleSwitcher className="mt-2 h-11 border-white/30 bg-transparent text-[13px] text-inherit md:h-10 [&>option]:text-[#1c1b18]" />
       </div>
     </footer>
   )

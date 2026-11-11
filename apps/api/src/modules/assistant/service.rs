@@ -118,7 +118,14 @@ pub(super) async fn propose_locked(
                                 .await?
                             {
                                 Some(facts) => facts,
-                                None => super::preconditions::capture(conn, o, &input).await?,
+                                None => match crate::modules::storefront_design::approval::capture(
+                                    conn, o, &input,
+                                )
+                                .await?
+                                {
+                                    Some(facts) => facts,
+                                    None => super::preconditions::capture(conn, o, &input).await?,
+                                },
                             }
                         }
                     },
@@ -193,6 +200,7 @@ pub(super) fn public_review(
         Some("farm_supply" | "supply_correction" | "harvest" | "dispatch" | "supply_link") => true,
         // Currencies and rates are readable by every active member.
         Some("currency_rate") => true,
+        Some("storefront_design") => granted.allows("workspace_admin"),
         _ => false,
     };
     if !allowed {
@@ -437,6 +445,19 @@ pub fn operations_ready() -> bool {
     OPS.get().is_some()
 }
 
+/// Design routes outside voice for good: whole-document save, previews, preview links
+/// (they mint and resolve bearer secrets), public reads.
+fn closed_design_route(method: &str, path: &str) -> bool {
+    let home = path
+        .split_once("/storefront/pages/home")
+        .map(|(_, rest)| rest);
+    path == "/v1/storefront/pages/home"
+        || path.starts_with("/v1/storefront/preview")
+        || method == "POST" && home == Some("/revisions")
+        || matches!(home, Some("/preview" | "/edits/preview"))
+        || home.is_some_and(|rest| rest.starts_with("/preview-links"))
+}
+
 /// Allow documented ordinary-bearer business routes only; never assistant controls/secrets.
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
@@ -444,8 +465,7 @@ pub fn resolve_operation(method: &str, path: &str) -> Result<String, AppError> {
         .as_ref()
         .map_err(|_| AppError::Internal("assistant operation inventory failed".into()))?;
     if path.contains("/assistant/")
-        || path.contains("/storefront/pages/")
-        || path.ends_with("/storefront/design-capabilities")
+        || closed_design_route(method, path)
         || path.contains("/app-keys") && method != "DELETE"
         || path.contains("/credentials")
         || path.contains("/password")
@@ -540,6 +560,27 @@ pub fn evidence(operation: &str, status: u16) -> Value {
 mod tests {
     use super::*;
     #[test]
+    fn storefront_design_facts_need_workspace_admin() {
+        use crate::modules::permissions::model::Granted;
+        let row =
+            json!({"review_facts":{"version":1,"facts":{"kind":"storefront_design","changes":[]}}});
+        let member = Granted::new(false, ["setting.get".to_owned()]);
+        assert_eq!(
+            public_review(row.clone(), &member)["review_facts"],
+            json!({"factsHiddenByPermission":true})
+        );
+        let admin = Granted::new(false, ["workspace_admin".to_owned()]);
+        for granted in [admin, Granted::new(true, [])] {
+            let shown = public_review(row.clone(), &granted);
+            assert_eq!(shown["review_facts"]["facts"]["kind"], "storefront_design");
+            assert!(
+                shown["review_facts"]
+                    .get("factsHiddenByPermission")
+                    .is_none()
+            );
+        }
+    }
+    #[test]
     fn hash_binds_every_argument() {
         let base = request_hash("POST", "/v1/x", None, Some(&json!({"a":1,"b":2})));
         assert_eq!(
@@ -557,15 +598,46 @@ mod tests {
     }
     #[test]
     fn secret_controls_never_become_business_operations() {
-        assert!(
-            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/publish").is_err()
-        );
-        assert!(
-            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/revisions").is_err()
-        );
-        assert!(
-            resolve_operation("POST", "/v1/workspace/w/storefront/pages/home/restore").is_err()
-        );
+        let home = "/v1/workspace/w/storefront/pages/home";
+        for (method, path) in [
+            ("POST", format!("{home}/revisions")),
+            ("POST", format!("{home}/edits/preview")),
+            ("GET", format!("{home}/preview")),
+            ("GET", "/v1/storefront/pages/home".to_owned()),
+            ("POST", format!("{home}/preview-links")),
+            ("GET", format!("{home}/preview-links")),
+            ("GET", format!("{home}/preview-links?revision_id=x")),
+            ("DELETE", format!("{home}/preview-links/l")),
+            ("POST", "/v1/storefront/preview".to_owned()),
+        ] {
+            assert!(resolve_operation(method, &path).is_err(), "{method} {path}");
+        }
+        for (method, path, id) in [
+            ("POST", format!("{home}/edits"), "storefront_design_edit"),
+            (
+                "POST",
+                format!("{home}/restore"),
+                "storefront_design_restore",
+            ),
+            (
+                "POST",
+                format!("{home}/publish"),
+                "storefront_design_publish",
+            ),
+            ("GET", home.to_owned(), "storefront_design_get"),
+            (
+                "GET",
+                format!("{home}/revisions"),
+                "storefront_design_revisions",
+            ),
+            (
+                "GET",
+                "/v1/workspace/w/storefront/design-capabilities".to_owned(),
+                "storefront_design_capabilities",
+            ),
+        ] {
+            assert_eq!(resolve_operation(method, &path).unwrap(), id, "{path}");
+        }
         assert!(resolve_operation("POST", "/v1/workspace/w/assistant/actions").is_err());
         assert!(resolve_operation("POST", "/v1/workspace/w/app-keys").is_err());
     }

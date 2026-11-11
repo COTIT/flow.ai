@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { VoiceConversation } from "./conversation"
-import { VoiceContext, type VoiceContextValue } from "./provider"
-import type { VoiceReview } from "@/lib/voice/client-contract"
+import { VoiceContext, type VoiceContextValue } from "@genesy/voice/components/provider"
+import type { VoiceReview } from "@genesy/voice/lib/client-contract"
 
 /** Fake conversation states so the real voice screen can be reviewed without a provider session. */
 const STATES = [
@@ -119,6 +119,8 @@ export function VoiceDesignPreview() {
       recoveredTasks: [],
       checkingRecovery: false,
       recoveredReview: false,
+      approvalHeld: false,
+      holdApproval: () => undefined,
       progress: null,
       narration: "",
       steps:
@@ -156,6 +158,7 @@ export function VoiceDesignPreview() {
         setState(decision === "approve" ? "completed" : "listening"),
       unfinished: null,
       resume: noop,
+      resolveHref: (href) => href,
     }
   }, [state, phase])
   return (

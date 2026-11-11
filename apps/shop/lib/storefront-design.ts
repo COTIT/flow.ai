@@ -1,6 +1,9 @@
 import "server-only"
 
-import type { StorefrontPublishedDesign } from "@genesy/api-client/model"
+import type {
+  StorefrontPreviewDesign,
+  StorefrontPublishedDesign,
+} from "@genesy/api-client/model"
 import { apiRequest } from "@genesy/api-client/mutator"
 import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
 
@@ -44,5 +47,43 @@ export async function getPublishedDesign(): Promise<StorefrontPublishedDesign | 
     const status = (error as { response?: { status?: number } })?.response
       ?.status
     return legacy(typeof status === "number" ? `HTTP ${status}` : "network")
+  }
+}
+
+/** Every real preview token: 64 lowercase hex characters (API `auth::token`). */
+const TOKEN = /^[0-9a-f]{64}$/
+
+/**
+ * Unpublished draft behind a preview link, or null for any failure (expired, revoked, unknown,
+ * unsupported). The token travels in the request body only and is never logged.
+ */
+export async function getPreviewDesign(
+  token: string
+): Promise<StorefrontPreviewDesign | null> {
+  if (!TOKEN.test(token)) return null
+  const key = process.env.STOREFRONT_APP_KEY
+  if (!key) return null
+  try {
+    const { data } = await apiRequest<{ data: StorefrontPreviewDesign }>(
+      { url: "/storefront/preview", method: "POST", data: { token } },
+      {
+        headers: { Authorization: `Bearer ${key}` },
+        timeout: 2000,
+        adapter: "fetch",
+        fetchOptions: { cache: "no-store" },
+      }
+    )
+    return canRenderStorefrontPage(data.document, data.collections)
+      ? data
+      : null
+  } catch (error) {
+    const status = (error as { response?: { status?: number } })?.response
+      ?.status
+    // Short fixed reason only, like `legacy`: never the token, URL or error text.
+    console.warn(
+      "storefront: preview unavailable:",
+      typeof status === "number" ? `HTTP ${status}` : "network"
+    )
+    return null
   }
 }

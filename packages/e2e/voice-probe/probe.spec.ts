@@ -10,7 +10,14 @@ type Scenario = {
   kind: string
   as?: "afm" | "ruaha"
   turns: string[]
-  expect: { outcome: string; ops?: string[]; mention?: string; noTool?: boolean }
+  expect: {
+    outcome: string
+    ops?: string[]
+    mention?: string
+    noTool?: boolean
+    forbidOps?: string[] // must never be called (design references, injection)
+    notInArgs?: string[] // reference text that must not reach tool arguments
+  }
   gap?: string
   regression?: string
   rapid?: boolean // send the next line ~1 s after the previous one, mid-turn
@@ -19,7 +26,7 @@ type Scenario = {
   setup?: { product?: string } // created through the API before the conversation (local stack only)
 }
 type Turn = { user: string; finished: string; ms: number }
-type ToolCall = { command?: string; operationId?: string; query?: string; http: number; status?: string }
+type ToolCall = { command?: string; operationId?: string; query?: string; arguments?: string; http: number; status?: string }
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"))
 const bank = process.env.VOICE_PROBE_BANK ?? "scenarios" // or "adversarial"
@@ -109,6 +116,7 @@ function recordTools(page: Page, calls: ToolCall[], inflight: Set<Request>) {
       command: body.command as string,
       operationId: body.operationId as string,
       query: body.query as string,
+      ...(body.arguments === undefined ? {} : { arguments: JSON.stringify(body.arguments) }),
       http: res.status(),
       status,
     })
