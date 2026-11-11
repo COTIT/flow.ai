@@ -26,6 +26,7 @@ import {
   LONG_NAME,
   NO_PROVIDER_EMAIL,
   PROVIDER_DOWN_EMAIL,
+  PREVIEW,
   PRODUCT,
   REFUNDED_EMAIL,
   SECRET_BODY,
@@ -580,6 +581,28 @@ const handler = async (req, res) => {
     return send(res, 200, {
       data: {
         revision_id: "019a6df0-0000-7000-8000-000000000001",
+        document,
+        collections: document.sections
+          .filter((s) => s.type === "product_grid")
+          .map((s) => ({
+            section_id: s.id,
+            products: allProducts.slice(0, s.props.limit ?? 6),
+          })),
+      },
+    })
+  }
+  if (path === "/v1/storefront/preview" && req.method === "POST") {
+    const { token } = await readJson(req)
+    if (!designSuite || token !== PREVIEW.live)
+      return send(res, 404, {
+        message: "The requested resource could not be found.",
+      })
+    const document = designFixture()
+    document.sections[0].props.heading = "Draft heading only in preview"
+    return send(res, 200, {
+      data: {
+        revision_id: "019a6df0-0000-7000-8000-000000000004",
+        expires_at: "2026-11-13T12:00:00Z",
         document,
         collections: document.sections
           .filter((s) => s.type === "product_grid")

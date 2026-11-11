@@ -392,7 +392,7 @@
   "preview": {
     "banner": "Niet-gepubliceerde preview",
     "revision": "Revisie {id}",
-    "expires": "Verloopt {time}",
+    "expires": "Verloopt {time} UTC",
     "expiredTitle": "Deze preview is verlopen",
     "expiredBody": "De niet-gepubliceerde winkelrevisie staat nog in je werkruimte.",
     "backToFlow": "Terug naar Genesy Flow"

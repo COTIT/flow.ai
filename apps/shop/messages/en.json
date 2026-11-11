@@ -392,7 +392,7 @@
   "preview": {
     "banner": "Unpublished preview",
     "revision": "Revision {id}",
-    "expires": "Expires {time}",
+    "expires": "Expires {time} UTC",
     "expiredTitle": "This preview has expired",
     "expiredBody": "The unpublished storefront revision is still available in your workspace.",
     "backToFlow": "Return to Genesy Flow"

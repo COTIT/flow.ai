@@ -57,12 +57,12 @@ export default async function PreviewPage({
   const expires = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    // Server has no viewer zone; UTC stated in the message. dateStyle refuses timeZoneName.
     timeZone: "UTC",
-    timeZoneName: "short",
   }).format(new Date(design.expires_at))
   return (
     <>
-      <Notice variant="info" title={t("preview.banner")} live={false}>
+      <Notice variant="info" title={t("preview.banner")}>
         {t("preview.revision", { id: design.revision_id.slice(0, 8) })} ·{" "}
         <time dateTime={design.expires_at}>
           {t("preview.expires", { time: expires })}
