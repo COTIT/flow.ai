@@ -664,3 +664,94 @@ for (const size of [
     // The chart's day labels are on screen.
     await expect(page.locator("[data-chart] [data-day]").first()).toBeInViewport()
   })
+
+/** A touch swipe as the page sees it (start and end), from y0 to y1 at x. */
+const swipe = (page: Page, x: number, y0: number, y1: number) =>
+  page.evaluate(
+    ({ x, y0, y1 }) => {
+      const at = (y: number) =>
+        new Touch({ identifier: 7, target: document.body, clientX: x, clientY: y })
+      document.dispatchEvent(
+        new TouchEvent("touchstart", { touches: [at(y0)], changedTouches: [at(y0)] })
+      )
+      document.dispatchEvent(
+        new TouchEvent("touchend", { touches: [], changedTouches: [at(y1)] })
+      )
+    },
+    { x, y0, y1 }
+  )
+
+test.describe("touch gestures (P10-5..7)", () => {
+  test.beforeEach(({ page }) => {
+    test.skip(!test.info().project.use.hasTouch, "touch projects")
+    void page
+  })
+
+  test("P10-5: tapping the handle shows the header, tapping it again hides it", async ({
+    page,
+  }) => {
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    const handle = page.locator("[data-flow-handle]")
+    const box = (await handle.boundingBox())!
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+  })
+
+  test("P10-6: in a live conversation on a short screen, the first swipe from the top reveals the header", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    let event = 0
+    await fakeAgent(page, (text, a) =>
+      a.emit({
+        type: "agent_response",
+        agent_response_event: { agent_response: `Answer: ${text} ${"words ".repeat(30)}`, event_id: ++event },
+      })
+    )
+    await page.goto("/")
+    await startText(page)
+    for (let i = 1; i <= 4; i++) {
+      await send(page, `Line ${i}`)
+      await expect(page.getByRole("log").first()).toContainText(`Answer: Line ${i}`)
+    }
+    // The conversation follows its newest line: the scroller is not at its top.
+    expect(
+      await page.locator("[data-flow-scroll]").evaluate((m) => m.scrollTop)
+    ).toBeGreaterThan(0)
+    await swipe(page, 160, 14, 90)
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+  })
+
+  test("P10-7: with the phone sheet raised, the orb sits in the sheet and never covers its handle", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+    await page.goto("/")
+    await startText(page)
+    await send(page, "Hello")
+    await expect(page.getByRole("log")).toContainText("Answer: Hello")
+    await page.getByRole("button", { name: s.backHome }).first().click()
+    await page.getByRole("button", { name: s.raiseConversation }).click()
+    const lower = page.getByRole("button", { name: s.lowerConversation })
+    await expect(lower).toBeVisible()
+    await expect
+      .poll(async () => {
+        const o = (await page.locator("[data-orb]").boundingBox())!
+        const h = (await lower.boundingBox())!
+        const s = (await sheet(page).boundingBox())!
+        const overHandle =
+          o.x < h.x + h.width && o.x + o.width > h.x && o.y < h.y + h.height && o.y + o.height > h.y
+        return !overHandle && o.y >= s.y - 1
+      })
+      .toBe(true)
+    // A tap on the handle lowers the sheet (it never opens the full conversation instead).
+    const h = (await lower.boundingBox())!
+    await page.touchscreen.tap(h.x + h.width / 2, h.y + h.height / 2)
+    await expect(page.getByRole("button", { name: s.raiseConversation })).toBeVisible()
+    await expect(page.locator("[data-conversation-header]")).toHaveCount(0)
+  })
+})

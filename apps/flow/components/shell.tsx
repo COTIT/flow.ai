@@ -178,10 +178,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
       // A double-click acts once: the layout may change under the pointer after the first click,
       // so the second click of a double-click never reaches a control (P2-2).
       onClickCapture={(e) => {
+        const control =
+          e.target instanceof Element
+            ? e.target.closest("button, a, [role=menuitem]")
+            : null
+        // A toggle (handle, show/hide, select) flips back on the next press by design (P10-5).
         if (
           e.detail > 1 &&
-          e.target instanceof Element &&
-          e.target.closest("button, a, [role=menuitem]")
+          control &&
+          !control.matches("[aria-expanded], [aria-pressed]")
         ) {
           e.preventDefault()
           e.stopPropagation()

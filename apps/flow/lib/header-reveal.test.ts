@@ -91,7 +91,7 @@ describe("header reveal", () => {
 })
 
 describe("isRevealSwipe (option A)", () => {
-  const base = { startY: 30, dy: 60, dx: 0, safeTop: 20, atTop: true }
+  const base = { startY: 30, dy: 60, dx: 0, safeTop: 20 }
   it("a downward swipe starting just below the safe area reveals", () => {
     expect(isRevealSwipe(base)).toBe(true)
   })
@@ -105,7 +105,7 @@ describe("isRevealSwipe (option A)", () => {
     expect(isRevealSwipe({ ...base, dy: 12 })).toBe(false)
     expect(isRevealSwipe({ ...base, dx: 80 })).toBe(false)
   })
-  it("ignored while the content is not at its top", () => {
-    expect(isRevealSwipe({ ...base, atTop: false })).toBe(false)
+  it("a swipe that starts in the reveal zone reveals wherever the content is scrolled (P10-6)", () => {
+    expect(isRevealSwipe(base)).toBe(true)
   })
 })

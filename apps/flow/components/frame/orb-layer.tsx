@@ -55,7 +55,14 @@ export function OrbLayer() {
   const immersive = useFlow((s) => s.immersive)
   const resultOpen = useFlow((s) => s.resultOpen)
   const conversing = voice.messages.length > 0
-  const mode = orbMode({ pathname, resultOpen, immersive, conversing })
+  const sheetRaised = useFlow((s) => s.sheetRaised)
+  const mode = orbMode({
+    pathname,
+    resultOpen,
+    immersive,
+    conversing,
+    sheetRaised,
+  })
   // In the conversation itself the orb is only a picture of it (the controls sit beside it).
   const picture =
     pathname === "/" &&
