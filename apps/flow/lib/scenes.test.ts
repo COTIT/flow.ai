@@ -67,3 +67,14 @@ describe("keepKey / sceneLayout", () => {
     expect(sceneLayout("nope")).toBeNull()
   })
 })
+
+describe("registry", () => {
+  it("draws every component type the scenes API accepts, and nothing else", async () => {
+    const { FlowComponentType } = await import("@genesy/api-client/model")
+    const { REGISTRY, componentFor } = await import("@/components/registry")
+    expect(Object.keys(REGISTRY).sort()).toEqual(Object.values(FlowComponentType).sort())
+    for (const type of Object.values(FlowComponentType)) expect(componentFor(type)).not.toBeNull()
+    expect(componentFor("pie_chart")).toBeNull()
+    expect(componentFor("toString")).toBeNull()
+  })
+})

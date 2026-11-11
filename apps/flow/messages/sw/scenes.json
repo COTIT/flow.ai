@@ -1,0 +1,149 @@
+{
+  "scenes": {
+    "yourFlow": "Your Flow",
+    "yourFlowText": "Maonyesho unayohifadhi. Fungua moja kuliona lote.",
+    "personalised": "Binafsi",
+    "open": "Fungua {name}",
+    "hidden": "Maonyesho yaliyofichwa",
+    "restore": "Rejesha",
+    "reset": "Weka upya Your Flow",
+    "resetTitle": "Weka upya Your Flow?",
+    "resetText": "Kila onyesho linarudi kwenye mpangilio na maudhui yake ya awali. Data yako haiguswi.",
+    "resetDone": "Your Flow imerudi kwenye mipangilio ya awali.",
+    "remove": "Ondoa kutoka Your Flow",
+    "removed": "Imeondolewa kutoka Your Flow.",
+    "keep": "Weka katika Your Flow",
+    "kept": "Katika Your Flow",
+    "saved": "Imehifadhiwa katika Your Flow.",
+    "saveFailed": "Imeshindwa kuhifadhi. Your Flow haijabadilika.",
+    "pendingFirst": "Onyesha oda zinazosubiri kwanza",
+    "pendingFirstDone": "Oda zinazosubiri sasa zinakuja kwanza.",
+    "refresh": "Onyesha upya",
+    "restricted": "Haipatikani kwa jukumu lako",
+    "retry": "Jaribu tena",
+    "failed": "Imeshindwa kupakia hiki.",
+    "notFound": "Onyesho hili halipo.",
+    "sceneError": "Onyesho hili halikuweza kuonyeshwa. Mazungumzo yako hayajaathirika.",
+    "fresh": "Imesasishwa sekunde {seconds} zilizopita",
+    "refreshing": "Inaonyesha upya…",
+    "stale": "Data huenda imepitwa na wakati",
+    "refreshFailed": "Imeshindwa kuonyesha upya. Inaonyesha data ya awali.",
+    "now": "sasa",
+    "showTable": "Onyesha kama jedwali",
+    "showChart": "Onyesha kama chati",
+    "period": {
+      "today": "Leo",
+      "yesterday": "Jana",
+      "this_week": "Wiki hii",
+      "last_week": "Wiki iliyopita",
+      "last_7_days": "Siku 7 zilizopita",
+      "this_month": "Mwezi huu"
+    },
+    "periodLabel": "Kipindi",
+    "metric": {
+      "sales.gross": "Mauzo",
+      "sales.net": "Mauzo bila VAT",
+      "orders.pending": "Oda zinazosubiri",
+      "orders.draft": "Oda za rasimu",
+      "stock.below_minimum": "Bidhaa chini ya kiwango cha chini",
+      "invoices.overdue": "Ankara zilizochelewa",
+      "invoices.unpaid": "Ankara ambazo hazijalipwa"
+    },
+    "vsBefore": "{change} ukilinganisha na kipindi kilichopita",
+    "noChange": "Sawa na kipindi kilichopita",
+    "noSales": "Hakuna mauzo katika kipindi hiki.",
+    "orders": "{count, plural, one {oda #} other {oda #}}",
+    "date": "Tarehe",
+    "amount": "Kiasi",
+    "pendingOrders": "Oda zinazosubiri",
+    "noOrders": "Hakuna oda zinazosubiri.",
+    "stockTitle": "Chini ya kiwango cha chini",
+    "noStock": "Kila bidhaa iko kwenye au juu ya kiwango chake cha chini.",
+    "available": "Inapatikana",
+    "minimum": "Kiwango cha chini",
+    "shortfall": "Upungufu",
+    "selected": "Imechaguliwa",
+    "invoices": "Ankara",
+    "noInvoices": "Hakuna ankara ambazo hazijalipwa.",
+    "reports": "Ripoti zilizopangwa",
+    "noReports": "Bado hakuna ratiba. Muulize Genesy apange ripoti, kwa mfano \"Nitumie muhtasari wa mauzo kila wiki\".",
+    "pause": "Sitisha",
+    "resume": "Endelea",
+    "delete": "Futa",
+    "deleteTitle": "Futa ratiba hii?",
+    "deleteText": "Ripoti itasimama. Unaweza kuipanga tena baadaye.",
+    "active": "Inaendelea",
+    "paused": "Imesitishwa",
+    "nextRun": "Ijayo: {when}",
+    "planned": "Imepangwa: ufuatiliaji wa masharti (kwa mfano \"niambie asali ikishuka chini ya 20\").",
+    "report": {
+      "sales_summary": "Ripoti ya mauzo",
+      "attention": "Kinachohitaji umakini",
+      "overdue_invoices": "Ankara zilizochelewa",
+      "stock": "Ripoti ya hisa"
+    },
+    "frequency": {
+      "daily": "Kila siku",
+      "weekly": "Kila wiki",
+      "monthly": "Kila mwezi"
+    },
+    "noticed": {
+      "label": "Flow noticed",
+      "headline": "{count, plural, one {Kipaumbele # kinahitaji umakini wako.} other {Vipaumbele # vinahitaji umakini wako.}}",
+      "impact": "Suala lako la dharura zaidi linaathiri {count, plural, one {oda # iliyo wazi} other {oda # zilizo wazi}}.",
+      "review": "Kagua vipaumbele",
+      "calm": "Hakuna kinachohitaji umakini wako sasa hivi.",
+      "lead": "Mambo yanayohitaji umakini wako.",
+      "acknowledge": "Nimeona",
+      "acknowledged": "Imeonekana",
+      "snoozeTomorrow": "Ahirisha hadi kesho",
+      "snoozeWeek": "Ahirisha siku 7",
+      "reviewStock": "Kagua hisa",
+      "reviewOrders": "Kagua oda",
+      "affects": "{count, plural, one {oda # iliyo wazi} other {oda # zilizo wazi}}",
+      "kind": {
+        "stock.below_minimum": "{count, plural, one {bidhaa # chini ya kiwango chake cha chini cha hisa} other {bidhaa # chini ya viwango vyao vya chini vya hisa}}",
+        "orders.open": "{count, plural, one {oda # inahitaji kushughulikiwa} other {oda # zinahitaji kushughulikiwa}}",
+        "invoices.overdue": "{count, plural, one {ankara # iliyochelewa} other {ankara # zilizochelewa}}",
+        "till.open_shifts": "{count, plural, one {zamu # ya kaunta bado iko wazi} other {zamu # za kaunta bado ziko wazi}}",
+        "lots.quarantined": "{count, plural, one {kundi # katika karantini} other {makundi # katika karantini}}",
+        "webhooks.failed": "{count, plural, one {webhook # inashindwa} other {webhook # zinashindwa}}"
+      }
+    },
+    "scene": {
+      "pulse": {
+        "title": "Morning Pulse",
+        "lead": "Muhtasari wako wa kila siku uliohifadhiwa."
+      },
+      "stock": {
+        "title": "Stock Watch",
+        "lead": "Bidhaa zilizo chini ya kiwango cha chini, na kwa kiasi gani."
+      },
+      "noticed": {
+        "title": "Flow noticed",
+        "lead": "Mambo yanayohitaji umakini wako."
+      },
+      "orders": {
+        "title": "Order Focus",
+        "lead": "Oda zinazokusubiri."
+      },
+      "sales": {
+        "title": "Sales Perspective",
+        "lead": "Jinsi mauzo yanavyoendelea."
+      },
+      "routines": {
+        "title": "My Routines",
+        "lead": "Ripoti ambazo Genesy anakutumia kwa ratiba."
+      },
+      "studio": {
+        "title": "Storefront Studio",
+        "lead": "Kagua na uunde duka lako la mtandaoni."
+      }
+    },
+    "custom": {
+      "sales": "Mauzo · {period}",
+      "stock": "Stock Watch · imehifadhiwa"
+    },
+    "cancel": "Ghairi"
+  }
+}

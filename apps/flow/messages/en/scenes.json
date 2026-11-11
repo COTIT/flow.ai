@@ -1,0 +1,149 @@
+{
+  "scenes": {
+    "yourFlow": "Your Flow",
+    "yourFlowText": "Scenes you keep. Open one to see it in full.",
+    "personalised": "Personalised",
+    "open": "Open {name}",
+    "hidden": "Hidden scenes",
+    "restore": "Restore",
+    "reset": "Reset Your Flow",
+    "resetTitle": "Reset Your Flow?",
+    "resetText": "Every scene goes back to its default order and content. Your data is not touched.",
+    "resetDone": "Your Flow is back to its defaults.",
+    "remove": "Remove from Your Flow",
+    "removed": "Removed from Your Flow.",
+    "keep": "Keep in Your Flow",
+    "kept": "In Your Flow",
+    "saved": "Saved to Your Flow.",
+    "saveFailed": "Couldn't save. Your Flow is unchanged.",
+    "pendingFirst": "Show pending orders first",
+    "pendingFirstDone": "Pending orders now come first.",
+    "refresh": "Refresh",
+    "restricted": "Not available for your role",
+    "retry": "Try again",
+    "failed": "Couldn't load this.",
+    "notFound": "This scene doesn't exist.",
+    "sceneError": "This scene couldn't be shown. Your conversation is unaffected.",
+    "fresh": "Updated {seconds} s ago",
+    "refreshing": "Refreshing…",
+    "stale": "Data may be outdated",
+    "refreshFailed": "Couldn't refresh. Showing earlier data.",
+    "now": "now",
+    "showTable": "Show as table",
+    "showChart": "Show as chart",
+    "period": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "this_week": "This week",
+      "last_week": "Last week",
+      "last_7_days": "Last 7 days",
+      "this_month": "This month"
+    },
+    "periodLabel": "Period",
+    "metric": {
+      "sales.gross": "Sales",
+      "sales.net": "Sales excl. VAT",
+      "orders.pending": "Pending orders",
+      "orders.draft": "Draft orders",
+      "stock.below_minimum": "Products below minimum",
+      "invoices.overdue": "Overdue invoices",
+      "invoices.unpaid": "Unpaid invoices"
+    },
+    "vsBefore": "{change} vs the period before",
+    "noChange": "Same as the period before",
+    "noSales": "No sales in this period.",
+    "orders": "{count, plural, one {# order} other {# orders}}",
+    "date": "Date",
+    "amount": "Amount",
+    "pendingOrders": "Pending orders",
+    "noOrders": "No pending orders.",
+    "stockTitle": "Below minimum",
+    "noStock": "Every product is at or above its minimum.",
+    "available": "Available",
+    "minimum": "Minimum",
+    "shortfall": "Short by",
+    "selected": "Selected",
+    "invoices": "Invoices",
+    "noInvoices": "No unpaid invoices.",
+    "reports": "Scheduled reports",
+    "noReports": "No routines yet. Ask Genesy to schedule a report, for example \"Send me a weekly sales summary\".",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete",
+    "deleteTitle": "Delete this routine?",
+    "deleteText": "The report stops. You can schedule it again later.",
+    "active": "Active",
+    "paused": "Paused",
+    "nextRun": "Next: {when}",
+    "planned": "Planned: conditional monitoring (for example \"tell me when honey drops below 20\").",
+    "report": {
+      "sales_summary": "Sales report",
+      "attention": "What needs attention",
+      "overdue_invoices": "Overdue invoices",
+      "stock": "Stock report"
+    },
+    "frequency": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "noticed": {
+      "label": "Flow noticed",
+      "headline": "{count, plural, one {# priority needs your attention.} other {# priorities need your attention.}}",
+      "impact": "Your most urgent issue affects {count, plural, one {# open order} other {# open orders}}.",
+      "review": "Review priorities",
+      "calm": "Nothing needs your attention right now.",
+      "lead": "Things needing your attention.",
+      "acknowledge": "Acknowledge",
+      "acknowledged": "Acknowledged",
+      "snoozeTomorrow": "Snooze until tomorrow",
+      "snoozeWeek": "Snooze 7 days",
+      "reviewStock": "Review stock",
+      "reviewOrders": "Review orders",
+      "affects": "{count, plural, one {# open order} other {# open orders}}",
+      "kind": {
+        "stock.below_minimum": "{count, plural, one {# product below its minimum stock level} other {# products below their minimum stock levels}}",
+        "orders.open": "{count, plural, one {# order needs fulfillment attention} other {# orders need fulfillment attention}}",
+        "invoices.overdue": "{count, plural, one {# overdue invoice} other {# overdue invoices}}",
+        "till.open_shifts": "{count, plural, one {# till shift still open} other {# till shifts still open}}",
+        "lots.quarantined": "{count, plural, one {# lot in quarantine} other {# lots in quarantine}}",
+        "webhooks.failed": "{count, plural, one {# webhook failing} other {# webhooks failing}}"
+      }
+    },
+    "scene": {
+      "pulse": {
+        "title": "Morning Pulse",
+        "lead": "Your saved daily briefing."
+      },
+      "stock": {
+        "title": "Stock Watch",
+        "lead": "Products below their minimum, and by how much."
+      },
+      "noticed": {
+        "title": "Flow noticed",
+        "lead": "Things needing your attention."
+      },
+      "orders": {
+        "title": "Order Focus",
+        "lead": "Orders waiting for you."
+      },
+      "sales": {
+        "title": "Sales Perspective",
+        "lead": "How sales are going."
+      },
+      "routines": {
+        "title": "My Routines",
+        "lead": "Reports Genesy sends you on a schedule."
+      },
+      "studio": {
+        "title": "Storefront Studio",
+        "lead": "Review and shape your storefront."
+      }
+    },
+    "custom": {
+      "sales": "Sales · {period}",
+      "stock": "Stock Watch · saved"
+    },
+    "cancel": "Cancel"
+  }
+}
