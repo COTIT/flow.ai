@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   comparePeriod,
   localToday,
+  midnightIn,
   periodRange,
   probeRange,
   TTL,
@@ -17,6 +18,31 @@ describe("localToday", () => {
   it("falls back to UTC when the zone is unknown or missing", () => {
     expect(localToday(instant, null)).toBe("2026-11-11")
     expect(localToday(instant, "Not/AZone")).toBe("2026-11-11")
+  })
+})
+
+describe("midnightIn (the instant a workspace-local day starts, as sales-summary takes it)", () => {
+  it("is local midnight in the workspace zone, as an RFC 3339 UTC instant", () => {
+    expect(midnightIn("2026-11-12", "Africa/Dar_es_Salaam")).toBe(
+      "2026-11-11T21:00:00.000Z"
+    )
+    expect(midnightIn("2026-11-11", "America/Santiago")).toBe(
+      "2026-11-11T03:00:00.000Z"
+    )
+  })
+  it("follows daylight saving: the offset of that day, not of today", () => {
+    expect(midnightIn("2026-07-01", "Europe/Berlin")).toBe(
+      "2026-06-30T22:00:00.000Z"
+    )
+    expect(midnightIn("2026-12-01", "Europe/Berlin")).toBe(
+      "2026-11-30T23:00:00.000Z"
+    )
+  })
+  it("is UTC midnight when the zone is unknown or missing", () => {
+    expect(midnightIn("2026-11-11", null)).toBe("2026-11-11T00:00:00.000Z")
+    expect(midnightIn("2026-11-11", "Not/AZone")).toBe(
+      "2026-11-11T00:00:00.000Z"
+    )
   })
 })
 

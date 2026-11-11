@@ -6,6 +6,27 @@ import scenesEn from "../../../../apps/flow/messages/en/scenes.json" with { type
 
 export const sc = scenesEn.scenes
 
+/** F5: home's Studio prompt reads the storefront design. Default: none yet (the API's empty state). */
+export const NO_DESIGN = {
+  data: {
+    version: 0,
+    draft_revision_id: null,
+    published_revision_id: null,
+    draft: null,
+  },
+}
+export const NO_REVISIONS = {
+  data: [],
+  meta: {
+    current_page: 1,
+    last_page: 1,
+    per_page: 50,
+    total: 0,
+    from: null,
+    to: null,
+  },
+}
+
 const c = (id: string, type: string, metric?: string, period?: string) => ({
   id,
   type,
@@ -232,14 +253,22 @@ export function sceneWorld(
     .on("GET", `${base}/sales-summary`, ({ query }) =>
       ops
         ? { status: 403, body: { message: "Forbidden" } }
-        : {
-            data: {
-              from: query.get("from"),
-              to: query.get("to"),
-              source: null,
-              currencies: [{ currency: "EUR", decimals: 2, ...sums(1284000) }],
-            },
-          }
+        : // Like the API: RFC 3339 instants only, a bare day is a 422.
+          ![query.get("from"), query.get("to")].every((v) => v?.includes("T"))
+          ? {
+              status: 422,
+              body: { message: "The from must be an RFC 3339 time." },
+            }
+          : {
+              data: {
+                from: query.get("from"),
+                to: query.get("to"),
+                source: null,
+                currencies: [
+                  { currency: "EUR", decimals: 2, ...sums(1284000) },
+                ],
+              },
+            }
     )
     .on("GET", `${base}/sales/compare`, () =>
       ops
@@ -331,6 +360,8 @@ export function sceneWorld(
           }
     )
     .on("GET", `${base}/scheduled-reports`, () => ({ data: [] }))
+    .on("GET", `${base}/storefront/pages/home`, () => NO_DESIGN)
+    .on("GET", `${base}/storefront/pages/home/revisions`, () => NO_REVISIONS)
   return {
     saved,
     marks,
@@ -404,4 +435,8 @@ export const sceneTable = (ws = "w1"): Record<string, MockReply> => ({
     },
   },
   [`GET /workspace/${ws}/scheduled-reports`]: { body: { data: [] } },
+  [`GET /workspace/${ws}/storefront/pages/home`]: { body: NO_DESIGN },
+  [`GET /workspace/${ws}/storefront/pages/home/revisions`]: {
+    body: NO_REVISIONS,
+  },
 })

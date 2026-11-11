@@ -110,15 +110,16 @@ test.describe("periods follow the workspace's zone, not the browser's", () => {
     const asked: string[] = []
     page.on("request", (r) => {
       if (r.url().includes("/sales-summary"))
-        asked.push(new URL(r.url()).search)
+        asked.push(new URL(r.url()).searchParams.get("from") ?? "")
     })
     await page.clock.setFixedTime(new Date("2026-11-11T22:30:00Z"))
     await page.goto("/")
     await expect(
       yourFlow(page).getByRole("link", { name: /Morning Pulse/ })
     ).toContainText("€12,840.00")
-    // Browser (Santiago) says the 11th; the workspace zone the API reports says the 12th.
-    expect(asked).toContain("?from=2026-11-12&to=2026-11-13")
-    expect(asked).not.toContain("?from=2026-11-11&to=2026-11-12")
+    // Browser (Santiago) says the 11th; the workspace zone the API reports says the 12th, which
+    // starts at 21:00 UTC (sales-summary takes instants).
+    expect(asked).toContain("2026-11-11T21:00:00.000Z")
+    expect(asked).not.toContain("2026-11-11T03:00:00.000Z")
   })
 })

@@ -138,7 +138,8 @@ test("after a completed action: here's what you can do next", async ({
   const review = page.getByRole("region", { name: chat.results })
   await expect(review).toContainText("Flow e2e order")
   await review.getByRole("button", { name: v.approve }).click()
-  await expect(review).toBeHidden()
+  // F4: the decided review becomes its receipt in place.
+  await expect(review.getByRole("button", { name: v.approve })).toHaveCount(0)
   await expect(dock(page)).toContainText(d.next)
   await expect(pills(page)).toHaveText([label("pending_orders")])
 })

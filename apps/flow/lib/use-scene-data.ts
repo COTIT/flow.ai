@@ -20,6 +20,7 @@ import { useVoice } from "@genesy/voice/components/provider"
 import {
   comparePeriod,
   localToday,
+  midnightIn,
   periodRange,
   probeRange,
   TTL,
@@ -44,8 +45,10 @@ export function useWorkspaceToday(enabled = true) {
     // Only asked when a sales view will show: a role without sales access never calls it.
     query: { enabled: enabled && !!ws, staleTime: Infinity, retry: false },
   })
+  const timeZone = zone.data?.data.time_zone ?? null
   return {
-    today: localToday(new Date(), zone.data?.data.time_zone ?? null),
+    today: localToday(new Date(), timeZone),
+    timeZone,
     ready: !zone.isPending,
   }
 }
@@ -66,8 +69,14 @@ export function usePriorities() {
 
 export function useSales(period: FlowPeriod, enabled = true) {
   const ws = useWorkspace()
-  const { today, ready } = useWorkspaceToday(enabled)
-  return useOrdersSalesSummary(ws, periodRange(period, today), {
+  const { today, timeZone, ready } = useWorkspaceToday(enabled)
+  const { from, to } = periodRange(period, today)
+  // sales-summary takes instants, not days: the workspace-local midnights.
+  const range = {
+    from: midnightIn(from, timeZone),
+    to: midnightIn(to, timeZone),
+  }
+  return useOrdersSalesSummary(ws, range, {
     query: { enabled: enabled && !!ws && ready, ...live(TTL.sales) },
   })
 }

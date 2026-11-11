@@ -19,6 +19,44 @@ export function localToday(now: Date, timeZone: string | null): string {
   return now.toISOString().slice(0, 10)
 }
 
+/** How far `timeZone`'s wall clock is ahead of UTC at `ms`; 0 when the zone is missing or unknown. */
+function offsetAt(ms: number, timeZone: string | null): number {
+  if (!timeZone) return 0
+  try {
+    const p = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+        .formatToParts(ms)
+        .map((x) => [x.type, x.value])
+    )
+    const wall = Date.parse(
+      `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`
+    )
+    return wall - Math.floor(ms / 1000) * 1000
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * The instant `day` starts in the workspace zone (RFC 3339, UTC), for routes that take instants
+ * (sales-summary); UTC midnight when the zone is missing or unknown.
+ */
+export function midnightIn(day: string, timeZone: string | null): string {
+  const wall = parse(day)
+  // Second pass uses the offset at the found instant, so a DST change that day is honoured.
+  const first = wall - offsetAt(wall, timeZone)
+  return new Date(wall - offsetAt(first, timeZone)).toISOString()
+}
+
 /** Monday of `day`'s week. */
 const monday = (day: string) =>
   shift(day, -((new Date(parse(day)).getUTCDay() + 6) % 7))

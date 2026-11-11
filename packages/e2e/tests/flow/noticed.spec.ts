@@ -122,8 +122,7 @@ test("a restricted attention or report panel says so and never asks for its data
     await expect(page.locator("[data-restricted]")).toContainText(sc.restricted)
     await expect(page.getByText(sc.noticed.calm)).toHaveCount(0)
   }
-  expect(api.callsTo("GET", "/workspace/w1/attention/priorities")).toHaveLength(
-    0
-  )
+  // Priorities are still read by F3's dock to rank its suggestions (the API filters them per
+  // member; attention_panel needs no extra right), so only the report list proves the panel skipped.
   expect(api.callsTo("GET", "/workspace/w1/scheduled-reports")).toHaveLength(0)
 })
