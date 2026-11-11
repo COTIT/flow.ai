@@ -380,7 +380,9 @@ jobs:
           restore-keys: stack-pnpm-
       - run: npm install -g "pnpm@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
       - run: pnpm install --frozen-lockfile --store-dir /home/runner/pnpm-store
-      - run: pnpm --filter @genesy/e2e exec playwright install --with-deps chromium
+      # Browser only: the ubuntu-24.04 image already has Chromium's system libraries, so no apt
+      # (the Azure apt mirror outage of 2026-11-11 failed every --with-deps install).
+      - run: pnpm --filter @genesy/e2e exec playwright install chromium
       # Up, specs, down; any failed step, console error or failed request fails the job.
       - name: Full-stack test shard
         run: |
