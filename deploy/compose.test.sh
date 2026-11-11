@@ -153,4 +153,24 @@ flow_check "$t/staging.env" staging-flow.genesy.app staging-office.genesy.app \
 flow_check "$t/staging.env" staging-flow.genesy.app staging-office.genesy.app \
   genesy-staging-allow,genesy-staging-noindex "${son[@]}" "$s/docker-compose.assistant.yml"
 
+# Field in production: RUAHA's own domain serves it; the old genesy host 301s there, keeping the path.
+docker compose -f "$p/docker-compose.production.yml" --env-file "$t/prod.env" config --format json | python3 -c '
+import json, sys
+l = json.load(sys.stdin)["services"]["field"]["labels"]
+r, mw = "traefik.http.routers.genesy-production-", "traefik.http.middlewares.genesy-production-field-to-ruaha.redirectregex."
+assert l[r + "field.rule"] == "Host(`app.ruahaenergy.com`)", l[r + "field.rule"]
+assert r + "field.middlewares" not in l, "app.ruahaenergy.com must not redirect"
+assert l[r + "field-old.rule"] == "Host(`field.genesy.app`)", l.get(r + "field-old.rule")
+assert l[r + "field-old.service"] == "genesy-production-field"
+assert l[r + "field-old.middlewares"] == "genesy-production-field-to-ruaha"
+assert l[r + "field-old.tls.certresolver"] == l[r + "field.tls.certresolver"]
+assert l[mw + "regex"] == r"^https?://field\.genesy\.app/(.*)", l[mw + "regex"]
+# `config` prints $ re-escaped as $$; the container label itself holds ${1}.
+assert l[mw + "replacement"] == "https://app.ruahaenergy.com/$${1}", l[mw + "replacement"]
+assert l[mw + "permanent"] == "true"
+assert l["traefik.http.services.genesy-production-field.loadbalancer.server.port"] == "8080"
+' || fail "production field hosts wrong"
+GENESY_ROOT="$t/root" bash -c ". '$lib/lib.sh'; mkdir -p '$lib/production'; touch '$lib/production/.env.production'; env_setup production; echo \$PUBLIC_HOSTS" \
+  | grep -qw "app.ruahaenergy.com" || fail "app.ruahaenergy.com not checked by deploy health / watch"
+
 echo "compose.test.sh: all passed"

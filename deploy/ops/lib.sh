@@ -20,7 +20,7 @@ die() {
 env_setup() {
   case "${1:-}" in
     production) ROOT="${GENESY_ROOT:-/srv/genesy-prod}" MIGRATE_SVC=cli
-      PUBLIC_HOSTS="api.genesy.app shop.genesy.app office.genesy.app till.genesy.app field.genesy.app flow.genesy.app genesy.app" ;;
+      PUBLIC_HOSTS="api.genesy.app shop.genesy.app office.genesy.app till.genesy.app app.ruahaenergy.com field.genesy.app flow.genesy.app genesy.app" ;;
     staging) ROOT="${GENESY_ROOT:-/srv/genesy-staging}" MIGRATE_SVC=seed
       PUBLIC_HOSTS="staging-api.genesy.app staging-shop.genesy.app staging-office.genesy.app staging-till.genesy.app staging-field.genesy.app staging-flow.genesy.app staging.genesy.app" ;;
     *) die "environment must be staging or production, got '${1:-}'" ;;
