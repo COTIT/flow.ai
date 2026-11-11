@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useId, useState } from "react"
 import { useTranslations } from "next-intl"
 
 import { Button } from "@genesy/ui/components/button"
@@ -24,6 +24,7 @@ export function Clarify() {
   const [picked, setPicked] = useState<string | null>(null)
   const [kind, setKind] = useState<Kind>("choose")
   const [quantity, setQuantity] = useState("")
+  const id = useId()
   if (!choice || !voice.connected) return null
   const row = choice.rows.find((r) => r.id === picked)
   const amount = Number(quantity)
@@ -68,9 +69,11 @@ export function Clarify() {
         ))}
       </fieldset>
       <div className="flex min-w-0 flex-wrap items-end gap-3">
-        <label className="flex min-w-0 flex-col gap-1 text-sm">
-          {t("type")}
+        <div className="flex min-w-0 flex-col gap-1 text-sm">
+          {/* Named by its own label only, never by its options' text. */}
+          <label htmlFor={`${id}-type`}>{t("type")}</label>
           <select
+            id={`${id}-type`}
             value={kind}
             onChange={(e) => setKind(e.target.value as Kind)}
             className="min-h-11 rounded-md border bg-background px-2"
@@ -81,22 +84,23 @@ export function Clarify() {
               </option>
             ))}
           </select>
-        </label>
+        </div>
         {kind !== "choose" ? (
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            {t("quantity")}
+          <div className="flex min-w-0 flex-col gap-1 text-sm">
+            <label htmlFor={`${id}-quantity`}>{t("quantity")}</label>
             <Input
+              id={`${id}-quantity`}
               inputMode="numeric"
               pattern="\d*"
-              aria-describedby="flow-clarify-hint"
+              aria-describedby={`${id}-hint`}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value.trim())}
               className="min-h-11 w-32"
             />
-            <span id="flow-clarify-hint" className="text-xs text-muted-foreground">
+            <span id={`${id}-hint`} className="text-xs text-muted-foreground">
               {t("quantityHint")}
             </span>
-          </label>
+          </div>
         ) : null}
         <Button type="submit" className="ml-auto min-h-11" disabled={!valid || voice.busy}>
           {kind === "choose" ? t("continue") : t("prepare")}

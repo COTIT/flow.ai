@@ -379,7 +379,8 @@ function Session({
       return
     const steps = data.steps
       .filter((step) => step && typeof step.status === "string")
-      .slice(0, 10)
+      // Up to Office's batch maximum (25): fewer would undercount what did not run. // F4
+      .slice(0, 25)
     setBatchProgress({
       id: data.batchId,
       summary: data.summary,

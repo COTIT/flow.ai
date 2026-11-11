@@ -15,9 +15,10 @@ export function Withdrawn() {
   const levels =
     (review.details.changes as { warehouses?: { stock_lvl?: unknown }[] } | undefined)
       ?.warehouses ?? []
-  const values = reviewSummary(review.details)?.rows.map(
-    (row) => `${row.label ?? row.field} → ${row.after}`
-  ) ?? levels.map((entry) => `→ ${String(entry.stock_lvl)}`)
+  const rows = reviewSummary(review.details)?.rows ?? []
+  const values = rows.length
+    ? rows.map((row) => `${row.label ?? row.field} → ${row.after}`)
+    : levels.map((entry) => `→ ${String(entry.stock_lvl)}`)
   return (
     <p data-withdrawn className="rounded-xl border border-dashed p-2 text-sm text-muted-foreground">
       <span className="font-semibold">{t("withdrawn")}</span>
