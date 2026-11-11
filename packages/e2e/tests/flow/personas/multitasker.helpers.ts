@@ -14,6 +14,7 @@ import commonSw from "../../../../../packages/i18n/messages/sw.json" with { type
 import { expect, markInjected, watchProblems } from "../../../src/test"
 import type { FakeApi } from "../../office/fake-api"
 import { ACTION, stockReview } from "../task"
+import { revealHeader } from "../shell"
 import { fakeAgent, type Agent } from "../voice"
 import type { Persona } from "./harness"
 
@@ -230,6 +231,7 @@ export const savedWorkspace = (page: Page) =>
 /** Picks the other workspace in this tab's header picker, as a person would. */
 export async function switchWorkspace(page: Page, to: string) {
   const t = L[await localeOf(page)]
+  await revealHeader(page).catch(() => {})
   const picker = page.getByRole("combobox", { name: t.workspace })
   if (!(await picker.isVisible().catch(() => false))) return false
   await picker.click({ timeout: 2_000 }).catch(() => {})
@@ -244,14 +246,25 @@ export async function switchWorkspace(page: Page, to: string) {
 }
 export async function setLanguage(page: Page, to: Locale) {
   const t = L[await localeOf(page)]
+  await revealHeader(page).catch(() => {})
   const select = page.getByRole("combobox", { name: t.language })
   if (!(await select.isVisible().catch(() => false))) return false
   await select.selectOption(to, { timeout: 2_000 }).catch(() => {})
   return true
 }
 export async function logOut(page: Page) {
-  return clickIf(page, L[await localeOf(page)].logout, false)
+  const t = L[await localeOf(page)]
+  await revealHeader(page).catch(() => {})
+  if (!(await clickIf(page, t.logout, false))) return false
+  // While a conversation or task is live, Flow asks first; the person confirms.
+  const ask = page.getByRole("alertdialog")
+  if (await ask.waitFor({ state: "visible", timeout: 1_000 }).then(() => true, () => false))
+    await ask.getByRole("button", { name: t.logout }).click({ timeout: 2_000 })
+  return true
 }
+/** The login page, with or without the `?next=` way back. */
+export const LOGIN = /\/login(\?next=[^&]*)?$/
+export const onLogin = (page: Page) => new URL(page.url()).pathname === "/login"
 
 // ---- invariants of this persona -------------------------------------------------------------
 /** A tab speaks one language: its <html lang>, its language picker and its dock agree. */

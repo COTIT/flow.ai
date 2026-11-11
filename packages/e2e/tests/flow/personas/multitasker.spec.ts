@@ -17,6 +17,7 @@ import {
   expectOneLanguage,
   Ledger,
   live,
+  LOGIN,
   logOut,
   multitaskRoutes,
   openTab,
@@ -61,6 +62,7 @@ async function setup(persona: Persona, page: Page, api: import("../../office/fak
 
 test("multitasker: two or three tabs on one login, random walk", async ({ persona, page, api }) => {
   const { ledger, tabs, syncForeign } = await setup(persona, page, api)
+  await page.emulateMedia({ colorScheme: persona.chance(0.5) ? "dark" : "light" })
   let opened = 0
   const open = () => tabs.filter((t) => !t.page.isClosed())
   const anyTab = () => persona.pick(open())
@@ -79,7 +81,9 @@ test("multitasker: two or three tabs on one login, random walk", async ({ person
     })
   }
   const wrap = (fn: () => Promise<unknown>) => async () => {
+    const t0 = Date.now()
     await fn()
+    if (process.env.PERSONA_VERBOSE) console.log(`[timing] ${persona.trail.at(-1)} ${Date.now() - t0}ms`)
     await syncForeign()
     for (const t of open()) await expectOneLanguage(t.page)
     expect(ledger.approvedTwice(), "an action was approved twice (across tabs)").toEqual([])
@@ -120,6 +124,20 @@ test("multitasker: two or three tabs on one login, random walk", async ({ person
         }),
       },
       { name: "cancel in a tab", weight: 1, run: wrap(() => cancel(anyTab().page)) },
+      {
+        name: "approve slowly here, switch workspace there",
+        weight: 2,
+        run: wrap(async () => {
+          const a = anyTab()
+          const b = otherTab(a)
+          ledger.confirmDelay = persona.int(200, 1500)
+          allowAborts(a.page)
+          await approve(a.page)
+          await switchWorkspace(b.page, NAMES[other(await savedWorkspace(b.page))]!)
+          await a.page.waitForTimeout(ledger.confirmDelay)
+          ledger.confirmDelay = 0
+        }),
+      },
       {
         name: "same scene in every tab",
         weight: 2,
@@ -196,11 +214,11 @@ test("multitasker: two or three tabs on one login, random walk", async ({ person
           await ask(b)
           allowAborts(b.page)
           if (!(await logOut(a.page))) return
-          for (const t of open()) await expect(t.page).toHaveURL(/\/login$/)
+          for (const t of open()) await expect(t.page).toHaveURL(LOGIN)
           await a.page.getByLabel("Email").fill("e2e@genesy.test")
           await a.page.getByLabel("Password").fill("e2e-password-only")
           await a.page.getByRole("button", { name: "Log in" }).click()
-          await expect(a.page).toHaveURL(/\/$/)
+          await expect(a.page).not.toHaveURL(LOGIN)
           // The other tabs follow the new login (or stay on a working login page).
           for (const t of open()) if (t !== a) await t.page.goto("/").catch(() => {})
         }),
@@ -269,7 +287,7 @@ test.describe("targeted", () => {
     allowAborts(b.page)
     await approve(b.page)
     await logOut(page)
-    for (const p of [page, b.page]) await expect(p).toHaveURL(/\/login$/)
+    for (const p of [page, b.page]) await expect(p).toHaveURL(LOGIN)
     await b.page.waitForTimeout(2000)
     await persona.check()
     console.log("[probe] decisions", ledger.decisions)
@@ -405,11 +423,11 @@ test.describe("races", () => {
     allowAborts(b.page)
     await approve(b.page)
     await logOut(page)
-    await expect(page).toHaveURL(/\/login$/)
+    await expect(page).toHaveURL(LOGIN)
     await page.getByLabel("Email").fill("e2e@genesy.test")
     await page.getByLabel("Password").fill("e2e-password-only")
     await page.getByRole("button", { name: "Log in" }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).not.toHaveURL(LOGIN) // back in (to `next` when it was given)
     await b.page.goto("/").catch(() => {})
     await b.page.waitForTimeout(3500)
     await syncForeign()
