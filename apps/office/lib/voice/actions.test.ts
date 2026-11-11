@@ -22,6 +22,7 @@ vi.mock("./review-target", () => ({ reviewTarget: mocks.target }))
 vi.mock("./workflow", async (original) => ({
   ...(await original<typeof import("./workflow")>()),
   checkpointReview: mocks.checkpoint,
+  assertReviewFree: async () => {},
 }))
 import { proposeAction } from "./actions"
 

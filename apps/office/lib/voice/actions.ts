@@ -5,7 +5,12 @@ import { getOperation, prepareAction, type PreparedAction } from "./catalog"
 import { serializeMultipart } from "./multipart"
 import { VoiceError, type VoiceContext } from "./server"
 import { voiceSetting } from "./settings"
-import { checkpointReview, createReview, verifyReview } from "./workflow"
+import {
+  assertReviewFree,
+  checkpointReview,
+  createReview,
+  verifyReview,
+} from "./workflow"
 import { confirmationPhrase } from "@genesy/voice/lib/confirmation"
 import { withVoiceTracing } from "./tracing"
 import { workspaceTimeZone } from "./time-zone"
@@ -102,6 +107,7 @@ export async function proposeAction(
   files: Map<string, Blob>
 ): Promise<VoiceOutcome> {
   const transport = await actionTransport(action, context, files)
+  await assertReviewFree(context)
   const value = {
     session_id: context.sessionId,
     ...businessDraft(action, transport),
@@ -115,7 +121,15 @@ export async function proposeAction(
       Boolean(transport)
     )
   )
-  return reviewAction(action, context, stored, transport?.reviewMetadata)
+  try {
+    return await reviewAction(action, context, stored, transport?.reviewMetadata)
+  } catch (error) {
+    // The row never reached a review card (e.g. another review won the race): close it now.
+    await assistantRequest(context, `/actions/${stored.id}/cancel`, "POST", {
+      session_id: context.sessionId,
+    }).catch(() => undefined)
+    throw error
+  }
 }
 
 /** Encode only native business request fields; batch/session binding stays outside it. */

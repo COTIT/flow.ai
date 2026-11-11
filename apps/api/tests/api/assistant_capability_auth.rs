@@ -225,7 +225,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 424, "reviewed capability count changed");
+    assert_eq!(selected.len(), 428, "reviewed capability count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool);
     let mut exercised = BTreeSet::new();
@@ -246,7 +246,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         );
         assert!(exercised.insert(id));
     }
-    assert_eq!(exercised.len(), 424);
+    assert_eq!(exercised.len(), 428);
 }
 
 #[sqlx::test]
@@ -258,7 +258,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         .iter()
         .map(|id| id.as_str().unwrap())
         .collect();
-    assert_eq!(selected.len(), 230, "reviewed effect count changed");
+    assert_eq!(selected.len(), 233, "reviewed effect count changed");
     let spec = genesy_360_api::openapi::spec().unwrap();
     let app = common::app(pool.clone());
     let (owner, workspace) =
@@ -366,7 +366,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 230);
+    assert_eq!(exercised.len(), 233);
 }
 
 #[sqlx::test]
@@ -554,7 +554,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         .collect();
     assert_eq!(
         selected.len(),
-        89,
+        91,
         "reviewed collection boundary count changed"
     );
     let f = common::farm::Farm::new(pool.clone()).await;
@@ -622,7 +622,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         );
         assert!(exercised.insert(case.id));
     }
-    assert_eq!(exercised.len(), 89);
+    assert_eq!(exercised.len(), 91);
 }
 
 #[sqlx::test]

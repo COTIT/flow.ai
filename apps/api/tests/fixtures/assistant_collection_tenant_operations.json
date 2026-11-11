@@ -52,6 +52,8 @@
     "farm_vouchers_redemptions",
     "files_create",
     "files_list",
+    "flow_scenes_list",
+    "flow_scenes_reset",
     "invites_list",
     "invoices_export",
     "invoices_send_tasks",

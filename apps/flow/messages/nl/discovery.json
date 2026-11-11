@@ -1,0 +1,135 @@
+{
+  "discovery": {
+    "suggested": "Voorgesteld voor jou",
+    "next": "Dit kun je nu doen",
+    "hint": {
+      "lead": "Weet je niet waar te beginnen?",
+      "text": "Genesy helpt je {areas}.",
+      "textGeneral": "Genesy helpt je je bedrijf te runnen met spraak of tekst.",
+      "explore": "Ontdek wat ik kan",
+      "dismiss": "Tip sluiten",
+      "areas": {
+        "stock": "je voorraad te beheren",
+        "orders": "bestellingen te bekijken",
+        "sales": "je verkoop te begrijpen",
+        "invoices": "facturen op te volgen"
+      }
+    },
+    "explorer": {
+      "title": "Ontdek wat Genesy kan",
+      "text": "Kies een soort taak. Alles hier gebruikt jouw echte rechten.",
+      "groups": {
+        "understand": "Begrijpen",
+        "operate": "Uitvoeren",
+        "automate": "Automatiseren",
+        "create": "Maken & personaliseren"
+      },
+      "example": "Zeg bijvoorbeeld: “{example}”",
+      "try": "Probeer het",
+      "tryName": "Probeer {name}",
+      "reset": "Suggesties wissen",
+      "resetDone": "Suggesties gewist. Ze leren opnieuw van wat je gebruikt.",
+      "resetText": "Suggesties volgen wat je op dit apparaat gebruikt. Verder wordt niets geleerd."
+    },
+    "status": {
+      "available": "Beschikbaar",
+      "approval": "Goedkeuring nodig",
+      "restricted": "Beperkt",
+      "planned": "Gepland"
+    },
+    "statusText": {
+      "approval": "Je bekijkt en keurt elke wijziging goed voordat die gebeurt.",
+      "restricted": "Niet beschikbaar voor jouw rol.",
+      "planned": "Nog niet beschikbaar. Gepland voor een latere versie."
+    },
+    "capabilities": {
+      "morning_briefing": {
+        "label": "Ochtendoverzicht",
+        "description": "Je bewaarde dagoverzicht: verkoop, openstaande bestellingen en voorraad die aandacht vraagt.",
+        "example": "Laat mijn ochtendoverzicht zien."
+      },
+      "review_alerts": {
+        "label": "Meldingen bekijken",
+        "description": "Zie wat Flow opviel en waarom het telt.",
+        "example": "Wat vraagt vandaag mijn aandacht?"
+      },
+      "sales_perspective": {
+        "label": "Verkoop vergelijken",
+        "description": "Verkoop per dag, vergeleken met de periode ervoor.",
+        "example": "Hoe verhoudt de verkoop zich tot vorige week?"
+      },
+      "weekly_sales": {
+        "label": "Weekverkoop",
+        "description": "Een korte samenvatting van de verkoop van deze week.",
+        "example": "Hoe was de verkoop deze week?",
+        "prompt": "Hoe was de verkoop deze week?"
+      },
+      "review_low_stock": {
+        "label": "Lage voorraad bekijken",
+        "description": "Producten onder hun minimum, met de bestellingen die het raakt.",
+        "example": "Welke producten raken op?"
+      },
+      "pending_orders": {
+        "label": "Openstaande bestellingen",
+        "description": "Bestellingen die nog afgehandeld moeten worden.",
+        "example": "Laat mijn openstaande bestellingen zien."
+      },
+      "adjust_stock": {
+        "label": "Voorraad aanpassen",
+        "description": "Zet de voorraad van een product op een nieuw aantal. Jij keurt goed voordat er iets verandert.",
+        "example": "Zet de voorraad Raw Honey op 120.",
+        "prompt": "Ik wil de voorraad van een product aanpassen."
+      },
+      "change_price": {
+        "label": "Prijs wijzigen",
+        "description": "Wijzig de prijs van een product. Jij keurt goed voordat er iets verandert.",
+        "example": "Zet de prijs van Mountain Coffee op 12 euro.",
+        "prompt": "Ik wil de prijs van een product wijzigen."
+      },
+      "find_product": {
+        "label": "Product zoeken",
+        "description": "Zoek een product op, met prijs en voorraad.",
+        "example": "Zoek Organic Tea.",
+        "prompt": "Help me een product te vinden."
+      },
+      "open_invoices": {
+        "label": "Openstaande facturen",
+        "description": "Facturen die nog niet betaald zijn, vervallen eerst.",
+        "example": "Welke facturen staan nog open?",
+        "prompt": "Welke facturen staan nog open?"
+      },
+      "schedule_weekly_report": {
+        "label": "Wekelijks rapport plannen",
+        "description": "Krijg elke week een verkoopoverzicht per e-mail. Jij keurt de planning eerst goed.",
+        "example": "Mail me elke maandag om 8 uur de verkoop van vorige week.",
+        "prompt": "Plan een wekelijks verkooprapport voor me."
+      },
+      "my_routines": {
+        "label": "Mijn routines",
+        "description": "Je geplande rapporten: pauzeren, hervatten of verwijderen.",
+        "example": "Laat mijn geplande rapporten zien."
+      },
+      "conditional_monitoring": {
+        "label": "Melding bij een verandering",
+        "description": "Krijg bericht als aan een voorwaarde is voldaan, bijvoorbeeld voorraad onder een grens.",
+        "example": "Laat het weten als Raw Honey onder 20 komt.",
+        "prompt": "Laat het weten als de voorraad onder een grens komt."
+      },
+      "arrange_flow": {
+        "label": "Jouw Flow indelen",
+        "description": "Scènes op je startscherm houden, ordenen of verwijderen.",
+        "example": "Toon openstaande bestellingen altijd eerst."
+      },
+      "storefront_design": {
+        "label": "Webwinkel ontwerpen",
+        "description": "Bekijk en verfijn het uiterlijk van je webwinkel en publiceer als je tevreden bent.",
+        "example": "Maak de homepage luxer."
+      },
+      "explore": {
+        "label": "Mogelijkheden ontdekken",
+        "description": "Alles wat Genesy voor je kan doen, per soort taak.",
+        "example": "Waarmee kun je me helpen?"
+      }
+    }
+  }
+}

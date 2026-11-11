@@ -21,7 +21,8 @@ test("one conversation survives four navigations: one socket, one session, quiet
       .map((text) => JSON.parse(text).flow_context.active_scene)
   // The new conversation hears the scene it starts in.
   await expect.poll(scenes).toEqual(["home"])
-  const storefront = page.getByRole("link", { name: "Storefront" })
+  // F2: Your Flow also has "Storefront Studio"
+  const storefront = page.getByRole("link", { name: "Storefront" , exact: true })
 
   // Each scene is told once it settles (quick hops inside the 300 ms debounce collapse).
   const heard: string[] = ["home"]

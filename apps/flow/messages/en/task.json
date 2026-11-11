@@ -1,0 +1,102 @@
+{
+  "task": {
+    "label": "Active task",
+    "working": "Genesy is working",
+    "states": {
+      "preparing": "Preparing",
+      "running": "Running",
+      "waiting_input": "Waiting for you",
+      "needs_approval": "Needs approval",
+      "paused": "Paused",
+      "failed": "Failed",
+      "partial": "Partially completed",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "unknown": "Checking"
+    },
+    "milestones": {
+      "preparing": "Preparing changes.",
+      "preparingReview": "Preparing the review.",
+      "waitingInput": "Waiting for your choice.",
+      "waitingConfirmation": "Waiting for confirmation.",
+      "executing": "Executing approved updates.",
+      "paused": "Paused. Nothing more runs until you decide.",
+      "completed": "Confirmed by Genesy.",
+      "partial": "Only part of it was done.",
+      "failed": "It was not done.",
+      "cancelled": "Nothing was changed.",
+      "checking": "Checking whether the change completed."
+    },
+    "counts": "{done} of {total} done · {failed} failed · {notRun} not run · {unknown} need checking",
+    "review": "Review",
+    "pause": "Pause",
+    "openReceipt": "View result",
+    "dismiss": "Dismiss",
+    "withdrawn": "Withdrawn · never sent",
+    "receipt": {
+      "title": {
+        "completed": "Change confirmed",
+        "partial": "Partly done",
+        "failed": "Not done",
+        "cancelled": "Cancelled · nothing was changed",
+        "unknown": "Checking whether the change completed"
+      },
+      "operation": "Operation",
+      "record": "Record",
+      "previous": "Previous",
+      "new": "New",
+      "status": "Status",
+      "reference": "Reference",
+      "statuses": {
+        "completed": "Confirmed",
+        "partial": "Partially completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "unknown": "Not confirmed yet"
+      },
+      "reading": "Reading the current value…",
+      "readFailed": "Completed; couldn't load the current value.",
+      "unconfirmed": "Completed; couldn't confirm the current value.",
+      "refresh": "Refresh",
+      "unknownText": "Don't repeat it: it may already have happened. Genesy checks the recorded outcome.",
+      "check": "Ask Genesy to check",
+      "checkMessage": "Check whether my last approved change completed. Don't repeat it.",
+      "next": "Next"
+    },
+    "clarify": {
+      "title": "Which product did you mean?",
+      "adjust": "How should I adjust the stock?",
+      "type": "Adjustment type",
+      "types": {
+        "choose": "Only choose the product",
+        "set": "Set total quantity",
+        "add": "Add to stock",
+        "remove": "Remove from stock"
+      },
+      "quantity": "Quantity",
+      "quantityHint": "A whole number of units.",
+      "continue": "Continue",
+      "prepare": "Prepare change",
+      "say": {
+        "choose": "I mean {product}.",
+        "set": "Set the stock of {product} to a total of {quantity} units.",
+        "add": "Add {quantity} units to the stock of {product}.",
+        "remove": "Remove {quantity} units from the stock of {product}."
+      }
+    },
+    "batch": {
+      "matched": "{count, plural, one {# change matched} other {# changes matched}}",
+      "exceptions": "{count, plural, =0 {no exceptions} one {# exception not included: nothing is written for it} other {# exceptions not included: nothing is written for them}}",
+      "result": "{done} updated · {failed} failed · {notRun} not run · {unknown} need checking",
+      "continue": "Prepare the rest",
+      "continueText": "Paused work does not resume by itself. Genesy prepares a new review for the changes that did not run.",
+      "continueMessage": "Prepare a new review for the {count} changes that did not run."
+    },
+    "resume": {
+      "title": "Continue where you left off",
+      "awaiting": "{summary} · waiting for your approval.",
+      "continue": "Continue review",
+      "dismiss": "Dismiss"
+    }
+  }
+}

@@ -493,7 +493,13 @@
         "stock": "Stock",
         "till_shifts": "Open till shifts",
         "lots": "Lots",
-        "webhooks": "Failed webhooks"
+        "webhooks": "Failed webhooks",
+        "stock_below_minimum": "Below minimum stock",
+        "orders_open": "Open orders",
+        "invoices_overdue": "Overdue invoices",
+        "till_open_shifts": "Open till shifts",
+        "lots_quarantined": "Quarantined lots",
+        "webhooks_failed": "Failed webhooks"
       },
       "counts": {
         "open": "Open",
@@ -504,7 +510,9 @@
         "quarantined": "On hold",
         "holds": "Held by orders",
         "failed": "Failed",
-        "negative": "Negative stock"
+        "negative": "Negative stock",
+        "acknowledged": "Seen",
+        "snoozed": "Snoozed"
       },
       "attempts": "{count, plural, one {# attempt} other {# attempts}}",
       "level": "Level {level}",

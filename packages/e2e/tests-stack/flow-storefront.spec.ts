@@ -104,12 +104,13 @@ test("an owner reviews an API draft in Flow's device frame and publishes it", as
   await expectNoHorizontalScroll(page)
 
   await region.getByRole("button", { name: "Publish", exact: true }).click()
+  // F5: the studio's publish card (live → proposed) asks for the confirmation.
   await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Publish", exact: true })
+    .getByRole("region", { name: "Publish storefront revision?" })
+    .getByRole("button", { name: "Confirm publish" })
     .click()
   await expect(
-    page.getByRole("status").filter({ hasText: "Storefront published." })
+    page.getByRole("region", { name: "Storefront published" })
   ).toBeVisible()
   const state = await owner.get<{ published_revision_id: string | null }>(path)
   expect(state.published_revision_id).toBe(draft)

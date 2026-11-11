@@ -21,6 +21,7 @@ import {
 } from "./batch-controller"
 import { confirmationPhrase, matchesSpokenConfirmation } from "@genesy/voice/lib/confirmation"
 import {
+  assertReviewFree,
   createReview,
   verifyReview,
   checkpointReview,
@@ -148,6 +149,7 @@ export async function proposeBatch(
     drafts.push(businessDraft(action, transport))
     transports.push(transport?.reviewMetadata ?? null)
   }
+  await assertReviewFree(context)
   const stored = await assistantRequest<StoredBatch>(
     context,
     "/batches",

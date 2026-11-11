@@ -121,7 +121,6 @@ export function VoiceDesignPreview() {
       recoveredReview: false,
       approvalHeld: false,
       holdApproval: () => undefined,
-      sendContext: () => undefined,
       progress: null,
       narration: "",
       steps:
@@ -160,6 +159,7 @@ export function VoiceDesignPreview() {
       unfinished: null,
       resume: noop,
       resolveHref: (href) => href,
+      sendContext: noop,
     }
   }, [state, phase])
   return (

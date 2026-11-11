@@ -623,6 +623,36 @@ it("a new session leaves the time zone out when it cannot be read", async () => 
   expect(body).not.toHaveProperty("timeZone")
 })
 
+it("a new session carries no greeting while ASSISTANT_GREETING_OVERRIDE is off", async () => {
+  vi.stubEnv("ASSISTANT_GREETING_OVERRIDE", "")
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en", greeting: "command" })
+  )
+  expect(response.status).toBe(200)
+  expect(await response.json()).not.toHaveProperty("greeting")
+})
+
+it("with the override on, a typed command opens without a greeting and a resume offers to continue", async () => {
+  vi.stubEnv("ASSISTANT_GREETING_OVERRIDE", "on")
+  const command = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en", greeting: "command" })
+  )
+  expect(await command.json()).toMatchObject({ sessionId: "a1", greeting: "" })
+  const resume = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "sw", greeting: "resume" })
+  )
+  expect((await resume.json()).greeting).toBe(
+    "Karibu tena. Kazi yako ya awali bado ipo. Tuendelee?"
+  )
+})
+
+it("refuses an unknown greeting hint", async () => {
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en", greeting: "<say anything>" })
+  )
+  expect(response.status).toBe(400)
+})
+
 it("records a conversation the provider dropped as a failure for review", async () => {
   mocks.failures.length = 0
   const response = await sessionRequest(

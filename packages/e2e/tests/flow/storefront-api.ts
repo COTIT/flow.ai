@@ -4,6 +4,7 @@ import document from "../../../../apps/api/tests/fixtures/storefront-design-v1.j
 import { expect, test as base } from "../../src/test"
 import { FakeApi, paged } from "../office/fake-api"
 import { AMINA, ILUNDO, RUAHA } from "./api"
+import { sceneWorld } from "./scenes-api" // F2
 
 export const draft = "01950000-0000-7000-8000-000000000002"
 export const published = "01950000-0000-7000-8000-000000000001"
@@ -96,6 +97,8 @@ export function designs(api: FakeApi, ws = "w1", heading?: string) {
   })
   const ids = ws === "w1" ? [draft, published] : [otherDraft]
   api
+    // No preview link yet; previewLinks() overrides this.
+    .on("GET", `${root(ws)}/preview-links`, () => ({ data: [] }))
     .on("GET", root(ws), state)
     .on("GET", `${root(ws)}/revisions`, () =>
       paged(
@@ -128,20 +131,80 @@ export function designs(api: FakeApi, ws = "w1", heading?: string) {
     })
 }
 
+/** A preview token as the API issues it (64 hex); the n-th issued one. */
+export const previewToken = (n: number) => n.toString(16).padStart(64, "a")
+
+/**
+ * Expiring preview links of the draft: POST issues an active 48 h link with a fresh token (shown
+ * once), DELETE revokes, GET lists newest first without tokens. `set` changes the newest link's
+ * status as the server would (expiry, publish ending it).
+ */
+export function previewLinks(api: FakeApi, initial: string[] = [], ws = "w1") {
+  let issued = 0
+  const links = initial.map((status, i) => link(`seed-${i}`, status))
+  function link(link_id: string, status: string) {
+    return {
+      link_id,
+      revision_id: ws === "w1" ? draft : otherDraft,
+      status,
+      created_at: "2026-11-11T12:00:00Z",
+      created_by: "u1",
+      expires_at: "2026-11-13T12:00:00Z",
+      revoked_at: status === "revoked" ? "2026-11-11T13:00:00Z" : null,
+    }
+  }
+  api
+    .on("GET", `${root(ws)}/preview-links`, () => ({ data: links }))
+    .on("POST", `${root(ws)}/preview-links`, () => {
+      issued++
+      const row = link(`link-${issued}`, "active")
+      links.unshift(row)
+      return {
+        status: 201,
+        body: { data: { ...row, token: previewToken(issued) } },
+      }
+    })
+    .on("DELETE", `${root(ws)}/preview-links/:link`, ({ params }) => {
+      const row = links.find((l) => l.link_id === params[0])!
+      row.status = "revoked"
+      row.revoked_at = "2026-11-11T13:00:00Z"
+      return { data: row }
+    })
+  return {
+    set: (status: string) => {
+      links[0]!.status = status
+    },
+  }
+}
+
 /**
  * The edit dry run Flow calls before showing a design review: "ok" answers the base document with
  * the requested heading and theme applied (nothing stored), "conflict" a 409 as when the draft
  * moved, "broken" a 500. Returns the bodies it was sent.
  */
-export function designEdits(api: FakeApi, mode: "ok" | "conflict" | "broken" = "ok", ws = "w1") {
+export function designEdits(
+  api: FakeApi,
+  mode: "ok" | "conflict" | "broken" = "ok",
+  ws = "w1"
+) {
   const sent: unknown[] = []
   api.on("POST", `${root(ws)}/edits/preview`, ({ body }) => {
     sent.push(body)
     if (mode === "conflict")
-      return { status: 409, body: { message: "The design changed. Reload before saving or publishing." } }
-    if (mode === "broken") return { status: 500, body: { message: "Internal error" } }
-    const edit = body as { expected_version: number; changes: { op: string; heading?: string; theme?: string }[] }
-    const heading = edit.changes.find((c) => c.heading)?.heading ?? "Fresh this week"
+      return {
+        status: 409,
+        body: {
+          message: "The design changed. Reload before saving or publishing.",
+        },
+      }
+    if (mode === "broken")
+      return { status: 500, body: { message: "Internal error" } }
+    const edit = body as {
+      expected_version: number
+      changes: { op: string; heading?: string; theme?: string }[]
+    }
+    const heading =
+      edit.changes.find((c) => c.heading)?.heading ?? "Fresh this week"
     const theme = edit.changes.find((c) => c.theme)?.theme ?? document.theme
     return {
       data: {
@@ -151,7 +214,9 @@ export function designEdits(api: FakeApi, mode: "ok" | "conflict" | "broken" = "
           ...document,
           theme,
           sections: document.sections.map((s) =>
-            s.type === "product_grid" ? { ...s, props: { ...s.props, heading } } : s
+            s.type === "product_grid"
+              ? { ...s, props: { ...s.props, heading } }
+              : s
           ),
         },
         collections: [{ section_id: "featured-products", products }],
@@ -164,11 +229,19 @@ export function designEdits(api: FakeApi, mode: "ok" | "conflict" | "broken" = "
 
 /** The proposal frame once it has loaded (fed by message, not by URL). */
 export async function proposalFrame(page: Page): Promise<Frame> {
-  await expect(page.locator('iframe[title="Proposed shop preview"]')).toBeVisible()
+  await expect(
+    page.locator('iframe[title="Proposed shop preview"]')
+  ).toBeVisible()
   await expect
-    .poll(() => page.frames().some((f) => f.url().includes("/storefront/preview?proposal=1")))
+    .poll(() =>
+      page
+        .frames()
+        .some((f) => f.url().includes("/storefront/preview?proposal=1"))
+    )
     .toBe(true)
-  return page.frames().find((f) => f.url().includes("/storefront/preview?proposal=1"))!
+  return page
+    .frames()
+    .find((f) => f.url().includes("/storefront/preview?proposal=1"))!
 }
 
 /** The preview frame once it has loaded (the iframe's own document). */
@@ -190,6 +263,9 @@ export const test = base.extend<{ api: FakeApi }>({
       .on("GET", "/me", () => ({ data: { user: owner } }))
       .on("GET", "/me/workspaces", () => ({ data: [ILUNDO, RUAHA] }))
       .on("POST", "/logout", () => ({ status: 204 }))
+    // F2's scene world also answers Flow noticed, which F3's suggestions read.
+    sceneWorld(api) // F2: home reads scenes, Flow noticed and their data
+    sceneWorld(api, { ws: "w2" }) // F2
     await page.route("**/v1/**", (route) => api.handle(route))
     await use(api)
   },

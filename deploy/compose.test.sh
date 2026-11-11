@@ -56,6 +56,9 @@ done
 # Expired preview links send people back to their own environment's Flow.
 [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop FLOW_URL)" == https://flow.genesy.app ]] || fail "production shop FLOW_URL"
 [[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- shop FLOW_URL)" == https://staging-flow.genesy.app ]] || fail "staging shop FLOW_URL"
+# Flow's full-page storefront previews open this environment's own Shop.
+[[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- flow SHOP_PUBLIC_URL)" == https://shop.genesy.app ]] || fail "production flow SHOP_PUBLIC_URL"
+[[ "$(value "$t/staging.env" "$s/docker-compose.staging.yml" -- flow SHOP_PUBLIC_URL)" == https://staging-shop.genesy.app ]] || fail "staging flow SHOP_PUBLIC_URL"
 
 # With it, but the bucket and key id not set: refuses, naming a missing variable (which one
 # Compose reports first differs between versions).
@@ -124,7 +127,7 @@ assert f["image"] == "ghcr.io/cotit/genesy-flow:test", f["image"]
 assert set(f["networks"]) == {"internal", "edge"}, f["networks"]
 env = f.get("environment", {})
 # FILES_ORIGIN (CSP img-src for signed product images) comes only with the uploads overlay.
-assert set(env) - {"FILES_ORIGIN"} == {"API_URL", "VOICE_UPSTREAM_URL", "OFFICE_PUBLIC_URL"}, sorted(env)
+assert set(env) - {"FILES_ORIGIN"} == {"API_URL", "VOICE_UPSTREAM_URL", "OFFICE_PUBLIC_URL", "SHOP_PUBLIC_URL"}, sorted(env)
 assert env.get("FILES_ORIGIN", "https://s3.eu-central-003.backblazeb2.com") == "https://s3.eu-central-003.backblazeb2.com", env
 assert env["VOICE_UPSTREAM_URL"] == "http://office:3000" and env["API_URL"] == "http://api:8080/v1", env
 # Links in Flow's assistant open this environment's own Office, never another one.

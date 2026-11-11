@@ -10,13 +10,17 @@ import { Button } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
+import { DiscoveryHint } from "@/components/discovery/hint" // F3
 import { useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
+import { Noticed } from "@/components/home/noticed" // F2
+import { YourFlow } from "@/components/home/your-flow" // F2
+import { StudioResume } from "@/components/studio/resume" // F5
 import { useWorkspaceChoices } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
 import { OrbSlot } from "./orb-layer"
-import { ResultScene } from "./result-scene"
+import { ApprovalScene } from "@/components/task/approval-scene" // F4
 
 const greeting = (hour: number) =>
   hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"
@@ -91,7 +95,7 @@ export function Home() {
         ))}
       </div>
     )
-  if (resultOpen) return <ResultScene />
+  if (resultOpen) return <ApprovalScene /> // F4
   if (live && immersive) return <Immersive />
   return (
     <div className="flex flex-col items-center gap-5 py-6 text-center max-md:py-3">
@@ -124,7 +128,10 @@ export function Home() {
           </p>
         </>
       ) : null}
-      {/* Slots for the discovery hint (F3), Flow noticed and Your Flow (F2). */}
+      <StudioResume /> {/* F5 */}
+      <DiscoveryHint /> {/* F3 */}
+      <Noticed /> {/* F2 */}
+      <YourFlow /> {/* F2 */}
     </div>
   )
 }

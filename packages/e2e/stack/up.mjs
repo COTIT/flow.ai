@@ -59,7 +59,8 @@ export async function up() {
     shop: { env: { API_URL: api, SITE_URL: URLS.shop, FILES_ORIGIN } },
     till: { env: { API_URL: api } },
     // Flow proxies /api/voice/* to the stack's Office at request time (compose: http://office:3000).
-    flow: { env: { API_URL: api, VOICE_UPSTREAM_URL: URLS.office } },
+    // SHOP_PUBLIC_URL: where full-page storefront preview links open (compose: the env's Shop).
+    flow: { env: { API_URL: api, VOICE_UPSTREAM_URL: URLS.office, SHOP_PUBLIC_URL: URLS.shop } },
     landing: { env: { SITE_URL: URLS.landing, NEXT_PUBLIC_SHOP_URL: URLS.shop } },
   }
   // Next bakes the /v1 rewrite into the build, so these builds are the stack's own (.next-stack).
