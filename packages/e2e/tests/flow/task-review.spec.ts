@@ -42,12 +42,10 @@ test("approving runs the action once, and only the backend's answer says it is d
 }) => {
   const { confirms, actions, review } = await propose(page)
   await expectNoHorizontalScroll(page)
-  // The composer cannot be used while the action waits, so nothing cancels it by accident.
-  expect(
-    await page
-      .getByLabel(v.message)
-      .evaluate((box) => box.closest("[inert]") !== null)
-  ).toBe(true)
+  // Nothing in the dock sends or acts while the action waits, so nothing cancels it by accident
+  // (the field keeps focus and draft, SW9).
+  await expect(page.getByRole("button", { name: v.send, exact: true })).toBeDisabled()
+  await expect(page.getByRole("button", { name: v.addFiles })).toBeDisabled()
   await actions.getByRole("button", { name: v.approve }).dblclick()
   // The decision is made: in the same scene the approval becomes its receipt, from the server's answer.
   await expect(actions.getByRole("button", { name: v.approve })).toHaveCount(0)

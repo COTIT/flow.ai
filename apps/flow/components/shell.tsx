@@ -14,7 +14,7 @@ import {
   ConversationToggle,
   useConversationLayout,
 } from "@/components/frame/conversation"
-import { Dock } from "@/components/frame/dock"
+import { DockLayer, DockSlot } from "@/components/frame/dock-layer"
 import { Header } from "@/components/frame/header"
 import { OrbLayer } from "@/components/frame/orb-layer"
 import { SceneBar } from "@/components/frame/scene-bar"
@@ -166,6 +166,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {
           height: "var(--flow-vh, 100dvh)",
           "--flow-safe-top": "env(safe-area-inset-top, 0px)",
+          // The dock's height until it is measured (its slot reserves it from the first paint).
+          "--flow-dock-h": "68px",
         } as React.CSSProperties
       }
       className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(pointer:coarse)]:pt-[calc(var(--flow-safe-top)+2.25rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
@@ -219,11 +221,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {pane.sheet ? <Sheet phase={phase} /> : null}
         <OrbLayer />
       </div>
-      {bottomDock ? (
-        <div className="w-full min-w-0">
-          <Dock phase={phase} />
-        </div>
-      ) : null}
+      {bottomDock ? <DockSlot /> : null}
+      {/* The one dock, placed over the slot the layout shows (bottom, rail or sheet). */}
+      <DockLayer phase={phase} />
     </div>
   )
 }

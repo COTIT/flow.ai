@@ -31,7 +31,7 @@ import {
   type SheetEvent,
   type SheetState,
 } from "@/lib/rail"
-import { Dock } from "./dock"
+import { DockSlot } from "./dock-layer"
 import { OrbSlot } from "./orb-layer"
 
 const KEY = "flow.rail"
@@ -289,7 +289,7 @@ export function Rail({
         </Button>
       </div>
       <PaneLog pane="rail" />
-      <Dock phase={phase} />
+      <DockSlot />
     </aside>
   )
 }
@@ -377,7 +377,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
           <PaneLog pane="sheet" />
         </div>
       ) : null}
-      <Dock phase={phase} />
+      <DockSlot />
     </section>
   )
 }

@@ -1,11 +1,11 @@
 // Flow layout (canvas 8AQVf7XEiV1cSyqPi5G6p9, boards Main, Conversation, Split, Tablet, Phone,
 // PhoneSheet) over a SIMULATED API and voice. Runs at 1280, 834 and 375 (the three projects).
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 
 import { expectNoHorizontalScroll, expectSingleScroller } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { s } from "./shell"
-import { fakeAgent, send, startText, v } from "./voice"
+import { chat, fakeAgent, send, startText, v } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -14,6 +14,26 @@ const rail = (page: Page) =>
   page.getByRole("complementary", { name: s.conversation })
 const sheet = (page: Page) => page.getByRole("region", { name: s.conversation })
 const width = (page: Page) => page.viewportSize()?.width ?? 1280
+
+const dock = (page: Page) => page.getByRole("region", { name: s.dock })
+const composer = (page: Page) => page.getByLabel(v.message)
+
+/** The one dock is drawn over `container`'s dock slot (it never moves in the DOM). */
+async function expectDockIn(page: Page, container: Locator) {
+  await expect(dock(page)).toBeVisible()
+  await expect
+    .poll(async () => {
+      const d = (await dock(page).boundingBox())!
+      const c = (await container.boundingBox())!
+      return (
+        d.x >= c.x - 1 &&
+        d.x + d.width <= c.x + c.width + 1 &&
+        d.y >= c.y - 1 &&
+        d.y + d.height <= c.y + c.height + 1
+      )
+    })
+    .toBe(true)
+}
 
 /** Talk, then go to Morning Pulse by the page's own links (the conversation stays). */
 async function talkThenPulse(page: Page) {
@@ -178,7 +198,7 @@ test.describe("conversation beside the results (Split, PhoneSheet boards)", () =
     await expect(rail(page).getByRole("log")).toContainText("Answer: Hello")
     // The dock moved into the rail: still exactly one.
     await expect(page.getByRole("region", { name: s.dock })).toHaveCount(1)
-    await expect(rail(page).getByRole("region", { name: s.dock })).toBeVisible()
+    await expectDockIn(page, rail(page))
     await expectSingleScroller(page)
 
     const grip = page.getByRole("separator", { name: s.resizeConversation })
@@ -244,18 +264,14 @@ test.describe("conversation beside the results (Split, PhoneSheet boards)", () =
     await talkThenPulse(page)
     const raise = page.getByRole("button", { name: s.raiseConversation })
     await expect(raise).toBeVisible()
-    await expect(
-      sheet(page).getByRole("region", { name: s.dock })
-    ).toBeVisible()
+    await expectDockIn(page, sheet(page))
     await expect(sheet(page).getByRole("log")).toHaveCount(0)
     await expectSingleScroller(page)
     await raise.click()
     const lower = page.getByRole("button", { name: s.lowerConversation })
     await expect(lower).toHaveAttribute("aria-expanded", "true")
     await expect(sheet(page).getByRole("log")).toContainText("Answer: Hello")
-    await expect(
-      sheet(page).getByRole("region", { name: s.dock })
-    ).toBeVisible()
+    await expectDockIn(page, sheet(page))
     const height = await sheet(page).evaluate(
       (el) => el.getBoundingClientRect().height
     )
@@ -283,4 +299,49 @@ test("conversation view: the orb stays pinned while the transcript scrolls (one 
   await expect(page.getByLabel(v.message)).toBeVisible()
   await expectSingleScroller(page, "[data-flow-scroll]", { strict: true })
   await expectNoHorizontalScroll(page)
+})
+
+test("SW9: the composer is one stable field: focus and draft survive a review opening, a scene change and the rail or sheet", async ({
+  page,
+}) => {
+  const agent = await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  const field = composer(page)
+  await field.fill("half a thought")
+  await field.focus()
+  await field.evaluate((el) => ((window as unknown as { kept: Element }).kept = el))
+  const same = () =>
+    field.evaluate((el) => (window as unknown as { kept: Element }).kept === el)
+
+  // The agent proposes an action while the person is typing: the review opens beside it.
+  agent.call("orders_create", { body: { reference: "Flow e2e order" } })
+  await expect(page.getByRole("region", { name: chat.results })).toContainText("Flow e2e order")
+  await expect(field).toBeFocused()
+  await expect(field).toHaveValue("half a thought")
+  expect(await same()).toBe(true)
+  // Enter sends nothing while the action waits.
+  await page.keyboard.press("Enter")
+  await expect(field).toHaveValue("half a thought")
+
+  // The rail or sheet opens and closes; the field is the same element with the same draft.
+  const w = page.viewportSize()!.width
+  if (w >= 640) {
+    const toggle = page.getByRole("button", { name: s.hideConversation }).first()
+    if (await toggle.isVisible()) {
+      await toggle.click()
+      await page.getByRole("button", { name: s.showConversation }).click()
+    }
+  } else {
+    await page.getByRole("button", { name: s.raiseConversation }).click()
+    await page.getByRole("button", { name: s.lowerConversation }).click()
+  }
+  await expect(field).toHaveValue("half a thought")
+  expect(await same()).toBe(true)
+
+  // A scene change: still the same field, the draft kept.
+  await page.getByRole("button", { name: s.backHome }).click()
+  await expect(field).toHaveValue("half a thought")
+  expect(await same()).toBe(true)
+  await expectSingleScroller(page)
 })
