@@ -270,6 +270,23 @@ for (const scene of ["pulse", "orders", "sales"]) {
   })
 }
 
+/**
+ * The control for a row action as the Lists board shows it at this width: an inline button, or
+ * the item in the Snooze menu, or in the row menu (⋯).
+ */
+async function actionOf(page: import("@playwright/test").Page, row: import("@playwright/test").Locator, name: string) {
+  const inline = row.getByRole("button", { name, exact: true })
+  if (await inline.isVisible()) return inline
+  const more = row.getByRole("button", { name: /^Actions for / })
+  if (await more.isVisible()) {
+    await more.click()
+    return page.getByRole("menuitem", { name, exact: true })
+  }
+  await row.getByRole("button", { name: new RegExp(`^${sc.noticed.snooze} `) }).click()
+  const short = name === sc.noticed.snoozeTomorrow ? sc.noticed.untilTomorrow : sc.noticed.forWeek
+  return page.getByRole("menuitem", { name: short, exact: true })
+}
+
 // P2-3a: two clicks in one frame (bouncy touch screen, switch device, script) used to pass
 // `disabled={isPending}` before React re-rendered, so the same write went out twice.
 const twice = {
@@ -297,9 +314,7 @@ for (const [how, click] of Object.entries(twice)) {
     ]
     for (const [ref, name] of buttons) {
       const before = api.callsTo("PUT", "/workspace/w1/attention/marks").length
-      await click(
-        stock.locator(`[data-item="${ref}"]`).getByRole("button", { name })
-      )
+      await click(await actionOf(page, stock.locator(`[data-item="${ref}"]`), name))
       await expect
         .poll(() => api.callsTo("PUT", "/workspace/w1/attention/marks").length)
         .toBeGreaterThan(before)
@@ -308,6 +323,8 @@ for (const [how, click] of Object.entries(twice)) {
         api.callsTo("PUT", "/workspace/w1/attention/marks").length - before,
         `${name} on ${how}`
       ).toBe(1)
+      await page.keyboard.press("Escape") // a menu the second click left open
+      await expect(page.getByRole("menu")).toHaveCount(0)
     }
   })
 }

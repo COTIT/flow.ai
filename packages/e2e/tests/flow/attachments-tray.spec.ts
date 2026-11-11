@@ -40,7 +40,8 @@ async function filesFit(page: Page, count: number) {
     const d = document.documentElement
     const others = Array.from(document.querySelectorAll<HTMLElement>("body *"))
       .filter((el) => {
-        if (el.matches("main")) return false // the one scroll root
+        // The scroll root and the side-by-side panes (the dock's own pane included) may scroll.
+        if (el.matches("main, [data-flow-pane]")) return false
         const y = getComputedStyle(el).overflowY
         return /(auto|scroll)/.test(y) && el.scrollHeight > el.clientHeight + 1
       })

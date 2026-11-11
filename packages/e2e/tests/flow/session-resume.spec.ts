@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test"
+import { revealHeader } from "./shell"
 
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
@@ -103,7 +104,11 @@ test.describe("starting a conversation after the login expired", () => {
 test("P8-1 a draft is dropped when the person logs out by choice", async ({ page }) => {
   await page.goto("/")
   await page.getByLabel(v.message).fill(DRAFT)
-  await page.getByRole("button", { name: "Log out" }).click()
+  await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
+  // While a conversation is live, Log out asks first (P10-3).
+  const ask = page.getByRole("alertdialog")
+  if (await ask.waitFor({ state: "visible", timeout: 1_000 }).then(() => true, () => false))
+    await ask.getByRole("button", { name: "Log out" }).click()
   await expect(page).toHaveURL(/\/login$/)
   await page.getByLabel("Email").fill("e2e@genesy.test")
   await page.getByLabel("Password").fill("e2e-password-only")
