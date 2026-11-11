@@ -71,11 +71,19 @@ const PICTURES: Record<string, "chart" | "list"> = {
   trail: "list",
 }
 
+const count = (v: unknown) => (Array.isArray(v) ? v.length : 0)
+const countIn = (list: unknown, key: string) =>
+  Array.isArray(list) ? list.reduce((n: number, x) => n + count((x as Record<string, unknown> | null)?.[key]), 0) : 0
+/** Data points a picture draws: rows, days per currency, items per section, events, materials. */
+const pointsOf = (view: Record<string, unknown>) =>
+  count(view.rows) + count(view.materials) + count(view.events) +
+  countIn(view.currencies, "days") + countIn(view.currencies, "rows") + countIn(view.sections, "items")
+
 /** What the agent hears about an outcome: record names, never links; that a picture is shown. */
 export function outcomeForAgent(outcome: {
   links?: { label: string | null; href: string }[]
   [field: string]: unknown
-}): Record<string, unknown> & { on_screen?: { kind: "chart" | "list"; instruction: string } } {
+}): Record<string, unknown> & { on_screen?: { kind: "chart" | "list"; points: number; instruction: string } } {
   // The picture is for the screen only; the agent keeps `data` so what it says stays grounded.
   const { links, view, ...rest } = outcome
   const records = links?.flatMap((link) => (link.label ? [link.label] : []))
@@ -87,6 +95,7 @@ export function outcomeForAgent(outcome: {
       ? {
           on_screen: {
             kind,
+            points: pointsOf(view as Record<string, unknown>),
             instruction: `This result is on the person's screen as a ${kind}. Answer in one or two sentences: the total or the direction and at most one notable point; never read the ${kind === "chart" ? "points" : "items"} one by one.`,
           },
         }
