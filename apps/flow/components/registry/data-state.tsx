@@ -49,47 +49,78 @@ export function DataState({
   query,
   empty,
   emptyTitle,
+  reserve = 96,
   children,
 }: {
   query: Query
   empty: boolean
   emptyTitle: string
+  /** Height in px of the card this becomes: placeholders keep it, so nothing below jumps. */
+  reserve?: number
   children: React.ReactNode
 }) {
   const t = useTranslations("scenes")
   const waiting = sceneError(query.failureReason)
   if (query.isPending && waiting.kind === "busy")
     return (
-      <Notice
-        variant="info"
-        title={t("busy", { seconds: Math.ceil(waiting.retryAfter) })}
-      />
+      <Held px={reserve}>
+        <Notice
+          variant="info"
+          title={t("busy", { seconds: Math.ceil(waiting.retryAfter) })}
+        />
+      </Held>
     )
   if (query.isPending)
-    return <Skeleton data-loading="" className="h-24 w-full rounded-2xl" />
-  const failure = sceneError(query.error)
-  if (query.isError && !query.dataUpdatedAt && failure.kind === "forbidden")
-    return <Notice variant="info" title={t("restricted")} />
-  if (query.isError && !query.dataUpdatedAt && failure.kind === "missing")
-    return <EmptyState title={t("gone")} className="py-6" />
-  if (query.isError && !query.dataUpdatedAt)
     return (
-      <Notice
-        variant="error"
-        title={t("failed")}
-        action={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void query.refetch()}
-          >
-            {t("retry")}
-          </Button>
-        }
+      <Skeleton
+        data-loading=""
+        className="w-full rounded-2xl"
+        style={{ height: reserve }}
       />
     )
-  if (empty) return <EmptyState title={emptyTitle} className="py-6" />
+  const failure = sceneError(query.error)
+  if (query.isError && !query.dataUpdatedAt && failure.kind === "forbidden")
+    return (
+      <Held px={reserve}>
+        <Notice variant="info" title={t("restricted")} />
+      </Held>
+    )
+  if (query.isError && !query.dataUpdatedAt && failure.kind === "missing")
+    return (
+      <Held px={reserve}>
+        <EmptyState title={t("gone")} className="py-6" />
+      </Held>
+    )
+  if (query.isError && !query.dataUpdatedAt)
+    return (
+      <Held px={reserve}>
+        <Notice
+          variant="error"
+          title={t("failed")}
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void query.refetch()}
+            >
+              {t("retry")}
+            </Button>
+          }
+        />
+      </Held>
+    )
+  if (empty)
+    return (
+      <Held px={reserve}>
+        <EmptyState title={emptyTitle} className="py-6" />
+      </Held>
+    )
   return <>{children}</>
+}
+
+/** A state that stands in for a card keeps the card's height. */
+function Held({ px, children }: { px: number; children: React.ReactNode }) {
+  return <div style={{ minHeight: px }}>{children}</div>
 }
 
 /** Everything the line says, as one short key: a re-render happens only when it changes. */

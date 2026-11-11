@@ -1,7 +1,7 @@
 // Open findings from the Flow stress sweep: each test reproduces one break and is marked
 // test.fail() with its id until a fix lands (then the fixer drops the mark). SIMULATED API + voice.
 // Findings list: side-session notes, child-stress-test-findings.md.
-import { markInjected } from "../../src/test"
+import { expectNoLayoutShift, markInjected } from "../../src/test"
 import { expect, test } from "./storefront-api"
 
 test.beforeEach(({ api }) => void api)
@@ -132,3 +132,16 @@ test("SW3: a 429 says when it tries again (Retry-After) and then recovers", asyn
   await expect(salesCard(page)).not.toContainText("Busy", { timeout: 8_000 })
   expect(asked).toBeGreaterThan(1)
 })
+
+for (const scene of ["pulse", "orders", "sales"]) {
+  test(`SW8: /scenes/${scene} loads without layout shift`, async ({ page }) => {
+    test.fail(
+      !process.env.FINDINGS_RED,
+      "SW8 open: the dock panel under the scene grows 72 px once its suggestions load (CLS 0.02 desktop, 0.19 at 375); scene cards no longer shift"
+    )
+    await page.goto(`/scenes/${scene}`)
+    await expect(page.locator("[data-component]").first()).toBeVisible()
+    await page.waitForTimeout(1_500)
+    await expectNoLayoutShift(page)
+  })
+}

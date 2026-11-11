@@ -92,6 +92,7 @@ export function Chart({
         query={query}
         empty={!currencies.length}
         emptyTitle={t("noSales")}
+        reserve={160}
       >
         <div id={tableId} className="flex flex-col gap-4">
           {currencies.map((cur) =>
