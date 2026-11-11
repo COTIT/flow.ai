@@ -9,6 +9,8 @@ import { useVoice } from "@genesy/voice/components/provider"
 import { ReviewTitle } from "@genesy/voice/components/review-details"
 import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
 import { receiptOf, slotKey, stockAt, type ReadBack } from "@genesy/voice/lib/task"
+import { useOnceIntent } from "@/lib/use-once-intent"
+import { useTakeFocus } from "@/lib/use-take-focus"
 
 /**
  * What the approved action did, only from the server: previous values from the review's snapshot,
@@ -24,6 +26,9 @@ export function Receipt({
   const t = useTranslations("task.receipt")
   const errors = useTranslations("voice.requestErrors")
   const voice = useVoice()
+  const check = useOnceIntent(review.ticket)
+  // The approve button this replaces is gone: focus follows to the receipt (SW4).
+  const heading = useTakeFocus<HTMLHeadingElement>(review.ticket)
   const workspace = useSession((s) => s.workspaceId) ?? ""
   const plan = receiptOf(review, outcome, undefined)
   const product = plan.readBack?.product ?? ""
@@ -50,7 +55,12 @@ export function Receipt({
       data-receipt={receipt.status}
       className="flex min-w-0 flex-col gap-3 rounded-2xl border border-(--gold) p-4"
     >
-      <h2 id="flow-receipt-title" className="text-sm font-semibold uppercase">
+      <h2
+        ref={heading}
+        tabIndex={-1}
+        id="flow-receipt-title"
+        className="text-sm font-semibold uppercase"
+      >
         {t(`title.${receipt.status}`)}
       </h2>
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
@@ -113,7 +123,9 @@ export function Receipt({
             <Button
               variant="outline"
               className="min-h-11"
-              onClick={() => void voice.send(t("checkMessage"))}
+              disabled={check.pending}
+              aria-busy={check.pending}
+              onClick={() => void check.send(t("checkMessage"))}
             >
               {t("check")}
             </Button>

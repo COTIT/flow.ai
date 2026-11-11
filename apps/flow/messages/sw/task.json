@@ -96,7 +96,16 @@
       "title": "Endelea ulipoachia",
       "awaiting": "{summary} · inasubiri idhini yako.",
       "continue": "Endelea na ukaguzi",
-      "dismiss": "Funga"
+      "dismiss": "Funga",
+      "ran": "{summary} · imefanyika.",
+      "failed": "{summary} · haikufanyika.",
+      "unconfirmed": "{summary} · haikuweza kuthibitishwa. Kagua kabla ya kurudia.",
+      "outcomes": "Tangu ulipokuwa hapa"
+    },
+    "expired": {
+      "title": "Ukaguzi umeisha muda",
+      "askAgain": "Omba tena",
+      "askAgainMessage": "Ukaguzi ule uliisha muda kabla sijauidhinisha. Tafadhali uandae tena."
     }
   }
 }

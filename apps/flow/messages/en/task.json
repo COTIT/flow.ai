@@ -96,7 +96,16 @@
       "title": "Continue where you left off",
       "awaiting": "{summary} · waiting for your approval.",
       "continue": "Continue review",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "ran": "{summary} · it ran.",
+      "failed": "{summary} · it did not run.",
+      "unconfirmed": "{summary} · it couldn't be confirmed. Check before repeating it.",
+      "outcomes": "Since you were last here"
+    },
+    "expired": {
+      "title": "Review expired",
+      "askAgain": "Ask again",
+      "askAgainMessage": "That review expired before I approved it. Please prepare it again."
     }
   }
 }

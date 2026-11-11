@@ -96,7 +96,16 @@
       "title": "Ga verder waar je was",
       "awaiting": "{summary} · wacht op je goedkeuring.",
       "continue": "Controle hervatten",
-      "dismiss": "Sluiten"
+      "dismiss": "Sluiten",
+      "ran": "{summary} · uitgevoerd.",
+      "failed": "{summary} · niet uitgevoerd.",
+      "unconfirmed": "{summary} · kon niet worden bevestigd. Controleer voordat je het herhaalt.",
+      "outcomes": "Sinds je hier was"
+    },
+    "expired": {
+      "title": "Controle verlopen",
+      "askAgain": "Vraag opnieuw",
+      "askAgainMessage": "Die controle is verlopen voordat ik hem goedkeurde. Bereid hem opnieuw voor."
     }
   }
 }
