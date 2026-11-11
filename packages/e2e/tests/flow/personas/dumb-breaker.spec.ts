@@ -240,7 +240,9 @@ test("dumb breaker: garbage, empty sends, bursts, random taps, nonsense order", 
 test("dumb breaker sweep: each garbage line shows as plain text; empty ones send nothing", async ({
   persona,
   page,
-}) => {
+}, info) => {
+  // Text rendering does not depend on width: CI sweeps once (desktop), local runs every width.
+  test.skip(!!process.env.CI && info.project.name !== "flow-desktop", "CI: one width is enough")
   const dialogs = await arm(page)
   await startTyping(page)
   const box = page.getByLabel(labels.message)

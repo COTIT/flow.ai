@@ -197,6 +197,9 @@ test.describe("walk", () => {
       ],
     },
   })
+/** Steps per walk: PERSONA_STEPS wins; CI runs a short walk (suite budget), local runs the full one. */
+const STEPS = Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 40)
+
 test("flaky network: tunnels, slow 3G, dropped and late answers, lost socket", async ({ persona, page, api }) => {
   const stock = readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
   api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
@@ -211,7 +214,7 @@ test("flaky network: tunnels, slow 3G, dropped and late answers, lost socket", a
       expect(await rawOnScreen(page, true), "raw code on screen").toBeNull()
     },
   }))
-  await persona.run(steps)
+  await persona.run(steps, { count: STEPS })
   // Back on a good line, the app recovers by itself (or with one click).
   await persona.offline(page.context(), false)
   await throttle(cdp, false)

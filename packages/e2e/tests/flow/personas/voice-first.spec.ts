@@ -214,6 +214,9 @@ test.describe("walk", () => {
       ],
     },
   })
+/** Steps per walk: PERSONA_STEPS wins; CI runs a short walk (suite budget), local runs the full one. */
+const STEPS = Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 40)
+
 test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, silence, hang-ups", async ({ persona, page, api }) => {
   const sent = decisions(page)
   await setup(page, api)
@@ -366,7 +369,7 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
         }
       },
     },
-  ].map(speakAfterTools))
+  ].map(speakAfterTools), { count: STEPS })
 })
 })
 

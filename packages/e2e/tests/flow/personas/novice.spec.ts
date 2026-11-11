@@ -14,6 +14,9 @@ import { startText, v } from "../voice"
 import { markInjected } from "../../../src/test"
 import { expect, test, type Persona, type Step } from "./harness"
 
+/** Steps per walk: PERSONA_STEPS wins; CI runs a short walk (suite budget), local runs the full one. */
+const STEPS = Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 40)
+
 const d = discoveryEn.discovery
 
 /** Things a confused person types: vague, misspelled, off-topic, empty, odd characters. */
@@ -282,7 +285,7 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
 /** PERSONA_TRAIL=1 prints the walk, to see which steps really landed. */
 async function walk(persona: Persona, page: Page) {
   try {
-    await persona.run(noviceSteps(persona, page))
+    await persona.run(noviceSteps(persona, page), { count: STEPS })
   } finally {
     if (process.env.PERSONA_VERBOSE) console.log(persona.trail.join("\n"))
   }

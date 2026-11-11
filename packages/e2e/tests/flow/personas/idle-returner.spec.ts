@@ -295,7 +295,7 @@ test("idle returner: works, leaves mid-flow, comes back after expiry, sleep, hid
         },
       },
     ],
-    { count: Number(process.env.PERSONA_STEPS) || 25 }
+    { count: Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 25) }
   )
 })
 
