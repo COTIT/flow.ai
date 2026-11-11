@@ -121,7 +121,15 @@ export async function proposeAction(
       Boolean(transport)
     )
   )
-  return reviewAction(action, context, stored, transport?.reviewMetadata)
+  try {
+    return await reviewAction(action, context, stored, transport?.reviewMetadata)
+  } catch (error) {
+    // The row never reached a review card (e.g. another review won the race): close it now.
+    await assistantRequest(context, `/actions/${stored.id}/cancel`, "POST", {
+      session_id: context.sessionId,
+    }).catch(() => undefined)
+    throw error
+  }
 }
 
 /** Encode only native business request fields; batch/session binding stays outside it. */
