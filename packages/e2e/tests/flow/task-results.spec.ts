@@ -73,6 +73,46 @@ test("a sales answer draws its chart in the results", async ({ page }) => {
   await expectNoHorizontalScroll(page)
 })
 
+test("daily sales over a week draw as a trend line, never a progress bar per day", async ({
+  page,
+}) => {
+  const agent = await fakeAgent(page)
+  const days = ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]
+  await page.route("**/api/voice/tools", (route) => {
+    const body = route.request().postDataJSON() as { command?: string; operationId?: string }
+    if (body.command !== "execute" || body.operationId !== "orders_sales_daily")
+      return route.fallback()
+    return route.fulfill({
+      json: {
+        status: "completed",
+        data: {},
+        view: {
+          kind: "sales_daily",
+          from: days[0],
+          to: days.at(-1),
+          time_zone: "UTC",
+          currencies: [
+            {
+              currency: "USD",
+              decimals: 2,
+              days: days.map((date, i) => ({ date, gross: 1000 * (i + 1), net: 1000 * (i + 1), orders: i + 1 })),
+            },
+          ],
+        },
+      },
+    })
+  })
+  await page.goto("/")
+  await startText(page)
+  agent.call("orders_sales_daily", { query: { from: days[0], to: days.at(-1) } })
+  const scene = await results(page, 0)
+  const chart = scene.locator('[data-kind="sales_daily"]')
+  await expect(chart.locator('[data-chart="line"] polyline')).toHaveCount(1)
+  await expect(chart.locator("rect")).toHaveCount(0)
+  // The numbers stay the API's, in the table behind the picture.
+  await expect(chart.getByRole("table")).toContainText("$50.00")
+})
+
 test("links go only where Flow allows: Office records, Flow's storefront; the rest stays text", async ({
   page,
 }) => {

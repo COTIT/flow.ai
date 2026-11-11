@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import type { DailyCurrency } from "@genesy/api-client/model"
 import { formatDay } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
+import { Series } from "@genesy/voice/components/results/series"
 import { useSeries } from "@/lib/use-scene-data"
 import { DataState, Restricted } from "./data-state"
 import type { RegistryProps } from "./types"
@@ -20,38 +21,7 @@ function Drawing({
   cur: DailyCurrency
   field: "gross" | "net"
 }) {
-  const top = Math.max(...cur.days.map((d) => d[field]), 1)
-  const step = 100 / Math.max(cur.days.length - 1, 1)
-  if (line)
-    return (
-      <svg
-        aria-hidden
-        viewBox="0 0 100 40"
-        preserveAspectRatio="none"
-        className="h-28 w-full text-(--gold)"
-      >
-        <polyline
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          vectorEffect="non-scaling-stroke"
-          points={cur.days
-            .map((d, i) => `${i * step},${40 - (d[field] / top) * 38}`)
-            .join(" ")}
-        />
-      </svg>
-    )
-  return (
-    <div aria-hidden className="flex h-28 items-end gap-1">
-      {cur.days.map((d) => (
-        <div
-          key={d.date}
-          className="flex-1 rounded-t bg-(--gold)/70"
-          style={{ height: `${Math.max((d[field] / top) * 100, 2)}%` }}
-        />
-      ))}
-    </div>
-  )
+  return <Series line={line} values={cur.days.map((d) => d[field])} />
 }
 
 export function Chart({

@@ -62,7 +62,7 @@ describe("VoiceResult status labels", () => {
 })
 
 describe("VoiceResult daily sales", () => {
-  it("draws one bar per day with the API's numbers and no refund figure it never had", () => {
+  it("draws a trend line over the days (never a progress bar per day), keeping the API's numbers", () => {
     const daily = {
       kind: "sales_daily",
       from: "2026-11-09",
@@ -81,6 +81,9 @@ describe("VoiceResult daily sales", () => {
     } as ResultView
     const out = html(<VoiceResult views={[daily]} />)
     expect(out).toContain('data-kind="sales_daily"')
+    expect(out).toContain('data-chart="line"')
+    expect(out.match(/<polyline/g)).toHaveLength(1)
+    expect(out).not.toContain("<rect")
     expect(out).toContain("$10.00")
     expect(out).not.toContain("noSales")
   })
