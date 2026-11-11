@@ -193,6 +193,9 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
         const send = await page.getByRole("button", { name: labels.send }).boundingBox({ timeout: 1_000 }).catch(() => null)
         if (send && persona.chance(0.7)) await touch.tap(send.x + send.width / 2, send.y + send.height / 2)
         await keyboard(page, 0)
+        const fits = () => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)
+        await expect.poll(fits, { timeout: 1_500 }).toBe(true).catch(() => {})
+        if (!(await fits())) expect(0, `the page scrolls after the keyboard went away ${await where()}`).toBe(1)
       },
     },
     {
