@@ -97,6 +97,11 @@
       "awaiting": "{summary} · wacht op je goedkeuring.",
       "continue": "Controle hervatten",
       "dismiss": "Sluiten"
+    },
+    "expired": {
+      "title": "Controle verlopen",
+      "askAgain": "Vraag opnieuw",
+      "askAgainMessage": "Die controle is verlopen voordat ik hem goedkeurde. Bereid hem opnieuw voor."
     }
   }
 }

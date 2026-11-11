@@ -97,6 +97,11 @@
       "awaiting": "{summary} · inasubiri idhini yako.",
       "continue": "Endelea na ukaguzi",
       "dismiss": "Funga"
+    },
+    "expired": {
+      "title": "Ukaguzi umeisha muda",
+      "askAgain": "Omba tena",
+      "askAgainMessage": "Ukaguzi ule uliisha muda kabla sijauidhinisha. Tafadhali uandae tena."
     }
   }
 }

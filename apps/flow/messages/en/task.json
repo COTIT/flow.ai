@@ -97,6 +97,11 @@
       "awaiting": "{summary} · waiting for your approval.",
       "continue": "Continue review",
       "dismiss": "Dismiss"
+    },
+    "expired": {
+      "title": "Review expired",
+      "askAgain": "Ask again",
+      "askAgainMessage": "That review expired before I approved it. Please prepare it again."
     }
   }
 }

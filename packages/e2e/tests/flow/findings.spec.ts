@@ -78,10 +78,6 @@ test("SW4: a review that opens takes focus from the page", async ({ page, api })
 test("SW5: a review that expires while open says so where the card was", async ({
   page,
 }) => {
-  test.fail(
-    !process.env.FINDINGS_RED,
-    "SW5 open: the card vanishes; the open scene shows only 'Answers show here'"
-  )
   const agent = await fakeAgent(page)
   await page.route("**/api/voice/tools", (route) => {
     const body = route.request().postDataJSON() as {
@@ -102,7 +98,8 @@ test("SW5: a review that expires while open says so where the card was", async (
   await expect(scene(page)).toContainText("This review expired", {
     timeout: 6_000,
   })
-}).dblclick()
+  // One way forward: asking again sends one plain request for a fresh proposal.
+  await scene(page).getByRole("button", { name: "Ask again" }).dblclick()
   await expect
     .poll(() => agent.sent.filter((e) => e.type === "user_message").length)
     .toBe(1)
