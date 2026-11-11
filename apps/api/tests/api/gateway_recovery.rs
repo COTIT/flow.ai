@@ -929,13 +929,104 @@ async fn concurrent_checkout_callers_share_one_committed_financial_dispatch(pool
     assert_eq!(attempts, 1);
 }
 
+async fn unclaimed_payment(w: &World, order: &str) -> Uuid {
+    let payment = Uuid::now_v7();
+    sqlx::query("INSERT INTO order_payments(id,request_id,workspace_id,order_id,kind,provider,environment,merchant_id,account_revision,amount,currency,decimals,customer_id,country,payer_name,payer_email,redirect_url) SELECT $1,$1,o.workspace_id,o.id,'payment','globadyme','sandbox',a.merchant_id,a.credential_revision,o.total,upper(c.asset_type),2,$1::text,'NL','Kim','kim@example.com','https://shop.example.com/order' FROM orders o JOIN currencies c ON c.workspace_id=o.workspace_id AND c.id=o.currency_id JOIN payment_accounts a ON a.workspace_id=o.workspace_id AND a.environment='sandbox' WHERE o.id=$2::uuid")
+        .bind(payment).bind(order).execute(&w.api.pool).await.unwrap();
+    payment
+}
+
+async fn direct_submit(w: &World, payment: Uuid) -> Result<(), genesy_360_api::AppError> {
+    genesy_360_api::gateway::service::submit(
+        &w.state,
+        w.api.ws.parse().unwrap(),
+        payment,
+        "https://shop.example.com/order",
+    )
+    .await
+}
+
+/// True when no session holds the payment's dispatch fence; probe releases its own grab.
+/// Probe runs on own thread while this runtime blocks, so spawned connection-close tasks
+/// cannot free the fence first: only an explicit unlock inside `submit` passes.
+fn fence_free(w: &World, payment: Uuid) -> bool {
+    use sqlx::Connection;
+    let options = (*w.api.pool.connect_options()).clone();
+    let key = format!("globadyme:{}:{payment}", w.api.ws);
+    std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                let mut conn = sqlx::PgConnection::connect_with(&options).await.unwrap();
+                sqlx::query_scalar("SELECT pg_try_advisory_lock(hashtextextended($1,0)) AND pg_advisory_unlock(hashtextextended($1,0))")
+                    .bind(key)
+                    .fetch_one(&mut conn)
+                    .await
+                    .unwrap()
+            })
+    })
+    .join()
+    .unwrap()
+}
+
+#[sqlx::test]
+async fn rejected_submit_releases_its_dispatch_fence_before_returning(pool: PgPool) {
+    let w = world(pool).await;
+    let order = new_order(&w).await;
+    let payment = unclaimed_payment(&w, &order).await;
+    let mut disabled = complete_setup("sandbox");
+    disabled["integrations"]["payment"]["enabled"] = json!(false);
+    save_setup(&w, disabled).await;
+    for round in 0..20 {
+        // Back-to-back calls: a fence left to async connection close made later calls skip as "busy".
+        assert!(
+            matches!(
+                direct_submit(&w, payment).await,
+                Err(genesy_360_api::AppError::PaymentSetupRequired)
+            ),
+            "round {round}"
+        );
+        assert!(fence_free(&w, payment), "round {round}");
+    }
+    let saved: (String, i16, bool) = sqlx::query_as(
+        "SELECT status,attempts,claimed_at IS NOT NULL FROM order_payments WHERE id=$1",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(saved, ("creating".into(), 0, false));
+    assert_eq!(posts(&w, "requestPayment"), 0);
+}
+
+#[sqlx::test]
+async fn racing_enabled_submits_dispatch_once_and_free_the_fence(pool: PgPool) {
+    let w = world(pool).await;
+    let order = new_order(&w).await;
+    let payment = unclaimed_payment(&w, &order).await;
+    let (first, second) = tokio::join!(direct_submit(&w, payment), direct_submit(&w, payment));
+    assert!(first.is_ok(), "{first:?}");
+    assert!(second.is_ok(), "{second:?}");
+    assert!(fence_free(&w, payment));
+    assert!(direct_submit(&w, payment).await.is_ok());
+    assert_eq!(posts(&w, "requestPayment"), 1);
+    let saved: (String, i16, bool) = sqlx::query_as(
+        "SELECT status,attempts,claimed_at IS NOT NULL FROM order_payments WHERE id=$1",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(saved, ("open".into(), 1, true));
+}
+
 #[sqlx::test]
 async fn committed_unclaimed_payment_needs_explicit_enable_before_dispatch(pool: PgPool) {
     let w = world(pool).await;
     let order = new_order(&w).await;
-    let payment = Uuid::now_v7();
-    sqlx::query("INSERT INTO order_payments(id,request_id,workspace_id,order_id,kind,provider,environment,merchant_id,account_revision,amount,currency,decimals,customer_id,country,payer_name,payer_email,redirect_url) SELECT $1,$1,o.workspace_id,o.id,'payment','globadyme','sandbox',a.merchant_id,a.credential_revision,o.total,upper(c.asset_type),2,$1::text,'NL','Kim','kim@example.com','https://shop.example.com/order' FROM orders o JOIN currencies c ON c.workspace_id=o.workspace_id AND c.id=o.currency_id JOIN payment_accounts a ON a.workspace_id=o.workspace_id AND a.environment='sandbox' WHERE o.id=$2::uuid")
-        .bind(payment).bind(&order).execute(&w.api.pool).await.unwrap();
+    let payment = unclaimed_payment(&w, &order).await;
     for (field, value) in [
         ("enabled", None),
         ("enabled", Some(Value::Null)),
