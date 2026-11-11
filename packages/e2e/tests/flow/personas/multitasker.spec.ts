@@ -358,3 +358,94 @@ test.describe("findings", () => {
     await expect(card.or(resume).first()).toBeVisible({ timeout: 5_000 })
   })
 })
+
+test.describe("races", () => {
+  test("switch workspace in A while B's approve is still on its way", async ({ persona, page, api }) => {
+    const { ledger, syncForeign } = await setup(persona, page, api)
+    const b = await openTab(persona, api, ledger, 1)
+    await proposeIn(b)
+    ledger.confirmDelay = 1500
+    allowAborts(b.page)
+    await approve(b.page)
+    await switchWorkspace(page, RUAHA.display_name)
+    await expect.poll(() => savedWorkspace(b.page)).toBe("w2")
+    await syncForeign()
+    await b.page.waitForTimeout(2000) // the w1 answer lands after the switch
+    console.log("[probe] B main after late answer:", (await b.page.locator("main").innerText()).slice(0, 300))
+    await expect(b.page.locator("[data-receipt]")).toHaveCount(0)
+    await persona.check()
+  })
+
+  test("log out in A and straight back in while B's approve is still on its way", async ({ persona, page, api }) => {
+    const { ledger, syncForeign } = await setup(persona, page, api)
+    const b = await openTab(persona, api, ledger, 1)
+    await proposeIn(b)
+    ledger.confirmDelay = 3000
+    allowAborts(b.page)
+    await approve(b.page)
+    await logOut(page)
+    await expect(page).toHaveURL(/\/login$/)
+    await page.getByLabel("Email").fill("e2e@genesy.test")
+    await page.getByLabel("Password").fill("e2e-password-only")
+    await page.getByRole("button", { name: "Log in" }).click()
+    await expect(page).toHaveURL(/\/$/)
+    await b.page.goto("/").catch(() => {})
+    await b.page.waitForTimeout(3500)
+    await syncForeign()
+    console.log("[probe] B after relogin:", b.page.url(), (await b.page.locator("main").innerText().catch(() => "")).slice(0, 300))
+    await expect(b.page.locator("[data-receipt]")).toHaveCount(0)
+    await persona.check()
+  })
+
+  test("B approves in the same moment A switches workspace", async ({ persona, page, api }) => {
+    const { ledger, syncForeign } = await setup(persona, page, api)
+    const b = await openTab(persona, api, ledger, 1)
+    await proposeIn(b)
+    await Promise.all([switchWorkspace(page, RUAHA.display_name), approve(b.page)])
+    await expect.poll(() => savedWorkspace(b.page)).toBe("w2")
+    await b.page.waitForTimeout(1500)
+    await syncForeign()
+    console.log("[probe] decisions", ledger.decisions, "B:", (await b.page.locator("main").innerText()).slice(0, 300))
+    await persona.check()
+  })
+
+  test("both tabs talk at once, then one reloads: each keeps its own conversation", async ({ persona, page, api }) => {
+    const { ledger, tabs } = await setup(persona, page, api)
+    const b = await openTab(persona, api, ledger, 1)
+    for (const t of [tabs[0]!, b]) await expect.poll(async () => (await live(t.page)) || ((await startText(t.page)) && false), { timeout: 10_000 }).toBe(true)
+    await Promise.all([say(page, "alpha from A"), say(b.page, "beta from B")])
+    await expect(page.getByRole("log")).toContainText("Noted: alpha from A")
+    await expect(b.page.getByRole("log")).toContainText("Noted: beta from B")
+    await expect(page.getByRole("log")).not.toContainText("beta from B")
+    await expect(b.page.getByRole("log")).not.toContainText("alpha from A")
+    allowAborts(b.page)
+    await b.page.reload()
+    await expect(page.getByRole("log")).toContainText("Noted: alpha from A")
+    await say(page, "still A")
+    await expect(page.getByRole("log")).toContainText("Noted: still A")
+    await persona.check()
+  })
+})
+
+test.describe("findings 2", () => {
+  // P5-2: B approves; before Office answers, A switches workspace (shared login → B follows).
+  // The write ran (Office: completed), but B never says so: not in w2 (right), and not after
+  // switching back to w1 either (the outcome is dropped with the remounted provider, the task
+  // memory is reset on the owner change, and the recovered "completed" task is never shown).
+  test.fail("P5-2 an approve still on its way when another tab switches workspace: its outcome is reachable back in that workspace", async ({ persona, page, api }) => {
+    const { ledger } = await setup(persona, page, api)
+    const b = await openTab(persona, api, ledger, 1)
+    await proposeIn(b)
+    ledger.confirmDelay = 1500
+    allowAborts(b.page)
+    await approve(b.page)
+    await switchWorkspace(page, RUAHA.display_name)
+    await expect.poll(() => savedWorkspace(b.page)).toBe("w2")
+    await expect.poll(() => [...ledger.reviews.values()][0]?.decided).toBe("approve")
+    await switchWorkspace(page, ILUNDO.display_name)
+    await expect.poll(() => savedWorkspace(b.page)).toBe("w1")
+    await expect.poll(() => ledger.restores.includes("1:status")).toBe(true)
+    // The approved change's result: its receipt, or at least a line naming it.
+    await expect(b.page.locator("[data-receipt]").or(b.page.getByText(/Set stock levels/)).first()).toBeVisible({ timeout: 5_000 })
+  })
+})
