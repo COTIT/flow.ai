@@ -159,6 +159,7 @@ export function VoiceDesignPreview() {
       unfinished: null,
       resume: noop,
       resolveHref: (href) => href,
+      sendContext: noop,
     }
   }, [state, phase])
   return (
