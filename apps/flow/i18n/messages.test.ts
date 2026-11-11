@@ -22,10 +22,14 @@ const keys = (value: unknown, prefix = ""): string[] =>
     : [prefix]
 
 describe("Flow namespace files", () => {
-  it.each(locales)("%s merges shell.json with the same keys as English", async (locale) => {
-    const english = await loadMessages("en", flowMessages)
-    const messages = await loadMessages(locale, flowMessages)
-    expect(english.shell).toBeDefined()
-    expect(keys(messages.shell).sort()).toEqual(keys(english.shell).sort())
-  })
+  // F2: scenes.json
+  it.each(locales.flatMap((l) => [[l, "shell"], [l, "scenes"]] as const))(
+    "%s merges %s.json with the same keys as English",
+    async (locale, name) => {
+      const english = await loadMessages("en", flowMessages)
+      const messages = await loadMessages(locale, flowMessages)
+      expect(english[name]).toBeDefined()
+      expect(keys(messages[name]).sort()).toEqual(keys(english[name]).sort())
+    }
+  )
 })

@@ -76,6 +76,7 @@ test("a text conversation starts on click, carries messages both ways and ends",
 
 test("the header links to the storefront review", async ({ page }) => {
   await page.goto("/")
-  const link = page.getByRole("link", { name: chat.storefront })
+  // F2: Your Flow also has "Storefront Studio"
+  const link = page.getByRole("link", { name: chat.storefront , exact: true })
   await expect(link).toHaveAttribute("href", "/storefront")
 })

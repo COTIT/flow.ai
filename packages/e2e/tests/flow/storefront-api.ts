@@ -4,6 +4,7 @@ import document from "../../../../apps/api/tests/fixtures/storefront-design-v1.j
 import { expect, test as base } from "../../src/test"
 import { FakeApi, paged } from "../office/fake-api"
 import { AMINA, ILUNDO, RUAHA } from "./api"
+import { sceneWorld } from "./scenes-api" // F2
 
 export const draft = "01950000-0000-7000-8000-000000000002"
 export const published = "01950000-0000-7000-8000-000000000001"
@@ -190,6 +191,8 @@ export const test = base.extend<{ api: FakeApi }>({
       .on("GET", "/me", () => ({ data: { user: owner } }))
       .on("GET", "/me/workspaces", () => ({ data: [ILUNDO, RUAHA] }))
       .on("POST", "/logout", () => ({ status: 204 }))
+    sceneWorld(api) // F2: home reads scenes, Flow noticed and their data
+    sceneWorld(api, { ws: "w2" }) // F2
     await page.route("**/v1/**", (route) => api.handle(route))
     await use(api)
   },

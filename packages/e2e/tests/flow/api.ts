@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test"
 
 import { mockApi, type MockReply } from "../../src/api-mock"
+import { sceneTable } from "./scenes-api" // F2
 
 export const AMINA = {
   id: "u1",
@@ -44,6 +45,8 @@ export const flowApi = (
       },
     },
   },
+  ...sceneTable("w1"), // F2: home reads scenes, Flow noticed and their data
+  ...sceneTable("w2"), // F2
   ...over,
 })
 

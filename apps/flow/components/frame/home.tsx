@@ -12,6 +12,8 @@ import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
 import { useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
+import { Noticed } from "@/components/home/noticed" // F2
+import { YourFlow } from "@/components/home/your-flow" // F2
 import { useWorkspaceChoices } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
@@ -124,7 +126,9 @@ export function Home() {
           </p>
         </>
       ) : null}
-      {/* Slots for the discovery hint (F3), Flow noticed and Your Flow (F2). */}
+      {/* Slot for the discovery hint (F3). */}
+      <Noticed /> {/* F2 */}
+      <YourFlow /> {/* F2 */}
     </div>
   )
 }

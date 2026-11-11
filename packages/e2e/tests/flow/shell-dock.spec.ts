@@ -23,7 +23,8 @@ test("unsent text stays in the dock across scenes", async ({ page, api }) => {
   await page.goto("/")
   const box = dock(page).getByLabel(v.message)
   await box.fill("half a thought")
-  await page.getByRole("link", { name: "Storefront" }).click()
+  // F2: Your Flow also has "Storefront Studio"
+  await page.getByRole("link", { name: "Storefront" , exact: true }).click()
   await expect(page).toHaveURL(/\/storefront$/)
   await expect(box).toHaveValue("half a thought")
   await page.getByRole("button", { name: s.backHome }).click()
@@ -68,7 +69,8 @@ test("text works inside a scene, in the same conversation", async ({ page, api }
   const agent = await fakeAgent(page, (text, a) => a.say(`Done: ${text}`))
   await page.goto("/")
   await startText(page)
-  await page.getByRole("link", { name: "Storefront" }).click()
+  // F2: Your Flow also has "Storefront Studio"
+  await page.getByRole("link", { name: "Storefront" , exact: true }).click()
   await dock(page).getByLabel(v.message).fill("Make the hero calmer")
   await dock(page).getByLabel(v.message).press("Enter")
   await expect

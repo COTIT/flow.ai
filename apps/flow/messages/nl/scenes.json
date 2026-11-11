@@ -1,0 +1,149 @@
+{
+  "scenes": {
+    "yourFlow": "Your Flow",
+    "yourFlowText": "Scènes die je bewaart. Open er een om alles te zien.",
+    "personalised": "Persoonlijk",
+    "open": "{name} openen",
+    "hidden": "Verborgen scènes",
+    "restore": "Terugzetten",
+    "reset": "Your Flow resetten",
+    "resetTitle": "Your Flow resetten?",
+    "resetText": "Elke scène krijgt weer de standaardvolgorde en -inhoud. Je gegevens blijven onaangeroerd.",
+    "resetDone": "Your Flow staat weer op de standaardinstellingen.",
+    "remove": "Verwijderen uit Your Flow",
+    "removed": "Verwijderd uit Your Flow.",
+    "keep": "Bewaren in Your Flow",
+    "kept": "In Your Flow",
+    "saved": "Bewaard in Your Flow.",
+    "saveFailed": "Opslaan lukte niet. Your Flow is ongewijzigd.",
+    "pendingFirst": "Openstaande bestellingen eerst tonen",
+    "pendingFirstDone": "Openstaande bestellingen staan nu bovenaan.",
+    "refresh": "Vernieuwen",
+    "restricted": "Niet beschikbaar voor je rol",
+    "retry": "Opnieuw proberen",
+    "failed": "Dit kon niet worden geladen.",
+    "notFound": "Deze scène bestaat niet.",
+    "sceneError": "Deze scène kon niet worden getoond. Je gesprek gaat gewoon door.",
+    "fresh": "{seconds} s geleden bijgewerkt",
+    "refreshing": "Vernieuwen…",
+    "stale": "Gegevens zijn mogelijk verouderd",
+    "refreshFailed": "Vernieuwen lukte niet. Eerdere gegevens worden getoond.",
+    "now": "nu",
+    "showTable": "Als tabel tonen",
+    "showChart": "Als grafiek tonen",
+    "period": {
+      "today": "Vandaag",
+      "yesterday": "Gisteren",
+      "this_week": "Deze week",
+      "last_week": "Vorige week",
+      "last_7_days": "Afgelopen 7 dagen",
+      "this_month": "Deze maand"
+    },
+    "periodLabel": "Periode",
+    "metric": {
+      "sales_gross": "Verkoop",
+      "sales_net": "Verkoop excl. btw",
+      "orders_pending": "Openstaande bestellingen",
+      "orders_draft": "Conceptbestellingen",
+      "stock_below_minimum": "Producten onder minimum",
+      "invoices_overdue": "Achterstallige facturen",
+      "invoices_unpaid": "Onbetaalde facturen"
+    },
+    "vsBefore": "{change} t.o.v. de vorige periode",
+    "noChange": "Gelijk aan de vorige periode",
+    "noSales": "Geen verkoop in deze periode.",
+    "orders": "{count, plural, one {# bestelling} other {# bestellingen}}",
+    "date": "Datum",
+    "amount": "Bedrag",
+    "pendingOrders": "Openstaande bestellingen",
+    "noOrders": "Geen openstaande bestellingen.",
+    "stockTitle": "Onder minimum",
+    "noStock": "Elk product zit op of boven zijn minimum.",
+    "available": "Beschikbaar",
+    "minimum": "Minimum",
+    "shortfall": "Tekort",
+    "selected": "Geselecteerd",
+    "invoices": "Facturen",
+    "noInvoices": "Geen onbetaalde facturen.",
+    "reports": "Geplande rapporten",
+    "noReports": "Nog geen routines. Vraag Genesy om een rapport in te plannen, bijvoorbeeld \"Stuur me wekelijks een verkoopoverzicht\".",
+    "pause": "Pauzeren",
+    "resume": "Hervatten",
+    "delete": "Verwijderen",
+    "deleteTitle": "Deze routine verwijderen?",
+    "deleteText": "Het rapport stopt. Je kunt het later opnieuw inplannen.",
+    "active": "Actief",
+    "paused": "Gepauzeerd",
+    "nextRun": "Volgende: {when}",
+    "planned": "Gepland: voorwaardelijke bewaking (bijvoorbeeld \"laat me weten als honing onder 20 zakt\").",
+    "report": {
+      "sales_summary": "Verkooprapport",
+      "attention": "Wat aandacht nodig heeft",
+      "overdue_invoices": "Achterstallige facturen",
+      "stock": "Voorraadrapport"
+    },
+    "frequency": {
+      "daily": "Dagelijks",
+      "weekly": "Wekelijks",
+      "monthly": "Maandelijks"
+    },
+    "noticed": {
+      "label": "Flow noticed",
+      "headline": "{count, plural, one {# prioriteit vraagt je aandacht.} other {# prioriteiten vragen je aandacht.}}",
+      "impact": "Je meest dringende punt raakt {count, plural, one {# openstaande bestelling} other {# openstaande bestellingen}}.",
+      "review": "Prioriteiten bekijken",
+      "calm": "Er vraagt nu niets je aandacht.",
+      "lead": "Dingen die je aandacht nodig hebben.",
+      "acknowledge": "Markeer als gezien",
+      "acknowledged": "Gezien",
+      "snoozeTomorrow": "Uitstellen tot morgen",
+      "snoozeWeek": "7 dagen uitstellen",
+      "reviewStock": "Voorraad bekijken",
+      "reviewOrders": "Bestellingen bekijken",
+      "affects": "{count, plural, one {# openstaande bestelling} other {# openstaande bestellingen}}",
+      "kind": {
+        "stock_below_minimum": "{count, plural, one {# product onder de minimale voorraad} other {# producten onder de minimale voorraad}}",
+        "orders_open": "{count, plural, one {# bestelling moet nog worden afgehandeld} other {# bestellingen moeten nog worden afgehandeld}}",
+        "invoices_overdue": "{count, plural, one {# achterstallige factuur} other {# achterstallige facturen}}",
+        "till_open_shifts": "{count, plural, one {# kassadienst staat nog open} other {# kassadiensten staan nog open}}",
+        "lots_quarantined": "{count, plural, one {# partij in quarantaine} other {# partijen in quarantaine}}",
+        "webhooks_failed": "{count, plural, one {# webhook mislukt} other {# webhooks mislukken}}"
+      }
+    },
+    "scene": {
+      "pulse": {
+        "title": "Morning Pulse",
+        "lead": "Je bewaarde dagelijkse briefing."
+      },
+      "stock": {
+        "title": "Stock Watch",
+        "lead": "Producten onder hun minimum, en hoeveel."
+      },
+      "noticed": {
+        "title": "Flow noticed",
+        "lead": "Dingen die je aandacht nodig hebben."
+      },
+      "orders": {
+        "title": "Order Focus",
+        "lead": "Bestellingen die op je wachten."
+      },
+      "sales": {
+        "title": "Sales Perspective",
+        "lead": "Hoe de verkoop loopt."
+      },
+      "routines": {
+        "title": "My Routines",
+        "lead": "Rapporten die Genesy je volgens schema stuurt."
+      },
+      "studio": {
+        "title": "Storefront Studio",
+        "lead": "Bekijk en vorm je webwinkel."
+      }
+    },
+    "custom": {
+      "sales": "Verkoop · {period}",
+      "stock": "Stock Watch · bewaard"
+    },
+    "cancel": "Annuleren"
+  }
+}
