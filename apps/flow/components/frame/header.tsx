@@ -117,7 +117,8 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
           className="h-1.5 w-11 rounded-full bg-muted-foreground/50"
         />
       </button>
-      {hint && !shown ? (
+      {/* Only away from a conversation, whose bar sits where the hint would (P10-8). */}
+      {hint && !shown && !live ? (
         <p
           role="status"
           className="pointer-events-none absolute top-11 left-1/2 z-50 max-w-[calc(100vw-2rem)] -translate-x-1/2 truncate rounded-full glass-strong px-3 py-1.5 text-xs"

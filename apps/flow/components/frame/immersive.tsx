@@ -23,7 +23,8 @@ export function Immersive() {
   // Likewise when the control that brought us here is gone (a review cancelled, P9-1).
   useEffect(() => {
     const active = document.activeElement
-    if (active === document.body || active?.closest("[data-orb]")) heading.current?.focus()
+    if (active === document.body || active?.closest("[data-orb]"))
+      heading.current?.focus()
   }, [])
   // Keep the newest line in view; the page's one scroller scrolls, the log never has its own.
   useEffect(() => {
@@ -62,11 +63,15 @@ export function Immersive() {
           className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl glass-strong px-3 py-2"
         >
           <OrbSlot name="compact" className="size-12" />
-          <div className="min-w-0 flex-1 text-left [&>*]:justify-start [&>*]:text-left">
+          {/* The state words keep at least 8rem (ellipsis past that); the controls wrap to the
+              next line on narrow bars rather than squeeze them (P10-8). */}
+          <div className="min-w-32 flex-[1_1_8rem] text-left [&_*]:min-w-0 [&_*]:truncate [&>*]:justify-start [&>*]:text-left">
             <OrbCaption />
           </div>
-          <VoiceControls />
-          <span className="max-sm:hidden">{back}</span>
+          <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+            <VoiceControls />
+          </div>
+          <span className="shrink-0 max-md:hidden">{back}</span>
         </div>
       ) : (
         <>
@@ -100,7 +105,7 @@ export function Immersive() {
         />
         <VoiceThinking />
       </div>
-      <div className={conversing ? "self-center sm:hidden" : "self-center"}>
+      <div className={conversing ? "self-center md:hidden" : "self-center"}>
         {back}
       </div>
     </section>
