@@ -61,3 +61,11 @@ export function flowHref(href: string, office: string | null): string {
   const record = RECORD.exec(href)
   return record ? `${office}/${record[1]}/${record[2]!.toLowerCase()}` : ""
 }
+
+/** A preview token as the API issues it: 64 lower-case hex characters, nothing else. */
+const PREVIEW_TOKEN = /^[0-9a-f]{64}$/
+
+/** The Shop's full-page preview of one link (SHOP_PUBLIC_URL, read on the server per request). */
+export function shopPreviewHref(token: string, shop: string | null): string {
+  return shop && PREVIEW_TOKEN.test(token) ? `${shop}/preview/${token}` : ""
+}

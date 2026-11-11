@@ -123,6 +123,7 @@ export default defineConfig({
         VOICE_UPSTREAM_URL: MOCK_ORIGIN,
         // Never opened by a test: links only have to point at it.
         OFFICE_PUBLIC_URL: "https://office.genesy.test",
+        SHOP_PUBLIC_URL: "https://shop.genesy.test", // F5
       },
     },
   ],

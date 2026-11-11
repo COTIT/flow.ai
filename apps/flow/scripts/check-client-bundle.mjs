@@ -14,6 +14,7 @@ const static_ = join(dist, "static")
 const names = [
   "VOICE_UPSTREAM_URL",
   "OFFICE_PUBLIC_URL",
+  "SHOP_PUBLIC_URL", // F5
   "API_URL",
   "ELEVENLABS_",
   "ASSISTANT_BRIDGE_SECRET",
@@ -24,7 +25,7 @@ const names = [
   "//office:3000",
   "//api:8080",
 ]
-// URL values (OFFICE_PUBLIC_URL, VOICE_UPSTREAM_URL, API_URL) are left out on purpose: the
+// URL values (OFFICE_PUBLIC_URL, SHOP_PUBLIC_URL, VOICE_UPSTREAM_URL, API_URL) are left out on purpose: the
 // public Office origin belongs in pages, and local values are localhost origins.
 const secrets = [
   "ASSISTANT_BRIDGE_SECRET",

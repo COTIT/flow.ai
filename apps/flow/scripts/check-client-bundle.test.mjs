@@ -64,6 +64,7 @@ describe("check-client-bundle", () => {
   it.each([
     "VOICE_UPSTREAM_URL",
     "OFFICE_PUBLIC_URL",
+    "SHOP_PUBLIC_URL", // F5
     "API_URL",
     "ELEVENLABS_",
     "ASSISTANT_BRIDGE_SECRET",
