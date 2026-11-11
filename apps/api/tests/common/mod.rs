@@ -55,6 +55,11 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
             replenish: std::time::Duration::from_millis(1),
             trust_forwarded: false,
         },
+        preview_rate_limit: RateLimit {
+            burst: 100_000,
+            replenish: std::time::Duration::from_millis(1),
+            trust_forwarded: false,
+        },
         private_ip_rate_limit: RateLimit {
             burst: 100_000,
             replenish: std::time::Duration::from_millis(1),

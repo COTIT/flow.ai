@@ -522,6 +522,91 @@ pub fn capabilities() -> Result<Value, AppError> {
     )
 }
 
+/// Default preview-link lifetime.
+pub const PREVIEW_HOURS: i32 = 48;
+/// Longest preview-link lifetime; the table CHECK holds the same bound.
+pub const PREVIEW_MAX_HOURS: i32 = 168;
+/// Most unrevoked, unexpired links one revision may have.
+pub const PREVIEW_MAX_ACTIVE: i64 = 5;
+
+/// Issue a full-page preview link for the current unpublished draft.
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StorefrontPreviewLinkCreate {
+    pub revision_id: Uuid,
+    /// Lifetime in hours, 1 to 168; default 48.
+    #[schema(minimum = 1, maximum = 168)]
+    pub hours: Option<i32>,
+}
+impl Validate for StorefrontPreviewLinkCreate {
+    type Valid = Self;
+    fn validate(self, r: &mut Rules) -> Option<Self> {
+        r.check(
+            "hours",
+            self.hours
+                .is_none_or(|h| (1..=PREVIEW_MAX_HOURS).contains(&h)),
+            "Hours must be between 1 and 168.",
+        );
+        Some(self)
+    }
+}
+/// Link state; `ended` = its revision was published or is no longer the current draft.
+#[derive(Serialize, ToSchema, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum StorefrontPreviewLinkStatus {
+    Active,
+    Expired,
+    Revoked,
+    Ended,
+}
+/// Link metadata; never the token or its hash.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontPreviewLink {
+    pub link_id: Uuid,
+    pub revision_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub created_by: Uuid,
+    pub expires_at: DateTime<Utc>,
+    #[schema(required = true)]
+    pub revoked_at: Option<DateTime<Utc>>,
+    pub status: StorefrontPreviewLinkStatus,
+}
+/// New link; `token` is present once, in the first answer only. Replays carry null.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontPreviewLinkIssued {
+    #[serde(flatten)]
+    pub link: StorefrontPreviewLink,
+    /// 64 hex chars; the Shop page path `/preview/{token}`. Shown once, never stored.
+    #[schema(required = true)]
+    pub token: Option<String>,
+}
+/// Links of one revision.
+#[derive(Deserialize, IntoParams)]
+#[serde(deny_unknown_fields)]
+#[into_params(parameter_in=Query)]
+pub struct PreviewLinksQuery {
+    pub revision_id: Uuid,
+}
+/// Token sent by the Shop server in the body, never in a URL.
+#[derive(Deserialize, ToSchema)]
+pub struct StorefrontPreviewResolve {
+    pub token: String,
+}
+impl Validate for StorefrontPreviewResolve {
+    type Valid = Self;
+    fn validate(self, _: &mut Rules) -> Option<Self> {
+        Some(self)
+    }
+}
+/// Preview-safe page: public catalog fields only; no version, pointers, actors or link ids.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontPreviewDesign {
+    pub revision_id: Uuid,
+    pub expires_at: DateTime<Utc>,
+    pub document: StorefrontDesignDocument,
+    pub collections: Vec<StorefrontDesignCollection>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

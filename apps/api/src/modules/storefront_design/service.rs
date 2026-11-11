@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 const STALE: &str = "The design changed. Reload before saving or publishing.";
 
-async fn checked_revision(
+pub(super) async fn checked_revision(
     db: &mut PgConnection,
     ws: Uuid,
     page: Uuid,
@@ -393,7 +393,7 @@ pub async fn publish(
     tx.commit().await?;
     Ok(answer)
 }
-async fn collections(
+pub(super) async fn collections(
     state: &AppState,
     ws: Uuid,
     doc: &StorefrontDesignDocument,

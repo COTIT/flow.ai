@@ -4,6 +4,7 @@ pub mod approval;
 pub mod dto;
 pub mod edit;
 pub mod handlers;
+pub mod preview_link;
 pub mod repo;
 pub mod routes;
 pub mod service;

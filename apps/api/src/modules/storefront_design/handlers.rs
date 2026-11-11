@@ -1,6 +1,6 @@
 //! Owner/admin design HTTP boundary; app keys can read published designs only.
 
-use super::{dto::*, service};
+use super::{dto::*, preview_link, service};
 use crate::{
     AppError, AppState,
     error::{UnprocessableBody, ValidationErrorBody},
@@ -16,7 +16,7 @@ use crate::{
 };
 use axum::{
     Json,
-    extract::{Query, State},
+    extract::{Path, Query, State},
 };
 use serde_json::Value;
 
@@ -125,4 +125,51 @@ pub async fn published(
 ) -> Result<Data<Option<StorefrontPublishedDesign>>, AppError> {
     key.require(CATALOG_READ)?;
     Ok(Data(service::published(&state, key.workspace_id).await?))
+}
+
+/// Issue expiring full-page preview link for current unpublished draft; token shown once.
+#[utoipa::path(post,path="/workspace/{workspace}/storefront/pages/home/preview-links",tag="storefront_design",operation_id="storefront_design_preview_link_create",params(("workspace"=uuid::Uuid,Path),("Idempotency-Key"=String,Header,description="Required retry key; a replay answers the same link with token null")),request_body=StorefrontPreviewLinkCreate,responses((status=201,body=Envelope<StorefrontPreviewLinkIssued>,description="New link; token present in this first answer only"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown workspace or revision, or resource outside caller scope"),(status=409,body=MessageBody,description="Revision is not the current unpublished draft, or it has 5 active links"),(status=413,body=MessageBody,description="Request exceeds API body limit"),(status=422,body=ValidationErrorBody,description="Invalid revision id, hours outside 1 to 168, or missing idempotency key")),security(("bearer"=[])))]
+pub async fn preview_link_create(
+    State(state): State<AppState>,
+    access: Can<WorkspaceAdmin>,
+    Keyed { input, key }: Keyed<StorefrontPreviewLinkCreate>,
+) -> Result<Answer, AppError> {
+    preview_link::create(&state.db, &access, input, key).await
+}
+
+/// Newest 50 preview links of one revision with status; never tokens.
+#[utoipa::path(get,path="/workspace/{workspace}/storefront/pages/home/preview-links",tag="storefront_design",operation_id="storefront_design_preview_links",params(("workspace"=uuid::Uuid,Path),PreviewLinksQuery),responses((status=200,body=Envelope<Vec<StorefrontPreviewLink>>,description="Links newest first; empty for another workspace's revision"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown workspace"),(status=422,body=ValidationErrorBody,description="Missing or invalid revision_id")),security(("bearer"=[])))]
+pub async fn preview_links(
+    State(state): State<AppState>,
+    access: Can<WorkspaceAdmin>,
+    query: Result<Query<PreviewLinksQuery>, axum::extract::rejection::QueryRejection>,
+) -> Result<Data<Vec<StorefrontPreviewLink>>, AppError> {
+    let Query(query) =
+        query.map_err(|_| AppError::field("revision_id", "A valid revision UUID is required."))?;
+    Ok(Data(
+        preview_link::list(&state.db, access.workspace_id, query.revision_id).await?,
+    ))
+}
+
+/// Revoke preview link now; repeat answers same row.
+#[utoipa::path(delete,path="/workspace/{workspace}/storefront/pages/home/preview-links/{link}",tag="storefront_design",operation_id="storefront_design_preview_link_revoke",params(("workspace"=uuid::Uuid,Path),("link"=uuid::Uuid,Path)),responses((status=200,body=Envelope<StorefrontPreviewLink>,description="Revoked link"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown workspace or link, or link outside caller scope")),security(("bearer"=[])))]
+pub async fn preview_link_revoke(
+    State(state): State<AppState>,
+    access: Can<WorkspaceAdmin>,
+    Path((_, link)): Path<(uuid::Uuid, uuid::Uuid)>,
+) -> Result<Data<StorefrontPreviewLink>, AppError> {
+    Ok(Data(preview_link::revoke(&state.db, &access, link).await?))
+}
+
+/// Shop server resolves preview token for its own workspace; any dead or foreign token is 404.
+#[utoipa::path(post,path="/storefront/preview",tag="storefront_design",operation_id="storefront_design_preview_resolve",request_body=StorefrontPreviewResolve,responses((status=200,body=Envelope<StorefrontPreviewDesign>,description="Unpublished revision with public catalog collections"),(status=401,body=MessageBody,description="Missing, invalid or expired login or app key"),(status=403,body=MessageBody,description="Inactive member, missing workspace admin rights or catalog scope"),(status=404,body=MessageBody,description="Unknown, expired, revoked, published or superseded link, or another workspace's link"),(status=422,body=ValidationErrorBody,description="Body without a token string"),(status=429,body=MessageBody,description="Too many preview resolves for this app key")),security(("app_key"=[])))]
+pub async fn preview_resolve(
+    State(state): State<AppState>,
+    key: AppKey,
+    ValidatedJson(input): ValidatedJson<StorefrontPreviewResolve>,
+) -> Result<Data<StorefrontPreviewDesign>, AppError> {
+    key.require(CATALOG_READ)?;
+    Ok(Data(
+        preview_link::resolve(&state, key.workspace_id, &input.token).await?,
+    ))
 }

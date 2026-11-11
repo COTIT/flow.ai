@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM storefront_preview_links WHERE workspace_id=$1 AND revision_id=$2 AND revoked_at IS NULL AND expires_at>now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "060d5d0ec3b11c4fae3235249b95de8f02f2223a90f83757e6e74c3f9e88ac89"
+}

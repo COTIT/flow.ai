@@ -118,6 +118,7 @@ mod storage_locations;
 mod storefront;
 mod storefront_design;
 mod storefront_design_edits;
+mod storefront_preview_links;
 mod supply_links;
 mod teams;
 mod till_cash;
