@@ -106,7 +106,6 @@ test.describe("periods follow the workspace's zone, not the browser's", () => {
   test.use({ timezoneId: "America/Santiago" })
   test("at 22:30 UTC Dar es Salaam is already on the next day", async ({
     page,
-    api,
   }) => {
     const asked: string[] = []
     page.on("request", (r) => {
