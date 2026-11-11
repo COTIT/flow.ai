@@ -89,3 +89,15 @@ it("a command or resume needs no read; a failed read never blocks the session", 
   fetch.mockRejectedValueOnce(new Error("down"))
   expect(await sessionGreeting(context, "en", undefined)).toBeUndefined()
 })
+
+it("a broken override setting never fails the session: no greeting, one warning without values", async () => {
+  const fetch = vi.fn()
+  vi.stubGlobal("fetch", fetch)
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+  vi.stubEnv("ASSISTANT_GREETING_OVERRIDE_FILE", "/nonexistent/secret-path")
+  expect(await sessionGreeting(context, "en", "command")).toBeUndefined()
+  expect(warn).toHaveBeenCalledTimes(1)
+  expect(String(warn.mock.calls[0])).not.toMatch(/secret-path|staff|w1/)
+  expect(fetch).not.toHaveBeenCalled()
+  warn.mockRestore()
+})

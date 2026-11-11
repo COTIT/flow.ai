@@ -101,7 +101,7 @@ it("a review that lands between the check and the ledger write cancels the new r
   await proposeAction(action, ctx, new Map())
   mocks.free.mockResolvedValueOnce(undefined)
   await expect(proposeAction(action, ctx, new Map())).rejects.toMatchObject({ status: 409 })
-  const write = mocks.ledger.mock.calls.findLastIndex(([, p]) => p === "/actions")
+  const write = mocks.ledger.mock.calls.map((call) => call[1]).lastIndexOf("/actions")
   const second = (await mocks.ledger.mock.results[write]!.value) as { id: string }
   expect(mocks.ledger).toHaveBeenLastCalledWith(ctx, `/actions/${second.id}/cancel`, "POST", {
     session_id: "order-race-single",

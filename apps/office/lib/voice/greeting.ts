@@ -93,8 +93,14 @@ export async function sessionGreeting(
   language: string,
   hint: GreetingHint | undefined
 ): Promise<string | undefined> {
-  if ((await voiceSetting("ASSISTANT_GREETING_OVERRIDE")) !== "on") return
-  if (hint) return greetingText({ language, hint })
-  const attention = await attentionCount(context)
-  return attention === undefined ? undefined : greetingText({ language, attention })
+  try {
+    if ((await voiceSetting("ASSISTANT_GREETING_OVERRIDE")) !== "on") return
+    if (hint) return greetingText({ language, hint })
+    const attention = await attentionCount(context)
+    return attention === undefined ? undefined : greetingText({ language, attention })
+  } catch {
+    // A broken setting must never stop a session; no values (paths, ids) in the log.
+    console.warn("voice greeting skipped: ASSISTANT_GREETING_OVERRIDE is unreadable")
+    return undefined
+  }
 }
