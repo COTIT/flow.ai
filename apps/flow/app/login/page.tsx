@@ -10,6 +10,7 @@ import { LoginForm } from "@genesy/ui/components/login-form"
 import { Logo } from "@genesy/ui/components/logo"
 import { Notice } from "@genesy/ui/components/notice"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { safeNext } from "@/lib/next-path"
 
 export default function LoginPage() {
   const t = useTranslations()
@@ -19,7 +20,10 @@ export default function LoginPage() {
   const expired = useSession((s) => s.expired)
 
   React.useEffect(() => {
-    if (token) router.replace("/")
+    if (token)
+      router.replace(
+        safeNext(new URLSearchParams(window.location.search).get("next"), window.location.origin)
+      )
   }, [token, router])
 
   const status = login.error?.response?.status
