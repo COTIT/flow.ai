@@ -370,6 +370,9 @@ test.describe("findings", () => {
       await new Promise((resolve) => setTimeout(resolve, 1_500))
       await route.fallback()
     })
+    // A reload reopens the task view (F2); conversations start from home.
+    await backHome(page)
+    await expect(resume).toBeVisible()
     const started = startText(page)
     await expect(resume).toHaveCount(0, { timeout: 1_000 })
     await started
