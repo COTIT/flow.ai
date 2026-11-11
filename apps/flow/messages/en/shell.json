@@ -1,0 +1,27 @@
+{
+  "shell": {
+    "phaseLabel": "Voice",
+    "phase": {
+      "ready": "Ready",
+      "live": "In conversation",
+      "ended": "Ended"
+    },
+    "morning": "Good morning.",
+    "afternoon": "Good afternoon.",
+    "evening": "Good evening.",
+    "flowTitle": "Everything in your flow.",
+    "flowText": "Talk, type or open a scene. Genesy keeps the conversation going while you move around.",
+    "orbStart": "Talk to Genesy",
+    "orbOpen": "Open the conversation",
+    "conversation": "Conversation",
+    "backHome": "Back to home",
+    "ended": "Voice session ended.",
+    "preserved": "Your work is preserved.",
+    "startAgain": "Start again with the orb, the microphone or by typing.",
+    "dock": "Ask Genesy",
+    "placeholder": "Ask or tell Genesy…",
+    "suggested": "Suggested for you",
+    "mic": "Microphone",
+    "switchVoice": "Switch to voice"
+  }
+}
