@@ -298,8 +298,15 @@ describe("stockAt", () => {
     expect(stockAt(rows, "w1", null)).toBe("150")
     expect(stockAt(rows, "w1", "b1")).toBe("9")
     expect(stockAt(rows, "w2", null)).toBe("1.5")
-    // No row is zero, as the review's own snapshot counts it.
-    expect(stockAt(rows, "w3", null)).toBe("0")
+  })
+  it("no matching row is unknown, never an invented 0", () => {
+    // Only lot rows in that warehouse: the slot itself was not read.
+    expect(stockAt([row("w1", null, "l1", "5.00")], "w1", null)).toBeNull()
+    expect(stockAt([], "w1", null)).toBeNull()
+    expect(stockAt([row("w1", "b1", null, "9.00")], "w1", null)).toBeNull()
+  })
+  it("an unknown read-back leaves the receipt's new value unknown", () => {
+    expect(receiptOf(stockReview, done(), { "w1:": null }).rows[0]!.after).toBeNull()
   })
 })
 

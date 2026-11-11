@@ -56,6 +56,7 @@
       },
       "reading": "Reading the current value…",
       "readFailed": "Completed; couldn't load the current value.",
+      "unconfirmed": "Completed; couldn't confirm the current value.",
       "refresh": "Refresh",
       "unknownText": "Don't repeat it: it may already have happened. Genesy checks the recorded outcome.",
       "check": "Ask Genesy to check",

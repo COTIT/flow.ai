@@ -104,8 +104,8 @@ export type Receipt = {
   readBack: { product: string } | null
   rows: ReceiptRow[]
 }
-/** Read-back values by `${warehouse_id}:${bin_id ?? ""}`. */
-export type ReadBack = Record<string, string>
+/** Read-back values by `${warehouse_id}:${bin_id ?? ""}`; null = that slot was not in the read. */
+export type ReadBack = Record<string, string | null>
 export const slotKey = (warehouse: string, bin: string | null | undefined) =>
   `${warehouse}:${bin ?? ""}`
 
@@ -161,7 +161,10 @@ export function receiptOf(
   return base
 }
 
-/** The stock a review slot names: that warehouse and bin, no lot; no row is zero (as the snapshot). */
+/**
+ * The stock a review slot names: that warehouse and bin, no lot. `stock-with-bins` lists every
+ * row of the product (not paged), so a missing row means "not read here": unknown (null), never 0.
+ */
 export function stockAt(
   rows: { warehouse: unknown; bin: unknown; lot: unknown; stock_lvl: string }[],
   warehouse: string,
@@ -171,7 +174,7 @@ export function stockAt(
   const row = rows.find(
     (r) => id(r.warehouse) === warehouse && id(r.bin) === bin && !r.lot
   )
-  return row ? trim(row.stock_lvl) : "0"
+  return row ? trim(row.stock_lvl) : null
 }
 
 /**

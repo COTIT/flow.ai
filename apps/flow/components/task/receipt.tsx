@@ -31,7 +31,8 @@ export function Receipt({
   const read = useStockWithBins(workspace, product, {
     query: { enabled: Boolean(product && workspace), staleTime: 0, gcTime: 0 },
   })
-  const rows = read.data?.data
+  // A failed (re)read drops what an earlier read said: never shown as current.
+  const rows = read.isError ? undefined : read.data?.data
   const readBack: ReadBack | undefined = rows
     ? Object.fromEntries(
         plan.rows.flatMap(({ slot }) =>
@@ -73,9 +74,10 @@ export function Receipt({
             <dt className="text-muted-foreground">{t("new")}</dt>
             <dd data-receipt-new>
               {row.after ??
-                (receipt.readBack && read.isError ? (
+                (receipt.readBack && (read.isError || readBack) ? (
                   <span className="flex flex-wrap items-center gap-2">
-                    {t("readFailed")}
+                    {/* Read but that slot was not in it: unknown, never an invented value. */}
+                    {t(read.isError ? "readFailed" : "unconfirmed")}
                     <Button
                       variant="outline"
                       size="sm"

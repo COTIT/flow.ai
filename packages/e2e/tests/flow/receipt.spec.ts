@@ -2,6 +2,7 @@ import { seedSession } from "../../src/session"
 import { expect, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import {
+  capsule,
   k,
   proposeStock,
   readBack,
@@ -114,4 +115,55 @@ test("a refused write is 'not done', with the reason in plain words and no new v
   await expect(receipt(page)).toHaveAttribute("data-receipt", "failed")
   await expect(receipt(page)).toContainText(v.requestErrors.forbidden)
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("—")
+})
+
+test("a read that does not contain the changed slot says it could not confirm; never 0", async ({
+  page,
+}) => {
+  // Only a lot row in that warehouse: the slot the review named is not in the read.
+  const lotOnly = readBack("150.00")
+  const reply = lotOnly["GET /workspace/w1/products/p-500/stock-with-bins"]!
+  ;(reply.body as { data: { lot: unknown }[] }).data[0]!.lot = { id: "l1", code: "L1" }
+  await mockApi(page, flowApi(lotOnly))
+  const agent = await fakeAgent(page)
+  await stockRoutes(page)
+  await proposeStock(page, agent, 150)
+  await scene(page).getByRole("button", { name: v.approve }).click()
+  const value = receipt(page).locator("[data-receipt-new]")
+  await expect(value).toContainText(k.receipt.unconfirmed)
+  await expect(value.getByRole("button", { name: k.receipt.refresh })).toBeVisible()
+  await expect(value).not.toContainText(/\b(0|150)\b/)
+  await expect(receipt(page)).toHaveAttribute("data-receipt", "completed")
+})
+
+test.describe("a later read fails", () => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/products/p-500/stock-with-bins", status: 503 }],
+    },
+  })
+
+  test("the earlier value is dropped, not shown as current", async ({ page }) => {
+    let fail = false
+    await mockApi(page, flowApi())
+    await page.route("**/v1/workspace/w1/products/p-500/stock-with-bins", (route) =>
+      fail
+        ? route.fulfill({ status: 503, json: { message: "down" } })
+        : route.fulfill({
+            json: readBack("150.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!.body,
+          })
+    )
+    const agent = await fakeAgent(page)
+    await stockRoutes(page)
+    await proposeStock(page, agent, 150)
+    await scene(page).getByRole("button", { name: v.approve }).click()
+    const value = receipt(page).locator("[data-receipt-new]")
+    await expect(value).toHaveText("150")
+    // Close and reopen the receipt: it reads again, and that read fails.
+    fail = true
+    await page.getByRole("button", { name: "Back to home" }).click()
+    await capsule(page).getByRole("button", { name: k.openReceipt }).click()
+    await expect(value).toContainText(k.receipt.readFailed, { timeout: 15_000 })
+    await expect(value).not.toContainText("150")
+  })
 })

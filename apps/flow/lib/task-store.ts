@@ -2,9 +2,12 @@ import { useEffect, useRef } from "react"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
+import { useSession } from "@genesy/api-client/auth"
 import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
 
 type TaskState = {
+  /** Whose task this is (`ownerKey`): nothing here is shown to another workspace or login. */
+  owner: string | null
   /** The review the person last decided; with the provider's outcome it is the receipt. */
   decided: VoiceReview | null
   /** The decided review's own answer, kept: later answers never become its receipt. */
@@ -16,14 +19,32 @@ type TaskState = {
 }
 
 /** Business-task memory of the shell; the voice provider stays the only source of live state. */
+const EMPTY: TaskState = {
+  owner: null,
+  decided: null,
+  result: null,
+  withdrawn: null,
+  resumeDismissed: false,
+}
 export const taskStore = createStore<TaskState>()(() => ({
+  owner: null,
   decided: null,
   result: null,
   withdrawn: null,
   resumeDismissed: false,
 }))
-export const useTask = <T,>(pick: (state: TaskState) => T) =>
-  useStore(taskStore, pick)
+/** One workspace and one login; null (signed out, no workspace) belongs to nobody. */
+export const ownerKey = (workspaceId: string | null, token: string | null) =>
+  workspaceId && token ? `${workspaceId}:${token}` : null
+/** The task as `owner` may see it: someone else's (or nobody's) task is empty. */
+export const taskFor = (state: TaskState, owner: string | null) =>
+  owner && state.owner === owner ? state : EMPTY
+const useOwner = () =>
+  useSession((s) => ownerKey(s.workspaceId, s.token))
+export const useTask = <T,>(pick: (state: TaskState) => T) => {
+  const owner = useOwner()
+  return useStore(taskStore, (state) => pick(taskFor(state, owner)))
+}
 
 /** What a review leaving means: withdrawn (cancelled, never sent), decided (answered), or nothing. */
 export function reviewLeft(
@@ -53,14 +74,24 @@ export function useTaskWatch(voice: {
   // The outcome showing while the review was open belongs to earlier work, never to this review.
   const earlier = useRef<VoiceOutcome | null>(null)
   const { review, outcome, starting } = voice
+  const owner = useOwner()
+  // Another workspace or login (switch, logout, another tab's login) starts from nothing.
+  useEffect(() => {
+    if (taskStore.getState().owner !== owner)
+      taskStore.setState({ ...EMPTY, owner }, true)
+    last.current = null
+  }, [owner])
   useEffect(() => {
     const before = last.current
     last.current = review
     if (review && before?.ticket !== review.ticket) earlier.current = outcome
     const next = reviewLeft(before, review, outcome, earlier.current)
-    if (next) taskStore.setState(next)
-  }, [review, outcome])
+    if (next && taskStore.getState().owner === owner) taskStore.setState(next)
+  }, [review, outcome, owner])
   useEffect(() => {
-    if (starting) taskStore.setState(taskStore.getInitialState(), true)
+    if (starting) taskStore.setState({ ...EMPTY, owner }, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [starting])
+  // Leaving the signed-in app forgets the task.
+  useEffect(() => () => taskStore.setState(EMPTY, true), [])
 }
