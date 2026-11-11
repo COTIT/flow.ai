@@ -8,6 +8,7 @@ import {
   operationLabel,
   notIncludedRows,
   reviewRows,
+  sessionPhase,
 } from "./presentation"
 
 describe("assistant activity", () => {
@@ -227,5 +228,34 @@ describe("review rows", () => {
       { line: 5, text: "x", reason: "other" },
     ])
     expect(notIncludedRows({ ...base, details: {} })).toEqual([])
+  })
+})
+
+describe("session phase", () => {
+  it("is ready before any session, live while starting or connected", () => {
+    expect(sessionPhase({})).toEqual({ phase: "ready" })
+    expect(sessionPhase({ starting: true })).toEqual({ phase: "live" })
+    expect(sessionPhase({ connected: true })).toEqual({ phase: "live" })
+    expect(sessionPhase({ upgrading: true, endedByUser: true })).toEqual({
+      phase: "live",
+    })
+  })
+
+  it("is ended after the person ends it or the provider drops it, never while live", () => {
+    expect(sessionPhase({ endedByUser: true })).toEqual({
+      phase: "ended",
+      reason: "user",
+    })
+    expect(sessionPhase({ unfinished: "dropped" })).toEqual({
+      phase: "ended",
+      reason: "dropped",
+    })
+    expect(
+      sessionPhase({ unfinished: "dropped", endedByUser: true })
+    ).toEqual({ phase: "ended", reason: "dropped" })
+    // A stalled answer is still a live session.
+    expect(sessionPhase({ connected: true, unfinished: "stalled" })).toEqual({
+      phase: "live",
+    })
   })
 })

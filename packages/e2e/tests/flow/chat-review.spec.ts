@@ -12,6 +12,7 @@ import {
   v,
   watch,
 } from "./voice"
+import { s } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -20,31 +21,25 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page, flowApi())
 })
 
-const narrow = (page: Page) => page.viewportSize()!.width < 1024
-
-/** Asks for an order; the mock proposes it for review. Returns where the review's buttons are. */
+/** Asks for an order; the mock proposes it for review, which opens the result scene by itself. */
 async function propose(page: Page) {
   const agent = await fakeAgent(page)
   const confirms = watch(page, "confirm")
   await page.goto("/")
   await startText(page)
   agent.call("orders_create", { body: { reference: "Flow e2e order" } })
+  // The dock's pending row (shown while the scene is closed) and the scene with the full review.
   const pending = page.getByRole("group", { name: chat.reviewPending })
-  // Small screens: the sheet opens by itself (modal, so the page behind it is hidden), as Office's review does.
-  if (!narrow(page)) await expect(pending).toContainText(chat.reviewPending)
-  const review = narrow(page)
-    ? page.getByRole("dialog", { name: chat.results })
-    : page.getByRole("region", { name: chat.results })
+  const review = page.getByRole("region", { name: chat.results })
   await expect(review).toContainText("Flow e2e order")
   await expect(review).toContainText("Confirm action 135790")
-  const actions = narrow(page) ? review : pending
-  return { agent, confirms, pending, review, actions }
+  return { agent, confirms, pending, review, actions: review }
 }
 
 test("approving runs the action once, and only the backend's answer says it is done", async ({
   page,
 }) => {
-  const { confirms, actions, pending } = await propose(page)
+  const { confirms, actions, review } = await propose(page)
   await expectNoHorizontalScroll(page)
   // The composer cannot be used while the action waits, so nothing cancels it by accident.
   expect(
@@ -53,9 +48,8 @@ test("approving runs the action once, and only the backend's answer says it is d
       .evaluate((box) => box.closest("[inert]") !== null)
   ).toBe(true)
   await actions.getByRole("button", { name: v.approve }).dblclick()
-  await expect(pending).toBeHidden()
-  // The decision is made: the review sheet closes by itself on small screens.
-  await expect(page.getByRole("dialog")).toHaveCount(0)
+  // The decision is made: the scene the review opened closes by itself, back to the conversation.
+  await expect(review).toBeHidden()
   await expect
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
@@ -73,33 +67,29 @@ test("approving runs the action once, and only the backend's answer says it is d
 })
 
 test("rejecting sends a cancel and changes nothing", async ({ page }) => {
-  const { confirms, actions, pending } = await propose(page)
+  const { confirms, actions, review } = await propose(page)
   await actions.getByRole("button", { name: v.cancel, exact: true }).click()
-  await expect(pending).toBeHidden()
+  await expect(review).toBeHidden()
   await expect.poll(() => confirms.length).toBe(1)
   expect(confirms[0]!.body).toMatchObject({ decision: "cancel" })
   await expect(page.getByText("Order created.")).toHaveCount(0)
   await expect(page.getByRole("link", { name: /ORD-0043/ })).toHaveCount(0)
 })
 
-test("on a small screen, closing the review sheet keeps the action pending and reachable", async ({
+test("leaving the review keeps the action pending and reachable from the dock", async ({
   page,
 }) => {
-  test.skip(
-    page.viewportSize()!.width >= 1024,
-    "the sheet exists only below 1024 px"
-  )
   const { confirms, review, pending } = await propose(page)
-  await page.getByRole("button", { name: chat.closeResults }).click()
+  await expect(pending).toHaveCount(0)
+  await page.getByRole("button", { name: s.backHome }).click()
   await expect(review).toBeHidden()
+  await expect(page.getByRole("log")).toBeVisible()
   await expect(pending).toContainText(chat.reviewPending)
   await expect(pending).toContainText("Create order for Neema Shop")
   expect(confirms).toHaveLength(0)
   await pending.getByRole("button", { name: chat.openReview }).click()
-  await expect(review).toBeVisible()
-  await page.keyboard.press("Escape")
-  await expect(review).toBeHidden()
-  await expect(pending).toBeVisible()
+  await expect(review).toContainText("Confirm action 135790")
+  await expect(pending).toHaveCount(0)
   expect(confirms).toHaveLength(0)
 })
 

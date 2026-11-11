@@ -1,0 +1,39 @@
+{
+  "shell": {
+    "phaseLabel": "Spraak",
+    "phase": {
+      "ready": "Klaar",
+      "live": "In gesprek",
+      "ended": "Beëindigd"
+    },
+    "morning": "Goedemorgen.",
+    "afternoon": "Goedemiddag.",
+    "evening": "Goedenavond.",
+    "flowTitle": "Alles in je flow.",
+    "flowText": "Praat, typ of open een scène. Genesy houdt het gesprek gaande terwijl je rondkijkt.",
+    "orbStart": "Praat met Genesy",
+    "orbOpen": "Open het gesprek",
+    "conversation": "Gesprek",
+    "backHome": "Terug naar start",
+    "ended": "Spraaksessie beëindigd.",
+    "preserved": "Je werk is bewaard.",
+    "startAgain": "Begin opnieuw met de bol, de microfoon of door te typen.",
+    "dock": "Vraag het Genesy",
+    "placeholder": "Vraag of vertel Genesy iets…",
+    "suggested": "Voorgesteld voor jou",
+    "mic": "Microfoon",
+    "switchVoice": "Overschakelen naar spraak",
+    "orb": {
+      "idle": "Genesy is klaar",
+      "connecting": "Verbinden",
+      "listening": "Luistert",
+      "thinking": "Denkt na",
+      "speaking": "Spreekt",
+      "waiting": "Wacht op je goedkeuring",
+      "executing": "Bezig",
+      "recovering": "Herstellen",
+      "error": "Er ging iets mis",
+      "ended": "Gesprek beëindigd"
+    }
+  }
+}

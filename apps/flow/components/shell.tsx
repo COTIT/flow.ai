@@ -1,122 +1,113 @@
 "use client"
 
-import Link from "next/link"
+import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { useTranslations } from "next-intl"
-import { LogOut } from "lucide-react"
 
-import { useLogout, useSession } from "@genesy/api-client/auth"
-import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
-import { sessionStore } from "@genesy/api-client/session"
-import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { LogoIcon } from "@genesy/ui/components/logo"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@genesy/ui/components/select"
-import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { useVoice } from "@genesy/voice/components/provider"
-import { settleWithin } from "@/lib/settle"
+import { sessionPhase } from "@genesy/voice/lib/presentation"
+import { sceneContext } from "@genesy/voice/lib/scene-context"
+import { useProposalHold } from "@/components/conversation/storefront-proposal"
+import { Dock } from "@/components/frame/dock"
+import { Header } from "@/components/frame/header"
+import { OrbLayer } from "@/components/frame/orb-layer"
+import { SceneBar } from "@/components/frame/scene-bar"
+import { flowStore, useFlow } from "@/lib/flow-store"
 
-/** How long logout waits for the voice session to end with the still-valid login. */
-const END_VOICE_MS = 3000
+export { useWorkspaceChoices } from "@/components/frame/header"
 
-/** The workspaces this login may switch to: the API's list, limited to the login's own ids. */
-export function useWorkspaceChoices() {
-  const token = useSession((s) => s.token)
-  const ids = useSession((s) => s.workspaceIds)
-  const query = useUsersWorkspaces({ query: { enabled: Boolean(token) } })
-  const choices = (query.data?.data ?? []).filter((w) => ids.includes(w.id))
-  return { query, choices }
-}
-
-/** One top bar, then the page: no sidebar, the assistant is the whole app. */
+/**
+ * The signed-in frame, mounted once: header, viewport (content + the one orb), dock.
+ * Navigation swaps only the content; the voice session and the orb stay.
+ */
 export function Shell({ children }: { children: React.ReactNode }) {
-  const t = useTranslations()
-  const logout = useLogout()
   const voice = useVoice()
   const pathname = usePathname()
-  const [leaving, setLeaving] = useState(false)
-  // The conversation fills the screen in two panes; every other page keeps the narrow column.
-  const wide = pathname === "/"
+  const endedByUser = useFlow((s) => s.endedByUser)
+  const resultOpen = useFlow((s) => s.resultOpen)
+  const selected = useFlow((s) => s.selected)
+  const { phase } = sessionPhase({ ...voice, endedByUser })
+  useProposalHold(voice.review)
+
+  // Lifecycle: a start opens the conversation; losing the connection marks it ended.
+  const wasConnected = useRef(false)
+  useEffect(() => {
+    if (voice.starting) flowStore.getState().started()
+  }, [voice.starting])
+  useEffect(() => {
+    if (wasConnected.current && !voice.connected && !voice.upgrading)
+      flowStore.getState().ended()
+    wasConnected.current = voice.connected
+  }, [voice.connected, voice.upgrading])
+
+  // A new action to approve opens the result scene on home; once decided, the scene it opened
+  // closes again so the conversation shows the outcome (a scene the person opened stays).
+  const ticket = voice.review?.ticket
+  const openedForReview = useRef(false)
+  useEffect(() => {
+    if (ticket) {
+      if (pathname !== "/" || flowStore.getState().resultOpen) return
+      openedForReview.current = true
+      flowStore.setState({ resultOpen: true })
+    } else if (openedForReview.current) {
+      openedForReview.current = false
+      flowStore.setState({ resultOpen: false })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket])
+
+  // The agent quietly knows the scene (ids only); the provider sends only while connected.
+  const send = voice.sendContext
+  useEffect(() => {
+    send(
+      sceneContext({
+        pathname: pathname === "/" && resultOpen ? "/results" : pathname,
+        selected,
+      })
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, resultOpen, selected])
+
+  // The dock stays above a phone's keyboard: the frame follows the visual viewport.
+  useEffect(() => {
+    const view = window.visualViewport
+    if (!view) return
+    const fit = () =>
+      document.documentElement.style.setProperty(
+        "--flow-vh",
+        `${view.height}px`
+      )
+    fit()
+    view.addEventListener("resize", fit)
+    return () => view.removeEventListener("resize", fit)
+  }, [])
+
+  // Leaving the signed-in app (logout, another login) forgets the visual state.
+  useEffect(
+    () => () => flowStore.setState(flowStore.getInitialState(), true),
+    []
+  )
+
+  const home = pathname === "/"
   return (
     <div
-      className={`flex flex-col gap-5 p-5 max-md:gap-3 max-md:p-3 ${wide ? "h-dvh" : "min-h-svh"}`}
+      style={{ height: "var(--flow-vh, 100dvh)" }}
+      className="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 md:gap-4 md:p-4"
     >
-      <header className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5">
-        <Link href="/" className="mr-auto flex min-h-11 items-center gap-2">
-          <LogoIcon aria-hidden="true" className="size-7 shrink-0" />
-          <span className="text-[15px] font-semibold">{t("flow.name")}</span>
-        </Link>
-        <Link
-          href="/storefront"
-          prefetch={false}
-          aria-current={pathname === "/storefront" ? "page" : undefined}
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
-        >
-          {t("flow.chat.storefront")}
-        </Link>
-        <WorkspacePicker />
-        <LocaleSwitcher />
-        <ThemeToggle label={t("common.theme")} />
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={leaving || logout.isPending}
-          onClick={async () => {
-            setLeaving(true)
-            // End the voice session while the login still works; a hung end never blocks logout.
-            await settleWithin(
-              // A throw inside end() becomes a rejection here, so logout still runs.
-              Promise.resolve().then(() => voice.end()),
-              END_VOICE_MS
-            )
-            logout.mutate()
-          }}
-        >
-          <LogOut aria-hidden="true" />
-          {t("common.logout")}
-        </Button>
-      </header>
-      <main
-        className={`mx-auto flex w-full min-w-0 flex-col gap-5 max-md:gap-3 ${wide ? "min-h-0 max-w-screen-2xl flex-1" : "max-w-2xl"}`}
-      >
-        {children}
-      </main>
+      <Header phase={phase} />
+      <div className="relative flex min-h-0 flex-col">
+        {!home || resultOpen ? <SceneBar /> : null}
+        <main data-flow-scroll className="min-h-0 flex-1 overflow-y-auto">
+          <div
+            className={`mx-auto flex w-full min-w-0 flex-col gap-5 max-md:gap-3 ${home ? "max-w-3xl" : "max-w-2xl"}`}
+          >
+            {children}
+          </div>
+        </main>
+        <OrbLayer />
+      </div>
+      <div className="mx-auto w-full max-w-3xl min-w-0">
+        <Dock phase={phase} />
+      </div>
     </div>
-  )
-}
-
-/** Shown only with more than one workspace to choose from. */
-function WorkspacePicker() {
-  const t = useTranslations()
-  const workspaceId = useSession((s) => s.workspaceId)
-  const { choices } = useWorkspaceChoices()
-  if (choices.length < 2) return null
-  const options = choices.map((w) => ({ value: w.id, label: w.display_name }))
-  return (
-    <Select
-      items={options}
-      value={workspaceId}
-      onValueChange={(v) => {
-        if (v) sessionStore.getState().selectWorkspace(v)
-      }}
-    >
-      <SelectTrigger aria-label={t("common.workspace")} className="max-w-48">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }

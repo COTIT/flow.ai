@@ -21,7 +21,6 @@ import { chat, fakeAgent, startText, v, watch } from "./voice"
 const s = flowEn.flow.storefront
 const PHRASE = "Confirm action 246802"
 const DRY_RUN = "/v1/workspace/w1/storefront/pages/home/edits/preview"
-const narrow = (page: Page) => page.viewportSize()!.width < 1024
 
 const edit = (heading = "Fresh this week") => ({
   body: {
@@ -55,16 +54,12 @@ async function propose(page: Page, operation: string, args: unknown) {
   await page.goto("/")
   await startText(page)
   agent.call(operation, args)
-  const review = narrow(page)
-    ? page.getByRole("dialog", { name: chat.results })
-    : page.getByRole("region", { name: chat.results })
+  // The review opens the result scene by itself, buttons included.
+  const review = page.getByRole("region", { name: chat.results })
   await expect(
     review.getByText(v.review, { exact: false }).first()
   ).toBeVisible()
-  const actions = narrow(page)
-    ? review
-    : page.getByRole("group", { name: chat.reviewPending })
-  return { agent, confirms, review, actions }
+  return { agent, confirms, review, actions: review }
 }
 
 /** The whole edit review: diff, proposal frame at every device size, approve once. */
@@ -149,7 +144,7 @@ test("an edit review shows each change and the proposed page; approving runs it 
 test.describe("on a tablet (834 px)", () => {
   test.use({ viewport: { width: 834, height: 1194 } })
 
-  test("the edit review opens in the sheet with the proposed page", async ({
+  test("the edit review opens in the result scene with the proposed page", async ({
     page,
     api,
   }) => {
