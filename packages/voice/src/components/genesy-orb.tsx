@@ -1,23 +1,18 @@
 "use client"
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
-import { island, useMotionAllowed } from "@genesy/ui/components/island"
+import { useMotionAllowed } from "@genesy/ui/components/island"
 import {
   createOrb,
   orbFps,
   orbFrame,
-  orbMode,
   settleOrb,
   stepOrb,
-  strandsProps,
   type OrbFrame,
   type OrbSim,
   type OrbState,
   type OrbTheme,
 } from "../lib/orb"
-
-// The 5-strand orb is SVG; the big WebGL orb keeps vendored Strands' 3 light sheets (its shader stays unchanged).
-const Strands = island(() => import("./strands"))
 
 // Apps set `.dark` on <html> (next-themes). The server snapshot is null, so nothing themed is drawn
 // before hydration and the wrong palette never flashes.
@@ -36,18 +31,16 @@ const themeStore = {
 }
 
 // Read once per page load; the server has neither, so it draws the SVG orb.
-let envCache: { webgl2: boolean; coarse: boolean } | undefined
+let envCache: { coarse: boolean } | undefined
 const envStore = {
   subscribe: () => () => undefined,
   read: () =>
     (envCache ??= {
-      // shortcut: checks the API exists, not that a context can be made; Strands then draws nothing.
-      webgl2: typeof WebGL2RenderingContext !== "undefined",
       coarse: matchMedia("(pointer: coarse)").matches,
     }),
   server: () => SERVER_ENV,
 }
-const SERVER_ENV = { webgl2: false, coarse: false }
+const SERVER_ENV = { coarse: false }
 
 const stillLevel = (state: OrbState) =>
   state === "speaking" ? 0.55 : state === "listening" ? 0.4 : 0
@@ -142,7 +135,6 @@ export function GenesyOrb({
 
   const shown =
     (!still && moving) || settleOrb(createOrb(state), state, stillLevel(state))
-  const mode = orbMode({ size, webgl2: env.webgl2, reduced: still })
   const f = look ? orbFrame(shown, look) : null
   const soft = size < 100 || env.coarse ? 0.55 : 1
 
@@ -158,31 +150,7 @@ export function GenesyOrb({
     >
       {f && look ? (
         <div aria-hidden="true" className="absolute inset-0">
-          {mode === "webgl" ? (
-            <>
-              <div
-                className="absolute inset-0"
-                style={{ transform: `scale(${n(f.scale)})` }}
-              >
-                <Strands
-                  {...strandsProps(shown, look)}
-                  count={3}
-                  glass
-                  glassSize={0.952} // matches the SVG orb's radius (96 of 240)
-                  saturation={1.3}
-                  intro={false}
-                  interactive={false}
-                  clickPulse={false}
-                  maxDevicePixelRatio={1.5}
-                  className="absolute inset-0"
-                  plain={<OrbSvg f={f} id={id} soft={soft} />}
-                />
-              </div>
-              <OrbSvg f={f} id={id + "o"} soft={soft} overlay />
-            </>
-          ) : (
-            <OrbSvg f={f} id={id} soft={soft} />
-          )}
+          <OrbSvg f={f} id={id} soft={soft} />
         </div>
       ) : null}
       <span role="status" aria-live="polite" className="genesy-orb-label">
@@ -192,18 +160,8 @@ export function GenesyOrb({
   )
 }
 
-/** The approved SVG orb; `overlay` draws only the rings, arcs, ripples and sparks over WebGL. */
-function OrbSvg({
-  f,
-  id,
-  soft,
-  overlay = false,
-}: {
-  f: OrbFrame
-  id: string
-  soft: number
-  overlay?: boolean
-}) {
+/** The approved SVG orb (Claude Design v10, orb core v3), drawn at every size. */
+function OrbSvg({ f, id, soft }: { f: OrbFrame; id: string; soft: number }) {
   const sparks = f.sparks.map((p, i) => (
     <circle
       key={i}
@@ -220,62 +178,60 @@ function OrbSvg({
       className="absolute inset-0 size-full overflow-visible"
       style={{ opacity: n(f.fade) }}
     >
-      {overlay ? null : (
-        <defs>
-          <radialGradient id={id + "s"} cx="50%" cy="30%" r="74%">
-            <stop offset="0%" stopColor={f.body0} stopOpacity={f.bodyO[0]} />
-            <stop offset="60%" stopColor={f.body1} stopOpacity={f.bodyO[1]} />
-            <stop offset="100%" stopColor={f.body2} stopOpacity={f.bodyO[2]} />
-          </radialGradient>
-          <radialGradient id={id + "o"} cx="50%" cy="50%" r="50%">
-            <stop offset="76%" stopColor={f.glowC} stopOpacity={0.55} />
-            <stop offset="100%" stopColor={f.glowC} stopOpacity={0} />
-          </radialGradient>
-          <radialGradient id={id + "c"} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={f.coreC} stopOpacity={0.9} />
-            <stop offset="40%" stopColor={f.coreC} stopOpacity={0.32} />
-            <stop offset="100%" stopColor={f.coreC} stopOpacity={0} />
-          </radialGradient>
-          <radialGradient id={id + "h"} cx="30%" cy="22%" r="40%">
-            <stop offset="0%" stopColor="#fff" stopOpacity={f.hl} />
-            <stop offset="100%" stopColor="#fff" stopOpacity={0} />
-          </radialGradient>
-          {f.strands.map((s, i) => (
-            <linearGradient
-              key={i}
-              id={id + "l" + i}
-              gradientUnits="userSpaceOnUse"
-              x1="4"
-              y1="0"
-              x2="196"
-              y2="0"
-            >
-              <stop offset="0" stopColor={s.c} stopOpacity={0} />
-              <stop offset="0.2" stopColor={s.c} />
-              <stop offset="0.8" stopColor={s.c} />
-              <stop offset="1" stopColor={s.c} stopOpacity={0} />
-            </linearGradient>
-          ))}
-          <filter
-            id={id + "g"}
-            filterUnits="userSpaceOnUse"
-            x="-10"
-            y="-10"
-            width="220"
-            height="220"
+      <defs>
+        <radialGradient id={id + "s"} cx="50%" cy="30%" r="74%">
+          <stop offset="0%" stopColor={f.body0} stopOpacity={f.bodyO[0]} />
+          <stop offset="60%" stopColor={f.body1} stopOpacity={f.bodyO[1]} />
+          <stop offset="100%" stopColor={f.body2} stopOpacity={f.bodyO[2]} />
+        </radialGradient>
+        <radialGradient id={id + "o"} cx="50%" cy="50%" r="50%">
+          <stop offset="76%" stopColor={f.glowC} stopOpacity={0.55} />
+          <stop offset="100%" stopColor={f.glowC} stopOpacity={0} />
+        </radialGradient>
+        <radialGradient id={id + "c"} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={f.coreC} stopOpacity={0.9} />
+          <stop offset="40%" stopColor={f.coreC} stopOpacity={0.32} />
+          <stop offset="100%" stopColor={f.coreC} stopOpacity={0} />
+        </radialGradient>
+        <radialGradient id={id + "h"} cx="30%" cy="22%" r="40%">
+          <stop offset="0%" stopColor="#fff" stopOpacity={f.hl} />
+          <stop offset="100%" stopColor="#fff" stopOpacity={0} />
+        </radialGradient>
+        {f.strands.map((s, i) => (
+          <linearGradient
+            key={i}
+            id={id + "l" + i}
+            gradientUnits="userSpaceOnUse"
+            x1="4"
+            y1="0"
+            x2="196"
+            y2="0"
           >
-            <feGaussianBlur stdDeviation={n(f.blur * soft)} result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <clipPath id={id + "k"}>
-            <circle cx="100" cy="100" r="95" />
-          </clipPath>
-        </defs>
-      )}
+            <stop offset="0" stopColor={s.c} stopOpacity={0} />
+            <stop offset="0.2" stopColor={s.c} />
+            <stop offset="0.8" stopColor={s.c} />
+            <stop offset="1" stopColor={s.c} stopOpacity={0} />
+          </linearGradient>
+        ))}
+        <filter
+          id={id + "g"}
+          filterUnits="userSpaceOnUse"
+          x="-10"
+          y="-10"
+          width="220"
+          height="220"
+        >
+          <feGaussianBlur stdDeviation={n(f.blur * soft)} result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <clipPath id={id + "k"}>
+          <circle cx="100" cy="100" r="95" />
+        </clipPath>
+      </defs>
       {f.ripples.map((r, i) => (
         <circle
           key={i}
@@ -291,53 +247,49 @@ function OrbSvg({
       <g
         transform={`translate(100 100) scale(${n(f.scale)}) translate(-100 -100)`}
       >
-        {overlay ? (
-          sparks
-        ) : (
-          <>
+        <>
+          <circle
+            cx="100"
+            cy="100"
+            r="126"
+            fill={`url(#${id}o)`}
+            opacity={n(f.glowO)}
+          />
+          <circle cx="100" cy="100" r="96" fill={`url(#${id}s)`} />
+          <g clipPath={`url(#${id}k)`}>
             <circle
               cx="100"
               cy="100"
-              r="126"
-              fill={`url(#${id}o)`}
-              opacity={n(f.glowO)}
+              r={n(f.coreR)}
+              fill={`url(#${id}c)`}
+              opacity={n(f.coreO)}
             />
-            <circle cx="100" cy="100" r="96" fill={`url(#${id}s)`} />
-            <g clipPath={`url(#${id}k)`}>
-              <circle
-                cx="100"
-                cy="100"
-                r={n(f.coreR)}
-                fill={`url(#${id}c)`}
-                opacity={n(f.coreO)}
-              />
-              <g filter={`url(#${id}g)`} style={{ mixBlendMode: f.blend }}>
-                {f.strands.map((s, i) => (
-                  <path
-                    key={i}
-                    d={s.d}
-                    fill="none"
-                    stroke={`url(#${id}l${i})`}
-                    strokeWidth={n(s.w)}
-                    strokeLinecap="round"
-                    strokeDasharray={s.dash}
-                    opacity={n(s.o)}
-                  />
-                ))}
-              </g>
-              {sparks}
-              <circle cx="100" cy="100" r="96" fill={`url(#${id}h)`} />
+            <g filter={`url(#${id}g)`} style={{ mixBlendMode: f.blend }}>
+              {f.strands.map((s, i) => (
+                <path
+                  key={i}
+                  d={s.d}
+                  fill="none"
+                  stroke={`url(#${id}l${i})`}
+                  strokeWidth={n(s.w)}
+                  strokeLinecap="round"
+                  strokeDasharray={s.dash}
+                  opacity={n(s.o)}
+                />
+              ))}
             </g>
-            <circle
-              cx="100"
-              cy="100"
-              r="96"
-              fill="none"
-              stroke={f.edge}
-              strokeWidth={1}
-            />
-          </>
-        )}
+            {sparks}
+            <circle cx="100" cy="100" r="96" fill={`url(#${id}h)`} />
+          </g>
+          <circle
+            cx="100"
+            cy="100"
+            r="96"
+            fill="none"
+            stroke={f.edge}
+            strokeWidth={1}
+          />
+        </>
         <circle
           cx="100"
           cy="100"
