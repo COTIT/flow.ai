@@ -55,6 +55,18 @@ Paths under `/v1/workspace/{workspace}`. Bearer token; a non-member gets 404, a 
 - `gross_difference` and `orders_difference` are current minus base. `gross_change_bp` is the signed change of `gross_total` in basis points (10000 = +100 %), rounded half away from zero. It is left out when the base gross is 0. `net_difference` and `net_change_bp` do the same on net totals; `net_change_bp` is left out when the base net is 0.
 - Both are computed in SQL. Each period follows the period rules (422 on `to` or `compare_to`). The periods may overlap, and an order in both counts in both.
 
+## Daily sales `GET /sales/daily?from&to&source` (`order.list`, `orders_sales_daily`)
+
+`from` and `to` are `YYYY-MM-DD` local days in `general.timezone` (UTC fallback), `to` exclusive, at most 92 days apart (422 on `to`). Same sold rule as the sales summary. One statement (`generate_series` per currency sold in range):
+
+```json
+{ "data": { "time_zone": "Africa/Dar_es_Salaam", "from": "2026-10-01", "to": "2026-10-04",
+  "currencies": [{ "currency": "EUR", "decimals": 2, "days": [
+    { "date": "2026-10-01", "gross": 763, "net": 700, "orders": 2 }, … ] }] } }
+```
+
+Every day appears for every currency (zero-filled); currencies never mix; nothing sold gives `currencies: []`. Money in minor units, gross = net + VAT.
+
 ## Invoice export `GET /invoices-export?from&to` (`invoice.list`)
 
 ```json

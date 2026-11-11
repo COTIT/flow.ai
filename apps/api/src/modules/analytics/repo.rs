@@ -344,3 +344,68 @@ pub async fn export_lines(
     .fetch_all(db)
     .await
 }
+
+/// A day of one currency (currency None: nothing sold in range; the row only carries `tz`).
+pub struct DailyRow {
+    pub tz: String,
+    pub currency: Option<String>,
+    pub decimals: Option<i16>,
+    pub day: Option<NaiveDate>,
+    pub gross: i64,
+    pub net: i64,
+    pub orders: i64,
+}
+
+/// Sold orders per local day (`general.timezone`, UTC fallback) in `[from, to)`, every day for
+/// every currency sold in range, ordered by currency then day. One statement.
+pub async fn daily(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+    source: Option<&str>,
+) -> Result<Vec<DailyRow>, sqlx::Error> {
+    sqlx::query_as!(
+        DailyRow,
+        r#"WITH z AS (
+               SELECT coalesce((SELECT n.name FROM pg_timezone_names n
+                                WHERE n.name = (SELECT s.data #>> '{general,timezone}'
+                                                FROM settings s WHERE s.workspace_id = $1)),
+                               'UTC') AS tz),
+           s AS (
+               SELECT upper(c.asset_type) AS currency, c.decimals,
+                      (coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)
+                          AT TIME ZONE z.tz)::date AS day,
+                      sum(o.subtotal)::bigint AS net, sum(o.vat)::bigint AS vat,
+                      count(*) AS orders
+               FROM orders o
+               CROSS JOIN z
+               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+               WHERE o.workspace_id = $1
+                 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')
+                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)
+                     >= $2::date::timestamp AT TIME ZONE z.tz
+                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)
+                     < $3::date::timestamp AT TIME ZONE z.tz
+                 AND ($4::text IS NULL OR o.source = $4)
+               GROUP BY 1, 2, 3),
+           g AS (
+               SELECT c.currency, c.decimals, d::date AS day
+               FROM (SELECT DISTINCT currency, decimals FROM s) c
+               CROSS JOIN generate_series($2::date, $3::date - 1, interval '1 day') d)
+           SELECT z.tz AS "tz!", g.currency AS "currency?", g.decimals AS "decimals?",
+                  g.day AS "day?",
+                  coalesce(s.net + s.vat, 0)::bigint AS "gross!",
+                  coalesce(s.net, 0)::bigint AS "net!",
+                  coalesce(s.orders, 0) AS "orders!"
+           FROM z
+           LEFT JOIN (g LEFT JOIN s ON s.currency = g.currency AND s.day = g.day) ON true
+           ORDER BY g.currency, g.day"#,
+        workspace_id,
+        from,
+        to,
+        source,
+    )
+    .fetch_all(db)
+    .await
+}

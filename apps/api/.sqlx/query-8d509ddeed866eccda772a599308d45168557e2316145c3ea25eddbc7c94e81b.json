@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM attention_marks m\n         WHERE (m.state = 'snoozed' AND m.snoozed_until < now() - interval '1 day')\n            OR (m.state = 'acknowledged' AND m.created_at < now() - interval '30 days')\n            OR NOT attention_ref_exists(m.workspace_id, m.kind, m.ref_id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "8d509ddeed866eccda772a599308d45168557e2316145c3ea25eddbc7c94e81b"
+}

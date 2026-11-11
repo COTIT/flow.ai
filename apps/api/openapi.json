@@ -879,6 +879,10 @@
       "AttentionStock": {
         "description": "Store stock rows below zero, and stock-tracked products sold out.",
         "properties": {
+          "below_minimum": {
+            "$ref": "#/components/schemas/BelowMinimum",
+            "description": "Products below their minimum (see `BelowMinimum`)."
+          },
           "items": {
             "description": "Sold-out products, lowest available first, at most 5.",
             "items": {
@@ -900,7 +904,8 @@
         "required": [
           "negative",
           "out_of_stock",
-          "items"
+          "items",
+          "below_minimum"
         ],
         "type": "object"
       },
@@ -1181,6 +1186,59 @@
           "lines",
           "created_by",
           "created_at"
+        ],
+        "type": "object"
+      },
+      "BelowMinimum": {
+        "description": "Stock-tracked products whose sellable available (the `out_of_stock` rule) is below their\nminimum: the sum of the product's row `minimal_stock_level` when above 0, else the workspace\n`product.low_stock_threshold` (default 5).",
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "description": "Largest shortfall first, at most 5.",
+            "items": {
+              "$ref": "#/components/schemas/BelowMinimumItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "items"
+        ],
+        "type": "object"
+      },
+      "BelowMinimumItem": {
+        "description": "A product below its minimum. Quantities in units, 2 decimals.",
+        "properties": {
+          "available": {
+            "example": "2.00",
+            "type": "string"
+          },
+          "minimum": {
+            "example": "5.00",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "shortfall": {
+            "example": "3.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_name",
+          "available",
+          "minimum",
+          "shortfall"
         ],
         "type": "object"
       },
@@ -5145,6 +5203,59 @@
         ],
         "type": "object"
       },
+      "DailyCurrency": {
+        "description": "One currency's days, every day of the range, zero-filled.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DailyPoint"
+            },
+            "type": "array"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "days"
+        ],
+        "type": "object"
+      },
+      "DailyPoint": {
+        "description": "One local day. Minor units; gross = net + VAT.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "gross": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "net": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "gross",
+          "net",
+          "orders"
+        ],
+        "type": "object"
+      },
       "DealCreated": {
         "description": "Create response.",
         "properties": {
@@ -6977,6 +7088,18 @@
         ],
         "type": "object"
       },
+      "Envelope_Mark": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Mark"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_MeResponse": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7344,6 +7467,18 @@
         ],
         "type": "object"
       },
+      "Envelope_Priorities": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Priorities"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_ProductCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7655,6 +7790,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SalesCompare"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_SalesDaily": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SalesDaily"
           }
         },
         "required": [
@@ -13102,6 +13249,79 @@
         ],
         "type": "object"
       },
+      "Mark": {
+        "description": "A stored mark.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "example": "stock.below_minimum",
+            "type": "string"
+          },
+          "ref_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "snoozed_until": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "example": "snoozed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "ref_id",
+          "state",
+          "snoozed_until",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "MarkBody": {
+        "description": "PUT /attention/marks body.",
+        "properties": {
+          "kind": {
+            "example": "stock.below_minimum",
+            "type": "string"
+          },
+          "ref_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "snooze": {
+            "description": "With `snoozed` only: `until_tomorrow` (next local midnight in the workspace time zone) or\n`seven_days`.",
+            "example": "until_tomorrow",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "description": "`acknowledged` or `snoozed`.",
+            "example": "snoozed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ref_id",
+          "state"
+        ],
+        "type": "object"
+      },
       "MarkCreditedRequest": {
         "description": "Mark a pending credit note as paid out.",
         "properties": {
@@ -17799,6 +18019,202 @@
           "line",
           "key",
           "price"
+        ],
+        "type": "object"
+      },
+      "Priorities": {
+        "description": "Flow noticed: alert groups the caller may see, most urgent first.",
+        "properties": {
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "groups": {
+            "description": "Groups with at least one item. Order: groups with something not snoozed first, then\nimpact (open orders) desc, then kind order, then count desc.",
+            "items": {
+              "$ref": "#/components/schemas/PriorityGroup"
+            },
+            "type": "array"
+          },
+          "restricted": {
+            "description": "Kinds hidden for lack of permission (never shown as zero).",
+            "example": [
+              "invoices.overdue"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "groups",
+          "restricted"
+        ],
+        "type": "object"
+      },
+      "PriorityGroup": {
+        "description": "One alert kind. Counts come from the same statement as the items.",
+        "properties": {
+          "acknowledged_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "actions": {
+            "description": "What the caller may do here: `review`, `acknowledge`, `snooze`, and for stock `adjust`\nwith `stock.mutate` or `stock.set_stock_levels`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "headline_ref": {
+            "description": "The first (most urgent) item's `ref_id`.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "impact": {
+            "$ref": "#/components/schemas/PriorityImpact"
+          },
+          "items": {
+            "description": "Not-snoozed items, most urgent first, at most 5.",
+            "items": {
+              "$ref": "#/components/schemas/PriorityItem"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "example": "stock.below_minimum",
+            "type": "string"
+          },
+          "open_count": {
+            "description": "`count` minus items the caller snoozed.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "snoozed": {
+            "description": "Every item snoozed by the caller (home leaves it out).",
+            "type": "boolean"
+          },
+          "snoozed_count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "count",
+          "open_count",
+          "acknowledged_count",
+          "snoozed_count",
+          "snoozed",
+          "headline_ref",
+          "impact",
+          "items",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "PriorityImpact": {
+        "description": "Grounded impact.",
+        "properties": {
+          "open_orders": {
+            "description": "stock.below_minimum: distinct draft or open orders holding a not-snoozed listed product.\nNull for other kinds and without `order.list`.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "open_orders"
+        ],
+        "type": "object"
+      },
+      "PriorityItem": {
+        "description": "One alert item. Fields a kind lacks are null.",
+        "properties": {
+          "acknowledged": {
+            "description": "The caller acknowledged it (still listed until the condition clears).",
+            "type": "boolean"
+          },
+          "available": {
+            "description": "Stock: units, 2 decimals.",
+            "example": "2.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "description": "Product name, order number, invoice number (else customer), register, lot code or event.",
+            "type": "string"
+          },
+          "minimum": {
+            "example": "5.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "money": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttentionMoney",
+                "description": "Order total or invoice open amount."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "open_orders": {
+            "description": "Stock: draft or open orders holding the product; null without `order.list`.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "ref_id": {
+            "description": "Product, order, invoice, shift, lot or delivery id (the mark `ref_id`).",
+            "format": "uuid",
+            "type": "string"
+          },
+          "shortfall": {
+            "example": "3.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "since": {
+            "description": "Order created, invoice due, shift opened, lot or delivery last changed.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "ref_id",
+          "label",
+          "available",
+          "minimum",
+          "shortfall",
+          "open_orders",
+          "money",
+          "since",
+          "acknowledged"
         ],
         "type": "object"
       },
@@ -23211,6 +23627,38 @@
           "period",
           "compare_to_period",
           "time_zone",
+          "currencies"
+        ],
+        "type": "object"
+      },
+      "SalesDaily": {
+        "description": "Sales per local day, one series per currency sold in range (none sold: empty).",
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/DailyCurrency"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "Zone the days are read in (`general.timezone`, else UTC).",
+            "example": "Africa/Dar_es_Salaam",
+            "type": "string"
+          },
+          "to": {
+            "description": "Exclusive.",
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "time_zone",
+          "from",
+          "to",
           "currencies"
         ],
         "type": "object"
@@ -39934,6 +40382,453 @@
           }
         ],
         "summary": "Today's to-do: what needs attention, anything urgent or overdue (vandaag, taken, dringend; leo, kazi, haraka)",
+        "tags": [
+          "attention"
+        ]
+      }
+    },
+    "/workspace/{workspace}/attention/marks": {
+      "put": {
+        "description": "Marks one attention item for the caller only. `acknowledged` keeps it listed (flagged) until its condition clears; it never changes stock, orders or invoices. `snoozed` hides it from the caller's priorities until `until_tomorrow` (next local midnight in the workspace time zone) or `seven_days`. Marking again replaces the mark. `ref_id` is the item's product, order, invoice, shift, lot or delivery id.",
+        "operationId": "attention_marks_set",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Mark"
+                }
+              }
+            },
+            "description": "The mark"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing the kind's list permission"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, caller not a member, or no such record of that kind here"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown kind or state, bad ref id, snooze missing for snoozed or sent with acknowledged"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Acknowledge or snooze one noticed item for me (seen it, remind me tomorrow, snooze a week)",
+        "tags": [
+          "attention"
+        ]
+      }
+    },
+    "/workspace/{workspace}/attention/marks/{mark}": {
+      "delete": {
+        "operationId": "attention_marks_delete",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mark id",
+            "in": "path",
+            "name": "mark",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or mark, or not the caller's"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Undo my acknowledge or snooze of a noticed item",
+        "tags": [
+          "attention"
+        ]
+      }
+    },
+    "/workspace/{workspace}/attention/priorities": {
+      "get": {
+        "description": "Alert groups the caller may see, each with `count`, `open_count`, `acknowledged_count`, `snoozed_count` and up to 5 not-snoozed items, all from one statement per kind. Kinds: `stock.below_minimum` (sellable available below the product's minimum: summed row `minimal_stock_level` when above 0, else `product.low_stock_threshold`, default 5; `stock.list`), `orders.open` (draft or open; `order.list`), `invoices.overdue` (`invoice.list`), `till.open_shifts` (`cashregister.list`), `lots.quarantined` (any member), `webhooks.failed` (`workspace_admin`). Kinds without permission are listed in `restricted`, never zero. Stock impact: `open_orders` per item and `impact.open_orders` (distinct draft or open orders holding a listed product), null without `order.list`. Order: groups with something not snoozed first, then impact, then the kind order above. Acknowledged items stay until their condition clears. Read-only.",
+        "operationId": "attention_priorities",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Priorities"
+                }
+              }
+            },
+            "description": "The groups"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What Flow noticed: alerts grouped by kind, most urgent first (low stock below minimum, open orders, overdue invoices)",
         "tags": [
           "attention"
         ]
@@ -91921,6 +92816,180 @@
           }
         ],
         "summary": "Compare sales of two periods (compare periods, this vs last, change %)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales/daily": {
+      "get": {
+        "description": "Gross (incl VAT), net and order count per local day in `[from, to)`, read in the workspace time zone (`time_zone`), same sold rule as `orders_sales_summary`. One series per currency sold in range, every day present (zero-filled); currencies never mix; nothing sold = empty `currencies`. `from`/`to` are `YYYY-MM-DD`, at most 92 days apart. Money in minor units.",
+        "operationId": "orders_sales_daily",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "First local day (`YYYY-MM-DD`, workspace time zone).",
+            "example": "2026-10-01",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Day after the last (exclusive), at most 92 days after `from`.",
+            "example": "2026-11-01",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only `office`, `storefront` or `till` orders.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SalesDaily"
+                }
+              }
+            },
+            "description": "Daily series per currency"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`from`/`to` missing or not `YYYY-MM-DD`, `to` not after `from`, over 92 days, unknown `source`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sales per day for a chart (daily sales, revenue trend, per day)",
         "tags": [
           "orders"
         ]

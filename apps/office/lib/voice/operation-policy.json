@@ -16196,5 +16196,134 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "attention_priorities": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/attention/priorities",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#priorities",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "attention_marks_set": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/attention/marks",
+    "disposition": "execute",
+    "reason": "Member's own attention mark: changes only what the caller sees, never stock, orders or invoices; backend rechecks access",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own marks only (workspace_id and user_id); another member's or workspace's is 404",
+        "The kind's list permission (stock.list, order.list, invoice.list, cashregister.list, workspace_admin) checked on every write; ref must be a live record of that kind in this workspace"
+      ],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#set_mark",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "attention_marks_delete": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/attention/marks/{mark}",
+    "disposition": "execute",
+    "reason": "Member's own attention mark: changes only what the caller sees, never stock, orders or invoices; backend rechecks access",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "predicates": [
+        "Caller's own marks only (workspace_id and user_id); another member's or workspace's is 404"
+      ],
+      "authority": [
+        "apps/api/src/modules/attention/handlers.rs#delete_mark",
+        "apps/api/src/modules/attention/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": ["record"],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "orders_sales_daily": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales/daily",
+    "disposition": "execute",
+    "reason": "Workspace staff operation; backend rechecks current access and resource/business rules",
+    "authorization": {
+      "schemes": ["bearer"],
+      "boundary": "workspace",
+      "allOf": ["order.list"],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/analytics/handlers.rs#daily",
+        "apps/api/src/modules/analytics/service.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }

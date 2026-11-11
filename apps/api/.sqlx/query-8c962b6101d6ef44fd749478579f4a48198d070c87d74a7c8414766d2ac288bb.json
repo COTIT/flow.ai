@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH z AS (\n               SELECT coalesce((SELECT n.name FROM pg_timezone_names n\n                                WHERE n.name = (SELECT s.data #>> '{general,timezone}'\n                                                FROM settings s WHERE s.workspace_id = $1)),\n                               'UTC') AS tz),\n           s AS (\n               SELECT upper(c.asset_type) AS currency, c.decimals,\n                      (coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)\n                          AT TIME ZONE z.tz)::date AS day,\n                      sum(o.subtotal)::bigint AS net, sum(o.vat)::bigint AS vat,\n                      count(*) AS orders\n               FROM orders o\n               CROSS JOIN z\n               JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n               WHERE o.workspace_id = $1\n                 AND o.status IN ('open', 'completed', 'partially_returned', 'returned')\n                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)\n                     >= $2::date::timestamp AT TIME ZONE z.tz\n                 AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at)\n                     < $3::date::timestamp AT TIME ZONE z.tz\n                 AND ($4::text IS NULL OR o.source = $4)\n               GROUP BY 1, 2, 3),\n           g AS (\n               SELECT c.currency, c.decimals, d::date AS day\n               FROM (SELECT DISTINCT currency, decimals FROM s) c\n               CROSS JOIN generate_series($2::date, $3::date - 1, interval '1 day') d)\n           SELECT z.tz AS \"tz!\", g.currency AS \"currency?\", g.decimals AS \"decimals?\",\n                  g.day AS \"day?\",\n                  coalesce(s.net + s.vat, 0)::bigint AS \"gross!\",\n                  coalesce(s.net, 0)::bigint AS \"net!\",\n                  coalesce(s.orders, 0) AS \"orders!\"\n           FROM z\n           LEFT JOIN (g LEFT JOIN s ON s.currency = g.currency AND s.day = g.day) ON true\n           ORDER BY g.currency, g.day",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tz!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "currency?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "decimals?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "day?",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "gross!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "net!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "8c962b6101d6ef44fd749478579f4a48198d070c87d74a7c8414766d2ac288bb"
+}

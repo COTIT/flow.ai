@@ -7,18 +7,18 @@ use sqlx::PgPool;
 
 use crate::common::{self, Api, invoicing};
 
-struct W {
-    api: Api,
-    eur: String,
-    usd: String,
-    warehouse: String,
-    alpha: String,
-    beta: String,
-    honey: String,
-    wax: String,
+pub struct W {
+    pub api: Api,
+    pub eur: String,
+    pub usd: String,
+    pub warehouse: String,
+    pub alpha: String,
+    pub beta: String,
+    pub honey: String,
+    pub wax: String,
 }
 
-async fn world(pool: PgPool) -> W {
+pub async fn world(pool: PgPool) -> W {
     let api = Api::new(pool, "").await;
     let relation = |name: &'static str| {
         let api = api.with_base("/relations");
@@ -74,11 +74,17 @@ async fn world(pool: PgPool) -> W {
 }
 
 /// One line: product, variant, quantity, excl and VAT cents.
-struct L<'a>(&'a str, Option<&'a str>, &'a str, i64, i64);
+pub struct L<'a>(
+    pub &'a str,
+    pub Option<&'a str>,
+    pub &'a str,
+    pub i64,
+    pub i64,
+);
 
 /// An order sold (`confirmed_at`) at `at`; subtotal, VAT and total = sums of its lines.
 #[allow(clippy::too_many_arguments)]
-async fn order(
+pub async fn order(
     w: &W,
     at: &str,
     relation: Option<&str>,
@@ -938,4 +944,143 @@ async fn invoice_export_needs_the_file_store(pool: PgPool) {
     );
     let (s, _) = export(&f, &q).await;
     assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE);
+}
+
+/// GET /sales/daily: one row per local day per currency sold in range, zero-filled.
+#[sqlx::test]
+async fn sales_daily_buckets_local_days_per_currency(pool: PgPool) {
+    let w = world(pool).await;
+    invoicing::settings(
+        &w.api,
+        json!({ "general": { "timezone": "Africa/Dar_es_Salaam" } }),
+    )
+    .await;
+    let eur = |net, vat| [L(&w.honey, None, "1", net, vat)];
+    // 22:30Z = 01:30 next day in Dar (UTC+3); 20:00Z stays on 1 Oct.
+    order(
+        &w,
+        "2026-10-01T22:30:00Z",
+        None,
+        &w.eur,
+        "completed",
+        "office",
+        &eur(1000, 90),
+    )
+    .await;
+    order(
+        &w,
+        "2026-10-01T20:00:00Z",
+        None,
+        &w.eur,
+        "open",
+        "till",
+        &eur(500, 45),
+    )
+    .await;
+    order(
+        &w,
+        "2026-10-01T20:30:00Z",
+        None,
+        &w.eur,
+        "open",
+        "till",
+        &eur(200, 18),
+    )
+    .await;
+    order(
+        &w,
+        "2026-10-02T10:00:00Z",
+        None,
+        &w.eur,
+        "draft",
+        "office",
+        &eur(9999, 0),
+    )
+    .await;
+    order(
+        &w,
+        "2026-10-03T10:00:00Z",
+        None,
+        &w.usd,
+        "completed",
+        "office",
+        &eur(700, 0),
+    )
+    .await;
+    order(
+        &w,
+        "2026-10-04T10:00:00Z",
+        None,
+        &w.eur,
+        "completed",
+        "office",
+        &eur(1, 0),
+    )
+    .await;
+
+    let d = owner_get(&w, "/sales/daily?from=2026-10-01&to=2026-10-04").await;
+    let day = |date: &str, gross: i64, net: i64, orders: i64| json!({ "date": date, "gross": gross, "net": net, "orders": orders });
+    assert_eq!(
+        d,
+        json!({
+            "time_zone": "Africa/Dar_es_Salaam", "from": "2026-10-01", "to": "2026-10-04",
+            "currencies": [
+                { "currency": "EUR", "decimals": 2, "days": [
+                    day("2026-10-01", 763, 700, 2), day("2026-10-02", 1090, 1000, 1), day("2026-10-03", 0, 0, 0)] },
+                { "currency": "USD", "decimals": 2, "days": [
+                    day("2026-10-01", 0, 0, 0), day("2026-10-02", 0, 0, 0), day("2026-10-03", 700, 700, 1)] },
+            ]
+        })
+    );
+    let till = owner_get(&w, "/sales/daily?from=2026-10-01&to=2026-10-02&source=till").await;
+    assert_eq!(
+        till["currencies"][0]["days"],
+        json!([day("2026-10-01", 763, 700, 2)])
+    );
+    let none = owner_get(&w, "/sales/daily?from=2025-01-01&to=2025-01-03").await;
+    assert_eq!(none["currencies"], json!([]));
+}
+
+#[sqlx::test]
+async fn sales_daily_refuses_bad_ranges_and_other_workspaces(pool: PgPool) {
+    let w = world(pool).await;
+    let api = &w.api;
+    for (q, field) in [
+        ("to=2026-10-02", "from"),
+        ("from=2026-10-01T00:00:00Z&to=2026-10-02", "from"),
+        ("from=2026-10-01&to=2026-10-01", "to"),
+        ("from=2026-10-01&to=2027-01-02", "to"),
+        ("from=2026-10-01&to=2026-10-02&source=web", "source"),
+    ] {
+        let (s, res) = get(api, &api.owner, &api.ws, &format!("/sales/daily?{q}")).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+        assert!(res["errors"][field].is_array(), "{q}: {res}");
+    }
+    // 92 days is the cap.
+    let (s, _) = get(
+        api,
+        &api.owner,
+        &api.ws,
+        "/sales/daily?from=2026-10-01&to=2027-01-01",
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let q = "/sales/daily?from=2026-10-01&to=2026-10-02";
+    let clerk =
+        common::member_with(&api.app, &api.pool, &api.ws, "clerk@x.io", &["stock.list"]).await;
+    assert_eq!(get(api, &clerk, &api.ws, q).await.0, StatusCode::FORBIDDEN);
+    let other = api.as_new_owner("eve@x.io", "evil").await;
+    assert_eq!(
+        get(api, &other.owner, &api.ws, q).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let (s, _) = common::send(
+        &api.app,
+        Method::GET,
+        &format!("/v1/workspace/{}{q}", api.ws),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
 }

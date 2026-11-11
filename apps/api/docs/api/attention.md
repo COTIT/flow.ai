@@ -62,3 +62,36 @@ Definitions:
 Item order: orders by `created_at`; invoices by `due_date` (none last); stock lowest `available` first; shifts by `opened_at`; lots by last change; webhooks by `updated_at`.
 
 Performance: two statements per section (count, items), no per-row queries. Partial indexes (migration `attention_indexes`) cover open orders, open invoices, open shifts, lots off sale and failed deliveries. `out_of_stock` aggregates every tracked product of the workspace per call.
+
+## Below minimum (`stock.below_minimum`)
+
+A stock-tracked product is below its minimum when its sellable `available` (the `out_of_stock` rule: level − reserved, held and expired lots left out, all warehouses) is less than its minimum. Minimum = the sum of the product's row `minimal_stock_level` when that is above 0, else the workspace `product.low_stock_threshold` (default 5). `shortfall` = minimum − available. The summary carries `stock.below_minimum {count, items[≤5]}` (largest shortfall first). The scheduled `stock` email keeps its own rule.
+
+## Flow noticed `GET /attention/priorities` (`attention_priorities`, any member)
+
+```json
+{ "data": { "generated_at": "…", "restricted": ["invoices.overdue"],
+  "groups": [{ "kind": "stock.below_minimum", "count": 3, "open_count": 3,
+    "acknowledged_count": 1, "snoozed_count": 0, "snoozed": false,
+    "headline_ref": "<product id>", "impact": { "open_orders": 8 },
+    "actions": ["review", "acknowledge", "snooze", "adjust"],
+    "items": [{ "ref_id": "…", "label": "Honey", "available": "2.00", "minimum": "5.00",
+      "shortfall": "3.00", "open_orders": 8, "money": null, "since": null,
+      "acknowledged": true }] }] } }
+```
+
+- Kinds and gates: `stock.below_minimum` (`stock.list`), `orders.open` (draft and open; `order.list`), `invoices.overdue` (`invoice.list`), `till.open_shifts` (`cashregister.list`), `lots.quarantined` (any member), `webhooks.failed` (`workspace_admin`). A kind without permission is named in `restricted`; it never shows as zero. Empty groups are left out.
+- One statement per kind returns the items and the counts (window functions), so the headline and the list can't disagree.
+- Stock impact: item `open_orders` = draft or open orders with a line on the product; group `impact.open_orders` = distinct such orders over the not-snoozed listed products. Both null without `order.list`. Other kinds: null.
+- Items: at most 5, the caller's snoozed ones left out. Stock: most open orders, then largest shortfall, then name. Others as the summary.
+- Group order: groups with something not snoozed first, then `impact.open_orders` desc, then the kind order above.
+- `actions`: `review`, `acknowledge`, `snooze`; stock adds `adjust` with `stock.mutate` or `stock.set_stock_levels`.
+
+## Marks `PUT /attention/marks` (`attention_marks_set`) and `DELETE /attention/marks/{mark}` (`attention_marks_delete`)
+
+Body `{kind, ref_id, state, snooze?}`. `state` is `acknowledged` or `snoozed`; `snooze` (`until_tomorrow` = next local midnight in `general.timezone`, UTC fallback, or `seven_days`) is required with `snoozed` and refused with `acknowledged`. The server computes the end. One mark per user, kind and record; marking again replaces it. 200 returns `{id, kind, ref_id, state, snoozed_until, created_at}`.
+
+- Marks are the caller's own: other members never see them; another member's mark id is 404 on delete.
+- 403 without the kind's list permission; 404 when `ref_id` is not a live record of that kind in this workspace; 422 for an unknown kind or state, a bad id, or a wrong `snooze`.
+- Acknowledge only flags the item. It stays listed until its condition clears (stock back at minimum, order confirmed, …), and nothing else changes.
+- Hourly cleanup (`cleanup::prune`, `attention_marks`) drops snoozes over a day past their end, acknowledgements over 30 days old and marks whose record is gone. No history is kept.
