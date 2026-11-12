@@ -122,3 +122,15 @@ export async function boxAboveKeyboard(page: Page) {
     [v.message, v.send] as const
   )
 }
+
+/** The floating header and its handle (touch). */
+export const header = (page: Page) => page.locator("[data-flow-header]")
+export const headerShown = async (page: Page) =>
+  (await header(page).getAttribute("data-shown").catch(() => null)) === "true"
+export const headerHandle = (page: Page) => page.locator("[data-flow-handle]")
+
+/** The phone's conversation sheet, found by its raise/lower handle. */
+export const sheetHandle = (page: Page) =>
+  page.getByRole("button", { name: /^(Raise|Lower) the conversation$/ })
+export const sheet = (page: Page) =>
+  page.locator("section").filter({ has: sheetHandle(page) })
