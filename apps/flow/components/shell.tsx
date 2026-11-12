@@ -233,7 +233,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <Header phase={phase} />
       {/* Split view: results and the conversation are panes side by side (a sheet on a phone);
           each pane scrolls on its own, the page never does. */}
-      <div className="relative flex min-h-0 min-w-0 gap-4 max-sm:flex-col max-sm:gap-0">
+      <div // With the sheet (phones, and anything under 728 px) the panes stack: the sheet sits
+        // under the scene at full width, never a narrow column beside it (K4).
+        className={`relative flex min-h-0 min-w-0 gap-4 ${pane.sheet ? "flex-col gap-0" : "max-sm:flex-col max-sm:gap-0"}`}
+      >
         <div className="@container relative flex min-h-0 min-w-0 flex-1 flex-col">
           {!home || resultOpen ? (
             <SceneBar

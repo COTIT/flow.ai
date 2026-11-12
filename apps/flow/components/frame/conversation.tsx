@@ -355,7 +355,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
       // Raised: 62%, never less than its own handle, header and dock (with the keyboard up
       // the frame is short, and the dock must stay above the keyboard).
       style={open ? { height: "max(62%, 15.5rem)" } : undefined}
-      className="flex min-h-0 shrink-0 flex-col gap-2 rounded-t-3xl glass-strong px-3 pb-3 shadow-[0_-8px_32px_rgb(28_27_24/0.14)] transition-[height] duration-240 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none max-sm:-mx-3 max-sm:-mb-3 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:pb-2 max-sm:[@media(max-height:500px)]:-mx-2 max-sm:[@media(max-height:500px)]:-mb-2"
+      className="relative flex min-h-0 shrink-0 flex-col gap-2 rounded-t-3xl glass-strong px-3 pb-3 shadow-[0_-8px_32px_rgb(28_27_24/0.14)] transition-[height] duration-240 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none max-sm:-mx-3 max-sm:-mb-3 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:pb-2 max-sm:[@media(max-height:500px)]:-mx-2 max-sm:[@media(max-height:500px)]:-mb-2"
     >
       <button
         ref={handle}
@@ -376,24 +376,26 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
           }
         }}
         // Short screens (phone landscape): a slimmer handle, so the results keep their room.
-        className="flex h-11 w-32 shrink-0 touch-none justify-center self-center pt-2.5 focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:h-6 [@media(max-height:500px)]:pt-1.5"
+        className="flex h-11 w-32 shrink-0 touch-none justify-center self-center pt-2.5 focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:absolute [@media(max-height:500px)]:top-0 [@media(max-height:500px)]:left-1/2 [@media(max-height:500px)]:z-10 [@media(max-height:500px)]:h-6 [@media(max-height:500px)]:w-20 [@media(max-height:500px)]:-translate-x-1/2 [@media(max-height:500px)]:pt-1.5"
       >
         <span
           aria-hidden
           className="h-1.5 w-11 rounded-full bg-muted-foreground/50"
         />
       </button>
-      <div className="flex min-w-0 items-center gap-2.5">
+      {/* Short screens: this line is just the orb, with the handle over it (the sheet keeps to
+          one slim row above the dock; the last line stays for screen readers). */}
+      <div className="flex min-w-0 items-center gap-2.5 [@media(max-height:500px)]:h-6">
         <OrbSlot
           name="compact"
-          className="size-11 [@media(max-height:500px)]:size-8"
+          className="size-11 [@media(max-height:500px)]:size-6"
         />
         {open ? (
           <p className="text-sm text-muted-foreground">
             {t(`shell.phase.${phase}`)}
           </p>
         ) : (
-          <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground [@media(max-height:500px)]:sr-only">
             {last?.text ?? t(`shell.phase.${phase}`)}
           </p>
         )}

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl"
 import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
-import { flowStore } from "@/lib/flow-store"
+import { flowStore, useFlow } from "@/lib/flow-store"
 import { TaskCapsule } from "@/components/task/capsule" // F4
 import { OrbSlot } from "./orb-layer"
 
@@ -21,6 +21,7 @@ export function SceneBar({
 }) {
   const t = useTranslations("shell")
   const pathname = usePathname()
+  const onTask = useFlow((s) => s.resultOpen) && pathname === "/"
   const router = useRouter()
   return (
     <div className="flex shrink-0 items-center gap-2 pb-2 [@media(max-height:500px)]:pb-1">
@@ -38,7 +39,15 @@ export function SceneBar({
         {t("backHome")}
       </Button>
       <div className="min-w-0 flex-1">
-        <TaskCapsule /> {/* F4: the task stays reachable in every scene */}
+        {/* F4: the task stays reachable in every scene. On a short screen's task view it only
+            repeats the open review and takes the height that review needs (P9-7). */}
+        <div
+          className={
+            onTask ? "min-w-0 [@media(max-height:500px)]:hidden" : "min-w-0"
+          }
+        >
+          <TaskCapsule />
+        </div>
       </div>
       {/* The header's always-present way in (mouse and keyboard; touch also has the handle). */}
       <Button
