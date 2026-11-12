@@ -2,7 +2,7 @@
 import type { Locator } from "@playwright/test"
 
 import { expect, test } from "./storefront-api"
-import { fakeAgent, v } from "./voice"
+import { fakeAgent, v, typeInstead } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -21,7 +21,7 @@ const seenWords = (button: Locator) =>
 test("the conversation's End shows the word End and ends the call", async ({ page }) => {
   await fakeAgent(page, (_, a) => setTimeout(() => a.say("Hello."), 50))
   await page.goto("/")
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   await page.getByLabel(v.message).fill("Hello")
   await page.getByRole("button", { name: v.send, exact: true }).click()
   const end = page.locator("[data-conversation-header]").getByRole("button", { name: v.end })
