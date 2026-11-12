@@ -11,6 +11,7 @@ services:
       ASSISTANT_WORKSPACE_ALLOWLIST: ${ASSISTANT_WORKSPACE_ALLOWLIST:-}
       ASSISTANT_ENABLED: ${ASSISTANT_ENABLED:-false}
       ELEVENLABS_AGENT_ID: ${ELEVENLABS_AGENT_ID:-}
+      ASSISTANT_GREETING_OVERRIDE: ${ASSISTANT_GREETING_OVERRIDE:-off}
       ELEVENLABS_API_KEY_FILE: /run/secrets/elevenlabs_api_key
       ASSISTANT_BRIDGE_SECRET_FILE: /run/secrets/assistant_bridge_secret
       ASSISTANT_CHECKPOINT_URL_FILE: /run/secrets/assistant_checkpoint_url
