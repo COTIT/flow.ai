@@ -18,6 +18,7 @@ import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
+import { ComparePanel } from "@/components/registry/comparison"
 import { Freshness } from "@/components/registry/data-state"
 import { BENTO_CLASS, BENTO_GRID, BENTO_SINGLE, bentoSize } from "@/lib/bento"
 import { BUILT_IN, keepKey, pendingFirst, sceneLayout } from "@/lib/scenes"
@@ -70,6 +71,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   useRefreshOnOutcome()
   const [said, say] = useState("")
   const [period, setPeriod] = useState<FlowPeriod | null>(null)
+  const [comparing, setComparing] = useState(false)
   const saved = {
     onSuccess: () =>
       client.invalidateQueries({ queryKey: getFlowScenesListQueryKey(ws) }),
@@ -130,6 +132,11 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
     JSON.stringify(pendingFirst(scene.config)) === JSON.stringify(scene.config)
   const drawn = shown.filter((c) => componentFor(c.type))
   const keptKey = period ? keepKey(period) : null
+  // Compare: only where this scene's comparison is readable for this person.
+  const compareFrom = shown.find(
+    (c) => c.type === "comparison" && !scene.restricted.includes(c.id)
+  )?.period
+
   const kept =
     !!keptKey && !!list.data?.data.some((s) => s.scene === keptKey && !s.hidden)
   const write = (
@@ -212,6 +219,21 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                   ))}
                 </select>
               </label>
+              {compareFrom ? (
+                <Button
+                  variant={comparing ? "default" : "outline"}
+                  size="sm"
+                  className="min-h-11 rounded-full"
+                  aria-pressed={comparing}
+                  onClick={() => setComparing(!comparing)}
+                >
+                  {t(
+                    compareFrom === "this_week"
+                      ? "compare.button"
+                      : "compare.buttonBefore"
+                  )}
+                </Button>
+              ) : null}
               {keptKey ? (
                 <Button
                   variant="outline"
@@ -269,6 +291,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
           {t("scene.studio.title")}
         </Link>
       ) : null}
+      {comparing && compareFrom ? <ComparePanel period={compareFrom} /> : null}
       <div className="@container">
         <div
           data-bento

@@ -116,7 +116,8 @@
       },
       "snooze": "Ahirisha",
       "untilTomorrow": "Hadi kesho",
-      "forWeek": "Siku 7"
+      "forWeek": "Siku 7",
+      "later": "Baadaye"
     },
     "scene": {
       "pulse": {
@@ -166,6 +167,40 @@
       "rowActions": "Vitendo vya {name}"
     },
     "showAll": "Onyesha yote",
-    "showLess": "Onyesha machache"
+    "showLess": "Onyesha machache",
+    "rowAction": {
+      "restock": "Ongeza akiba",
+      "restockAsk": "Ongeza akiba ya {name}. Imepungua {shortfall} chini ya kiwango cha chini.",
+      "openInOffice": "Fungua katika Office",
+      "newTab": "{action}: {name} (inafungua kichupo kipya)"
+    },
+    "compare": {
+      "button": "Linganisha na wiki iliyopita",
+      "buttonBefore": "Linganisha na kipindi kilichotangulia",
+      "title": {
+        "today": "Leo na jana",
+        "yesterday": "Jana na siku iliyotangulia",
+        "this_week": "Wiki hii na wiki iliyopita",
+        "last_week": "Wiki iliyopita na wiki iliyotangulia",
+        "last_7_days": "Siku 7 zilizopita na 7 zilizotangulia",
+        "this_month": "Mwezi huu na mwezi uliopita"
+      },
+      "what": "Nini",
+      "orders": "Oda",
+      "difference": "Tofauti",
+      "base": {
+        "today": "Jana",
+        "yesterday": "Siku iliyotangulia",
+        "this_week": "Wiki iliyopita",
+        "last_week": "Wiki iliyotangulia",
+        "last_7_days": "Siku 7 zilizotangulia",
+        "this_month": "Mwezi uliopita"
+      }
+    },
+    "routines": {
+      "emptyTitle": "Bado hakuna ripoti",
+      "emptyText": "Genesy inaweza kukutumia muhtasari wa mauzo kwa barua pepe kila wiki.",
+      "setUp": "Weka ripoti ya kila wiki"
+    }
   }
 }

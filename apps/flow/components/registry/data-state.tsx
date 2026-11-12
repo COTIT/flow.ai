@@ -51,12 +51,18 @@ export function DataState({
   query,
   empty,
   emptyTitle,
+  emptyText,
+  emptyAction,
   reserve = 96,
   children,
 }: {
   query: Query
   empty: boolean
   emptyTitle: string
+  /** One line on why it is empty. */
+  emptyText?: string
+  /** The next step when empty (Set up a weekly report). */
+  emptyAction?: React.ReactNode
   /** Height in px of the card this becomes: placeholders keep it, so nothing below jumps. */
   reserve?: number
   children: React.ReactNode
@@ -121,7 +127,12 @@ export function DataState({
   if (empty)
     return (
       <Held px={reserve}>
-        <EmptyState title={emptyTitle} className="py-6" />
+        <EmptyState
+          title={emptyTitle}
+          description={emptyText}
+          action={emptyAction}
+          className="py-6"
+        />
       </Held>
     )
   return <>{children}</>
