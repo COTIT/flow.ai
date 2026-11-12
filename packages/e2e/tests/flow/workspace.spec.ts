@@ -37,10 +37,16 @@ test("two workspaces: switching changes the shown and saved workspace", async ({
     .getByRole("option", { name: RUAHA.display_name, exact: true })
     .click()
   await expect(picker).toContainText(RUAHA.display_name)
-  // The header names who and where (the picker, when shown, also does).
+  // The header names who and where (the picker, when shown, also does). Its sr-only status line
+  // (P9-3) announces the switch; it is not the visible line.
   await expect(
-    page.locator("[data-flow-header] p", { hasText: RUAHA.display_name })
+    page.locator("[data-flow-header] p:not([role=status])", {
+      hasText: RUAHA.display_name,
+    })
   ).toBeVisible()
+  await expect(
+    page.locator("[data-flow-header] p[role=status]")
+  ).toContainText(RUAHA.display_name)
   expect(await saved(page)).toBe("w2")
   await expectNoHorizontalScroll(page)
 })
