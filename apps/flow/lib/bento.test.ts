@@ -38,11 +38,10 @@ describe("bento sizing (one rule, every scene)", () => {
     expect(BENTO_CLASS.chart).toMatch(/row-span-2/)
     expect(BENTO_CLASS.full).toMatch(/col-span-full/)
   })
-  it("rows are fixed tracks from 640 px: tiles never stretch to their tallest neighbour", () => {
-    expect(BENTO_GRID).toMatch(/@min-\[640px\]:auto-rows-\[132px\]/)
-    expect(BENTO_GRID).not.toMatch(/minmax\(132px,auto\)/)
-    expect(BENTO_CLASS.wide).toMatch(/@min-\[640px\]:row-span-2/)
-    expect(BENTO_CLASS.small).not.toMatch(/row-span/)
+  it("rows follow their content (bento fit): no fixed tracks; dense placement keeps rows full", () => {
+    expect(BENTO_GRID).not.toMatch(/auto-rows-\[/)
+    expect(BENTO_GRID).toMatch(/grid-flow-row-dense/)
+    expect(BENTO_GRID).toMatch(/@min-\[1024px\]:grid-cols-12/)
   })
 })
 

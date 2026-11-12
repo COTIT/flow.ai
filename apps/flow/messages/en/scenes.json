@@ -168,6 +168,7 @@
     },
     "showAll": "Show all",
     "showLess": "Show less",
+    "showAllCount": "Show all ({count})",
     "rowAction": {
       "restock": "Restock",
       "restockAsk": "Restock {name}. It is {shortfall} below its minimum.",

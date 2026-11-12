@@ -20,7 +20,13 @@ import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { ComparePanel } from "@/components/registry/comparison"
 import { Freshness } from "@/components/registry/data-state"
-import { BENTO_CLASS, BENTO_GRID, BENTO_SINGLE, bentoSize } from "@/lib/bento"
+import {
+  BENTO_GRID,
+  BENTO_PLACE,
+  BENTO_SINGLE,
+  bentoSize,
+  placements,
+} from "@/lib/bento"
 import { BUILT_IN, keepKey, pendingFirst, sceneLayout } from "@/lib/scenes"
 import { flowStore } from "@/lib/flow-store"
 import { TTL } from "@/lib/scene-data"
@@ -131,6 +137,8 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   const ordered =
     JSON.stringify(pendingFirst(scene.config)) === JSON.stringify(scene.config)
   const drawn = shown.filter((c) => componentFor(c.type))
+  // Bento fit: every row filled to the width, in the saved order.
+  const placed = placements(drawn)
   const keptKey = period ? keepKey(period) : null
   // Compare: only where this scene's comparison is readable for this person.
   const compareFrom = shown.find(
@@ -305,7 +313,8 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                 key={component.id}
                 id={component.id}
                 size={size}
-                className={BENTO_CLASS[size]}
+                className={drawn.length > 1 ? BENTO_PLACE : ""}
+                style={drawn.length > 1 ? placed.get(component.id) : undefined}
               >
                 <Component
                   component={component}

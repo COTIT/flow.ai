@@ -5,64 +5,61 @@ import { useTranslations } from "next-intl"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
-import { TRACK_PX } from "@/lib/bento"
 
-const GAP_PX = 16
-/** The footer strip that closes a cut card ("Show all"). */
+/** The footer strip that closes a cut card ("Show all (n)"). */
 const FOOTER_PX = 56
-
-const tracksFor = (px: number) => Math.ceil((px + GAP_PX) / (TRACK_PX + GAP_PX))
+/** Below this the cut would leave too little to read: the tile keeps its natural height. */
+const MIN_CAP_PX = 200
+/** Rows a list tile shows: table rows, list items. */
+const ROWS = "tbody tr, [data-item], li"
 
 /**
- * One bento tile on the fixed row tracks. A tile whose content fits the space left on screen
- * grows to show all of it; otherwise it is cut at its edge, closed by a footer strip in the card's
- * own frame with "Show all", which grows this tile only. The scene keeps one scroller.
+ * One bento tile at its content's natural height (bento fit). On a tablet or computer a tile taller
+ * than the room left on screen is cut there, closed by a footer with "Show all (n)", which opens
+ * this tile only; the scene keeps one scroller. A phone stacks tiles at their natural height.
  */
 export function BentoTile({
   id,
   size,
   className,
+  style,
   children,
 }: {
   id: string
   size: string
   className: string
+  style?: React.CSSProperties
   children: React.ReactNode
 }) {
   const t = useTranslations("scenes")
   const tile = useRef<HTMLDivElement>(null)
-  const [over, setOver] = useState(false)
-  /** Grown to fit by itself (room on screen) or by "Show all". */
-  const [rows, setRows] = useState<{ n: number; asked: boolean } | null>(null)
+  const [open, setOpen] = useState(false)
+  const [cap, setCap] = useState<{ px: number; rows: number } | null>(null)
   useLayoutEffect(() => {
     const el = tile.current
-    if (!el) return
+    if (!el || open) return setCap(null)
     const measure = () => {
-      const fixed = getComputedStyle(el).overflowY === "hidden"
-      const cut = fixed && el.scrollHeight > el.clientHeight + 1
-      if (cut && !rows?.asked) {
-        // Room left on screen below: grow by whole tracks, up to all of the content.
-        const room = el.closest("[data-flow-scroll]")?.getBoundingClientRect()
-        const top = el.getBoundingClientRect().top
-        const now = tracksFor(el.clientHeight)
-        const fit = room
-          ? Math.floor((room.bottom - top + GAP_PX) / (TRACK_PX + GAP_PX))
-          : now
-        const n = Math.min(tracksFor(el.scrollHeight), fit)
-        if (n > now) {
-          setRows({ n, asked: false })
-          return
-        }
-      }
-      setOver(cut)
+      if (window.innerWidth < 640) return setCap(null)
+      const view = el.closest("[data-flow-scroll]")?.getBoundingClientRect()
+      const content =
+        (el.firstElementChild as HTMLElement | null)?.scrollHeight ?? 0
+      const room = view
+        ? Math.floor(view.bottom - el.getBoundingClientRect().top - 8)
+        : Infinity
+      const cut = content > room && room >= MIN_CAP_PX
+      setCap((was) =>
+        cut
+          ? was?.px === room
+            ? was
+            : { px: room, rows: el.querySelectorAll(ROWS).length }
+          : null
+      )
     }
     measure()
     const watch = new ResizeObserver(measure)
-    watch.observe(el)
     if (el.firstElementChild) watch.observe(el.firstElementChild)
     return () => watch.disconnect()
-  }, [rows])
-  const asked = rows?.asked ?? false
+  }, [open])
   return (
     <div
       ref={tile}
@@ -71,18 +68,19 @@ export function BentoTile({
       // Keyboard focus on a row behind the cut opens the tile: focus is never hidden.
       onFocus={(e) => {
         const el = tile.current
-        const target = e.target as Element
-        if (!el || !over || rows?.asked || target.closest("[data-tile-footer]"))
+        if (!el || !cap || (e.target as Element).closest("[data-tile-footer]"))
           return
-        const cut = el.getBoundingClientRect().bottom - FOOTER_PX - 32
-        if (target.getBoundingClientRect().bottom > cut)
-          setRows({ n: tracksFor(el.scrollHeight + FOOTER_PX), asked: true })
+        if (
+          (e.target as Element).getBoundingClientRect().bottom >
+          el.getBoundingClientRect().bottom - FOOTER_PX
+        )
+          setOpen(true)
       }}
-      style={rows ? { gridRow: `span ${rows.n}` } : undefined}
-      className={`relative min-w-0 [&>*:first-child]:h-full ${rows?.asked ? "" : "@min-[640px]:overflow-hidden"} ${className}`}
+      style={{ ...style, ...(cap ? { maxHeight: cap.px } : {}) }}
+      className={`relative min-w-0 [&>*:first-child]:h-full ${cap ? "overflow-hidden" : ""} ${className}`}
     >
       {children}
-      {over && !rows?.asked ? (
+      {cap ? (
         <div
           data-tile-footer
           className="absolute inset-x-0 bottom-0 flex flex-col"
@@ -101,29 +99,22 @@ export function BentoTile({
               size="sm"
               className="min-h-11 rounded-full"
               aria-expanded={false}
-              onClick={() => {
-                const el = tile.current
-                if (el)
-                  setRows({
-                    n: tracksFor(el.scrollHeight + FOOTER_PX),
-                    asked: true,
-                  })
-              }}
+              onClick={() => setOpen(true)}
             >
               <ChevronDown aria-hidden />
-              {t("showAll")}
+              {cap.rows ? t("showAllCount", { count: cap.rows }) : t("showAll")}
             </Button>
           </div>
         </div>
       ) : null}
-      {asked ? (
+      {open ? (
         <div className="flex justify-center pt-2">
           <Button
             variant="outline"
             size="sm"
             className="min-h-11 rounded-full"
             aria-expanded
-            onClick={() => setRows(null)}
+            onClick={() => setOpen(false)}
           >
             <ChevronUp aria-hidden />
             {t("showLess")}

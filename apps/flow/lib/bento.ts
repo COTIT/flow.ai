@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+
 /**
  * The bento rule, one for every scene: a 12-column grid at ≥1024 px of results width, 6 at
  * 640–1023, 2 below. Size comes from the component type; the saved order stays the reading order.
@@ -23,12 +25,15 @@ export const BENTO_CLASS: Record<BentoSize, string> = {
   full: "col-span-full",
 }
 
-/** Fixed row tracks from 640 px: a tile is 1 or 2 tracks, never stretched by a taller neighbour,
- * so the first screen shows whole tiles (at a glance). Content taller than its tile is clipped
- * with "Show all", which grows that tile only. On a phone tiles stack at their natural height. */
-export const TRACK_PX = 132
+/** Rows follow their content (bento fit): planBands fills every row to the width, so auto-placement
+ * puts each band on its own row; dense placement lets a big tile beside two stacked metrics take
+ * both rows. DOM (reading) order stays the saved order. On a phone tiles stack at natural height. */
 export const BENTO_GRID =
-  "grid grid-cols-2 gap-3 @min-[640px]:grid-cols-6 @min-[640px]:auto-rows-[132px] @min-[640px]:gap-4 @min-[1024px]:grid-cols-12"
+  "grid grid-flow-row-dense grid-cols-2 gap-3 @min-[640px]:grid-cols-6 @min-[640px]:gap-4 @min-[1024px]:grid-cols-12"
+
+/** A tile's place from its planned spans (CSS variables set per tile by `placements`). */
+export const BENTO_PLACE =
+  "[grid-column:span_var(--s2)] @min-[640px]:[grid-column:span_var(--s6)] @min-[1024px]:[grid-column:var(--c12,auto)_/_span_var(--s12)] @min-[1024px]:[grid-row:span_var(--r12)]"
 
 /** A scene of one component: natural height, nothing to line up with. */
 export const BENTO_SINGLE = "grid grid-cols-1 gap-3"
@@ -119,4 +124,26 @@ export function planBands(
     }
   }
   return out
+}
+
+/** Per tile, its spans at 2, 6 and 12 columns as CSS variables for BENTO_PLACE. */
+export function placements(list: readonly PlanInput[]) {
+  const [p2, p6, p12] = ([2, 6, 12] as const).map(
+    (cols) => new Map(planBands(list, cols).map((t) => [t.id, t]))
+  )
+  return new Map(
+    list.map((c) => {
+      const wide = p12!.get(c.id)!
+      return [
+        c.id,
+        {
+          "--s2": p2!.get(c.id)!.span,
+          "--s6": p6!.get(c.id)!.span,
+          "--s12": wide.span,
+          "--c12": wide.stack ? "1" : "auto",
+          "--r12": wide.rows,
+        } as CSSProperties,
+      ]
+    })
+  )
 }
