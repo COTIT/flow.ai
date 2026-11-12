@@ -77,7 +77,7 @@ assert 'saved period' in prompt,'Flow context period caveat missing'
 assert 'replaces' in prompt and 'presentation' in prompt and 'Reads stay reads' in prompt,'change-in-place contract missing'
 assert 'Never invent data to fit a chart' in prompt,'charts must never fake data'
 kinds=['line','sparkline','bar','hbar','pie','donut','kpi','delta','meter','table','list','timeline','map']
-for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table'}.items():
+for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table','quantities':'list, hbar, bar, table','hits':'list, table','document':'list, table, kpi'}.items():
     assert f'{shape}: {allowed}' in prompt,'chart kinds per data shape missing: '+shape
 assert 'flow_scenes_update' in prompt and 'review card' in prompt,'scene chart changes must stay a reviewed write'
 params=execute['parameters']
