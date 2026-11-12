@@ -24,6 +24,7 @@
     "suggested": "Imependekezwa kwako",
     "mic": "Maikrofoni",
     "switchVoice": "Badili kwenda sauti",
+    "reviewReady": "Ukaguzi uko tayari: {summary}. Idhinisha kitendo na Ghairi viko juu kidogo.",
     "orb": {
       "idle": "Genesy yuko tayari",
       "connecting": "Inaunganisha",

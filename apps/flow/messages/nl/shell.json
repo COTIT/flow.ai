@@ -24,6 +24,7 @@
     "suggested": "Voorgesteld voor jou",
     "mic": "Microfoon",
     "switchVoice": "Overschakelen naar spraak",
+    "reviewReady": "Controle klaar: {summary}. Actie goedkeuren en Annuleren staan er net boven.",
     "orb": {
       "idle": "Genesy is klaar",
       "connecting": "Verbinden",

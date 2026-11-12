@@ -24,6 +24,7 @@
     "suggested": "Suggested for you",
     "mic": "Microphone",
     "switchVoice": "Switch to voice",
+    "reviewReady": "Review ready: {summary}. Approve action and Cancel are just above.",
     "orb": {
       "idle": "Genesy is ready",
       "connecting": "Connecting",
