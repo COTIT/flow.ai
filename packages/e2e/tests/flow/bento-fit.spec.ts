@@ -153,4 +153,24 @@ test("a phone stacks the scene in one scroller", async ({ page, api }) => {
   await page.goto("/scenes/pulse")
   await expect(page.locator("[data-component]").first()).toBeVisible()
   await expectSingleScroller(page)
+  // Keep Flow simple: the scene's actions sit on one line above the data.
+  const tops = await page
+    .locator("article > header button")
+    .evaluateAll((els) => [
+      ...new Set(els.map((e) => Math.round(e.getBoundingClientRect().top / 8))),
+    ])
+  expect(tops.length, "header actions on one line").toBe(1)
+  // A metric's number and its note never get cut ("€12,840.00 24 c…").
+  const clipped = await page
+    .locator("[data-component] p, [data-component] p span")
+    .evaluateAll((els) =>
+      els
+        .filter((e) => {
+          const r = e.getBoundingClientRect()
+          const card = e.closest("[data-component]")!.getBoundingClientRect()
+          return e.scrollWidth > e.clientWidth + 1 || r.right > card.right + 1
+        })
+        .map((e) => e.textContent)
+    )
+  expect(clipped, "clipped metric text").toEqual([])
 })

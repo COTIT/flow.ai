@@ -60,14 +60,18 @@ function SalesCard({
     >
       <Card label={label} sub={t(`period.${period}`)}>
         {rows.map((row) => (
-          <p key={row.currency} className="text-2xl font-semibold tabular-nums">
+          // The note wraps to its own line when the card is narrow (never "24 c…").
+          <p
+            key={row.currency}
+            className="flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tabular-nums"
+          >
             {formatMoney(
               metric === "sales.gross" ? row.gross_total : row.net_total,
               row.decimals,
               row.currency,
               locale
             )}
-            <span className="ml-2 text-xs font-normal whitespace-nowrap text-muted-foreground">
+            <span className="text-xs font-normal whitespace-nowrap text-muted-foreground">
               {t("orders", { count: row.orders })}
             </span>
           </p>
