@@ -40,7 +40,7 @@ test("issue a link, open it in a new tab, revoke it; the token stays out of stor
   await page.goto("/storefront")
   const region = card(page)
   await expect(region.getByText(st.readyTitle)).toBeVisible()
-  await expect(region.getByText("v2 · your shop still shows v1")).toBeVisible()
+  await expect(region.getByText("version 2 · your shop still shows version 1")).toBeVisible()
   await expect(region.getByText(st.unpublished)).toBeVisible()
   await expect(region.getByText(st.accessNone)).toBeVisible()
   await expect(region.getByRole("link", { name: st.openLabel })).toHaveCount(0)
@@ -127,8 +127,8 @@ test("publication needs its own card: live v1 → proposed v2, no preview tab wh
   const publish = page.getByRole("region", { name: st.publishTitle })
   await expect(publish.getByText(st.publishTitle)).toBeVisible()
   await expect(publish.getByText(st.currentLive)).toBeVisible()
-  await expect(publish.locator("dd").nth(0)).toHaveText("v1")
-  await expect(publish.locator("dd").nth(1)).toHaveText("v2")
+  await expect(publish.locator("dd").nth(0)).toHaveText("version 1")
+  await expect(publish.locator("dd").nth(1)).toHaveText("version 2")
   await expect(publish.locator("dd").nth(2)).toHaveText("Ilundo Honey Co. storefront")
   await expect(publish.getByText(st.replace)).toBeVisible()
   // Opening a tab hides this one, which cancels open reviews: no link while deciding.
@@ -148,7 +148,7 @@ test("publication needs its own card: live v1 → proposed v2, no preview tab wh
   const receipt = page.getByRole("region", { name: st.publishedTitle })
   await expect(
     receipt.getByText(
-      "Revision v2 is live. Previous revision v1 stays in history and can be restored as a new draft."
+      "Your shop now shows version 2. The earlier look (version 1) is kept and can be brought back later."
     )
   ).toBeVisible()
   const calls = api.callsTo("POST", `${root()}/publish`)

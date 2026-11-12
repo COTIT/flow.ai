@@ -14,6 +14,7 @@ import {
   urls,
 } from "../src/stack"
 import { expectNoHorizontalScroll } from "../src/test"
+import flowEn from "../../../apps/flow/messages/en.json" with { type: "json" }
 
 const fixture = JSON.parse(
   readFileSync(
@@ -35,6 +36,13 @@ async function previewFrame(page: Page) {
 }
 
 /** Its own workspace, so the shared seed's design stays untouched. */
+
+/** Flow's Preview button for version `n`, named by its messages (never the revision id). */
+const previewButton = (n: number) =>
+  new RegExp(
+    `^${flowEn.flow.storefront.previewRevision.replace("{number}", String(n)).split("{date}")[0]}`
+  )
+
 test("an owner reviews an API draft in Flow's device frame and publishes it", async ({
   page,
   request,
@@ -79,9 +87,7 @@ test("an owner reviews an API draft in Flow's device frame and publishes it", as
 
   await loginFlow(page, ownerLogin)
   await page.goto(`${urls.flow}/storefront`)
-  await page
-    .getByRole("button", { name: /^Preview revision 1, saved / })
-    .click()
+  await page.getByRole("button", { name: previewButton(1) }).click()
   const region = page.getByRole("region", { name: "Storefront preview" })
   await expect(region.getByText("Draft — not live yet")).toBeVisible()
   const frame = await previewFrame(page)
@@ -106,7 +112,7 @@ test("an owner reviews an API draft in Flow's device frame and publishes it", as
   await region.getByRole("button", { name: "Publish", exact: true }).click()
   // F5: the studio's publish card (live → proposed) asks for the confirmation.
   await page
-    .getByRole("region", { name: "Publish storefront revision?" })
+    .getByRole("region", { name: "Publish this new look?" })
     .getByRole("button", { name: "Confirm publish" })
     .click()
   await expect(

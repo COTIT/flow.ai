@@ -11,8 +11,8 @@ import { dismissHint, readActivity } from "@/lib/activity"
 import { useActivityKey } from "@/lib/pills"
 import { useTakeFocus } from "@/lib/use-take-focus"
 
-/** Uses after which the hint has done its job. */
-const FAMILIAR = 5
+/** The tip is for first-time users only (P6): after any use it becomes the quiet link. */
+const FAMILIAR = 1
 const AREAS = [
   ["stock", "stock.list"],
   ["orders", "order.list"],

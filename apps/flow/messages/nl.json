@@ -28,14 +28,14 @@
     "loadFailedOffline": "Je bent offline. Deze pagina laadt opnieuw zodra je weer online bent.",
     "storefront": {
       "title": "Webwinkelontwerp",
-      "intro": "Bekijk opgeslagen versies voordat je wijzigingen in je winkel publiceert.",
+      "intro": "Bekijk hoe je winkel eruitziet, probeer een nieuwe look en publiceer die als je tevreden bent.",
       "created": "Aangemaakt",
       "status": "Status",
       "actions": "Acties",
       "empty": "Nog geen ontwerpconcepten.",
       "draft": "Concept",
       "published": "Gepubliceerd",
-      "previous": "Eerder gepubliceerd",
+      "previous": "Was eerder live",
       "preview": "Voorbeeld",
       "previewRevision": "Voorbeeld van versie {number}, opgeslagen {date}",
       "previewRegion": "Voorbeeld van de webwinkel",
@@ -84,7 +84,11 @@
       "proposalConflict": "De winkelpagina is gewijzigd nadat deze controle was voorbereid.",
       "proposalConflictText": "Goedkeuren staat uit voor deze controle. Annuleer en vraag het opnieuw: de assistent leest het nieuwe concept en bereidt een nieuwe controle voor.",
       "proposalUnavailableText": "De wijzigingen hierboven kloppen nog steeds.",
-      "retry": "Opnieuw proberen"
+      "retry": "Opnieuw proberen",
+      "liveNow": "Nu live",
+      "newLook": "Nieuwe look klaar",
+      "versionSaved": "Versie {number} · opgeslagen {date}",
+      "olderVersions": "{count, plural, one {Oudere versie (#)} other {Oudere versies (#)}}"
     },
     "chat": {
       "storefront": "Webwinkel",

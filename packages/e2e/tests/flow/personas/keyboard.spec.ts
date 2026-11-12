@@ -308,9 +308,20 @@ function keyboardSteps(
       run: () => persona.history("back"),
     },
   ]
+  // The person scrolled focus out of view on purpose (Home/End, arrows, Page keys) and has not
+  // moved focus since: a step that leaves focus where it was (Escape, Space on a non-control)
+  // cannot bring it back, and must not be blamed for it (seed 1373302409: End, then Escape).
+  let away = false
   return steps.map((step) => ({
     ...step,
     run: async () => {
+      await page
+        .evaluate(
+          () =>
+            ((window as unknown as { focusBefore?: Element | null }).focusBefore =
+              document.activeElement)
+        )
+        .catch(() => {})
       const before = await page
         .evaluate(() => location.pathname + location.search)
         .catch(() => "")
@@ -333,11 +344,19 @@ function keyboardSteps(
       const tabbing = /^(Tab|Shift\+Tab)/.test(step.name)
       if (gone && (await focusOf(page)).body)
         persona.log("   (P9-1: focused control unmounted, focus on body)")
+      const stayed = await page
+        .evaluate(
+          () =>
+            (window as unknown as { focusBefore?: Element | null }).focusBefore ===
+            document.activeElement
+        )
+        .catch(() => false)
       const scrolled = /^(Home \/ End|arrows|Page ?(Up|Down))/.test(step.name)
+      away = scrolled || (away && stayed)
       await expectKeyboardSane(page, before, persona.trail, {
         bodyOk: gone || tabbing || wasBody,
         noIndicator,
-        scrolled,
+        scrolled: away,
       })
       // Past the last control focus leaves the page; the next Tab must come back into it.
       if (tabbing && (await focusOf(page)).body) {

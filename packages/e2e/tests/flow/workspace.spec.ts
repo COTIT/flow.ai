@@ -16,7 +16,9 @@ test("one workspace: its name, no picker", async ({ page }) => {
   await seedSession(page)
   await mockApi(page, flowApi())
   await page.goto("/")
-  await expect(page.getByText(ILUNDO.display_name)).toBeVisible()
+  // In the header, and (P6) in the start screen's business line.
+  await expect(page.locator("[data-flow-header]").getByText(ILUNDO.display_name)).toBeVisible()
+  await expect(page.getByRole("group", { name: "Your business" })).toContainText(ILUNDO.display_name)
   await expect(page.getByRole("combobox", { name: "Workspace" })).toHaveCount(0)
 })
 
@@ -104,6 +106,6 @@ test.describe("the workspace list fails", () => {
     ).toBeVisible({ timeout: 15_000 })
     fail = false
     await page.getByRole("button", { name: "Try again" }).click()
-    await expect(page.getByText(ILUNDO.display_name)).toBeVisible()
+    await expect(page.getByRole("group", { name: "Your business" })).toContainText(ILUNDO.display_name)
   })
 })

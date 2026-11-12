@@ -317,7 +317,10 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         />
         {/* Short screens: the sheet's line is too slim for End, so it sits here (one on screen). */}
         {sheetShown ? (
-          <EndCall className="hidden [@media(max-height:500px)]:inline-flex" />
+          <EndCall
+            tight
+            className="hidden [@media(max-height:500px)]:inline-flex"
+          />
         ) : null}
         {!live ? (
           <Button

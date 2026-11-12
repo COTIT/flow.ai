@@ -42,7 +42,7 @@ export function useWorkspaceChoices() {
   return { query, choices }
 }
 
-/** First visit on touch: a one-time hint that the header is a swipe down away. */
+/** First visit on touch, on the start screen only: a one-time hint that the header is a swipe away. */
 const HINT_KEY = "flow.headerHint.seen"
 
 /**
@@ -57,8 +57,10 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
   const pathname = usePathname()
   const { shown, enter, leave, toggle } = useHeaderReveal(ref, pathname)
   const [hint, setHint] = useState(false)
+  // Never over a scene's title: shown (and counted as seen) on the start screen only.
+  const home = pathname === "/"
   useEffect(() => {
-    if (!matchMedia("(pointer: coarse)").matches) return
+    if (!home || !matchMedia("(pointer: coarse)").matches) return
     try {
       if (localStorage.getItem(HINT_KEY)) return
       localStorage.setItem(HINT_KEY, "1")
@@ -70,8 +72,9 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
     return () => {
       clearTimeout(show)
       clearTimeout(done)
+      setHint(false)
     }
-  }, [])
+  }, [home])
   const logout = useLogout()
   const voice = useVoice()
   const [leaving, setLeaving] = useState(false)
@@ -109,12 +112,15 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         aria-expanded={shown}
         aria-controls="flow-header"
         aria-label={t(shown ? "shell.hideHeader" : "shell.showHeader")}
+        // With no Menu button, this is the visible way to the menu on every device: named,
+        // with a tooltip for the mouse, a 44 px target and a bar that stands out (3:1).
+        title={t(shown ? "shell.hideHeader" : "shell.showHeader")}
         onClick={toggle}
-        className="absolute top-0 left-1/2 z-50 hidden h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:w-16 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+2px)] [@media(pointer:coarse)]:flex"
+        className="absolute top-0 left-1/2 z-50 flex h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:w-16 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+2px)]"
       >
         <span
           aria-hidden
-          className="h-1.5 w-11 rounded-full bg-muted-foreground/50"
+          className="h-1.5 w-12 rounded-full bg-muted-foreground"
         />
       </button>
       {/* Only away from a conversation, whose bar sits where the hint would (P10-8). */}
@@ -219,12 +225,20 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
   )
 }
 
-/** Shown only with more than one workspace to choose from. */
-function WorkspacePicker() {
+/** Shown only with more than one workspace to choose from (header, and home's business line). */
+export function WorkspacePicker({
+  from = "header",
+  label,
+  className = "min-h-11 max-w-48",
+}: {
+  from?: "header" | "home"
+  label?: string
+  className?: string
+}) {
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId)
   const { choices } = useWorkspaceChoices()
-  const { trigger, said, remember } = useWorkspaceSwitch(workspaceId) // P9-3
+  const { trigger, said, remember } = useWorkspaceSwitch(workspaceId, from) // P9-3
   if (choices.length < 2) return null
   const options = choices.map((w) => ({ value: w.id, label: w.display_name }))
   return (
@@ -243,8 +257,8 @@ function WorkspacePicker() {
       >
         <SelectTrigger
           ref={trigger}
-          aria-label={t("common.workspace")}
-          className="min-h-11 max-w-48"
+          aria-label={label ?? t("common.workspace")}
+          className={className}
         >
           <SelectValue />
         </SelectTrigger>

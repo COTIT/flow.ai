@@ -30,7 +30,9 @@ test("logging in opens the landing with who and where", async ({ page }) => {
   await logIn(page)
   await expect(page).toHaveURL("/")
   await expect(page.getByText(AMINA.name)).toBeVisible()
-  await expect(page.getByText("Ilundo Honey Co.")).toBeVisible()
+  // Where: the header, and (P6) the start screen's business line.
+  await expect(page.locator("[data-flow-header]").getByText("Ilundo Honey Co.")).toBeVisible()
+  await expect(page.getByRole("group", { name: "Your business" })).toContainText("Ilundo Honey Co.")
   await expect(
     page.getByRole("button", { name: "Type instead", exact: true })
   ).toBeVisible()
@@ -124,7 +126,8 @@ test("logging out forgets the session and shows no earlier data to the next logi
   })
   await logIn(page, BARAKA.email)
   await expect(page).toHaveURL("/")
-  await expect(page.getByText(RUAHA.display_name)).toBeVisible()
+  await expect(page.locator("[data-flow-header]").getByText(RUAHA.display_name)).toBeVisible()
+  await expect(page.getByRole("group", { name: "Your business" })).toContainText(RUAHA.display_name)
   await expect(page.getByText(AMINA.name)).toHaveCount(0)
   await expect(page.getByText("Ilundo Honey Co.")).toHaveCount(0)
   release()

@@ -1,13 +1,14 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { useEffect, useSyncExternalStore } from "react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Mic } from "lucide-react"
+import { ArrowRight, Mic } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useUsersMe } from "@genesy/api-client/endpoints/users"
 import { sessionStore } from "@genesy/api-client/session"
-import { Button } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
@@ -18,7 +19,7 @@ import { Noticed } from "@/components/home/noticed" // F2
 import { YourFlow } from "@/components/home/your-flow" // F2
 import { StudioResume } from "@/components/studio/resume" // F5
 import { EndCall } from "./conversation"
-import { useWorkspaceChoices } from "./header"
+import { useWorkspaceChoices, WorkspacePicker } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
 import { OrbSlot } from "./orb-layer"
@@ -34,6 +35,16 @@ const useLocalHour = () =>
     () => new Date().getHours(),
     () => null
   )
+
+/** Set once a conversation has started on this device: the microphone note has done its job. */
+const STARTED = "genesy.flow.started"
+const readStarted = () => {
+  try {
+    return localStorage.getItem(STARTED) === "1"
+  } catch {
+    return false
+  }
+}
 
 /**
  * Home: welcome, the orb's reserved place and its caption, then (later PRs) the discovery hint,
@@ -51,6 +62,17 @@ export function Home() {
   const live = voice.connected || voice.starting || voice.upgrading
   const { state } = useReadiness()
   const hour = useLocalHour()
+  // The server renders no note; the client shows it until the first conversation (P6).
+  const started = useSyncExternalStore(noChange, readStarted, () => true)
+  useEffect(() => {
+    if (!voice.connected) return
+    try {
+      localStorage.setItem(STARTED, "1")
+    } catch {
+      // Blocked storage: the note simply keeps showing.
+    }
+  }, [voice.connected])
+  const firstName = me.data?.data.user.name?.trim().split(/\s+/)[0]
 
   if (me.isError || workspaces.isError)
     return (
@@ -115,7 +137,9 @@ export function Home() {
       <div className="flex flex-col gap-1">
         {hour === null ? null : (
           <p className="text-sm text-muted-foreground">
-            {t(`shell.${greeting(hour)}`)}
+            {firstName
+              ? t(`shell.greetingName.${greeting(hour)}`, { name: firstName })
+              : t(`shell.${greeting(hour)}`)}
           </p>
         )}
         <h1 className="text-2xl font-semibold text-balance">
@@ -124,6 +148,41 @@ export function Home() {
         <p className="max-w-md text-sm text-balance text-muted-foreground">
           {t("shell.flowText")}
         </p>
+      </div>
+      {/* P6: which business, and the shop, always in sight: one calm line, two things only. */}
+      {/* Its height is kept from the first paint: the orb's place below never jumps. */}
+      <div
+        role="group"
+        aria-label={t("shell.business")}
+        className="-my-2 flex min-h-11 max-w-full flex-wrap items-center justify-center gap-x-1 text-sm"
+      >
+        {current ? (
+          <>
+            {choices.length > 1 ? (
+              <WorkspacePicker
+                from="home"
+                label={t("shell.switchBusiness")}
+                className="min-h-11 max-w-56 border-transparent bg-transparent font-medium shadow-none hover:bg-accent dark:bg-transparent"
+              />
+            ) : (
+              <span className="px-3 font-medium">{current.display_name}</span>
+            )}
+            <span aria-hidden className="text-muted-foreground">
+              ·
+            </span>
+            <Link
+              href="/storefront"
+              prefetch={false}
+              className={buttonVariants({
+                variant: "ghost",
+                className: "min-h-11 font-medium",
+              })}
+            >
+              {t("shell.yourShop")}
+              <ArrowRight aria-hidden />
+            </Link>
+          </>
+        ) : null}
       </div>
       {/* The keyboard's and screen reader's orb: its place in the page, first in the content. */}
       <button
@@ -156,7 +215,7 @@ export function Home() {
               </span>
             ) : null}
           </button>
-          <EndCall word />
+          <EndCall />
         </div>
       ) : live ? (
         <OrbCaption />
@@ -191,9 +250,11 @@ export function Home() {
           >
             {t("shell.typeInstead")}
           </Button>
-          <p className="max-w-sm text-xs text-muted-foreground">
-            {t("voice.micHint")}
-          </p>
+          {started ? null : (
+            <p className="max-w-sm text-xs text-muted-foreground">
+              {t("voice.micHint")}
+            </p>
+          )}
         </>
       ) : null}
       <StudioResume /> {/* F5 */}

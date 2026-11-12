@@ -11,9 +11,9 @@ export const published = "01950000-0000-7000-8000-000000000001"
 export const restored = "01950000-0000-7000-8000-000000000003"
 export const otherDraft = "01950000-0000-7000-8000-000000000009"
 export const root = (ws = "w1") => `/workspace/${ws}/storefront/pages/home`
-// Screen readers hear the revision number and save date, never the UUID.
+// Screen readers hear the version number and save date, never the UUID.
 export const revisionButton = (n: number) =>
-  new RegExp(`^Preview revision ${n}, saved `)
+  new RegExp(`^Preview version ${n}, saved `)
 
 /** Owner of Ilundo, admin of Ruaha: may review both. */
 export const owner = {

@@ -40,8 +40,8 @@
     "offlineNavigation": "Je bent offline. Dit opent zodra je weer online bent.",
     "skipToContent": "Naar de inhoud",
     "menu": "Menu",
-    "showHeader": "Toon de kopbalk",
-    "hideHeader": "Verberg de kopbalk",
+    "showHeader": "Toon het menu",
+    "hideHeader": "Verberg het menu",
     "headerHint": "Veeg omlaag vanaf de bovenkant voor het menu",
     "showConversation": "Toon gesprek",
     "hideConversation": "Verberg gesprek",
@@ -56,6 +56,14 @@
     "tapToTalk": "Tik om te praten",
     "continueConversation": "Ga verder met je gesprek",
     "typeInstead": "Liever typen",
-    "endCall": "Beëindigen"
+    "endCall": "Beëindigen",
+    "business": "Je bedrijf",
+    "switchBusiness": "Ander bedrijf kiezen",
+    "yourShop": "Je winkel",
+    "greetingName": {
+      "morning": "Goedemorgen, {name}.",
+      "afternoon": "Goedemiddag, {name}.",
+      "evening": "Goedenavond, {name}."
+    }
   }
 }

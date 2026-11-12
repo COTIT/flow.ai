@@ -28,16 +28,16 @@
     "loadFailedOffline": "You're offline. This page loads again once you're back online.",
     "storefront": {
       "title": "Storefront design",
-      "intro": "Review saved revisions before publishing changes to your shop.",
+      "intro": "See how your shop looks, try a new look, and publish it when you're happy.",
       "created": "Created",
       "status": "Status",
       "actions": "Actions",
       "empty": "No design drafts yet.",
       "draft": "Draft",
       "published": "Published",
-      "previous": "Previously published",
+      "previous": "Was live before",
       "preview": "Preview",
-      "previewRevision": "Preview revision {number}, saved {date}",
+      "previewRevision": "Preview version {number}, saved {date}",
       "previewRegion": "Storefront preview",
       "publish": "Publish",
       "restore": "Restore as draft",
@@ -84,7 +84,11 @@
       "proposalConflict": "The storefront changed after this review was prepared.",
       "proposalConflictText": "Approve is off for this review. Cancel it and ask again: the assistant reads the new draft and prepares a fresh review.",
       "proposalUnavailableText": "The changes listed above are still exact.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "liveNow": "Live now",
+      "newLook": "New look ready",
+      "versionSaved": "Version {number} · saved {date}",
+      "olderVersions": "{count, plural, one {Older version (#)} other {Older versions (#)}}"
     },
     "chat": {
       "storefront": "Storefront",

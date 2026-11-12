@@ -40,8 +40,8 @@
     "offlineNavigation": "Uko nje ya mtandao. Hii itafunguka utakaporudi mtandaoni.",
     "skipToContent": "Ruka hadi maudhui",
     "menu": "Menyu",
-    "showHeader": "Onyesha kichwa",
-    "hideHeader": "Ficha kichwa",
+    "showHeader": "Onyesha menyu",
+    "hideHeader": "Ficha menyu",
     "headerHint": "Telezesha chini kutoka juu kupata menyu",
     "showConversation": "Onyesha mazungumzo",
     "hideConversation": "Ficha mazungumzo",
@@ -56,6 +56,14 @@
     "tapToTalk": "Gusa kuongea",
     "continueConversation": "Endelea na mazungumzo yako",
     "typeInstead": "Andika badala yake",
-    "endCall": "Maliza"
+    "endCall": "Maliza",
+    "business": "Biashara yako",
+    "switchBusiness": "Badilisha biashara",
+    "yourShop": "Duka lako",
+    "greetingName": {
+      "morning": "Habari za asubuhi, {name}.",
+      "afternoon": "Habari za mchana, {name}.",
+      "evening": "Habari za jioni, {name}."
+    }
   }
 }
