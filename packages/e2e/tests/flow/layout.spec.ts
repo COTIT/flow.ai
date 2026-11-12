@@ -935,3 +935,30 @@ for (const size of [
     await expect(header(page)).not.toHaveAttribute("data-shown")
     await expectSingleScroller(page)
   })
+
+test("P10-2: with the phone sheet raised and the keyboard up, the field and Send stay above it", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.isMobile, "phone")
+  await page.setViewportSize({ width: 375, height: 667 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log").first()).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  await page.getByRole("button", { name: s.raiseConversation }).click()
+  await composer(page).focus()
+  const visible = Math.round(667 * 0.58)
+  await page.evaluate((h) => {
+    Object.defineProperty(window.visualViewport, "height", { configurable: true, get: () => h })
+    window.visualViewport!.dispatchEvent(new Event("resize"))
+  }, visible)
+  await expect
+    .poll(async () => {
+      const f = (await composer(page).boundingBox())!
+      const b = (await page.getByRole("button", { name: v.send, exact: true }).boundingBox())!
+      return Math.max(f.y + f.height, b.y + b.height)
+    })
+    .toBeLessThanOrEqual(visible)
+})
