@@ -257,7 +257,7 @@ function Actions({ name, act }: { name: string; act: RowActions }) {
               {act.group.items.map((a) => (
                 <DropdownMenuItem
                   key={a.key}
-                  className="min-h-11"
+                  className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                   onClick={a.onSelect}
                 >
                   {a.short ?? a.label}
@@ -287,7 +287,7 @@ function Actions({ name, act }: { name: string; act: RowActions }) {
               {all.map((a) => (
                 <DropdownMenuItem
                   key={a.key}
-                  className="min-h-11"
+                  className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                   onClick={a.onSelect}
                 >
                   {a.label}

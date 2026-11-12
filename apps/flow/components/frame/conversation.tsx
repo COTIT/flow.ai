@@ -400,7 +400,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
         <div
           ref={body}
           tabIndex={-1}
-          className="flex min-h-0 flex-1 flex-col focus:outline-none"
+          className="flex min-h-0 flex-1 flex-col rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-(--gold)"
         >
           <PaneLog pane="sheet" />
         </div>

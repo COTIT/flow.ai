@@ -248,7 +248,12 @@ function WorkspacePicker() {
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
+            <SelectItem
+              key={o.value}
+              value={o.value}
+              // A visible ring on the focused option (a background alone is not seen, P9-2).
+              className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
+            >
               {o.label}
             </SelectItem>
           ))}
