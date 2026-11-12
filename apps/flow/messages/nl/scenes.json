@@ -23,6 +23,7 @@
     "retry": "Opnieuw proberen",
     "busy": "Het is druk, nieuwe poging over {seconds, plural, one {# seconde} other {# seconden}}.",
     "gone": "Dit is niet meer beschikbaar.",
+    "offline": "Je bent offline. Dit laadt zodra je weer online bent.",
     "failed": "Dit kon niet worden geladen.",
     "notFound": "Deze scène bestaat niet.",
     "sceneError": "Deze scène kon niet worden getoond. Je gesprek gaat gewoon door.",

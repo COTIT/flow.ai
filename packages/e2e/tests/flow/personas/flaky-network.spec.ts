@@ -11,8 +11,9 @@ import { startText, v } from "../voice"
 import { expect, test, type Persona } from "./harness"
 
 const SCENES = ["pulse", "stock", "noticed", "orders", "sales", "routines"] as const
-/** Raw codes a person must never read (HTTP statuses, error names, ids). */
-const RAW = /\b(?:HTTP|status|error|code)[\s:]*[45]\d\d\b|\b(?:ERR_[A-Z_]+|TypeError|SyntaxError|Failed to fetch|NetworkError|Load failed|undefined|NaN)\b|\bnull\b(?! ?[a-z])|is not valid JSON|Unexpected token/i
+/** Raw codes a person must never read (HTTP statuses, error names, ids). A status counts only as
+ * its own token after such a word, never inside money or a number ("€480.00", "500g", "4500"). */
+const RAW = /\b(?:HTTP|status|error|code)[\s:]*[45]\d\d(?!\w|[.,]\d)|\b(?:ERR_[A-Z_]+|TypeError|SyntaxError|Failed to fetch|NetworkError|Load failed|undefined|NaN)\b|\bnull\b(?! ?[a-z])|is not valid JSON|Unexpected token/i
 
 /** Chrome DevTools "Slow 3G" (latency ms, bytes/s); off restores the line. */
 async function throttle(cdp: CDPSession, on: boolean) {
