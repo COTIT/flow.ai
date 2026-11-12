@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
-import { RefreshCw } from "lucide-react"
+import { MoreHorizontal, RefreshCw } from "lucide-react"
 
 import {
   getFlowScenesListQueryKey,
@@ -19,6 +19,18 @@ import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { ComparePanel } from "@/components/registry/comparison"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@genesy/ui/components/dropdown-menu"
 import { Freshness } from "@/components/registry/data-state"
 import {
   BENTO_GRID,
@@ -191,95 +203,114 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
             <RefreshCw aria-hidden />
             {t("refresh")}
           </Button>
-          {sceneKey === "pulse" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="min-h-11"
-              disabled={update.isPending || ordered}
-              onClick={() =>
-                write(
-                  { config: pendingFirst(scene.config) },
-                  "pulse",
-                  t("pendingFirstDone")
-                )
-              }
-            >
-              {t("pendingFirst")}
-            </Button>
-          ) : null}
-          {layout === "sales" && builtIn ? (
-            <>
-              <label className="flex items-center gap-2 text-sm">
-                {t("periodLabel")}
-                <select
-                  value={period ?? ""}
-                  onChange={(e) =>
-                    setPeriod((e.target.value || null) as FlowPeriod | null)
-                  }
-                  className="min-h-11 rounded-full border bg-background px-3 text-sm"
-                >
-                  <option value="">{t("period.this_week")}</option>
-                  {PERIODS.map((p) => (
-                    <option key={p} value={p}>
-                      {t(`period.${p}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {compareFrom ? (
-                <Button
-                  variant={comparing ? "default" : "outline"}
-                  size="sm"
-                  className="min-h-11 rounded-full"
-                  aria-pressed={comparing}
-                  onClick={() => setComparing(!comparing)}
-                >
-                  {t(
-                    compareFrom === "this_week"
-                      ? "compare.button"
-                      : "compare.buttonBefore"
-                  )}
-                </Button>
-              ) : null}
-              {keptKey ? (
+          {/* Keep Flow simple: one "More" menu holds every other action of the scene. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
                 <Button
                   variant="outline"
                   size="sm"
+                  className="min-h-11 rounded-full"
+                >
+                  <MoreHorizontal aria-hidden />
+                  {t("moreActions")}
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="min-w-56">
+              {sceneKey === "pulse" ? (
+                <DropdownMenuItem
                   className="min-h-11"
-                  disabled={kept || update.isPending}
+                  disabled={update.isPending || ordered}
                   onClick={() =>
-                    write({ config: { components: shown } }, keptKey)
+                    write(
+                      { config: pendingFirst(scene.config) },
+                      "pulse",
+                      t("pendingFirstDone")
+                    )
                   }
                 >
-                  {kept ? t("kept") : t("keep")}
-                </Button>
+                  {t("pendingFirst")}
+                </DropdownMenuItem>
               ) : null}
-            </>
-          ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="min-h-11"
-            disabled={update.isPending || remove.isPending}
-            onClick={() => {
-              if (writing.current) return
-              writing.current = true
-              say("")
-              const home = {
-                onSuccess: () => router.push("/"),
-                onError: () => (writing.current = false),
-              }
-              if (builtIn)
-                update.mutate(
-                  { workspace: ws, scene: sceneKey, data: { hidden: true } },
-                  home
-                )
-              else remove.mutate({ workspace: ws, scene: sceneKey }, home)
-            }}
-          >
-            {t("remove")}
-          </Button>
+              {layout === "sales" && builtIn ? (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("periodLabel")}</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={period ?? ""}
+                      onValueChange={(value) =>
+                        setPeriod((String(value) || null) as FlowPeriod | null)
+                      }
+                    >
+                      <DropdownMenuRadioItem value="" className="min-h-11">
+                        {t("period.this_week")}
+                      </DropdownMenuRadioItem>
+                      {PERIODS.map((p) => (
+                        <DropdownMenuRadioItem
+                          key={p}
+                          value={p}
+                          className="min-h-11"
+                        >
+                          {t(`period.${p}`)}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                  {compareFrom ? (
+                    <DropdownMenuCheckboxItem
+                      className="min-h-11"
+                      checked={comparing}
+                      onCheckedChange={(on) => setComparing(!!on)}
+                    >
+                      {t(
+                        compareFrom === "this_week"
+                          ? "compare.button"
+                          : "compare.buttonBefore"
+                      )}
+                    </DropdownMenuCheckboxItem>
+                  ) : null}
+                  {keptKey ? (
+                    <DropdownMenuItem
+                      className="min-h-11"
+                      disabled={kept || update.isPending}
+                      onClick={() =>
+                        write({ config: { components: shown } }, keptKey)
+                      }
+                    >
+                      {kept ? t("kept") : t("keep")}
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
+              <DropdownMenuItem
+                className="min-h-11"
+                disabled={update.isPending || remove.isPending}
+                onClick={() => {
+                  if (writing.current) return
+                  writing.current = true
+                  say("")
+                  const home = {
+                    onSuccess: () => router.push("/"),
+                    onError: () => (writing.current = false),
+                  }
+                  if (builtIn)
+                    update.mutate(
+                      {
+                        workspace: ws,
+                        scene: sceneKey,
+                        data: { hidden: true },
+                      },
+                      home
+                    )
+                  else remove.mutate({ workspace: ws, scene: sceneKey }, home)
+                }}
+              >
+                {t("remove")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       <p role="status" className="text-sm text-muted-foreground empty:hidden">

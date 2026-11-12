@@ -169,6 +169,7 @@
     "showAll": "Alles tonen",
     "showLess": "Minder tonen",
     "showAllCount": "Alles tonen ({count})",
+    "moreActions": "Meer",
     "rowAction": {
       "restock": "Aanvullen",
       "restockAsk": "Vul {name} aan. Er zijn er {shortfall} te weinig voor het minimum.",
