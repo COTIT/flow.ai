@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import { fieldName } from "../../lib/helpers"
+import { fieldName, formatPrice, formatQuantity } from "../../lib/helpers"
 import { drawnAs, shapeOf, type Kind, type ResultView } from "../../lib/views"
 import { Series } from "./series"
 
@@ -20,6 +20,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
   const t = useTranslations("voice.results")
   const locale = useLocale()
   const day = (iso: string) => formatDate(iso.slice(0, 10), locale)
+  const when = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso))
   const period = (from: string, to: string) =>
     from.slice(0, 10) === to.slice(0, 10) ? day(from) : t("period", { from: day(from), to: day(to) })
   const money = (minor: number, decimals: number, currency: string) => formatMoney(minor, decimals, currency, locale)
@@ -112,6 +113,80 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
                 })),
         }],
       }
+    case "stock":
+      return {
+        title: t(view.scope === "list" ? "stock.title" : "stock.perBin"),
+        groups: view.groups.map((g, i) => ({
+          key: `${g.title}${i}`,
+          title: g.title ?? t("stock.noWarehouse"),
+          // Number() only sizes the bar; the text shown is the API's own.
+          items: g.rows.map((r) => ({ label: r.label ?? t("stock.noBin"), value: Number(r.available ?? r.level), shown: formatQuantity(r.available ?? r.level, locale) })),
+        })),
+      }
+    case "search":
+      return {
+        title: t("search.title"),
+        groups: view.groups.map((g) => ({
+          key: g.key,
+          title: t(`search.${g.key}`),
+          items: g.rows.map((r) => ({
+            label: r.label,
+            value: null,
+            shown: r.money ? money(r.money.minor, r.money.decimals, r.money.currency) : r.status ? fieldName(r.status) : (r.detail ?? ""),
+          })),
+        })),
+      }
+    case "document": {
+      const cash = (m: { minor: number; decimals: number; currency: string }) => money(m.minor, m.decimals, m.currency)
+      const title = `${t(`resources.${view.resource}`)} ${view.title ?? t("document.draft")}`
+      if (kind === "kpi") {
+        // The figure that matters: an order's total, an invoice's open amount, a product's available stock.
+        const last = view.totals.at(-1)
+        const available = view.facts.find((f) => f.key === "available")
+        const item = last
+          ? { label: t(`totals.${last.key}`), value: last.money.minor, shown: cash(last.money) }
+          : available && "text" in available
+            ? { label: t("facts.available"), value: null, shown: available.text }
+            : null
+        return { title, groups: [{ key: "kpi", title: null, items: item ? [item] : [] }] }
+      }
+      return {
+        title,
+        groups: [
+          {
+            key: "facts",
+            title: null,
+            items: view.facts.map((f) => ({ label: t(`facts.${f.key}`), value: null, shown: "text" in f ? f.text : "price" in f ? formatPrice(f.price, f.decimals, f.currency, locale) : day(f.date) })),
+          },
+          {
+            key: "lines",
+            title: null,
+            items: view.lines.map((l) => ({ label: l.label ?? t("stock.noBin"), value: null, shown: l.money ? cash(l.money) : l.quantity ? formatQuantity(l.quantity, locale) : "" })),
+          },
+          { key: "totals", title: null, items: view.totals.map((x) => ({ label: t(`totals.${x.key}`), value: x.money.minor, shown: cash(x.money) })) },
+        ],
+      }
+    }
+    case "till_sales":
+    case "till_shifts": {
+      const sales = view.kind === "till_sales"
+      const title = t(sales ? "till.sales" : "till.shifts")
+      const cash = (m: { minor: number; decimals: number; currency: string } | null) => (m ? money(m.minor, m.decimals, m.currency) : "")
+      if (kind === "kpi")
+        // The API's own count (meta.total), never a sum of amounts.
+        return { title, groups: [{ key: "kpi", title: null, items: [{ label: title, value: view.total, shown: count(view.total) }] }] }
+      return {
+        title,
+        groups: [{
+          key: view.kind,
+          title: null,
+          items:
+            view.kind === "till_sales"
+              ? view.rows.map((r) => ({ label: `${r.label} · ${when(r.at)}`, value: null, shown: cash(r.money) }))
+              : view.rows.map((r) => ({ label: `${when(r.opened)} · ${t(`till.state.${r.state}`)}`, value: null, shown: cash(r.state === "open" ? r.expected : r.counted) })),
+        }],
+      }
+    }
     case "trail":
       return {
         title: t("trailTitle"),

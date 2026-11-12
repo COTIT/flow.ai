@@ -11,6 +11,11 @@ const MATRIX: Record<string, string[]> = {
   counts: ["list", "bar", "hbar", "pie", "donut", "kpi", "table"],
   rows: ["list", "kpi", "table"],
   events: ["timeline", "list", "table"],
+  // P2: stock per item or bin (no API single figure; units may differ, so no pie), search hits,
+  // and one record with its lines (no chart of one record).
+  quantities: ["list", "hbar", "bar", "table"],
+  hits: ["list", "table"],
+  document: ["list", "table", "kpi"],
 }
 
 const day = (date: string, gross: number) => ({ date, gross, net: gross, orders: 1 })
@@ -23,6 +28,9 @@ const VIEWS: Record<string, ResultView> = {
   counts: { kind: "attention", sections: [{ key: "orders", counts: { pending: 3 }, items: [] }] },
   rows: { kind: "records", resource: "orders", total: 9, href: "/orders", rows: [] },
   events: { kind: "trail", events: [{ kind: "created", from: null, to: null, at: "2026-11-01", by: null }] },
+  quantities: { kind: "stock", scope: "list", total: 1, href: "/stock", groups: [{ title: "Main", rows: [{ label: "Honey", detail: null, available: "9.00", level: "12.00", reserved: "3.00", minimum: 5, href: null }] }] },
+  hits: { kind: "search", groups: [{ key: "products", rows: [{ label: "Honey", detail: null, status: null, money: null, href: null }] }] },
+  document: { kind: "document", resource: "orders", title: "ORD-7", status: "open", href: "/orders/x", facts: [], lineMoney: "excl", lines: [], totals: [{ key: "total", money: { minor: 5, decimals: 2, currency: "USD" } }] },
 }
 
 describe("every chart kind against every data shape", () => {

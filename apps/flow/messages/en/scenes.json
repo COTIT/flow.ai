@@ -116,7 +116,8 @@
       },
       "snooze": "Snooze",
       "untilTomorrow": "Until tomorrow",
-      "forWeek": "For 7 days"
+      "forWeek": "For 7 days",
+      "later": "Later"
     },
     "scene": {
       "pulse": {
@@ -166,6 +167,40 @@
       "rowActions": "Actions for {name}"
     },
     "showAll": "Show all",
-    "showLess": "Show less"
+    "showLess": "Show less",
+    "rowAction": {
+      "restock": "Restock",
+      "restockAsk": "Restock {name}. It is {shortfall} below its minimum.",
+      "openInOffice": "Open in Office",
+      "newTab": "{action}: {name} (opens a new tab)"
+    },
+    "compare": {
+      "button": "Compare with last week",
+      "buttonBefore": "Compare with the period before",
+      "title": {
+        "today": "Today and yesterday",
+        "yesterday": "Yesterday and the day before",
+        "this_week": "This week and last week",
+        "last_week": "Last week and the week before",
+        "last_7_days": "The last 7 days and the 7 before",
+        "this_month": "This month and last month"
+      },
+      "what": "What",
+      "orders": "Orders",
+      "difference": "Difference",
+      "base": {
+        "today": "Yesterday",
+        "yesterday": "The day before",
+        "this_week": "Last week",
+        "last_week": "The week before",
+        "last_7_days": "The 7 days before",
+        "this_month": "Last month"
+      }
+    },
+    "routines": {
+      "emptyTitle": "No reports yet",
+      "emptyText": "Genesy can email you a sales summary every week.",
+      "setUp": "Set up a weekly report"
+    }
   }
 }

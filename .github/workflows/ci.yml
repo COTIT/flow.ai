@@ -254,6 +254,9 @@ jobs:
         run: pnpm turbo run generate:check --filter=@genesy/api-client --only
       - name: Reviewed voice catalog matches OpenAPI and authorization sources
         run: pnpm --filter @genesy/office voice:check
+      # Summary only; the parity guards fail through vitest (office-parity.test.ts, keywords.test.ts).
+      - name: Office voice coverage summary
+        run: pnpm --filter @genesy/office voice:coverage
       - name: Checkpoint schema matches pinned saver
         run: pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
       - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2

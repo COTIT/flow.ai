@@ -49,6 +49,7 @@ test("pause, resume and delete a routine; empty state points to Genesy", async (
     .getByRole("alertdialog")
     .getByRole("button", { name: sc.delete })
     .click()
-  await expect(page.getByText(sc.noReports)).toBeVisible()
+  await expect(page.getByText(sc.routines.emptyTitle)).toBeVisible()
+  await expect(page.getByRole("button", { name: sc.routines.setUp })).toBeVisible()
   await expect(page.getByText(sc.planned)).toBeVisible()
 })

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.unsellable_lines, s.due,\n                s.rounding, s.tendered, s.change, s.card_reference, s.sold_at\n         FROM till_sales s\n         JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n         WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.client_ref = $3",
+  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.unsellable_lines, s.due,\n                s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,\n                upper(c.asset_type) AS \"currency!\", c.decimals\n         FROM till_sales s\n         JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n         WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.client_ref = $3",
   "describe": {
     "columns": [
       {
@@ -200,6 +200,23 @@
             "name": "sold_at"
           }
         }
+      },
+      {
+        "ordinal": 18,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 19,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
       }
     ],
     "parameters": {
@@ -227,8 +244,10 @@
       true,
       true,
       true,
+      false,
+      null,
       false
     ]
   },
-  "hash": "754b5a326d9199bb33dcbe62ab277d68078db537717102047fb1bfb56144290d"
+  "hash": "aadc41c501b9b4ee88fc96be712d34903826d0f50b84bd73a2bfa5292424b87d"
 }
