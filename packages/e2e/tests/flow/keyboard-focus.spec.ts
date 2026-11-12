@@ -165,3 +165,30 @@ test("P9-5: the explorer's tab panel shows keyboard focus with the same ring as 
   expect(look.visible).toBe(true)
   expect(look.ring, "no visible focus on the tab panel").not.toBe("none")
 })
+
+test("P9-6: Shift+Tab from the dock reaches the orb only where it can be seen (home scrolled down)", async ({
+  page,
+  api,
+}) => {
+  void api
+  await page.goto("/")
+  await expect(page.getByRole("region", { name: sc.yourFlow })).toBeVisible()
+  await page.locator("[data-flow-scroll]").evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  const orb = page.getByRole("button", { name: s.orbStart })
+  await page.getByRole("button", { name: v.send, exact: true }).focus()
+  let reached = false
+  for (let i = 0; i < 30 && !reached; i++) {
+    await page.keyboard.press("Shift+Tab")
+    reached = await orb.evaluate((el) => el === document.activeElement).catch(() => false)
+  }
+  expect(reached, "orb unreachable by Shift+Tab").toBe(true)
+  // Drawn where it is: inside the viewport and not hidden under anything (WCAG 2.4.11).
+  const onScreen = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement
+    const r = el.getBoundingClientRect()
+    if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return false
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    return !!hit && (hit === el || el.contains(hit))
+  })
+  expect(onScreen, "the focused orb is off screen").toBe(true)
+})
