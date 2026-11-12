@@ -32,3 +32,19 @@ test("the conversation's End shows the word End and ends the call", async ({ pag
   await end.click()
   await expect(page.getByText("Call ended.").first()).toBeVisible()
 })
+
+test("on a scene, End beside the conversation also says End (rail, sheet or bar)", async ({ page }) => {
+  await fakeAgent(page, (_, a) => setTimeout(() => a.say("Hello."), 50))
+  await page.goto("/scenes/sales")
+  await page.getByRole("button", { name: v.textInstead, exact: true }).click().catch(() => {})
+  await page.getByLabel(v.message).fill("Hello")
+  await page.getByRole("button", { name: v.send, exact: true }).click()
+  const ends = page.getByRole("button", { name: v.end })
+  await expect(ends.first()).toBeVisible()
+  // One End in sight, and it says its name.
+  const shown = await ends.evaluateAll((els) => els.filter((e) => (e as HTMLElement).offsetParent !== null).length)
+  expect(shown).toBe(1)
+  const end = ends.filter({ visible: true }).first()
+  await expect.poll(() => seenWords(end)).toMatch(/^End/)
+  expect((await end.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+})

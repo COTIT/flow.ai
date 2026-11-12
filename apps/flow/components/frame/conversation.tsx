@@ -490,28 +490,21 @@ export function ConversationToggle({
   )
 }
 
-/** Hang up from where the conversation lives (rail, sheet, scene bar); only while connected. */
-export function EndCall({
-  className = "",
-  word = false,
-}: {
-  className?: string
-  /** Shows "End" beside the icon (home, where an icon alone is ambiguous). */
-  word?: boolean
-}) {
+/** Hang up from where the conversation lives (home, rail, sheet, scene bar); only while
+ *  connected. Always one labelled button: an icon alone is ambiguous (P6, keep Flow simple). */
+export function EndCall({ className = "" }: { className?: string }) {
   const t = useTranslations()
   const voice = useVoice()
   if (!voice.connected) return null
   return (
     <Button
       variant="outline"
-      size={word ? "default" : "icon"}
-      className={`${word ? "min-h-11 px-3" : "size-11"} shrink-0 ${className}`}
+      className={`min-h-11 shrink-0 px-3 ${className}`}
       aria-label={t("voice.end")}
       onClick={() => void voice.end().catch(() => undefined)}
     >
       <PhoneOff aria-hidden />
-      {word ? t("shell.endCall") : null}
+      <span>{t("shell.endCall")}</span>
     </Button>
   )
 }
