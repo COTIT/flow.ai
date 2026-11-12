@@ -18,6 +18,7 @@ import { isBlankMessage } from "@genesy/voice/lib/blank"
 import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
 import { Pills } from "@/components/discovery/pills" // F3
+import { EndCall } from "@/components/frame/conversation"
 import { TaskCapsule } from "@/components/task/capsule" // F4
 import { ResumePrompt } from "@/components/task/resume-prompt" // F4
 import { flowStore, useFlow } from "@/lib/flow-store"
@@ -49,6 +50,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const pathname = usePathname()
   const draft = useFlow((s) => s.draft)
   const resultOpen = useFlow((s) => s.resultOpen)
+  const sheetShown = useFlow((s) => s.sheetShown)
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
   const composer = useRef<HTMLInputElement>(null)
@@ -69,6 +71,21 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       : null
     ;(review ?? composer.current)?.focus()
   }, [voice.upgrading, held])
+  // End left the screen with the call: a keyboard user goes on at the mic (no phone keyboard
+  // pops up), or the message box, never at the page.
+  const startVoice = useRef<HTMLButtonElement>(null)
+  const wasConnected = useRef(voice.connected)
+  useEffect(() => {
+    const dropped = document.activeElement === document.body
+    if (wasConnected.current && !voice.connected && dropped)
+      requestAnimationFrame(() =>
+        (startVoice.current && !startVoice.current.disabled
+          ? startVoice.current
+          : composer.current
+        )?.focus()
+      )
+    wasConnected.current = voice.connected
+  }, [voice.connected])
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
   const { query: readiness, state } = useReadiness()
@@ -282,8 +299,13 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           }}
           className="min-h-11 min-w-0 flex-1"
         />
+        {/* Short screens: the sheet's line is too slim for End, so it sits here (one on screen). */}
+        {sheetShown ? (
+          <EndCall className="hidden [@media(max-height:500px)]:inline-flex" />
+        ) : null}
         {!live ? (
           <Button
+            ref={startVoice}
             type="button"
             variant="outline"
             size="icon"
