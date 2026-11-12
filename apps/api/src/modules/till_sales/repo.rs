@@ -26,6 +26,10 @@ pub struct SaleRow {
     pub change: Option<i64>,
     pub card_reference: Option<String>,
     pub sold_at: DateTime<Utc>,
+    /// The order's currency: upper-case ISO 4217 code.
+    pub currency: String,
+    /// The currency's minor-unit exponent.
+    pub decimals: i16,
 }
 
 /// Fields of a new `till_sales` row.
@@ -75,9 +79,11 @@ pub async fn find(
         "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,
                 s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,
                 s.mismatched_lines, s.unsellable_lines, s.due,
-                s.rounding, s.tendered, s.change, s.card_reference, s.sold_at
+                s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,
+                upper(c.asset_type) AS \"currency!\", c.decimals
          FROM till_sales s
          JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id
+         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
          WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.client_ref = $3",
         workspace_id,
         register_id,
@@ -193,9 +199,11 @@ pub async fn list(
                   s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,
                 s.mismatched_lines, s.unsellable_lines, s.due,
                   s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,
+                  upper(c.asset_type) AS "currency!", c.decimals,
                   count(*) OVER () AS "total_rows!"
            FROM till_sales s
            JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id
+           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE s.workspace_id = $1 AND (NOT $2 OR s.mismatched_lines > 0)
              AND ($5::uuid IS NULL OR s.register_id = $5)
              AND ($6::timestamptz IS NULL OR s.sold_at >= $6)
@@ -234,6 +242,8 @@ pub async fn list(
             change: s.change,
             card_reference: s.card_reference,
             sold_at: s.sold_at,
+            currency: s.currency,
+            decimals: s.decimals,
         })
         .collect();
     Ok((rows, total))

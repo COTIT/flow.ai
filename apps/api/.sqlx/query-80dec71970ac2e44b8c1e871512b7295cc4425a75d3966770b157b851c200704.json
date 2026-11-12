@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                   WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                     AND l.kind <> 'close_count') AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference\n           FROM drawer_shifts s\n           WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.closed_at IS NULL",
+  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                   WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                     AND l.kind <> 'close_count') AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference,\n                  upper(c.asset_type) AS \"currency!\", c.decimals\n           FROM drawer_shifts s\n           JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id\n           JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id\n           WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.closed_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -107,6 +107,23 @@
             "name": "difference"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
       }
     ],
     "parameters": {
@@ -125,8 +142,10 @@
       true,
       true,
       true,
-      true
+      true,
+      null,
+      false
     ]
   },
-  "hash": "bc0eca87ff7cd308023e735d14c0ff867dbf77bf1c5fe68405fe6ad02108b9ab"
+  "hash": "80dec71970ac2e44b8c1e871512b7295cc4425a75d3966770b157b851c200704"
 }

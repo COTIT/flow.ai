@@ -1012,3 +1012,42 @@ async fn list_filters_by_product_availability(pool: PgPool) {
     let bob = api.as_new_owner("bob@example.com", "bobs").await;
     assert_eq!(bob.list("?available_lte=0").await["meta"]["total"], 0);
 }
+
+/// Prices name the product's currency at top level: ISO code and minor-unit exponent.
+#[sqlx::test]
+async fn prices_name_their_currency(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let eur = api
+        .create(json!({ "name": "Honey", "price": "12.50" }), "product_id")
+        .await;
+    let (status, tzs) = common::send(
+        &api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/currencies", api.ws),
+        Some(json!({ "name": "Shilling", "asset_type": "tzs", "decimals": 0, "default_currency": false, "active": true })),
+        Some(&api.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{tzs}");
+    let tzs = api
+        .create(
+            json!({ "name": "Maize", "price": "1500", "currency_id": tzs["data"]["currency_id"] }),
+            "product_id",
+        )
+        .await;
+    let money = |d: &Value| (d["currency"].clone(), d["decimals"].clone());
+    assert_eq!(money(&api.get(&eur).await), (json!("EUR"), json!(2)));
+    assert_eq!(money(&api.get(&tzs).await), (json!("TZS"), json!(0)));
+    let list = api.list("").await;
+    let row = |id: &str| {
+        list["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["id"] == id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(money(&row(&eur)), (json!("EUR"), json!(2)), "list");
+    assert_eq!(money(&row(&tzs)), (json!("TZS"), json!(0)), "list");
+}

@@ -53,6 +53,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
 - **`category_id`** (Genesy addition, migration `product_category_link`; set on create/update, returned on show and list): the product's main category, a live `/erp/product-categories` id of the same workspace (422 `The category id is an invalid id for the product_category domain.` otherwise, including another workspace's id). Null or absent on create = none; null on update clears it. Deleting the category clears it on every product (the soft delete and the foreign key's `ON DELETE SET NULL (category_id)` both do). Duplicating a product copies it. The storefront shows it as `category` and filters by it (`storefront.md`).
 - **`store_only`** (Genesy addition, boolean, default false; set on create/update): sold at the till only. `/storefront` never lists it; the till catalog does (`till.md`).
 - **`default_warehouse`:** the full warehouse resource on GET one and search, the compact form in lists.
+- **`currency` / `decimals`:** the product's currency at top level (upper-case ISO 4217 code, minor-unit exponent), the same one as `relationships.currency`. Both null only when that currency was deleted. Price strings below stay major units; `decimals` says how many places to show.
 - **Prices are strings, printed by `money::format_decimals` the way Laravel's `MoneyHelper` did:**
 
   | Fields | Print |

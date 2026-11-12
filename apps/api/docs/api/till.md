@@ -165,6 +165,7 @@ Every movement is a row in `cash_ledger`, which refuses updates, deletes and tru
 - `GET /till/shift` → `{data: shift}` or `{data: null}` when the register has no open shift.
 - `POST /till/shift/open` `{count}` → 201. The counted float becomes `opening` and `expected`. 409 `A shift is already open on this register.`
 - `POST /till/shift/close` `{count}` → 200 with `expected`, `counted`, `difference` (counted − expected; negative = short), `closed_by`, `closed_at`. 409 `No shift is open on this register.`
+- Every shift (these routes and the office `GET /till/shifts`) carries `currency` (the register's, upper-case ISO 4217) and `decimals` (minor-unit exponent) for its amounts.
 - `POST /till/transfers` `{vault_id, direction, count}` → 201 `{data: {transfer_id, vault_id, direction, amount}}`.
   - `direction`: `to_vault` (a drop) or `from_vault` (more float). Needs an open shift (409).
   - The vault must be of this workspace and in the register's currency (422 on `vault_id`).
@@ -177,7 +178,8 @@ Shift:
 
 ```json
 { "id": "…", "register_id": "…", "opened_by": "…", "opened_at": "…", "opening": 4515,
-  "expected": 2515, "closed_by": null, "closed_at": null, "counted": null, "difference": null }
+  "expected": 2515, "closed_by": null, "closed_at": null, "counted": null, "difference": null,
+  "currency": "EUR", "decimals": 2 }
 ```
 
 ### Office (member bearer)
@@ -232,8 +234,11 @@ What happens, in one transaction:
             "register_id": "…", "till_user_id": "…", "method": "cash",
             "total": 3088, "server_total": 3088, "price_mismatch": 0, "mismatched_lines": 0,
             "due": 3090, "rounding": 2, "tendered": 5000, "change": 1910,
-            "card_reference": null, "sold_at": "…" } }
+            "card_reference": null, "sold_at": "…", "currency": "EUR", "decimals": 2,
+            "lines": [ … ] } }
 ```
+
+`currency` (upper-case ISO 4217 code) and `decimals` (minor-unit exponent) name the order's currency, so every amount in the sale and its lines can be printed without another call: 3088 with `decimals` 2 is 30.88. GET by ref and the office list carry them too.
 
 The drawer's expected cash uses `due`, the amount actually taken, so it balances even when `price_mismatch` is not 0.
 
