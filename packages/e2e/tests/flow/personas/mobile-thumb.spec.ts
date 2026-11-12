@@ -421,7 +421,7 @@ test("P10-4: home on a small phone in landscape shows its content", async ({ per
   void persona
   await page.setViewportSize({ width: 568, height: 320 })
   await page.goto("/")
-  // Was 0 px: "Use text instead" sat at y≈518 under the dock and could not be reached.
+  // Was 0 px: "Type instead" sat at y≈518 under the dock and could not be reached.
   const useText = page.getByRole("button", { name: labels.textInstead })
   await useText.scrollIntoViewIfNeeded()
   await expect(useText).toBeInViewport({ timeout: 3_000 })
@@ -699,7 +699,7 @@ for (const [name, size] of Object.entries(GESTURE_SIZES)) {
 }
 
 // P10-8: at 667×375 in a conversation the bar above the transcript is too narrow: the phase
-// ("Thinking…", 72 px) gets 58 px and runs into "Enable voice"; the header hint pill sits on the
+// ("Thinking…", 72 px) gets 58 px and runs into "Talk instead"; the header hint pill sits on the
 // bar's buttons.
 test("P10-8: the conversation status fits its place at 667×375", async ({ persona, page }) => {
   void persona

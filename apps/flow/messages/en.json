@@ -96,8 +96,8 @@
       "viewResult": "View result",
       "closeResults": "Close results",
       "reviewPending": "An action is waiting for your approval",
-      "openReview": "Review action",
-      "secureTitle": "This needs Office's secure form",
+      "openReview": "Check this change",
+      "secureTitle": "Finish this in Office",
       "openInOffice": "Open in Office",
       "officeSignIn": "Office opens in a new tab. You may need to sign in to Office separately, and check that Office shows the same workspace.",
       "officeNotLinked": "Office is not linked from Flow here. Open Office yourself to finish this."

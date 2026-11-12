@@ -1,12 +1,12 @@
 {
   "task": {
     "label": "Actieve taak",
-    "working": "Genesy is bezig",
+    "working": "Bezig",
     "states": {
       "preparing": "Voorbereiden",
       "running": "Bezig",
       "waiting_input": "Wacht op jou",
-      "needs_approval": "Goedkeuring nodig",
+      "needs_approval": "Wacht op jouw OK",
       "paused": "Gepauzeerd",
       "failed": "Mislukt",
       "partial": "Deels voltooid",
@@ -16,10 +16,10 @@
     },
     "milestones": {
       "preparing": "Wijzigingen voorbereiden.",
-      "preparingReview": "De controle voorbereiden.",
+      "preparingReview": "De wijziging klaarzetten om te controleren.",
       "waitingInput": "Wacht op je keuze.",
-      "waitingConfirmation": "Wacht op bevestiging.",
-      "executing": "Goedgekeurde wijzigingen uitvoeren.",
+      "waitingConfirmation": "Wacht op jouw OK.",
+      "executing": "De wijziging wordt gemaakt.",
       "paused": "Gepauzeerd. Er draait niets meer tot je beslist.",
       "completed": "Bevestigd door Genesy.",
       "partial": "Slechts een deel is gedaan.",
@@ -28,9 +28,9 @@
       "checking": "Controleren of de wijziging is voltooid."
     },
     "counts": "{done} van {total} gedaan · {failed} mislukt · {notRun} niet uitgevoerd · {unknown} te controleren",
-    "review": "Bekijken",
+    "review": "Controleren",
     "pause": "Pauzeren",
-    "openReceipt": "Resultaat bekijken",
+    "openReceipt": "Bekijk wat er veranderd is",
     "dismiss": "Sluiten",
     "withdrawn": "Ingetrokken · nooit verzonden",
     "receipt": {
@@ -96,7 +96,7 @@
     "resume": {
       "title": "Ga verder waar je was",
       "awaiting": "{summary} · wacht op je goedkeuring.",
-      "continue": "Controle hervatten",
+      "continue": "Nu controleren",
       "dismiss": "Sluiten",
       "ran": "{summary} · uitgevoerd.",
       "failed": "{summary} · niet uitgevoerd.",
@@ -104,7 +104,7 @@
       "outcomes": "Sinds je hier was"
     },
     "expired": {
-      "title": "Controle verlopen",
+      "title": "Deze wijziging is verlopen",
       "askAgain": "Vraag opnieuw",
       "askAgainMessage": "Die controle is verlopen voordat ik hem goedkeurde. Bereid hem opnieuw voor."
     }

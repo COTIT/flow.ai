@@ -344,7 +344,7 @@ test("reload shows no task log, transcript, files, or provider reconnect", async
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   await page.getByLabel("Choose reference files").setInputFiles({
     name: "private-reference.pdf",
@@ -360,7 +360,7 @@ test("reload shows no task log, transcript, files, or provider reconnect", async
     .fill("Private conversation text")
   await page.getByRole("button", { name: "Send", exact: true }).click()
   await expect(
-    page.getByRole("dialog", { name: "Review action" })
+    page.getByRole("dialog", { name: "Check this change" })
   ).toBeVisible()
   expect(commits).toBe(0)
   expect(
@@ -453,14 +453,14 @@ test("microphone denial keeps the text connection and keyboard controls usable",
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .focus()
   await page.keyboard.press("Enter")
   await expect(page.getByLabel("Message the assistant")).toBeVisible()
   expect(
     await page.evaluate(() => Reflect.get(window, "voiceMicrophoneRequests"))
   ).toBe(0)
-  await page.getByRole("button", { name: "Enable voice", exact: true }).focus()
+  await page.getByRole("button", { name: "Talk instead", exact: true }).focus()
   await page.keyboard.press("Enter")
   await expect(
     page.getByRole("alert").filter({ hasText: en.voice.microphoneDenied })
@@ -536,7 +536,7 @@ test("duplicate reference names retain ordinals and local previews restore keybo
   )
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   const reference = {
     name: "duplicate.pdf",
@@ -645,7 +645,7 @@ test.describe("reference upload retry", () => {
     )
     await page.goto("/voice")
     await page
-      .getByRole("button", { name: "Use text instead", exact: true })
+      .getByRole("button", { name: "Type instead", exact: true })
       .click()
     await page.getByLabel("Choose reference files").setInputFiles(
       ["first.pdf", "second.pdf"].map((name) => ({
@@ -668,7 +668,7 @@ test.describe("reference upload retry", () => {
     const tray = page.getByRole("list", { name: "Session references" })
     await expect(
       tray.getByRole("listitem").filter({ hasText: "second.pdf" })
-    ).toContainText("Selected · not sent")
+    ).toContainText("Ready to send")
     await page.getByRole("button", { name: "Send", exact: true }).click()
     await expect.poll(() => shared).toEqual([["provider-2"], ["provider-3"]])
     expect(uploads).toEqual(["first.pdf", "first.pdf", "second.pdf"])
@@ -824,7 +824,7 @@ test("parallel native preparations keep one exact review; the second waits and i
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   await page.getByLabel("Message the assistant").fill("Prepare both requests")
   await page.getByRole("button", { name: "Send", exact: true }).click()
@@ -846,14 +846,14 @@ test("parallel native preparations keep one exact review; the second waits and i
   })
   expect(preparations).toBe(1)
   await expect(
-    page.getByRole("dialog", { name: "Review action" })
+    page.getByRole("dialog", { name: "Check this change" })
   ).toContainText("First concurrent proposal")
   await expect(
     page.getByRole("dialog", { name: en.voice.review, exact: true })
   ).not.toContainText("Second concurrent proposal")
   await expectFits(page)
   await page
-    .getByRole("button", { name: "Approve action", exact: true })
+    .getByRole("button", { name: "Yes, do it", exact: true })
     .click()
   await expect.poll(() => commits).toBe(1)
   await expect(page.getByRole("log")).toContainText(
@@ -972,7 +972,7 @@ test("a write queued behind a failed preparation runs alone and still needs its 
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   await page.getByLabel("Message the assistant").fill("Prepare both requests")
   await page.getByRole("button", { name: "Send", exact: true }).click()
@@ -982,13 +982,13 @@ test("a write queued behind a failed preparation runs alone and still needs its 
   release()
   // The first failed without a review: the queued second runs alone and opens its own review.
   await expect(
-    page.getByRole("dialog", { name: "Review action" })
+    page.getByRole("dialog", { name: "Check this change" })
   ).toContainText("Second concurrent proposal")
   expect(preparations).toBe(2)
   await page.waitForTimeout(500)
   expect(commits, "nothing is created without an explicit approval").toBe(0)
   await page
-    .getByRole("button", { name: "Approve action", exact: true })
+    .getByRole("button", { name: "Yes, do it", exact: true })
     .click()
   await expect.poll(() => commits).toBe(1)
   expect(preparations).toBe(2)
@@ -1210,24 +1210,24 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
       page.getByRole("button", { name: "Start voice conversation" })
     ).toBeVisible()
     await expectFits(page)
-    await page.getByRole("button", { name: "Use text instead" }).click()
+    await page.getByRole("button", { name: "Type instead" }).click()
     await expect(page.getByRole("log")).toContainText(
       "What can I help you with?"
     )
     await page.getByLabel("Message the assistant").fill("Create a draft order")
     await page.getByRole("button", { name: "Send", exact: true }).click()
     await expect(
-      page.getByRole("dialog", { name: "Review action" })
+      page.getByRole("dialog", { name: "Check this change" })
     ).toBeVisible()
     expect(commits).toBe(0)
     await expect(
-      page.getByRole("dialog", { name: "Review action" })
+      page.getByRole("dialog", { name: "Check this change" })
     ).toContainText("Voice order")
     await expect(
-      page.getByRole("dialog", { name: "Review action" })
+      page.getByRole("dialog", { name: "Check this change" })
     ).toContainText("Reviewed line 31")
     await expect(
-      page.getByRole("dialog", { name: "Review action" })
+      page.getByRole("dialog", { name: "Check this change" })
     ).toContainText("Nested reviewed lot")
     const approval = page.getByRole("dialog", {
       name: en.voice.review,
@@ -1254,7 +1254,7 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
     if (approved) await page.clock.fastForward(59000)
     await page
       .getByRole("button", {
-        name: approved ? "Approve action" : "Cancel",
+        name: approved ? "Yes, do it" : "No, cancel",
         exact: true,
       })
       .click()
@@ -1262,7 +1262,7 @@ for (const finalStatus of ["completed", "cancelled", "unknown"] as const) {
       await expect.poll(() => commits).toBe(1)
       await page.clock.fastForward(2000)
       await expect(
-        page.getByRole("dialog", { name: "Review action" })
+        page.getByRole("dialog", { name: "Check this change" })
       ).toBeVisible()
       releaseCommit()
     }
@@ -1527,11 +1527,11 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
     )
     await page.goto("/voice")
     await page
-      .getByRole("button", { name: "Use text instead", exact: true })
+      .getByRole("button", { name: "Type instead", exact: true })
       .click()
     await page.getByLabel("Message the assistant").fill("Prepare a fixed batch")
     await page.getByRole("button", { name: "Send", exact: true }).click()
-    const review = page.getByRole("dialog", { name: "Review action" })
+    const review = page.getByRole("dialog", { name: "Check this change" })
     await expect(review).toBeVisible()
     // One row per step, numbered in the reviewed order, none hidden.
     const rows = review.locator('.voice-review-list [role="option"]')
@@ -1555,7 +1555,7 @@ for (const finalStatus of ["completed", "partial", "unknown"] as const) {
     expect(approvals).toBe(0)
     await expectFits(page)
     await page
-      .getByRole("button", { name: "Approve action", exact: true })
+      .getByRole("button", { name: "Yes, do it", exact: true })
       .click()
     await expect.poll(() => nativeResult).toMatchObject({ status: finalStatus })
     await expect(page.getByRole("log")).toContainText(
@@ -1747,7 +1747,7 @@ for (const interruption of [
     })
     await page.goto("/voice")
     await page
-      .getByRole("button", { name: "Use text instead", exact: true })
+      .getByRole("button", { name: "Type instead", exact: true })
       .click()
     const ask = async () => {
       await page
@@ -1755,7 +1755,7 @@ for (const interruption of [
         .fill("Prepare both exact steps")
       await page.getByRole("button", { name: "Send", exact: true }).click()
       await expect(
-        page.getByRole("dialog", { name: "Review action" })
+        page.getByRole("dialog", { name: "Check this change" })
       ).toBeVisible()
     }
     await ask()
@@ -1915,7 +1915,7 @@ test("a review arriving after the tab hides is cancelled without exposing or dis
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   await page.getByLabel("Message the assistant").fill("Prepare a late draft")
   await page.getByRole("button", { name: "Send", exact: true }).click()
@@ -2102,7 +2102,7 @@ test("voice opens the microphone and audio worklets under the page security poli
   ).toContainText("camera.png")
   await expect(
     page.getByRole("list", { name: "Session references" })
-  ).toContainText("Selected · not sent")
+  ).toContainText("Ready to send")
   await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", {
       value: "hidden",
@@ -2285,7 +2285,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   await expect(
     page.getByRole("textbox", { name: "Message the assistant" })
@@ -2297,7 +2297,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   })
   await expect(
     page.getByRole("list", { name: "Session references" })
-  ).toContainText("Selected · not sent")
+  ).toContainText("Ready to send")
   await page
     .getByRole("textbox", { name: "Message the assistant" })
     .fill("Look at this reference")
@@ -2305,7 +2305,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   await expect.poll(() => multimodal).toBeTruthy()
   await expect(
     page.getByRole("list", { name: "Session references" })
-  ).toContainText("Shared · inspection not verified")
+  ).toContainText("Sent to Genesy")
   expect(contextual.join("\n")).toContain("local-1")
   expect(contextual.join("\n")).toContain("provider-1")
   expect(contextual.join("\n")).not.toContain("reference.pdf")
@@ -2314,11 +2314,11 @@ test("text conversation survives navigation and shares a file without reconnecti
     .fill("Save this reference to Files")
   await page.getByRole("button", { name: "Send", exact: true }).click()
   await expect(
-    page.getByRole("dialog", { name: "Review action" })
+    page.getByRole("dialog", { name: "Check this change" })
   ).toContainText("Save reference to Files")
   expect(approvedUploads).toBe(0)
   await page
-    .getByRole("button", { name: "Approve action", exact: true })
+    .getByRole("button", { name: "Yes, do it", exact: true })
     .click()
   await expect.poll(() => approvedUploads).toBe(1)
   await expect(page.getByRole("log")).toContainText(
@@ -2343,7 +2343,7 @@ test("text conversation survives navigation and shares a file without reconnecti
     page.getByRole("list", { name: "Session references" })
   ).toContainText("reference.pdf")
   expect(starts).toBe(1)
-  await page.getByRole("button", { name: "Enable voice", exact: true }).click()
+  await page.getByRole("button", { name: "Talk instead", exact: true }).click()
   await expect(
     page.getByRole("button", { name: en.voice.holdToTalk, exact: true }).first()
   ).toBeVisible()
@@ -2357,7 +2357,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   )
   await expect(
     page.getByRole("list", { name: "Session references" })
-  ).toContainText("Selected · not sent")
+  ).toContainText("Ready to send")
   await expect
     .poll(() =>
       contextual.some((text) => text.includes("historical_task_references"))
@@ -2521,7 +2521,7 @@ for (const shutdown of [
       })
     }
     await page
-      .getByRole("button", { name: "Use text instead", exact: true })
+      .getByRole("button", { name: "Type instead", exact: true })
       .click()
     await expect(
       page.getByRole("textbox", { name: "Message the assistant" })
@@ -2545,7 +2545,7 @@ for (const shutdown of [
       }
       if (shutdown === "upgrade") {
         await page
-          .getByRole("button", { name: "Enable voice", exact: true })
+          .getByRole("button", { name: "Talk instead", exact: true })
           .last()
           .click()
         await expect.poll(() => closing).toBe(true)
@@ -2553,10 +2553,10 @@ for (const shutdown of [
       if (shutdown.startsWith("restart")) {
         // Disconnect remounts these controls; dispatch avoids racing keyboard focus.
         await page
-          .getByRole("button", { name: "Use text instead", exact: true })
+          .getByRole("button", { name: "Type instead", exact: true })
           .dispatchEvent("click")
         await expect(
-          page.getByRole("button", { name: "Use text instead", exact: true })
+          page.getByRole("button", { name: "Type instead", exact: true })
         ).toHaveCount(0)
         expect(starts).toBe(1)
         if (shutdown === "restart-cancel") {
@@ -2565,13 +2565,13 @@ for (const shutdown of [
             .last()
             .click()
           await expect(
-            page.getByRole("button", { name: "Use text instead", exact: true })
+            page.getByRole("button", { name: "Type instead", exact: true })
           ).toBeVisible()
         }
         releaseShutdown()
         if (shutdown === "restart-cancel") {
           await page
-            .getByRole("button", { name: "Use text instead", exact: true })
+            .getByRole("button", { name: "Type instead", exact: true })
             .dispatchEvent("click")
         }
         await expect.poll(() => starts).toBe(2)
@@ -2686,7 +2686,7 @@ test("mismatched provider conversation cannot open business capabilities", async
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   await expect(
     page
@@ -2753,7 +2753,7 @@ test.describe("heartbeat authorization", () => {
     })
     await page.goto("/voice")
     await page
-      .getByRole("button", { name: "Use text instead", exact: true })
+      .getByRole("button", { name: "Type instead", exact: true })
       .click()
     await expect(
       page.getByRole("textbox", { name: "Message the assistant" })
@@ -2960,7 +2960,7 @@ test("only the final user transcript naming the current action code can approve"
   })
   await page.goto("/voice")
   await page
-    .getByRole("button", { name: "Use text instead", exact: true })
+    .getByRole("button", { name: "Type instead", exact: true })
     .click()
   const ask = async () => {
     await page
@@ -2968,7 +2968,7 @@ test("only the final user transcript naming the current action code can approve"
       .fill("Create a draft order")
     await page.getByRole("button", { name: "Send", exact: true }).click()
     await expect(
-      page.getByRole("dialog", { name: "Review action" })
+      page.getByRole("dialog", { name: "Check this change" })
     ).toBeVisible()
   }
   await ask()
@@ -3028,7 +3028,7 @@ test("only the final user transcript naming the current action code can approve"
     },
   })
   await expect(
-    page.getByRole("dialog", { name: "Review action" })
+    page.getByRole("dialog", { name: "Check this change" })
   ).toBeVisible()
   expect(commits).toBe(1)
   releaseApproval()

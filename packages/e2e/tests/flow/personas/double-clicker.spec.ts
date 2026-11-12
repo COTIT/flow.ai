@@ -357,7 +357,7 @@ test("P2: Approve then Cancel in the same breath sends one decision", async ({ p
   // Two clicks dispatched in one task: no render between them.
   await s.evaluate((el) => {
     const buttons = [...el.querySelectorAll("button")]
-    const approve = buttons.find((b) => b.textContent?.trim() === "Approve action")
+    const approve = buttons.find((b) => b.textContent?.trim() === "Yes, do it")
     const cancel = buttons.find((b) => b.textContent?.trim() === "Cancel")
     approve?.click()
     cancel?.click()
@@ -663,8 +663,8 @@ async function hammerPulse(persona: Persona, page: Page, click: (button: Locator
   const main = page.locator("main")
   // Lists board: in the bento the attention list may show its row menu (⋯), or (P3) Later ▾ beside
   // the row's next step, instead.
-  await expect(main.getByRole("button", { name: /^(Acknowledge|Actions for .*|Later .*)$/ }).first()).toBeVisible()
-  for (const name of [/^Acknowledge$/, /^Snooze until tomorrow$/, /^Snooze 7 days$/, /first$/, /Remove from Your Flow/]) {
+  await expect(main.getByRole("button", { name: /^(Mark as seen|Actions for .*|Later .*)$/ }).first()).toBeVisible()
+  for (const name of [/^Mark as seen$/, /^Remind me tomorrow$/, /^Remind me in a week$/, /first$/, /Remove from Your Flow/]) {
     const button = main.getByRole("button", { name }).first()
     if (!(await button.isVisible().catch(() => false))) continue
     persona.log(`hammer ${name}`)

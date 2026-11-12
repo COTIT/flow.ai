@@ -40,7 +40,7 @@ test("issue a link, open it in a new tab, revoke it; the token stays out of stor
   await page.goto("/storefront")
   const region = card(page)
   await expect(region.getByText(st.readyTitle)).toBeVisible()
-  await expect(region.getByText("v2 · live stays v1")).toBeVisible()
+  await expect(region.getByText("v2 · your shop still shows v1")).toBeVisible()
   await expect(region.getByText(st.unpublished)).toBeVisible()
   await expect(region.getByText(st.accessNone)).toBeVisible()
   await expect(region.getByRole("link", { name: st.openLabel })).toHaveCount(0)

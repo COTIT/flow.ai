@@ -19,7 +19,7 @@ test("home shows Flow noticed and Your Flow without starting any conversation", 
   let sockets = 0
   page.on("websocket", () => sockets++)
   await page.goto("/")
-  await expect(noticed(page)).toContainText("2 priorities need your attention.")
+  await expect(noticed(page)).toContainText("2 things need your attention.")
   await expect(noticed(page)).toContainText("affects 8 open orders")
   await expect(noticed(page)).toContainText(
     "3 products below their minimum stock levels"
@@ -29,7 +29,7 @@ test("home shows Flow noticed and Your Flow without starting any conversation", 
     "Stock Watch",
     "Order Focus",
     "Sales Perspective",
-    "My Routines",
+    "Scheduled reports",
     "Storefront Studio",
   ])
     await expect(
@@ -43,7 +43,7 @@ test("home shows Flow noticed and Your Flow without starting any conversation", 
   ).toContainText("€12,840.00")
   // Flow noticed has its own card: never a Your Flow preview too.
   await expect(
-    yourFlow(page).getByRole("link", { name: /Flow noticed/ })
+    yourFlow(page).getByRole("link", { name: /Needs your attention/ })
   ).toHaveCount(0)
   await orbAt(page, "ambient")
   await expectOrbClear(page, [noticed(page), yourFlow(page)])
@@ -58,7 +58,7 @@ test("Review priorities opens the Flow noticed scene; a Your Flow card opens its
   await noticed(page).getByRole("link", { name: sc.noticed.review }).click()
   await expect(page).toHaveURL(/\/scenes\/noticed$/)
   await expect(
-    page.getByRole("heading", { level: 1, name: "Flow noticed" })
+    page.getByRole("heading", { level: 1, name: "Needs your attention" })
   ).toBeVisible()
   await orbAt(page, "compact")
   await page.goBack()

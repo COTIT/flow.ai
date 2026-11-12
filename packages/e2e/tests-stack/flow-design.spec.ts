@@ -246,7 +246,7 @@ test.describe("refusals", () => {
     await expect(page.locator("iframe")).toHaveCount(0)
     expect(statuses).toEqual([409])
     await expect(
-      page.getByRole("button", { name: "Approve action" }).first()
+      page.getByRole("button", { name: "Yes, do it" }).first()
     ).toBeDisabled()
   })
 
