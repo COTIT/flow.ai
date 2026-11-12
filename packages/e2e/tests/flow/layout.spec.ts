@@ -10,7 +10,7 @@ import {
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
 import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
-import { chat, fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
+import { fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -321,7 +321,7 @@ test("SW9: the composer is one stable field: focus and draft survive a review op
 
   // The agent proposes an action while the person is typing: the review opens beside it.
   agent.call("orders_create", { body: { reference: "Flow e2e order" } })
-  await expect(page.getByRole("region", { name: chat.results })).toContainText("Flow e2e order")
+  await expect(scene(page)).toContainText("Flow e2e order")
   await expect(field).toBeFocused()
   await expect(field).toHaveValue("half a thought")
   expect(await same()).toBe(true)
@@ -338,8 +338,13 @@ test("SW9: the composer is one stable field: focus and draft survive a review op
       await page.getByRole("button", { name: s.showConversation }).click()
     }
   } else {
-    await page.getByRole("button", { name: s.raiseConversation }).click()
-    await page.getByRole("button", { name: s.lowerConversation }).click()
+    // P5: on home the review shows in the full conversation (no sheet there); a sheet, where
+    // there is one, still raises and lowers around the same field.
+    const raise = page.getByRole("button", { name: s.raiseConversation })
+    if (await raise.isVisible()) {
+      await raise.click()
+      await page.getByRole("button", { name: s.lowerConversation }).click()
+    }
   }
   await expect(field).toHaveValue("half a thought")
   expect(await same()).toBe(true)

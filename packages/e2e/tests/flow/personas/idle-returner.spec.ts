@@ -5,7 +5,7 @@
 import type { Page } from "@playwright/test"
 
 import { sc } from "../scenes-api"
-import { ACTION, k, readBack, scene, stockReview, stockRoutes } from "../task"
+import { ACTION, k, readBack, scene, stockReview, stockRoutes, taskLine } from "../task"
 import { v, typeInstead } from "../voice"
 import { expect, test, type Persona } from "./harness"
 import { batchRoutes, hide, logInAgain, photo, Server, sleep, tray } from "./idle-returner.helpers"
@@ -344,7 +344,8 @@ test.describe("a running batch", () => {
     await hide(page, true)
     await hide(page, false)
     await expect(page.locator("[data-batch]")).toHaveAttribute("data-batch", "paused")
-    const line = page.getByRole("status", { name: k.label })
+    // P5: the run's card shows in place; with the conversation hidden the task line says its state.
+    const line = await taskLine(page)
     await expect(line).toHaveAttribute("data-task-state", "paused")
     await expect(line).not.toContainText(k.working)
   })

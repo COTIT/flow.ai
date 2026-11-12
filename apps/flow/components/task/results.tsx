@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl"
 
-import { EmptyState } from "@genesy/ui/components/empty-state"
 import type { TranscriptRow } from "@genesy/voice/lib/helpers"
 import { useVoice } from "@genesy/voice/components/provider"
 import { VoiceResult } from "@genesy/voice/components/results/index"
@@ -19,15 +18,8 @@ import { designKind, StorefrontProposal } from "./storefront-proposal"
 
 /** The results of this conversation, newest first; each can be focused from its transcript line. */
 export function ResultsList({ rows }: { rows: TranscriptRow[] }) {
-  const t = useTranslations("flow.chat")
-  if (!rows.length)
-    return (
-      <EmptyState
-        title={t("resultsEmpty")}
-        description={t("resultsEmptyText")}
-        className="py-10"
-      />
-    )
+  // P5: answers show inline; this screen is only "Show all", so it never shows an empty box.
+  if (!rows.length) return null
   return (
     <ol className="flex flex-col gap-3">
       {[...rows].reverse().map((row) => (
@@ -69,7 +61,7 @@ export function ReviewPanel({ withButtons }: { withButtons: boolean }) {
       <NotIncluded review={voice.review} />
       <ReviewHints />
       {withButtons ? (
-        <div className="flex flex-wrap justify-end gap-2">
+        <div data-review-buttons className="flex flex-wrap justify-end gap-2">
           <ReviewButtons />
         </div>
       ) : null}

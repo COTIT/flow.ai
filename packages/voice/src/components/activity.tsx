@@ -64,7 +64,8 @@ export function VoiceThinking() {
         label={t(`activity.${state}`)}
         working
         steps={voice.steps}
-        showTimer
+        // No running seconds: it read like a developer's timer (Keep Flow simple). On by default.
+        showTimer={false}
         collapseOnSettle
         glyph="sparkle"
         color="var(--foreground)"

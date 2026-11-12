@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { PanelRight } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
 import { VoiceThinking } from "@genesy/voice/components/activity"
 import { VoiceControls } from "@genesy/voice/components/controls"
+import { InlineResult, InlineTask } from "@/components/task/inline-task"
 import { useVoice } from "@genesy/voice/components/provider"
 import { TranscriptRows } from "@genesy/voice/components/transcript"
 import { flowStore } from "@/lib/flow-store"
@@ -96,22 +96,12 @@ export function Immersive() {
       >
         <TranscriptRows
           rows={voice.messages}
-          renderResult={(row) => (
-            <Button
-              variant="outline"
-              data-role="result"
-              className="min-h-11 self-start"
-              onClick={() =>
-                flowStore.setState({ resultOpen: true, resultFocus: row.id })
-              }
-            >
-              <PanelRight aria-hidden />
-              {t("flow.chat.showResult")}
-            </Button>
-          )}
+          renderResult={(row) => <InlineResult row={row} />}
         />
         <VoiceThinking />
       </div>
+      {/* The task under the transcript, not inside its live log (read out as one card). */}
+      <InlineTask />
       <div className={conversing ? "self-center md:hidden" : "self-center"}>
         {back}
       </div>

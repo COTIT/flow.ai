@@ -62,6 +62,14 @@ describe("assistant activity", () => {
   })
 })
 
+describe("an expired review", () => {
+  it("reads as expired, never as a failure (P8-2: the status line, like the orb, stays calm)", () => {
+    const expiry = "This review expired. Ask again for a fresh proposal."
+    expect(activityState({ connected: true, error: expiry, expired: true })).toBe("expired")
+    expect(activityState({ connected: true, error: "Network down" })).toBe("failed")
+  })
+})
+
 describe("readable approval presentation", () => {
   const id = "01950000-0000-7000-8000-000000000001"
   const other = "01950000-0000-7000-8000-000000000002"

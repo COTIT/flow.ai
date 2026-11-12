@@ -4,7 +4,6 @@ import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import {
-  chat,
   fakeAgent,
   FLOW_ORDER,
   OFFICE,
@@ -13,7 +12,7 @@ import {
   watch,
 } from "./voice"
 import { s } from "./shell"
-import { capsule, k, receipt } from "./task"
+import { backToCard, k, receipt, scene, taskLine } from "./task"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -29,12 +28,11 @@ async function propose(page: Page) {
   await page.goto("/")
   await startText(page)
   agent.call("orders_create", { body: { reference: "Flow e2e order" } })
-  // The task line (shown while the scene is closed) and the scene with the full review.
-  const pending = capsule(page)
-  const review = page.getByRole("region", { name: chat.results })
+  // The full review, in place in the conversation (P5).
+  const review = scene(page)
   await expect(review).toContainText("Flow e2e order")
   await expect(review).toContainText("Confirm action 135790")
-  return { agent, confirms, pending, review, actions: review }
+  return { agent, confirms, review, actions: review }
 }
 
 test("approving runs the action once, and only the backend's answer says it is done", async ({
@@ -74,14 +72,16 @@ test("approving runs the action once, and only the backend's answer says it is d
   await expect(
     page.locator('[role="status"][data-state="completed"]')
   ).toContainText(v.activity.completed)
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "completed")
+  await expect(await taskLine(page)).toHaveAttribute("data-task-state", "completed")
   expect(confirms).toHaveLength(1)
 })
 
 test("rejecting sends a cancel and changes nothing", async ({ page }) => {
   const { confirms, actions, review } = await propose(page)
   await actions.getByRole("button", { name: v.cancel, exact: true }).click()
-  await expect(review).toBeHidden()
+  // The review goes (P5: in place, a "never sent" note stays where it was).
+  await expect(page.locator("#flow-review-title")).toHaveCount(0)
+  void review
   await expect.poll(() => confirms.length).toBe(1)
   expect(confirms[0]!.body).toMatchObject({ decision: "cancel" })
   await expect(page.getByText("Order created.")).toHaveCount(0)
@@ -92,17 +92,14 @@ test("leaving the review keeps the action pending and reachable from the dock", 
   page,
 }) => {
   const { confirms, review } = await propose(page)
-  // In the open scene the task line sits in the scene bar, beside the compact orb.
-  const pending = capsule(page)
+  // P5: leaving the conversation (Back to home) leaves the task line on the dock as the way back.
+  const pending = await taskLine(page)
   await expect(pending).toHaveAttribute("data-task-state", "needs_approval")
-  await page.getByRole("button", { name: s.backHome }).click()
   await expect(review).toBeHidden()
-  await page.getByText(s.continueConversation, { exact: true }).click()
-  await expect(page.getByRole("log")).toBeVisible()
   await expect(pending).toContainText(k.milestones.waitingConfirmation)
   await expect(pending).toContainText("Create order for Neema Shop")
   expect(confirms).toHaveLength(0)
-  await pending.getByRole("button", { name: k.review }).click()
+  await backToCard(page)
   await expect(review).toContainText("Confirm action 135790")
   expect(confirms).toHaveLength(0)
 })

@@ -8,7 +8,7 @@ import { Button } from "@genesy/ui/components/button"
 import { useVoice } from "@genesy/voice/components/provider"
 import { ReviewTitle } from "@genesy/voice/components/review-details"
 import { clarifyOf, taskView, type TaskState } from "@genesy/voice/lib/task"
-import { flowStore } from "@/lib/flow-store"
+import { flowStore, useFlow } from "@/lib/flow-store"
 import { taskStore, useTask } from "@/lib/task-store"
 
 const ENDED: TaskState[] = ["completed", "partial", "failed", "cancelled", "unknown"]
@@ -29,10 +29,17 @@ export function useTaskView() {
 
 /** Opens the task scene (review, choice, receipt) on home, where the conversation lives. */
 export function useOpenTask() {
-  const router = useRouter()
   const pathname = usePathname()
+  const router = useRouter()
+  const voice = useVoice()
+  const live = voice.connected || voice.starting || voice.upgrading
+  // P5: the task opens where the conversation is (home: the full conversation; a scene: its rail
+  // or sheet). With no conversation (after a reload or a new login) it has only the task scene.
   return () => {
-    if (pathname === "/") flowStore.setState({ resultOpen: true })
+    const asked = { taskAsked: Date.now() }
+    if (pathname === "/")
+      flowStore.setState(live ? { ...asked, immersive: true, resultOpen: false } : { ...asked, resultOpen: true })
+    else if (live || voice.messages.length) flowStore.setState(asked)
     else router.push("/?view=task")
   }
 }
@@ -44,7 +51,9 @@ export function TaskCapsule() {
   const view = useTaskView()
   const decided = useTask((s) => s.decided)
   const open = useOpenTask()
-  if (!view) return null
+  const taskShown = useFlow((s) => s.taskShown)
+  // The card on screen says the same; the capsule is the way back only when it is hidden.
+  if (!view || taskShown) return null
   const ended = ENDED.includes(view.state)
   const subject = voice.review ?? decided
   const batchRunning =

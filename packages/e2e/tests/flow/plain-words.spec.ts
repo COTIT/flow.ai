@@ -3,7 +3,7 @@
 import type { Page } from "@playwright/test"
 
 import { expect, test } from "./storefront-api"
-import { stockRoutes } from "./task"
+import { stockRoutes, taskLine } from "./task"
 import { fakeAgent, v } from "./voice"
 import discoveryEn from "../../../../apps/flow/messages/en/discovery.json" with { type: "json" }
 import discoveryNl from "../../../../apps/flow/messages/nl/discovery.json" with { type: "json" }
@@ -34,7 +34,9 @@ test("a review asks plainly: Check this change, Yes do it, No cancel, Or say", a
   await expect(page.getByRole("button", { name: "Yes, do it", exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "No, cancel", exact: true })).toBeVisible()
   await expect(page.getByText("Or say:", { exact: false })).toBeVisible()
-  await expect(page.getByRole("status", { name: "Active task" })).toContainText("Working")
+  // P5: the task line shows once the conversation is hidden (the card says the rest in place).
+  await noJargon(page)
+  await expect(await taskLine(page)).toContainText("Working")
   await noJargon(page)
 })
 

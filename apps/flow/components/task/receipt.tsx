@@ -27,6 +27,7 @@ export function Receipt({
 }) {
   const t = useTranslations("task.receipt")
   const errors = useTranslations("voice.requestErrors")
+  const more = useTranslations("voice.results")
   const voice = useVoice()
   const check = useOnceIntent(review.ticket)
   // The approve button this replaces is gone: focus follows to the receipt (SW4).
@@ -88,6 +89,15 @@ export function Receipt({
             ) : null
           )
         : null}
+      {/* P5: the sentence says it; the record of what ran folds away (Keep Flow simple). */}
+      {/* …but stays open when it needs the person: a value it could not confirm, or not done. */}
+      <details
+        className="text-sm"
+        open={receipt.status !== "completed" || receipt.rows.some((row) => row.after == null)}
+      >
+        <summary className="min-h-11 cursor-pointer content-center text-muted-foreground">
+          {more("moreDetails")}
+        </summary>
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">{t("operation")}</dt>
         <dd className="break-words">
@@ -135,6 +145,7 @@ export function Receipt({
         <dt className="text-muted-foreground">{t("status")}</dt>
         <dd>{t(`statuses.${receipt.status}`)}</dd>
       </dl>
+      </details>
       {reason ? <p className="text-sm">{reason}</p> : null}
       {receipt.status === "unknown" ? (
         <div className="flex flex-wrap items-center gap-2">

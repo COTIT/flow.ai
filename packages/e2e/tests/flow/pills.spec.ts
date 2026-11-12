@@ -13,7 +13,7 @@ import {
   visitExplorer,
 } from "./discovery"
 import { dock, expectOrbClear } from "./shell"
-import { chat, fakeAgent, startText, v, watch } from "./voice"
+import { fakeAgent, startText, v, watch } from "./voice"
 
 // SAMPLE data and a SIMULATED agent: mock API, mock voice upstream, fake ElevenLabs socket.
 
@@ -47,8 +47,7 @@ test("home suggests by slot: contextual, Flow noticed, unfamiliar; no session on
     label("morning_briefing"),
     label("review_low_stock"),
     label("review_alerts"),
-    label("pending_orders"),
-  ])
+  ]) // at most three (Keep Flow simple)
   await expect(dock(page)).toContainText(d.suggested)
   expect(sessions).toHaveLength(0)
   expect(agent.connections).toBe(0)
@@ -76,6 +75,13 @@ test("an instruction pill starts a text conversation and sends it, never the mic
   await mockApi(page, api(OWNER))
   const sessions = watch(page, "session")
   const agent = await fakeAgent(page, (text, a) => a.say(`You said: ${text}`))
+  // A past use ranks the "Weekly sales" question among the three suggestions shown.
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "genesy.flow.activity:u1:w1",
+      JSON.stringify({ v: 1, uses: { weekly_sales: { n: 9, last: Date.now() } }, hintDismissed: false })
+    )
+  )
   await page.goto("/explore")
   await pills(page)
     .filter({ hasText: label("weekly_sales") })
@@ -98,8 +104,7 @@ test("a role never sees suggestions it cannot use, even with matching alerts", a
     label("morning_briefing"),
     label("review_alerts"),
     label("explore"),
-    label("find_product"),
-  ])
+  ]) // at most three; find_product is the fourth and waits
   for (const hidden of [
     "review_low_stock",
     "pending_orders",
@@ -123,8 +128,7 @@ test("suggestions learn from use: three explorer visits make it the first pill",
     label("explore"),
     label("morning_briefing"),
     label("review_alerts"),
-    label("pending_orders"),
-  ])
+  ]) // at most three
 })
 
 test("after a completed action: here's what you can do next", async ({
@@ -135,7 +139,7 @@ test("after a completed action: here's what you can do next", async ({
   await page.goto("/")
   await startText(page)
   agent.call("orders_create", { body: { reference: "Flow e2e order" } })
-  const review = page.getByRole("region", { name: chat.results })
+  const review = page.locator("[data-inline-task]:not(:empty)") // P5: the review where you are
   await expect(review).toContainText("Flow e2e order")
   await review.getByRole("button", { name: v.approve }).click()
   // F4: the decided review becomes its receipt in place.
@@ -167,13 +171,13 @@ test("the hint opens the explorer; the composer does not move and nothing scroll
   await page.goto("/")
   // Orb-first home's dock holds only the suggestions; its bottom edge must not jump.
   const box = dock(page)
-  await expect(pills(page)).toHaveCount(4)
+  await expect(pills(page)).toHaveCount(3)
   const before = await box.boundingBox()
   await page.getByRole("link", { name: d.hint.explore }).click()
   await expect(
     page.getByRole("heading", { name: d.explorer.title })
   ).toBeVisible()
-  await expect(pills(page)).toHaveCount(4)
+  await expect(pills(page)).toHaveCount(3)
   const after = await box.boundingBox()
   expect(Math.round(after!.y + after!.height)).toBe(Math.round(before!.y + before!.height))
   await expectNoHorizontalScroll(page)

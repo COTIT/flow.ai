@@ -6,7 +6,7 @@ import type { Page } from "@playwright/test"
 import { seedSession } from "../../src/session"
 import { expect, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { capsule, k, readBack, stockRoutes } from "./task"
+import { readBack, scene, stockRoutes } from "./task"
 import { fakeAgent, v } from "./voice"
 
 test.beforeEach(async ({ page }) => {
@@ -29,7 +29,8 @@ async function reviewWhileOn(page: Page, target: (page: Page) => import("@playwr
     path: { product: "p-500" },
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 120 }] },
   })
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  // P5: the review shows in place, in the conversation beside the scene.
+  await expect(scene(page).getByRole("button", { name: v.approve })).toBeVisible()
   await page.waitForTimeout(200)
   expect(new URL(page.url()).pathname).toBe("/scenes/stock")
 }
@@ -43,7 +44,7 @@ for (const [name, target] of [
   test(`K1 focus on ${name} when a review arrives in a scene: it moves to the review, never <body>`, async ({ page }) => {
     await reviewWhileOn(page, target)
     expect(await onBody(page), "focus lost to <body>").toBe(false)
-    await expect(capsule(page).getByRole("button", { name: k.review })).toBeFocused()
+    await expect(page.locator("#flow-review-title")).toBeFocused()
   })
 
 test("K1 typing in the message box when a review arrives: focus stays there", async ({ page }) => {

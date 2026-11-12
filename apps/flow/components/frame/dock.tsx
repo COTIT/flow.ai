@@ -67,7 +67,8 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     if (!active.disabled && !active.closest("[inert]") && !heldHere) return
     const review = held
       ? document.querySelector<HTMLElement>(
-          '[data-task-state="needs_approval"] button'
+          // P5: the card in the conversation; the capsule when the conversation is hidden.
+          '[data-inline-task] #flow-review-title, [data-task-state="needs_approval"] button'
         )
       : null
     ;(review ?? composer.current)?.focus()

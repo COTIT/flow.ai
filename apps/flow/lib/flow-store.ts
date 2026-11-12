@@ -31,6 +31,10 @@ type FlowState = {
   visible: VisibleComponent[] | null
   /** The phone's conversation sheet is on screen (the orb lives in it). */
   sheetShown: boolean
+  /** The task card is on screen in the conversation (P5): the top-bar capsule would repeat it. */
+  taskShown: boolean
+  /** Asked to show the task card (the capsule's button): the conversation opens where it is. */
+  taskAsked: number
 }
 
 /** Visual state of the shell; the conversation itself lives in the voice provider. */
@@ -58,6 +62,8 @@ export const flowStore = createStore<FlowState>()((set) => ({
   setSelected: (selected) => set({ selected }),
   visible: null,
   sheetShown: false,
+  taskShown: false,
+  taskAsked: 0,
 }))
 
 export const useFlow = <T>(pick: (state: FlowState) => T) =>

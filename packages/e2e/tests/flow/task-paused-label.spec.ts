@@ -1,5 +1,5 @@
 import { expect, test } from "./storefront-api"
-import { capsule, k, scene } from "./task"
+import { k, scene, taskLine } from "./task"
 import { fakeAgent, startText, v } from "./voice"
 
 // SIMULATED voice and batch answers (task-supplier's shapes). P8-5: a paused batch says
@@ -62,7 +62,8 @@ test("P8-5: a paused batch shows its own state on the task line", async ({ page,
   agent.call("assistant_batch_prepare", { calls: [{}, {}] })
   await scene(page).getByRole("button", { name: v.approve }).click()
   await scene(page).getByRole("button", { name: k.pause }).click()
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "paused")
-  await expect(capsule(page)).toContainText(/^Paused/i)
-  await expect(capsule(page)).not.toContainText("Working", { ignoreCase: true })
+  const line = await taskLine(page)
+  await expect(line).toHaveAttribute("data-task-state", "paused")
+  await expect(line).toContainText(/^Paused/i)
+  await expect(line).not.toContainText("Working", { ignoreCase: true })
 })

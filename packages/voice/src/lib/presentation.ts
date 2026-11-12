@@ -69,6 +69,8 @@ export function activityState(state: {
   busy?: boolean
   review?: boolean
   error?: string
+  /** The error only says a review lapsed (P8-2): not a failure. */
+  expired?: boolean
   outcome?: string
   speaking?: boolean
   textOnly?: boolean
@@ -78,6 +80,7 @@ export function activityState(state: {
   hold?: boolean
   checkingRecovery?: boolean
 }) {
+  if (state.error && state.expired) return taskPresentation("expired")
   if (state.error)
     return state.outcome &&
       [

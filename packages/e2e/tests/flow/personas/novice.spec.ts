@@ -10,6 +10,7 @@ import { member } from "../storefront-api"
 import { menuItem, moreMenu, sc } from "../scenes-api"
 import { s as shell } from "../shell"
 import {
+  backToCard,
   capsule,
   k,
   proposeStock,
@@ -17,6 +18,7 @@ import {
   receipt,
   scene,
   stockRoutes,
+  taskLine,
 } from "../task"
 import { startText, v } from "../voice"
 import { markInjected } from "../../../src/test"
@@ -501,7 +503,8 @@ test("probe: a review left open survives wandering through scenes and Back", asy
     "data-task-state",
     "needs_approval"
   )
-  await page.goBack()
+  // P5: the review is no address of its own, so this tab's history starts at the scene; home by
+  // its own button (the browser's Back would leave the app from here).
   await toYourFlow(page)
   await page
     .getByRole("region", { name: sc.yourFlow })
@@ -546,10 +549,11 @@ test("probe: cancel halfway, then the same goal another way", async ({
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 130 }] },
   })
   await expect(page.locator("[data-withdrawn]")).toContainText("→ 120")
-  await expect(capsule(page)).toHaveAttribute(
+  await expect(await taskLine(page)).toHaveAttribute(
     "data-task-state",
     "needs_approval"
   )
+  await backToCard(page)
   await scene(page).getByRole("button", { name: v.approve }).click()
   await expect(receipt(page)).toHaveAttribute("data-receipt", "completed")
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("130")

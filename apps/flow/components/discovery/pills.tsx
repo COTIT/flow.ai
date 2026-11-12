@@ -74,9 +74,11 @@ export function Pills({
       <ul
         ref={row}
         aria-labelledby="flow-pills-title"
-        className="flex h-11 min-w-0 gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain"
+        // At most three (Keep Flow simple), wrapping where there is room; phones and short screens
+        // keep one sideways row so the message box stays above the keyboard (P10-2).
+        className="flex h-11 min-w-0 gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain sm:[@media(min-height:501px)]:h-auto sm:[@media(min-height:501px)]:min-h-11 sm:[@media(min-height:501px)]:flex-wrap sm:[@media(min-height:501px)]:overflow-visible"
       >
-        {pills.map((pill) => (
+        {pills.slice(0, 3).map((pill) => (
           <li
             key={pill.id}
             className="shrink-0 animate-in duration-200 fade-in slide-in-from-bottom-1 motion-reduce:animate-none"

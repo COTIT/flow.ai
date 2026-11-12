@@ -1,3 +1,4 @@
+import { scene } from "./task"
 import type { Page } from "@playwright/test"
 
 import { seedSession } from "../../src/session"
@@ -13,14 +14,9 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page, flowApi())
 })
 
-/** Opens the result scene from the nth result line of the conversation. */
+/** The nth answer of the conversation: inline under its reply (P5), no separate screen. */
 async function results(page: Page, line: number) {
-  await page
-    .getByRole("log")
-    .getByRole("button", { name: chat.showResult })
-    .nth(line)
-    .click()
-  return page.getByRole("region", { name: chat.results })
+  return page.getByRole("log").first().locator("[data-inline-result]").nth(line)
 }
 
 test("before any answer there is no result scene and no placeholder chart", async ({
@@ -28,7 +24,7 @@ test("before any answer there is no result scene and no placeholder chart", asyn
 }) => {
   await page.goto("/")
   await expect(page.getByText(s.tapToTalk, { exact: true })).toBeVisible()
-  await expect(page.getByRole("region", { name: chat.results })).toHaveCount(0)
+  await expect(scene(page)).toHaveCount(0)
   await expect(page.locator("[data-chart]")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })
@@ -41,11 +37,9 @@ test("a list answer shows in the results with record links to Office in a new ta
   await startText(page)
   agent.call("orders_list")
   await expect.poll(agent.results).toBe(1)
-  const line = page.getByRole("log").getByRole("button", {
-    name: chat.showResult,
-  })
-  await expect(line).toBeVisible()
+  // P5: the answer is its own card under the reply, no button to another screen.
   const pane = await results(page, 0)
+  await expect(pane).toBeVisible()
   const row = pane.getByRole("link", { name: /ORD-0042/ })
   await expect(row).toBeVisible()
   await expect(row).toHaveAttribute("href", `${OFFICE}/orders/${FLOW_ORDER}`)
@@ -55,11 +49,11 @@ test("a list answer shows in the results with record links to Office in a new ta
     pane.getByRole("link", { name: v.results.openAll })
   ).toHaveAttribute("href", `${OFFICE}/orders`)
   await expectNoHorizontalScroll(page)
-  // Back lands on home (J4); the orb's words continue the same conversation, its line there.
+  // Back lands on home (J4); the orb's words continue the same conversation, its answer there.
   await page.getByRole("button", { name: s.backHome }).click()
   await expect(pane).toBeHidden()
   await page.getByText(s.continueConversation, { exact: true }).click()
-  await expect(line).toBeVisible()
+  await expect(pane).toBeVisible()
 })
 
 test("a sales answer draws its chart in the results", async ({ page }) => {

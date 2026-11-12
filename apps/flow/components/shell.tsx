@@ -35,6 +35,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const endedByUser = useFlow((s) => s.endedByUser)
   const resultOpen = useFlow((s) => s.resultOpen)
+  const immersive = useFlow((s) => s.immersive)
   const selected = useFlow((s) => s.selected)
   const visible = useFlow((s) => s.visible)
   const { phase } = sessionPhase({ ...voice, endedByUser })
@@ -58,9 +59,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const openedForReview = useRef(false)
   useEffect(() => {
     if (ticket) {
+      // P5: the review opens where the conversation is; on home that is the full conversation.
+      // With no conversation (restored after a new login) only the task scene can show it.
       if (pathname !== "/" || flowStore.getState().resultOpen) return
-      openedForReview.current = true
-      flowStore.setState({ resultOpen: true })
+      if (voice.connected || voice.starting || voice.upgrading)
+        flowStore.setState({ immersive: true })
+      else {
+        openedForReview.current = true
+        flowStore.setState({ resultOpen: true })
+      }
     } else if (openedForReview.current) {
       openedForReview.current = false
       if (voice.outcome?.status === "cancelled")
@@ -148,7 +155,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   // The agent quietly knows the scene (ids only); the provider sends only while connected.
   const send = voice.sendContext
   const onResults = pathname === "/" && resultOpen
-  const results = onResults
+  // P5: answers show inline, so their pictures are on screen wherever the conversation shows
+  // (not on home's dashboard, where only the orb is).
+  const homeDashboard = pathname === "/" && !resultOpen && !immersive
+  const results = !homeDashboard
     ? voice.messages.filter((row) => row.role === "result" && row.views?.[0])
     : []
   const context = sceneContext({
@@ -200,6 +210,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startingHere])
   const bottomDock = !railShown && !pane.sheet
+  // The control the first click of a double-click pressed (P2-2 guard below).
+  const firstClick = useRef<Element | null>(null)
   return (
     <div
       style={
@@ -217,11 +229,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
           e.target instanceof Element
             ? e.target.closest("button, a, [role=menuitem]")
             : null
-        // A toggle (handle, show/hide, select) flips back on the next press by design (P10-5).
+        if (e.detail <= 1) firstClick.current = control
+        // A toggle (handle, show/hide, select) flips back on the next press by design (P10-5),
+        // but only the one pressed first: a toggle that appeared under the pointer is not (P5).
         if (
           e.detail > 1 &&
           control &&
-          !control.matches("[aria-expanded], [aria-pressed]")
+          (!control.matches("[aria-expanded], [aria-pressed]") ||
+            control !== firstClick.current)
         ) {
           e.preventDefault()
           e.stopPropagation()

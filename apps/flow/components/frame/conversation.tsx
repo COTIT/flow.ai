@@ -7,7 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { ArrowDown, PanelRight, PanelRightClose, PhoneOff } from "lucide-react"
 
@@ -16,6 +16,7 @@ import { VoiceThinking } from "@genesy/voice/components/activity"
 import { useVoice } from "@genesy/voice/components/provider"
 import { TranscriptRows } from "@genesy/voice/components/transcript"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
+import { InlineResult, InlineTask } from "@/components/task/inline-task"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import {
   RAIL,
@@ -136,16 +137,18 @@ export function useConversationLayout() {
   // grows); a review card arriving counts as a reply.
   const lastId = last?.id
   const ticket = voice.review?.ticket
-  const turn = useRef({ lastId, ticket })
+  const asked = useFlow((s) => s.taskAsked) // P5: the capsule's way back to the card
+  const turn = useRef({ lastId, ticket, asked })
   useEffect(() => {
     const fresh =
       (!!lastId && lastId !== turn.current.lastId) ||
-      (!!ticket && ticket !== turn.current.ticket)
-    turn.current = { lastId, ticket }
+      (!!ticket && ticket !== turn.current.ticket) ||
+      asked !== turn.current.asked
+    turn.current = { lastId, ticket, asked }
     if (fresh && shown && !sheetOnly && !open && context)
       save({ ...load(), open: { ...load().open, [context]: true } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastId, ticket])
+  }, [lastId, ticket, asked])
   return {
     band: b,
     /** The full-width conversation (Conversation board) is open on home. */
@@ -178,8 +181,6 @@ const nearBottom = (el: HTMLElement) =>
 function PaneLog({ pane }: { pane: "rail" | "sheet" }) {
   const t = useTranslations()
   const voice = useVoice()
-  const pathname = usePathname()
-  const router = useRouter()
   const log = useRef<HTMLDivElement>(null)
   const [following, setFollowing] = useState(true)
   const follow = useRef(true)
@@ -205,22 +206,7 @@ function PaneLog({ pane }: { pane: "rail" | "sheet" }) {
       >
         <TranscriptRows
           rows={voice.messages}
-          renderResult={(row) => (
-            <Button
-              variant="outline"
-              size="sm"
-              data-role="result"
-              className="min-h-11 self-start"
-              onClick={() => {
-                flowStore.setState({ resultOpen: true, resultFocus: row.id })
-                // The Results screen is an address: without it the shell closes it again (J1).
-                if (pathname !== "/") router.push("/?view=task")
-              }}
-            >
-              <PanelRight aria-hidden />
-              {t("flow.chat.showResult")}
-            </Button>
-          )}
+          renderResult={(row) => <InlineResult row={row} />}
         />
         <VoiceThinking />
       </div>
@@ -325,6 +311,7 @@ export function Rail({
         </Button>
       </div>
       <PaneLog pane="rail" />
+      <InlineTask />
       <DockSlot />
     </aside>
   )
@@ -361,11 +348,17 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
   // A send or a reply raises a lowered sheet (focus stays where it was).
   // A row added, not one updated in place (same id), so lowering holds while a reply grows.
   const newest = voice.messages.at(-1)?.id
-  const seen = useRef(newest)
+  const ticket = voice.review?.ticket
+  const asked = useFlow((s) => s.taskAsked)
+  const seen = useRef({ newest, ticket, asked })
   useEffect(() => {
-    if (newest && newest !== seen.current) setState("open")
-    seen.current = newest
-  }, [newest])
+    const fresh =
+      (!!newest && newest !== seen.current.newest) ||
+      (!!ticket && ticket !== seen.current.ticket) ||
+      asked !== seen.current.asked
+    if (fresh) setState("open")
+    seen.current = { newest, ticket, asked }
+  }, [newest, ticket, asked])
   const last = [...voice.messages]
     .reverse()
     .find((row) => row.role !== "result" && row.text)
@@ -383,7 +376,14 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
       style={
         open
           ? // …and never so tall that the scene above loses its room (R1/R2: 5.5rem left).
-            { height: "max(62%, 15.5rem)", maxHeight: "calc(100% - 5.5rem)" }
+            {
+              // P5: a waiting review gets all the room the scene can spare, so its card and the
+              // message box both fit and "Yes, do it" stays in reach.
+              height: voice.review
+                ? "calc(100% - 5.5rem)"
+                : "max(62%, 15.5rem)",
+              maxHeight: "calc(100% - 5.5rem)",
+            }
           : undefined
       }
       className="relative flex min-h-0 shrink-0 flex-col gap-2 rounded-t-3xl glass-strong px-3 pb-3 shadow-[0_-8px_32px_rgb(28_27_24/0.14)] transition-[height] duration-240 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none max-sm:-mx-3 max-sm:-mb-3 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:pb-2 max-sm:[@media(max-height:500px)]:-mx-2 max-sm:[@media(max-height:500px)]:-mb-2"
@@ -433,7 +433,8 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
         {/* Short screens keep this line slim: End sits in the dock row there instead. */}
         <EndCall className="ml-auto [@media(max-height:500px)]:hidden" />
       </div>
-      {open ? (
+      {/* While a review waits the card takes the transcript's place (it comes back after). */}
+      {open && !voice.review ? (
         <div
           ref={body}
           tabIndex={-1}
@@ -442,6 +443,7 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
           <PaneLog pane="sheet" />
         </div>
       ) : null}
+      {open ? <InlineTask /> : null}
       <DockSlot />
     </section>
   )
