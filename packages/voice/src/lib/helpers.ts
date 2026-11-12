@@ -235,3 +235,8 @@ export function formatPrice(price: string, decimals: number, currency: string, l
     // TS's lib types lack the string overload; runtimes since Node 19 / 2023 browsers have it.
   }).format(price as unknown as number)
 }
+
+/** An API quantity ("20.00", "1.50") as a count: only trailing zeros go ("20", "1.5"). The string
+ * goes into Intl as-is, so the value is never rounded; the locale adds its separators. */
+export const formatQuantity = (qty: string, locale: string) =>
+  new Intl.NumberFormat(locale, { maximumFractionDigits: 20 }).format(qty as unknown as number)

@@ -3,9 +3,9 @@
 import { useId, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { EmptyState } from "@genesy/ui/components/empty-state"
-import { formatDate, formatQty, formatShare } from "@genesy/ui/lib/format"
+import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import { fieldName, formatPrice } from "../../lib/helpers"
+import { fieldName, formatPrice, formatQuantity } from "../../lib/helpers"
 import { drawnAs, shapeOf, type Kind, type ResultView } from "../../lib/views"
 import { Series } from "./series"
 
@@ -120,7 +120,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
           key: `${g.title}${i}`,
           title: g.title ?? t("stock.noWarehouse"),
           // Number() only sizes the bar; the text shown is the API's own.
-          items: g.rows.map((r) => ({ label: r.label ?? t("stock.noBin"), value: Number(r.available ?? r.level), shown: formatQty(r.available ?? r.level, locale) })),
+          items: g.rows.map((r) => ({ label: r.label ?? t("stock.noBin"), value: Number(r.available ?? r.level), shown: formatQuantity(r.available ?? r.level, locale) })),
         })),
       }
     case "search":
@@ -161,7 +161,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
           {
             key: "lines",
             title: null,
-            items: view.lines.map((l) => ({ label: l.label ?? t("stock.noBin"), value: null, shown: l.money ? cash(l.money) : l.quantity ? formatQty(l.quantity, locale) : "" })),
+            items: view.lines.map((l) => ({ label: l.label ?? t("stock.noBin"), value: null, shown: l.money ? cash(l.money) : l.quantity ? formatQuantity(l.quantity, locale) : "" })),
           },
           { key: "totals", title: null, items: view.totals.map((x) => ({ label: t(`totals.${x.key}`), value: x.money.minor, shown: cash(x.money) })) },
         ],
