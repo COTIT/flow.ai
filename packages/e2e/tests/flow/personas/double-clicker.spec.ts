@@ -17,8 +17,8 @@ import {
   stockReview,
   stockRoutes as baseStockRoutes,
 } from "../task"
-import { startText, v, type Agent } from "../voice"
-import { expect, test, type Persona, type Step } from "./harness"
+import { startText, typeInstead, v, type Agent } from "../voice"
+import { editable, expect, openComposer, test, type Persona, type Step } from "./harness"
 
 const many = (p: Persona) => p.pick(["double", "triple"] as const)
 const userMessages = (agent: Agent) =>
@@ -281,7 +281,7 @@ test("double-clicker: everything twice or three times, before the last one finis
       run: () =>
         tap(
           persona,
-          page.getByRole("button", { name: v.textInstead, exact: true }),
+          page.getByRole("button", { name: typeInstead, exact: true }),
           "triple"
         ),
     },
@@ -289,8 +289,9 @@ test("double-clicker: everything twice or three times, before the last one finis
       name: "ask, then Enter again and again",
       weight: 4,
       run: async () => {
+        await openComposer(page)
         const box = page.getByLabel(v.message)
-        if (!(await box.isEditable().catch(() => false))) return
+        if (!(await editable(box))) return
         await box.fill(
           persona.pick([
             "Sales today?",
@@ -306,8 +307,9 @@ test("double-clicker: everything twice or three times, before the last one finis
       name: "ask, then Send twice",
       weight: 2,
       run: async () => {
+        await openComposer(page)
         const box = page.getByLabel(v.message)
-        if (!(await box.isEditable().catch(() => false))) return
+        if (!(await editable(box))) return
         await box.fill("Thanks")
         await tap(
           persona,
@@ -473,7 +475,7 @@ test("P2: Use text instead, triple-clicked, opens one conversation", async ({
 }) => {
   await page.goto("/")
   await page
-    .getByRole("button", { name: v.textInstead, exact: true })
+    .getByRole("button", { name: typeInstead, exact: true })
     .click({ clickCount: 3 })
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
   await page.waitForTimeout(500)
@@ -518,7 +520,10 @@ test("P2: a typed line sent from home before the conversation is up starts once 
   persona,
   page,
 }) => {
+  // Orb-first home: "Type instead" opens the conversation; the line is typed and sent at once,
+  // before the conversation is up.
   await page.goto("/")
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   const box = page.getByLabel(v.message)
   await box.fill("Stock below minimum")
   await box.press("Enter")
@@ -887,11 +892,11 @@ test("P2: End conversation double-clicked, then Use text instead hammered", asyn
   await startText(page)
   await page.getByRole("button", { name: v.end }).dblclick()
   await persona.click(
-    page.getByRole("button", { name: v.textInstead, exact: true }),
+    page.getByRole("button", { name: typeInstead, exact: true }),
     "triple"
   )
   await persona.click(
-    page.getByRole("button", { name: v.textInstead, exact: true }),
+    page.getByRole("button", { name: typeInstead, exact: true }),
     "double"
   )
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()

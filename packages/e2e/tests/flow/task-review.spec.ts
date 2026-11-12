@@ -55,9 +55,11 @@ test("approving runs the action once, and only the backend's answer says it is d
   // The audit reference (the assistant action id) is kept out of sight: no raw codes (J2).
   await expect(receipt(page)).toHaveAttribute("data-reference", "0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa")
   await expect(receipt(page)).not.toContainText("0193f6b0")
-  // Back to the conversation, where the record link and the outcome line are.
+  // Back to home (J4), then on to the conversation, where the record link and the outcome
+  // line are.
   await page.getByRole("button", { name: s.backHome }).click()
   await expect(review).toBeHidden()
+  await page.getByText(s.continueConversation, { exact: true }).click()
   await expect
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
@@ -95,6 +97,7 @@ test("leaving the review keeps the action pending and reachable from the dock", 
   await expect(pending).toHaveAttribute("data-task-state", "needs_approval")
   await page.getByRole("button", { name: s.backHome }).click()
   await expect(review).toBeHidden()
+  await page.getByText(s.continueConversation, { exact: true }).click()
   await expect(page.getByRole("log")).toBeVisible()
   await expect(pending).toContainText(k.milestones.waitingConfirmation)
   await expect(pending).toContainText("Create order for Neema Shop")

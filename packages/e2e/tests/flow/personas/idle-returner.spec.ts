@@ -6,7 +6,7 @@ import type { Page } from "@playwright/test"
 
 import { sc } from "../scenes-api"
 import { ACTION, k, readBack, scene, stockReview, stockRoutes } from "../task"
-import { v } from "../voice"
+import { v, typeInstead } from "../voice"
 import { expect, test, type Persona } from "./harness"
 import { batchRoutes, hide, logInAgain, photo, Server, sleep, tray } from "./idle-returner.helpers"
 import { LOGIN, logOut, onLogin } from "./multitasker.helpers"
@@ -28,7 +28,7 @@ async function setup(persona: Persona, page: Page, api: import("../../office/fak
 }
 async function talk(page: Page) {
   await expect
-    .poll(async () => (await live(page)) || (await page.getByRole("button", { name: v.textInstead, exact: true }).click({ timeout: 1_000 }).then(() => false, () => false)), { timeout: 10_000 })
+    .poll(async () => (await live(page)) || (await page.getByRole("button", { name: typeInstead, exact: true }).click({ timeout: 1_000 }).then(() => false, () => false)), { timeout: 10_000 })
     .toBe(true)
 }
 async function propose(persona: Persona, page: Page, total = 120) {
@@ -139,6 +139,10 @@ test.describe("findings", () => {
     await expect(page).toHaveURL(LOGIN)
     await logInAgain(page)
     await expect(page).not.toHaveURL(LOGIN) // back in (to `next` when it was given)
+    // Orb-first home shows no message box until the conversation opens again.
+    const typeAgain = page.getByRole("button", { name: typeInstead, exact: true })
+    await expect(typeAgain.or(page.getByLabel(v.message)).first()).toBeVisible()
+    if (await typeAgain.isVisible()) await typeAgain.click()
     const kept = page.getByLabel(v.message).and(page.locator(`[value="${DRAFT}"]`))
     await expect(kept.or(page.getByText(DRAFT)).or(page.getByText(/draft/i)).first()).toBeVisible({ timeout: 5_000 })
   })

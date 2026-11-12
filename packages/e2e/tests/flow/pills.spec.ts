@@ -165,7 +165,8 @@ test("the hint opens the explorer; the composer does not move and nothing scroll
 }) => {
   await mockApi(page, api(OWNER))
   await page.goto("/")
-  const box = dock(page).getByLabel(v.message)
+  // Orb-first home's dock holds only the suggestions; its bottom edge must not jump.
+  const box = dock(page)
   await expect(pills(page)).toHaveCount(4)
   const before = await box.boundingBox()
   await page.getByRole("link", { name: d.hint.explore }).click()
@@ -173,7 +174,8 @@ test("the hint opens the explorer; the composer does not move and nothing scroll
     page.getByRole("heading", { name: d.explorer.title })
   ).toBeVisible()
   await expect(pills(page)).toHaveCount(4)
-  expect(await box.boundingBox()).toEqual(before)
+  const after = await box.boundingBox()
+  expect(Math.round(after!.y + after!.height)).toBe(Math.round(before!.y + before!.height))
   await expectNoHorizontalScroll(page)
   if ((page.viewportSize()?.width ?? 0) < 600) {
     const row = dock(page).getByRole("list", { name: d.suggested })

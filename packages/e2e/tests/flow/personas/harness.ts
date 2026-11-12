@@ -43,10 +43,33 @@ export const labels = {
   backHome: inAnyLocale((m) => m.shell.backHome),
   message: inAnyLocale((m) => m.voice.message),
   send: inAnyLocale((m) => m.voice.send),
-  textInstead: inAnyLocale((m) => m.voice.textInstead),
+  // Home's way to start typing (orb-first home: "Type instead").
+  textInstead: inAnyLocale((m) => m.shell.typeInstead),
+  continueConversation: inAnyLocale((m) => m.shell.continueConversation),
   addFiles: inAnyLocale((m) => m.voice.addFiles),
   approve: inAnyLocale((m) => m.voice.approve),
 }
+/** Visible and editable: isEditable() alone is true for a hidden field, so a fill would wait forever. */
+export const editable = async (field: Locator) =>
+  (await field.isVisible().catch(() => false)) && (await field.isEditable().catch(() => false))
+
+/**
+ * Orb-first home has no message box: before typing, a person opens the conversation the way home
+ * offers it ("Type instead", or the orb while a call runs). Anywhere with a message box: nothing.
+ */
+export async function openComposer(page: Page) {
+  const box = page.getByLabel(labels.message).first()
+  if (await box.isVisible().catch(() => false)) return
+  const type = page.getByRole("button", { name: labels.textInstead }).first()
+  const orb = page.getByRole("button", { name: labels.continueConversation }).first()
+  if (await type.isVisible().catch(() => false)) await type.click({ timeout: 2_000 }).catch(() => {})
+  // While a call runs the orb continues it (tapped where it is drawn); idle, it would start voice.
+  else if (await orb.isVisible().catch(() => false))
+    await page.locator('[data-orb="ambient"]').click({ timeout: 2_000 }).catch(() => {})
+  else return
+  await box.waitFor({ state: "visible", timeout: 2_000 }).catch(() => {})
+}
+
 /** Never clicked by a random step: leaving the signed-in app ends the walk. */
 const LEAVE = new RegExp(labels.logout.source.replace(/^\^|\$$/g, ""), "i")
 
@@ -209,6 +232,7 @@ export class Persona {
     text: string,
     how: "enter" | "button" = this.chance(0.5) ? "enter" : "button"
   ) {
+    await openComposer(this.page)
     const box = this.page.getByLabel(labels.message)
     if (!(await box.isEditable({ timeout: 1_000 }).catch(() => false)))
       return false

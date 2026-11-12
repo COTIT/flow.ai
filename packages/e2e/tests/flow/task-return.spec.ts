@@ -12,7 +12,7 @@ import {
   scene,
   stockRoutes,
 } from "./task"
-import { fakeAgent, v } from "./voice"
+import { fakeAgent, v, typeInstead } from "./voice"
 
 // SIMULATED voice (fake ElevenLabs socket + Office-shaped answers); read-back is the mocked API.
 // The task card (review → receipt) stays reachable on every way out and back.
@@ -103,7 +103,7 @@ test("another login's or workspace's memory, or a broken one, is never shown and
     await expect(
       page
         .getByRole("heading", { name: /results/i })
-        .or(page.getByRole("button", { name: v.textInstead, exact: true }))
+        .or(page.getByRole("button", { name: typeInstead, exact: true }))
         .first()
     ).toBeVisible()
     await expect(receipt(page)).toHaveCount(0)
@@ -120,7 +120,7 @@ test("a reload while a review is open never lands on an empty task scene", async
   await proposeStock(page, agent, 120)
   await page.reload()
   // Nothing of that conversation is left in this tab: home, never an empty "Results" scene.
-  await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: typeInstead, exact: true })).toBeVisible()
   await expect(scene(page)).toHaveCount(0)
   await expect(page).toHaveURL(/\/$/)
 })

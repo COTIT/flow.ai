@@ -1,7 +1,7 @@
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, ILUNDO, mockApi, RUAHA } from "./api"
-import { fakeAgent, send, startText, v, watch } from "./voice"
+import { fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
 import { revealHeader } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
@@ -28,7 +28,7 @@ test("switching workspace ends the conversation and shows nothing of the old one
     .getByRole("option", { name: RUAHA.display_name, exact: true })
     .click()
   await expect(
-    page.getByRole("button", { name: v.textInstead, exact: true })
+    page.getByRole("button", { name: typeInstead, exact: true })
   ).toBeVisible()
   await expect
     .poll(() => sessions.some((s) => s.method === "DELETE"))
@@ -106,7 +106,7 @@ test.describe("the voice service says the login has expired", () => {
       route.fulfill({ status: 401, json: { message: "Unauthenticated." } })
     )
     await page.goto("/")
-    await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+    await page.getByRole("button", { name: typeInstead, exact: true }).click()
     await expect(page).toHaveURL("/login")
     await expect(
       page
@@ -131,7 +131,7 @@ test.describe("the voice service refuses", () => {
       })
     )
     await page.goto("/")
-    await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+    await page.getByRole("button", { name: typeInstead, exact: true }).click()
     await expect(
       page.getByRole("alert").filter({ hasText: v.requestErrors.forbidden })
     ).toBeVisible()

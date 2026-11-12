@@ -276,7 +276,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
             width={pane.width}
             maxWidth={pane.maxWidth}
             onWidth={pane.setWidth}
-            onHide={() => pane.setOpen(false)}
+            onHide={() => {
+              pane.setOpen(false)
+              // The hide button leaves with the rail: focus goes on at its way back, not <body>.
+              requestAnimationFrame(() =>
+                document
+                  .querySelector<HTMLElement>("[data-flow-show-conversation]")
+                  ?.focus()
+              )
+            }}
           />
         ) : null}
         {pane.sheet ? <Sheet phase={phase} /> : null}

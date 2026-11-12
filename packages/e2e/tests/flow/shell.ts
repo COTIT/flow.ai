@@ -82,9 +82,5 @@ export async function revealHeader(page: Page) {
   return header
 }
 
-/**
- * Where the orb rests on home while a conversation is live: in the phone's conversation sheet
- * (under 728 px, P10-7), otherwise its big ambient place.
- */
-export const homeOrb = (page: Page) =>
-  (page.viewportSize()?.width ?? 1280) < 728 ? ("compact" as const) : ("ambient" as const)
+/** Where the orb rests on home while a conversation is live: orb-first home has no sheet, so its big ambient place at every size. */
+export const homeOrb = (page: Page) => (void page, "ambient" as const)

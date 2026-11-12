@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 import { seedSession } from "../../src/session"
 import { expect, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { fakeAgent, send, v } from "./voice"
+import { fakeAgent, send, v, tapOrb } from "./voice"
 
 // SIMULATED voice + Chromium's fake microphone. P7-1 / P7-2 (voice-first persona).
 
@@ -51,7 +51,7 @@ async function micControl(page: Page) {
 }
 
 async function startVoice(page: Page) {
-  await page.getByRole("button", { name: v.start, exact: true }).click()
+  await tapOrb(page) // orb-first home: the orb starts voice
   await expect(page.getByRole("button", { name: v.end })).toBeVisible()
   // The attach button exists only once the session is verified.
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
@@ -69,7 +69,7 @@ test("P7-1: a refused microphone at Start says so in Flow's words", async ({
   await fakeAgent(page)
   await page.goto("/")
   await mic.deny()
-  await page.getByRole("button", { name: v.start, exact: true }).click()
+  await tapOrb(page) // orb-first home: the orb starts voice
   const alert = page.getByRole("alert").first()
   await expect(alert).toContainText(v.microphoneDenied)
   await expect(alert).not.toContainText("Permission denied")

@@ -9,7 +9,7 @@ import { readBack, scene, stockRoutes } from "../task"
 import { s as shell } from "../shell"
 import { v as voice } from "../voice"
 import { arm, expectNotBroken } from "./dumb-breaker.helpers"
-import { expect, labels, test, type Step } from "./harness"
+import { expect, labels, test, type Step, openComposer, editable } from "./harness"
 import {
   at,
   boxAboveKeyboard,
@@ -159,7 +159,9 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
       name: "type with the keyboard up, then send",
       weight: 3,
       run: async () => {
-        if (!roomForKeyboard() || !(await box.isEditable().catch(() => false))) return
+        if (!roomForKeyboard()) return
+        await openComposer(page)
+        if (!(await editable(box))) return
         const b = await box.boundingBox({ timeout: 1_000 }).catch(() => null)
         if (b) await tapAt(b.x + b.width / 2, b.y + b.height / 2)
         await keyboard(page, size().height > size().width ? 0.42 : 0.55)
@@ -205,7 +207,7 @@ test("mobile thumb: one hand, edges, swipes, long-press, keyboard, rotation", as
       name: "rotate with a draft",
       weight: 3,
       run: async () => {
-        const draft = persona.chance(0.5) && (await box.isEditable().catch(() => false))
+        const draft = persona.chance(0.5) && (await editable(box))
         if (draft) await box.fill("half a thought")
         const { width, height } = size()
         // Known: P10-9 (rotating on a scene during a conversation zooms out) and P10-8 (667×375
@@ -569,6 +571,9 @@ async function withSheet(page: Page, size: { width: number; height: number }) {
   // The message is in the conversation before leaving it (a slow device opens it a moment later).
   await expect(page.getByRole("log", { name: "Conversation transcript" })).toContainText("Sales today?")
   await page.getByRole("button", { name: labels.backHome }).first().click()
+  // Orb-first home has no sheet: it lives on scenes.
+  await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().tap()
+  await expect(page).toHaveURL(/\/scenes\//)
   await expect(sheetHandle(page)).toBeVisible()
 }
 const sheetOpen = async (page: Page) =>

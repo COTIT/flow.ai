@@ -8,9 +8,10 @@ import {
 } from "../../src/test"
 import { rowAction } from "./lists"
 import { HONEY, SPICES, TEA, sc, sceneWorld } from "./scenes-api"
+import { s } from "./shell"
 import { expect, test } from "./storefront-api"
 import { readBack, receipt, scene, stockReview, stockRoutes } from "./task"
-import { fakeAgent, startText, v } from "./voice"
+import { fakeAgent, startText, v, tapOrb } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -21,16 +22,18 @@ test("SW1: a keyboard user never lands on the orb while it is scrolled out of vi
   await expect(page.locator("[data-orb]")).toBeVisible()
   for (let i = 0; i < 60; i++) {
     await page.keyboard.press("Tab")
-    const focusedOrb = await page.evaluate(() =>
-      document.activeElement?.hasAttribute("data-orb")
+    // Orb-first home: the orb's keyboard target is its place in the page (named "Tap to talk").
+    const focusedOrb = await page.evaluate(
+      (name) => document.activeElement?.getAttribute("aria-label") === name,
+      s.tapToTalk
     )
     if (!focusedOrb) continue
     // Focus must never be obscured (WCAG 2.4.11): the focused orb is drawn on screen.
     const shown = await page.evaluate(() => {
       const orb = document.activeElement as HTMLElement
       const box = orb.getBoundingClientRect()
-      const layer = orb.parentElement!.getBoundingClientRect()
-      return box.top >= layer.top - 1 && box.bottom <= layer.bottom + 1
+      const view = document.querySelector("[data-flow-scroll]")!.getBoundingClientRect()
+      return box.top >= view.top - 1 && box.bottom <= view.bottom + 1
     })
     expect(shown, "focused orb is clipped out of view").toBe(true)
     return
@@ -189,7 +192,7 @@ test("SW6: a refused microphone says so in plain words, never the browser's raw 
   })
   await fakeAgent(page)
   await page.goto("/")
-  await page.getByRole("button", { name: v.start }).first().click()
+  await tapOrb(page) // orb-first home: the orb starts voice
   const dock = page.getByRole("region", { name: "Ask Genesy" })
   await expect(dock.getByRole("alert")).toContainText(
     /Microphone access was refused/

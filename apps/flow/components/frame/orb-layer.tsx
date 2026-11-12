@@ -141,7 +141,11 @@ export function OrbLayer() {
     }
   }, [slot, mode])
 
-  const label = mode === "ambient" && !live ? t("orbStart") : t("orbOpen")
+  // Home: the orb is the one primary action, named by the words under it.
+  const label =
+    mode === "ambient"
+      ? t(live ? "continueConversation" : "tapToTalk")
+      : t("orbOpen")
   return (
     <div
       ref={layer}
@@ -155,8 +159,10 @@ export function OrbLayer() {
         data-orb={mode}
         aria-label={label}
         // In the conversation the orb is only a picture; elsewhere it opens or starts it.
-        tabIndex={picture ? -1 : 0}
-        aria-hidden={picture || undefined}
+        // On home its place in the page is the button (first in the content, P11): this one is
+        // only what a pointer taps.
+        tabIndex={picture || mode === "ambient" ? -1 : 0}
+        aria-hidden={picture || mode === "ambient" || undefined}
         style={{ width: BASE, height: BASE, visibility: "hidden" }}
         className="pointer-events-auto absolute top-0 left-0 origin-top-left rounded-full focus-visible:ring-4 focus-visible:ring-(--gold) focus-visible:outline-none"
         // A keyboard user never lands on an orb scrolled out of view (SW1): bring its place in.

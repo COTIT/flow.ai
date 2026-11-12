@@ -16,7 +16,7 @@ import {
 import type { Page } from "@playwright/test"
 
 import { expectSingleScroller } from "../../../src/test"
-import { expect, labels, test, type Step } from "./harness"
+import { expect, labels, test, type Step, openComposer, editable } from "./harness"
 
 /** Signed in, a text conversation open and live. */
 async function startTyping(page: Page) {
@@ -45,7 +45,8 @@ test("dumb breaker: garbage, empty sends, bursts, random taps, nonsense order", 
   const send = page.getByRole("button", { name: labels.send })
   /** Puts text in the box without caring if it is ready: a paste (fill) or a quick insert. */
   const put = async (text: string) => {
-    if (!(await box.isEditable().catch(() => false))) return false
+    await openComposer(page)
+    if (!(await editable(box))) return false
     if (persona.chance(0.5)) await box.fill(text, { timeout: 5_000 })
     else {
       await box.click({ timeout: 2_000 }).catch(() => {})
@@ -90,9 +91,13 @@ test("dumb breaker: garbage, empty sends, bursts, random taps, nonsense order", 
       run: async () => {
         const n = persona.int(10, 50)
         persona.log(`   ×${n}`)
+        await openComposer(page)
         for (let i = 0; i < n; i++) {
-          if (!(await box.isEditable().catch(() => false))) break
-          await box.fill(persona.chance(0.2) ? persona.pick(GARBAGE) : `msg ${i}`)
+          if (!(await editable(box))) break
+          const typed = await box
+            .fill(persona.chance(0.2) ? persona.pick(GARBAGE) : `msg ${i}`, { timeout: 5_000 })
+            .then(() => true, () => false)
+          if (!typed) break
           await box.press("Enter").catch(() => {})
         }
       },

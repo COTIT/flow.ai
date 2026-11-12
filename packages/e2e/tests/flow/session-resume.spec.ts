@@ -6,7 +6,7 @@ import { flowApi, mockApi } from "./api"
 import { sc } from "./scenes-api"
 import { revealHeader } from "./shell"
 import { ACTION, k, proposeStock, readBack, scene, stockReview, stockRoutes } from "./task"
-import { fakeAgent, startText, v } from "./voice"
+import { fakeAgent, startText, v, typeInstead } from "./voice"
 
 // The login expires while the person is away (persona P8, the idle returner). SIMULATED API and
 // voice: after `expire`, the one call each test makes is refused with 401, as the API and Office
@@ -76,11 +76,15 @@ test.describe("starting a conversation after the login expired", () => {
     await fakeAgent(page)
     const { expire } = await server(page, ["POST /api/voice/session"])
     await page.goto("/")
+    // Orb-first home has no message box: the draft is typed in a scene's dock.
+    await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click()
+    await expect(page).toHaveURL(/\/scenes\//)
     await page.getByLabel(v.message).fill(DRAFT)
     expire()
     await page.getByLabel(v.message).press("Enter")
     await logInAgain(page)
-    await expect(page).toHaveURL(/\/$/)
+    // Logging in again goes back to the scene the person was on (P8-3), the draft with it.
+    await expect(page).toHaveURL(/\/scenes\//)
     await expect(page.getByLabel(v.message)).toHaveValue(DRAFT)
   })
 
@@ -88,6 +92,9 @@ test.describe("starting a conversation after the login expired", () => {
     await fakeAgent(page)
     const { expire } = await server(page, ["POST /api/voice/session"])
     await page.goto("/")
+    // Orb-first home has no message box: the draft is typed in a scene's dock.
+    await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click()
+    await expect(page).toHaveURL(/\/scenes\//)
     await page.getByLabel(v.message).fill(DRAFT)
     expire()
     await page.getByLabel(v.message).press("Enter")
@@ -96,13 +103,15 @@ test.describe("starting a conversation after the login expired", () => {
       route.fulfill({ json: { data: { user: { id: "u-other", first_name: "Other", permissions: [] } } } })
     )
     await logInAgain(page)
-    await expect(page).toHaveURL(/\/$/)
     await expect(page.getByLabel(v.message)).toHaveValue("")
   })
 })
 
 test("P8-1 a draft is dropped when the person logs out by choice", async ({ page }) => {
   await page.goto("/")
+  // Orb-first home has no message box: the draft is typed in a scene's dock.
+  await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click()
+  await expect(page).toHaveURL(/\/scenes\//)
   await page.getByLabel(v.message).fill(DRAFT)
   await (await revealHeader(page)).getByRole("button", { name: "Log out" }).click()
   // While a conversation is live, Log out asks first (P10-3).
@@ -306,6 +315,6 @@ test("a run shown while going is named again once it ends, then never again", as
   await expect(prompt).toContainText("Update 21 supplier purchase prices · it ran.")
   await expect(prompt).toContainText("21 updated · 0 failed · 0 not run · 0 need checking")
   await page.reload()
-  await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: typeInstead, exact: true })).toBeVisible()
   await expect(prompt).toHaveCount(0)
 })

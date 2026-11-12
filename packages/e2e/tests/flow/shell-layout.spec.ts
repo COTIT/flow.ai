@@ -8,7 +8,8 @@ import {
   test,
 } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { fakeAgent, send, v } from "./voice"
+import { s } from "./shell"
+import { fakeAgent, send, v, typeInstead } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -30,7 +31,7 @@ async function expectFitsScreen(page: Page) {
 test("the whole conversation works from the keyboard", async ({ page }) => {
   await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
   await page.goto("/")
-  const start = page.getByRole("button", { name: v.textInstead, exact: true })
+  const start = page.getByRole("button", { name: typeInstead, exact: true })
   await expect(start).toBeVisible()
   for (
     let i = 0;
@@ -62,10 +63,11 @@ for (const size of [
     }) => {
       await page.goto("/")
       await expect(
-        page.getByRole("button", { name: v.textInstead, exact: true })
+        page.getByRole("button", { name: typeInstead, exact: true })
       ).toBeInViewport()
       await expect(page.locator("[data-orb]")).toBeInViewport()
-      await expect(page.getByLabel(v.message)).toBeInViewport()
+      // Orb-first home: the dock holds only the suggestions there.
+      await expect(page.getByRole("region", { name: s.dock })).toBeInViewport()
       await expectFitsScreen(page)
     })
   })
@@ -89,7 +91,7 @@ test("a long conversation scrolls in one place; the page never grows below the s
   )
   await page.goto("/")
   await expectSingleScroller(page)
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   for (let i = 0; i < 12; i++) {
     await send(page, `Question ${i}`)
     await expect(page.getByRole("log")).toContainText(

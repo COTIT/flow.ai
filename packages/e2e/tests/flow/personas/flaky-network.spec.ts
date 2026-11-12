@@ -8,7 +8,7 @@ import { markInjected } from "../../../src/test"
 import { sc } from "../scenes-api"
 import { s as shell } from "../shell"
 import { readBack, scene, stockRoutes } from "../task"
-import { startText, v } from "../voice"
+import { startText, v, typeInstead } from "../voice"
 import { expect, test, type Persona } from "./harness"
 
 const SCENES = ["pulse", "stock", "noticed", "orders", "sales", "routines"] as const
@@ -254,7 +254,7 @@ test.describe("P6-1: a dropped or garbled voice request shows the browser's raw 
   // Fixed: regression guards.
   test("P6-1a: Use text instead while offline", async ({ persona, page }) => {
     await page.goto("/")
-    await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: typeInstead, exact: true })).toBeVisible()
     await persona.offline(page.context(), true)
     await persona.startText()
     await expect(page.getByRole("alert").first()).not.toBeEmpty()
@@ -270,7 +270,7 @@ test.describe("P6-1: a dropped or garbled voice request shows the browser's raw 
   })
   test("P6-1c: the gateway answers an HTML 502", async ({ persona, page }) => {
     await page.goto("/")
-    await expect(page.getByRole("button", { name: v.textInstead, exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: typeInstead, exact: true })).toBeVisible()
     markInjected(page, /\/api\/voice\//)
     let left = 1
     await page.route(/\/api\/voice\/session/, (route) =>

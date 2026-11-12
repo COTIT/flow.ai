@@ -16,11 +16,11 @@ import type { FakeApi } from "../../office/fake-api"
 import { ACTION, stockReview } from "../task"
 import { revealHeader } from "../shell"
 import { fakeAgent, type Agent } from "../voice"
-import type { Persona } from "./harness"
+import { openComposer, type Persona } from "./harness"
 
 export type Locale = "en" | "nl" | "sw"
 const pack = (voice: typeof voiceEn, shell: typeof shellEn, common: typeof commonEn) => ({
-  textInstead: voice.voice.textInstead,
+  textInstead: shell.shell.typeInstead, // orb-first home: "Type instead"
   message: voice.voice.message,
   send: voice.voice.send,
   approve: voice.voice.approve,
@@ -201,6 +201,7 @@ export async function startText(page: Page) {
 }
 export async function say(page: Page, text: string, enter = true) {
   const t = L[await localeOf(page)]
+  await openComposer(page)
   const box = page.getByLabel(t.message)
   if (!(await box.isEditable().catch(() => false))) return false
   await box.fill(text)
