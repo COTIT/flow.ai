@@ -131,7 +131,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       // Short screens (phone landscape, zoomed laptop): one row, suggestions beside the field.
       // Never taller than ~45% of the visible screen (P4-2): what sits above the field scrolls in
       // the dock's own pane; the field and Send always stay in view.
-      className="flex max-h-[calc(var(--flow-vh,100dvh)*0.45)] min-w-0 shrink-0 flex-col gap-2 [&_li_p]:min-w-0 [&_li_p]:truncate rounded-2xl glass-strong p-3 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-flow-pane]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-flow-pane]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
+      className="flex max-h-[calc(var(--flow-vh,100dvh)*0.45)] min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [&_li_p]:min-w-0 [&_li_p]:truncate [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-flow-pane]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-flow-pane]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
     >
       <div
         data-flow-pane="dock"
@@ -168,7 +168,9 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         {/* P9-4: always mounted, so a screen reader hears when a review arrives. A live region,
             not a second role="status": the dock's status line stays the one status. */}
         <p aria-live="polite" className="sr-only">
-          {voice.review ? t("shell.reviewReady", { summary: voice.review.summary }) : ""}
+          {voice.review
+            ? t("shell.reviewReady", { summary: voice.review.summary })
+            : ""}
         </p>
         {phase === "ended" ? (
           <p role="status" className="text-sm">
