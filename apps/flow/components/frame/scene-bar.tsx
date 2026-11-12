@@ -49,18 +49,6 @@ export function SceneBar({
           <TaskCapsule />
         </div>
       </div>
-      {/* The header's always-present way in (mouse and keyboard; touch also has the handle). */}
-      <Button
-        variant="outline"
-        className="min-h-11 shrink-0 rounded-full @max-[600px]:hidden"
-        onClick={() =>
-          document
-            .querySelector<HTMLElement>("#flow-header a, #flow-header button")
-            ?.focus()
-        }
-      >
-        {t("menu")}
-      </Button>
       {conversation}
       {orb ? <OrbSlot name="compact" className="size-11" /> : null}
     </div>
