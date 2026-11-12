@@ -1,58 +1,11 @@
 // P6-6: navigating inside Flow while offline must keep Flow on screen (SIMULATED API).
-import type { Page } from "@playwright/test"
-
-import { expect, test as base } from "./storefront-api"
+import { expect, notice, test, tunnel } from "./offline"
 import { sc } from "./scenes-api"
 import { dock, s } from "./shell"
 import { v } from "./voice"
 
-const offline = new WeakMap<Page, boolean>()
-
-/**
- * The shared guard counts every request the tunnel drops as a failure, so this file swaps it
- * for the same checks minus those drops and the console errors Next logs while offline.
- */
-const test = base.extend({
-  guard: async ({ page }, use) => {
-    const problems: string[] = []
-    page.on("pageerror", (e) => problems.push(`page error: ${e.message}`))
-    page.on("console", (m) => {
-      if (m.type() !== "error") return
-      if (m.text().startsWith("Failed to load resource:")) return
-      if (offline.get(page)) return // Next reports the fetch it could not make
-      problems.push(`console error: ${m.text()}`)
-    })
-    page.on("requestfailed", (r) => {
-      // Only the tunnel drops requests this way; one in flight may land just after it ends.
-      if (r.failure()?.errorText === "net::ERR_INTERNET_DISCONNECTED") return
-      if (r.failure()?.errorText !== "net::ERR_ABORTED")
-        problems.push(`request failed: ${r.url()} ${r.failure()?.errorText}`)
-    })
-    page.on("response", (r) => {
-      if (r.status() >= 400)
-        problems.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
-    })
-    await use()
-    expect(problems, "page problems").toEqual([])
-  },
-})
-
-// The override is not auto like the original, so every test asks for it here.
+// The guard override is not auto like the original, so every test asks for it here.
 test.beforeEach(({ api, guard }) => void [api, guard])
-
-/** The train enters a tunnel: every request is dropped and the browser reports offline. */
-async function tunnel(page: Page) {
-  await page.route("**/*", (route) =>
-    offline.get(page) ? route.abort("internetdisconnected") : route.fallback()
-  )
-  return async (on: boolean) => {
-    offline.set(page, on)
-    await page.context().setOffline(on)
-  }
-}
-
-const notice = (page: Page) =>
-  page.getByRole("status").filter({ hasText: s.offlineNavigation })
 
 test("Back to home while offline keeps the scene, the draft and says why", async ({
   page,
@@ -72,11 +25,17 @@ test("Back to home while offline keeps the scene, the draft and says why", async
     "Draft I am still typing"
   )
 
-  // Back online the same tap works and the notice goes.
+  // Back online the asked-for page opens by itself (J3) and the notice goes. A re-click right
+  // then (before or after the auto-open) still makes exactly one navigation, never two.
+  const before = await page.evaluate(() => history.length)
   await flip(false)
-  await expect(notice(page)).toBeHidden()
-  await back.click()
+  await back.click({ timeout: 1_000 }).catch(() => {})
   await expect(page).toHaveURL(/\/$/)
+  await expect(notice(page)).toBeHidden()
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => history.length), "one navigation").toBe(
+    before + 1
+  )
   await expect(page.getByLabel(v.message)).toHaveValue(
     "Draft I am still typing"
   )
@@ -113,9 +72,14 @@ test("a Your Flow scene opened while offline keeps Flow on screen", async ({
     description: new URL(page.url()).pathname === href ? "opened" : "notice",
   })
 
+  // Back online the scene asked for opens by itself (J3); a re-click right then is one navigation.
+  const before = await page.evaluate(() => history.length)
+  const opened = new URL(page.url()).pathname === href
   await flip(false)
-  if (new URL(page.url()).pathname !== href) {
-    await link.click()
-    await expect(page).toHaveURL(new RegExp(`${href}$`))
-  }
+  if (!opened) await link.click({ timeout: 1_000 }).catch(() => {})
+  await expect(page).toHaveURL(new RegExp(`${href}$`))
+  await page.waitForTimeout(500)
+  expect(await page.evaluate(() => history.length), "one navigation").toBe(
+    before + (opened ? 0 : 1)
+  )
 })
