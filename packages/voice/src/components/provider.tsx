@@ -66,6 +66,7 @@ import { watchCapture } from "../lib/capture-watch"
 import {
   VoiceRequestError,
   VoiceShownError,
+  errorAfterOnline,
   voiceErrorMessage,
 } from "../lib/errors"
 import {
@@ -265,6 +266,12 @@ function Session({
   const [textOnly, setTextOnly] = useState(false)
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
+  // J3: the browser is back online, so an "offline" line no longer holds (other errors stay).
+  useEffect(() => {
+    const online = () => setError((e) => errorAfterOnline(e, t("offline")))
+    window.addEventListener("online", online)
+    return () => window.removeEventListener("online", online)
+  }, [t])
   const [progress, setProgress] = useState<VoiceProgress | null>(null)
   const [unfinished, setUnfinished] = useState<"stalled" | "dropped" | null>(
     null
