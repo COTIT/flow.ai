@@ -54,7 +54,10 @@ function Drawing({
           {values.length ? money(Math.min(...values)) : null}
         </span>
       </div>
-      <div className="min-h-0 min-w-0 border-b border-l border-border/60">
+      <div
+        data-plot
+        className="min-h-0 min-w-0 border-b border-l border-border/60"
+      >
         <Series line={line} values={values} className="h-full" />
       </div>
       <div

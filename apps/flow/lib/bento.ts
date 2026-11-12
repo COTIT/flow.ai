@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+
 /**
  * The bento rule, one for every scene: a 12-column grid at ≥1024 px of results width, 6 at
  * 640–1023, 2 below. Size comes from the component type; the saved order stays the reading order.
@@ -23,12 +25,125 @@ export const BENTO_CLASS: Record<BentoSize, string> = {
   full: "col-span-full",
 }
 
-/** Fixed row tracks from 640 px: a tile is 1 or 2 tracks, never stretched by a taller neighbour,
- * so the first screen shows whole tiles (at a glance). Content taller than its tile is clipped
- * with "Show all", which grows that tile only. On a phone tiles stack at their natural height. */
-export const TRACK_PX = 132
+/** Rows follow their content (bento fit): planBands fills every row to the width, so auto-placement
+ * puts each band on its own row; dense placement lets a big tile beside two stacked metrics take
+ * both rows. DOM (reading) order stays the saved order. On a phone tiles stack at natural height. */
 export const BENTO_GRID =
-  "grid grid-cols-2 gap-3 @min-[640px]:grid-cols-6 @min-[640px]:auto-rows-[132px] @min-[640px]:gap-4 @min-[1024px]:grid-cols-12"
+  "grid grid-flow-row-dense grid-cols-2 gap-3 @min-[640px]:grid-cols-6 @min-[640px]:gap-4 @min-[1024px]:grid-cols-12"
+
+/** A tile's place from its planned spans (CSS variables set per tile by `placements`). */
+export const BENTO_PLACE =
+  "[grid-column:span_var(--s2)] @min-[640px]:[grid-column:span_var(--s6)] @min-[1024px]:[grid-column:var(--c12,auto)_/_span_var(--s12)] @min-[1024px]:[grid-row:span_var(--r12)]"
 
 /** A scene of one component: natural height, nothing to line up with. */
 export const BENTO_SINGLE = "grid grid-cols-1 gap-3"
+
+/** One tile as the band planner sees it: its type, and whether it has nothing to show. */
+export type PlanInput = { id: string; type: string; empty?: boolean }
+/** Where it goes: its row ("band"), its column span, and whether it is a slim empty line. */
+export type PlanTile = {
+  id: string
+  band: number
+  span: number
+  slim: boolean
+  /** Grid rows it spans: 2 for a big tile beside two stacked metrics. */
+  rows: number
+  /** A metric stacked with another in one column beside a big tile. */
+  stack: boolean
+}
+
+/**
+ * The fit rule (bento fit): tiles are laid out in rows ("bands") whose spans always add up to the
+ * full width, in the saved order (so reading and Tab order never change). Metrics (and empty
+ * components, drawn as slim lines) pair up; at 12 columns up to two metrics share a row with the
+ * next big tile, which takes the rest; a row with nothing to share widens its tiles to the width.
+ */
+export function planBands(
+  list: readonly PlanInput[],
+  cols: 12 | 6 | 2
+): PlanTile[] {
+  const small = (t: PlanInput) => !!t.empty || SMALL.has(t.type)
+  const out: PlanTile[] = []
+  let band = 0
+  const row = (
+    tiles: readonly PlanInput[],
+    spans: readonly number[],
+    stacked = false
+  ) => {
+    tiles.forEach((t, i) =>
+      out.push({
+        id: t.id,
+        band,
+        span: spans[i]!,
+        slim: !!t.empty,
+        // Two metrics stack in one column; the big tile beside them spans both rows.
+        rows: stacked && i === tiles.length - 1 ? tiles.length - 1 : 1,
+        stack: stacked && i < tiles.length - 1,
+      })
+    )
+    band++
+  }
+  /** Spans that share `width` evenly; the last tile takes what is left. */
+  const even = (n: number, width: number) =>
+    Array.from({ length: n }, (_, i) =>
+      i < n - 1
+        ? Math.floor(width / n)
+        : width - Math.floor(width / n) * (n - 1)
+    )
+  const unit = cols === 12 ? 3 : cols === 6 ? 3 : 1 // a metric's width
+  const perRow = cols / unit // metrics a row holds
+  let i = 0
+  while (i < list.length) {
+    let k = 0
+    while (i + k < list.length && k < perRow && small(list[i + k]!)) k++
+    if (k > 0) {
+      const next = list[i + k]
+      // At 12 columns a big tile joins one or two metrics and takes the rest of the row.
+      if (cols === 12 && next && !small(next) && k === 2) {
+        // Two metrics stack in one column beside the big tile (no empty height); a lone metric is
+        // its own full-width strip instead (beside a table it would be a half-empty card).
+        row(
+          [...list.slice(i, i + k), next],
+          [...Array(k).fill(unit), cols - unit],
+          k === 2
+        )
+        i += k + 1
+      } else {
+        row(list.slice(i, i + k), even(k, cols))
+        i += k
+      }
+      continue
+    }
+    const next = list[i + 1]
+    if (cols === 12 && next && !small(next)) {
+      row([list[i]!, next], [6, 6])
+      i += 2
+    } else {
+      row([list[i]!], [cols])
+      i += 1
+    }
+  }
+  return out
+}
+
+/** Per tile, its spans at 2, 6 and 12 columns as CSS variables for BENTO_PLACE. */
+export function placements(list: readonly PlanInput[]) {
+  const [p2, p6, p12] = ([2, 6, 12] as const).map(
+    (cols) => new Map(planBands(list, cols).map((t) => [t.id, t]))
+  )
+  return new Map(
+    list.map((c) => {
+      const wide = p12!.get(c.id)!
+      return [
+        c.id,
+        {
+          "--s2": p2!.get(c.id)!.span,
+          "--s6": p6!.get(c.id)!.span,
+          "--s12": wide.span,
+          "--c12": wide.stack ? "1" : "auto",
+          "--r12": wide.rows,
+        } as CSSProperties,
+      ]
+    })
+  )
+}

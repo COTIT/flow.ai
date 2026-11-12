@@ -17,7 +17,9 @@ test("pending orders first is saved by the API, restored after a new login, and 
   await page.goto(`${urls.flow}/scenes/pulse`)
   const cards = page.locator("[data-component]")
   await expect(cards.first()).toHaveAttribute("data-component", "sales-today")
-  await page.getByRole("button", { name: sc.pendingFirst }).click()
+  // The scene's own actions live in its More menu (keep Flow simple).
+  await page.getByRole("button", { name: sc.moreActions }).click()
+  await page.getByRole("menuitem", { name: sc.pendingFirst }).click()
   await expect(cards.first()).toHaveAttribute(
     "data-component",
     "orders-pending"

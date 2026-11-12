@@ -5,7 +5,7 @@ import type { Page } from "@playwright/test"
 
 import { expectNoHorizontalScroll } from "../../src/test"
 import { rowAction } from "./lists"
-import { HONEY, TEA, sc, sceneWorld } from "./scenes-api"
+import { HONEY, TEA, menuItem, moreMenu, sc, sceneWorld } from "./scenes-api"
 import { expect, member, test } from "./storefront-api"
 import { stockReview } from "./task"
 import discoveryEn from "../../../../apps/flow/messages/en/discovery.json" with { type: "json" }
@@ -200,11 +200,14 @@ test("Sales: Compare with last week shows both weeks from the API's own answer",
 }) => {
   sceneWorld(api)
   await page.goto("/scenes/sales")
-  const compare = page.getByRole("button", { name: sc.compare.button })
-  await expect(compare).toHaveAttribute("aria-pressed", "false")
+  await moreMenu(page).click()
+  const compare = menuItem(page, sc.compare.button)
+  await expect(compare).toHaveAttribute("aria-checked", "false")
   await expect(page.locator("[data-compare]")).toHaveCount(0)
   await compare.click()
-  await expect(compare).toHaveAttribute("aria-pressed", "true")
+  // An on/off choice keeps the menu open: its state shows right there.
+  await expect(compare).toHaveAttribute("aria-checked", "true")
+  await page.keyboard.press("Escape")
   const panel = page.locator("[data-compare]")
   await expect(panel.getByRole("heading")).toHaveText(sc.compare.title.this_week)
   const sales = panel.locator('[data-item$="-gross"]')
@@ -215,6 +218,7 @@ test("Sales: Compare with last week shows both weeks from the API's own answer",
   await expect(sales).toContainText("+20%")
   await expect(panel.locator('[data-item$="-orders"]')).toContainText(sc.compare.orders)
   await expectNoHorizontalScroll(page)
+  await moreMenu(page).click()
   await compare.click()
   await expect(page.locator("[data-compare]")).toHaveCount(0)
 })
@@ -249,7 +253,8 @@ test("Sales compare: without the API's percentage none is shown", async ({ page,
     },
   }))
   await page.goto("/scenes/sales")
-  await page.getByRole("button", { name: sc.compare.button }).click()
+  await moreMenu(page).click()
+  await menuItem(page, sc.compare.button).click()
   const panel = page.locator("[data-compare]")
   await expect(panel).toContainText("+€500.00")
   await expect(panel).not.toContainText("%")
@@ -259,7 +264,8 @@ test("Sales compare is not offered when the comparison is not readable", async (
   sceneWorld(api, { role: "ops" })
   await page.goto("/scenes/sales")
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
-  await expect(page.getByRole("button", { name: sc.compare.button })).toHaveCount(0)
+  await moreMenu(page).click()
+  await expect(menuItem(page, sc.compare.button)).toHaveCount(0)
 })
 
 test("empty My Routines: one big Set up a weekly report asks Genesy", async ({ page, api }) => {

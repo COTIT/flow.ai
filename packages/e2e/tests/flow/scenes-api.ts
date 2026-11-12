@@ -112,11 +112,24 @@ export function sceneWorld(
     ws = "w1",
     role = "owner" as "owner" | "ops",
     timeZone = "Africa/Dar_es_Salaam",
+    /** Products below minimum: the 3 named ones by default, or this many (bento fit edge data). */
+    stockRows = undefined as number | undefined,
+    /** No sales in any period (empty-state edge data). */
+    noSales = false,
   } = {}
 ) {
   const saved = new Map<string, Saved>()
   const marks = new Map<string, { state: string }>()
-  let stock = [...stockItems]
+  let stock =
+    stockRows === undefined
+      ? [...stockItems]
+      : Array.from({ length: stockRows }, (_, i) => ({
+          product_id: `01950000-0000-7000-8000-${String(i + 1).padStart(12, "0")}`,
+          product_name: `Product ${i + 1}`,
+          available: `${(i % 9) + 1}.00`,
+          minimum: "10.00",
+          shortfall: `${10 - ((i % 9) + 1)}.00`,
+        }))
   const ops = role === "ops"
   const sceneOf = (key: string, position: number) => {
     const row = saved.get(key)
@@ -264,9 +277,9 @@ export function sceneWorld(
                 from: query.get("from"),
                 to: query.get("to"),
                 source: null,
-                currencies: [
-                  { currency: "EUR", decimals: 2, ...sums(1284000) },
-                ],
+                currencies: noSales
+                  ? []
+                  : [{ currency: "EUR", decimals: 2, ...sums(1284000) }],
               },
             }
     )
@@ -284,19 +297,21 @@ export function sceneWorld(
                 from: "2026-11-02T00:00:00Z",
                 to: "2026-11-05T00:00:00Z",
               },
-              currencies: [
-                {
-                  currency: "EUR",
-                  decimals: 2,
-                  current: sums(1284000),
-                  base: sums(1070000),
-                  gross_difference: 214000,
-                  net_difference: 181356,
-                  orders_difference: 0,
-                  gross_change_bp: 2000,
-                  net_change_bp: 2000,
-                },
-              ],
+              currencies: noSales
+                ? []
+                : [
+                    {
+                      currency: "EUR",
+                      decimals: 2,
+                      current: sums(1284000),
+                      base: sums(1070000),
+                      gross_difference: 214000,
+                      net_difference: 181356,
+                      orders_difference: 0,
+                      gross_change_bp: 2000,
+                      net_change_bp: 2000,
+                    },
+                  ],
             },
           }
     )
@@ -440,3 +455,14 @@ export const sceneTable = (ws = "w1"): Record<string, MockReply> => ({
     body: NO_REVISIONS,
   },
 })
+
+/** A scene's More menu (keep Flow simple): every action besides Refresh lives there. */
+export const moreMenu = (page: import("@playwright/test").Page) =>
+  page.getByRole("button", { name: sc.moreActions })
+/** An item of the open More menu, whatever its kind (action, choice, on/off). */
+export const menuItem = (page: import("@playwright/test").Page, name: string) =>
+  page
+    .locator(
+      '[role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]'
+    )
+    .filter({ hasText: name })

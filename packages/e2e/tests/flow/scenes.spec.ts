@@ -2,7 +2,7 @@
 import type { Page } from "@playwright/test"
 
 import { expect, test } from "./storefront-api"
-import { HONEY, sc } from "./scenes-api"
+import { HONEY, menuItem, moreMenu, sc } from "./scenes-api"
 import { orbAt, phase, s as shell, homeOrb } from "./shell"
 import { fakeAgent, startText, watch } from "./voice"
 
@@ -42,7 +42,8 @@ test("Morning Pulse: pending orders first is saved and restored on the next visi
     "data-component",
     "sales-today"
   )
-  await page.getByRole("button", { name: sc.pendingFirst }).click()
+  await moreMenu(page).click()
+  await menuItem(page, sc.pendingFirst).click()
   await expect(
     page.getByRole("status").filter({ hasText: sc.pendingFirstDone })
   ).toBeVisible()
@@ -70,24 +71,32 @@ test("Sales Perspective: keep a period's view in Your Flow once, then remove and
   page,
 }) => {
   await page.goto("/scenes/sales")
-  await page.getByLabel(sc.periodLabel).selectOption("this_month")
-  await page.getByRole("button", { name: sc.keep }).click()
+  await moreMenu(page).click()
+  await menuItem(page, sc.period.this_month).click()
+  // A choice keeps the menu open; close it before the next action.
+  await page.keyboard.press("Escape")
+  await moreMenu(page).click()
+  await menuItem(page, sc.keep).click()
   await expect(
     page.getByRole("status").filter({ hasText: sc.saved })
   ).toBeVisible()
-  await expect(page.getByRole("button", { name: sc.kept })).toBeDisabled()
+  await moreMenu(page).click()
+  await expect(menuItem(page, sc.kept)).toBeDisabled()
+  await page.keyboard.press("Escape")
   await page.goto("/")
   const kept = yourFlow(page).getByRole("link", { name: /Sales · This month/ })
   await expect(kept).toHaveCount(1)
   await kept.click()
-  await page.getByRole("button", { name: sc.remove }).click()
+  await moreMenu(page).click()
+  await menuItem(page, sc.remove).click()
   await expect(page).toHaveURL(/\/$/)
   await expect(
     yourFlow(page).getByRole("link", { name: /Sales · This month/ })
   ).toHaveCount(0)
   // A built-in removed goes to Hidden scenes and comes back with Restore.
   await page.goto("/scenes/routines")
-  await page.getByRole("button", { name: sc.remove }).click()
+  await moreMenu(page).click()
+  await menuItem(page, sc.remove).click()
   await expect(
     yourFlow(page).getByRole("link", { name: /Scheduled reports/ })
   ).toHaveCount(0)
