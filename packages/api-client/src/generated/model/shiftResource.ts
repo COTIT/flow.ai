@@ -19,6 +19,10 @@ export interface ShiftResource {
      * @nullable
      */
   counted: number | null;
+  /** Currency of every amount here (the register's): upper-case ISO 4217 code. */
+  currency: string;
+  /** Minor-unit exponent: amounts / 10^decimals = major units. */
+  decimals: number;
   /**
      * counted − expected: negative = short.
      * @nullable

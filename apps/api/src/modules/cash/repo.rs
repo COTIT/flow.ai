@@ -18,6 +18,10 @@ pub struct ShiftRow {
     pub closed_at: Option<DateTime<Utc>>,
     pub counted: Option<i64>,
     pub difference: Option<i64>,
+    /// The register's currency: upper-case ISO 4217 code.
+    pub currency: String,
+    /// The currency's minor-unit exponent.
+    pub decimals: i16,
 }
 
 /// A vault with its balance.
@@ -67,8 +71,11 @@ pub async fn open_shift(
                   (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l
                    WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id
                      AND l.kind <> 'close_count') AS "expected!",
-                  s.closed_by, s.closed_at, s.counted, s.difference
+                  s.closed_by, s.closed_at, s.counted, s.difference,
+                  upper(c.asset_type) AS "currency!", c.decimals
            FROM drawer_shifts s
+           JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id
+           JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id
            WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.closed_at IS NULL"#,
         workspace_id,
         register_id,
@@ -167,8 +174,12 @@ pub async fn shift(
                            (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l
                             WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id
                               AND l.kind <> 'close_count')) AS "expected!",
-                  s.closed_by, s.closed_at, s.counted, s.difference
-           FROM drawer_shifts s WHERE s.workspace_id = $1 AND s.id = $2"#,
+                  s.closed_by, s.closed_at, s.counted, s.difference,
+                  upper(c.asset_type) AS "currency!", c.decimals
+           FROM drawer_shifts s
+           JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id
+           JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id
+           WHERE s.workspace_id = $1 AND s.id = $2"#,
         workspace_id,
         id,
     )
@@ -203,8 +214,12 @@ pub async fn list_shifts(
                             WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id
                               AND l.kind <> 'close_count')) AS "expected!",
                   s.closed_by, s.closed_at, s.counted, s.difference,
+                  upper(c.asset_type) AS "currency!", c.decimals,
                   count(*) OVER () AS "total!"
-           FROM drawer_shifts s WHERE s.workspace_id = $1
+           FROM drawer_shifts s
+           JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id
+           JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id
+           WHERE s.workspace_id = $1
              AND ($4::bool IS NULL OR (s.closed_at IS NULL) = $4)
              AND ($5::uuid IS NULL OR s.register_id = $5)
              AND ($6::timestamptz IS NULL OR s.opened_at >= $6)
@@ -235,6 +250,8 @@ pub async fn list_shifts(
             closed_at: s.closed_at,
             counted: s.counted,
             difference: s.difference,
+            currency: s.currency,
+            decimals: s.decimals,
         })
         .collect();
     Ok((rows, total))
