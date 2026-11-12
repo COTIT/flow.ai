@@ -239,11 +239,20 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
   await page.goto("/")
   // A real agent speaks after its tool results (P7-3 covers the silent case).
   let answered = 0
+  let calls = 0
+  const call = persona.agent.call.bind(persona.agent)
+  persona.agent.call = (...args: Parameters<typeof call>) => {
+    calls++
+    return call(...args)
+  }
   const speakAfterTools = <T extends { run: () => Promise<unknown> }>(step: T): T => ({
     ...step,
     run: async () => {
       await step.run()
       await page.waitForTimeout(50)
+      // A slow tool (2.5 s) answers after its step; the agent replies once that result lands.
+      // A call to a closed socket never answers, so the wait is capped.
+      await expect.poll(() => persona.agent.results(), { timeout: 3_000 }).toBeGreaterThanOrEqual(calls).catch(() => {})
       const n = persona.agent.results()
       if (n > answered) persona.agent.say(`Done (${n}).`)
       answered = n
