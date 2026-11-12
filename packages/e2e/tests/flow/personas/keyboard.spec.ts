@@ -105,6 +105,9 @@ type Sanity = {
   bodyOk?: boolean
   /** Skip the indicator check (P9-2: forced colours draw no ring). */
   noIndicator?: boolean
+  /** The step scrolled the page by keyboard (Home/End/PageUp/PageDown/arrows): the person moved
+   *  the view away from a focused control on purpose, so it may be off screen. */
+  scrolled?: boolean
 }
 
 async function expectKeyboardSane(page: Page, before: string, trail: string[], sanity: Sanity = {}) {
@@ -118,7 +121,8 @@ async function expectKeyboardSane(page: Page, before: string, trail: string[], s
   }
   if (!sanity.noIndicator)
     expect(focus.indicator, `focus invisible on "${focus.name}" at ${focus.path}`).toBe(true)
-  expect(focus.onScreen, `focused "${focus.name}" is off screen at ${focus.path}`).toBe(true)
+  if (!sanity.scrolled)
+    expect(focus.onScreen, `focused "${focus.name}" is off screen at ${focus.path}`).toBe(true)
 }
 
 /** Tabs until `target` has focus; false if the keyboard never reaches it. */
@@ -218,7 +222,8 @@ function keyboardSteps(persona: Persona, page: Page, { noIndicator = false } = {
         .catch(() => false)
       const tabbing = /^(Tab|Shift\+Tab)/.test(step.name)
       if (gone && (await focusOf(page)).body) persona.log("   (P9-1: focused control unmounted, focus on body)")
-      await expectKeyboardSane(page, before, persona.trail, { bodyOk: gone || tabbing || wasBody, noIndicator })
+      const scrolled = /^(Home \/ End|arrows|Page ?(Up|Down))/.test(step.name)
+      await expectKeyboardSane(page, before, persona.trail, { bodyOk: gone || tabbing || wasBody, noIndicator, scrolled })
       // Past the last control focus leaves the page; the next Tab must come back into it.
       if (tabbing && (await focusOf(page)).body) {
         await page.keyboard.press("Tab")
