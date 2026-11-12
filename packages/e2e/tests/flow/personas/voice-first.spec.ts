@@ -5,6 +5,7 @@
 import type { Page, Request } from "@playwright/test"
 
 import { readBack, scene, stockRoutes } from "../task"
+import { s as shell } from "../shell"
 import { v } from "../voice"
 import { expect, test, type Persona } from "./harness"
 
@@ -325,10 +326,15 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
       weight: 2,
       run: async () => {
         if (!(await live())) return
+        // End lives in the conversation view; from the dashboard a person opens it with the orb.
+        const end = page.getByRole("button", { name: v.end, exact: true }).first()
+        if (!(await end.isVisible())) await page.getByRole("button", { name: shell.orbOpen, exact: true }).click()
+        await expect(end, "End is reachable to hang up").toBeVisible()
         slowTools = true
         persona.agent.call("products_list", {})
         await page.waitForTimeout(persona.int(100, 800))
-        await persona.click(page.getByRole("button", { name: v.end }))
+        await end.click()
+        await expect(page.getByRole("button", { name: v.addFiles }), "the call ended").toBeHidden()
         await page.waitForTimeout(persona.int(0, 600))
         slowTools = false
         if (persona.chance(0.7)) await persona.click(page.getByRole("button", { name: v.start, exact: true }))

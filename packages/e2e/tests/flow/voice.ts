@@ -58,13 +58,18 @@ export async function fakeAgent(
   await page.routeWebSocket("wss://api.elevenlabs.io/**", (socket) => {
     if (refuse?.()) return void socket.close()
     agent.connections++
-    agent.emit = (event) => socket.send(JSON.stringify(event))
+    // Like the real service, nothing reaches a new socket before its metadata: what the agent
+    // says meanwhile (e.g. right as a call restarts) waits, or the SDK refuses the connection.
+    const send = (event: unknown) => socket.send(JSON.stringify(event))
+    const early: unknown[] = []
+    let ready = false
+    agent.emit = (event) => (ready ? send(event) : void early.push(event))
     agent.close = () => socket.close()
     socket.onMessage((raw) => {
       const event = JSON.parse(String(raw)) as Event
       agent.sent.push(event)
-      if (event.type === "conversation_initiation_client_data")
-        agent.emit({
+      if (event.type === "conversation_initiation_client_data") {
+        send({
           type: "conversation_initiation_metadata",
           conversation_initiation_metadata_event: {
             conversation_id: "flow-conversation",
@@ -72,10 +77,16 @@ export async function fakeAgent(
             user_input_audio_format: "pcm_16000",
           },
         })
+        ready = true
+        early.splice(0).forEach(send)
+      }
       if (event.type === "user_message" && onUser)
         onUser(String(event.text ?? ""), agent)
       if (event.type === "multimodal_message" && files && onUser)
-        onUser(String((event.text as { text?: unknown } | undefined)?.text ?? ""), agent)
+        onUser(
+          String((event.text as { text?: unknown } | undefined)?.text ?? ""),
+          agent
+        )
     })
   })
   return agent
