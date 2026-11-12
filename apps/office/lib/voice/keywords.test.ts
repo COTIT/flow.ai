@@ -140,6 +140,20 @@ describe("voice trigger words", () => {
     ["publiceer het nieuwe winkelontwerp", "storefront_design_publish"],
     ["badilisha kichwa cha ukurasa wa duka", "storefront_design_edit"],
     ["chapisha muundo mpya wa duka", "storefront_design_publish"],
+    // Office parity P1: order steps and batch status in the words people use on screen
+    ["confirm order 1042", "orders_confirm"],
+    ["bevestig bestelling 1042", "orders_confirm"],
+    ["thibitisha oda 1042", "orders_confirm"],
+    ["record picking for order 1042", "orders_pick"],
+    ["picking invoeren voor bestelling 1042", "orders_pick"],
+    ["rekodi bidhaa zilizokusanywa kwa oda 1042", "orders_pick"],
+    ["recall batch L-12", "lots_update"],
+    ["release batch L-12 from quarantine", "lots_update"],
+    ["put batch L-12 on hold in quarantine", "lots_update"],
+    ["partij L-12 terugroepen", "lots_update"],
+    ["partij L-12 in quarantaine zetten", "lots_update"],
+    ["rudisha bechi L-12 sokoni", "lots_update"],
+    ["weka bechi L-12 karantini", "lots_update"],
   ])("finds the right operation for %j", (query, id) => {
     expect(top(query)).toContain(id)
   })

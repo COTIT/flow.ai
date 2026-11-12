@@ -43,14 +43,14 @@ const loose = planHeal([...triaged, moneyCluster], keywords, {
 
 describe("clusterGaps", () => {
   it("merges the same words in any order and counts distinct workspaces", () => {
-    const lots = find("batch expiry lot")
-    expect(lots).toMatchObject({
+    const bins = find("aisle bin slot")
+    expect(bins).toMatchObject({
       gaps: 2,
       workspaces: 2,
       languages: ["en", "sw"],
       rephrased: 1,
       usedUi: 1,
-      route: "/lots",
+      route: "/stock",
     })
     expect(find("cancel orders")).toMatchObject({
       gaps: 3,
@@ -69,7 +69,7 @@ describe("clusterGaps", () => {
 
 describe("classify", () => {
   it.each([
-    ["batch expiry lot", "discoverability"],
+    ["aisle bin slot", "discoverability"],
     ["rate vat", "discoverability"],
     ["customers orders top", "discoverability"],
     ["cancel orders", "bug"],
@@ -84,8 +84,8 @@ describe("classify", () => {
   })
 
   it("names the operation a discoverability gap needed, and whether search finds it today", () => {
-    expect(find("batch expiry lot")).toMatchObject({
-      op: "lots_list",
+    expect(find("aisle bin slot")).toMatchObject({
+      op: "warehouse_bins_by_warehouse",
       found: false,
     })
     expect(find("customers orders top")).toMatchObject({
@@ -103,19 +103,29 @@ describe("classify", () => {
 describe("checkProposal", () => {
   it("accepts words that bring the operation into the top three", () => {
     expect(
-      checkProposal("lot expiry batch", "lots_list", ["expiry", "batch"], {})
+      checkProposal(
+        "aisle bin slot",
+        "warehouse_bins_by_warehouse",
+        ["aisle", "slot"],
+        {}
+      )
     ).toBeUndefined()
   })
 
   it("refuses words that do not bring it into the top three", () => {
-    expect(checkProposal("lot expiry batch", "lots_list", [], {})).toMatch(
-      /top three/
-    )
+    expect(
+      checkProposal("aisle bin slot", "warehouse_bins_by_warehouse", [], {})
+    ).toMatch(/top three/)
   })
 
   it("refuses words that steer a read question to a write tool", () => {
     expect(
-      checkProposal("lot expiry batch", "lots_create", ["expiry", "batch"], {})
+      checkProposal(
+        "aisle bin slot",
+        "warehouse_bins_create",
+        ["aisle", "slot"],
+        {}
+      )
     ).toMatch(/write/)
   })
 
@@ -126,9 +136,9 @@ describe("checkProposal", () => {
       )
     expect(
       checkProposal(
-        "lot expiry batch",
-        "lots_list",
-        ["expiry", "batch", ...greedy],
+        "aisle bin slot",
+        "warehouse_bins_by_warehouse",
+        ["aisle", "slot", ...greedy],
         {}
       )
     ).toMatch(/replay/)
@@ -144,18 +154,20 @@ describe("replayHits", () => {
 describe("planHeal", () => {
   it("proposes missing words for eligible discoverability clusters only", () => {
     expect(plan.proposals.map((p) => p.op).sort()).toEqual([
-      "lots_list",
       "vat_groups_list",
+      "warehouse_bins_by_warehouse",
     ])
-    const lots = plan.proposals.find((p) => p.op === "lots_list")!
-    expect([...lots.words].sort()).toEqual(["batch", "expiry"])
-    expect(plan.keywords.lots_list!.en).toEqual(
-      expect.arrayContaining(["batch", "expiry"])
+    const bins = plan.proposals.find(
+      (p) => p.op === "warehouse_bins_by_warehouse"
+    )!
+    expect([...bins.words].sort()).toEqual(["aisle", "slot"])
+    expect(plan.keywords.warehouse_bins_by_warehouse!.en).toEqual(
+      expect.arrayContaining(["aisle", "slot"])
     )
-    expect(plan.keywords.lots_list!.nl).toEqual([])
+    expect(plan.keywords.warehouse_bins_by_warehouse!.nl).toEqual([])
     expect(plan.fixture).toContainEqual({
-      intent: "lot expiry batch",
-      want: "lots_list",
+      intent: "aisle bin slot",
+      want: "warehouse_bins_by_warehouse",
     })
     // Already found today: nothing to add, so no proposal.
     expect(plan.proposals.some((p) => p.op === "orders_top_customers")).toBe(
@@ -164,21 +176,17 @@ describe("planHeal", () => {
   })
 
   it("skips one workspace's few gaps unless the thresholds allow it", () => {
-    expect(moneyPlan.skipped.map((s) => s.op)).toContain(
-      "invoices_credit"
-    )
-    expect(loose.proposals.map((p) => p.op)).toContain(
-      "invoices_credit"
-    )
+    expect(moneyPlan.skipped.map((s) => s.op)).toContain("invoices_credit")
+    expect(loose.proposals.map((p) => p.op)).toContain("invoices_credit")
   })
 
   it("marks money and write operations for human review", () => {
-    expect(loose.proposals.find((p) => p.op === "lots_list")!.review).toBe(
-      false
-    )
     expect(
-      loose.proposals.find((p) => p.op === "invoices_credit")!
+      loose.proposals.find((p) => p.op === "warehouse_bins_by_warehouse")!
         .review
+    ).toBe(false)
+    expect(
+      loose.proposals.find((p) => p.op === "invoices_credit")!.review
     ).toBe(true)
   })
 
@@ -209,7 +217,7 @@ describe("report", () => {
     expect(markdown).toMatch(
       /discoverability[^|]*\|\s*4 clusters\s*\|\s*9 gaps/
     )
-    expect(markdown).toContain("`lots_list` + batch, expiry")
+    expect(markdown).toContain("`warehouse_bins_by_warehouse` + aisle, slot")
   })
 
   it("writes a paste-ready brief for every bug and missing capability", () => {

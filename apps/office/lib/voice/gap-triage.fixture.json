@@ -1,19 +1,19 @@
 [
   {
-    "domain": "lots",
+    "domain": "warehouse_bins",
     "language": "en",
-    "intent": "lot expiry batch",
+    "intent": "aisle bin slot",
     "outcome": "unsupported",
     "http_status": null,
     "tool": null,
     "follow_up": "used_ui",
-    "follow_up_route": "/lots",
+    "follow_up_route": "/stock",
     "ws": 1
   },
   {
-    "domain": "lots",
+    "domain": "warehouse_bins",
     "language": "sw",
-    "intent": "batch lot expiry",
+    "intent": "bin slot aisle",
     "outcome": "unsupported",
     "http_status": null,
     "tool": null,

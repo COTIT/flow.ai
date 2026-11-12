@@ -891,5 +891,48 @@
     "en": ["reset", "start over", "whole", "all scenes", "layout"],
     "nl": ["resetten", "opnieuw beginnen", "indeling"],
     "sw": ["weka upya", "anza upya", "mpangilio", "wote"]
+  },
+  "orders_confirm": {
+    "en": ["confirm", "confirmed", "reserve"],
+    "nl": ["bevestig", "bevestigen", "bestelling", "reserveren"],
+    "sw": ["thibitisha", "oda", "hifadhi"]
+  },
+  "orders_pick": {
+    "en": ["picking", "picked", "pick list", "collected"],
+    "nl": ["picking", "picken", "gepickt", "verzamelen", "bestelling"],
+    "sw": ["kusanya", "kukusanya", "zilizokusanywa", "oda"]
+  },
+  "lots_update": {
+    "en": ["batch", "recall", "release", "quarantine", "on hold"],
+    "nl": [
+      "partij",
+      "terugroepen",
+      "terugroeping",
+      "vrijgeven",
+      "quarantaine",
+      "blokkeren"
+    ],
+    "sw": [
+      "bechi",
+      "kundi",
+      "rudisha",
+      "sokoni",
+      "karantini",
+      "sitisha",
+      "achilia"
+    ]
+  },
+  "lots_list": {
+    "en": [
+      "batch",
+      "batches",
+      "expiry",
+      "expiring",
+      "best before",
+      "quarantine",
+      "recalled"
+    ],
+    "nl": ["partij", "partijen", "houdbaarheid", "vervaldatum", "quarantaine"],
+    "sw": ["bechi", "makundi", "kundi", "muda wa kuisha", "karantini"]
   }
 }
