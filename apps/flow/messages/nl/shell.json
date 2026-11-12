@@ -56,6 +56,14 @@
     "tapToTalk": "Tik om te praten",
     "continueConversation": "Ga verder met je gesprek",
     "typeInstead": "Liever typen",
-    "endCall": "Beëindigen"
+    "endCall": "Beëindigen",
+    "business": "Je bedrijf",
+    "switchBusiness": "Ander bedrijf kiezen",
+    "yourShop": "Je winkel",
+    "greetingName": {
+      "morning": "Goedemorgen, {name}.",
+      "afternoon": "Goedemiddag, {name}.",
+      "evening": "Goedenavond, {name}."
+    }
   }
 }

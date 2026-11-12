@@ -50,8 +50,13 @@ function homeTests() {
       page.getByRole("button", { name: s.tapToTalk })
     ).not.toHaveCount(0)
     await expect(composer(page), "no message box on home").toBeHidden()
-    // Keyboard: the orb first, then Type instead.
+    // Keyboard follows the screen from the top: the business line under the greeting (P6:
+    // business, Your shop), then the orb, then Type instead.
     await page.locator("#flow-content").focus()
+    await page.keyboard.press("Tab")
+    await expect(page.locator(":focus")).toHaveAccessibleName("Switch business")
+    await page.keyboard.press("Tab")
+    await expect(page.locator(":focus")).toHaveAccessibleName(/^Your shop/)
     await page.keyboard.press("Tab")
     await expect(page.locator(":focus")).toHaveAccessibleName(s.tapToTalk)
     await page.keyboard.press("Tab")

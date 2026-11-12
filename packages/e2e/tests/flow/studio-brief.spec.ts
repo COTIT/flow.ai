@@ -33,7 +33,7 @@ test("the brief sends one request; the draft it produces gets its own link at on
   const agent = await fakeAgent(page)
   await page.goto("/storefront")
   const region = page.getByRole("region", { name: st.region })
-  await expect(region.getByText("Your shop shows version v1.", { exact: false })).toBeVisible()
+  await expect(region.getByText("Your shop shows version 1.", { exact: false })).toBeVisible()
   await region.getByRole("button", { name: st.start }).click()
 
   const brief = page.getByRole("region", { name: st.briefTitle })
@@ -48,7 +48,7 @@ test("the brief sends one request; the draft it produces gets its own link at on
   await prepare.click()
 
   await expect(page.getByRole("region", { name: st.preparingTitle })).toContainText(
-    "Your shop keeps showing version v1 until you publish."
+    "Your shop keeps showing version 1 until you publish."
   )
   await expect
     .poll(() => agent.sent.filter((e) => e.type === "user_message").map((e) => e.text))

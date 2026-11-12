@@ -24,18 +24,14 @@ test("draft and published are marked; the frame shows the live catalog", async (
   await expect(
     page.getByRole("heading", { level: 1, name: "Storefront design" })
   ).toBeVisible()
-  const rows = page.getByRole("row")
-  await expect(rows.filter({ hasText: "Draft" })).toHaveCount(1)
-  await expect(
-    rows.filter({ hasText: "Published" }).filter({ hasNotText: "Previously" })
-  ).toHaveCount(1)
-  // Ids stay out of accessible names.
+  // P6: the live version and the new look are named in plain words, never by a code.
+  const main = page.locator("main")
+  await expect(main.getByText("Live now")).toHaveCount(1)
+  await expect(main.getByText("New look ready")).toHaveCount(1)
+  // Ids stay out of accessible names and out of sight.
   await expect(page.getByRole("button", { name: draft })).toHaveCount(0)
-  // The short code is the id's random tail: ids minted in the same minute share their head.
-  await expect(rows.filter({ hasText: "Draft" })).toContainText(draft.slice(-8))
-  await expect(
-    rows.filter({ hasText: "Published" }).filter({ hasNotText: "Previously" })
-  ).toContainText(published.slice(-8))
+  await expect(main).not.toContainText(draft.slice(-8))
+  await expect(main).not.toContainText(published.slice(-8))
 
   await page.getByRole("button", { name: revisionButton(2) }).click()
   const preview = page.getByRole("region", { name: region })
@@ -75,8 +71,8 @@ test("publishing needs its own confirmation and sends the reviewed version once"
   const preview = page.getByRole("region", { name: region })
   await previewFrame(page)
   await preview.getByRole("button", { name: "Publish", exact: true }).click()
-  // The same publish card as the studio's "Review publication" (live → proposed).
-  const card = page.getByRole("region", { name: "Publish storefront revision?" })
+  // The same publish card as the studio's "Publish the new look" (live → proposed).
+  const card = page.getByRole("region", { name: "Publish this new look?" })
   await expect(card).toContainText("This will replace the currently published storefront design.")
   await card.getByRole("button", { name: "Cancel" }).click()
   await expect(card).toBeHidden()
@@ -86,7 +82,7 @@ test("publishing needs its own confirmation and sends the reviewed version once"
   await card.getByRole("button", { name: "Confirm publish" }).click()
   await expect(
     page.getByRole("region", { name: "Storefront published" })
-  ).toContainText("Revision v2 is live.")
+  ).toContainText("Your shop now shows version 2.")
   const calls = api.callsTo("POST", `${root()}/publish`)
   expect(calls).toHaveLength(1)
   expect(calls[0]?.body).toEqual({ expected_version: 2, revision_id: draft })
@@ -148,7 +144,7 @@ test.describe(() => {
       .getByRole("button", { name: "Publish", exact: true })
       .click()
     await page
-      .getByRole("region", { name: "Publish storefront revision?" })
+      .getByRole("region", { name: "Publish this new look?" })
       .getByRole("button", { name: "Confirm publish" })
       .click()
     await expect(
@@ -156,7 +152,7 @@ test.describe(() => {
     ).toBeVisible()
     await expect(page.getByRole("region", { name: region })).toHaveCount(0)
     await expect(
-      page.getByRole("region", { name: "Publish storefront revision?" })
+      page.getByRole("region", { name: "Publish this new look?" })
     ).toHaveCount(0)
     expect(api.callsTo("POST", `${root()}/publish`)).toHaveLength(1)
   })

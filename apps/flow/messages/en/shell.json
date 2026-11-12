@@ -56,6 +56,14 @@
     "tapToTalk": "Tap to talk",
     "continueConversation": "Continue your conversation",
     "typeInstead": "Type instead",
-    "endCall": "End"
+    "endCall": "End",
+    "business": "Your business",
+    "switchBusiness": "Switch business",
+    "yourShop": "Your shop",
+    "greetingName": {
+      "morning": "Good morning, {name}.",
+      "afternoon": "Good afternoon, {name}.",
+      "evening": "Good evening, {name}."
+    }
   }
 }

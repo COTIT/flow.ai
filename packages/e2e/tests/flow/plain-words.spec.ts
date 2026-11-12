@@ -2,7 +2,7 @@
 // words. SIMULATED voice (fake ElevenLabs socket + Office-shaped answers) over the scene world.
 import type { Page } from "@playwright/test"
 
-import { expect, test } from "./storefront-api"
+import { designs, expect, test } from "./storefront-api"
 import { stockRoutes } from "./task"
 import { fakeAgent, v } from "./voice"
 import discoveryEn from "../../../../apps/flow/messages/en/discovery.json" with { type: "json" }
@@ -105,3 +105,15 @@ for (const [locale, groups] of [
     await page.getByRole("tab", { name: groups.operate }).click()
     await expect(page.locator('[data-capability="adjust_stock"]')).toBeVisible()
   })
+
+test("the shop's new look reads plainly on home and in the studio: no revisions", async ({ page, api }) => {
+  designs(api)
+  await page.goto("/")
+  await expect(page.getByText("Your new look (version 2) is ready to check.")).toBeVisible()
+  await expect(page.locator("main")).not.toContainText(/revision/i)
+  await page.goto("/storefront")
+  await expect(page.getByText("Your storefront redesign is ready")).toBeVisible()
+  await expect(page.getByRole("button", { name: "Get a preview link" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Publish the new look" })).toBeVisible()
+  await expect(page.locator("main")).not.toContainText(/revision|\bv\d\b/i)
+})

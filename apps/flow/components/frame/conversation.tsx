@@ -490,14 +490,15 @@ export function ConversationToggle({
   )
 }
 
-/** Hang up from where the conversation lives (rail, sheet, scene bar); only while connected. */
+/** Hang up from where the conversation lives (home, rail, sheet, scene bar); only while
+ *  connected. Always one labelled button: an icon alone is ambiguous (P6, keep Flow simple). */
 export function EndCall({
   className = "",
-  word = false,
+  tight = false,
 }: {
   className?: string
-  /** Shows "End" beside the icon (home, where an icon alone is ambiguous). */
-  word?: boolean
+  /** A crowded row (the short-screen dock): less padding, so the message field keeps its room. */
+  tight?: boolean
 }) {
   const t = useTranslations()
   const voice = useVoice()
@@ -505,13 +506,14 @@ export function EndCall({
   return (
     <Button
       variant="outline"
-      size={word ? "default" : "icon"}
-      className={`${word ? "min-h-11 px-3" : "size-11"} shrink-0 ${className}`}
+      // The glass theme sizes buttons by their size class: a small one is narrower (P6).
+      size={tight ? "sm" : "default"}
+      className={`min-h-11 shrink-0 ${tight ? "" : "px-3"} ${className}`}
       aria-label={t("voice.end")}
       onClick={() => void voice.end().catch(() => undefined)}
     >
       <PhoneOff aria-hidden />
-      {word ? t("shell.endCall") : null}
+      <span>{t("shell.endCall")}</span>
     </Button>
   )
 }

@@ -225,12 +225,20 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
   )
 }
 
-/** Shown only with more than one workspace to choose from. */
-function WorkspacePicker() {
+/** Shown only with more than one workspace to choose from (header, and home's business line). */
+export function WorkspacePicker({
+  from = "header",
+  label,
+  className = "min-h-11 max-w-48",
+}: {
+  from?: "header" | "home"
+  label?: string
+  className?: string
+}) {
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId)
   const { choices } = useWorkspaceChoices()
-  const { trigger, said, remember } = useWorkspaceSwitch(workspaceId) // P9-3
+  const { trigger, said, remember } = useWorkspaceSwitch(workspaceId, from) // P9-3
   if (choices.length < 2) return null
   const options = choices.map((w) => ({ value: w.id, label: w.display_name }))
   return (
@@ -249,8 +257,8 @@ function WorkspacePicker() {
       >
         <SelectTrigger
           ref={trigger}
-          aria-label={t("common.workspace")}
-          className="min-h-11 max-w-48"
+          aria-label={label ?? t("common.workspace")}
+          className={className}
         >
           <SelectValue />
         </SelectTrigger>

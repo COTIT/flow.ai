@@ -56,6 +56,14 @@
     "tapToTalk": "Gusa kuongea",
     "continueConversation": "Endelea na mazungumzo yako",
     "typeInstead": "Andika badala yake",
-    "endCall": "Maliza"
+    "endCall": "Maliza",
+    "business": "Biashara yako",
+    "switchBusiness": "Badilisha biashara",
+    "yourShop": "Duka lako",
+    "greetingName": {
+      "morning": "Habari za asubuhi, {name}.",
+      "afternoon": "Habari za mchana, {name}.",
+      "evening": "Habari za jioni, {name}."
+    }
   }
 }
