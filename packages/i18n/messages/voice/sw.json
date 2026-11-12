@@ -126,6 +126,7 @@
     "microphoneDenied": "Ruhusa ya maikrofoni imekataliwa. Mazungumzo yako ya maandishi bado yanaendelea.",
     "microphoneMissing": "Hakuna maikrofoni iliyopatikana. Unganisha moja, au endelea kuandika.",
     "offline": "Huna mtandao. Unganisha tena, kisha ujaribu tena.",
+    "offlineNotSent": "Huna mtandao. Hakuna kilichotumwa; idhinisha tena ukirudi mtandaoni.",
     "connectionLost": "Genesy haipatikani. Angalia muunganisho wako kisha ujaribu tena.",
     "upgradeFailed": "Sauti haikuweza kuanza. Ujumbe wako wa awali unabaki hapa.",
     "batchProgress": "Maendeleo ya mfululizo",
@@ -283,7 +284,19 @@
       "columns": "Safu (simu / tableti / kompyuta)",
       "section": "Sehemu",
       "position": "Nafasi",
-      "text": "Maandishi"
+      "text": "Maandishi",
+      "stock": "Bidhaa zilizopo",
+      "stock_from": "Bidhaa zinazotolewa",
+      "stock_to": "Bidhaa zinazoingizwa",
+      "minimal": "Kiwango cha chini",
+      "maximum": "Kiwango cha juu",
+      "picked": "Zimechukuliwa",
+      "returned": "Zimerudishwa",
+      "refund": "Marejesho ya pesa",
+      "payment": "Malipo",
+      "first_name": "Jina la kwanza",
+      "last_name": "Jina la ukoo",
+      "company_name": "Jina la kampuni"
     },
     "requestErrors": {
       "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
@@ -384,7 +397,23 @@
       "close": "Funga {record}",
       "open": "Fungua {record}",
       "pay": "Lipa {record}",
-      "run": "Tekeleza kitendo kwa {record}"
+      "run": "Kagua badiliko hili"
+    },
+    "operationTitles": {
+      "stock_set_levels": "Badilisha kiasi cha bidhaa",
+      "stock_mutate": "Ongeza au toa bidhaa",
+      "stock_set_requirements": "Badilisha kiwango cha chini na cha juu",
+      "stock_move_between_bins": "Hamisha bidhaa kati ya visanduku",
+      "stock_transfer": "Hamisha bidhaa kati ya maghala",
+      "lots_stock_mutate": "Badilisha bidhaa za kundi",
+      "orders_confirm": "Thibitisha oda",
+      "orders_pick": "Chukua bidhaa za oda",
+      "orders_complete": "Kamilisha oda",
+      "orders_returns": "Rudisha bidhaa za oda",
+      "orders_invoice": "Tengeneza ankara ya oda",
+      "invoices_credit": "Toa hati ya marejesho",
+      "invoices_resend": "Tuma ankara tena",
+      "invoice_payments_mark_as_credited": "Weka hati ya marejesho kuwa imelipwa"
     },
     "values": {
       "draft": "Rasimu",
@@ -408,7 +437,10 @@
       "released": "Imeruhusiwa",
       "quarantine": "Imetengwa",
       "recalled": "Imerejeshwa",
-      "creating": "Inaundwa"
+      "creating": "Inaundwa",
+      "open": "Wazi",
+      "returned": "Imerudishwa",
+      "partially_returned": "Imerudishwa kwa sehemu"
     },
     "closeAssistant": "Funga msaidizi",
     "recordReference": "Rejeleo lililochaguliwa {number}",

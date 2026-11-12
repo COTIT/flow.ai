@@ -1,5 +1,6 @@
 //! Bounded proposal snapshots: requested stock slots, delete targets and impact counts; no writes.
 
+use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::PgConnection;
 use uuid::Uuid;
@@ -14,6 +15,7 @@ pub(super) async fn stock_slots(
 ) -> Result<Value, sqlx::Error> {
     sqlx::query_scalar!(r#"SELECT coalesce(jsonb_agg(jsonb_build_object(
           'warehouse_id',wanted.warehouse_id,'warehouse_name',w.name,'bin_id',wanted.bin_id,
+          'bin_name',coalesce(nullif(btrim(b.bin_name),''),b.bin_code),
           'valid',w.id IS NOT NULL AND (wanted.bin_id IS NULL OR b.id IS NOT NULL),
           'before',trim_scale(coalesce(s.stock_lvl,0))::text,
           'reserved',trim_scale(coalesce(s.reserved,0))::text,
@@ -25,6 +27,45 @@ pub(super) async fn stock_slots(
         LEFT JOIN stocks s ON s.workspace_id=$1 AND s.product_id=$2 AND s.warehouse_id=wanted.warehouse_id
           AND s.bin_id IS NOT DISTINCT FROM wanted.bin_id AND s.lot_id IS NULL AND s.deleted_at IS NULL"#,
         workspace,product,warehouses,bins as &[Option<Uuid>]).fetch_one(conn).await
+}
+
+/// A lot's level at one live warehouse of the workspace (0 before its first movement).
+pub(super) async fn lot_level(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    lot: Uuid,
+    warehouse: Uuid,
+) -> Result<Option<(String, String, Decimal)>, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"SELECT w.name AS "warehouse!", l.code AS "lot!",
+                  coalesce((SELECT s.stock_lvl FROM stocks s WHERE s.workspace_id=$1 AND s.lot_id=l.id
+                     AND s.warehouse_id=w.id AND s.bin_id IS NULL AND s.deleted_at IS NULL),0) AS "level!"
+           FROM lots l JOIN warehouses w ON w.workspace_id=l.workspace_id AND w.id=$3 AND w.deleted_at IS NULL
+           WHERE l.workspace_id=$1 AND l.id=$2"#,
+        workspace,
+        lot,
+        warehouse,
+    )
+    .fetch_optional(conn)
+    .await?;
+    Ok(row.map(|r| (r.warehouse, r.lot, r.level)))
+}
+
+/// A live payment's amount in minor units, only on that invoice of the workspace.
+pub(crate) async fn payment_amount(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    invoice: Uuid,
+    payment: Uuid,
+) -> Result<Option<i64>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT amount FROM invoice_payments WHERE workspace_id=$1 AND invoice_id=$2 AND id=$3 AND voided_at IS NULL",
+        workspace,
+        invoice,
+        payment,
+    )
+    .fetch_optional(conn)
+    .await
 }
 
 /// Live relation's display name (company, alias, else first contact) and what its delete hides.

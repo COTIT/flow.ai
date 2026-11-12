@@ -7,12 +7,15 @@ export async function voiceFetch(
   init: RequestInit,
   onUnauthorized: () => void
 ) {
+  // Offline: nothing leaves the device, so "offline" always means "not sent".
+  if (globalThis.navigator?.onLine === false)
+    throw new VoiceRequestError("offline", 0, undefined, "offline")
   let response: Response
   try {
     response = await fetch(`${apiBase}/${path}`, init)
   } catch {
-    const kind = globalThis.navigator?.onLine === false ? "offline" : "network"
-    throw new VoiceRequestError(kind, 0, undefined, kind)
+    // The request may have left before the line dropped.
+    throw new VoiceRequestError("network", 0, undefined, "network")
   }
   let value
   try {

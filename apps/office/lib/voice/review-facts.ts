@@ -210,7 +210,22 @@ export function reviewFacts(
       "Review facts do not match this action. Prepare a new review.",
       409
     )
-  return project(snapshot.facts, locale) as Record<string, unknown>
+  const facts = project(snapshot.facts, locale) as Record<string, unknown>
+  // A status row reads as words, never the stored code.
+  const values: Record<string, string> = (
+    voiceMessages[locale as keyof typeof voiceMessages] ?? voiceMessages.en
+  ).voice.values
+  if (Array.isArray(facts.changes))
+    facts.changes = facts.changes.map((row) =>
+      object(row) && row.field === "status"
+        ? {
+            ...row,
+            before: values[String(row.before)] ?? row.before,
+            after: values[String(row.after)] ?? row.after,
+          }
+        : row
+    )
+  return facts
 }
 
 const warningText: Record<

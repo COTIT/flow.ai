@@ -62,6 +62,7 @@ import {
 import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
 import { isBlankMessage } from "../lib/blank"
+import { watchCapture } from "../lib/capture-watch"
 import {
   VoiceRequestError,
   VoiceShownError,
@@ -99,6 +100,8 @@ type VoiceContextValue = {
   messages: TranscriptRow[]
   attachments: Attachment[]
   review: VoiceReview | null
+  /** The review last approved or cancelled (its proposed values), kept for the receipt after the card closes. */
+  decided: VoiceReview | null
   outcome: VoiceOutcome | null
   batchProgress: BatchProgress | null
   /** Talk-back stage of the current tool request or approval. */
@@ -245,6 +248,13 @@ function Session({
   const [messages, setMessages] = useState<TranscriptRow[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [review, setReview] = useState<VoiceReview | null>(null)
+  const [decided, setDecided] = useState<VoiceReview | null>(null)
+  /** A decision whose answer was lost (it may have reached Office): checked again, never re-sent. */
+  const uncertain = useRef<{
+    kind: TaskReference["kind"]
+    id: string
+    sessionId: string
+  } | null>(null)
   const [outcome, setOutcome] = useState<VoiceOutcome | null>(null)
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null)
   const [starting, setStarting] = useState(false)
@@ -284,6 +294,7 @@ function Session({
   function updateReview(next: VoiceReview | null) {
     proposal.current = next
     setReview(next)
+    if (next) setDecided(null)
   }
   function beginResponse() {
     turn.begin()
@@ -1381,6 +1392,14 @@ function Session({
     conversation.sendUserActivity()
     if (activeBatch.current) void stopBatch("pause")
   }
+  // The microphone taken away mid-call (unplugged, revoked): pause like a hidden page does.
+  const pauseLatest = useRef(pauseCapture)
+  pauseLatest.current = pauseCapture
+  useEffect(() => {
+    // No mediaDevices (insecure page, tests): no microphone to lose.
+    if (navigator.mediaDevices)
+      return watchCapture(navigator.mediaDevices, () => pauseLatest.current())
+  }, [])
   useEffect(() => {
     const visibility = () => {
       if (document.visibilityState !== "visible") {
@@ -1626,6 +1645,11 @@ function Session({
       setError(t("expired"))
       return
     }
+    // Offline nothing would leave the device: the review stays open, nothing else changes.
+    if (navigator.onLine === false) {
+      setError(t(decision === "approve" ? "offlineNotSent" : "offline"))
+      return
+    }
     if (
       speech &&
       (decision !== "approve" ||
@@ -1705,6 +1729,7 @@ function Session({
         activeBatch.current = null
       } else settle(pendingActionId.current, result)
       updateReview(null)
+      setDecided(current)
       add("action", t(`taskStates.${taskPresentation(result.status)}`))
       showLinks(result)
       if (verified.current)
@@ -1715,6 +1740,16 @@ function Session({
     } catch (e) {
       if (active.current && before === generation.current) {
         updateReview(null)
+        setDecided(current)
+        const id =
+          current.kind === "batch" ? current.batchId : pendingActionId.current
+        const owner = recoveredPointer?.sessionId ?? session.current?.sessionId
+        if (id && owner)
+          uncertain.current = {
+            kind: current.kind ?? "action",
+            id,
+            sessionId: owner,
+          }
         setProgress(progressOf("unknown"))
         setOutcome({ status: "unknown", message: t("unknown") })
         settle(pendingActionId.current, {
@@ -1740,6 +1775,41 @@ function Session({
       }
     }
   }
+  /** Back online or reconnected: ask Office once what became of a decision whose answer was lost. */
+  async function recheck() {
+    const task = uncertain.current
+    if (!task || dispatching.current) return
+    uncertain.current = null
+    try {
+      const result = await request<VoiceOutcome>(
+        task.kind === "batch" ? "batch" : "tools",
+        {
+          command: "status",
+          ...(task.kind === "batch"
+            ? { batchId: task.id }
+            : { actionId: task.id }),
+          sessionId: task.sessionId,
+        }
+      )
+      if (!active.current) return
+      setProgress(progressOf(result.status, result))
+      setOutcome(result)
+      settle(task.id, result, task.kind)
+      setError("")
+    } catch {
+      uncertain.current ??= task // Still no line: the next "online" or reconnect asks again.
+    }
+  }
+  const recheckLatest = useRef(recheck)
+  recheckLatest.current = recheck
+  useEffect(() => {
+    const again = () => void recheckLatest.current()
+    window.addEventListener("online", again)
+    return () => window.removeEventListener("online", again)
+  }, [])
+  useEffect(() => {
+    if (identityVerified) void recheckLatest.current()
+  }, [identityVerified])
   async function resume() {
     const kind = unfinished
     setUnfinished(null)
@@ -1769,6 +1839,7 @@ function Session({
         messages,
         attachments,
         review,
+        decided,
         outcome,
         batchProgress,
         progress,

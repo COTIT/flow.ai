@@ -126,6 +126,7 @@
     "microphoneDenied": "Toegang tot de microfoon is geweigerd. Je tekstgesprek is nog actief.",
     "microphoneMissing": "Er is geen microfoon gevonden. Sluit er een aan of blijf typen.",
     "offline": "Je bent offline. Maak opnieuw verbinding en probeer het dan nog eens.",
+    "offlineNotSent": "Je bent offline. Er is niets verstuurd; keur opnieuw goed zodra je weer online bent.",
     "connectionLost": "Genesy is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
     "upgradeFailed": "Spraak kon niet starten. Je eerdere berichten blijven hier staan.",
     "batchProgress": "Voortgang van de reeks",
@@ -283,7 +284,19 @@
       "columns": "Kolommen (telefoon / tablet / computer)",
       "section": "Sectie",
       "position": "Positie",
-      "text": "Tekst"
+      "text": "Tekst",
+      "stock": "Voorraad",
+      "stock_from": "Voorraad eruit",
+      "stock_to": "Voorraad erin",
+      "minimal": "Minimale voorraad",
+      "maximum": "Maximale voorraad",
+      "picked": "Gepickt",
+      "returned": "Geretourneerd",
+      "refund": "Terugbetaling",
+      "payment": "Betaling",
+      "first_name": "Voornaam",
+      "last_name": "Achternaam",
+      "company_name": "Bedrijfsnaam"
     },
     "requestErrors": {
       "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
@@ -384,7 +397,23 @@
       "close": "{record} sluiten",
       "open": "{record} openen",
       "pay": "{record} betalen",
-      "run": "Actie uitvoeren voor {record}"
+      "run": "Bekijk deze wijziging"
+    },
+    "operationTitles": {
+      "stock_set_levels": "Voorraad aanpassen",
+      "stock_mutate": "Voorraad toevoegen of afboeken",
+      "stock_set_requirements": "Minimale en maximale voorraad aanpassen",
+      "stock_move_between_bins": "Voorraad verplaatsen tussen vakken",
+      "stock_transfer": "Voorraad verplaatsen tussen magazijnen",
+      "lots_stock_mutate": "Batchvoorraad aanpassen",
+      "orders_confirm": "Bestelling bevestigen",
+      "orders_pick": "Bestelregels picken",
+      "orders_complete": "Bestelling afronden",
+      "orders_returns": "Bestelregels retourneren",
+      "orders_invoice": "Bestelling factureren",
+      "invoices_credit": "Factuur crediteren",
+      "invoices_resend": "Factuur opnieuw versturen",
+      "invoice_payments_mark_as_credited": "Creditnota als uitbetaald markeren"
     },
     "values": {
       "draft": "Concept",
@@ -408,7 +437,10 @@
       "released": "Vrijgegeven",
       "quarantine": "In quarantaine",
       "recalled": "Teruggeroepen",
-      "creating": "Wordt aangemaakt"
+      "creating": "Wordt aangemaakt",
+      "open": "Open",
+      "returned": "Geretourneerd",
+      "partially_returned": "Deels geretourneerd"
     },
     "closeAssistant": "Assistent sluiten",
     "recordReference": "Geselecteerde verwijzing {number}",

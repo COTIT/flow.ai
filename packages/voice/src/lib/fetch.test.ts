@@ -35,11 +35,23 @@ describe("voiceFetch", () => {
     expect(failure).toMatchObject({ kind: "network", status: 0 })
   })
 
-  it("a dropped request while offline is an offline failure", async () => {
+  it("offline, nothing leaves the device", async () => {
     vi.stubGlobal("navigator", { onLine: false })
-    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))))
-    const failure = await voiceFetch("/api/voice", "session", {}, vi.fn()).catch((e) => e)
+    const fetch = vi.fn()
+    vi.stubGlobal("fetch", fetch)
+    const failure = await voiceFetch("/api/voice", "confirm", {}, vi.fn()).catch((e) => e)
     expect(failure).toMatchObject({ kind: "offline", status: 0 })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("a line lost after the request left may have reached the server", async () => {
+    const fetch = vi.fn(async () => {
+      vi.stubGlobal("navigator", { onLine: false })
+      throw new TypeError("Failed to fetch")
+    })
+    vi.stubGlobal("fetch", fetch)
+    const failure = await voiceFetch("/api/voice", "confirm", {}, vi.fn()).catch((e) => e)
+    expect(failure).toMatchObject({ kind: "network", status: 0 })
   })
 
   it("an unreadable 200 body is a bad response", async () => {

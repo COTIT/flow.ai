@@ -4,6 +4,8 @@ import type { Page } from "@playwright/test"
 import { focusLook } from "../../src/focus"
 import { seedSession } from "../../src/session"
 import { mockApi } from "./api"
+import { sc } from "./scenes-api"
+import { s } from "./shell"
 import { api as discoveryApi, d, OWNER } from "./discovery"
 import { expect, test } from "./storefront-api"
 import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
@@ -125,6 +127,21 @@ test.describe("P9-4: a review or a voice upgrade never strands keyboard focus", 
     expect(Math.min(forward, back), "Approve unreachable by keyboard from the composer").toBeLessThan(Infinity)
   })
 
+  test("P9-4c: Switch to voice from the dock inside a scene keeps focus in the dock", async ({
+    page,
+  }) => {
+    await fakeAgent(page)
+    await page.goto("/")
+    await startText(page)
+    await page.getByRole("button", { name: s.backHome }).first().click()
+    await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click()
+    await expect(page).toHaveURL(/\/scenes\//)
+    await pressByKeyboard(page.getByRole("button", { name: s.switchVoice }))
+    await page.waitForTimeout(800)
+    expect(await onBody(page), "focus lost to <body> after Switch to voice in a scene").toBe(false)
+    await expect(page.getByLabel(v.message)).toBeFocused()
+  })
+
   test("P9-4b: Switch to voice by keyboard keeps focus on the page", async ({ page }) => {
     await fakeAgent(page)
     await page.goto("/")
@@ -134,4 +151,44 @@ test.describe("P9-4: a review or a voice upgrade never strands keyboard focus", 
     await page.waitForTimeout(800)
     expect(await onBody(page), "focus lost to <body> after Switch to voice").toBe(false)
   })
+})
+
+test("P9-5: the explorer's tab panel shows keyboard focus with the same ring as a button", async ({
+  page,
+}) => {
+  await seedSession(page)
+  await mockApi(page, discoveryApi(OWNER))
+  await page.goto("/explore")
+  const panel = page.getByRole("tabpanel").first()
+  await expect(panel).toBeVisible()
+  const look = await focusLook(panel)
+  expect(look.visible).toBe(true)
+  expect(look.ring, "no visible focus on the tab panel").not.toBe("none")
+})
+
+test("P9-6: Shift+Tab from the dock reaches the orb only where it can be seen (home scrolled down)", async ({
+  page,
+  api,
+}) => {
+  void api
+  await page.goto("/")
+  await expect(page.getByRole("region", { name: sc.yourFlow })).toBeVisible()
+  await page.locator("[data-flow-scroll]").evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  const orb = page.getByRole("button", { name: s.orbStart })
+  await page.getByRole("button", { name: v.send, exact: true }).focus()
+  let reached = false
+  for (let i = 0; i < 30 && !reached; i++) {
+    await page.keyboard.press("Shift+Tab")
+    reached = await orb.evaluate((el) => el === document.activeElement).catch(() => false)
+  }
+  expect(reached, "orb unreachable by Shift+Tab").toBe(true)
+  // Drawn where it is: inside the viewport and not hidden under anything (WCAG 2.4.11).
+  const onScreen = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement
+    const r = el.getBoundingClientRect()
+    if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return false
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    return !!hit && (hit === el || el.contains(hit))
+  })
+  expect(onScreen, "the focused orb is off screen").toBe(true)
 })

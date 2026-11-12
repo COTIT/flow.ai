@@ -126,6 +126,7 @@
     "microphoneDenied": "Microphone access was refused. Your text conversation is still active.",
     "microphoneMissing": "No microphone was found. Connect one, or keep typing.",
     "offline": "You're offline. Reconnect, then try again.",
+    "offlineNotSent": "You're offline. Nothing was sent; approve again when you're back online.",
     "connectionLost": "Couldn't reach Genesy. Check your connection and try again.",
     "upgradeFailed": "Voice could not start. Your earlier messages remain here.",
     "batchProgress": "Batch progress",
@@ -283,7 +284,19 @@
       "columns": "Columns (phone / tablet / computer)",
       "section": "Section",
       "position": "Position",
-      "text": "Text"
+      "text": "Text",
+      "stock": "Stock",
+      "stock_from": "Stock taken out",
+      "stock_to": "Stock put in",
+      "minimal": "Minimum stock",
+      "maximum": "Maximum stock",
+      "picked": "Picked",
+      "returned": "Returned",
+      "refund": "Refund",
+      "payment": "Payment",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "company_name": "Company name"
     },
     "requestErrors": {
       "unsupported": "Genesy can't do this yet. Nothing was changed.",
@@ -384,7 +397,23 @@
       "close": "Close {record}",
       "open": "Open {record}",
       "pay": "Pay {record}",
-      "run": "Run action for {record}"
+      "run": "Review this change"
+    },
+    "operationTitles": {
+      "stock_set_levels": "Change stock levels",
+      "stock_mutate": "Add or take stock",
+      "stock_set_requirements": "Change minimum and maximum stock",
+      "stock_move_between_bins": "Move stock between bins",
+      "stock_transfer": "Move stock between warehouses",
+      "lots_stock_mutate": "Change batch stock",
+      "orders_confirm": "Confirm order",
+      "orders_pick": "Pick order items",
+      "orders_complete": "Complete order",
+      "orders_returns": "Return order items",
+      "orders_invoice": "Invoice order",
+      "invoices_credit": "Credit invoice",
+      "invoices_resend": "Send invoice again",
+      "invoice_payments_mark_as_credited": "Mark credit note as paid out"
     },
     "values": {
       "draft": "Draft",
@@ -408,7 +437,10 @@
       "released": "Released",
       "quarantine": "Quarantined",
       "recalled": "Recalled",
-      "creating": "Creating"
+      "creating": "Creating",
+      "open": "Open",
+      "returned": "Returned",
+      "partially_returned": "Partly returned"
     },
     "closeAssistant": "Close assistant",
     "recordReference": "Selected reference {number}",

@@ -51,6 +51,14 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const resultOpen = useFlow((s) => s.resultOpen)
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
+  const composer = useRef<HTMLInputElement>(null)
+  // Switch to voice turns disabled while upgrading and the browser drops its focus to the page;
+  // a keyboard user goes on in the message box (P9-4; a tap never pops the phone keyboard).
+  useEffect(() => {
+    const active = document.activeElement as HTMLButtonElement | null
+    if (voice.upgrading && active?.disabled && active.matches(":focus-visible"))
+      composer.current?.focus()
+  }, [voice.upgrading])
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
   const held = Boolean(voice.review)
@@ -250,6 +258,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           </>
         ) : null}
         <Input
+          ref={composer}
           aria-label={t("voice.message")}
           placeholder={t("shell.placeholder")}
           autoComplete="off"
