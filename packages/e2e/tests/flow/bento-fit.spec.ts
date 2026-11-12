@@ -1,0 +1,196 @@
+// Bento fit (plan child-bento-fit-plan.md): each scene fits the screen at a glance on iPad and desktop.
+// Targets: grid empty ≤ 5%, no tile > 15% empty height, the first tiles fully visible, nothing cut
+// without a count, reading order = saved order. SIMULATED API.
+import type { Page } from "@playwright/test"
+
+import { expectSingleScroller } from "../../src/test"
+import { DEFAULTS, sceneWorld } from "./scenes-api"
+import { expect, test } from "./storefront-api"
+import { fakeAgent, v } from "./voice"
+
+const SIZES = [
+  [1180, 820],
+  [1366, 1024],
+  [820, 1180],
+  [1280, 800],
+  [1920, 1080],
+] as const
+const SCENES = [
+  "pulse",
+  "stock",
+  "orders",
+  "sales",
+  "noticed",
+  "routines",
+] as const
+/** The first tiles a person must see whole, without scrolling. */
+const PRIMARY = 4
+
+/** What the scene looks like at a glance. */
+async function glance(page: Page) {
+  return page.evaluate(() => {
+    const view = document
+      .querySelector("[data-flow-scroll]")!
+      .getBoundingClientRect()
+    const tiles = [
+      ...document.querySelectorAll<HTMLElement>("[data-component]"),
+    ]
+    const grid = tiles[0]?.parentElement?.getBoundingClientRect()
+    // Holes, not gutters: each tile grown by half the 16 px gap (neighbours meet), clipped to the grid.
+    const half = 8
+    let covered = 0
+    const each = tiles.map((tile) => {
+      const r = tile.getBoundingClientRect()
+      if (grid) {
+        const w =
+          Math.min(r.right + half, grid.right) -
+          Math.max(r.left - half, grid.left)
+        const h =
+          Math.min(r.bottom + half, grid.bottom) -
+          Math.max(r.top - half, grid.top)
+        covered += Math.max(0, w) * Math.max(0, h)
+      }
+      // The content's own height: the lowest visible descendant, never the stretched card itself.
+      let bottom = r.top
+      for (const el of tile.querySelectorAll<HTMLElement>("*")) {
+        if (el.closest("[data-tile-footer]")) continue
+        const b = el.getBoundingClientRect()
+        if (b.height > 0 && b.height < r.height - 4)
+          bottom = Math.max(bottom, b.bottom)
+      }
+      const footer = tile.querySelector("[data-tile-footer]")
+      // A metric beside a chart shares the chart's height, its value centred (intentional).
+      const besideChart =
+        tile.dataset.size === "small" &&
+        tiles.some((o) => {
+          if (o.dataset.size !== "chart") return false
+          const c = o.getBoundingClientRect()
+          return c.top < r.bottom && c.bottom > r.top
+        })
+      return {
+        id: tile.dataset.component!,
+        emptyPct: Math.round(
+          (Math.max(0, r.height - Math.min(r.height, bottom - r.top + 16)) /
+            r.height) *
+            100
+        ),
+        whole: r.top >= view.top - 1 && r.bottom <= view.bottom + 1,
+        cutWithoutCount: !!footer && !/\(\d+\)/.test(footer.textContent ?? ""),
+        besideChart,
+        plot: Math.round(
+          tile.querySelector("[data-plot]")?.getBoundingClientRect().height ??
+            -1
+        ),
+      }
+    })
+    return {
+      emptyPct: grid
+        ? Math.round((1 - covered / (grid.width * grid.height)) * 100)
+        : 0,
+      each,
+    }
+  })
+}
+
+async function expectFits(page: Page, scene: string, { plot = false } = {}) {
+  await expect(page.locator("[data-component]").first()).toBeVisible()
+  await page.waitForTimeout(1_200) // data and tile growth settle
+  const g = await glance(page)
+  expect(
+    g.each.map((t) => t.id),
+    "reading order = saved order"
+  ).toEqual((DEFAULTS[scene] ?? []).map((c) => c.id))
+  expect(g.emptyPct, "empty grid area %").toBeLessThanOrEqual(5)
+  for (const t of g.each) {
+    if (!t.besideChart)
+      expect(t.emptyPct, `${t.id}: empty height %`).toBeLessThanOrEqual(15)
+    expect(t.cutWithoutCount, `${t.id}: cut without a count`).toBe(false)
+  }
+  // A trend you can read: a chart's plot is never squashed flat.
+  if (plot)
+    for (const t of g.each.filter((t) => t.plot >= 0))
+      expect(t.plot, `${t.id}: chart plot height`).toBeGreaterThanOrEqual(160)
+  for (const t of g.each.slice(0, PRIMARY))
+    expect(t.whole, `${t.id}: whole on the first screen`).toBe(true)
+}
+
+for (const [width, height] of SIZES)
+  for (const scene of SCENES)
+    test(`${scene} fits at a glance at ${width}×${height}`, async ({
+      page,
+      api,
+    }) => {
+      sceneWorld(api)
+      await page.setViewportSize({ width, height })
+      await page.goto(`/scenes/${scene}`)
+      await expectFits(page, scene, {
+        plot: [1180, 1366, 1920].includes(width),
+      })
+    })
+
+for (const [width, height] of [
+  [1180, 820],
+  [1920, 1080],
+] as const)
+  for (const scene of ["pulse", "stock", "sales"] as const)
+    test(`${scene} fits beside the open conversation at ${width}×${height}`, async ({
+      page,
+      api,
+    }) => {
+      sceneWorld(api)
+      await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+      await page.setViewportSize({ width, height })
+      await page.goto(`/scenes/${scene}`)
+      await page.getByLabel(v.message).fill("Sales today?")
+      await page.getByLabel(v.message).press("Enter")
+      await expect(page.locator('[data-flow-pane="rail"]')).toBeVisible()
+      await expectFits(page, scene)
+    })
+
+test("50 products below minimum: Stock Watch shows the rows that fit and how many there are", async ({
+  page,
+  api,
+}) => {
+  sceneWorld(api, { stockRows: 50 })
+  await page.setViewportSize({ width: 1180, height: 820 })
+  await page.goto("/scenes/stock")
+  await expectFits(page, "stock")
+})
+
+test("no sales and nothing low: Morning Pulse shows slim lines, never big empty boxes", async ({
+  page,
+  api,
+}) => {
+  sceneWorld(api, { noSales: true, stockRows: 0 })
+  await page.setViewportSize({ width: 1180, height: 820 })
+  await page.goto("/scenes/pulse")
+  await expectFits(page, "pulse")
+})
+
+test("a phone stacks the scene in one scroller", async ({ page, api }) => {
+  sceneWorld(api)
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto("/scenes/pulse")
+  await expect(page.locator("[data-component]").first()).toBeVisible()
+  await expectSingleScroller(page)
+  // Keep Flow simple: the scene's actions sit on one line above the data.
+  const tops = await page
+    .locator("article > header button")
+    .evaluateAll((els) => [
+      ...new Set(els.map((e) => Math.round(e.getBoundingClientRect().top / 8))),
+    ])
+  expect(tops.length, "header actions on one line").toBe(1)
+  // A metric's number and its note never get cut ("€12,840.00 24 c…").
+  const clipped = await page
+    .locator("[data-component] p, [data-component] p span")
+    .evaluateAll((els) =>
+      els
+        .filter((e) => {
+          const r = e.getBoundingClientRect()
+          const card = e.closest("[data-component]")!.getBoundingClientRect()
+          return e.scrollWidth > e.clientWidth + 1 || r.right > card.right + 1
+        })
+        .map((e) => e.textContent)
+    )
+  expect(clipped, "clipped metric text").toEqual([])
+})

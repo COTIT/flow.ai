@@ -168,6 +168,8 @@
     },
     "showAll": "Onyesha yote",
     "showLess": "Onyesha machache",
+    "showAllCount": "Onyesha yote ({count})",
+    "moreActions": "Zaidi",
     "rowAction": {
       "restock": "Ongeza akiba",
       "restockAsk": "Ongeza akiba ya {name}. Imepungua {shortfall} chini ya kiwango cha chini.",
