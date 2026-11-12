@@ -19,11 +19,14 @@ const hash = (v: unknown) =>
     .update(JSON.stringify(canon(v)))
     .digest("hex")
 
-// Office's `voice` texts as they were in apps/office/messages at a432dec17.
+// Office's `voice` texts as they were in apps/office/messages at a432dec17, with one deliberate,
+// approved change since (P3-3): operationActions.run "Run action for {record}" → "Review this
+// change" (and nl/sw). Before it: en f67b52c1…, nl ae3d1bcc…, sw 76e478f6… (still match with the
+// old `run` text restored), so any other change to an existing text still fails here.
 const VOICE = {
-  en: "f67b52c1b36b9b65360d6a613a2af6d2868e25e5e557743309f911721127bc67",
-  nl: "ae3d1bccad3fd510366a4c5752b58a9f6f3e4d7025205a05f5fd57a780e3742a",
-  sw: "76e478f6cf8efbe3d82560f8b91f5d4a1913780ad7f09cd6e36907ee56505691",
+  en: "7d992577f389941a75bf3b895c23542b727a8be1db2f1c3c795f6733befcfc7e",
+  nl: "d54d21356975e2689e65c7f8e98d1f733910b722a837b3e7fcd7ac2ae97982f5",
+  sw: "ef5c2c650a398fdb17031dbf13fc53d641d1674e768948e3ba8305626ea4b974",
 }
 
 // Review-card field names added for storefront design facts (body, category_id existed).
@@ -35,6 +38,22 @@ const FLOW_NOTICED_SECTIONS = [
   "lots_quarantined",
   "webhooks_failed",
 ]
+// Added since (P3-3): review-row labels and record states of "what changes".
+const P33_FIELDS = [
+  "stock",
+  "stock_from",
+  "stock_to",
+  "minimal",
+  "maximum",
+  "picked",
+  "returned",
+  "refund",
+  "payment",
+  "first_name",
+  "last_name",
+  "company_name",
+]
+const P33_VALUES = ["open", "returned", "partially_returned"]
 const DESIGN_FIELDS = [
   "theme",
   "heading",
@@ -56,6 +75,8 @@ describe("Office messages", () => {
         pages: Record<string, unknown>
         resources: Record<string, unknown>
         reviewFields: Record<string, unknown>
+        values: Record<string, unknown>
+        operationActions: Record<string, unknown>
         results: {
           sections: Record<string, unknown>
           counts: Record<string, unknown>
@@ -71,6 +92,15 @@ describe("Office messages", () => {
       for (const key of DESIGN_FIELDS) {
         expect(reviewFields[key], key).toBeDefined()
         delete reviewFields[key]
+      }
+      for (const key of P33_FIELDS) {
+        expect(reviewFields[key], key).toBeDefined()
+        delete reviewFields[key]
+      }
+      const values = { ...voice.values }
+      for (const key of P33_VALUES) {
+        expect(values[key], key).toBeDefined()
+        delete values[key]
       }
       // Added since (Flow v9 V1): Flow noticed section and mark labels of the attention view.
       const results = voice.results
@@ -93,8 +123,11 @@ describe("Office messages", () => {
         offline,
         offlineNotSent,
         microphoneMissing,
+        // Added since (P3-3): plain titles of the reviewed operations.
+        operationTitles,
         ...rest
       } = voice as typeof voice & Record<string, unknown>
+      expect(operationTitles).toBeDefined()
       for (const text of [
         connectionLost,
         offline,
@@ -108,6 +141,7 @@ describe("Office messages", () => {
           pages,
           resources,
           reviewFields,
+          values,
           results: { ...unchanged, sections, counts },
         })
       ).toBe(VOICE[locale])
