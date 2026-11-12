@@ -238,7 +238,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
             <DropdownMenuContent align="end" className="min-w-56">
               {sceneKey === "pulse" ? (
                 <DropdownMenuItem
-                  className="min-h-11"
+                  className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                   disabled={update.isPending || ordered}
                   onClick={() =>
                     write(
@@ -261,14 +261,17 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                         setPeriod((String(value) || null) as FlowPeriod | null)
                       }
                     >
-                      <DropdownMenuRadioItem value="" className="min-h-11">
+                      <DropdownMenuRadioItem
+                        value=""
+                        className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
+                      >
                         {t("period.this_week")}
                       </DropdownMenuRadioItem>
                       {PERIODS.map((p) => (
                         <DropdownMenuRadioItem
                           key={p}
                           value={p}
-                          className="min-h-11"
+                          className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                         >
                           {t(`period.${p}`)}
                         </DropdownMenuRadioItem>
@@ -277,7 +280,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                   </DropdownMenuGroup>
                   {compareFrom ? (
                     <DropdownMenuCheckboxItem
-                      className="min-h-11"
+                      className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                       checked={comparing}
                       onCheckedChange={(on) => setComparing(!!on)}
                     >
@@ -290,7 +293,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                   ) : null}
                   {keptKey ? (
                     <DropdownMenuItem
-                      className="min-h-11"
+                      className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                       disabled={kept || update.isPending}
                       onClick={() =>
                         write({ config: { components: shown } }, keptKey)
@@ -303,7 +306,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                 </>
               ) : null}
               <DropdownMenuItem
-                className="min-h-11"
+                className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
                 disabled={update.isPending || remove.isPending}
                 onClick={() => {
                   if (writing.current) return

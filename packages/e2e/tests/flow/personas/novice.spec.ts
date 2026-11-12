@@ -7,9 +7,17 @@ import type { Page } from "@playwright/test"
 
 import discoveryEn from "../../../../../apps/flow/messages/en/discovery.json" with { type: "json" }
 import { member } from "../storefront-api"
-import { sc } from "../scenes-api"
+import { menuItem, moreMenu, sc } from "../scenes-api"
 import { s as shell } from "../shell"
-import { capsule, k, proposeStock, readBack, receipt, scene, stockRoutes } from "../task"
+import {
+  capsule,
+  k,
+  proposeStock,
+  readBack,
+  receipt,
+  scene,
+  stockRoutes,
+} from "../task"
 import { startText, v } from "../voice"
 import { markInjected } from "../../../src/test"
 import { expect, test, type Persona, type Step } from "./harness"
@@ -59,7 +67,10 @@ async function expectNoDeadEnd(page: Page) {
         timeout: 3_000,
       })
       .toBeGreaterThan(0)
-  const text = await page.locator("body").innerText().catch(() => "")
+  const text = await page
+    .locator("body")
+    .innerText()
+    .catch(() => "")
   expect(text.match(GARBLED)?.[0], `garbled text at ${path}`).toBeUndefined()
 }
 
@@ -78,16 +89,24 @@ const inert = (page: Page) =>
     .catch(() => true)
 
 const live = (page: Page) =>
-  page.getByRole("button", { name: v.addFiles }).isVisible().catch(() => false)
+  page
+    .getByRole("button", { name: v.addFiles })
+    .isVisible()
+    .catch(() => false)
 
 function noviceSteps(persona: Persona, page: Page): Step[] {
   const yourFlow = page.getByRole("region", { name: sc.yourFlow })
-  const pills = page.getByRole("list", { name: /Suggested for you|Here's what you can do next/ })
+  const pills = page.getByRole("list", {
+    name: /Suggested for you|Here's what you can do next/,
+  })
   return [
     {
       name: "click something, anything",
       weight: 5,
-      run: async () => persona.log(`   clicked: ${await persona.clickAnything(page.locator("main"))}`),
+      run: async () =>
+        persona.log(
+          `   clicked: ${await persona.clickAnything(page.locator("main"))}`
+        ),
     },
     {
       name: "open a scene, then abandon it",
@@ -111,7 +130,11 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
         await mutter(persona, page, text)
       },
     },
-    { name: "start typing a conversation", weight: 2, run: () => persona.startText() },
+    {
+      name: "start typing a conversation",
+      weight: 2,
+      run: () => persona.startText(),
+    },
     {
       name: "Genesy proposes a stock change",
       weight: 2,
@@ -119,7 +142,14 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
         if (!(await live(page))) return
         persona.agent.call("stock_set_levels", {
           path: { product: "p-500" },
-          body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: persona.pick([110, 120, 130]) }] },
+          body: {
+            warehouses: [
+              {
+                warehouse_id: "wh-main",
+                stock_lvl: persona.pick([110, 120, 130]),
+              },
+            ],
+          },
         })
       },
     },
@@ -142,24 +172,33 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
         if (!n) return
         await persona.click(choice.nth(persona.int(0, n - 1)))
         if (persona.chance(0.5)) await persona.backHome()
-        else await persona.click(scene(page).getByRole("button", { name: k.clarify.continue }))
+        else
+          await persona.click(
+            scene(page).getByRole("button", { name: k.clarify.continue })
+          )
       },
     },
     {
       name: "cancel halfway",
       weight: 2,
-      run: () => persona.click(scene(page).getByRole("button", { name: v.cancel, exact: true })),
+      run: () =>
+        persona.click(
+          scene(page).getByRole("button", { name: v.cancel, exact: true })
+        ),
     },
     {
       name: "approve, eventually",
       weight: 1,
-      run: () => persona.click(scene(page).getByRole("button", { name: v.approve })),
+      run: () =>
+        persona.click(scene(page).getByRole("button", { name: v.approve })),
     },
     {
       name: "open the review from the task line, then leave it open",
       weight: 2,
       run: async () => {
-        await persona.click(capsule(page).getByRole("button", { name: k.review }))
+        await persona.click(
+          capsule(page).getByRole("button", { name: k.review })
+        )
         await persona.backHome()
         const links = yourFlow.getByRole("link")
         const n = await links.count()
@@ -171,7 +210,9 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
       weight: 1,
       run: async () =>
         persona.click(
-          page.getByRole("button", { name: persona.pick([d.hint.dismiss, k.dismiss, k.resume.dismiss]) })
+          page.getByRole("button", {
+            name: persona.pick([d.hint.dismiss, k.dismiss, k.resume.dismiss]),
+          })
         ),
     },
     {
@@ -179,8 +220,13 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
       weight: 1,
       run: async () => {
         await persona.backHome()
-        if (await persona.click(page.getByRole("link", { name: d.hint.explore }))) return
-        await persona.click(pills.getByRole("button", { name: d.capabilities.explore.label }))
+        if (
+          await persona.click(page.getByRole("link", { name: d.hint.explore }))
+        )
+          return
+        await persona.click(
+          pills.getByRole("button", { name: d.capabilities.explore.label })
+        )
       },
     },
     {
@@ -193,9 +239,12 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
         if (n) await persona.click(tabs.nth(persona.int(0, n - 1)))
         const tries = page.getByRole("button", { name: /^Try / })
         const m = await tries.count()
-        if (m && persona.chance(0.6)) await persona.click(tries.nth(persona.int(0, m - 1)))
+        if (m && persona.chance(0.6))
+          await persona.click(tries.nth(persona.int(0, m - 1)))
         else if (persona.chance(0.3))
-          await persona.click(page.getByRole("button", { name: d.explorer.reset }))
+          await persona.click(
+            page.getByRole("button", { name: d.explorer.reset })
+          )
       },
     },
     {
@@ -206,7 +255,9 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
         const n = await buttons.count()
         if (!n) return
         const pill = buttons.nth(persona.int(0, n - 1))
-        persona.log(`   pill: ${await pill.innerText({ timeout: 1_000 }).catch(() => "?")}`)
+        persona.log(
+          `   pill: ${await pill.innerText({ timeout: 1_000 }).catch(() => "?")}`
+        )
         await persona.click(pill)
       },
     },
@@ -224,24 +275,44 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
       },
     },
     { name: "reload in panic", weight: 1, run: () => persona.reload() },
-    { name: "storefront", weight: 1, run: () => persona.click(page.getByRole("link", { name: "Storefront", exact: true })) },
+    {
+      name: "storefront",
+      weight: 1,
+      run: () =>
+        persona.click(
+          page.getByRole("link", { name: "Storefront", exact: true })
+        ),
+    },
     {
       name: "Your Flow: reset, then change mind",
       weight: 1,
       run: async () => {
         await persona.backHome()
-        if (!(await persona.click(yourFlow.getByRole("button", { name: sc.reset })))) return
+        if (
+          !(await persona.click(
+            yourFlow.getByRole("button", { name: sc.reset })
+          ))
+        )
+          return
         const dialog = page.getByRole("alertdialog")
-        await persona.click(dialog.getByRole("button", { name: persona.chance(0.7) ? sc.cancel : sc.reset }))
+        await persona.click(
+          dialog.getByRole("button", {
+            name: persona.chance(0.7) ? sc.cancel : sc.reset,
+          })
+        )
       },
     },
     {
       name: "remove a scene by mistake, then restore it",
       weight: 1,
       run: async () => {
-        if (!(await persona.click(page.getByRole("button", { name: sc.remove })))) return
+        // Remove lives in the scene's More menu.
+        if (!(await persona.click(moreMenu(page)))) return
+        if (!(await persona.click(menuItem(page, sc.remove)))) return
         await persona.backHome()
-        await persona.click(yourFlow.getByRole("button", { name: new RegExp(`^${sc.restore} `) }))
+        await persona.click(
+          yourFlow.getByRole("button", { name: new RegExp(`^${sc.restore} `) })
+        )
       },
     },
     {
@@ -253,7 +324,11 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
       name: "a request fails underneath",
       weight: 1,
       run: async () => {
-        const path = persona.pick([/\/v1\/workspace\/w1\/flow\/scenes/, /\/v1\/workspace\/w1\/attention/, /\/api\/voice\/tools/])
+        const path = persona.pick([
+          /\/v1\/workspace\/w1\/flow\/scenes/,
+          /\/v1\/workspace\/w1\/attention/,
+          /\/api\/voice\/tools/,
+        ])
         persona.log(`   failing: ${path}`)
         await persona.failApi(path, persona.pick([500, 503, 429]))
         await persona.reload()
@@ -272,7 +347,11 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
         await persona.offline(page.context(), false)
       },
     },
-    { name: "tab around", weight: 1, run: () => persona.tab(persona.int(1, 5), persona.chance(0.3)) },
+    {
+      name: "tab around",
+      weight: 1,
+      run: () => persona.tab(persona.int(1, 5), persona.chance(0.3)),
+    },
   ].map((step) => ({
     ...step,
     run: async () => {
@@ -291,9 +370,17 @@ async function walk(persona: Persona, page: Page) {
   }
 }
 
-async function setup(page: Page, api: Parameters<Parameters<typeof test>[2]>[0]["api"]) {
-  const stock = readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
-  api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
+async function setup(
+  page: Page,
+  api: Parameters<Parameters<typeof test>[2]>[0]["api"]
+) {
+  const stock =
+    readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
+  api.on(
+    "GET",
+    "/workspace/:ws/products/:id/stock-with-bins",
+    () => stock.body as object
+  )
   await stockRoutes(page)
 }
 
@@ -309,7 +396,11 @@ test("confused novice: wrong clicks, abandoned cards, vague words, Back to undo"
 
 test.describe("in the dark", () => {
   test.use({ colorScheme: "dark" })
-  test("confused novice at night: same muddle, dark theme", async ({ persona, page, api }) => {
+  test("confused novice at night: same muddle, dark theme", async ({
+    persona,
+    page,
+    api,
+  }) => {
     await setup(page, api)
     await page.goto("/")
     await walk(persona, page)
@@ -341,7 +432,9 @@ test("P3-1: after dismissing the tip, the explorer can still be found from home"
   await setup(page, api)
   await page.goto("/")
   await page.getByRole("button", { name: d.hint.dismiss }).click()
-  await expect(page.getByRole("complementary", { name: d.hint.lead })).toHaveCount(0)
+  await expect(
+    page.getByRole("complementary", { name: d.hint.lead })
+  ).toHaveCount(0)
   await expect(page.getByRole("region", { name: sc.yourFlow })).toBeVisible()
   // The novice looks for it again: a link to the explorer, or its suggestion.
   const way = page
@@ -352,7 +445,11 @@ test("P3-1: after dismissing the tip, the explorer can still be found from home"
 
 // P3-2: "Try it" sends the instruction and Genesy answers, but the person stays on /explore,
 // where the conversation is not shown: nothing on screen says what happened.
-test("P3-2: Try it in the explorer shows what Genesy answered", async ({ persona, page, api }) => {
+test("P3-2: Try it in the explorer shows what Genesy answered", async ({
+  persona,
+  page,
+  api,
+}) => {
   void persona
   await setup(page, api)
   await page.goto("/")
@@ -365,7 +462,11 @@ test("P3-2: Try it in the explorer shows what Genesy answered", async ({ persona
   // It was sent and answered...
   const prompt = d.capabilities.weekly_sales.prompt
   await expect
-    .poll(() => persona.agent.sent.some((e) => e.type === "user_message" && e.text === prompt))
+    .poll(() =>
+      persona.agent.sent.some(
+        (e) => e.type === "user_message" && e.text === prompt
+      )
+    )
     .toBe(true)
   await expect(page).toHaveURL(/\/explore$/)
   // ...so the person, still here, must see it (or be taken to the conversation).
@@ -392,35 +493,63 @@ test("probe: a review left open survives wandering through scenes and Back", asy
   await proposeStock(page, persona.agent, 120)
   // Wanders off: home, a scene, Back, another scene; the task line follows.
   await toYourFlow(page)
-  await page.getByRole("region", { name: sc.yourFlow }).getByRole("link", { name: /Stock Watch/ }).click()
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await page
+    .getByRole("region", { name: sc.yourFlow })
+    .getByRole("link", { name: /Stock Watch/ })
+    .click()
+  await expect(capsule(page)).toHaveAttribute(
+    "data-task-state",
+    "needs_approval"
+  )
   await page.goBack()
   await toYourFlow(page)
-  await page.getByRole("region", { name: sc.yourFlow }).getByRole("link", { name: /Order Focus/ }).click()
+  await page
+    .getByRole("region", { name: sc.yourFlow })
+    .getByRole("link", { name: /Order Focus/ })
+    .click()
   await expectNoDeadEnd(page)
   // Comes back through the task line: the same review, still decidable.
   await capsule(page).getByRole("button", { name: k.review }).click()
   await expect(scene(page)).toContainText("Confirm action 135790")
-  await expect(scene(page).getByRole("button", { name: v.approve })).toBeEnabled()
+  await expect(
+    scene(page).getByRole("button", { name: v.approve })
+  ).toBeEnabled()
   await persona.check()
 })
 
-test("probe: cancel halfway, then the same goal another way", async ({ persona, page, api }) => {
+test("probe: cancel halfway, then the same goal another way", async ({
+  persona,
+  page,
+  api,
+}) => {
   await setup(page, api)
-  const stock = readBack("130.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
-  api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
+  const stock =
+    readBack("130.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
+  api.on(
+    "GET",
+    "/workspace/:ws/products/:id/stock-with-bins",
+    () => stock.body as object
+  )
   await proposeStock(page, persona.agent, 120)
   await scene(page).getByRole("button", { name: v.cancel, exact: true }).click()
-  await expect(scene(page).getByRole("button", { name: v.approve })).toHaveCount(0)
+  await expect(
+    scene(page).getByRole("button", { name: v.approve })
+  ).toHaveCount(0)
   // Retries by typing, Genesy proposes again with another number.
-  await page.getByRole("button", { name: shell.backHome }).click().catch(() => {})
+  await page
+    .getByRole("button", { name: shell.backHome })
+    .click()
+    .catch(() => {})
   await persona.say("set the hony stock to 130 pls", "enter")
   persona.agent.call("stock_set_levels", {
     path: { product: "p-500" },
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 130 }] },
   })
   await expect(page.locator("[data-withdrawn]")).toContainText("→ 120")
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await expect(capsule(page)).toHaveAttribute(
+    "data-task-state",
+    "needs_approval"
+  )
   await scene(page).getByRole("button", { name: v.approve }).click()
   await expect(receipt(page)).toHaveAttribute("data-receipt", "completed")
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("130")
@@ -445,7 +574,9 @@ test("probe: Back after approving does not bring the approval back", async ({
     await expect(page.getByRole("button", { name: v.approve })).toHaveCount(0)
     await expectNoDeadEnd(page)
   }
-  expect(persona.confirms.filter((c) => c.decision === "approve")).toHaveLength(1)
+  expect(persona.confirms.filter((c) => c.decision === "approve")).toHaveLength(
+    1
+  )
   await persona.check()
 })
 
@@ -456,7 +587,10 @@ test("probe: a member asks for a change they may not make and is told so", async
 }) => {
   api.on("GET", "/me", () => ({ data: { user: member } }))
   await page.route("**/api/voice/tools", async (route) => {
-    const b = (route.request().postDataJSON() ?? {}) as { command?: string; operationId?: string }
+    const b = (route.request().postDataJSON() ?? {}) as {
+      command?: string
+      operationId?: string
+    }
     if (b.command === "execute" && b.operationId === "stock_set_levels") {
       markInjected(page, /\/api\/voice\/tools/)
       return route.fulfill({ status: 403, json: { message: "Forbidden" } })
@@ -505,12 +639,16 @@ test("P3-4: a scene link tapped while the wifi is down keeps the person in Flow"
 }) => {
   await setup(page, api)
   await page.goto("/")
-  const link = page.getByRole("region", { name: sc.yourFlow }).getByRole("link", { name: /Stock Watch/ })
+  const link = page
+    .getByRole("region", { name: sc.yourFlow })
+    .getByRole("link", { name: /Stock Watch/ })
   await expect(link).toBeVisible()
   await persona.offline(page.context(), true)
   await link.click()
   await page.waitForTimeout(1_500)
-  expect(page.url(), "left Flow for the browser's offline page").not.toMatch(/^chrome-error:/)
+  expect(page.url(), "left Flow for the browser's offline page").not.toMatch(
+    /^chrome-error:/
+  )
   await expect(page.getByRole("region", { name: shell.dock })).toBeVisible()
   await persona.offline(page.context(), false)
 })

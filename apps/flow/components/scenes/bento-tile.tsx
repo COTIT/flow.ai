@@ -75,8 +75,14 @@ export function BentoTile({
         if (
           (e.target as Element).getBoundingClientRect().bottom >
           el.getBoundingClientRect().bottom - FOOTER_PX
-        )
+        ) {
           setOpen(true)
+          // Opened by focus behind the cut: bring the focused control into view.
+          const target = e.target as HTMLElement
+          requestAnimationFrame(() =>
+            target.scrollIntoView({ block: "nearest" })
+          )
+        }
       }}
       style={{ ...style, ...(cap ? { maxHeight: cap.px } : {}) }}
       className={`relative min-w-0 [&>*:first-child]:h-full ${cap ? "overflow-hidden" : ""} ${className}`}
