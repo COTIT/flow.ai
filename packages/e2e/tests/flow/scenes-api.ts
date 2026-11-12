@@ -455,3 +455,14 @@ export const sceneTable = (ws = "w1"): Record<string, MockReply> => ({
     body: NO_REVISIONS,
   },
 })
+
+/** A scene's More menu (keep Flow simple): every action besides Refresh lives there. */
+export const moreMenu = (page: import("@playwright/test").Page) =>
+  page.getByRole("button", { name: sc.moreActions })
+/** An item of the open More menu, whatever its kind (action, choice, on/off). */
+export const menuItem = (page: import("@playwright/test").Page, name: string) =>
+  page
+    .locator(
+      '[role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]'
+    )
+    .filter({ hasText: name })
