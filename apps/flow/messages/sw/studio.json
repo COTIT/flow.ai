@@ -1,7 +1,7 @@
 {
   "studio": {
     "region": "Usanifu upya",
-    "idle": "Duka lako linaonyesha toleo {live}. Sema “sanifu upya duka langu” kujaribu mwonekano mpya. Wateja wataliona tu ukichapisha.",
+    "idle": "Duka lako linaonyesha {live}. Sema “sanifu upya duka langu” kujaribu mwonekano mpya. Wateja wataliona tu ukichapisha.",
     "start": "Sanifu upya duka langu",
     "briefTitle": "Machaguo machache ya haraka",
     "areasQuestion": "Ungependa kubadilisha nini?",
@@ -22,14 +22,14 @@
     "product": "Unaolenga bidhaa",
     "prepare": "Andaa usanifu upya",
     "preparingTitle": "Mwonekano wako mpya unaandaliwa",
-    "preparingText": "Inaandaa mwonekano mpya. Duka lako litaendelea kuonyesha toleo {live} hadi uchapishe. {status}",
+    "preparingText": "Inaandaa mwonekano mpya. Duka lako litaendelea kuonyesha {live} hadi uchapishe. {status}",
     "statusReview": "Inasubiri ukaguzi wako",
     "statusWorking": "Inaandaliwa",
     "readyTitle": "Usanifu upya wa duka lako uko tayari",
     "expiredTitle": "Kiungo cha onyesho kimeisha muda",
     "revokedTitle": "Kiungo cha onyesho kimefutwa",
     "endedTitle": "Kiungo cha onyesho kimekoma",
-    "revision": "Toleo",
+    "revision": "Mwonekano mpya",
     "revisionValue": "{draft} · duka bado linaonyesha {live}",
     "status": "Hali",
     "unpublished": "Bado haiko hewani",
@@ -44,11 +44,11 @@
     "hiddenNote": "Kiungo hiki kilionyeshwa mara moja. Tengeneza kiungo kipya kufungua onyesho.",
     "open": "Fungua onyesho la ukurasa kamili",
     "openLabel": "Fungua onyesho la ukurasa kamili (kichupo kipya)",
-    "generate": "Tengeneza kiungo cha onyesho",
-    "regenerate": "Tengeneza kiungo kipya",
+    "generate": "Pata kiungo cha hakiki",
+    "regenerate": "Pata kiungo kipya",
     "another": "Omba badiliko jingine",
     "anotherHint": "Niambie nibadilishe nini, kwa mfano “bango kuu ni kubwa mno”.",
-    "review": "Kagua uchapishaji",
+    "review": "Chapisha mwonekano mpya",
     "revoke": "Futa kiungo",
     "noShop": "Onyesho la ukurasa kamili halijawekwa hapa.",
     "openBlocked": "Maliza ukaguzi ulio wazi kabla ya kufungua onyesho katika kichupo kipya.",
@@ -63,7 +63,7 @@
     "confirm": "Thibitisha uchapishaji",
     "cancel": "Ghairi",
     "publishedTitle": "Duka limechapishwa",
-    "publishedText": "{live} liko hewani sasa. {previous} limehifadhiwa na linaweza kurudishwa baadaye.",
+    "publishedText": "Duka lako sasa linaonyesha {live}. Mwonekano wa awali ({previous}) umehifadhiwa na unaweza kurudishwa baadaye.",
     "publishedNote": "Imethibitishwa baada ya kuchapisha · toleo {version}.",
     "history": "Matoleo",
     "continueTitle": "Endelea na usanifu upya wa duka lako",
@@ -72,6 +72,7 @@
     "continueNoLink": "Limehifadhiwa; fungua studio kutengeneza kiungo cha hakiki.",
     "continue": "Endelea na usanifu upya",
     "dismiss": "Funga",
-    "openStudio": "Fungua"
+    "openStudio": "Fungua",
+    "versionN": "toleo {n}"
   }
 }

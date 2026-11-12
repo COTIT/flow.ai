@@ -71,7 +71,7 @@ test("publishing needs its own confirmation and sends the reviewed version once"
   const preview = page.getByRole("region", { name: region })
   await previewFrame(page)
   await preview.getByRole("button", { name: "Publish", exact: true }).click()
-  // The same publish card as the studio's "Review publication" (live → proposed).
+  // The same publish card as the studio's "Publish the new look" (live → proposed).
   const card = page.getByRole("region", { name: "Publish this new look?" })
   await expect(card).toContainText("This will replace the currently published storefront design.")
   await card.getByRole("button", { name: "Cancel" }).click()
@@ -82,7 +82,7 @@ test("publishing needs its own confirmation and sends the reviewed version once"
   await card.getByRole("button", { name: "Confirm publish" }).click()
   await expect(
     page.getByRole("region", { name: "Storefront published" })
-  ).toContainText("v2 is live now.")
+  ).toContainText("Your shop now shows version 2.")
   const calls = api.callsTo("POST", `${root()}/publish`)
   expect(calls).toHaveLength(1)
   expect(calls[0]?.body).toEqual({ expected_version: 2, revision_id: draft })

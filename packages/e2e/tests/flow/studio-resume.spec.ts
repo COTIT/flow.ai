@@ -22,7 +22,7 @@ test("reopening Flow offers to continue the saved draft, from server state, with
   const sessions = watch(page, "session")
   await page.goto("/")
   const prompt = page.getByRole("region", { name: st.continueTitle })
-  await expect(prompt).toContainText("Your new look (v2) is ready to check.")
+  await expect(prompt).toContainText("Your new look (version 2) is ready to check.")
   await expect(prompt).toContainText("Preview expires")
   await expectNoHorizontalScroll(page)
   expect(sessions).toHaveLength(0)

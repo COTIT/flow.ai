@@ -116,8 +116,11 @@ function Review({
   })
   const { state, revisions, preview, current, reviewed, selected, busy } =
     review
-  const label = (id: string | null | undefined) =>
-    revisionLabel(revisions.data, id)
+  // "version 2" in the person's language; the bare "v2" label stays a code (P6).
+  const label = (id: string | null | undefined) => {
+    const v = revisionLabel(revisions.data, id)
+    return v === "—" ? v : ts("versionN", { n: v.slice(1) })
+  }
   const draftId = current?.draft_revision_id ?? null
   const liveId = current?.published_revision_id ?? null
   const unpublished = draftId && draftId !== liveId ? draftId : null

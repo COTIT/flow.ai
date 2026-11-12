@@ -1,7 +1,7 @@
 {
   "studio": {
     "region": "Herontwerp",
-    "idle": "Je winkel toont versie {live}. Zeg “herontwerp mijn webwinkel” om een nieuwe look te proberen. Klanten zien die pas als je publiceert.",
+    "idle": "Je winkel toont {live}. Zeg “herontwerp mijn webwinkel” om een nieuwe look te proberen. Klanten zien die pas als je publiceert.",
     "start": "Herontwerp mijn webwinkel",
     "briefTitle": "Een paar snelle keuzes",
     "areasQuestion": "Wat wil je veranderen?",
@@ -22,14 +22,14 @@
     "product": "Productgericht",
     "prepare": "Herontwerp voorbereiden",
     "preparingTitle": "Je nieuwe look wordt klaargezet",
-    "preparingText": "Je nieuwe look wordt gemaakt. Je winkel blijft versie {live} tonen tot je publiceert. {status}",
+    "preparingText": "Je nieuwe look wordt gemaakt. Je winkel blijft {live} tonen tot je publiceert. {status}",
     "statusReview": "Wacht op je beoordeling",
     "statusWorking": "Wordt voorbereid",
     "readyTitle": "Je webwinkelherontwerp is klaar",
     "expiredTitle": "Voorbeeldlink verlopen",
     "revokedTitle": "Voorbeeldlink ingetrokken",
     "endedTitle": "Voorbeeldlink beëindigd",
-    "revision": "Versie",
+    "revision": "Nieuwe look",
     "revisionValue": "{draft} · je winkel toont nog {live}",
     "status": "Status",
     "unpublished": "Nog niet live",
@@ -44,11 +44,11 @@
     "hiddenNote": "Deze link is één keer getoond. Maak een nieuwe link om het voorbeeld te openen.",
     "open": "Volledig voorbeeld openen",
     "openLabel": "Volledig voorbeeld openen (nieuw tabblad)",
-    "generate": "Voorbeeldlink maken",
-    "regenerate": "Nieuwe link maken",
+    "generate": "Voorbeeldlink ophalen",
+    "regenerate": "Nieuwe link ophalen",
     "another": "Nog een wijziging vragen",
     "anotherHint": "Vertel me wat er anders moet, bijvoorbeeld “de hero is te groot”.",
-    "review": "Publicatie beoordelen",
+    "review": "Nieuwe look publiceren",
     "revoke": "Link intrekken",
     "noShop": "Volledige voorbeelden zijn hier niet ingesteld.",
     "openBlocked": "Rond eerst de open beoordeling af voordat je het voorbeeld in een nieuw tabblad opent.",
@@ -63,7 +63,7 @@
     "confirm": "Publiceren bevestigen",
     "cancel": "Annuleren",
     "publishedTitle": "Webwinkel gepubliceerd",
-    "publishedText": "{live} is nu live. {previous} blijft bewaard en kan later terugkomen.",
+    "publishedText": "Je winkel toont nu {live}. De vorige look ({previous}) blijft bewaard en kan later terugkomen.",
     "publishedNote": "Gecontroleerd na publiceren · versie {version}.",
     "history": "Versies",
     "continueTitle": "Ga verder met je webwinkelherontwerp",
@@ -72,6 +72,7 @@
     "continueNoLink": "Hij is bewaard; open de studio om een voorbeeldlink te maken.",
     "continue": "Herontwerp voortzetten",
     "dismiss": "Sluiten",
-    "openStudio": "Openen"
+    "openStudio": "Openen",
+    "versionN": "versie {n}"
   }
 }

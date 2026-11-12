@@ -139,7 +139,7 @@ test("Flow issues a preview link the Shop opens until revoked; publishing from F
     await expectNoHorizontalScroll(page)
 
     // Issue in Flow → the Shop opens the real draft with its banner.
-    await card.getByRole("button", { name: "Generate preview link" }).click()
+    await card.getByRole("button", { name: "Get a preview link" }).click()
     const open = card.getByRole("link", { name: "Open full-page preview (new tab)" })
     const href = await open.getAttribute("href")
     expect(href).toMatch(new RegExp(`^${shop}/preview/[0-9a-f]{64}$`))
@@ -166,7 +166,7 @@ test("Flow issues a preview link the Shop opens until revoked; publishing from F
     ).toBeVisible()
 
     // A new link works; publishing from Flow's publish card ends it and makes the draft live.
-    await card.getByRole("button", { name: "Generate a new link" }).click()
+    await card.getByRole("button", { name: "Get a new link" }).click()
     const second = await card
       .getByRole("link", { name: "Open full-page preview (new tab)" })
       .getAttribute("href")
@@ -175,7 +175,7 @@ test("Flow issues a preview link the Shop opens until revoked; publishing from F
     await expect(tab.getByRole("heading", { level: 1 })).toHaveText(
       draft.sections[0].props.heading
     )
-    await card.getByRole("button", { name: "Review publication" }).click()
+    await card.getByRole("button", { name: "Publish the new look" }).click()
     const publish = page.getByRole("region", { name: "Publish this new look?" })
     await publish.getByRole("button", { name: "Confirm publish" }).click()
     await expect(

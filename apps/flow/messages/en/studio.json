@@ -1,7 +1,7 @@
 {
   "studio": {
     "region": "Redesign",
-    "idle": "Your shop shows version {live}. Say “redesign my storefront” to try a new look. Customers only see it after you publish.",
+    "idle": "Your shop shows {live}. Say “redesign my storefront” to try a new look. Customers only see it after you publish.",
     "start": "Redesign my storefront",
     "briefTitle": "A few quick choices",
     "areasQuestion": "What would you like to change?",
@@ -22,14 +22,14 @@
     "product": "Product-focused",
     "prepare": "Prepare redesign",
     "preparingTitle": "Getting your new look ready",
-    "preparingText": "Making your new look. Your shop keeps showing version {live} until you publish. {status}",
+    "preparingText": "Making your new look. Your shop keeps showing {live} until you publish. {status}",
     "statusReview": "Waiting for your review",
     "statusWorking": "Preparing",
     "readyTitle": "Your storefront redesign is ready",
     "expiredTitle": "Preview link expired",
     "revokedTitle": "Preview link revoked",
     "endedTitle": "Preview link ended",
-    "revision": "Version",
+    "revision": "New look",
     "revisionValue": "{draft} · your shop still shows {live}",
     "status": "Status",
     "unpublished": "Not live yet",
@@ -44,11 +44,11 @@
     "hiddenNote": "This link was shown once. Generate a new link to open the preview.",
     "open": "Open full-page preview",
     "openLabel": "Open full-page preview (new tab)",
-    "generate": "Generate preview link",
-    "regenerate": "Generate a new link",
+    "generate": "Get a preview link",
+    "regenerate": "Get a new link",
     "another": "Request another change",
     "anotherHint": "Tell me what to change, for example “the hero is too large”.",
-    "review": "Review publication",
+    "review": "Publish the new look",
     "revoke": "Revoke link",
     "noShop": "Full-page preview is not set up here.",
     "openBlocked": "Finish the open review before opening the preview in a new tab.",
@@ -63,7 +63,7 @@
     "confirm": "Confirm publish",
     "cancel": "Cancel",
     "publishedTitle": "Storefront published",
-    "publishedText": "{live} is live now. {previous} is kept and can be brought back later.",
+    "publishedText": "Your shop now shows {live}. The earlier look ({previous}) is kept and can be brought back later.",
     "publishedNote": "Verified after publishing · version {version}.",
     "history": "Versions",
     "continueTitle": "Continue your storefront redesign",
@@ -72,6 +72,7 @@
     "continueNoLink": "It's saved; open the studio to make a preview link.",
     "continue": "Continue redesign",
     "dismiss": "Dismiss",
-    "openStudio": "Open"
+    "openStudio": "Open",
+    "versionN": "version {n}"
   }
 }
