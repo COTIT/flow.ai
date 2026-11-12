@@ -266,6 +266,9 @@ export async function logOut(page: Page) {
 async function showHeader(page: Page) {
   await revealHeader(page).catch(() => {})
 }
+/** The login page, with or without the `?next=` way back. */
+export const LOGIN = /\/login(\?next=[^&]*)?$/
+export const onLogin = (page: Page) => new URL(page.url()).pathname === "/login"
 
 // ---- invariants of this persona -------------------------------------------------------------
 /** A tab speaks one language: its <html lang>, its language picker and its dock agree. */

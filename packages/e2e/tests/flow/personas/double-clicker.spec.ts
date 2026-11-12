@@ -167,6 +167,9 @@ function expectNoRepeatedWrites(seen: { key: string; at: number }[], known?: Reg
 
 // ---- the long session -----------------------------------------------------------------------
 
+/** Steps per walk: PERSONA_STEPS wins; CI runs a short walk (suite budget), local runs the full one. */
+const STEPS = Number(process.env.PERSONA_STEPS) || (process.env.CI ? 12 : 40)
+
 test("double-clicker: everything twice or three times, before the last one finished", async ({
   persona,
   page,
@@ -268,7 +271,8 @@ test("double-clicker: everything twice or three times, before the last one finis
         await step.run()
         expectNoRepeatedWrites(writes, KNOWN_P2_3)
       },
-    }))
+    })),
+    { count: STEPS }
   )
 })
 
