@@ -28,7 +28,7 @@ async function setup(persona: Persona, page: Page, api: import("../../office/fak
 }
 async function talk(page: Page) {
   await expect
-    .poll(async () => (await live(page)) || ((await page.getByRole("button", { name: v.textInstead, exact: true }).click({ timeout: 1_000 }).catch(() => {})) && false), { timeout: 10_000 })
+    .poll(async () => (await live(page)) || (await page.getByRole("button", { name: v.textInstead, exact: true }).click({ timeout: 1_000 }).then(() => false, () => false)), { timeout: 10_000 })
     .toBe(true)
 }
 async function propose(persona: Persona, page: Page, total = 120) {

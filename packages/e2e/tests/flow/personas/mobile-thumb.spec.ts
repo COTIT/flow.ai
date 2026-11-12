@@ -25,7 +25,7 @@ import {
 } from "./mobile-thumb.helpers"
 
 // A thumb user is on a touch phone: the 375 px project (touch, mobile) only.
-test.beforeEach(({}, info) => test.skip(info.project.name !== "flow-mobile", "touch phone only"))
+test.beforeEach((_, info) => test.skip(info.project.name !== "flow-mobile", "touch phone only"))
 
 /** Signed in at a size, a text conversation open and live. */
 async function live(page: Page, size: { width: number; height: number }) {
