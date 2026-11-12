@@ -46,7 +46,7 @@
       "previous": "Vorige",
       "new": "Nieuw",
       "status": "Status",
-      "reference": "Referentie",
+      "summary": "{thing}{place, select, none {} other { in {place}}} is nu {after} (was {before}).",
       "statuses": {
         "completed": "Bevestigd",
         "partial": "Deels voltooid",
