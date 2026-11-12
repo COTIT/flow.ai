@@ -25,7 +25,10 @@ import {
 } from "./mobile-thumb.helpers"
 
 // A thumb user is on a touch phone: the 375 px project (touch, mobile) only.
-test.beforeEach((_, info) => test.skip(info.project.name !== "flow-mobile", "touch phone only"))
+test.beforeEach(({ page }, info) => {
+  void page // Playwright needs a destructured fixture argument here
+  test.skip(info.project.name !== "flow-mobile", "touch phone only")
+})
 
 /** Signed in at a size, a text conversation open and live. */
 async function live(page: Page, size: { width: number; height: number }) {
@@ -580,7 +583,6 @@ for (const [name, size] of Object.entries({ phone: SIZES.phone, se: SIZES.se }))
   }) => {
     // P10-7: at 320×568 the home orb floats over the raised sheet and covers its handle: a swipe
     // there starts on the orb, the browser pans (pointercancel) and the sheet never lowers.
-    test.fail(name === "se", "P10-7")
     void persona
     await withSheet(page, size)
     const touch = await Touch.on(page)
@@ -608,7 +610,6 @@ for (const [name, size] of Object.entries({ phone: SIZES.phone, se: SIZES.se }))
   test(`sheet ${name}: fast repeated swipes on the handle settle`, async ({ persona, page }) => {
     // P10-7: at 320×568 the home orb floats over the raised sheet and covers its handle: a swipe
     // there starts on the orb, the browser pans (pointercancel) and the sheet never lowers.
-    test.fail(name === "se", "P10-7")
     void persona
     await withSheet(page, size)
     const touch = await Touch.on(page)

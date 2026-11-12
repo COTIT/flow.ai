@@ -24,10 +24,10 @@ describe("orb mode", () => {
       "compact"
     )
     expect(orbMode({ pathname: "/", conversing: true })).toBe("ambient")
-    // The raised phone sheet holds the orb; it never floats over the sheet (P10-7).
-    expect(
-      orbMode({ pathname: "/", conversing: true, sheetRaised: true })
-    ).toBe("compact")
+    // The phone sheet holds the orb while it is on screen; it never floats over it (P10-7).
+    expect(orbMode({ pathname: "/", conversing: true, sheetShown: true })).toBe(
+      "compact"
+    )
     expect(orbMode({ pathname: "/" })).toBe("ambient")
   })
 })

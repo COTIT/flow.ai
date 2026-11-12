@@ -10,16 +10,16 @@ export function orbMode({
   resultOpen,
   immersive,
   conversing,
-  sheetRaised,
+  sheetShown,
 }: {
   pathname: string
   resultOpen?: boolean
   immersive?: boolean
   conversing?: boolean
-  /** The phone's conversation sheet is raised: it holds the orb (never covered by it). */
-  sheetRaised?: boolean
+  /** The phone's conversation sheet is on screen: it holds the orb (never covered by it). */
+  sheetShown?: boolean
 }): OrbMode {
-  if (pathname !== "/" || resultOpen || sheetRaised) return "compact"
+  if (pathname !== "/" || resultOpen || sheetShown) return "compact"
   if (!immersive) return "ambient"
   return conversing ? "compact" : "immersive"
 }
