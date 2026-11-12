@@ -113,12 +113,11 @@ export function useConversationLayout() {
   // A start from home opens the full conversation (immersive follows a moment later).
   const fullView =
     pathname === "/" && !resultOpen && live && (immersive || voice.starting)
-  // Home has no scene bar (no Show conversation there), so the rail opens there like during a
-  // review: a turn to landscape never leaves the conversation unreachable (P10-10).
-  const review =
-    Boolean(voice.review?.ticket || voice.outcome) || pathname === "/"
+  const review = Boolean(voice.review?.ticket || voice.outcome)
   const context = b && b !== "phone" ? railContext(b, review) : null
-  const shown = Boolean(b && talking && !fullView)
+  // The home dashboard has no rail or sheet: the orb continues the conversation there.
+  const homeDash = pathname === "/" && !resultOpen
+  const shown = Boolean(b && talking && !fullView && !homeDash)
   const open =
     shown &&
     !!b &&
@@ -130,6 +129,21 @@ export function useConversationLayout() {
   useEffect(() => {
     if (open) seenReplies = replies
   }, [open, replies])
+  // A send or a reply while the rail is hidden shows it again: a hide lasts until the next turn
+  // (focus stays where it was).
+  // (A new line may merge into the last row, so the last row changing is the signal.)
+  // A review card arriving counts as a reply.
+  const ticket = voice.review?.ticket
+  const turn = useRef({ last, ticket })
+  useEffect(() => {
+    const fresh =
+      (!!last && last !== turn.current.last) ||
+      (!!ticket && ticket !== turn.current.ticket)
+    turn.current = { last, ticket }
+    if (fresh && shown && !sheetOnly && !open && context)
+      save({ ...load(), open: { ...load().open, [context]: true } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [last, ticket])
   return {
     band: b,
     /** The full-width conversation (Conversation board) is open on home. */
@@ -197,7 +211,8 @@ function PaneLog({ pane }: { pane: "rail" | "sheet" }) {
               className="min-h-11 self-start"
               onClick={() => {
                 flowStore.setState({ resultOpen: true, resultFocus: row.id })
-                if (pathname !== "/") router.push("/")
+                // The Results screen is an address: without it the shell closes it again (J1).
+                if (pathname !== "/") router.push("/?view=task")
               }}
             >
               <PanelRight aria-hidden />
@@ -341,6 +356,13 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
       }),
     []
   )
+  // A send or a reply raises a lowered sheet (focus stays where it was).
+  const newest = voice.messages.at(-1)
+  const seen = useRef(newest)
+  useEffect(() => {
+    if (newest && newest !== seen.current) setState("open")
+    seen.current = newest
+  }, [newest])
   const last = [...voice.messages]
     .reverse()
     .find((row) => row.role !== "result" && row.text)
@@ -443,6 +465,7 @@ export function ConversationToggle({
         className="min-h-11 shrink-0 rounded-full"
         aria-expanded={open}
         aria-controls={open ? "flow-rail" : undefined}
+        data-flow-show-conversation={open ? undefined : ""}
         onClick={onToggle}
       >
         {open ? <PanelRightClose aria-hidden /> : <PanelRight aria-hidden />}
@@ -465,19 +488,27 @@ export function ConversationToggle({
 }
 
 /** Hang up from where the conversation lives (rail, sheet, scene bar); only while connected. */
-export function EndCall({ className = "" }: { className?: string }) {
-  const t = useTranslations("voice")
+export function EndCall({
+  className = "",
+  word = false,
+}: {
+  className?: string
+  /** Shows "End" beside the icon (home, where an icon alone is ambiguous). */
+  word?: boolean
+}) {
+  const t = useTranslations()
   const voice = useVoice()
   if (!voice.connected) return null
   return (
     <Button
       variant="outline"
-      size="icon"
-      className={`size-11 shrink-0 ${className}`}
-      aria-label={t("end")}
+      size={word ? "default" : "icon"}
+      className={`${word ? "min-h-11 px-3" : "size-11"} shrink-0 ${className}`}
+      aria-label={t("voice.end")}
       onClick={() => void voice.end().catch(() => undefined)}
     >
       <PhoneOff aria-hidden />
+      {word ? t("shell.endCall") : null}
     </Button>
   )
 }

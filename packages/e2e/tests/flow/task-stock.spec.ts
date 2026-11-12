@@ -11,7 +11,7 @@ import {
   scene,
   stockRoutes,
 } from "./task"
-import { fakeAgent, send, startText, v, watch } from "./voice"
+import { fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
 
 // SIMULATED voice (fake ElevenLabs socket + Office-shaped answers); the read-back is the mocked API.
 
@@ -206,7 +206,7 @@ test("a task belongs to its workspace: after switching, nothing of it shows, als
     await picker.click()
     await page.getByRole("option", { name: ws.display_name, exact: true }).click()
     await expect(
-      page.getByRole("button", { name: v.textInstead, exact: true })
+      page.getByRole("button", { name: typeInstead, exact: true })
     ).toBeVisible()
     await expect(capsule(page)).toHaveCount(0)
     await expect(receipt(page)).toHaveCount(0)

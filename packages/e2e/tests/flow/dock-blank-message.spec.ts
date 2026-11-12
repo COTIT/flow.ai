@@ -13,7 +13,7 @@ const userRows = (page: import("@playwright/test").Page) =>
 
 test("P4-1: a zero-width-only draft on home starts no conversation", async ({ page }) => {
   const agent = await fakeAgent(page)
-  await page.goto("/")
+  await page.goto("/scenes/pulse") // orb-first home has no message box
   const box = page.getByLabel(v.message)
   await box.fill(BLANK)
   await box.press("Enter")

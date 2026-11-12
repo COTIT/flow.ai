@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react"
 import { useTranslations } from "next-intl"
+import { Mic } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useUsersMe } from "@genesy/api-client/endpoints/users"
@@ -11,11 +12,12 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { useVoice } from "@genesy/voice/components/provider"
 import { DiscoveryHint } from "@/components/discovery/hint" // F3
-import { useFlow } from "@/lib/flow-store"
+import { flowStore, useFlow } from "@/lib/flow-store"
 import { useReadiness } from "@/lib/use-readiness"
 import { Noticed } from "@/components/home/noticed" // F2
 import { YourFlow } from "@/components/home/your-flow" // F2
 import { StudioResume } from "@/components/studio/resume" // F5
+import { EndCall } from "./conversation"
 import { useWorkspaceChoices } from "./header"
 import { Immersive } from "./immersive"
 import { OrbCaption } from "./orb-caption"
@@ -46,7 +48,6 @@ export function Home() {
   const current = choices.find((w) => w.id === workspaceId)
   const immersive = useFlow((s) => s.immersive)
   const resultOpen = useFlow((s) => s.resultOpen)
-  const sheetShown = useFlow((s) => s.sheetShown)
   const live = voice.connected || voice.starting || voice.upgrading
   const { state } = useReadiness()
   const hour = useLocalHour()
@@ -98,6 +99,17 @@ export function Home() {
     )
   if (resultOpen) return <ApprovalScene /> // F4
   if (live && immersive) return <Immersive />
+  const last = [...voice.messages]
+    .reverse()
+    .find((row) => row.role !== "result" && row.text)
+  // The orb, and the words under it, do one thing: start talking, or go back to the conversation.
+  const orbLabel = t(
+    voice.connected ? "shell.continueConversation" : "shell.tapToTalk"
+  )
+  const orbAction = () =>
+    voice.connected
+      ? flowStore.setState({ immersive: true, resultOpen: false })
+      : void voice.start(false)
   return (
     <div className="flex flex-col items-center gap-5 py-6 text-center max-md:py-3">
       <div className="flex flex-col gap-1">
@@ -113,20 +125,71 @@ export function Home() {
           {t("shell.flowText")}
         </p>
       </div>
-      {/* With the phone sheet on screen the orb lives there: no empty place for it here. */}
-      <OrbSlot
-        name="ambient"
-        className={sheetShown ? "hidden" : "size-40 sm:size-56"}
-      />
-      <OrbCaption />
+      {/* The keyboard's and screen reader's orb: its place in the page, first in the content. */}
+      <button
+        type="button"
+        data-home-orb
+        aria-label={orbLabel}
+        onClick={orbAction}
+        className="rounded-full focus-visible:ring-4 focus-visible:ring-(--gold) focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none"
+      >
+        <OrbSlot name="ambient" className="size-40 sm:size-56" />
+      </button>
+      {/* The orb is the one primary action; the words under it say what a tap does. */}
+      {/* The words are a second, larger target for a pointer (the orb button above is the
+          keyboard's and screen reader's one). */}
+      {voice.connected ? (
+        <div className="flex max-w-full items-center gap-3">
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            onClick={orbAction}
+            className="min-h-11 min-w-0 rounded-xl px-2 py-1 hover:bg-accent"
+          >
+            <span className="block text-base font-medium">
+              {t("shell.continueConversation")}
+            </span>
+            {last ? (
+              <span className="block max-w-xs truncate text-sm text-muted-foreground sm:max-w-md">
+                {last.text}
+              </span>
+            ) : null}
+          </button>
+          <EndCall word />
+        </div>
+      ) : live ? (
+        <OrbCaption />
+      ) : (
+        <Button
+          variant="ghost"
+          tabIndex={-1}
+          aria-hidden
+          className="min-h-11 text-base font-medium"
+          onClick={orbAction}
+        >
+          <Mic aria-hidden />
+          {t("shell.tapToTalk")}
+        </Button>
+      )}
       {!live && state === "available" ? (
         <>
           <Button
             variant="outline"
             className="min-h-11"
-            onClick={() => void voice.start(true)}
+            onClick={() =>
+              void voice
+                .start(true)
+                .then(() =>
+                  requestAnimationFrame(() =>
+                    document
+                      .querySelector<HTMLElement>("[data-flow-composer]")
+                      ?.focus()
+                  )
+                )
+            }
           >
-            {t("voice.textInstead")}
+            {t("shell.typeInstead")}
           </Button>
           <p className="max-w-sm text-xs text-muted-foreground">
             {t("voice.micHint")}

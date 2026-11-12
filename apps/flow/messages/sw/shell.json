@@ -52,6 +52,10 @@
     "newReply": "Genesy amejibu",
     "signOutTitle": "Ondoka na kumaliza mazungumzo haya?",
     "signOutText": "Genesy itaacha kusikiliza na utaondolewa kwenye kifaa hiki.",
-    "signOutStay": "Endelea kuingia"
+    "signOutStay": "Endelea kuingia",
+    "tapToTalk": "Gusa kuongea",
+    "continueConversation": "Endelea na mazungumzo yako",
+    "typeInstead": "Andika badala yake",
+    "endCall": "Maliza"
   }
 }

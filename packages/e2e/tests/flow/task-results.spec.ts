@@ -27,7 +27,7 @@ test("before any answer there is no result scene and no placeholder chart", asyn
   page,
 }) => {
   await page.goto("/")
-  await expect(page.getByText(v.welcome)).toBeVisible()
+  await expect(page.getByText(s.tapToTalk, { exact: true })).toBeVisible()
   await expect(page.getByRole("region", { name: chat.results })).toHaveCount(0)
   await expect(page.locator("[data-chart]")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
@@ -55,9 +55,10 @@ test("a list answer shows in the results with record links to Office in a new ta
     pane.getByRole("link", { name: v.results.openAll })
   ).toHaveAttribute("href", `${OFFICE}/orders`)
   await expectNoHorizontalScroll(page)
-  // Back from the scene returns to the same conversation.
+  // Back lands on home (J4); the orb's words continue the same conversation, its line there.
   await page.getByRole("button", { name: s.backHome }).click()
   await expect(pane).toBeHidden()
+  await page.getByText(s.continueConversation, { exact: true }).click()
   await expect(line).toBeVisible()
 })
 

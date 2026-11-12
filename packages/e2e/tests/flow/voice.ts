@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test"
 
 import voiceEn from "../../../../packages/i18n/messages/voice/en.json" with { type: "json" }
 import flowEn from "../../../../apps/flow/messages/en.json" with { type: "json" }
+import shellEn from "../../../../apps/flow/messages/en/shell.json" with { type: "json" }
 import { FLOW_ORDER, FLOW_SIGNED_URL } from "../../mock/flow-voice.mjs"
 import { expect } from "../../src/test"
 
@@ -12,10 +13,15 @@ import { expect } from "../../src/test"
  */
 export const v = voiceEn.voice
 export const chat = flowEn.flow.chat
+/** Home's way to start a typed conversation (orb-first home). */
+export const typeInstead = shellEn.shell.typeInstead
 export const OFFICE = "https://office.genesy.test"
 export { FLOW_ORDER, FLOW_SIGNED_URL }
 
 type Event = { type?: string; [key: string]: unknown }
+
+/** Each agent line has its own event id, as the real service sends (lines never merge by id). */
+let lineId = 90_000
 
 /** A fake agent on the ElevenLabs socket: records what the browser sends, says and calls tools. */
 export async function fakeAgent(
@@ -35,7 +41,7 @@ export async function fakeAgent(
     say(text: string) {
       agent.emit({
         type: "agent_response",
-        agent_response_event: { agent_response: text },
+        agent_response_event: { agent_response: text, event_id: ++lineId },
       })
     },
     call(operation: string, args: unknown = {}) {
@@ -112,9 +118,14 @@ export function watch(page: Page, route: string) {
 
 /** Starts a text conversation from the start controls; returns once it is connected. */
 export async function startText(page: Page) {
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   // The dock's attach button exists only while connected.
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
+}
+
+/** Taps the orb as a person does (home: "Tap to talk" starts voice; elsewhere it opens the conversation). */
+export async function tapOrb(page: Page) {
+  await page.locator("[data-orb]").click()
 }
 
 /** Sends one typed message. */

@@ -1,5 +1,5 @@
 import { expect, test, designs } from "./storefront-api"
-import { fakeAgent, startText, v, watch } from "./voice"
+import { fakeAgent, startText, v, watch, typeInstead } from "./voice"
 import { dock, phase, s, revealHeader } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
 
 test("unsent text stays in the dock across scenes", async ({ page, api }) => {
   designs(api)
-  await page.goto("/")
+  await page.goto("/scenes/pulse") // orb-first home has no message box; a scene's dock does
   const box = dock(page).getByLabel(v.message)
   await box.fill("half a thought")
   // F2: Your Flow also has "Storefront Studio"
@@ -38,7 +38,7 @@ test("typing without a conversation starts a text one (never the microphone) and
   designs(api)
   const sessions = watch(page, "session")
   const agent = await fakeAgent(page, (text, a) => a.say(`You said: ${text}`))
-  await page.goto("/")
+  await page.goto("/scenes/pulse") // orb-first home has no message box; a scene's dock does
   const box = dock(page).getByLabel(v.message)
   await box.fill("How are sales today?")
   await box.press("Enter")
@@ -56,7 +56,7 @@ test("typed “Hey Genesy, …” starts and sends only the instruction", async 
 }) => {
   designs(api)
   const agent = await fakeAgent(page)
-  await page.goto("/")
+  await page.goto("/scenes/pulse") // orb-first home has no message box; a scene's dock does
   await dock(page).getByLabel(v.message).fill("Hey Genesy, show my pending orders")
   await dock(page).getByRole("button", { name: v.send, exact: true }).click()
   await expect
@@ -92,7 +92,7 @@ test("text sent while the conversation is still opening is kept and goes out onc
   })
   const agent = await fakeAgent(page)
   await page.goto("/")
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   const box = dock(page).getByLabel(v.message)
   await box.fill("Sent while opening")
   await box.press("Enter")
@@ -125,7 +125,7 @@ test.describe("a start that fails", () => {
       await route.continue()
     })
     const agent = await fakeAgent(page)
-    await page.goto("/")
+    await page.goto("/scenes/pulse") // orb-first home has no message box; a scene's dock does
     const box = dock(page).getByLabel(v.message)
     await box.fill("Old question")
     await box.press("Enter")
@@ -134,7 +134,8 @@ test.describe("a start that fails", () => {
     await expect(phase(page)).not.toHaveText(new RegExp(s.phase.live))
     // The text stays in the box for the person to decide.
     await expect(box).toHaveValue("Old question")
-    await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+    await page.getByRole("button", { name: s.backHome }).click()
+    await page.getByRole("button", { name: typeInstead, exact: true }).click()
     await expect(dock(page).getByRole("button", { name: v.addFiles })).toBeVisible()
     await page.waitForTimeout(700)
     expect(agent.sent.filter((e) => e.type === "user_message")).toEqual([])
@@ -151,7 +152,7 @@ test("Enter before the readiness answer still starts the text conversation and s
     await route.continue()
   })
   const agent = await fakeAgent(page)
-  await page.goto("/")
+  await page.goto("/scenes/pulse") // orb-first home has no message box; a scene's dock does
   const box = dock(page).getByLabel(v.message)
   await box.fill("Early question")
   await box.press("Enter")

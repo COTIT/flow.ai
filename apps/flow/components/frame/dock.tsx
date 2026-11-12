@@ -51,6 +51,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const draft = useFlow((s) => s.draft)
   const resultOpen = useFlow((s) => s.resultOpen)
   const sheetShown = useFlow((s) => s.sheetShown)
+  const immersive = useFlow((s) => s.immersive)
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
   const composer = useRef<HTMLInputElement>(null)
@@ -72,22 +73,32 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     ;(review ?? composer.current)?.focus()
   }, [voice.upgrading, held])
   // End left the screen with the call: a keyboard user goes on at the mic (no phone keyboard
-  // pops up), or the message box, never at the page.
+  // pops up), or the message box; on home (no message box) at the orb. Never at the page.
   const startVoice = useRef<HTMLButtonElement>(null)
   const wasConnected = useRef(voice.connected)
   useEffect(() => {
     const dropped = document.activeElement === document.body
     if (wasConnected.current && !voice.connected && dropped)
       requestAnimationFrame(() =>
-        (startVoice.current && !startVoice.current.disabled
-          ? startVoice.current
-          : composer.current
-        )?.focus()
+        [
+          startVoice.current?.disabled ? null : startVoice.current,
+          composer.current,
+          document.querySelector<HTMLElement>("[data-home-orb]"),
+        ]
+          .find((el) => el && el.offsetParent !== null)
+          ?.focus()
       )
     wasConnected.current = voice.connected
   }, [voice.connected])
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
+  const homeDash =
+    pathname === "/" &&
+    !resultOpen &&
+    !(
+      (voice.connected || voice.starting || voice.upgrading) &&
+      (immersive || voice.starting)
+    )
   const { query: readiness, state } = useReadiness()
 
   // Clears the box only if it still holds what was sent (typing during the send stays).
@@ -160,6 +171,8 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         <Pills
           disabled={Boolean(voice.review)}
           ask={(text) => {
+            // On home the request and its answer show in the full conversation.
+            if (homeDash) flowStore.setState({ immersive: true })
             flowStore.getState().setDraft(text)
             void submit(text)
           }}
@@ -234,7 +247,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
             {voice.error}
           </p>
         ) : null}
-        {voice.connected ? (
+        {voice.connected && !homeDash ? (
           <AttachmentList
             onPreview={(file, opener) => {
               previewReturn.current = opener
@@ -247,7 +260,8 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
           accident; the field itself stays focused and keeps what the person is typing (SW9). */}
       <form
         data-held={held || undefined}
-        className="flex min-w-0 items-center gap-2"
+        // Home's dashboard has no message box: the orb (or "Type instead") opens the conversation.
+        className={`${homeDash ? "hidden" : "flex"} min-w-0 items-center gap-2`}
         onSubmit={(e) => {
           e.preventDefault()
           if (!held) void submit()
@@ -289,6 +303,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         ) : null}
         <Input
           ref={composer}
+          data-flow-composer
           aria-label={t("voice.message")}
           placeholder={t("shell.placeholder")}
           autoComplete="off"

@@ -12,7 +12,7 @@ import {
   root,
   test as storefrontTest,
 } from "./storefront-api"
-import { fakeAgent, send, startText, v } from "./voice"
+import { fakeAgent, send, startText, typeInstead } from "./voice"
 
 // Two tabs = two pages of one browser context (one localStorage). Tab 2 writes the saved login
 // exactly as @genesy/api-client's sessionStore does; tab 1 (the guarded page) must follow.
@@ -144,7 +144,7 @@ test("switching workspace in another tab ends the voice session and shows nothin
     auth: "Bearer e2e-token",
   })
   await expect(
-    page.getByRole("button", { name: v.textInstead, exact: true })
+    page.getByRole("button", { name: typeInstead, exact: true })
   ).toBeVisible()
   await expect(page.getByText(RUAHA.display_name).first()).toBeVisible()
   await expect(page.getByText("Ilundo answer to")).toHaveCount(0)

@@ -1,7 +1,8 @@
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { chat, fakeAgent, send, startText, v, watch } from "./voice"
+import { s } from "./shell"
+import { chat, fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -32,12 +33,12 @@ test("opening Flow starts nothing: no session, no microphone, no socket", async 
   const agent = await fakeAgent(page)
   await page.goto("/")
   await expect(
-    page.getByRole("button", { name: v.start, exact: true })
+    page.getByRole("button", { name: s.tapToTalk, exact: true })
   ).toBeVisible()
   await expect(
-    page.getByRole("button", { name: v.textInstead, exact: true })
+    page.getByRole("button", { name: typeInstead, exact: true })
   ).toBeVisible()
-  await expect(page.getByText(v.welcome)).toBeVisible()
+  await expect(page.getByText(s.tapToTalk, { exact: true })).toBeVisible()
   await expect(page.getByText(v.micHint)).toBeVisible()
   // Give a stray auto-start time to show itself.
   await page.waitForTimeout(500)
@@ -65,7 +66,7 @@ test("a text conversation starts on click, carries messages both ways and ends",
 
   await page.getByRole("button", { name: v.end }).click()
   await expect(
-    page.getByRole("button", { name: v.textInstead, exact: true })
+    page.getByRole("button", { name: typeInstead, exact: true })
   ).toBeVisible()
   await expect
     .poll(() => sessions.some((s) => s.method === "DELETE"))

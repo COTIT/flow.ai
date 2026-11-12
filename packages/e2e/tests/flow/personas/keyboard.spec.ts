@@ -9,7 +9,7 @@ import { sc } from "../scenes-api"
 import { s as shell } from "../shell"
 import { capsule, k, proposeStock, readBack, receipt, scene, stockRoutes } from "../task"
 import { designs, revisionButton } from "../storefront-api"
-import { startText, v } from "../voice"
+import { startText, v, typeInstead } from "../voice"
 import { expect, test, type Persona, type Step } from "./harness"
 
 const d = discoveryEn.discovery
@@ -308,7 +308,7 @@ test("probe: the first Tab lands on a visible control, and the whole page is rea
   await expectKeyboardSane(page, "", [])
   for (const target of [
     page.getByRole("link", { name: "Storefront", exact: true }),
-    page.getByRole("button", { name: v.textInstead, exact: true }),
+    page.getByRole("button", { name: typeInstead, exact: true }),
     page.getByRole("link", { name: d.hint.explore }),
     page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first(),
     page.getByLabel(v.message),

@@ -52,6 +52,10 @@
     "newReply": "Genesy replied",
     "signOutTitle": "Sign out and end this conversation?",
     "signOutText": "Genesy stops listening and you are signed out on this device.",
-    "signOutStay": "Stay signed in"
+    "signOutStay": "Stay signed in",
+    "tapToTalk": "Tap to talk",
+    "continueConversation": "Continue your conversation",
+    "typeInstead": "Type instead",
+    "endCall": "End"
   }
 }

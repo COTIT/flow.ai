@@ -29,8 +29,9 @@ export function SceneBar({
         variant="ghost"
         className="min-h-11 shrink-0"
         onClick={() => {
-          // Closing results returns to the conversation; leaving a scene returns to home.
-          if (pathname === "/") return flowStore.setState({ resultOpen: false })
+          // Back to home means the home screen (orb-first), from results as from a scene (J4).
+          if (pathname === "/")
+            return flowStore.setState({ resultOpen: false, immersive: false })
           flowStore.setState({ resultOpen: false, immersive: false })
           router.push("/")
         }}

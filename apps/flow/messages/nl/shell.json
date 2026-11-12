@@ -52,6 +52,10 @@
     "newReply": "Genesy antwoordde",
     "signOutTitle": "Afmelden en dit gesprek beëindigen?",
     "signOutText": "Genesy stopt met luisteren en je wordt op dit apparaat afgemeld.",
-    "signOutStay": "Aangemeld blijven"
+    "signOutStay": "Aangemeld blijven",
+    "tapToTalk": "Tik om te praten",
+    "continueConversation": "Ga verder met je gesprek",
+    "typeInstead": "Liever typen",
+    "endCall": "Beëindigen"
   }
 }

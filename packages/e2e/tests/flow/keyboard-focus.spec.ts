@@ -9,10 +9,10 @@ import { s } from "./shell"
 import { api as discoveryApi, d, OWNER } from "./discovery"
 import { expect, test } from "./storefront-api"
 import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
-import { fakeAgent, startText, v } from "./voice"
+import { fakeAgent, startText, v, typeInstead } from "./voice"
 
 const controls = (page: Page) => ({
-  button: page.getByRole("button", { name: v.textInstead, exact: true }),
+  button: page.getByRole("button", { name: typeInstead, exact: true }),
   field: page.getByLabel(v.message),
 })
 
@@ -22,6 +22,8 @@ test.describe("P9-2: forced colours (Windows High Contrast)", () => {
     void api
     await page.goto("/")
     for (const [name, control] of Object.entries(controls(page))) {
+      // Orb-first home has no message box: the field is checked in the conversation.
+      if (name === "field") await controls(page).button.click()
       const look = await focusLook(control)
       expect(look.visible, name).toBe(true)
       expect(look.outline, `${name}: no outline in forced colours`).not.toBe("none")
@@ -174,8 +176,9 @@ test("P9-6: Shift+Tab from the dock reaches the orb only where it can be seen (h
   await page.goto("/")
   await expect(page.getByRole("region", { name: sc.yourFlow })).toBeVisible()
   await page.locator("[data-flow-scroll]").evaluate((el) => el.scrollTo(0, el.scrollHeight))
-  const orb = page.getByRole("button", { name: s.orbStart })
-  await page.getByRole("button", { name: v.send, exact: true }).focus()
+  // Orb-first home: the orb's keyboard target is its place in the page; the dock holds the chips.
+  const orb = page.getByRole("button", { name: s.tapToTalk, exact: true })
+  await page.getByRole("region", { name: s.dock }).getByRole("list").getByRole("button").first().focus()
   let reached = false
   for (let i = 0; i < 30 && !reached; i++) {
     await page.keyboard.press("Shift+Tab")
@@ -188,7 +191,8 @@ test("P9-6: Shift+Tab from the dock reaches the orb only where it can be seen (h
     const r = el.getBoundingClientRect()
     if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return false
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
-    return !!hit && (hit === el || el.contains(hit))
+    // The orb itself is drawn over its button; anything else on top hides it.
+    return !!hit && (hit === el || el.contains(hit) || !!hit.closest("[data-orb]"))
   })
   expect(onScreen, "the focused orb is off screen").toBe(true)
 })

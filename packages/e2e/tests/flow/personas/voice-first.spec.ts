@@ -6,7 +6,11 @@ import type { Page, Request } from "@playwright/test"
 
 import { readBack, scene, stockRoutes } from "../task"
 import { s as shell } from "../shell"
-import { v } from "../voice"
+import { typeInstead, v } from "../voice"
+
+/** Start voice: a scene's dock has the Start button; orb-first home starts with the orb itself. */
+const startControl = (page: Page) =>
+  page.getByRole("button", { name: v.start, exact: true }).or(page.locator('[data-orb="ambient"]'))
 import { expect, test, type Persona } from "./harness"
 
 test.use({
@@ -93,7 +97,7 @@ async function setup(page: Page, api: import("../../office/fake-api").FakeApi) {
 }
 
 async function startVoice(page: Page) {
-  await page.getByRole("button", { name: v.start, exact: true }).click()
+  await startControl(page).first().click()
   await expect(page.getByRole("button", { name: v.end })).toBeVisible()
   // The dock's attach button exists only once the session is verified.
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
@@ -154,12 +158,12 @@ test("probe: mic denied, granted, revoked mid-turn, device change, mute spam", a
   const mic = await micControl(page)
   await page.goto("/")
   await mic.deny(true)
-  await persona.click(page.getByRole("button", { name: v.start, exact: true }))
+  await persona.click(startControl(page))
   await page.waitForTimeout(1500)
   console.log("[probe] denied:", await page.locator("[data-phase]").first().getAttribute("data-phase"), await page.getByRole("alert").allInnerTexts(), await page.getByRole("status").allInnerTexts())
   await persona.check()
   await mic.deny(false)
-  await persona.click(page.getByRole("button", { name: v.start, exact: true }))
+  await persona.click(startControl(page))
   await page.waitForTimeout(1500)
   console.log("[probe] granted:", await page.locator("[data-phase]").first().getAttribute("data-phase"), await page.getByRole("alert").allInnerTexts())
   speak(persona, "What were sales today?")
@@ -182,7 +186,7 @@ test.describe("P7-1: a refused microphone shows the browser's raw text", () => {
     const mic = await micControl(page)
     await page.goto("/")
     await mic.deny(true)
-    await persona.click(page.getByRole("button", { name: v.start, exact: true }))
+    await persona.click(startControl(page))
     await expect(page.getByRole("alert").first()).not.toBeEmpty()
     // Chrome says "Permission denied", Safari "The request is not allowed…": neither is Flow's words.
     await expect(page.getByRole("alert").first()).not.toHaveText("Permission denied")
@@ -260,7 +264,7 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
     },
   })
   await persona.run([
-    { name: "start voice", weight: 3, run: () => persona.click(page.getByRole("button", { name: v.start, exact: true })) },
+    { name: "start voice", weight: 3, run: () => persona.click(startControl(page)) },
     { name: "start text", weight: 1, run: () => persona.startText() },
     {
       name: "talk",
@@ -337,7 +341,7 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
         await expect(page.getByRole("button", { name: v.addFiles }), "the call ended").toBeHidden()
         await page.waitForTimeout(persona.int(0, 600))
         slowTools = false
-        if (persona.chance(0.7)) await persona.click(page.getByRole("button", { name: v.start, exact: true }))
+        if (persona.chance(0.7)) await persona.click(startControl(page))
       },
     },
     { name: "the agent's socket drops", weight: 1, run: async () => persona.agent.close() },
@@ -393,7 +397,7 @@ test.describe("P7-3: an agent tool call outside a user turn, then silence: Think
   test("P7-3: the agent runs a read on its own and says nothing after it", async ({ persona, page }) => {
     await page.clock.install()
     await page.goto("/")
-    await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+    await page.getByRole("button", { name: typeInstead, exact: true }).click()
     await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
     // E.g. the status wait the agent starts after a review card, or a read after a check-in.
     persona.agent.call("products_list", {})

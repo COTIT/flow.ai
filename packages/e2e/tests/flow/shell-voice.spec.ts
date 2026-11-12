@@ -1,7 +1,7 @@
 import { seedSession } from "../../src/session"
 import { expect, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { fakeAgent, v } from "./voice"
+import { fakeAgent, v, tapOrb } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -41,7 +41,7 @@ test("the microphone opens only after Start, and can be muted", async ({
   const agent = await fakeAgent(page)
   await page.goto("/")
   expect(await page.evaluate(() => Reflect.get(window, "micRequests"))).toBe(0)
-  await page.getByRole("button", { name: v.start, exact: true }).click()
+  await tapOrb(page) // orb-first home: the orb starts voice
   await expect(page.getByRole("button", { name: v.end })).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => Reflect.get(window, "micRequests")))

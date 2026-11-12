@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 import { markInjected } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { scene, stockRoutes } from "./task"
-import { fakeAgent, startText, v } from "./voice"
+import { fakeAgent, startText, v, typeInstead } from "./voice"
 
 // SIMULATED voice + API. Guard: a failed or late answer never puts its HTTP status on screen.
 
@@ -45,7 +45,7 @@ for (const status of STATUSES) {
     await fakeAgent(page)
     await page.goto("/")
     const injected = await failNext(page, /\/api\/voice\/session/, status)
-    await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+    await page.getByRole("button", { name: typeInstead, exact: true }).click()
     await expect(page.getByRole("alert").first()).not.toBeEmpty()
     expect(injected.hit(), "the failure was injected").toBe(true)
     expect(await visibleText(page)).not.toMatch(shown(status))

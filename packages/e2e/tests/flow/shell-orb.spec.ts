@@ -1,5 +1,5 @@
 import { expect, test, designs } from "./storefront-api"
-import { fakeAgent, startText, v } from "./voice"
+import { fakeAgent, startText, typeInstead } from "./voice"
 import { dock, expectOrbClear, orb, orbAt, phase, s, revealHeader, homeOrb } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
@@ -19,7 +19,9 @@ test("one orb moves home → conversation → scene → conversation → home, n
   const genesy = orb(page).locator("[data-genesy-orb]")
   await expect(genesy).toHaveCount(1)
   await expect(genesy).toHaveAttribute("data-state", "idle")
-  await expect(genesy.getByRole("status")).toHaveText(s.orb.idle)
+  // On home the orb is drawn over its keyboard button (named by its words), so this picture is
+  // hidden from assistive tech there; its state words are still in the drawing.
+  await expect(genesy.locator('[role="status"]')).toHaveText(s.orb.idle)
   // The approved design orb at every size: five SVG strands in a glass body, never the WebGL sheets.
   await expect(genesy.locator("svg path")).toHaveCount(5)
   await expect(genesy.locator("canvas")).toHaveCount(0)
@@ -27,7 +29,7 @@ test("one orb moves home → conversation → scene → conversation → home, n
     header,
     dock(page),
     page.getByRole("heading", { level: 1 }),
-    page.getByRole("button", { name: v.textInstead }),
+    page.getByRole("button", { name: typeInstead }),
   ])
 
   // 1: home → voice: the orb grows into the conversation.

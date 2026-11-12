@@ -23,6 +23,17 @@ async function callOnDashboard(page: Page) {
   await expect(ends(page)).toHaveCount(1)
 }
 
+/** Orb-first home shows End beside "Continue your conversation"; the rail or sheet live on scenes. */
+async function onScene(page: Page) {
+  await expect(ends(page), "home's End").toContainText(s.endCall)
+  await page
+    .getByRole("region", { name: /Your Flow/ })
+    .getByRole("link", { name: /Morning Pulse/ })
+    .click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  await expect(ends(page)).toHaveCount(1)
+}
+
 async function noOverflow(page: Page) {
   const below = await page.evaluate(
     () => document.documentElement.scrollHeight - window.innerHeight
@@ -36,6 +47,7 @@ test("End shows once in every view, only while connected, and one tap ends the c
   const sessions = watch(page, "session")
   await callOnDashboard(page)
   await noOverflow(page)
+  await onScene(page)
   const raise = page.getByRole("button", { name: s.raiseConversation })
   if (await raise.isVisible()) {
     // Phone: the sheet's line, lowered and raised.
@@ -46,17 +58,10 @@ test("End shows once in every view, only while connected, and one tap ends the c
     await expect(ends(page)).toHaveCount(1)
     await noOverflow(page)
   } else {
-    // Rail: its header; collapsed on a scene, beside Show conversation.
-    await expect(
-      page
-        .getByRole("complementary", { name: s.conversation })
-        .getByRole("button", { name: v.end })
-    ).toBeVisible()
-    await page
-      .getByRole("region", { name: /Your Flow/ })
-      .getByRole("link", { name: /Morning Pulse/ })
-      .click()
-    await expect(page).toHaveURL(/\/scenes\/pulse$/)
+    // Rail: its header; collapsed, beside Show conversation.
+    const rail = page.getByRole("complementary", { name: s.conversation })
+    if (await rail.isVisible())
+      await expect(rail.getByRole("button", { name: v.end })).toBeVisible()
     const hide = page.getByRole("button", { name: s.hideConversation }).first()
     if (await hide.isVisible()) await hide.click() // a tablet opens scenes with it collapsed
     await expect(
@@ -73,7 +78,7 @@ test("End shows once in every view, only while connected, and one tap ends the c
   await expect(ends(page)).toHaveCount(0)
 })
 
-test("after End from the keyboard, focus goes on in the dock, never to the page", async ({
+test("after End from the keyboard, focus goes on at the orb or the dock, never to the page", async ({
   page,
 }) => {
   await callOnDashboard(page)
@@ -82,9 +87,9 @@ test("after End from the keyboard, focus goes on in the dock, never to the page"
   await expect(live(page)).toBeHidden()
   const focused = page.locator(":focus")
   await expect(focused).toHaveCount(1)
-  await expect(dock(page).locator(":focus")).toHaveCount(1)
+  // Home: the orb ("Tap to talk"); a scene's dock: its mic or the message box.
   expect(await focused.getAttribute("aria-label")).toMatch(
-    new RegExp(`^(${v.start}|${v.message})$`)
+    new RegExp(`^(${s.tapToTalk}|${v.start}|${v.message})$`)
   )
 })
 
@@ -103,6 +108,7 @@ for (const [width, height] of [
       await page.goto("/")
       await callOnDashboard(page)
       await noOverflow(page)
+      await onScene(page)
       const end = ends(page)
       if (height <= 500) {
         await expect(

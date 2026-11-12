@@ -10,7 +10,7 @@ import {
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
 import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
-import { chat, fakeAgent, send, startText, v, watch } from "./voice"
+import { chat, fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
@@ -436,12 +436,12 @@ test("P3-2: a conversation started away from home shows there (rail, or the phon
     await expect(rail(page).getByRole("log")).toContainText(
       "Answer: How were sales this week?"
     )
-    // Hidden again, a new reply is announced on its toggle.
+    // Hidden again, the next send shows the conversation with its answer (a hide lasts until
+    // the next turn).
     await rail(page).getByRole("button", { name: s.hideConversation }).click()
+    await expect(rail(page)).toHaveCount(0)
     await send(page, "And last week?")
-    await expect(
-      page.getByRole("button", { name: new RegExp(s.showConversation) })
-    ).toContainText(s.newReply)
+    await expect(rail(page).getByRole("log")).toContainText("Answer: And last week?")
   } else {
     // Phone: the sheet peeks with the last line.
     await expect(sheet(page)).toContainText("Answer: How were sales this week?")
@@ -598,7 +598,7 @@ for (const size of [
       await expectNoHorizontalScroll(page)
     }
     await page.goto("/")
-    const start = page.getByRole("button", { name: v.textInstead, exact: true })
+    const start = page.getByRole("button", { name: typeInstead, exact: true })
     await start.scrollIntoViewIfNeeded()
     await start.click({ trial: true }) // reachable and not under the dock
     await room("home")
@@ -635,7 +635,7 @@ test("P4-1: a draft of only invisible characters is never sent", async ({ page }
 test("P4-1: invisible characters typed on home start no conversation", async ({ page }) => {
   await fakeAgent(page)
   const sessions = watch(page, "session")
-  await page.goto("/")
+  await page.goto("/scenes/pulse") // orb-first home has no message box
   await composer(page).fill("​ ​")
   await composer(page).press("Enter")
   await page.waitForTimeout(800)
@@ -736,6 +736,8 @@ test.describe("touch gestures (P10-5..7)", () => {
     await send(page, "Hello")
     await expect(page.getByRole("log")).toContainText("Answer: Hello")
     await page.getByRole("button", { name: s.backHome }).first().click()
+    // Orb-first home has no sheet: it lives on scenes.
+    await page.getByRole("region", { name: /Your Flow/ }).getByRole("link", { name: /Morning Pulse/ }).click()
     await page.getByRole("button", { name: s.raiseConversation }).click()
     const lower = page.getByRole("button", { name: s.lowerConversation })
     await expect(lower).toBeVisible()
@@ -889,7 +891,10 @@ test("P10-10: rotating during a conversation keeps it reachable at every size (s
   const reachable = async (w: number) => {
     // The conversation shows (rail or sheet), or a visible control opens it.
     const pane = page.locator("aside#flow-rail, section[aria-label] [aria-label='" + s.raiseConversation + "'], section[aria-label] [aria-label='" + s.lowerConversation + "']")
-    const toggle = page.getByRole("button", { name: s.showConversation })
+    // Orb-first home: the orb (named "Continue your conversation") opens it.
+    const toggle = page
+      .getByRole("button", { name: s.showConversation })
+      .or(page.getByRole("button", { name: s.continueConversation }))
     await expect(pane.or(toggle).first(), `reachable at ${w}`).toBeVisible()
     const wide = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>("aside, section")]
@@ -947,6 +952,8 @@ test("P10-2: with the phone sheet raised and the keyboard up, the field and Send
   await send(page, "hi")
   await expect(page.getByRole("log").first()).toContainText("Answer: hi")
   await page.getByRole("button", { name: s.backHome }).first().click()
+  // Orb-first home has no sheet: it lives on scenes.
+  await page.getByRole("region", { name: /Your Flow/ }).getByRole("link", { name: /Morning Pulse/ }).click()
   await page.getByRole("button", { name: s.raiseConversation }).click()
   await composer(page).focus()
   const visible = Math.round(667 * 0.58)

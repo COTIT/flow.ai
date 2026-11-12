@@ -62,7 +62,8 @@ async function dropMidNavigation(page: Page, { offline = true, open = openStoref
 
 async function start(page: Page, api: Parameters<typeof designs>[0]) {
   designs(api)
-  await page.goto("/")
+  // Orb-first home has no message box: the draft is typed in a scene's dock.
+  await page.goto("/scenes/pulse")
   await page.getByLabel(v.message).fill(DRAFT)
 }
 
@@ -116,7 +117,12 @@ test("P3-5 the code failed but the browser stayed online: Try again loads that p
 })
 
 test("P3-5 a scene whose code never arrived offers a real reload, not the same failure again", async ({ page, api }) => {
-  await start(page, api)
+  // The draft is typed on the storefront (its own code), so no scene's code has loaded yet.
+  designs(api)
+  await page.goto("/storefront")
+  await page.getByLabel(v.message).fill(DRAFT)
+  await page.getByRole("button", { name: "Back to home" }).click()
+  await expect(page.getByRole("region", { name: sc.yourFlow })).toBeVisible()
   const back = await dropMidNavigation(page, {
     offline: false,
     open: (p) => p.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click(),
