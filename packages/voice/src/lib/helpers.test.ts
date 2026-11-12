@@ -1,5 +1,5 @@
-import { afterEach, expect, it, vi } from "vitest"
-import { progressOf, SAFE_HREF, splitLinks, spokenText, whenSlow } from "./helpers"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { formatPrice, progressOf, SAFE_HREF, splitLinks, spokenText, whenSlow } from "./helpers"
 
 afterEach(() => vi.useRealTimers())
 
@@ -63,4 +63,12 @@ it("links what the host's whitelist allows", () => {
     { text: "see " },
     { text: "a", href: "/assistant/x" },
   ])
+})
+
+describe("formatPrice", () => {
+  it("formats an API major-unit decimal string with its currency, rounding for display only", () => {
+    expect(formatPrice("11.6600", 2, "EUR", "en")).toBe("€11.66")
+    expect(formatPrice("1.2350", 2, "USD", "en")).toBe("$1.24")
+    expect(formatPrice("1500.0000", 0, "TZS", "en")).toMatch(/^TZS\s1,500$/)
+  })
 })

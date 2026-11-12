@@ -73,15 +73,21 @@ const PICTURES: Record<string, "chart" | "list"> = {
   trail: "list",
   comparison: "chart",
   breakdown: "chart",
+  stock: "list",
+  till_sales: "list",
+  till_shifts: "list",
+  search: "list",
+  document: "list",
 }
 
 const count = (v: unknown) => (Array.isArray(v) ? v.length : 0)
 const countIn = (list: unknown, key: string) =>
   Array.isArray(list) ? list.reduce((n: number, x) => n + count((x as Record<string, unknown> | null)?.[key]), 0) : 0
-/** Data points a picture draws: rows, days per currency, items per section, events, materials. */
+/** Data points a picture draws: rows (also per group), lines, days per currency, items per section, events, materials. */
 const pointsOf = (view: Record<string, unknown>) =>
   count(view.rows) + count(view.materials) + count(view.events) +
-  countIn(view.currencies, "days") + countIn(view.currencies, "rows") + countIn(view.sections, "items")
+  countIn(view.currencies, "days") + countIn(view.currencies, "rows") + countIn(view.sections, "items") +
+  countIn(view.groups, "rows") + count(view.lines)
 
 /** Office kept the default drawing: the agent says why in one sentence and offers the closest fit. */
 const refusal = (note: unknown) => {
@@ -216,4 +222,16 @@ export function spokenText(text: string) {
     .replace(/\s*\[[a-z][a-z _-]*\]\s*/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim()
+}
+
+/** A major-unit decimal string from the API ("11.6600") with its currency: Intl formats the
+ * string as-is (no float); `decimals` only sets how many places show, rounding for display. */
+export function formatPrice(price: string, decimals: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    // TS's lib types lack the string overload; runtimes since Node 19 / 2023 browsers have it.
+  }).format(price as unknown as number)
 }
