@@ -43,7 +43,8 @@ export function SceneBar({
             repeats the open review and takes the height that review needs (P9-7). */}
         <div
           className={
-            onTask ? "min-w-0 [@media(max-height:500px)]:hidden" : "min-w-0"
+            // One line (ellipsis) in the bar, never a wrapping block that eats the scene (R1).
+            `min-w-0 [&_[role=status]]:flex-nowrap [&_[role=status]>p]:truncate [&_[role=status]>p_.block]:hidden ${onTask ? "[@media(max-height:500px)]:hidden" : ""}`
           }
         >
           <TaskCapsule />

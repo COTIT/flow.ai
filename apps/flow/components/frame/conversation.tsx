@@ -354,7 +354,12 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
       }}
       // Raised: 62%, never less than its own handle, header and dock (with the keyboard up
       // the frame is short, and the dock must stay above the keyboard).
-      style={open ? { height: "max(62%, 15.5rem)" } : undefined}
+      style={
+        open
+          ? // …and never so tall that the scene above loses its room (R1/R2: 5.5rem left).
+            { height: "max(62%, 15.5rem)", maxHeight: "calc(100% - 5.5rem)" }
+          : undefined
+      }
       className="relative flex min-h-0 shrink-0 flex-col gap-2 rounded-t-3xl glass-strong px-3 pb-3 shadow-[0_-8px_32px_rgb(28_27_24/0.14)] transition-[height] duration-240 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none max-sm:-mx-3 max-sm:-mb-3 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:pb-2 max-sm:[@media(max-height:500px)]:-mx-2 max-sm:[@media(max-height:500px)]:-mb-2"
     >
       <button

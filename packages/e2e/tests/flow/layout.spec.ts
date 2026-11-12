@@ -9,7 +9,7 @@ import {
 } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
-import { proposeStock, scene, stockRoutes } from "./task"
+import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
 import { chat, fakeAgent, send, startText, v, watch } from "./voice"
 
 test.beforeEach(({ api }) => void api)
@@ -1012,3 +1012,30 @@ for (const size of [
     await expectSingleScroller(page)
     await expectNoHorizontalScroll(page)
   })
+
+test("R2: at 200% zoom, the receipt that takes focus after Approve is on screen", async ({
+  page,
+  api,
+}) => {
+  await page.setViewportSize({ width: 640, height: 400 })
+  const stock = readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
+  api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
+  await stockRoutes(page)
+  const agent = await fakeAgent(page)
+  await proposeStock(page, agent)
+  const approve = scene(page).getByRole("button", { name: v.approve })
+  await approve.focus()
+  await page.keyboard.press("Enter")
+  await expect(receipt(page)).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null
+        if (!el || el === document.body) return "body"
+        const r = el.getBoundingClientRect()
+        return r.top >= 0 && r.bottom <= innerHeight ? "on screen" : `off ${Math.round(r.top)}..${Math.round(r.bottom)}`
+      })
+    )
+    .toBe("on screen")
+  await expectSingleScroller(page)
+})
