@@ -190,7 +190,7 @@ test.describe("P7-1: a refused microphone shows the browser's raw text", () => {
 })
 
 test.describe("P7-2: the microphone taken away mid-call goes unnoticed", () => {
-  test.fail()
+  // Fixed by 8cc908a48 (capture watcher): kept as a regression guard.
   test("P7-2: tracks end (unplugged / OS revoked); Flow keeps listening to nothing", async ({ persona, page }) => {
     const mic = await micControl(page)
     await page.goto("/")
