@@ -1,4 +1,4 @@
-/** No usable HTTP answer: the browser was offline, the line dropped, or the body was unreadable. */
+/** No usable HTTP answer: offline (nothing was sent), the line dropped (maybe sent), or an unreadable body. */
 export type VoiceFailureKind = "offline" | "network" | "bad_response"
 
 /** A voice BFF call failed. With `kind`, no HTTP answer arrived (status 0); otherwise `message` is translated text. */

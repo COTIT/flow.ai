@@ -126,6 +126,7 @@
     "microphoneDenied": "Microphone access was refused. Your text conversation is still active.",
     "microphoneMissing": "No microphone was found. Connect one, or keep typing.",
     "offline": "You're offline. Reconnect, then try again.",
+    "offlineNotSent": "You're offline. Nothing was sent; approve again when you're back online.",
     "connectionLost": "Couldn't reach Genesy. Check your connection and try again.",
     "upgradeFailed": "Voice could not start. Your earlier messages remain here.",
     "batchProgress": "Batch progress",
