@@ -147,14 +147,14 @@ describe("checkProposal", () => {
 
 describe("replayHits", () => {
   it("matches the replay regression floor with today's keywords", () => {
-    expect(replayHits({})).toBeGreaterThanOrEqual(174)
+    expect(replayHits({})).toBeGreaterThanOrEqual(184)
   })
 })
 
 describe("planHeal", () => {
   it("proposes missing words for eligible discoverability clusters only", () => {
+    // "vat rate" is found since the Office parity words: only the bin gap still needs words.
     expect(plan.proposals.map((p) => p.op).sort()).toEqual([
-      "vat_groups_list",
       "warehouse_bins_by_warehouse",
     ])
     const bins = plan.proposals.find(
