@@ -52,16 +52,23 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
   const composer = useRef<HTMLInputElement>(null)
-  // Switch to voice turns disabled while upgrading and the browser drops its focus to the page;
-  // a keyboard user goes on in the message box (P9-4; a tap never pops the phone keyboard).
+  const held = Boolean(voice.review)
+  // A control turns disabled (upgrading, or held by a review) and the browser drops its focus to
+  // the page: a keyboard user goes on at the review's button (K1), else in the message box (P9-4;
+  // a tap never pops the phone keyboard). Focus anywhere else is left alone.
   useEffect(() => {
     const active = document.activeElement as HTMLButtonElement | null
-    if (voice.upgrading && active?.disabled && active.matches(":focus-visible"))
-      composer.current?.focus()
-  }, [voice.upgrading])
+    if (!(voice.upgrading || held) || !active?.matches(":focus-visible")) return
+    if (!active.disabled && !active.closest("[inert]")) return
+    const review = held
+      ? document.querySelector<HTMLElement>(
+          '[data-task-state="needs_approval"] button'
+        )
+      : null
+    ;(review ?? composer.current)?.focus()
+  }, [voice.upgrading, held])
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
-  const held = Boolean(voice.review)
   const { query: readiness, state } = useReadiness()
 
   // Clears the box only if it still holds what was sent (typing during the send stays).
