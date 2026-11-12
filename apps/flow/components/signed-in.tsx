@@ -12,6 +12,7 @@ import { useDraftKeeper } from "@/lib/draft-keeper"
 import { flowHref } from "@/lib/links"
 import { focusLoginOnArrival } from "@/lib/login-focus"
 import { followOtherTabs } from "@/lib/other-tabs"
+import { useOpenView } from "@/lib/use-open-view"
 
 /**
  * Signed-in frame: send a logged-out visitor to /login, then the assistant around the shell.
@@ -33,6 +34,7 @@ export function SignedIn({
     (href: string) => flowHref(href, office),
     [office]
   )
+  const openView = useOpenView() // P4: the assistant opens a scene or view by name
 
   useDraftKeeper()
   // A logout, login or workspace switch in another tab reaches this one too.
@@ -49,7 +51,7 @@ export function SignedIn({
 
   if (!hydrated || !token) return null
   return (
-    <GenesyVoiceProvider resolveHref={resolveHref}>
+    <GenesyVoiceProvider resolveHref={resolveHref} openView={openView}>
       <Shell>{children}</Shell>
     </GenesyVoiceProvider>
   )

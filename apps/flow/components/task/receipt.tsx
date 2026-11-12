@@ -56,10 +56,13 @@ export function Receipt({
     return level ? t("approved", { value: level.total }) : null
   }
   const reason = outcome.reason && errors.has(outcome.reason) ? errors(outcome.reason) : null
+  const thing = receipt.status === "completed" ? receipt.record : null
   return (
     <section
       aria-labelledby="flow-receipt-title"
       data-receipt={receipt.status}
+      // The action id stays out of sight (no raw codes on screen); support can still read it.
+      data-reference={receipt.reference ?? undefined}
       className="flex min-w-0 flex-col gap-3 rounded-2xl border border-(--gold) p-4"
     >
       <h2
@@ -70,6 +73,21 @@ export function Receipt({
       >
         {t(`title.${receipt.status}`)}
       </h2>
+      {/* What changed, on the thing that changed: only values the server confirmed. */}
+      {thing
+        ? receipt.rows.map((row, i) =>
+            row.before !== null && row.after !== null ? (
+              <p key={i} data-receipt-summary className="text-base">
+                {t("summary", {
+                  thing,
+                  place: row.label || "none",
+                  after: row.after,
+                  before: row.before,
+                })}
+              </p>
+            ) : null
+          )
+        : null}
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">{t("operation")}</dt>
         <dd className="break-words">
@@ -116,12 +134,6 @@ export function Receipt({
         ))}
         <dt className="text-muted-foreground">{t("status")}</dt>
         <dd>{t(`statuses.${receipt.status}`)}</dd>
-        {receipt.reference ? (
-          <>
-            <dt className="text-muted-foreground">{t("reference")}</dt>
-            <dd className="font-mono text-xs break-all">{receipt.reference}</dd>
-          </>
-        ) : null}
       </dl>
       {reason ? <p className="text-sm">{reason}</p> : null}
       {receipt.status === "unknown" ? (

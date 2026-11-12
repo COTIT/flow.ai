@@ -103,7 +103,8 @@ test("A: ambiguous honey → choose 500g → set 120 → 'actually 150' → only
   await expect(receipt(page).locator("[data-receipt-row]")).toContainText("14")
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("150")
   await expect(receipt(page)).toContainText(k.receipt.statuses.completed)
-  await expect(receipt(page)).toContainText("0193f6b0-1c2d-7e3f-8a9b-000000000150")
+  // Only the 150 action ran; its id is kept out of sight (J2).
+  await expect(receipt(page)).toHaveAttribute("data-reference", "0193f6b0-1c2d-7e3f-8a9b-000000000150")
   await expectNoHorizontalScroll(page)
   expect(agent.connections).toBe(1)
   expect(sessions.filter((s) => s.method === "POST").length).toBe(1)

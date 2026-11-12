@@ -11,6 +11,8 @@ import {
   type HeaderEvent,
 } from "@/lib/header-reveal"
 
+/** Mouse events this soon after a touch are the browser's compat copies of it. */
+const GHOST_MS = 800
 /** Pointer within this many px of the top edge reveals the header (desktop). */
 const EDGE_PX = 8
 const POPUP = '[role="listbox"],[role="menu"],[data-slot="select-content"]'
@@ -32,6 +34,9 @@ export function useHeaderReveal(
   }, [state.shown])
   /** The pointer is over the header or its top edge (a later move away is a leave). */
   const pointer = useRef(false)
+  /** When a finger last touched: mouse events right after are the browser's compat copies. */
+  const touchedAt = useRef(-Infinity)
+  const ghost = () => performance.now() - touchedAt.current < GHOST_MS
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const later = (event: HeaderEvent, ms: number) => {
     clearTimeout(timer.current)
@@ -44,7 +49,7 @@ export function useHeaderReveal(
     const el = (n: EventTarget | null) => (n instanceof Element ? n : null)
 
     const move = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return
+      if (e.pointerType !== "mouse" || ghost()) return
       if (e.clientY <= EDGE_PX) {
         pointer.current = true
         return dispatch({ type: "edge" })
@@ -104,6 +109,7 @@ export function useHeaderReveal(
     // Touch, option A: swipe down from just below the safe area; swipe up on it hides.
     let start: { x: number; y: number; onHeader: boolean } | null = null
     const touchstart = (e: TouchEvent) => {
+      touchedAt.current = performance.now()
       const t = e.touches[0]
       if (!t || e.touches.length > 1) return (start = null)
       start = { x: t.clientX, y: t.clientY, onHeader: inHeader(e.target) }
@@ -116,6 +122,7 @@ export function useHeaderReveal(
         dispatch({ type: "outside" })
     }
     const touchend = (e: TouchEvent) => {
+      touchedAt.current = performance.now()
       const t = e.changedTouches[0]
       if (!start || !t) return
       const dy = t.clientY - start.y
@@ -173,12 +180,16 @@ export function useHeaderReveal(
 
   return {
     shown: state.shown,
+    // A finger's compat mouse events never count as hovering (F1): the touch idle timer stays
+    // in charge, so the header still hides by itself after a swipe.
     enter: () => {
+      if (ghost()) return
       pointer.current = true
       clearTimeout(timer.current)
       dispatch({ type: "enter" })
     },
     leave: () => {
+      if (ghost()) return
       pointer.current = false
       dispatch({ type: "leave" })
       later({ type: "timeout" }, LEAVE_MS)

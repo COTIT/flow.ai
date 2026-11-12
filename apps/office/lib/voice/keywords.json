@@ -195,7 +195,13 @@
       "agreed",
       "data"
     ],
-    "nl": ["koppelingen", "delen", "coöperatie"],
+    "nl": [
+      "koppelingen",
+      "delen",
+      "coöperatie",
+      "leveringskoppelingen",
+      "partners"
+    ],
     "sw": ["viungo", "ushirika", "kushiriki"]
   },
   "farm_records_harvest_reports_revise": {
@@ -281,8 +287,8 @@
   },
   "till_vaults_list": {
     "en": ["vault", "vaults", "safe", "cash", "odd", "balance"],
-    "nl": ["kluis", "kluizen", "contant", "geld", "saldo"],
-    "sw": ["sefu", "kasha", "pesa", "taslimu", "salio"]
+    "nl": ["kluis", "kluizen", "contant", "geld", "saldo", "hoeveel"],
+    "sw": ["sefu", "kasha", "pesa", "taslimu", "salio", "kiasi"]
   },
   "invoices_list": {
     "en": [
@@ -302,9 +308,21 @@
       "onbetaald",
       "saldo",
       "klant",
-      "verschuldigd"
+      "verschuldigd",
+      "openstaande",
+      "facturen"
     ],
-    "sw": ["deni", "anadaiwa", "haijalipwa", "salio", "mteja"]
+    "sw": [
+      "deni",
+      "anadaiwa",
+      "haijalipwa",
+      "salio",
+      "mteja",
+      "onyesha",
+      "ankara",
+      "ambazo",
+      "hazijalipwa"
+    ]
   },
   "orders_create": {
     "en": ["repeat", "again", "reorder", "same"],
@@ -312,16 +330,27 @@
     "sw": ["rudia", "tena", "oda"]
   },
   "products_update": {
-    "en": ["hide", "unhide", "disable", "season", "rename", "move", "category"],
+    "en": [
+      "hide",
+      "unhide",
+      "disable",
+      "season",
+      "rename",
+      "move",
+      "category",
+      "price"
+    ],
     "nl": [
       "verbergen",
       "verberg",
       "seizoen",
       "hernoemen",
       "categorie",
-      "product"
+      "product",
+      "prijs",
+      "wijzigen"
     ],
-    "sw": ["ficha", "msimu", "jina", "kundi", "bidhaa"]
+    "sw": ["ficha", "msimu", "jina", "kundi", "bidhaa", "badilisha", "bei"]
   },
   "products_duplicate": {
     "en": ["duplicate", "copy", "version", "size", "clone"],
@@ -330,13 +359,30 @@
   },
   "orders_complete": {
     "en": ["delivered", "deliver", "picked", "done", "finish"],
-    "nl": ["geleverd", "afronden", "klaar"],
-    "sw": ["imefikishwa", "fikisha", "kamilisha"]
+    "nl": ["geleverd", "afronden", "klaar", "bestelling"],
+    "sw": ["imefikishwa", "fikisha", "kamilisha", "oda"]
   },
   "orders_returns": {
     "en": ["return", "returned", "refund", "till", "counter", "sale", "back"],
-    "nl": ["retour", "terug", "teruggebracht", "kassa", "kassabon"],
-    "sw": ["rudisha", "marejesho", "kaunta", "mauzo"]
+    "nl": [
+      "retour",
+      "terug",
+      "teruggebracht",
+      "kassa",
+      "kassabon",
+      "bestelling",
+      "terugnemen"
+    ],
+    "sw": [
+      "rudisha",
+      "marejesho",
+      "kaunta",
+      "mauzo",
+      "pokea",
+      "bidhaa",
+      "zilizorudishwa",
+      "oda"
+    ]
   },
   "orders_cancel": {
     "en": ["called", "void", "cancel"],
@@ -464,18 +510,47 @@
   },
   "scheduled_reports_list": {
     "en": ["my schedules", "scheduled", "recurring", "reports", "emails"],
-    "nl": ["geplande", "rapporten", "mails"],
+    "nl": ["geplande", "rapporten", "mails", "rapportmails"],
     "sw": ["ratiba zangu", "zilizopangwa", "ripoti"]
   },
   "scheduled_reports_update": {
-    "en": ["pause", "resume", "stop", "restart", "scheduled", "emails"],
+    "en": [
+      "pause",
+      "resume",
+      "stop",
+      "restart",
+      "scheduled",
+      "emails",
+      "pause",
+      "weekly",
+      "sales email"
+    ],
     "nl": ["pauzeer", "pauzeren", "hervat", "hervatten", "stop", "geplande"],
-    "sw": ["sitisha", "endelea", "simamisha", "zilizopangwa"]
+    "sw": [
+      "sitisha",
+      "endelea",
+      "simamisha",
+      "zilizopangwa",
+      "barua",
+      "pepe",
+      "mauzo",
+      "wiki"
+    ]
   },
   "scheduled_reports_delete": {
-    "en": ["delete", "remove", "cancel", "unsubscribe", "scheduled", "report"],
+    "en": [
+      "delete",
+      "remove",
+      "cancel",
+      "unsubscribe",
+      "scheduled",
+      "report",
+      "weekly",
+      "sales",
+      "email"
+    ],
     "nl": ["verwijder", "verwijderen", "annuleer", "afmelden", "geplande"],
-    "sw": ["futa", "ondoa", "ghairi", "zilizopangwa"]
+    "sw": ["futa", "ondoa", "ghairi", "zilizopangwa", "ripoti", "wiki"]
   },
   "currency_rates_convert": {
     "en": [
@@ -552,10 +627,33 @@
       "vat",
       "net",
       "takings",
-      "income"
+      "income",
+      "sell",
+      "week"
     ],
-    "nl": ["omzet", "exclusief", "excl", "ex btw", "btw", "netto", "inkomsten"],
-    "sw": ["mapato", "mauzo", "bila vat", "bila", "vat", "kodi"]
+    "nl": [
+      "omzet",
+      "exclusief",
+      "excl",
+      "ex btw",
+      "btw",
+      "netto",
+      "inkomsten",
+      "hoeveel",
+      "week",
+      "verkocht"
+    ],
+    "sw": [
+      "mapato",
+      "mauzo",
+      "bila vat",
+      "bila",
+      "vat",
+      "kodi",
+      "tumeuza",
+      "kiasi",
+      "wiki"
+    ]
   },
   "orders_top_customers": {
     "en": [
@@ -652,7 +750,9 @@
       "startpagina",
       "website",
       "ontwerp",
-      "concept"
+      "concept",
+      "webwinkel",
+      "hoe ziet"
     ],
     "sw": [
       "duka la mtandaoni",
@@ -679,7 +779,9 @@
       "geschiedenis",
       "versies",
       "eerdere",
-      "vorige"
+      "vorige",
+      "opgeslagen",
+      "winkelontwerp"
     ],
     "sw": ["ukurasa wa duka", "muundo", "historia", "matoleo", "iliyopita"]
   },
@@ -891,5 +993,476 @@
     "en": ["reset", "start over", "whole", "all scenes", "layout"],
     "nl": ["resetten", "opnieuw beginnen", "indeling"],
     "sw": ["weka upya", "anza upya", "mpangilio", "wote"]
+  },
+  "orders_confirm": {
+    "en": ["confirm", "confirmed", "reserve"],
+    "nl": ["bevestig", "bevestigen", "bestelling", "reserveren"],
+    "sw": ["thibitisha", "oda", "hifadhi"]
+  },
+  "orders_pick": {
+    "en": ["picking", "picked", "pick list", "collected"],
+    "nl": ["picking", "picken", "gepickt", "verzamelen", "bestelling"],
+    "sw": ["kusanya", "kukusanya", "zilizokusanywa", "oda"]
+  },
+  "lots_update": {
+    "en": ["batch", "recall", "release", "quarantine", "on hold"],
+    "nl": [
+      "partij",
+      "terugroepen",
+      "terugroeping",
+      "vrijgeven",
+      "quarantaine",
+      "blokkeren"
+    ],
+    "sw": [
+      "bechi",
+      "kundi",
+      "rudisha",
+      "sokoni",
+      "karantini",
+      "sitisha",
+      "achilia"
+    ]
+  },
+  "lots_list": {
+    "en": [
+      "batch",
+      "batches",
+      "expiry",
+      "expiring",
+      "best before",
+      "quarantine",
+      "recalled",
+      "expire"
+    ],
+    "nl": ["partij", "partijen", "houdbaarheid", "vervaldatum", "quarantaine"],
+    "sw": ["bechi", "makundi", "kundi", "muda wa kuisha", "karantini"]
+  },
+  "invoice_payments_create": {
+    "en": ["cash", "paid", "card payment", "bank transfer"],
+    "nl": ["betaling", "registreren", "factuur"],
+    "sw": ["rekodi", "malipo", "ankara"]
+  },
+  "invoice_payments_mark_as_credited": {
+    "en": [],
+    "nl": ["creditnota", "markeren", "terugbetaald"],
+    "sw": ["weka", "hati", "mkopo", "imelipwa"]
+  },
+  "invoice_payments_void": {
+    "en": [],
+    "nl": ["betaling", "factuur", "ongedaan", "maken"],
+    "sw": ["batilisha", "malipo", "ankara"]
+  },
+  "invoices_credit": {
+    "en": [],
+    "nl": ["creditnota", "maken", "factuur"],
+    "sw": ["tengeneza", "hati", "mkopo", "ankara"]
+  },
+  "invoices_delete": {
+    "en": [],
+    "nl": ["conceptfactuur", "annuleren"],
+    "sw": ["ghairi", "rasimu", "ankara"]
+  },
+  "invoices_duplicate": {
+    "en": [],
+    "nl": ["factuur", "dupliceren"],
+    "sw": ["nakili", "ankara"]
+  },
+  "invoices_get": {
+    "en": ["open"],
+    "nl": ["open", "factuur"],
+    "sw": ["fungua", "ankara"]
+  },
+  "invoices_resend": {
+    "en": [],
+    "nl": ["factuur", "opnieuw", "versturen"],
+    "sw": ["tuma", "tena", "ankara"]
+  },
+  "invoices_send": {
+    "en": ["customer"],
+    "nl": ["verstuur", "factuur"],
+    "sw": ["tuma", "ankara", "mteja"]
+  },
+  "invoices_update": {
+    "en": ["due date", "payment term"],
+    "nl": [
+      "vervaldatum",
+      "conceptfactuur",
+      "wijzigen",
+      "betaaltermijn",
+      "factuur",
+      "aanpassen"
+    ],
+    "sw": [
+      "badilisha",
+      "tarehe",
+      "mwisho",
+      "ankara",
+      "tarehe ya mwisho ya kulipa"
+    ]
+  },
+  "orders_events": {
+    "en": ["happened", "show", "timeline"],
+    "nl": ["geschiedenis", "bestelling"],
+    "sw": ["historia", "oda"]
+  },
+  "orders_get": {
+    "en": ["open"],
+    "nl": ["open", "bestelling"],
+    "sw": ["fungua", "oda"]
+  },
+  "orders_invoice": {
+    "en": [],
+    "nl": ["maak", "factuur", "bestelling"],
+    "sw": ["tengeneza", "ankara", "oda"]
+  },
+  "orders_list": {
+    "en": ["show", "today", "waiting", "picked"],
+    "nl": ["bestellingen", "vandaag", "verkooporders", "verkooporder"],
+    "sw": ["onyesha", "oda", "leo"]
+  },
+  "orders_refund": {
+    "en": [],
+    "nl": ["terugbetaling", "bestelling"],
+    "sw": ["rejesha", "pesa", "oda"]
+  },
+  "payments_gateway_get": {
+    "en": ["show", "chargebacks", "settlements", "online"],
+    "nl": ["terugboekingen", "online", "betaling"],
+    "sw": ["maelezo", "malipo", "mtandaoni"]
+  },
+  "payments_gateway_list": {
+    "en": ["show", "online"],
+    "nl": ["online", "betalingen"],
+    "sw": ["onyesha", "malipo", "mtandaoni"]
+  },
+  "search_quick": {
+    "en": [],
+    "nl": ["zoek", "overal"],
+    "sw": ["tafuta", "mahali"]
+  },
+  "invoices_preview": {
+    "en": [],
+    "nl": ["pdf", "factuur", "maak"],
+    "sw": ["pdf", "ankara", "tengeneza"]
+  },
+  "currencies_list": {
+    "en": [],
+    "nl": ["valuta"],
+    "sw": ["sarafu"]
+  },
+  "files_list": {
+    "en": ["show", "uploaded"],
+    "nl": ["geüploade", "bestanden"],
+    "sw": ["onyesha", "faili", "zilizopakiwa"]
+  },
+  "product_categories_create": {
+    "en": [],
+    "nl": ["nieuwe", "productcategorie"],
+    "sw": ["ongeza", "kundi", "jipya", "bidhaa"]
+  },
+  "product_categories_delete": {
+    "en": [],
+    "nl": [],
+    "sw": ["futa", "kundi", "bidhaa"]
+  },
+  "product_categories_list": {
+    "en": [],
+    "nl": ["productcategorieën"],
+    "sw": ["onyesha", "makundi", "bidhaa"]
+  },
+  "product_categories_update": {
+    "en": ["rename"],
+    "nl": ["hernoemen"],
+    "sw": ["badilisha", "jina", "kundi", "bidhaa"]
+  },
+  "product_variants_generate": {
+    "en": ["add", "sizes"],
+    "nl": ["maten", "toevoegen"],
+    "sw": ["ongeza", "saizi"]
+  },
+  "product_variants_list": {
+    "en": ["sizes"],
+    "nl": ["maten"],
+    "sw": ["saizi", "zilizopo"]
+  },
+  "products_create": {
+    "en": ["add", "new"],
+    "nl": ["nieuw", "aanmaken"],
+    "sw": ["ongeza", "bidhaa", "mpya"]
+  },
+  "products_get": {
+    "en": ["open"],
+    "nl": ["open"],
+    "sw": ["fungua", "bidhaa"]
+  },
+  "products_images_list": {
+    "en": ["show", "pictures"],
+    "nl": ["foto"],
+    "sw": ["picha", "bidhaa"]
+  },
+  "products_images_replace": {
+    "en": ["change", "pictures"],
+    "nl": ["foto", "vervangen"],
+    "sw": ["badilisha", "picha", "bidhaa"]
+  },
+  "products_list": {
+    "en": ["find", "show", "active"],
+    "nl": ["zoek"],
+    "sw": ["tafuta", "bidhaa"]
+  },
+  "stock_list": {
+    "en": [
+      "how much stock",
+      "in stock",
+      "stock levels",
+      "on hand",
+      "quantity",
+      "inventory"
+    ],
+    "nl": ["hoeveel", "voorraad", "voorraadniveau", "voorraadniveaus"],
+    "sw": ["hisa", "kiasi", "stoo"]
+  },
+  "stock_movements": {
+    "en": [],
+    "nl": ["voorraadmutaties"],
+    "sw": ["mabadiliko", "hisa"]
+  },
+  "stock_mutate": {
+    "en": ["correct stock", "adjustment", "correction"],
+    "nl": ["potten", "voorraad", "toevoegen"],
+    "sw": ["ongeza", "mitungi", "hisa"]
+  },
+  "stock_negative": {
+    "en": [],
+    "nl": ["producten", "onder", "nul"],
+    "sw": ["bidhaa", "chini", "sifuri"]
+  },
+  "stock_with_bins": {
+    "en": ["stored", "warehouse"],
+    "nl": [
+      "waar",
+      "ligt",
+      "voorraad",
+      "magazijn",
+      "magazijnlocatie",
+      "locatie"
+    ],
+    "sw": ["wapi", "stoo", "hisa", "ghala"]
+  },
+  "vat_groups_list": {
+    "en": ["rates"],
+    "nl": ["btw", "tarieven"],
+    "sw": ["viwango"]
+  },
+  "warehouses_list": {
+    "en": [],
+    "nl": ["magazijnen"],
+    "sw": ["maghala", "maghala yote"]
+  },
+  "lots_create": {
+    "en": ["batch", "new batch"],
+    "nl": ["nieuwe", "partij", "aanmaken"],
+    "sw": ["tengeneza", "bechi", "mpya"]
+  },
+  "lots_events": {
+    "en": ["history", "batch"],
+    "nl": ["geschiedenis", "partij"],
+    "sw": ["historia", "bechi"]
+  },
+  "lots_farmer_credits": {
+    "en": ["jars", "sold", "batch"],
+    "nl": ["boerentegoed", "verkochte", "potten", "partij"],
+    "sw": ["mikopo", "wakulima", "mitungi", "iliyouzwa", "bechi"]
+  },
+  "lots_get": {
+    "en": ["batch", "batch details"],
+    "nl": ["open", "partij"],
+    "sw": ["fungua", "bechi"]
+  },
+  "lots_holds": {
+    "en": ["waiting", "batch"],
+    "nl": ["bestellingen", "wachten", "partij"],
+    "sw": ["oda", "zinasubiri", "bechi"]
+  },
+  "lots_passport_get": {
+    "en": ["batch"],
+    "nl": ["paspoort", "partij"],
+    "sw": ["pasipoti", "bechi"]
+  },
+  "lots_passport_publish": {
+    "en": ["batch", "publish passport"],
+    "nl": ["paspoort", "partij", "publiceren"],
+    "sw": ["chapisha", "pasipoti", "bechi"]
+  },
+  "lots_passport_save": {
+    "en": ["story", "batch"],
+    "nl": ["verhaal", "paspoort", "partij", "aanpassen"],
+    "sw": ["badilisha", "hadithi", "pasipoti", "bechi"]
+  },
+  "lots_passport_unpublish": {
+    "en": ["take offline", "offline"],
+    "nl": ["paspoort", "partij", "offline", "halen"],
+    "sw": ["ondoa", "pasipoti", "bechi", "mtandaoni"]
+  },
+  "lots_stock": {
+    "en": ["left", "batch"],
+    "nl": ["hoeveel", "partij"],
+    "sw": ["kiasi", "kimebaki", "bechi"]
+  },
+  "lots_stock_mutate": {
+    "en": ["batch", "take out of batch"],
+    "nl": ["kilo", "partij", "halen"],
+    "sw": ["toa", "kilo", "bechi"]
+  },
+  "supply_chain_list": {
+    "en": [],
+    "nl": ["leveringen", "onderweg"],
+    "sw": ["usafirishaji", "njiani"]
+  },
+  "supply_chain_pack": {
+    "en": [],
+    "nl": ["partij", "potten", "afvullen"],
+    "sw": ["fungasha", "bechi", "mitungi"]
+  },
+  "supply_chain_receive": {
+    "en": [],
+    "nl": ["zending", "partij", "ontvangen"],
+    "sw": ["pokea", "usafirishaji", "bechi"]
+  },
+  "supply_links_accept": {
+    "en": ["coop", "partner"],
+    "nl": ["leveringskoppeling", "accepteren"],
+    "sw": ["kubali", "kiungo", "usambazaji"]
+  },
+  "supply_links_revoke": {
+    "en": ["coop", "partner"],
+    "nl": ["leveringskoppeling", "intrekken"],
+    "sw": ["sitisha", "kiungo", "usambazaji"]
+  },
+  "app_keys_create": {
+    "en": [],
+    "nl": ["appsleutel", "nieuwe sleutel", "webwinkel"],
+    "sw": ["tengeneza", "ufunguo", "programu", "duka", "mtandaoni"]
+  },
+  "app_keys_list": {
+    "en": [],
+    "nl": [],
+    "sw": ["onyesha", "funguo", "programu"]
+  },
+  "app_keys_revoke": {
+    "en": [],
+    "nl": ["appsleutel", "sleutel intrekken"],
+    "sw": ["batilisha", "ufunguo", "programu", "kaunta"]
+  },
+  "invites_delete": {
+    "en": [],
+    "nl": ["uitnodiging", "intrekken"],
+    "sw": ["futa", "mwaliko"]
+  },
+  "invites_list": {
+    "en": [],
+    "nl": ["verstuurde", "uitnodigingen"],
+    "sw": ["onyesha", "mialiko", "niliyotuma"]
+  },
+  "invites_send": {
+    "en": [],
+    "nl": ["nodig"],
+    "sw": ["alika", "meneja"]
+  },
+  "settings_get": {
+    "en": ["online", "payments", "switched"],
+    "nl": ["online", "betalingen", "staan aan"],
+    "sw": ["malipo", "mtandaoni", "yamewashwa"]
+  },
+  "settings_update": {
+    "en": ["turn", "ideal", "online", "payments"],
+    "nl": ["online", "betalingen", "aanzetten"],
+    "sw": ["washa", "malipo", "mtandaoni"]
+  },
+  "teams_list": {
+    "en": [],
+    "nl": [],
+    "sw": ["timu", "majukumu"]
+  },
+  "till_registers_create": {
+    "en": [],
+    "nl": ["nieuwe", "kassa", "toevoegen"],
+    "sw": ["ongeza", "rejista", "mpya", "kaunta"]
+  },
+  "till_registers_list": {
+    "en": [],
+    "nl": ["kassa"],
+    "sw": ["onyesha", "rejista", "kaunta"]
+  },
+  "till_registers_pairing": {
+    "en": [],
+    "nl": ["kassa", "koppelen"],
+    "sw": ["unganisha", "kaunta", "msimbo"]
+  },
+  "till_registers_rotate_key": {
+    "en": ["disconnect", "shop"],
+    "nl": ["kassa", "winkel", "loskoppelen"],
+    "sw": ["tenganisha", "kaunta", "dukani"]
+  },
+  "till_sales_list": {
+    "en": [],
+    "nl": ["kassaverkopen", "vandaag"],
+    "sw": ["mauzo", "kaunta", "leo"]
+  },
+  "till_shifts_list": {
+    "en": [],
+    "nl": ["kassadiensten", "open", "staan nog open"],
+    "sw": ["zamu", "kaunta", "wazi"]
+  },
+  "till_users_create": {
+    "en": ["cashier", "staff member", "new cashier"],
+    "nl": ["kassagebruiker", "pincode", "toevoegen"],
+    "sw": ["ongeza", "mtumiaji", "kaunta", "pin"]
+  },
+  "till_users_list": {
+    "en": ["log in"],
+    "nl": ["inloggen", "kassa"],
+    "sw": ["kuingia", "kaunta"]
+  },
+  "till_users_update": {
+    "en": [],
+    "nl": ["pincode", "kassagebruiker", "resetten"],
+    "sw": ["badilisha", "pin", "mtumiaji", "kaunta"]
+  },
+  "till_vaults_create": {
+    "en": [],
+    "nl": ["nieuwe", "kluis", "toevoegen"],
+    "sw": ["ongeza", "sefu", "mpya"]
+  },
+  "users_list": {
+    "en": ["account"],
+    "nl": ["werkt", "account"],
+    "sw": ["anafanya", "kazi", "akaunti"]
+  },
+  "users_remove": {
+    "en": [],
+    "nl": ["toegang", "intrekken"],
+    "sw": ["ondoa", "ruhusa"]
+  },
+  "webhooks_create": {
+    "en": [],
+    "nl": ["toevoegen"],
+    "sw": ["ongeza", "mpya"]
+  },
+  "webhooks_delete": {
+    "en": [],
+    "nl": ["verwijderen"],
+    "sw": ["futa"]
+  },
+  "webhooks_list": {
+    "en": ["show"],
+    "nl": [],
+    "sw": ["onyesha"]
+  },
+  "webhooks_update": {
+    "en": ["pause"],
+    "nl": ["pauzeren"],
+    "sw": ["sitisha"]
   }
 }

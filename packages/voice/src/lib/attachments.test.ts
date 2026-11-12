@@ -157,6 +157,15 @@ describe("record links", () => {
     expect(refused.on_screen?.instruction).toMatch(/asked for a pie.*a pie needs parts of one whole.*one sentence.*bar/i)
   })
 
+  it("knows the P2 pictures are on screen and counts their rows and lines", () => {
+    const stock = { kind: "stock", scope: "list", total: 9, href: "/stock", groups: [{ title: "A", rows: [{}, {}] }, { title: "B", rows: [{}] }] }
+    expect(outcomeForAgent({ status: "completed", view: stock }).on_screen).toMatchObject({ kind: "list", shown_as: "list", points: 3 })
+    const order = { kind: "document", resource: "orders", title: "ORD-7", facts: [], lines: [{}, {}], totals: [] }
+    expect(outcomeForAgent({ status: "completed", view: order }).on_screen).toMatchObject({ kind: "list", points: 2 })
+    const search = { kind: "search", groups: [{ key: "orders", rows: [{}] }] }
+    expect(outcomeForAgent({ status: "completed", view: search }).on_screen).toMatchObject({ kind: "list", points: 1 })
+  })
+
   it("says how many points the picture shows", () => {
     const view = {
       kind: "sales_daily",

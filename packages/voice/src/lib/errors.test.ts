@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { VoiceRequestError, VoiceShownError, voiceErrorMessage } from "./errors"
+import {
+  VoiceRequestError,
+  VoiceShownError,
+  errorAfterOnline,
+  voiceErrorMessage,
+} from "./errors"
 
 // Echoes the key so a test reads which text the person sees.
 const t = (key: string) => `<${key}>`
@@ -77,5 +82,18 @@ describe("voiceErrorMessage", () => {
     expect(
       voiceErrorMessage(new DOMException("none", "OverconstrainedError"), t)
     ).toBe("<microphoneMissing>")
+  })
+})
+
+describe("errorAfterOnline (J3)", () => {
+  const offline = "You're offline. Reconnect, then try again."
+  it("clears the offline line once the browser is back online", () => {
+    expect(errorAfterOnline(offline, offline)).toBe("")
+  })
+  it("keeps any other error, and no error stays none", () => {
+    expect(errorAfterOnline("Microphone access was refused.", offline)).toBe(
+      "Microphone access was refused."
+    )
+    expect(errorAfterOnline("", offline)).toBe("")
   })
 })

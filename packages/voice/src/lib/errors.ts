@@ -45,3 +45,7 @@ export function voiceErrorMessage(
   const device = e instanceof Error ? DEVICE_KEYS[e.name] : undefined
   return t(device ?? fallback)
 }
+
+/** Back online, the offline line no longer holds (J3); any other error stays as it is. */
+export const errorAfterOnline = (error: string, offline: string) =>
+  error === offline ? "" : error

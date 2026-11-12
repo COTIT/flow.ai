@@ -63,9 +63,11 @@ import { matchesSpokenConfirmation } from "../lib/confirmation"
 import { voiceFetch } from "../lib/fetch"
 import { isBlankMessage } from "../lib/blank"
 import { watchCapture } from "../lib/capture-watch"
+import { openViewTool, type OpenView } from "../lib/open-view"
 import {
   VoiceRequestError,
   VoiceShownError,
+  errorAfterOnline,
   voiceErrorMessage,
 } from "../lib/errors"
 import {
@@ -160,6 +162,8 @@ export type VoiceHost = {
   /** Base the SDK audio worklets are served from. */
   audioBase?: string
   resolveHref?: (href: string) => string
+  /** Opens a view the assistant asked for (P4, `open_flow_view`); Office opens none. */
+  openView?: OpenView
   /** A voice route answered 401. */
   onUnauthorized?: () => void
 }
@@ -193,8 +197,14 @@ function Session({
   apiBase = "/api/voice",
   audioBase = "/voice-audio",
   resolveHref = sameHref,
+  openView,
   onUnauthorized = signOutExpired,
 }: { children: ReactNode } & VoiceHost) {
+  // The SDK may keep the tools of the call's start: always ask the latest host.
+  const openViewNow = useRef(openView)
+  useEffect(() => {
+    openViewNow.current = openView
+  })
   const token = useSession((s) => s.token)
   const workspaceId = useSession((s) => s.workspaceId)
   const locale = useLocale()
@@ -265,6 +275,12 @@ function Session({
   const [textOnly, setTextOnly] = useState(false)
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
+  // J3: the browser is back online, so an "offline" line no longer holds (other errors stay).
+  useEffect(() => {
+    const online = () => setError((e) => errorAfterOnline(e, t("offline")))
+    window.addEventListener("online", online)
+    return () => window.removeEventListener("online", online)
+  }, [t])
   const [progress, setProgress] = useState<VoiceProgress | null>(null)
   const [unfinished, setUnfinished] = useState<"stalled" | "dropped" | null>(
     null
@@ -951,6 +967,9 @@ function Session({
       if (dispatching.current && activeBatch.current) void stopBatch("pause")
     },
     clientTools: {
+      // P4: navigation only, answered here at once; never a request, never a write.
+      open_flow_view: (params: { view?: unknown }) =>
+        openViewTool(openViewNow.current)(params),
       discover_genesy_tools: ({ query: search }) =>
         delivered(tool("discover", { query: search })),
       execute_genesy_tool: ({ operation_id, arguments_json, presentation, replaces }) => {

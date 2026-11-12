@@ -5,7 +5,7 @@
 import type { Page, Request } from "@playwright/test"
 
 import { readBack, scene, stockRoutes } from "../task"
-import { s as shell } from "../shell"
+import { dock, s as shell } from "../shell"
 import { typeInstead, v } from "../voice"
 
 /** Start voice: a scene's dock has the Start button; orb-first home starts with the orb itself. */
@@ -186,11 +186,17 @@ test.describe("P7-1: a refused microphone shows the browser's raw text", () => {
     const mic = await micControl(page)
     await page.goto("/")
     await mic.deny(true)
-    await persona.click(startControl(page))
-    await expect(page.getByRole("alert").first()).not.toBeEmpty()
+    // Start is enabled once the assistant is known to be ready (a slow device takes a moment);
+    // orb-first home starts with the orb.
+    const start = startControl(page).first()
+    await expect(start).toBeEnabled()
+    await persona.click(start)
+    // Flow's own alert in the dock (Next's route announcer is an empty alert too).
+    const alert = dock(page).getByRole("alert")
+    await expect(alert).not.toBeEmpty()
     // Chrome says "Permission denied", Safari "The request is not allowed…": neither is Flow's words.
-    await expect(page.getByRole("alert").first()).not.toHaveText("Permission denied")
-    await expect(page.getByRole("alert").first()).toContainText(/microphone/i)
+    await expect(alert).not.toHaveText("Permission denied")
+    await expect(alert).toContainText(/microphone/i)
   })
 })
 

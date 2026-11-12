@@ -46,7 +46,7 @@
       "previous": "Previous",
       "new": "New",
       "status": "Status",
-      "reference": "Reference",
+      "summary": "{thing}{place, select, none {} other { in {place}}} is now {after} (was {before}).",
       "statuses": {
         "completed": "Confirmed",
         "partial": "Partially completed",

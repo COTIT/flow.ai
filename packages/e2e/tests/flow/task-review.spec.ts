@@ -52,8 +52,9 @@ test("approving runs the action once, and only the backend's answer says it is d
   await expect(receipt(page)).toHaveAttribute("data-receipt", "completed")
   await expect(receipt(page)).toContainText(k.receipt.title.completed)
   await expect(receipt(page)).toContainText(k.receipt.statuses.completed)
-  // The audit reference is the assistant action id.
-  await expect(receipt(page)).toContainText("0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa")
+  // The audit reference (the assistant action id) is kept out of sight: no raw codes (J2).
+  await expect(receipt(page)).toHaveAttribute("data-reference", "0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa")
+  await expect(receipt(page)).not.toContainText("0193f6b0")
   // Back to home (J4), then on to the conversation, where the record link and the outcome
   // line are.
   await page.getByRole("button", { name: s.backHome }).click()
