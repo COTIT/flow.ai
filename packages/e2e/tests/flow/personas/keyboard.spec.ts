@@ -127,6 +127,9 @@ async function expectKeyboardSane(page: Page, before: string, trail: string[], s
 
 /** Tabs until `target` has focus; false if the keyboard never reaches it. */
 async function tabTo(page: Page, target: Locator, { max = 80, back = false } = {}) {
+  // Not on this page (e.g. the composer on /login): tabbing for it only walks focus out of the page.
+  if (!(await target.first().waitFor({ state: "attached", timeout: 2_000 }).then(() => true, () => false)))
+    return false
   for (let i = 0; i < max; i++) {
     if (await target.evaluate((el) => el === document.activeElement || el.contains(document.activeElement), undefined, { timeout: 1_000 }).catch(() => false))
       return true
