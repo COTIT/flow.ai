@@ -20,10 +20,10 @@
       "title": "Ontdek wat Genesy kan",
       "text": "Kies een soort taak. Alles hier gebruikt jouw echte rechten.",
       "groups": {
-        "understand": "Zien hoe het gaat",
-        "operate": "Dagelijks werk",
-        "automate": "Rapporten en herinneringen",
-        "create": "Maak het van jou"
+        "understand": "Overzicht",
+        "operate": "Dagwerk",
+        "automate": "Rapporten",
+        "create": "Jouw stijl"
       },
       "example": "Zeg bijvoorbeeld: “{example}”",
       "try": "Probeer het",

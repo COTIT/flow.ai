@@ -20,10 +20,10 @@
       "title": "Explore what Genesy can do",
       "text": "Pick a kind of task. Everything here uses your real permissions.",
       "groups": {
-        "understand": "See how it's going",
+        "understand": "Overview",
         "operate": "Daily work",
-        "automate": "Reports and reminders",
-        "create": "Make it yours"
+        "automate": "Reports",
+        "create": "Your look"
       },
       "example": "Try saying: “{example}”",
       "try": "Try it",

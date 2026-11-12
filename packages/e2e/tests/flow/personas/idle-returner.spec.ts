@@ -143,14 +143,14 @@ test.describe("findings", () => {
     await expect(kept.or(page.getByText(DRAFT)).or(page.getByText(/draft/i)).first()).toBeVisible({ timeout: 5_000 })
   })
 
-  // P8-2 (fixed, regression guard): a review that simply expired turns the orb to its error state: "Something went wrong"
+  // P8-2 (fixed, regression guard): a review that simply expired turns the orb to its error state ("That didn't work. Try again.", once "Something went wrong")
   // next to "This review expired." (orb.ts: any voice.error is "error").
-  test("P8-2 an expired review is not announced as \"Something went wrong\"", async ({ persona, page, api }) => {
+  test("P8-2 an expired review is not announced as an error", async ({ persona, page, api }) => {
     await setup(persona, page, api)
     await propose(persona, page)
     await sleep(page, 11 * MIN, { hidden: false })
     await expect(page.getByText(v.expired).first()).toBeVisible()
-    await expect(page.getByText("Something went wrong", { exact: true })).toHaveCount(0)
+    await expect(page.getByText("That didn't work. Try again.", { exact: true })).toHaveCount(0)
   })
 
   // P8-3 (fixed, regression guard): the login expired on a scene; after logging in again the person lands on home, not on

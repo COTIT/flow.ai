@@ -5,6 +5,9 @@ import type { Page } from "@playwright/test"
 import { expect, test } from "./storefront-api"
 import { stockRoutes } from "./task"
 import { fakeAgent, v } from "./voice"
+import discoveryEn from "../../../../apps/flow/messages/en/discovery.json" with { type: "json" }
+import discoveryNl from "../../../../apps/flow/messages/nl/discovery.json" with { type: "json" }
+import discoverySw from "../../../../apps/flow/messages/sw/discovery.json" with { type: "json" }
 
 test.beforeEach(({ api }) => void api)
 
@@ -58,12 +61,12 @@ test("what needs attention reads plainly on home and in its scene", async ({ pag
   await expect(card).toContainText("orders waiting to be sent")
   await card.getByRole("link", { name: "See what needs attention" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Needs your attention" })).toBeVisible()
-  // Tablet width folds the row's actions into one ⋯ menu; table and cards show them inline.
-  await expect(page.getByRole("button", { name: /^(Mark as seen|Actions for .*)$/ }).first()).toBeVisible()
-  const menu = page.getByRole("button", { name: /^Actions for / }).first()
+  // The row's other choices wait in Later ▾ (P3) or, at tablet width, one ⋯ menu.
+  await expect(page.getByRole("button", { name: /^(Mark as seen|Actions for .*|Later .*)$/ }).first()).toBeVisible()
+  const menu = page.getByRole("button", { name: /^(Later|Actions for) / }).first()
   const actions = (await menu.isVisible()) ? (await menu.click(), page.getByRole("menu")) : page.locator("main")
   await expect(actions.getByText("Mark as seen").first()).toBeVisible()
-  await expect(actions.getByText(/Remind me/).first()).toBeVisible()
+  await expect(actions.getByText(/in a week/i).first()).toBeVisible()
   await page.keyboard.press("Escape")
   await noJargon(page)
 })
@@ -79,3 +82,26 @@ test("a call that ends says so plainly, and how to start again", async ({ page }
   await expect(page.getByText("Tap the orb to talk again, or type below.")).toBeVisible()
   await noJargon(page)
 })
+
+for (const [locale, groups] of [
+  ["en", discoveryEn.discovery.explorer.groups],
+  ["nl", discoveryNl.discovery.explorer.groups],
+  ["sw", discoverySw.discovery.explorer.groups],
+] as const)
+  test(`${locale}: the explorer's four kinds of task fit side by side, none hidden or overlapping`, async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL! }])
+    await page.goto("/explore")
+    const tabs = page.getByRole("tab")
+    await expect(tabs).toHaveText([groups.understand, groups.operate, groups.automate, groups.create])
+    const boxes = await tabs.evaluateAll((els) =>
+      els.map((e) => ({ left: e.getBoundingClientRect().left, right: e.getBoundingClientRect().right, text: e.scrollWidth, width: e.clientWidth }))
+    )
+    for (const [i, b] of boxes.entries()) {
+      expect(b.text, `tab ${i} text fits its tab`).toBeLessThanOrEqual(b.width + 1)
+      if (i) expect(b.left, `tab ${i} starts after the one before`).toBeGreaterThanOrEqual(boxes[i - 1]!.right - 1)
+    }
+    const list = await page.getByRole("tablist").evaluate((e) => ({ scroll: e.scrollWidth, width: e.clientWidth }))
+    expect(list.scroll, "all four in view, no sideways scroll").toBeLessThanOrEqual(list.width + 4)
+    await page.getByRole("tab", { name: groups.operate }).click()
+    await expect(page.locator('[data-capability="adjust_stock"]')).toBeVisible()
+  })

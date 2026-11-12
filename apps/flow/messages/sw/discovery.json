@@ -20,10 +20,10 @@
       "title": "Gundua Genesy inachoweza kufanya",
       "text": "Chagua aina ya kazi. Kila kitu hapa kinatumia ruhusa zako halisi.",
       "groups": {
-        "understand": "Ona hali ilivyo",
-        "operate": "Kazi za kila siku",
-        "automate": "Ripoti na vikumbusho",
-        "create": "Ifanye iwe yako"
+        "understand": "Hali",
+        "operate": "Kazi",
+        "automate": "Ripoti",
+        "create": "Mtindo"
       },
       "example": "Jaribu kusema: “{example}”",
       "try": "Jaribu",
