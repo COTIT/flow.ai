@@ -321,11 +321,12 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
   const body = useRef<HTMLDivElement>(null)
   const start = useRef<number | null>(null)
   const open = state === "open"
-  // The orb follows into the raised sheet; lowered or gone, it returns to its place.
+  // While the sheet is on screen the orb lives in it (raised or lowered), so raising and
+  // lowering never send it gliding across the handle under a thumb (P10-7).
   useEffect(() => {
-    flowStore.setState({ sheetRaised: open })
-    return () => flowStore.setState({ sheetRaised: false })
-  }, [open])
+    flowStore.setState({ sheetShown: true })
+    return () => flowStore.setState({ sheetShown: false })
+  }, [])
   const go = useCallback(
     (e: SheetEvent) =>
       setState((s) => {

@@ -1,6 +1,6 @@
 import { expect, test, designs } from "./storefront-api"
 import { fakeAgent, startText, v } from "./voice"
-import { dock, expectOrbClear, orb, orbAt, phase, s, revealHeader } from "./shell"
+import { dock, expectOrbClear, orb, orbAt, phase, s, revealHeader, homeOrb } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 // Design tests 1, 2 (storefront as the scene), 6, 7 and 10 (every project width).
@@ -56,9 +56,9 @@ test("one orb moves home → conversation → scene → conversation → home, n
   await orbAt(page, "immersive")
   await expect(page.getByRole("log")).toBeVisible()
 
-  // 7: back home: ambient orb, still connected.
+  // 7: back home: ambient orb (in the sheet on a phone), still connected.
   await page.getByRole("button", { name: s.backHome }).click()
-  await orbAt(page, "ambient")
+  await orbAt(page, homeOrb(page))
   await expect(phase(page)).toHaveText(new RegExp(s.phase.live))
   expect(agent.connections).toBe(1)
 })

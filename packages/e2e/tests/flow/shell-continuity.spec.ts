@@ -1,6 +1,6 @@
 import { expect, test, designs } from "./storefront-api"
 import { fakeAgent, startText, watch } from "./voice"
-import { orbAt, phase, s, revealHeader } from "./shell"
+import { orbAt, phase, s, revealHeader, homeOrb } from "./shell"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
@@ -40,7 +40,7 @@ test("one conversation survives four navigations: one socket, one session, quiet
   await orbAt(page, "compact")
   await step("storefront")
   await page.getByRole("button", { name: s.backHome }).click() // 2
-  await orbAt(page, "ambient")
+  await orbAt(page, homeOrb(page))
   await step("home")
   await storefront.click() // 3
   await orbAt(page, "compact")
