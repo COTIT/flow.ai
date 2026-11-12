@@ -63,9 +63,12 @@ export async function revealHeader(page: Page) {
   const header = page.locator("[data-flow-header]")
   const width = page.viewportSize()?.width ?? 1280
   // From below, so a second call still crosses the top edge (a move to the same point fires nothing).
-  await page.mouse.move(width / 3, 200)
-  await page.mouse.move(width / 3, 2)
-  await expect(header).toHaveAttribute("data-shown", "true")
+  // Repeated until it shows: on a slow device the header listens only once the page has hydrated.
+  await expect(async () => {
+    await page.mouse.move(width / 3, 200)
+    await page.mouse.move(width / 3, 2)
+    await expect(header).toHaveAttribute("data-shown", "true", { timeout: 1_000 })
+  }).toPass({ timeout: 15_000 })
   // Settled: it slides in, so wait until two reads of its place agree.
   let last = -1
   await expect
