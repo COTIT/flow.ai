@@ -15,7 +15,7 @@ test.beforeEach(({ api }) => void api)
 type Form = "table" | "menu" | "cards"
 const formOf = async (page: Page): Promise<Form> => {
   const w = await page.locator("[data-attention]").evaluate((el) => el.clientWidth)
-  return w >= 980 ? "table" : w >= 600 ? "menu" : "cards"
+  return w >= 940 ? "table" : w >= 520 ? "menu" : "cards"
 }
 const stock = (page: Page) => page.locator('[data-group="stock.below_minimum"]')
 const item = (page: Page, id: string) => stock(page).locator(`[data-item="${id}"]`)

@@ -139,14 +139,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const view = window.visualViewport
     if (!view) return
+    // Never taller than the window: mid-rotation the visual viewport can lag behind it (INT-2).
     const fit = () =>
       document.documentElement.style.setProperty(
         "--flow-vh",
-        `${view.height}px`
+        `${Math.min(view.height, window.innerHeight)}px`
       )
     fit()
     view.addEventListener("resize", fit)
-    return () => view.removeEventListener("resize", fit)
+    window.addEventListener("resize", fit)
+    return () => {
+      view.removeEventListener("resize", fit)
+      window.removeEventListener("resize", fit)
+    }
   }, [])
 
   // Leaving the signed-in app (logout, another login) forgets the visual state.
@@ -192,7 +197,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           e.stopPropagation()
         }
       }}
-      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+0.5rem)] [@media(pointer:coarse)_and_(min-height:501px)]:pt-[calc(var(--flow-safe-top)+2.25rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
+      className={`relative grid grid-cols-[minmax(0,1fr)] gap-3 overflow-clip p-3 pt-[calc(var(--flow-safe-top)+0.75rem)] md:gap-4 md:p-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+0.5rem)] [@media(pointer:coarse)_and_(min-height:501px)]:pt-[calc(var(--flow-safe-top)+2.25rem)] ${bottomDock ? "grid-rows-[minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)]"}`}
     >
       {/* Floats over the frame; never takes a row, so it never pushes content. */}
       <Header phase={phase} />

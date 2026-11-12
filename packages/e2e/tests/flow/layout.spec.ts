@@ -9,6 +9,7 @@ import {
 } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
+import { proposeStock, scene, stockRoutes } from "./task"
 import { chat, fakeAgent, send, startText, v, watch } from "./voice"
 
 test.beforeEach(({ api }) => void api)
@@ -755,3 +756,182 @@ test.describe("touch gestures (P10-5..7)", () => {
     await expect(page.locator("[data-conversation-header]")).toHaveCount(0)
   })
 })
+
+test("P10-1 / INT-2: the handle and the skip link are 44 px; status text never sticks out", async ({
+  page,
+}) => {
+  await page.goto("/scenes/pulse")
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+  if (test.info().project.use.hasTouch) {
+    for (const size of [null, { width: 667, height: 375 }]) {
+      if (size) await page.setViewportSize(size)
+      const handle = (await page.locator("[data-flow-handle]").boundingBox())!
+      expect(handle.height).toBeGreaterThanOrEqual(44)
+      expect(handle.width).toBeGreaterThanOrEqual(44)
+    }
+  }
+  await page.keyboard.press("Tab")
+  const skip = page.getByRole("link", { name: s.skipToContent })
+  await expect(skip).toBeFocused()
+  expect((await skip.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  // Rotation with a draft: no status line is wider than its box unless it ellipsizes.
+  await composer(page).fill("A draft that stays while the phone turns")
+  await page.setViewportSize({ width: 667, height: 375 })
+  await page.setViewportSize({ width: 375, height: 667 })
+  // What is painted: resize events fire in the next rendering step.
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  )
+  const out = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[role="status"]')]
+      .filter((el) => el.offsetParent !== null && !el.closest(".sr-only"))
+      .filter((el) => {
+        const r = el.getBoundingClientRect()
+        return r.width > 2 && r.height > 2 // visually hidden labels are not on screen
+      })
+      .filter(
+        (el) =>
+          el.scrollWidth > el.clientWidth + 1 &&
+          getComputedStyle(el).textOverflow !== "ellipsis"
+      )
+      .map((el) => `${el.tagName} ${el.textContent?.slice(0, 30)}`)
+  )
+  expect(out).toEqual([])
+})
+
+/** Mobile Chrome zooms the page out when anything widens the layout: it must never happen. */
+async function expectNotZoomed(page: Page, width: number) {
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  )
+  const v = await page.evaluate(() => ({
+    scale: window.visualViewport?.scale ?? 1,
+    inner: window.innerWidth,
+    scroll: document.documentElement.scrollWidth,
+  }))
+  expect(v, "never zoomed out").toEqual({ scale: 1, inner: width, scroll: width })
+}
+
+test("P10-9: rotating on a scene during a conversation never zooms the app out", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.isMobile, "mobile zoom")
+  await page.setViewportSize({ width: 375, height: 667 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  await page.getByRole("link", { name: /Morning Pulse/ }).click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  await page.waitForTimeout(700) // the orb lands
+  await expectNotZoomed(page, 375)
+  await page.setViewportSize({ width: 667, height: 375 })
+  await expectNotZoomed(page, 667)
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.waitForTimeout(700)
+  await expectNotZoomed(page, 375)
+  // At phone width list scenes are cards: no table row is wider than the screen.
+  const wide = await page.evaluate(() =>
+    [...document.querySelectorAll("tr")]
+      .filter((r) => r.getBoundingClientRect().right > innerWidth + 1)
+      .filter((r) => !r.closest(".sr-only"))
+      .map((r) => Math.round(r.getBoundingClientRect().right))
+  )
+  expect(wide).toEqual([])
+})
+
+test("P10-8: on a short, narrow screen the conversation bar's words never run into its buttons", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 667, height: 375 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  const bar = page.locator("[data-conversation-header]")
+  await expect(bar).toBeVisible()
+  const clash = await bar.evaluate((b) => {
+    const words = [...b.querySelectorAll<HTMLElement>("[role=status], p, span")].filter(
+      (el) => el.getBoundingClientRect().width > 2 && el.textContent?.trim()
+    )
+    const buttons = [...b.querySelectorAll("button")].map((x) => x.getBoundingClientRect())
+    const hit = (a: DOMRect, c: DOMRect) =>
+      a.left < c.right && a.right > c.left && a.top < c.bottom && a.bottom > c.top
+    return words
+      .filter((w) => !w.closest("button"))
+      .flatMap((w) => {
+        const r = w.getBoundingClientRect()
+        const over = buttons.some((x) => hit(r, x))
+        const cut = w.scrollWidth > w.clientWidth + 1 && getComputedStyle(w).textOverflow !== "ellipsis"
+        return over || cut ? [`${w.tagName} ${w.textContent?.slice(0, 20)} over=${over} cut=${cut}`] : []
+      })
+  })
+  expect(clash).toEqual([])
+  // The first-visit hint never sits on the conversation's bar.
+  await expect(page.getByText(s.headerHint)).toHaveCount(0)
+  await expectSingleScroller(page)
+})
+
+test("P10-10: rotating during a conversation keeps it reachable at every size (sheet, rail or its toggle)", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.hasTouch, "phones and tablets turn")
+  await page.setViewportSize({ width: 375, height: 812 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  const reachable = async (w: number) => {
+    // The conversation shows (rail or sheet), or a visible control opens it.
+    const pane = page.locator("aside#flow-rail, section[aria-label] [aria-label='" + s.raiseConversation + "'], section[aria-label] [aria-label='" + s.lowerConversation + "']")
+    const toggle = page.getByRole("button", { name: s.showConversation })
+    await expect(pane.or(toggle).first(), `reachable at ${w}`).toBeVisible()
+    const wide = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("aside, section")]
+        .map((el) => el.getBoundingClientRect().right)
+        .filter((r) => r > innerWidth + 1)
+    )
+    expect(wide, `nothing wider than ${w}`).toEqual([])
+  }
+  await reachable(375)
+  for (const size of [
+    { width: 812, height: 375 },
+    { width: 375, height: 812 },
+    { width: 812, height: 375 },
+    { width: 320, height: 568 },
+  ]) {
+    await page.setViewportSize(size)
+    await page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+    )
+    await reachable(size.width)
+  }
+})
+
+for (const size of [
+  { width: 640, height: 400 },
+  { width: 844, height: 390 },
+])
+  test(`P9-7: with a review open on a short screen (${size.width}×${size.height}) the review keeps most of the height`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await stockRoutes(page)
+    const agent = await fakeAgent(page)
+    await proposeStock(page, agent)
+    await expect(scene(page)).toContainText("Confirm action 135790")
+    await page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+    )
+    const h = await page
+      .locator("[data-flow-scroll]")
+      .evaluate((m) => m.getBoundingClientRect().height)
+    expect(h, "review content height").toBeGreaterThanOrEqual(size.height * 0.55)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    await expectSingleScroller(page)
+  })

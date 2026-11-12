@@ -19,7 +19,7 @@ function Panel({
   return (
     <section
       aria-label={title}
-      className="@container flex flex-col gap-2 rounded-2xl border bg-card p-3 @min-[980px]:p-5"
+      className="@container flex flex-col gap-2 rounded-2xl border bg-card p-3 @min-[940px]:p-5"
     >
       <h3 className="px-1 text-sm font-semibold">{title}</h3>
       {children}

@@ -45,13 +45,14 @@ export type RowActions = {
 /*
  * Lists board: one markup, three forms by the width of the list's container (the caller marks its
  * card `@container`, so an open conversation rail and a half-width bento tile both count):
- *   ≥ 980 px  a table, up to two actions inline
- *   600–979   the same columns, every action in one ⋯ row menu
- *   < 600     one labelled card per row, full-width actions
- * Native table elements keep explicit roles so the card form still reads as a table.
+ *   ≥ 940 px  a table, up to two actions inline
+ *   520–939   the same columns, every action in one ⋯ row menu
+ *   < 520     one labelled card per row, full-width actions
+ * Native table elements keep explicit roles. In the card form the header row is not drawn at
+ * all (never a stray wide row); each value carries its own visible label instead.
  */
-const INLINE = "hidden @max-[599px]:flex @min-[980px]:flex"
-const MENU = "hidden @min-[600px]:@max-[979px]:flex"
+const INLINE = "hidden @max-[519px]:flex @min-[940px]:flex"
+const MENU = "hidden @min-[520px]:@max-[939px]:flex"
 
 export function RecordTable<R>({
   label,
@@ -84,7 +85,7 @@ export function RecordTable<R>({
       aria-label={label}
       className="w-full border-collapse text-sm"
     >
-      <thead role="rowgroup" className="@max-[599px]:sr-only">
+      <thead role="rowgroup" className="@max-[519px]:hidden">
         <tr role="row" className="border-b text-xs text-muted-foreground">
           <th
             role="columnheader"
@@ -98,7 +99,7 @@ export function RecordTable<R>({
               key={c.key}
               role="columnheader"
               scope="col"
-              className={`w-24 px-3 pb-2 font-medium @min-[980px]:w-30 ${c.numeric ? "text-right" : "text-left"}`}
+              className={`w-24 px-3 pb-2 font-medium @min-[940px]:w-30 ${c.numeric ? "text-right" : "text-left"}`}
             >
               {c.label}
             </th>
@@ -109,7 +110,7 @@ export function RecordTable<R>({
               scope="col"
               className="w-px px-3 pb-2 text-right font-medium whitespace-nowrap"
             >
-              <span className="@min-[600px]:@max-[979px]:sr-only">
+              <span className="@min-[520px]:@max-[939px]:sr-only">
                 {t("table.actions")}
               </span>
             </th>
@@ -118,7 +119,7 @@ export function RecordTable<R>({
       </thead>
       <tbody
         role="rowgroup"
-        className="@max-[599px]:flex @max-[599px]:flex-col @max-[599px]:gap-2"
+        className="@max-[519px]:flex @max-[519px]:flex-col @max-[519px]:gap-2"
       >
         {rows.map((row) => {
           const id = rowKey(row)
@@ -128,12 +129,12 @@ export function RecordTable<R>({
               key={id}
               role="row"
               {...{ [itemAttr]: id }}
-              className="border-b last:border-b-0 @max-[599px]:grid @max-[599px]:grid-cols-3 @max-[599px]:gap-x-2 @max-[599px]:gap-y-1 @max-[599px]:rounded-2xl @max-[599px]:border-b-0 @max-[599px]:bg-card @max-[599px]:p-3 @max-[599px]:shadow-sm @max-[599px]:ring-1 @max-[599px]:ring-foreground/5"
+              className="border-b last:border-b-0 @max-[519px]:grid @max-[519px]:grid-cols-3 @max-[519px]:gap-x-2 @max-[519px]:gap-y-1 @max-[519px]:rounded-2xl @max-[519px]:border-b-0 @max-[519px]:bg-card @max-[519px]:p-3 @max-[519px]:shadow-sm @max-[519px]:ring-1 @max-[519px]:ring-foreground/5"
             >
               <th
                 role="rowheader"
                 scope="row"
-                className="px-3 py-1 text-left align-middle font-medium @max-[599px]:col-span-3 @max-[599px]:p-0"
+                className="px-3 py-1 text-left align-middle font-medium @max-[519px]:col-span-3 @max-[519px]:p-0"
               >
                 {select ? (
                   <SelectName type={select} id={id} name={name(row)} />
@@ -145,7 +146,7 @@ export function RecordTable<R>({
                 {act?.status ? (
                   <span
                     data-acknowledged=""
-                    className="hidden pb-1 text-xs font-normal text-muted-foreground @min-[600px]:@max-[979px]:block"
+                    className="hidden pb-1 text-xs font-normal text-muted-foreground @min-[520px]:@max-[939px]:block"
                   >
                     {act.status}
                   </span>
@@ -155,12 +156,9 @@ export function RecordTable<R>({
                 <td
                   key={c.key}
                   role="cell"
-                  className={`px-3 py-1 align-middle text-[15px] tabular-nums @max-[599px]:p-0 @max-[599px]:text-left ${c.numeric ? "text-right" : ""} ${c.strong ? "font-semibold" : ""} ${c.key === "minimum" ? "text-muted-foreground" : ""}`}
+                  className={`px-3 py-1 align-middle text-[15px] tabular-nums @max-[519px]:p-0 @max-[519px]:text-left ${c.numeric ? "text-right" : ""} ${c.strong ? "font-semibold" : ""} ${c.key === "minimum" ? "text-muted-foreground" : ""}`}
                 >
-                  <span
-                    aria-hidden
-                    className="hidden text-xs font-normal text-muted-foreground @max-[599px]:block"
-                  >
+                  <span className="hidden text-xs font-normal text-muted-foreground @max-[519px]:block">
                     {c.label}
                   </span>
                   {c.value(row)}
@@ -169,7 +167,7 @@ export function RecordTable<R>({
               {withActions ? (
                 <td
                   role="cell"
-                  className="px-3 py-1 align-middle whitespace-nowrap @max-[599px]:col-span-3 @max-[599px]:whitespace-normal @max-[599px]:p-0 @max-[599px]:pt-1"
+                  className="px-3 py-1 align-middle whitespace-nowrap @max-[519px]:col-span-3 @max-[519px]:p-0 @max-[519px]:pt-1 @max-[519px]:whitespace-normal"
                 >
                   {act ? <Actions name={name(row)} act={act} /> : null}
                 </td>
@@ -221,19 +219,19 @@ function Actions({ name, act }: { name: string; act: RowActions }) {
   return (
     <>
       <div
-        className={`${INLINE} items-center justify-end gap-1 @max-[599px]:gap-2`}
+        className={`${INLINE} items-center justify-end gap-1 @max-[519px]:gap-2`}
       >
         {act.status ? (
           <span
             data-acknowledged=""
-            className="px-3 text-[13px] text-muted-foreground @max-[599px]:flex-1 @max-[599px]:px-0"
+            className="px-3 text-[13px] text-muted-foreground @max-[519px]:flex-1 @max-[519px]:px-0"
           >
             {act.status}
           </span>
         ) : act.inline ? (
           <Button
             variant="ghost"
-            className="min-h-11 rounded-full @max-[599px]:flex-1 @max-[599px]:border @max-[599px]:bg-background"
+            className="min-h-11 rounded-full @max-[519px]:flex-1 @max-[519px]:border @max-[519px]:bg-background"
             disabled={act.disabled}
             onClick={act.inline.onSelect}
           >
@@ -247,7 +245,7 @@ function Actions({ name, act }: { name: string; act: RowActions }) {
               render={
                 <Button
                   variant="outline"
-                  className="min-h-11 rounded-full @max-[599px]:flex-1"
+                  className="min-h-11 rounded-full @max-[519px]:flex-1"
                   aria-label={`${act.group.label} ${name}`}
                 />
               }

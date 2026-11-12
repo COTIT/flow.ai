@@ -104,16 +104,26 @@ export function useConversationLayout() {
   const b = useBand()
   const store = useRailStore()
   const viewport = useViewportWidth()
+  // Too narrow for a rail beside results that keep RESULTS_MIN (e.g. 640 px at 200% zoom): the
+  // conversation is a sheet there, as on a phone (P9-7).
+  const sheetOnly = b === "phone" || viewport < RAIL.min + RESULTS_MIN + FRAME
   const maxWidth = clampWidth(viewport - FRAME - RESULTS_MIN)
   const live = voice.connected || voice.starting || voice.upgrading
   const talking = live || voice.messages.length > 0
   // A start from home opens the full conversation (immersive follows a moment later).
   const fullView =
     pathname === "/" && !resultOpen && live && (immersive || voice.starting)
-  const review = Boolean(voice.review?.ticket || voice.outcome)
+  // Home has no scene bar (no Show conversation there), so the rail opens there like during a
+  // review: a turn to landscape never leaves the conversation unreachable (P10-10).
+  const review =
+    Boolean(voice.review?.ticket || voice.outcome) || pathname === "/"
   const context = b && b !== "phone" ? railContext(b, review) : null
   const shown = Boolean(b && talking && !fullView)
-  const open = shown && !!b && railOpen({ band: b, review, stored: store.open })
+  const open =
+    shown &&
+    !!b &&
+    !sheetOnly &&
+    railOpen({ band: b, review, stored: store.open })
   // Replies that arrived while the rail was hidden: its toggle says so (P3-2).
   const replies = voice.messages.length
   const last = voice.messages.at(-1)
@@ -125,10 +135,10 @@ export function useConversationLayout() {
     /** The full-width conversation (Conversation board) is open on home. */
     conversationView: fullView,
     /** The rail exists (open or closed) beside the results. */
-    rail: shown && b !== "phone",
+    rail: shown && !sheetOnly,
     open,
     unread: !open && replies > seenReplies && !!last && last.role !== "user",
-    sheet: shown && b === "phone",
+    sheet: shown && sheetOnly,
     width: Math.min(
       clampWidth(store.width ?? (b === "tablet" ? RAIL.tablet : RAIL.desktop)),
       maxWidth

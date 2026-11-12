@@ -124,6 +124,9 @@ export function OrbLayer() {
     for (const pane of Array.from(host?.children ?? []))
       if (pane !== box) resize.observe(pane)
     window.visualViewport?.addEventListener("resize", later)
+    // A rotation re-places it at once, never from the old screen's coordinates (P10-9).
+    window.addEventListener("resize", place)
+    window.addEventListener("orientationchange", place)
     void document.fonts?.ready.then(later)
     return () => {
       dead = true
@@ -133,6 +136,8 @@ export function OrbLayer() {
       scroller?.removeEventListener("scroll", later)
       host?.removeEventListener("transitionend", later)
       window.visualViewport?.removeEventListener("resize", later)
+      window.removeEventListener("resize", place)
+      window.removeEventListener("orientationchange", place)
     }
   }, [slot, mode])
 
@@ -141,7 +146,8 @@ export function OrbLayer() {
     <div
       ref={layer}
       // Above the panes' sticky header rows (z-10), below the dock layer and the header.
-      className="pointer-events-none absolute inset-0 z-20 overflow-clip"
+      // Clipped and paint-contained: the orb can never widen the page (P10-9).
+      className="pointer-events-none absolute inset-0 z-20 overflow-clip [contain:layout_paint]"
     >
       <button
         ref={orb}

@@ -99,7 +99,7 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
     <>
       <a
         href="#flow-content"
-        className="sr-only z-50 rounded-xl bg-foreground px-4 py-3 text-sm text-background focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+        className="sr-only z-50 rounded-xl bg-foreground px-4 py-3 text-sm text-background focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:flex focus:min-h-11 focus:items-center"
       >
         {t("shell.skipToContent")}
       </a>
@@ -110,17 +110,18 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         aria-controls="flow-header"
         aria-label={t(shown ? "shell.hideHeader" : "shell.showHeader")}
         onClick={toggle}
-        className="absolute top-0 left-1/2 z-50 hidden h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:h-7 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+2px)] [@media(pointer:coarse)]:flex"
+        className="absolute top-0 left-1/2 z-50 hidden h-11 w-24 -translate-x-1/2 justify-center pt-[calc(var(--flow-safe-top)+6px)] focus-visible:outline-2 focus-visible:outline-(--gold) [@media(max-height:500px)]:w-16 [@media(max-height:500px)]:pt-[calc(var(--flow-safe-top)+2px)] [@media(pointer:coarse)]:flex"
       >
         <span
           aria-hidden
           className="h-1.5 w-11 rounded-full bg-muted-foreground/50"
         />
       </button>
-      {hint && !shown ? (
+      {/* Only away from a conversation, whose bar sits where the hint would (P10-8). */}
+      {hint && !shown && !live ? (
         <p
           role="status"
-          className="pointer-events-none absolute top-11 left-1/2 z-50 -translate-x-1/2 rounded-full glass-strong px-3 py-1.5 text-xs whitespace-nowrap"
+          className="pointer-events-none absolute top-11 left-1/2 z-50 max-w-[calc(100vw-2rem)] -translate-x-1/2 truncate rounded-full glass-strong px-3 py-1.5 text-xs"
         >
           {t("shell.headerHint")}
         </p>
