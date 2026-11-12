@@ -4,6 +4,8 @@ import type { Page } from "@playwright/test"
 import { focusLook } from "../../src/focus"
 import { seedSession } from "../../src/session"
 import { mockApi } from "./api"
+import { sc } from "./scenes-api"
+import { s } from "./shell"
 import { api as discoveryApi, d, OWNER } from "./discovery"
 import { expect, test } from "./storefront-api"
 import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
@@ -123,6 +125,21 @@ test.describe("P9-4: a review or a voice upgrade never strands keyboard focus", 
     const back = await presses("Shift+Tab")
     console.log(`[P9-4a] ${page.viewportSize()!.width}px: Approve after Tab ×${forward}, Shift+Tab ×${back}`)
     expect(Math.min(forward, back), "Approve unreachable by keyboard from the composer").toBeLessThan(Infinity)
+  })
+
+  test("P9-4c: Switch to voice from the dock inside a scene keeps focus in the dock", async ({
+    page,
+  }) => {
+    await fakeAgent(page)
+    await page.goto("/")
+    await startText(page)
+    await page.getByRole("button", { name: s.backHome }).first().click()
+    await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click()
+    await expect(page).toHaveURL(/\/scenes\//)
+    await pressByKeyboard(page.getByRole("button", { name: s.switchVoice }))
+    await page.waitForTimeout(800)
+    expect(await onBody(page), "focus lost to <body> after Switch to voice in a scene").toBe(false)
+    await expect(page.getByLabel(v.message)).toBeFocused()
   })
 
   test("P9-4b: Switch to voice by keyboard keeps focus on the page", async ({ page }) => {
