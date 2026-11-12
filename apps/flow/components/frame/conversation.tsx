@@ -443,7 +443,20 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
           <PaneLog pane="sheet" />
         </div>
       ) : null}
-      {open ? <InlineTask /> : null}
+      {/* A tall card (a batch, a short screen) scrolls in its own pane with its buttons pinned, so
+          "Yes, do it" stays above the message box. */}
+      {open ? (
+        <div
+          data-flow-pane="sheet-task"
+          className={
+            voice.review
+              ? "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [&_[data-review-buttons]]:sticky [&_[data-review-buttons]]:bottom-0 [&_[data-review-buttons]]:bg-card [&_[data-review-buttons]]:py-2"
+              : "contents"
+          }
+        >
+          <InlineTask />
+        </div>
+      ) : null}
       <DockSlot />
     </section>
   )

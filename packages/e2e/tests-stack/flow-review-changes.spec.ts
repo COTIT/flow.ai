@@ -1,5 +1,6 @@
 import { apiAs, cred, expect, loginFlow, test, unique, urls } from "../src/stack"
 import { expectNoHorizontalScroll } from "../src/test"
+import { scene } from "../tests/flow/task"
 import { fakeAgent, startText, v } from "../tests/flow/voice"
 
 // REAL API review facts (the assistant proposal for a stock write) shown in Flow; SIMULATED only
@@ -93,7 +94,8 @@ for (const [label, viewport] of [
       await page.goto(`${urls.flow}/`)
       await startText(page)
       agent.call("stock_set_levels", { path: { product: id }, body })
-      const results = page.getByRole("region", { name: "Results" })
+      // P5: the review shows in place (the card in the conversation).
+      const results = scene(page)
       await expect(results).toContainText(v.operationTitles.stock_set_levels)
       const diff = results.locator("[data-review-diff]")
       await expect(diff).toContainText(`${warehouse!.name} · ${v.reviewFields.stock}`)

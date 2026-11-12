@@ -60,7 +60,13 @@ async function show(page: Page, operation: string) {
     },
   })
   await expect.poll(agent.results).toBe(1)
-  await page.getByRole("log").getByRole("button", { name: chat.showResult }).first().click()
+  // P5: the answer shows inline under the reply; "Show all" opens the Results screen when it is
+  // bigger than the card.
+  const card = page.getByRole("log").first().locator("[data-inline-result]").first()
+  await expect(card).toBeVisible()
+  const all = card.getByRole("button", { name: /^Show all$/ })
+  if (!(await all.isVisible())) return card
+  await all.click()
   return page.getByRole("region", { name: chat.results }).locator('[data-role="result"]').first()
 }
 

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test"
 
 import { apiAs, cred, expect, loginFlow, test, unique, urls } from "../src/stack"
 import { expectNoHorizontalScroll } from "../src/test"
+import { scene } from "../tests/flow/task"
 import { fakeAgent, startText, v } from "../tests/flow/voice"
 
 // REAL API (stock write and the receipt's read-back), Flow, and its login; SIMULATED only the
@@ -120,7 +121,8 @@ async function voice(
   await page.goto(`${urls.flow}/`)
   await startText(page)
   agent.call("stock_set_levels", { path: { product: product.id }, body })
-  await expect(page.getByRole("region", { name: "Results" })).toContainText(
+  // P5: the review shows in place (the card in the conversation).
+  await expect(scene(page)).toContainText(
     "Confirm action 112233"
   )
   return confirms

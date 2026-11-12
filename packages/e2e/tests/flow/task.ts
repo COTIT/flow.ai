@@ -37,8 +37,8 @@ export async function taskLine(page: Page) {
   // The way out can move as the first reply lands (the orb steps aside): find it again each try.
   await expect(async () => {
     if (!(await capsule(page).isVisible()))
-      if (await hide.count()) await hide.click({ timeout: 1_000 })
-      else if (new URL(page.url()).pathname === "/") await home.click({ timeout: 1_000 })
+      if (new URL(page.url()).pathname === "/") await home.click({ timeout: 1_000 })
+      else await hide.click({ timeout: 1_000 })
     await expect(capsule(page)).toBeVisible({ timeout: 1_000 })
   }).toPass()
   return capsule(page)
