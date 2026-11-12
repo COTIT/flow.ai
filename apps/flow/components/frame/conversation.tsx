@@ -9,7 +9,7 @@ import {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { ArrowDown, PanelRight, PanelRightClose } from "lucide-react"
+import { ArrowDown, PanelRight, PanelRightClose, PhoneOff } from "lucide-react"
 
 import { Button } from "@genesy/ui/components/button"
 import { VoiceThinking } from "@genesy/voice/components/activity"
@@ -294,6 +294,7 @@ export function Rail({
         <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
           {t(`shell.phase.${phase}`)}
         </p>
+        <EndCall />
         <Button
           variant="ghost"
           size="icon"
@@ -404,6 +405,8 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
             {last?.text ?? t(`shell.phase.${phase}`)}
           </p>
         )}
+        {/* Short screens keep this line slim: End sits in the dock row there instead. */}
+        <EndCall className="ml-auto [@media(max-height:500px)]:hidden" />
       </div>
       {open ? (
         <div
@@ -432,27 +435,49 @@ export function ConversationToggle({
 }) {
   const t = useTranslations("shell")
   return (
+    <>
+      {/* The rail (and its End) is hidden: hang up from here. */}
+      {open ? null : <EndCall />}
+      <Button
+        variant="outline"
+        className="min-h-11 shrink-0 rounded-full"
+        aria-expanded={open}
+        aria-controls={open ? "flow-rail" : undefined}
+        onClick={onToggle}
+      >
+        {open ? <PanelRightClose aria-hidden /> : <PanelRight aria-hidden />}
+        {/* A narrow results pane keeps the icon; the name stays for assistive tech. */}
+        <span className="@max-[600px]:sr-only">
+          {t(open ? "hideConversation" : "showConversation")}
+        </span>
+        {unread ? (
+          <span
+            data-unread
+            className="flex items-center gap-1.5 text-xs font-medium"
+          >
+            <span aria-hidden className="size-2 rounded-full bg-(--gold)" />
+            {t("newReply")}
+          </span>
+        ) : null}
+      </Button>
+    </>
+  )
+}
+
+/** Hang up from where the conversation lives (rail, sheet, scene bar); only while connected. */
+export function EndCall({ className = "" }: { className?: string }) {
+  const t = useTranslations("voice")
+  const voice = useVoice()
+  if (!voice.connected) return null
+  return (
     <Button
       variant="outline"
-      className="min-h-11 shrink-0 rounded-full"
-      aria-expanded={open}
-      aria-controls={open ? "flow-rail" : undefined}
-      onClick={onToggle}
+      size="icon"
+      className={`size-11 shrink-0 ${className}`}
+      aria-label={t("end")}
+      onClick={() => void voice.end().catch(() => undefined)}
     >
-      {open ? <PanelRightClose aria-hidden /> : <PanelRight aria-hidden />}
-      {/* A narrow results pane keeps the icon; the name stays for assistive tech. */}
-      <span className="@max-[600px]:sr-only">
-        {t(open ? "hideConversation" : "showConversation")}
-      </span>
-      {unread ? (
-        <span
-          data-unread
-          className="flex items-center gap-1.5 text-xs font-medium"
-        >
-          <span aria-hidden className="size-2 rounded-full bg-(--gold)" />
-          {t("newReply")}
-        </span>
-      ) : null}
+      <PhoneOff aria-hidden />
     </Button>
   )
 }
