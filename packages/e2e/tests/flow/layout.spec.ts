@@ -9,6 +9,7 @@ import {
 } from "../../src/test"
 import { expect, test } from "./storefront-api"
 import { revealHeader, s } from "./shell"
+import { proposeStock, scene, stockRoutes } from "./task"
 import { chat, fakeAgent, send, startText, v, watch } from "./voice"
 
 test.beforeEach(({ api }) => void api)
@@ -873,3 +874,64 @@ test("P10-8: on a short, narrow screen the conversation bar's words never run in
   await expect(page.getByText(s.headerHint)).toHaveCount(0)
   await expectSingleScroller(page)
 })
+
+test("P10-10: rotating during a conversation keeps it reachable at every size (sheet, rail or its toggle)", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.hasTouch, "phones and tablets turn")
+  await page.setViewportSize({ width: 375, height: 812 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  const reachable = async (w: number) => {
+    // The conversation shows (rail or sheet), or a visible control opens it.
+    const pane = page.locator("aside#flow-rail, section[aria-label] [aria-label='" + s.raiseConversation + "'], section[aria-label] [aria-label='" + s.lowerConversation + "']")
+    const toggle = page.getByRole("button", { name: s.showConversation })
+    await expect(pane.or(toggle).first(), `reachable at ${w}`).toBeVisible()
+    const wide = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("aside, section")]
+        .map((el) => el.getBoundingClientRect().right)
+        .filter((r) => r > innerWidth + 1)
+    )
+    expect(wide, `nothing wider than ${w}`).toEqual([])
+  }
+  await reachable(375)
+  for (const size of [
+    { width: 812, height: 375 },
+    { width: 375, height: 812 },
+    { width: 812, height: 375 },
+    { width: 320, height: 568 },
+  ]) {
+    await page.setViewportSize(size)
+    await page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+    )
+    await reachable(size.width)
+  }
+})
+
+for (const size of [
+  { width: 640, height: 400 },
+  { width: 844, height: 390 },
+])
+  test(`P9-7: with a review open on a short screen (${size.width}×${size.height}) the review keeps most of the height`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await stockRoutes(page)
+    const agent = await fakeAgent(page)
+    await proposeStock(page, agent)
+    await expect(scene(page)).toContainText("Confirm action 135790")
+    await page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+    )
+    const h = await page
+      .locator("[data-flow-scroll]")
+      .evaluate((m) => m.getBoundingClientRect().height)
+    expect(h, "review content height").toBeGreaterThanOrEqual(size.height * 0.55)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    await expectSingleScroller(page)
+  })
