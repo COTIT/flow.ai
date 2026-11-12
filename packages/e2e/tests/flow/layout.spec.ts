@@ -931,7 +931,7 @@ for (const size of [
     const h = await page
       .locator("[data-flow-scroll]")
       .evaluate((m) => m.getBoundingClientRect().height)
-    expect(h, "review content height").toBeGreaterThanOrEqual(size.height * 0.55)
+    expect(h, "review content height").toBeGreaterThanOrEqual(Math.round(size.height * 0.55))
     await expect(header(page)).not.toHaveAttribute("data-shown")
     await expectSingleScroller(page)
   })
@@ -984,3 +984,31 @@ test("K2: at 200% zoom, every header control reached by Tab is on screen at once
   }
   expect(off).toEqual([])
 })
+
+for (const size of [
+  { width: 640, height: 400 },
+  { width: 700, height: 420 },
+  { width: 727, height: 450 },
+])
+  test(`K4: at 200% zoom (${size.width}×${size.height}) the conversation sheet sits under the scene and Send stays on screen`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+    await page.goto("/scenes/sales")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await composer(page).focus()
+    await page.keyboard.type("Sales today?")
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("button", { name: s.raiseConversation })).toBeVisible()
+    const send = page.getByRole("button", { name: v.send, exact: true })
+    await send.focus()
+    const b = (await send.boundingBox())!
+    expect(b.x + b.width).toBeLessThanOrEqual(size.width)
+    expect(b.y + b.height).toBeLessThanOrEqual(size.height)
+    // The sheet spans the width under the scene (never a narrow column beside it).
+    const sh = (await sheet(page).boundingBox())!
+    expect(sh.width).toBeGreaterThan(size.width * 0.9)
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })

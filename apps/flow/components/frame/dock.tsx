@@ -55,11 +55,13 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const held = Boolean(voice.review)
   // A control turns disabled (upgrading, or held by a review) and the browser drops its focus to
   // the page: a keyboard user goes on at the review's button (K1), else in the message box (P9-4;
-  // a tap never pops the phone keyboard). Focus anywhere else is left alone.
+  // a tap never pops the phone keyboard). Held dock buttons stay focusable (aria-disabled, K4),
+  // yet the review is still where a keyboard user goes next. Focus anywhere else is left alone.
   useEffect(() => {
     const active = document.activeElement as HTMLButtonElement | null
     if (!(voice.upgrading || held) || !active?.matches(":focus-visible")) return
-    if (!active.disabled && !active.closest("[inert]")) return
+    const heldHere = held && active.getAttribute("aria-disabled") === "true"
+    if (!active.disabled && !active.closest("[inert]") && !heldHere) return
     const review = held
       ? document.querySelector<HTMLElement>(
           '[data-task-state="needs_approval"] button'
@@ -257,10 +259,12 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
               type="button"
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11"
               aria-label={t("voice.addFiles")}
-              disabled={held}
-              onClick={() => picker.current?.click()}
+              aria-disabled={held || undefined}
+              className={`min-h-11 min-w-11 ${held ? "opacity-50" : ""}`}
+              onClick={() => {
+                if (!held) picker.current?.click()
+              }}
             >
               <Paperclip aria-hidden />
             </Button>
@@ -283,10 +287,13 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
             type="button"
             variant="outline"
             size="icon"
-            className="min-h-11 min-w-11"
+            className="min-h-11 min-w-11 aria-disabled:opacity-50"
             aria-label={t("voice.start")}
-            disabled={held || state !== "available"}
-            onClick={() => void voice.start(false)}
+            aria-disabled={held || undefined}
+            disabled={state !== "available"}
+            onClick={() => {
+              if (!held) void voice.start(false)
+            }}
           >
             <Mic aria-hidden />
           </Button>
@@ -318,10 +325,13 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         <Button
           type="submit"
           size="icon"
-          className="min-h-11 min-w-11"
+          className="min-h-11 min-w-11 aria-disabled:opacity-50"
           aria-label={t("voice.send")}
           // Unknown readiness still sends (Enter included); the start checks it first.
-          disabled={held || (!live && !!state && state !== "available")}
+          // While a review waits it stays focusable (aria-disabled): disabling it would drop
+          // the person's focus to <body> the moment the review arrives.
+          aria-disabled={held || undefined}
+          disabled={!live && !!state && state !== "available"}
         >
           <Send aria-hidden />
         </Button>
