@@ -78,6 +78,24 @@ export function useSceneTitle() {
 }
 
 /** One full-screen scene, drawn from its saved config through the component registry. */
+/**
+ * Beside two stacked metrics the big tile takes their height, never sets it, except a chart, whose
+ * plot stays readable (≥ 160 px: the tile is ≥ 280 px); the metrics then share that height with
+ * their value centred. Charts stop at 340 px.
+ */
+function placeClass(place: React.CSSProperties | undefined, size: string) {
+  const vars = (place ?? {}) as Record<string, unknown>
+  const spansRows = Number(vars["--r12"]) > 1
+  return [
+    spansRows ? "@min-[1024px]:[contain:size]" : "",
+    spansRows && size === "chart" ? "@min-[1024px]:min-h-[280px]" : "",
+    vars["--c12"] === "1"
+      ? "@min-[1024px]:[&>*:first-child]:justify-center"
+      : "",
+    size === "chart" ? "@min-[640px]:max-h-[340px]" : "",
+  ].join(" ")
+}
+
 export function SceneView({ sceneKey }: { sceneKey: string }) {
   const t = useTranslations("scenes")
   const ws = useWorkspace()
@@ -347,7 +365,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                 className={
                   drawn.length > 1
                     ? // Beside two stacked metrics the big tile takes their height, never sets it.
-                      `${BENTO_PLACE} ${Number(placed.get(component.id)?.["--r12" as never]) > 1 ? "@min-[1024px]:[contain:size]" : ""} ${size === "chart" ? "@min-[640px]:max-h-[340px]" : ""}`
+                      `${BENTO_PLACE} ${placeClass(placed.get(component.id), size)}`
                     : ""
                 }
                 style={drawn.length > 1 ? placed.get(component.id) : undefined}

@@ -59,6 +59,14 @@ async function glance(page: Page) {
           bottom = Math.max(bottom, b.bottom)
       }
       const footer = tile.querySelector("[data-tile-footer]")
+      // A metric beside a chart shares the chart's height, its value centred (intentional).
+      const besideChart =
+        tile.dataset.size === "small" &&
+        tiles.some((o) => {
+          if (o.dataset.size !== "chart") return false
+          const c = o.getBoundingClientRect()
+          return c.top < r.bottom && c.bottom > r.top
+        })
       return {
         id: tile.dataset.component!,
         emptyPct: Math.round(
@@ -68,6 +76,11 @@ async function glance(page: Page) {
         ),
         whole: r.top >= view.top - 1 && r.bottom <= view.bottom + 1,
         cutWithoutCount: !!footer && !/\(\d+\)/.test(footer.textContent ?? ""),
+        besideChart,
+        plot: Math.round(
+          tile.querySelector("[data-plot]")?.getBoundingClientRect().height ??
+            -1
+        ),
       }
     })
     return {
@@ -79,7 +92,7 @@ async function glance(page: Page) {
   })
 }
 
-async function expectFits(page: Page, scene: string) {
+async function expectFits(page: Page, scene: string, { plot = false } = {}) {
   await expect(page.locator("[data-component]").first()).toBeVisible()
   await page.waitForTimeout(1_200) // data and tile growth settle
   const g = await glance(page)
@@ -89,9 +102,14 @@ async function expectFits(page: Page, scene: string) {
   ).toEqual((DEFAULTS[scene] ?? []).map((c) => c.id))
   expect(g.emptyPct, "empty grid area %").toBeLessThanOrEqual(5)
   for (const t of g.each) {
-    expect(t.emptyPct, `${t.id}: empty height %`).toBeLessThanOrEqual(15)
+    if (!t.besideChart)
+      expect(t.emptyPct, `${t.id}: empty height %`).toBeLessThanOrEqual(15)
     expect(t.cutWithoutCount, `${t.id}: cut without a count`).toBe(false)
   }
+  // A trend you can read: a chart's plot is never squashed flat.
+  if (plot)
+    for (const t of g.each.filter((t) => t.plot >= 0))
+      expect(t.plot, `${t.id}: chart plot height`).toBeGreaterThanOrEqual(160)
   for (const t of g.each.slice(0, PRIMARY))
     expect(t.whole, `${t.id}: whole on the first screen`).toBe(true)
 }
@@ -105,7 +123,9 @@ for (const [width, height] of SIZES)
       sceneWorld(api)
       await page.setViewportSize({ width, height })
       await page.goto(`/scenes/${scene}`)
-      await expectFits(page, scene)
+      await expectFits(page, scene, {
+        plot: [1180, 1366, 1920].includes(width),
+      })
     })
 
 for (const [width, height] of [
