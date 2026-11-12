@@ -112,9 +112,8 @@ export function RecordTable<R>({
               scope="col"
               className="w-px px-3 pb-2 text-right font-medium whitespace-nowrap"
             >
-              <span className="@min-[520px]:@max-[939px]:sr-only">
-                {t("table.actions")}
-              </span>
+              {/* The buttons say what they do; the column keeps its name for screen readers. */}
+              <span className="sr-only">{t("table.actions")}</span>
             </th>
           ) : null}
         </tr>
