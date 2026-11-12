@@ -18,7 +18,7 @@ import {
   stockRoutes as baseStockRoutes,
 } from "../task"
 import { startText, v, type Agent, typeInstead } from "../voice"
-import { expect, test, type Persona, type Step } from "./harness"
+import { expect, test, type Persona, type Step, openComposer, editable } from "./harness"
 
 const many = (p: Persona) => p.pick(["double", "triple"] as const)
 const userMessages = (agent: Agent) =>
@@ -199,8 +199,9 @@ test("double-clicker: everything twice or three times, before the last one finis
       name: "ask, then Enter again and again",
       weight: 4,
       run: async () => {
+        await openComposer(page)
         const box = page.getByLabel(v.message)
-        if (!(await box.isEditable().catch(() => false))) return
+        if (!(await editable(box))) return
         await box.fill(persona.pick(["Sales today?", "Which orders wait?", "Stock below minimum"]))
         for (let i = persona.int(2, 4); i > 0; i--) await box.press("Enter").catch(() => {})
       },
@@ -209,8 +210,9 @@ test("double-clicker: everything twice or three times, before the last one finis
       name: "ask, then Send twice",
       weight: 2,
       run: async () => {
+        await openComposer(page)
         const box = page.getByLabel(v.message)
-        if (!(await box.isEditable().catch(() => false))) return
+        if (!(await editable(box))) return
         await box.fill("Thanks")
         await tap(persona, page.getByRole("button", { name: v.send, exact: true }), many(persona))
       },
@@ -316,7 +318,10 @@ test("P2: a typed line sent from home before the conversation is up starts once 
   persona,
   page,
 }) => {
+  // Orb-first home: "Type instead" opens the conversation; the line is typed and sent at once,
+  // before the conversation is up.
   await page.goto("/")
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   const box = page.getByLabel(v.message)
   await box.fill("Stock below minimum")
   await box.press("Enter")

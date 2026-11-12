@@ -30,10 +30,8 @@ export function SceneBar({
         className="min-h-11 shrink-0"
         onClick={() => {
           // Back to home means the home screen (orb-first), from results as from a scene (J4).
-          if (pathname === "/")
-            return flowStore.setState({ resultOpen: false, immersive: false })
           flowStore.setState({ resultOpen: false, immersive: false })
-          router.push("/")
+          if (pathname !== "/") router.push("/")
         }}
       >
         <ArrowLeft aria-hidden />

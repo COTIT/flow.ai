@@ -38,14 +38,15 @@ test("something else done meanwhile: back online nothing opens by surprise", asy
   await flip(true)
   await card(page).click()
   await expect(notice(page)).toBeVisible()
-  // The person moves on: types in the message box.
-  await page.getByLabel(v.message).fill("Something else")
+  // The person moves on: a tap on something else (orb-first home has no message box).
+  const tip = page.getByRole("button", { name: "Dismiss tip" })
+  await tip.click()
 
   await flip(false)
   await expect(notice(page)).toBeHidden()
   await page.waitForTimeout(1_000)
   expect(new URL(page.url()).pathname, "no surprise navigation").toBe("/")
-  await expect(page.getByLabel(v.message)).toHaveValue("Something else")
+  await expect(tip, "the tap took effect").toHaveCount(0)
 })
 
 test("Back to home tapped offline in a scene goes home once back online, draft kept", async ({

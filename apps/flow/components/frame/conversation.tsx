@@ -132,18 +132,20 @@ export function useConversationLayout() {
   // A send or a reply while the rail is hidden shows it again: a hide lasts until the next turn
   // (focus stays where it was).
   // (A new line may merge into the last row, so the last row changing is the signal.)
-  // A review card arriving counts as a reply.
+  // A row ADDED is the signal (a reply updated in place keeps its id, so a hide holds while it
+  // grows); a review card arriving counts as a reply.
+  const lastId = last?.id
   const ticket = voice.review?.ticket
-  const turn = useRef({ last, ticket })
+  const turn = useRef({ lastId, ticket })
   useEffect(() => {
     const fresh =
-      (!!last && last !== turn.current.last) ||
+      (!!lastId && lastId !== turn.current.lastId) ||
       (!!ticket && ticket !== turn.current.ticket)
-    turn.current = { last, ticket }
+    turn.current = { lastId, ticket }
     if (fresh && shown && !sheetOnly && !open && context)
       save({ ...load(), open: { ...load().open, [context]: true } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [last, ticket])
+  }, [lastId, ticket])
   return {
     band: b,
     /** The full-width conversation (Conversation board) is open on home. */
@@ -357,7 +359,8 @@ export function Sheet({ phase }: { phase: SessionPhase["phase"] }) {
     []
   )
   // A send or a reply raises a lowered sheet (focus stays where it was).
-  const newest = voice.messages.at(-1)
+  // A row added, not one updated in place (same id), so lowering holds while a reply grows.
+  const newest = voice.messages.at(-1)?.id
   const seen = useRef(newest)
   useEffect(() => {
     if (newest && newest !== seen.current) setState("open")

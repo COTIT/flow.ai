@@ -195,6 +195,48 @@ test.describe("scenes", () => {
     await noOverflow(page)
   })
 
+  test("a reply updated in place keeps a hidden conversation hidden; a new line shows it", async ({
+    page,
+  }) => {
+    const agent = await answering(page)
+    await talkThenHome(page)
+    await page
+      .getByRole("region", { name: /Your Flow/ })
+      .getByRole("link", { name: /Order Focus/ })
+      .click()
+    await expect(page).toHaveURL(/\/scenes\/orders$/)
+    const line = (text: string, id: number) =>
+      agent.emit({
+        type: "agent_response",
+        agent_response_event: { agent_response: text, event_id: id },
+      })
+    const hidden = async () =>
+      (await rail(page).count()) === 0 &&
+      !(await page
+        .getByRole("button", { name: s.lowerConversation })
+        .isVisible())
+    const hide = async () => {
+      await page.waitForTimeout(300)
+      const h = page.getByRole("button", { name: s.hideConversation }).first()
+      if (await h.isVisible()) await h.click()
+      const lower = page.getByRole("button", { name: s.lowerConversation })
+      if (await lower.isVisible()) await lower.click()
+      await expect.poll(hidden).toBe(true)
+    }
+    line("Counting the orders", 7001) // a new line shows it …
+    await expect(page.getByText("Counting the orders").first()).toBeVisible()
+    await hide()
+    line("Counting the orders: 2 wait", 7001) // … the same line growing does not
+    await page.waitForTimeout(800)
+    expect(await hidden(), "a hide holds while the same reply updates").toBe(
+      true
+    )
+    line("Both are from this week.", 7002) // the next line does
+    await expect(
+      page.getByText("Both are from this week.").first()
+    ).toBeVisible()
+  })
+
   test("a review arriving on a scene shows the conversation, even after a hide in a review", async ({
     page,
     api,

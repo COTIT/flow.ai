@@ -139,6 +139,10 @@ test.describe("findings", () => {
     await expect(page).toHaveURL(LOGIN)
     await logInAgain(page)
     await expect(page).not.toHaveURL(LOGIN) // back in (to `next` when it was given)
+    // Orb-first home shows no message box until the conversation opens again.
+    const typeAgain = page.getByRole("button", { name: typeInstead, exact: true })
+    await expect(typeAgain.or(page.getByLabel(v.message)).first()).toBeVisible()
+    if (await typeAgain.isVisible()) await typeAgain.click()
     const kept = page.getByLabel(v.message).and(page.locator(`[value="${DRAFT}"]`))
     await expect(kept.or(page.getByText(DRAFT)).or(page.getByText(/draft/i)).first()).toBeVisible({ timeout: 5_000 })
   })
