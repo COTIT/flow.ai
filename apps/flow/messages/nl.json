@@ -96,8 +96,8 @@
       "viewResult": "Bekijk resultaat",
       "closeResults": "Resultaten sluiten",
       "reviewPending": "Er wacht een actie op je goedkeuring",
-      "openReview": "Actie bekijken",
-      "secureTitle": "Hiervoor is het beveiligde formulier van Office nodig",
+      "openReview": "Controleer deze wijziging",
+      "secureTitle": "Rond dit af in Office",
       "openInOffice": "Openen in Office",
       "officeSignIn": "Office opent in een nieuw tabblad. Mogelijk moet je apart inloggen bij Office; controleer dat Office dezelfde werkruimte toont.",
       "officeNotLinked": "Office is hier niet gekoppeld aan Flow. Open Office zelf om dit af te ronden."

@@ -367,7 +367,7 @@ test.describe("findings", () => {
   // P5-1: a reload while a review waits loses it. Office still lists the action as awaiting_review
   // and recoverable (the tab asks, `tools` status), but the resume prompt only shows after a
   // conversation *ended* (phase "ended"); after a reload the phase is "ready", so the review,
-  // its Approve and "Continue review" are all unreachable until it silently expires.
+  // its Approve and "Check it now" are all unreachable until it silently expires.
   test("P5-1 reload with a review waiting: the review (or Continue review) stays reachable", async ({ persona, page, api }) => {
     const { ledger, tabs } = await setup(persona, page, api)
     await proposeIn(tabs[0]!)
@@ -375,7 +375,7 @@ test.describe("findings", () => {
     await page.reload()
     await expect.poll(() => ledger.restores.includes("0:status")).toBe(true)
     const card = page.getByRole("button", { name: L.en.approve })
-    const resume = page.getByRole("button", { name: "Continue review" })
+    const resume = page.getByRole("button", { name: "Check it now" })
     await expect(card.or(resume).first()).toBeVisible({ timeout: 5_000 })
   })
 
@@ -384,7 +384,7 @@ test.describe("findings", () => {
     await proposeIn(tabs[0]!)
     allowAborts(page)
     await page.reload()
-    const resume = page.getByRole("button", { name: "Continue review" })
+    const resume = page.getByRole("button", { name: "Check it now" })
     await expect(resume).toBeVisible({ timeout: 5_000 })
     // Hold the new session open so "connecting" lasts long enough to look at.
     await page.route("**/api/voice/session", async (route) => {

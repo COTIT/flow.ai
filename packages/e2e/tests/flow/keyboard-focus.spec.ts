@@ -146,7 +146,7 @@ test.describe("P9-4: a review or a voice upgrade never strands keyboard focus", 
     await fakeAgent(page)
     await page.goto("/")
     await startText(page)
-    const upgrade = page.getByRole("button", { name: /Switch to voice|Enable voice/ }).first()
+    const upgrade = page.getByRole("button", { name: /Switch to voice|Talk instead/ }).first()
     await pressByKeyboard(upgrade)
     await page.waitForTimeout(800)
     expect(await onBody(page), "focus lost to <body> after Switch to voice").toBe(false)

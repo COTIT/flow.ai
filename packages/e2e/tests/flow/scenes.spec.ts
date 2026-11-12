@@ -89,12 +89,12 @@ test("Sales Perspective: keep a period's view in Your Flow once, then remove and
   await page.goto("/scenes/routines")
   await page.getByRole("button", { name: sc.remove }).click()
   await expect(
-    yourFlow(page).getByRole("link", { name: /My Routines/ })
+    yourFlow(page).getByRole("link", { name: /Scheduled reports/ })
   ).toHaveCount(0)
   await page.getByText(sc.hidden).click()
-  await page.getByRole("button", { name: `${sc.restore} My Routines` }).click()
+  await page.getByRole("button", { name: `${sc.restore} Scheduled reports` }).click()
   await expect(
-    yourFlow(page).getByRole("link", { name: /My Routines/ })
+    yourFlow(page).getByRole("link", { name: /Scheduled reports/ })
   ).toBeVisible()
 })
 

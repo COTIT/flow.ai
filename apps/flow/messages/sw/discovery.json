@@ -20,10 +20,10 @@
       "title": "Gundua Genesy inachoweza kufanya",
       "text": "Chagua aina ya kazi. Kila kitu hapa kinatumia ruhusa zako halisi.",
       "groups": {
-        "understand": "Elewa",
-        "operate": "Endesha",
-        "automate": "Jiendeshe",
-        "create": "Unda na binafsisha"
+        "understand": "Ona hali ilivyo",
+        "operate": "Kazi za kila siku",
+        "automate": "Ripoti na vikumbusho",
+        "create": "Ifanye iwe yako"
       },
       "example": "Jaribu kusema: “{example}”",
       "try": "Jaribu",
@@ -34,9 +34,9 @@
     },
     "status": {
       "available": "Inapatikana",
-      "approval": "Inahitaji idhini",
-      "restricted": "Imezuiwa",
-      "planned": "Imepangwa"
+      "approval": "Inakuuliza kwanza",
+      "restricted": "Si kwa nafasi yako",
+      "planned": "Inakuja baadaye"
     },
     "statusText": {
       "approval": "Unakagua na kuidhinisha kila badiliko kabla halijafanyika.",

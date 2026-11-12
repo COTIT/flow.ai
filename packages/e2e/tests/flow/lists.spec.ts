@@ -29,7 +29,7 @@ async function expectForm(page: Page, row: Locator, form: Form) {
   } else {
     await expect(more).toBeHidden()
     await expect(ack).toBeVisible()
-    await expect(row.getByRole("button", { name: /^Snooze / })).toBeVisible()
+    await expect(row.getByRole("button", { name: /^Remind me later/ })).toBeVisible()
   }
   if (form === "cards") {
     // Labelled numbers; the whole name, never cut off.
@@ -90,7 +90,7 @@ test("row actions work from the keyboard", async ({ page, api }) => {
   const more = tea.getByRole("button", { name: /^Actions for / })
   const trigger = (await more.isVisible())
     ? more
-    : tea.getByRole("button", { name: /^Snooze / })
+    : tea.getByRole("button", { name: /^Remind me later/ })
   await trigger.focus()
   await page.keyboard.press("Enter")
   await expect(page.getByRole("menu")).toBeVisible()

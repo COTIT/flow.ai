@@ -139,7 +139,7 @@ type ProbeState = { reviews: number; thinking: Set<string>; hold: boolean; held:
 
 /** Cancels the open review card; a card that keeps re-rendering is retried, then recorded, never approved. */
 async function cancelReview(page: Page, state: ProbeState) {
-  const approve = page.getByRole("button", { name: "Approve action" })
+  const approve = page.getByRole("button", { name: "Yes, do it" })
   // The Cancel inside the same card as Approve, not any other Cancel on the page.
   const cancel = approve
     .locator("xpath=ancestor::*[.//button[normalize-space()='Cancel']][1]")
@@ -162,7 +162,7 @@ async function finishTurn(page: Page, before: number, inflight: Set<Request>, st
     await page.waitForTimeout(500)
     const thinkingText = await page.locator("[data-voice-thinking]").allInnerTexts().catch(() => [])
     for (const block of thinkingText) for (const line of block.split("\n")) if (line.trim()) state.thinking.add(line.trim())
-    const approve = page.getByRole("button", { name: "Approve action" })
+    const approve = page.getByRole("button", { name: "Yes, do it" })
     if (await approve.isVisible().catch(() => false)) {
       if (!state.held) state.reviews++
       if (state.hold) {
@@ -178,7 +178,7 @@ async function finishTurn(page: Page, before: number, inflight: Set<Request>, st
       }
     } else state.held = false
     const activity = page.locator("[data-voice-activity]")
-    // "Waiting for your approval" counts as busy in the UI, but the agent's turn is over.
+    // "Waiting for your OK" counts as busy in the UI, but the agent's turn is over.
     const busy =
       (await activity.getAttribute("aria-busy").catch(() => null)) === "true" &&
       (await activity.getAttribute("data-state").catch(() => null)) !== "awaiting_review"
@@ -232,7 +232,7 @@ for (const scenario of selected) {
       writeFileSync(providerStop, `${new Date().toISOString()} ${scenario.id}: conversation budget of ${budget} spent\n`)
       test.skip(true, "conversation budget spent; not graded")
     }
-    await page.getByRole("button", { name: "Use text instead" }).click()
+    await page.getByRole("button", { name: "Type instead" }).click()
     const box = page.getByRole("textbox", { name: "Message the assistant" })
     const failed = page.getByRole("alert").filter({ hasText: "The request could not be completed." })
     await expect(box.or(failed).first()).toBeVisible({ timeout: 30_000 })
@@ -263,7 +263,7 @@ for (const scenario of selected) {
       if (finished !== "answered") break
     }
 
-    if (state.held && (await page.getByRole("button", { name: "Approve action" }).isVisible().catch(() => false)))
+    if (state.held && (await page.getByRole("button", { name: "Yes, do it" }).isVisible().catch(() => false)))
       await cancelReview(page, state)
     const messages = await transcript(page)
     const alerts = (await page.locator('main [role="alert"]').allInnerTexts().catch(() => [])).filter(Boolean)

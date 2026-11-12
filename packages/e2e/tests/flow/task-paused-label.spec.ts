@@ -3,7 +3,7 @@ import { capsule, k, scene } from "./task"
 import { fakeAgent, startText, v } from "./voice"
 
 // SIMULATED voice and batch answers (task-supplier's shapes). P8-5: a paused batch says
-// "Paused" on the task line, never "Genesy is working".
+// "Paused" on the task line, never "Working".
 
 const steps = (done: number, total = 21) =>
   Array.from({ length: total }, (_, i) => ({
@@ -64,5 +64,5 @@ test("P8-5: a paused batch shows its own state on the task line", async ({ page,
   await scene(page).getByRole("button", { name: k.pause }).click()
   await expect(capsule(page)).toHaveAttribute("data-task-state", "paused")
   await expect(capsule(page)).toContainText(/^Paused/i)
-  await expect(capsule(page)).not.toContainText("Genesy is working", { ignoreCase: true })
+  await expect(capsule(page)).not.toContainText("Working", { ignoreCase: true })
 })

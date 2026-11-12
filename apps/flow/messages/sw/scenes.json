@@ -1,7 +1,7 @@
 {
   "scenes": {
     "yourFlow": "Your Flow",
-    "yourFlowText": "Maonyesho unayohifadhi. Fungua moja kuliona lote.",
+    "yourFlowText": "Skrini ulizohifadhi. Gusa moja kuifungua.",
     "personalised": "Binafsi",
     "open": "Fungua {name}",
     "hidden": "Maonyesho yaliyofichwa",
@@ -12,8 +12,8 @@
     "resetDone": "Your Flow imerudi kwenye mipangilio ya awali.",
     "remove": "Ondoa kutoka Your Flow",
     "removed": "Imeondolewa kutoka Your Flow.",
-    "keep": "Weka katika Your Flow",
-    "kept": "Katika Your Flow",
+    "keep": "Ongeza kwenye skrini zangu",
+    "kept": "Kwenye skrini zangu",
     "saved": "Imehifadhiwa katika Your Flow.",
     "saveFailed": "Imeshindwa kuhifadhi. Your Flow haijabadilika.",
     "pendingFirst": "Onyesha oda zinazosubiri kwanza",
@@ -44,7 +44,7 @@
       "last_7_days": "Siku 7 zilizopita",
       "this_month": "Mwezi huu"
     },
-    "periodLabel": "Kipindi",
+    "periodLabel": "Tarehe",
     "metric": {
       "sales_gross": "Mauzo",
       "sales_net": "Mauzo bila VAT",
@@ -67,7 +67,7 @@
     "available": "Inapatikana",
     "minimum": "Kiwango cha chini",
     "shortfall": "Upungufu",
-    "selected": "Imechaguliwa",
+    "selected": "Imechaguliwa · mwambie Genesy cha kufanya",
     "invoices": "Ankara",
     "noInvoices": "Hakuna ankara ambazo hazijalipwa.",
     "reports": "Ripoti zilizopangwa",
@@ -80,7 +80,7 @@
     "active": "Inaendelea",
     "paused": "Imesitishwa",
     "nextRun": "Ijayo: {when}",
-    "planned": "Imepangwa: ufuatiliaji wa masharti (kwa mfano \"niambie asali ikishuka chini ya 20\").",
+    "planned": "Inakuja baadaye: arifa kama \"niambie asali ikishuka chini ya 20\".",
     "report": {
       "sales_summary": "Ripoti ya mauzo",
       "attention": "Kinachohitaji umakini",
@@ -93,30 +93,30 @@
       "monthly": "Kila mwezi"
     },
     "noticed": {
-      "label": "Flow noticed",
-      "headline": "{count, plural, one {Kipaumbele # kinahitaji umakini wako.} other {Vipaumbele # vinahitaji umakini wako.}}",
+      "label": "Inahitaji umakini wako",
+      "headline": "{count, plural, one {Jambo # linahitaji umakini wako.} other {Mambo # yanahitaji umakini wako.}}",
       "impact": "Suala lako la dharura zaidi linaathiri {count, plural, one {oda # iliyo wazi} other {oda # zilizo wazi}}.",
-      "review": "Kagua vipaumbele",
+      "review": "Tazama yanayohitaji umakini",
       "calm": "Hakuna kinachohitaji umakini wako sasa hivi.",
       "lead": "Mambo yanayohitaji umakini wako.",
-      "acknowledge": "Nimeona",
-      "acknowledged": "Imeonekana",
-      "snoozeTomorrow": "Ahirisha hadi kesho",
-      "snoozeWeek": "Ahirisha siku 7",
+      "acknowledge": "Weka kama nimeona",
+      "acknowledged": "Nimeona",
+      "snoozeTomorrow": "Nikumbushe kesho",
+      "snoozeWeek": "Nikumbushe baada ya wiki",
       "reviewStock": "Kagua hisa",
       "reviewOrders": "Kagua oda",
       "affects": "{count, plural, one {oda # iliyo wazi} other {oda # zilizo wazi}}",
       "kind": {
         "stock_below_minimum": "{count, plural, one {bidhaa # chini ya kiwango chake cha chini cha hisa} other {bidhaa # chini ya viwango vyao vya chini vya hisa}}",
-        "orders_open": "{count, plural, one {oda # inahitaji kushughulikiwa} other {oda # zinahitaji kushughulikiwa}}",
+        "orders_open": "{count, plural, one {oda # inasubiri kutumwa} other {oda # zinasubiri kutumwa}}",
         "invoices_overdue": "{count, plural, one {ankara # iliyochelewa} other {ankara # zilizochelewa}}",
         "till_open_shifts": "{count, plural, one {zamu # ya kaunta bado iko wazi} other {zamu # za kaunta bado ziko wazi}}",
         "lots_quarantined": "{count, plural, one {kundi # katika karantini} other {makundi # katika karantini}}",
         "webhooks_failed": "{count, plural, one {webhook # inashindwa} other {webhook # zinashindwa}}"
       },
-      "snooze": "Ahirisha",
-      "untilTomorrow": "Hadi kesho",
-      "forWeek": "Siku 7"
+      "snooze": "Nikumbushe baadaye",
+      "untilTomorrow": "Kesho",
+      "forWeek": "Baada ya wiki"
     },
     "scene": {
       "pulse": {
@@ -128,7 +128,7 @@
         "lead": "Bidhaa zilizo chini ya kiwango cha chini, na kwa kiasi gani."
       },
       "noticed": {
-        "title": "Flow noticed",
+        "title": "Inahitaji umakini wako",
         "lead": "Mambo yanayohitaji umakini wako."
       },
       "orders": {
@@ -140,7 +140,7 @@
         "lead": "Jinsi mauzo yanavyoendelea."
       },
       "routines": {
-        "title": "My Routines",
+        "title": "Ripoti zilizopangwa",
         "lead": "Ripoti ambazo Genesy anakutumia kwa ratiba."
       },
       "studio": {

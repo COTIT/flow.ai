@@ -1,12 +1,12 @@
 {
   "task": {
     "label": "Active task",
-    "working": "Genesy is working",
+    "working": "Working",
     "states": {
       "preparing": "Preparing",
       "running": "Running",
       "waiting_input": "Waiting for you",
-      "needs_approval": "Needs approval",
+      "needs_approval": "Needs your OK",
       "paused": "Paused",
       "failed": "Failed",
       "partial": "Partially completed",
@@ -16,10 +16,10 @@
     },
     "milestones": {
       "preparing": "Preparing changes.",
-      "preparingReview": "Preparing the review.",
+      "preparingReview": "Getting the change ready for you to check.",
       "waitingInput": "Waiting for your choice.",
-      "waitingConfirmation": "Waiting for confirmation.",
-      "executing": "Executing approved updates.",
+      "waitingConfirmation": "Waiting for your OK.",
+      "executing": "Making the change.",
       "paused": "Paused. Nothing more runs until you decide.",
       "completed": "Confirmed by Genesy.",
       "partial": "Only part of it was done.",
@@ -28,9 +28,9 @@
       "checking": "Checking whether the change completed."
     },
     "counts": "{done} of {total} done · {failed} failed · {notRun} not run · {unknown} need checking",
-    "review": "Review",
+    "review": "Check",
     "pause": "Pause",
-    "openReceipt": "View result",
+    "openReceipt": "See what changed",
     "dismiss": "Dismiss",
     "withdrawn": "Withdrawn · never sent",
     "receipt": {
@@ -96,7 +96,7 @@
     "resume": {
       "title": "Continue where you left off",
       "awaiting": "{summary} · waiting for your approval.",
-      "continue": "Continue review",
+      "continue": "Check it now",
       "dismiss": "Dismiss",
       "ran": "{summary} · it ran.",
       "failed": "{summary} · it did not run.",
@@ -104,7 +104,7 @@
       "outcomes": "Since you were last here"
     },
     "expired": {
-      "title": "Review expired",
+      "title": "This change timed out",
       "askAgain": "Ask again",
       "askAgainMessage": "That review expired before I approved it. Please prepare it again."
     }

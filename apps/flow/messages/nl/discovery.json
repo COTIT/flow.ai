@@ -20,10 +20,10 @@
       "title": "Ontdek wat Genesy kan",
       "text": "Kies een soort taak. Alles hier gebruikt jouw echte rechten.",
       "groups": {
-        "understand": "Begrijpen",
-        "operate": "Uitvoeren",
-        "automate": "Automatiseren",
-        "create": "Maken & personaliseren"
+        "understand": "Zien hoe het gaat",
+        "operate": "Dagelijks werk",
+        "automate": "Rapporten en herinneringen",
+        "create": "Maak het van jou"
       },
       "example": "Zeg bijvoorbeeld: “{example}”",
       "try": "Probeer het",
@@ -34,9 +34,9 @@
     },
     "status": {
       "available": "Beschikbaar",
-      "approval": "Goedkeuring nodig",
-      "restricted": "Beperkt",
-      "planned": "Gepland"
+      "approval": "Vraagt het je eerst",
+      "restricted": "Niet voor jouw rol",
+      "planned": "Komt later"
     },
     "statusText": {
       "approval": "Je bekijkt en keurt elke wijziging goed voordat die gebeurt.",

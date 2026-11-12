@@ -192,7 +192,7 @@ test.describe("findings", () => {
     expect(confirms).toEqual([]) // refused before Office: nothing ran
     await logInAgain(page)
     await expect(page).not.toHaveURL(LOGIN) // back in (to `next` when it was given)
-    const again = page.getByRole("button", { name: v.approve }).or(page.getByRole("button", { name: "Continue review" }))
+    const again = page.getByRole("button", { name: v.approve }).or(page.getByRole("button", { name: "Check it now" }))
     await expect(again.or(page.getByText(/not (run|approved|sent)|did not/i)).first()).toBeVisible({ timeout: 5_000 })
   })
 })
@@ -325,7 +325,7 @@ test.describe("a running batch", () => {
     await persona.check()
   })
 
-  // P8-5 (fixed, regression guard): a paused run is labelled "Genesy is working" in the task line (capsule.tsx: only ENDED
+  // P8-5 (fixed, regression guard): a paused run is labelled "Working" in the task line (capsule.tsx: only ENDED
   // states get their own label; "paused" falls back to "working").
   test("P8-5 a paused run is not labelled \"Genesy is working\"", async ({ persona, page, api }) => {
     await run(persona, page, api)
