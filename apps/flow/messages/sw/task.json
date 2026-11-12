@@ -46,7 +46,7 @@
       "previous": "Awali",
       "new": "Mpya",
       "status": "Hali",
-      "reference": "Kumbukumbu",
+      "summary": "{thing}{place, select, none {} other { katika {place}}} sasa ni {after} (ilikuwa {before}).",
       "statuses": {
         "completed": "Imethibitishwa",
         "partial": "Imekamilika kwa sehemu",

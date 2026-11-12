@@ -28,7 +28,8 @@ test("F: a read-back that disagrees with the proposal shows the server's value",
   await proposeStock(page, agent, 150)
   await scene(page).getByRole("button", { name: v.approve }).click()
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("149")
-  await expect(receipt(page)).toContainText(k.receipt.reference)
+  // The action id is kept for support, never shown (J2).
+  await expect(receipt(page)).toHaveAttribute("data-reference", /^0193f6b0-/)
 })
 
 test("P6-5: an unconfirmed outcome shows what was approved, never a blank new value", async ({
