@@ -128,14 +128,18 @@ export function VoiceControls({
         </Button>
       ) : null}
       <Button
-        className="min-h-11 min-w-11"
+        className={`min-h-11 min-w-11 ${compact ? "" : "border-destructive/40 text-destructive"}`}
         variant="outline"
         onClick={() => void voice.end().catch(() => undefined)}
         aria-label={t("end")}
       >
         <PhoneOff aria-hidden />
+        {/* P6: a word on every size; the short one where the full one doesn't fit. */}
         {!compact ? (
-          <span className="sr-only sm:not-sr-only">{t("end")}</span>
+          <>
+            <span className="sm:hidden">{t("endShort")}</span>
+            <span className="max-sm:hidden">{t("end")}</span>
+          </>
         ) : null}
       </Button>
     </div>

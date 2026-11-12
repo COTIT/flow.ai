@@ -21,6 +21,7 @@
     "unmute": "Unmute",
     "stopSpeaking": "Stop speaking",
     "end": "End conversation",
+    "endShort": "End",
     "welcome": "What can I help you with?",
     "examples": "Find an order, check stock, prepare an invoice, or show a reference.",
     "newMessages": "New messages",
