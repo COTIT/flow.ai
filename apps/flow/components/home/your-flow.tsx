@@ -41,7 +41,9 @@ function CountSignal({
   const t = useTranslations("scenes")
   const a = useAttention().data?.data
   const n = pick === "stock" ? a?.stock?.below_minimum.count : a?.orders?.open
-  return n === undefined ? null : <>{`${n} · ${t(`metric.${label.replace(".", "_")}`)}`}</>
+  return n === undefined ? null : (
+    <>{`${n} · ${t(`metric.${label.replace(".", "_")}`)}`}</>
+  )
 }
 function ReportSignal() {
   const t = useTranslations("scenes")
@@ -99,6 +101,7 @@ export function YourFlow() {
   const list = useScenes()
   const title = useSceneTitle()
   const [said, say] = useState("")
+  const [asking, setAsking] = useState(false)
   const saved = {
     onSuccess: () =>
       client.invalidateQueries({ queryKey: getFlowScenesListQueryKey(ws) }),
@@ -157,11 +160,12 @@ export function YourFlow() {
       <p role="status" className="text-sm text-muted-foreground empty:hidden">
         {said}
       </p>
-      <div className="flex flex-wrap items-start gap-2">
+      {/* Rarely needed: one quiet line of small links, never buttons beside the scenes (P6). */}
+      <div className="flex flex-wrap items-start gap-x-4 text-sm text-muted-foreground">
         {hidden.length ? (
-          <details className="text-sm">
-            <summary className="min-h-11 cursor-pointer content-center">
-              {t("hidden")}
+          <details>
+            <summary className="min-h-11 cursor-pointer content-center underline-offset-4 hover:underline">
+              {`${t("hidden")} (${hidden.length})`}
             </summary>
             <ul className="flex flex-col gap-1 pt-1">
               {hidden.map((scene) => (
@@ -189,20 +193,30 @@ export function YourFlow() {
           </details>
         ) : null}
         {list.data.data.some((s) => s.saved) ? (
-          <ConfirmDialog
-            trigger={t("reset")}
-            title={t("resetTitle")}
-            description={t("resetText")}
-            confirm={t("reset")}
-            cancel={t("cancel")}
-            disabled={reset.isPending}
-            onConfirm={() =>
-              reset.mutate(
-                { workspace: ws },
-                { onSuccess: () => say(t("resetDone")) }
-              )
-            }
-          />
+          <>
+            <button
+              type="button"
+              className="min-h-11 underline-offset-4 hover:underline disabled:opacity-50"
+              disabled={reset.isPending}
+              onClick={() => setAsking(true)}
+            >
+              {t("reset")}
+            </button>
+            <ConfirmDialog
+              open={asking}
+              onOpenChange={setAsking}
+              title={t("resetTitle")}
+              description={t("resetText")}
+              confirm={t("reset")}
+              cancel={t("cancel")}
+              onConfirm={() =>
+                reset.mutate(
+                  { workspace: ws },
+                  { onSuccess: () => say(t("resetDone")) }
+                )
+              }
+            />
+          </>
         ) : null}
       </div>
     </section>
