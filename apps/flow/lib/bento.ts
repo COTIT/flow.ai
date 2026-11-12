@@ -94,8 +94,9 @@ export function planBands(
     if (k > 0) {
       const next = list[i + k]
       // At 12 columns a big tile joins one or two metrics and takes the rest of the row.
-      if (cols === 12 && next && !small(next) && k * unit <= cols / 2) {
-        // One metric sits beside the big tile; two stack in that one column (no empty height).
+      if (cols === 12 && next && !small(next) && k === 2) {
+        // Two metrics stack in one column beside the big tile (no empty height); a lone metric is
+        // its own full-width strip instead (beside a table it would be a half-empty card).
         row(
           [...list.slice(i, i + k), next],
           [...Array(k).fill(unit), cols - unit],

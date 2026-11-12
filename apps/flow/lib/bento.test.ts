@@ -69,7 +69,7 @@ describe("planBands: rows that fill the width (bento fit)", () => {
       "1:attention:12",
     ])
   })
-  it("Stock Watch: the metric and the table fill one row (no blank third)", () => {
+  it("Stock Watch: a lone metric is a full-width strip above the table (never a half-empty card)", () => {
     expect(
       spans(
         planBands(
@@ -80,7 +80,7 @@ describe("planBands: rows that fill the width (bento fit)", () => {
           12
         )
       )
-    ).toEqual(["0:below-minimum:3", "0:stock-list:9"])
+    ).toEqual(["0:below-minimum:12", "1:stock-list:12"])
   })
   it("Sales Perspective keeps its saved order; a lone last tile widens to the row", () => {
     expect(
