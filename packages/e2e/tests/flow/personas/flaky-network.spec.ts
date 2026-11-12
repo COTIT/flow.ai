@@ -3,6 +3,7 @@
 // while waiting, the voice socket lost mid-turn. SIMULATED API and voice (see harness.ts).
 import type { CDPSession, Page } from "@playwright/test"
 
+import flowEn from "../../../../../apps/flow/messages/en.json" with { type: "json" }
 import { markInjected } from "../../../src/test"
 import { sc } from "../scenes-api"
 import { s as shell } from "../shell"
@@ -16,7 +17,16 @@ const SCENES = ["pulse", "stock", "noticed", "orders", "sales", "routines"] as c
 const RAW = /\b(?:HTTP|status|error|code)[\s:]*[45]\d\d(?!\w|[.,]\d)|\b(?:ERR_[A-Z_]+|TypeError|SyntaxError|Failed to fetch|NetworkError|Load failed|undefined|NaN)\b|\bnull\b(?! ?[a-z])|is not valid JSON|Unexpected token/i
 
 /** Chrome DevTools "Slow 3G" (latency ms, bytes/s); off restores the line. */
+let throttled = false
+let calmSince = 0
+/** Code chunks lost on a bad line: while slow 3G is on, and for 3 s after (a real tunnel, not a bug). */
+const tunnelledChunks = {
+  test: (url: string) =>
+    /\/_next\/static\/chunks\//.test(url) && (throttled || Date.now() - calmSince < 3_000),
+}
 async function throttle(cdp: CDPSession, on: boolean) {
+  if (throttled && !on) calmSince = Date.now()
+  throttled = on
   await cdp.send("Network.emulateNetworkConditions", {
     offline: false,
     latency: on ? 2000 : 0,
@@ -207,6 +217,9 @@ test("flaky network: tunnels, slow 3G, dropped and late answers, lost socket", a
   await stockRoutes(page)
   const cdp = await page.context().newCDPSession(page)
   await page.emulateMedia({ colorScheme: persona.chance(0.5) ? "dark" : "light" })
+  throttled = false
+  calmSince = 0
+  markInjected(page, tunnelledChunks) // offline already marks every request (persona.offline)
   await page.goto("/")
   const steps = tunnelSteps(persona, page, cdp).map((step) => ({
     ...step,
@@ -220,6 +233,12 @@ test("flaky network: tunnels, slow 3G, dropped and late answers, lost socket", a
   await persona.offline(page.context(), false)
   await throttle(cdp, false)
   await persona.check()
+  // Back online the page is Flow again: its own screen or "This page couldn't load", with the
+  // header and the dock; never the root crash card or a blank page.
+  await expect(page.locator("[data-flow-scroll]"), "no Flow shell back online (blank or crashed)").toHaveCount(1)
+  await expect(page.locator("[data-flow-header]")).toBeAttached()
+  await expect(page.getByRole("region", { name: shell.dock })).toBeVisible()
+  await expect(page.getByText(flowEn.flow.crashed)).toHaveCount(0)
 })
 })
 

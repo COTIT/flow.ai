@@ -128,14 +128,20 @@ export async function expectNotBroken(persona: Persona, dialogs: string[]) {
       // Lines a person reads: bubbles, notes, the dock, a task card. None may stick out or be cut.
       const sel =
         '[data-role="user"],[data-role="agent"],[data-role="action"],[data-role="link"],[data-task-state],section[aria-label] p,[role="alert"],[role="status"],[aria-label="' + tray + '"] > *'
+      // Inside a sideways scroller (the attachment tray's own pane), reaching past the screen is
+      // the design: the person scrolls that pane.
+      const inScroller = (el: HTMLElement) => {
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement)
+          if (/^(auto|scroll)$/.test(getComputedStyle(p).overflowX)) return true
+        return false
+      }
       const outside = Array.from(document.querySelectorAll<HTMLElement>(sel))
         .filter((el) => el.offsetParent !== null && !el.closest(".sr-only"))
         .filter((el) => {
           const r = el.getBoundingClientRect()
           return (
             r.width > 2 && r.height > 2 &&
-            (r.right > vw + 1 ||
-              r.left < -1 ||
+            (((r.right > vw + 1 || r.left < -1) && !inScroller(el)) ||
               // a deliberate ellipsis (with the full name in a title) is not cut off
               (el.scrollWidth > el.clientWidth + 1 &&
                 getComputedStyle(el).textOverflow !== "ellipsis"))
