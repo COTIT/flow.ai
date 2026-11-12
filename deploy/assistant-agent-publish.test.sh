@@ -32,7 +32,7 @@ class H(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(raw)
     def handle_any(self, method):
         body = None
-        if method == 'PATCH':
+        if method in ('PATCH', 'POST'):
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         with open(state / 'log', 'a') as log:
             log.write(json.dumps({'method': method, 'path': self.path, 'body': body}) + '\n')
@@ -48,6 +48,12 @@ class H(BaseHTTPRequestHandler):
                 (state / 'n').write_text(str(n)); agent['version_id'] = 'agtvrsn_new%04d' % n
                 save('agent.json', agent)
             return self.reply(200, agent)
+        if method == 'POST' and parts == ['v1', 'convai', 'tools']:
+            n = len(list(state.glob('tool_tool_CREATED*.json'))) + 1
+            tid = 'tool_CREATED%011d' % n
+            save('tool_%s.json' % tid, {'id': tid, 'tool_config': body['tool_config']})
+            save('deps_%s.json' % tid, {'agents': [{'type': 'available', 'id': load('agent.json')['agent_id'], 'name': load('agent.json')['name']}], 'has_more': False})
+            return self.reply(200, {'id': tid})
         if parts[:3] == ['v1', 'convai', 'tools'] and len(parts) == 5 and parts[4] == 'dependent-agents':
             return self.reply(200, load('deps_%s.json' % parts[3]))
         if parts[:3] == ['v1', 'convai', 'tools'] and len(parts) == 4:
@@ -59,12 +65,14 @@ class H(BaseHTTPRequestHandler):
         self.reply(404, {})
     def do_GET(self): self.handle_any('GET')
     def do_PATCH(self): self.handle_any('PATCH')
+    def do_POST(self): self.handle_any('POST')
 srv = HTTPServer(('127.0.0.1', 0), H)
 (state / 'port').write_text(str(srv.server_port))
 srv.serve_forever()
 PY
 
-# fixture <shared:0|1>: live agent = template with older values plus environment-only fields.
+# fixture <shared:0|1> [missing tool]: live agent = template with older values plus environment-only fields;
+# every template tool is attached, except the one named (a new tool the publish must create).
 fixture() {
   rm -rf "$tmp/state" && mkdir -p "$tmp/state"
   # Start as if only Development were live on this template, whatever the real record says today.
@@ -76,16 +84,17 @@ for env in ('staging', 'production'):
 open(sys.argv[2], 'w').write(json.dumps(ev, indent=2, ensure_ascii=False) + '\n')
 PY
   cp "$tmp/validation.json" "$tmp/validation.start.json"
-  python3 - "$HERE" "$tmp/state" "$AGENT" "$1" <<'PY'
+  python3 - "$HERE" "$tmp/state" "$AGENT" "$1" "${2:-}" <<'PY'
 import copy, json, pathlib, sys
-here, state, agent_id, shared = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3], sys.argv[4] == '1'
+here, state, agent_id, shared, missing = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3], sys.argv[4] == '1', sys.argv[5]
+IDS = {'discover_genesy_tools': 'tool_DISCOVERFAKE0001', 'execute_genesy_tool': 'tool_EXECUTEFAKE00001', 'open_flow_view': 'tool_OPENVIEWFAKE0001'}
 t = json.loads((here / 'assistant-agent.template.json').read_text())
 live = copy.deepcopy(t['configuration'])
 cc = live['conversation_config']
 cc['conversation']['max_duration_seconds'] = 600
 cc['turn']['silence_end_call_timeout'] = 60
 cc['agent']['prompt']['prompt'] = 'Old prompt.\nSecond line.'
-cc['agent']['prompt']['tool_ids'] = ['tool_DISCOVERFAKE0001', 'tool_EXECUTEFAKE00001']
+cc['agent']['prompt']['tool_ids'] = [IDS[t['name']] for t in t['clientTools'] if t['name'] != missing]
 cc['tts'] = {'voice_id': 'voice_FAKEVOICE000001', 'stability': 0.5}
 cc['language_presets']['nl']['first_message_translation'] = {'source_hash': 'x'}
 ps = live['platform_settings']
@@ -97,7 +106,8 @@ live.update({'agent_id': agent_id, 'name': 'Genesy Development', 'version_id': '
 tools = {tool['name']: copy.deepcopy(tool) for tool in t['clientTools']}
 tools['execute_genesy_tool'].update({'force_pre_tool_speech': True, 'pre_tool_speech': 'force'})
 tools['execute_genesy_tool']['extra_server_field'] = 'kept'
-for tid, name in [('tool_DISCOVERFAKE0001', 'discover_genesy_tools'), ('tool_EXECUTEFAKE00001', 'execute_genesy_tool')]:
+for name, tid in IDS.items():
+    if name == missing or name not in tools: continue
     (state / ('tool_%s.json' % tid)).write_text(json.dumps({'id': tid, 'tool_config': tools[name]}))
     agents = [{'type': 'available', 'id': agent_id, 'name': 'Genesy Development'}]
     if shared and name == 'execute_genesy_tool':
@@ -124,6 +134,7 @@ rename() { python3 -c 'import json,sys; p=sys.argv[1]; a=json.load(open(p)); a["
 patches() { grep -c '"method": "PATCH"' "$tmp/state/log" || true; }
 no_secrets() {
   for secret in "$KEY" "$AGENT" voice_FAKEVOICE000001 tool_DISCOVERFAKE0001 tool_EXECUTEFAKE00001 \
+    tool_OPENVIEWFAKE0001 tool_CREATED \
     agent_FAKEPROD00000001 fake-origin.test 'Old prompt'; do
     if grep -qF "$secret" "$tmp/out"; then fail "printed a private value: $secret"; fi
   done
@@ -255,5 +266,34 @@ ELEVENLABS_API_BASE="$BASE" ASSISTANT_AGENT_KEY_FILE=<(cat "$tmp/raw_key") \
   ASSISTANT_AGENT_ENV_FILE=<(printf 'ELEVENLABS_AGENT_ID=%s\n' "$AGENT") \
   bash "$HERE/assistant-agent.sh" staging > "$tmp/out" 2>&1 || fail "process-substituted key failed"
 no_secrets
+
+# 11. A new template tool (P4 open_flow_view) is missing on the agent: the dry run says it will be created and
+# attached; --apply creates it for this agent only, attaches it next to the others, reads it back and records it.
+fixture 0 open_flow_view
+run development || fail "dry run with a missing tool failed"
+grep -qF "tool open_flow_view: create + attach" "$tmp/out" || fail "dry run does not announce the new tool"
+if grep -q '"method": "\(POST\|PATCH\)"' "$tmp/state/log"; then fail "dry run wrote"; fi
+no_secrets
+run development --apply || fail "apply with a missing tool failed"
+python3 - "$HERE" "$tmp/state" "$tmp/validation.json" <<'PY' || fail "new tool not created, attached and recorded"
+import json, pathlib, sys
+here, state, record = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3])
+log = [json.loads(l) for l in (state / 'log').read_text().splitlines()]
+posts = [e for e in log if e['method'] == 'POST']
+assert [e['path'] for e in posts] == ['/v1/convai/tools'], posts
+template = json.loads((here / 'assistant-agent.template.json').read_text())
+wanted = next(t for t in template['clientTools'] if t['name'] == 'open_flow_view')
+assert posts[0]['body'] == {'tool_config': wanted}, posts[0]['body']
+agent = json.loads((state / 'agent.json').read_text())
+ids = agent['conversation_config']['agent']['prompt']['tool_ids']
+assert ids[:2] == ['tool_DISCOVERFAKE0001', 'tool_EXECUTEFAKE00001'] and ids[2].startswith('tool_CREATED') and len(ids) == 3, ids
+ev = json.loads(record.read_text())
+assert ev['provider']['applied']['development']['createdTools'] == ['open_flow_view'], ev['provider']['applied']['development']
+PY
+grep -qF "read-back matches the template" "$tmp/out" || fail "no read-back after creating the tool"
+no_secrets
+: > "$tmp/state/log"
+run development --apply || fail "second apply after creating the tool failed"
+if grep -q '"method": "POST"' "$tmp/state/log"; then fail "created the tool twice"; fi
 
 echo "assistant-agent-publish.test.sh: all tests passed"

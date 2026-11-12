@@ -62,6 +62,7 @@ const server = await createViteServer({
 })
 const keywordsFile = `${voice}keywords.json`
 const healsFile = `${voice}gap-heal.fixture.json`
+const grandfatheredFile = `${voice}keywords.grandfathered.json`
 let plan, markdown, items
 try {
   const { clusterGaps, classify, planHeal, report } =
@@ -121,9 +122,15 @@ if (git("status", "--porcelain")) {
 const start = git("rev-parse", "--abbrev-ref", "HEAD")
 const branch = `voice-heal/${new Date().toISOString().slice(0, 10)}`
 git("switch", "-c", branch)
-const files = [keywordsFile, healsFile]
+const files = [keywordsFile, healsFile, grandfatheredFile]
 try {
   writeFileSync(keywordsFile, JSON.stringify(plan.keywords, null, 2))
+  // An op that now has words leaves the grandfathered list (keywords.test.ts checks it only shrinks).
+  const grandfathered = JSON.parse(readFileSync(grandfatheredFile, "utf8"))
+  writeFileSync(
+    grandfatheredFile,
+    JSON.stringify(grandfathered.filter((id) => !(id in plan.keywords)), null, 2) + "\n"
+  )
   const heals = JSON.parse(readFileSync(healsFile, "utf8"))
   const seen = new Set(heals.map((h) => `${h.intent}|${h.want}`))
   writeFileSync(

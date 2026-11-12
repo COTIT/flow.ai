@@ -7,6 +7,7 @@
 # (ELEVENLABS_API_KEY=), staging/production $GENESY_ROOT/deploy/<env>/secrets/elevenlabs_api_key.
 # Agent id: ELEVENLABS_AGENT_ID, else ELEVENLABS_AGENT_ID= in ASSISTANT_AGENT_ENV_FILE or the env file.
 # Production --apply, and any change to a tool other agents share, need ASSISTANT_AGENT_CONFIRM=production.
+# A template client tool the agent lacks is created for that agent alone and attached by --apply.
 set -Eeuo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -121,25 +122,26 @@ template = json.loads(template_raw)
 template_sha = hashlib.sha256(template_raw).hexdigest()
 governed = [(p, v) for p, v in leaves(template['configuration']) if p not in EXCLUDED]
 tool_governed = {t['name']: list(leaves(t)) for t in template['clientTools']}
+tool_template = {t['name']: t for t in template['clientTools']}
+TOOL_IDS = ('conversation_config', 'agent', 'prompt', 'tool_ids')
 
 def observe():
+    """The agent, its governed tools by name, and the template tools it lacks."""
     agent = call('GET', '/v1/convai/agents/' + agent_id, 'agent')
     tools = {}
-    for tool_id in get(agent, ('conversation_config', 'agent', 'prompt', 'tool_ids')) or []:
+    for tool_id in get(agent, TOOL_IDS) or []:
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', str(tool_id)): die('agent lists a malformed tool id')
         tool = call('GET', '/v1/convai/tools/' + tool_id, 'tool')
         name = (tool.get('tool_config') or {}).get('name')
         if name in tool_governed:
             if name in tools: die('agent has two tools named %s' % name)
             tools[name] = (tool_id, tool['tool_config'])
-    for name in tool_governed:
-        if name not in tools: die('agent has no client tool named %s; attach it first (ASSISTANT.md)' % name)
-    return agent, tools
+    return agent, tools, [name for name in tool_governed if name not in tools]
 
 def diff(agent, tools):
     changes = [(p, get(agent, p), v) for p, v in governed if get(agent, p) != v]
     tool_changes = {name: [(p, get(tools[name][1], p), v) for p, v in fields if get(tools[name][1], p) != v]
-                    for name, fields in tool_governed.items()}
+                    for name, fields in tool_governed.items() if name in tools}
     return changes, {name: c for name, c in tool_changes.items() if c}
 
 def projection(agent, tools):
@@ -147,7 +149,7 @@ def projection(agent, tools):
             'tools': {name: {'.'.join(p): get(tools[name][1], p) for p, _ in fields}
                       for name, fields in tool_governed.items()}}
 
-before, before_tools = observe()
+before, before_tools, missing = observe()
 name = str(before.get('name', ''))
 print('%s: agent "%s", version %s%s' % (env, name, before.get('version_id'), '' if apply else ' (dry run, GET only)'))
 expected = {'development': r'develop|evaluation', 'staging': r'staging'}
@@ -158,6 +160,8 @@ if wrong_env:
     print('warning: ' + message)
 changes, tool_changes = diff(before, before_tools)
 for path, old, new in changes: print('  %s: %s → %s' % ('.'.join(path), show(old), show(new)))
+# New in the template: created for this agent only (never shared between environments), then attached.
+for tool in missing: print('  tool %s: create + attach' % tool)
 shared = []
 for tool, fields in tool_changes.items():
     for path, old, new in fields: print('  tool %s: %s: %s → %s' % (tool, '.'.join(path), show(old), show(new)))
@@ -167,14 +171,23 @@ for tool, fields in tool_changes.items():
         shared.append(tool)
         print('!!! SHARED TOOL: %s is also used by %s%s.' % (tool, ', '.join(others) or 'other agents', ' and more' if deps.get('has_more') else ''))
         print('!!! Changing it changes those agents at the same time (Production and Staging share one).')
-if not changes and not tool_changes:
+if not changes and not tool_changes and not missing:
     print('  matches the template on %d governed fields and %d tools' % (len(governed), len(tool_governed)))
 if not apply:
-    if changes or tool_changes: print('dry run: nothing sent. Review the diff, then re-run with --apply.')
+    if changes or tool_changes or missing: print('dry run: nothing sent. Review the diff, then re-run with --apply.')
     sys.exit(0)
 if shared and not confirmed:
     die('changing a shared tool needs ASSISTANT_AGENT_CONFIRM=production (it changes Production too)')
 
+created = []
+for tool in missing:
+    made = call('POST', '/v1/convai/tools', 'tool create', {'tool_config': copy.deepcopy(tool_template[tool])})
+    tool_id = str(made.get('id') or made.get('tool_id') or '')
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', tool_id): die('the provider did not return an id for the new tool %s' % tool)
+    created.append((tool, tool_id))
+if created:
+    attached = list(get(before, TOOL_IDS) or []) + [tool_id for _, tool_id in created]
+    call('PATCH', '/v1/convai/agents/' + agent_id, 'agent tools', {'conversation_config': {'agent': {'prompt': {'tool_ids': attached}}}})
 if changes:
     body = {}
     for path, _, new in changes: put(body, path, copy.deepcopy(new))
@@ -185,8 +198,11 @@ for tool, fields in tool_changes.items():
     for path, _, new in fields: put(config, path, copy.deepcopy(new))
     call('PATCH', '/v1/convai/tools/' + tool_id, 'tool', {'tool_config': config})
 
-after, after_tools = observe()
-lost = ['.'.join(p) for p in PROTECTED if get(before, p) != get(after, p)]
+after, after_tools, still_missing = observe()
+if still_missing: die('read-back lacks the client tool %s' % ', '.join(still_missing))
+expected_ids = list(get(before, TOOL_IDS) or []) + [tool_id for _, tool_id in created]
+lost = ['.'.join(p) for p in PROTECTED if p != TOOL_IDS and get(before, p) != get(after, p)]
+if list(get(after, TOOL_IDS) or []) != expected_ids: lost.append('.'.join(TOOL_IDS))
 if lost: die('environment-specific fields changed by the update: %s. Restore them by hand now.' % ', '.join(lost))
 left, left_tools = diff(after, after_tools)
 if left or left_tools:
@@ -198,7 +214,7 @@ old_outside, new_outside = outside(before), outside(after)
 drift = sorted('.'.join(p) for p in set(old_outside) | set(new_outside) if old_outside.get(p, MISSING) != new_outside.get(p, MISSING))
 for path in drift[:20]: print('warning: changed outside the template (provider default?): ' + path)
 version = after.get('version_id')
-if changes and version == before.get('version_id'):
+if (changes or created) and version == before.get('version_id'):
     die('provider kept version %s after the update' % version)
 print('%s: read-back matches the template; version %s' % (env, version))
 
@@ -210,6 +226,7 @@ provider.setdefault('applied', {})[env] = {
     'versionId': version, 'previousVersionId': before.get('version_id'),
     'governedSha256': hashlib.sha256(canonical(projection(after, after_tools)).encode()).hexdigest(),
     'templateSha256': template_sha, 'observedAt': now, 'by': 'deploy/assistant-agent.sh'}
+if created: provider['applied'][env]['createdTools'] = [tool for tool, _ in created]
 current, previous = {'development': ('versionId', 'previousVersionId'),
                      'staging': ('stagingVersionId', 'previousStagingVersionId'),
                      'production': ('productionVersionId', 'previousProductionVersionId')}[env]
