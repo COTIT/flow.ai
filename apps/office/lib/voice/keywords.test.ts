@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { discoverTools, operationManifest } from "./catalog"
+import grandfathered from "./keywords.grandfathered.json"
 import keywords from "./keywords.json"
 
 // RUAHA co-op admin: workspace admin plus live farm admin role.
@@ -20,6 +21,30 @@ describe("voice trigger words", () => {
         for (const word of list)
           expect(word, id).toMatch(/^[\p{Ll}\p{N}' -]+$/u)
     }
+  })
+
+  // G3: a new operation voice can run ships with words; the ops from before this rule are listed and only shrink.
+  it("gives every executable operation trigger words, unless it predates the rule", () => {
+    const words = keywords as Record<string, Record<string, string[]>>
+    const old = new Set(grandfathered)
+    const missing = operationManifest
+      .filter((op) => op.disposition === "execute")
+      .filter((op) => !words[op.id] && !old.has(op.id))
+      .map((op) => op.id)
+    expect(missing).toEqual([])
+  })
+
+  it("lists only grandfathered operations that still lack words", () => {
+    const executable = new Set(
+      operationManifest
+        .filter((op) => op.disposition === "execute")
+        .map((op) => op.id)
+    )
+    const healed = grandfathered.filter(
+      (id) => id in keywords || !executable.has(id)
+    )
+    expect(healed).toEqual([])
+    expect([...grandfathered].sort()).toEqual(grandfathered)
   })
 
   it.each([
@@ -96,7 +121,10 @@ describe("voice trigger words", () => {
     ["mapato ya mwezi huu bila VAT", "orders_sales_summary"],
     // Genesy Flow (v9): noticed priorities, marks, daily sales, own scenes
     ["what needs my attention today", "attention_summary"],
-    ["what should I look at first, most important priorities", "attention_priorities"],
+    [
+      "what should I look at first, most important priorities",
+      "attention_priorities",
+    ],
     ["which products are below their minimum stock", "attention_priorities"],
     ["wat is het belangrijkste, prioriteiten", "attention_priorities"],
     ["kipaumbele gani ni muhimu kwanza", "attention_priorities"],
@@ -114,9 +142,18 @@ describe("voice trigger words", () => {
     ["what is on my flow scenes", "flow_scenes_list"],
     ["welke kaarten staan in mijn flow overzicht", "flow_scenes_list"],
     ["kadi gani ziko kwenye dashibodi yangu", "flow_scenes_list"],
-    ["always show pending orders first on my pulse scene", "flow_scenes_update"],
-    ["toon altijd openstaande bestellingen eerst in mijn flow", "flow_scenes_update"],
-    ["onyesha kila mara oda zinazosubiri kwanza kwenye dashibodi", "flow_scenes_update"],
+    [
+      "always show pending orders first on my pulse scene",
+      "flow_scenes_update",
+    ],
+    [
+      "toon altijd openstaande bestellingen eerst in mijn flow",
+      "flow_scenes_update",
+    ],
+    [
+      "onyesha kila mara oda zinazosubiri kwanza kwenye dashibodi",
+      "flow_scenes_update",
+    ],
     ["put my stock scene back to the default", "flow_scenes_delete"],
     ["zet mijn voorraad scène terug naar standaard", "flow_scenes_delete"],
     ["rejesha mpangilio wa stoo kwa chaguo-msingi", "flow_scenes_delete"],
