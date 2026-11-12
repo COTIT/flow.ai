@@ -10,6 +10,8 @@ import { LoginForm } from "@genesy/ui/components/login-form"
 import { Logo } from "@genesy/ui/components/logo"
 import { Notice } from "@genesy/ui/components/notice"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { takeLoginFocus } from "@/lib/login-focus"
+import { safeNext } from "@/lib/next-path"
 
 export default function LoginPage() {
   const t = useTranslations()
@@ -19,7 +21,13 @@ export default function LoginPage() {
   const expired = useSession((s) => s.expired)
 
   React.useEffect(() => {
-    if (token) router.replace("/")
+    if (token)
+      router.replace(
+        safeNext(
+          new URLSearchParams(window.location.search).get("next"),
+          window.location.origin
+        )
+      )
   }, [token, router])
 
   const status = login.error?.response?.status
@@ -33,8 +41,21 @@ export default function LoginPage() {
           ? t("auth.invalidInput")
           : t("flow.error")
 
+  // Sent here by Flow (logout, expiry, Back while logged out): the focused control is gone, so
+  // focus starts at this page's heading instead of <body>.
+  const main = React.useRef<HTMLElement>(null)
+  React.useEffect(() => {
+    const heading = main.current?.querySelector<HTMLElement>("h1")
+    if (!heading || !takeLoginFocus()) return
+    heading.tabIndex = -1
+    heading.focus({ preventScroll: true })
+  }, [])
+
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 max-md:p-4">
+    <main
+      ref={main}
+      className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 max-md:p-4"
+    >
       <div
         className="flex w-[min(440px,100%)] flex-col gap-5 rounded-[20px] glass-strong p-8 max-md:p-6"
         aria-busy={login.isPending}

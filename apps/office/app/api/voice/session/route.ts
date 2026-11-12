@@ -61,9 +61,10 @@ export async function POST(request: Request) {
       throw new VoiceError("Invalid greeting.")
     if (!(await assistantReadiness()).ready)
       throw new VoiceError("Assistant configuration is not ready.", 503)
+    const zone = workspaceTimeZone(context)
     const [timeZone, greeting] = await Promise.all([
-      workspaceTimeZone(context),
-      sessionGreeting(context, language, hint),
+      zone,
+      zone.then((found) => sessionGreeting(context, language, hint, found)),
     ])
     const session = await assistantRequest<AssistantSession>(
       context,

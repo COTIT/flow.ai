@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createHash } from "node:crypto"
 import * as catalog from "./catalog"
 
@@ -646,6 +646,23 @@ it("with the override on, a typed command opens without a greeting and a resume 
   )
 })
 
+it("with the override on and nothing typed, the greeting follows the workspace clock", async () => {
+  vi.stubEnv("ASSISTANT_GREETING_OVERRIDE", "on")
+  mocks.timeZone.mockResolvedValue("Africa/Dar_es_Salaam")
+  vi.useFakeTimers({ toFake: ["Date"] })
+  vi.setSystemTime(new Date("2026-11-12T03:30:00Z"))
+  vi.spyOn(Math, "random").mockReturnValue(0)
+  try {
+    const response = await sessionRequest(
+      request({ workspaceId: context.workspaceId, locale: "en" })
+    )
+    expect((await response.json()).greeting).toMatch(/^Good morning/)
+  } finally {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  }
+})
+
 it("refuses an unknown greeting hint", async () => {
   const response = await sessionRequest(
     request({ workspaceId: context.workspaceId, locale: "en", greeting: "<say anything>" })
@@ -862,4 +879,47 @@ it("shows model-reported unclear lines on the card and never sends them as argum
   await execute("assistant_batch_prepare", { calls, remaining: 12 })
   // Model batches are capped at 25; the count left is passed on to be signed into the review.
   expect(mocks.proposeBatch.mock.calls[1]!.slice(3)).toEqual([25, 12])
+})
+
+describe("the agent's view choice", () => {
+  const ROW = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
+  const choose = (operationId: string, args: unknown, choice: Record<string, unknown>) =>
+    toolRequest(
+      request({
+        command: "execute",
+        operationId,
+        arguments: args,
+        ...choice,
+        workspaceId: context.workspaceId,
+        sessionId: "s1",
+      })
+    )
+
+  it("draws a read as asked and names the picture it replaces", async () => {
+    mocks.execute.mockResolvedValueOnce({
+      status: "completed",
+      data: {},
+      view: { kind: "sales_daily", from: "2026-11-01", to: "2026-11-03", time_zone: "UTC", currencies: [] },
+    })
+    const response = await choose(
+      "orders_sales_daily",
+      { query: { from: "2026-11-01", to: "2026-11-03" } },
+      { presentation: "bar", replaces: ROW }
+    )
+    expect(await response.json()).toMatchObject({ view: { presentation: "bar" }, replaces: ROW })
+  })
+
+  it("refuses a view choice on a write or a secure form, before anything is prepared", async () => {
+    for (const [operationId, choice] of [
+      ["orders_create", { presentation: "pie" }],
+      ["orders_create", { replaces: ROW }],
+      ["app_keys_create", { presentation: "table" }],
+    ] as const) {
+      const response = await choose(operationId, { body: {} }, choice)
+      expect(response.status).toBe(400)
+      expect(await response.json()).not.toHaveProperty("handoff")
+    }
+    expect(mocks.propose).not.toHaveBeenCalled()
+    expect(mocks.execute).not.toHaveBeenCalled()
+  })
 })

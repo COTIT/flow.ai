@@ -8,6 +8,7 @@ import { Input } from "@genesy/ui/components/input"
 import { useVoice } from "@genesy/voice/components/provider"
 import { clarifyOf } from "@genesy/voice/lib/task"
 import { flowStore } from "@/lib/flow-store"
+import { useOnceIntent } from "@/lib/use-once-intent"
 
 const TYPES = ["choose", "set", "add", "remove"] as const
 type Kind = (typeof TYPES)[number]
@@ -25,6 +26,7 @@ export function Clarify() {
   const [kind, setKind] = useState<Kind>("choose")
   const [quantity, setQuantity] = useState("")
   const id = useId()
+  const answer = useOnceIntent(choice?.resultId ?? "")
   if (!choice || !voice.connected) return null
   const row = choice.rows.find((r) => r.id === picked)
   const amount = Number(quantity)
@@ -39,10 +41,10 @@ export function Clarify() {
       className="flex min-w-0 flex-col gap-3 rounded-2xl border border-(--gold) p-4"
       onSubmit={(e) => {
         e.preventDefault()
-        if (!row || !valid) return
+        if (!row || !valid || answer.pending) return
         const product = row.detail ? `${row.label} (${row.detail})` : row.label
         flowStore.getState().setSelected({ type: "product", ids: [row.id] })
-        void voice.send(t(`say.${kind}`, { product, quantity: amount }))
+        void answer.send(t(`say.${kind}`, { product, quantity: amount }))
       }}
     >
       <fieldset className="flex min-w-0 flex-col gap-2">
@@ -102,7 +104,12 @@ export function Clarify() {
             </span>
           </div>
         ) : null}
-        <Button type="submit" className="ml-auto min-h-11" disabled={!valid || voice.busy}>
+        <Button
+          type="submit"
+          className="ml-auto min-h-11"
+          disabled={!valid || voice.busy || answer.pending}
+          aria-busy={answer.pending}
+        >
           {kind === "choose" ? t("continue") : t("prepare")}
         </Button>
       </div>

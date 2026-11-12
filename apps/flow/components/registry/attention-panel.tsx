@@ -10,11 +10,13 @@ import {
   useAttentionMarksSet,
 } from "@genesy/api-client/endpoints/attention"
 import type { PriorityGroup } from "@genesy/api-client/model"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatQty } from "@genesy/ui/lib/format"
 import { usePriorities, useWorkspace } from "@/lib/use-scene-data"
+import { useSyncGuard } from "@/lib/use-sync-guard"
 import { DataState, Restricted } from "./data-state"
+import { RecordTable } from "./record-table"
 import type { RegistryProps } from "./types"
 
 /** Where "Review" goes for a kind; kinds without a scene get no review link. */
@@ -41,126 +43,132 @@ function Group({ group }: { group: PriorityGroup }) {
         ]),
     },
   })
+  const once = useSyncGuard()
+  const send = (data: Parameters<typeof mark.mutate>[0]["data"]) =>
+    // A second click in the same frame must not send the same write again.
+    void once(() => mark.mutateAsync({ workspace: ws, data }).catch(() => null))
   const can = (action: string) => group.actions.includes(action)
   const review = REVIEW[group.kind]
   const kindKey = `noticed.kind.${group.kind.replace(".", "_")}`
+  const heading = t.has(kindKey)
+    ? t(kindKey, { count: group.count })
+    : group.kind
+  // Columns follow what the API returns for the group: quantities only where it sends them.
+  const quantities = group.items.some(
+    (i) => i.available !== null && i.minimum !== null
+  )
+  const qty = (n: string | null) => (n === null ? "" : formatQty(n, locale))
   return (
     <li
       data-group={group.kind}
-      className="flex flex-col gap-2 rounded-2xl border bg-card p-4"
+      className="flex flex-col gap-3 rounded-2xl border bg-card p-4 @max-[519px]:border-0 @max-[519px]:bg-transparent @max-[519px]:p-0 @min-[940px]:p-5"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-semibold">
-          {t.has(kindKey) ? t(kindKey, { count: group.count }) : group.kind}
-        </h2>
-        {group.impact.open_orders ? (
-          <span className="text-xs text-muted-foreground">
-            {t("noticed.affects", { count: group.impact.open_orders })}
-          </span>
+      {/* One title row: the title (and what it affects) left, the way to act right. */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold">{heading}</h2>
+          {group.impact.open_orders ? (
+            <p className="text-xs text-muted-foreground">
+              {t("noticed.affects", { count: group.impact.open_orders })}
+            </p>
+          ) : null}
+        </div>
+        {/* Lists board: the way to act sits in the group's header row, never under the list. */}
+        {review && can("review") ? (
+          <Link
+            href={review}
+            className={buttonVariants({
+              variant: "outline",
+              size: "sm",
+              className: "min-h-11 shrink-0 rounded-full",
+            })}
+          >
+            {t(
+              group.kind === "orders.open"
+                ? "noticed.reviewOrders"
+                : "noticed.reviewStock"
+            )}
+          </Link>
         ) : null}
       </div>
       {mark.isError ? <Notice variant="error" title={t("saveFailed")} /> : null}
-      <ul className="flex flex-col gap-2">
-        {group.items.map((item) => (
-          <li
-            key={item.ref_id}
-            data-item={item.ref_id}
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
-          >
-            <span className="mr-auto font-medium">{item.label}</span>
-            {item.available !== null && item.minimum !== null ? (
-              <span className="flex gap-3 text-xs text-muted-foreground tabular-nums">
-                <span>
-                  {t("available")} {formatQty(item.available, locale)}
-                </span>
-                <span>
-                  {t("minimum")} {formatQty(item.minimum, locale)}
-                </span>
-                {item.shortfall !== null ? (
-                  <span className="font-medium text-foreground">
-                    {t("shortfall")} {formatQty(item.shortfall, locale)}
-                  </span>
-                ) : null}
-              </span>
-            ) : null}
-            <span className="flex flex-wrap gap-1">
-              {can("acknowledge") ? (
-                item.acknowledged ? (
-                  <span
-                    data-acknowledged=""
-                    className="px-2 text-xs text-muted-foreground"
-                  >
-                    {t("noticed.acknowledged")}
-                  </span>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11"
-                    disabled={mark.isPending}
-                    onClick={() =>
-                      mark.mutate({
-                        workspace: ws,
-                        data: {
-                          kind: group.kind,
-                          ref_id: item.ref_id,
-                          state: "acknowledged",
-                        },
-                      })
-                    }
-                  >
-                    {t("noticed.acknowledge")}
-                  </Button>
-                )
-              ) : null}
-              {can("snooze")
-                ? (["until_tomorrow", "seven_days"] as const).map((snooze) => (
-                    <Button
-                      key={snooze}
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-11"
-                      disabled={mark.isPending}
-                      onClick={() =>
-                        mark.mutate({
-                          workspace: ws,
-                          data: {
-                            kind: group.kind,
-                            ref_id: item.ref_id,
-                            state: "snoozed",
-                            snooze,
-                          },
-                        })
-                      }
-                    >
-                      {t(
-                        snooze === "until_tomorrow"
-                          ? "noticed.snoozeTomorrow"
-                          : "noticed.snoozeWeek"
-                      )}
-                    </Button>
-                  ))
-                : null}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {review && can("review") ? (
-        <Link
-          href={review}
-          className={buttonVariants({
-            variant: "outline",
-            size: "sm",
-            className: "min-h-11 self-start",
-          })}
-        >
-          {t(
-            group.kind === "orders.open"
-              ? "noticed.reviewOrders"
-              : "noticed.reviewStock"
-          )}
-        </Link>
-      ) : null}
+      <RecordTable
+        label={heading}
+        rows={group.items}
+        rowKey={(item) => item.ref_id}
+        name={(item) => item.label}
+        nameLabel={t(quantities ? "table.product" : "table.item")}
+        columns={
+          quantities
+            ? [
+                {
+                  key: "available",
+                  label: t("available"),
+                  numeric: true,
+                  value: (i) => qty(i.available),
+                },
+                {
+                  key: "minimum",
+                  label: t("minimum"),
+                  numeric: true,
+                  value: (i) => qty(i.minimum),
+                },
+                {
+                  key: "shortfall",
+                  label: t("shortfall"),
+                  numeric: true,
+                  strong: true,
+                  value: (i) => qty(i.shortfall),
+                },
+              ]
+            : []
+        }
+        actions={(item) => {
+          const markAs = (
+            data:
+              | { state: "acknowledged" }
+              | { state: "snoozed"; snooze: "until_tomorrow" | "seven_days" }
+          ) =>
+            // P2-3a: through the same-frame guard, never mark.mutate directly.
+            send({ kind: group.kind, ref_id: item.ref_id, ...data })
+          const snooze = can("snooze")
+            ? {
+                label: t("noticed.snooze"),
+                items: [
+                  {
+                    key: "tomorrow",
+                    label: t("noticed.snoozeTomorrow"),
+                    short: t("noticed.untilTomorrow"),
+                    onSelect: () =>
+                      markAs({ state: "snoozed", snooze: "until_tomorrow" }),
+                  },
+                  {
+                    key: "week",
+                    label: t("noticed.snoozeWeek"),
+                    short: t("noticed.forWeek"),
+                    onSelect: () =>
+                      markAs({ state: "snoozed", snooze: "seven_days" }),
+                  },
+                ],
+              }
+            : undefined
+          const ack = can("acknowledge")
+          if (!ack && !snooze) return null
+          return {
+            disabled: mark.isPending,
+            status:
+              ack && item.acknowledged ? t("noticed.acknowledged") : undefined,
+            inline: ack
+              ? {
+                  key: "ack",
+                  label: t("noticed.acknowledge"),
+                  onSelect: () => markAs({ state: "acknowledged" }),
+                }
+              : undefined,
+            group: snooze,
+          }
+        }}
+      />
     </li>
   )
 }
@@ -183,7 +191,8 @@ function Priorities() {
       empty={!groups.length}
       emptyTitle={t("noticed.calm")}
     >
-      <ul data-attention="" className="flex flex-col gap-3">
+      {/* The list's container: its width picks table, row-menu or card form (Lists board). */}
+      <ul data-attention="" className="@container flex flex-col gap-3">
         {groups.map((g) => (
           <Group key={g.kind} group={g} />
         ))}

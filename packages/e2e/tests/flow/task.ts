@@ -46,7 +46,10 @@ const products = {
 const ACTION = (n: number | string) =>
   `0193f6b0-1c2d-7e3f-8a9b-${String(n).padStart(12, "0")}`
 
-/** Office's review of setting Raw Honey 500g's main-store total to `total` (stock was 14). */
+/**
+ * Office's review of setting Raw Honey 500g's main-store total to `total` (stock was 14). Its facts
+ * carry the "what changes" rows the API builds since P3-3 (warehouse · before → after).
+ */
 export const stockReview = (total: number, ticket = `stock-${total}`) => ({
   status: "requires_confirmation",
   data: { actionId: ACTION(total) },
@@ -76,6 +79,10 @@ export const stockReview = (total: number, ticket = `stock-${total}`) => ({
             },
           ],
         },
+        changes:
+          total === 14
+            ? []
+            : [{ field: "stock", label: "Main store", before: "14", after: String(total) }],
       },
       changes: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: total }] },
     },
@@ -92,13 +99,21 @@ const body = (route: Route) => (route.request().postDataJSON() ?? {}) as Json
  */
 export async function stockRoutes(page: Page, confirmAnswer?: (ticket: string) => Json) {
   const confirms: Json[] = []
+  // Every proposal gets its own ticket, as Office's do: the first for a total is `stock-<total>`,
+  // a later one for the same total `stock-<total>-<n>`.
+  const proposed = new Map<number, number>()
   await page.route("**/api/voice/tools", async (route) => {
     const b = body(route)
     if (b.command !== "execute") return route.fallback()
     if (b.operationId === "products_list") return route.fulfill({ json: products })
     if (b.operationId === "stock_set_levels") {
       const args = b.arguments as { body: { warehouses: { stock_lvl: number }[] } }
-      return route.fulfill({ json: stockReview(args.body.warehouses[0]!.stock_lvl) })
+      const total = args.body.warehouses[0]!.stock_lvl
+      const n = (proposed.get(total) ?? 0) + 1
+      proposed.set(total, n)
+      return route.fulfill({
+        json: stockReview(total, n === 1 ? `stock-${total}` : `stock-${total}-${n}`),
+      })
     }
     return route.fallback()
   })

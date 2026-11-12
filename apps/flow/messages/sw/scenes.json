@@ -21,10 +21,15 @@
     "refresh": "Onyesha upya",
     "restricted": "Haipatikani kwa jukumu lako",
     "retry": "Jaribu tena",
+    "busy": "Kuna shughuli nyingi, tunajaribu tena baada ya {seconds, plural, one {sekunde #} other {sekunde #}}.",
+    "gone": "Hii haipatikani tena.",
+    "offline": "Huna mtandao. Hii itapakia utakapopata mtandao tena.",
     "failed": "Imeshindwa kupakia hiki.",
     "notFound": "Onyesho hili halipo.",
     "sceneError": "Onyesho hili halikuweza kuonyeshwa. Mazungumzo yako hayajaathirika.",
-    "fresh": "Imesasishwa sekunde {seconds} zilizopita",
+    "freshNow": "Imesasishwa sasa hivi",
+    "freshMinutes": "Imesasishwa {minutes, plural, one {dakika # iliyopita} other {dakika # zilizopita}}",
+    "freshAt": "Imesasishwa saa {time}",
     "refreshing": "Inaonyesha upya…",
     "stale": "Data huenda imepitwa na wakati",
     "refreshFailed": "Imeshindwa kuonyesha upya. Inaonyesha data ya awali.",
@@ -108,7 +113,10 @@
         "till_open_shifts": "{count, plural, one {zamu # ya kaunta bado iko wazi} other {zamu # za kaunta bado ziko wazi}}",
         "lots_quarantined": "{count, plural, one {kundi # katika karantini} other {makundi # katika karantini}}",
         "webhooks_failed": "{count, plural, one {webhook # inashindwa} other {webhook # zinashindwa}}"
-      }
+      },
+      "snooze": "Ahirisha",
+      "untilTomorrow": "Hadi kesho",
+      "forWeek": "Siku 7"
     },
     "scene": {
       "pulse": {
@@ -144,6 +152,20 @@
       "sales": "Mauzo · {period}",
       "stock": "Stock Watch · imehifadhiwa"
     },
-    "cancel": "Ghairi"
+    "cancel": "Ghairi",
+    "table": {
+      "product": "Bidhaa",
+      "item": "Kipengele",
+      "order": "Agizo",
+      "date": "Tarehe",
+      "total": "Jumla",
+      "invoice": "Ankara",
+      "due": "Inadaiwa",
+      "open": "Iliyobaki",
+      "actions": "Vitendo",
+      "rowActions": "Vitendo vya {name}"
+    },
+    "showAll": "Onyesha yote",
+    "showLess": "Onyesha machache"
   }
 }

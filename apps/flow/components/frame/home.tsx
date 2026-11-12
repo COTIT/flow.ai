@@ -46,6 +46,7 @@ export function Home() {
   const current = choices.find((w) => w.id === workspaceId)
   const immersive = useFlow((s) => s.immersive)
   const resultOpen = useFlow((s) => s.resultOpen)
+  const sheetShown = useFlow((s) => s.sheetShown)
   const live = voice.connected || voice.starting || voice.upgrading
   const { state } = useReadiness()
   const hour = useLocalHour()
@@ -112,7 +113,11 @@ export function Home() {
           {t("shell.flowText")}
         </p>
       </div>
-      <OrbSlot name="ambient" className="size-40 sm:size-56" />
+      {/* With the phone sheet on screen the orb lives there: no empty place for it here. */}
+      <OrbSlot
+        name="ambient"
+        className={sheetShown ? "hidden" : "size-40 sm:size-56"}
+      />
       <OrbCaption />
       {!live && state === "available" ? (
         <>

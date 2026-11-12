@@ -1,7 +1,7 @@
-import { expect, it } from "vitest"
+import { beforeEach, expect, it } from "vitest"
 
 import type { VoiceReview } from "@genesy/voice/lib/client-contract"
-import { ownerKey, reviewLeft, taskFor } from "./task-store"
+import { approvalOutcome, loadTask, ownerKey, reviewLeft, saveTask, taskFor } from "./task-store"
 
 const review = (ticket: string) => ({ ticket }) as VoiceReview
 const earlier = { status: "completed", data: [] }
@@ -53,4 +53,91 @@ it("task state belongs to one workspace and login; anything else sees an empty t
   expect(ownerKey(null, "token-a")).toBeNull()
   expect(ownerKey("w1", null)).toBeNull()
   expect(taskFor({ ...state, owner: null }, null).decided).toBeNull()
+})
+
+// A tiny sessionStorage for node: the memory is per tab.
+const store = new Map<string, string>()
+beforeEach(() => {
+  store.clear()
+  globalThis.sessionStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  } as Storage
+})
+const secret = {
+  ...review("t1"),
+  confirmationCode: "135790",
+  confirmationPhrase: "Confirm action 135790",
+}
+const done = { status: "completed", data: [] } as never
+
+it("the kept card comes back for its owner only, without code, phrase or token", () => {
+  const owner = ownerKey("w1", "token-abcdefghijklmnopqrstuvwxyz")!
+  saveTask({
+    owner,
+    decided: secret,
+    result: done,
+    withdrawn: null,
+    resumeDismissed: false,
+  })
+  const raw = store.get("genesy.flow.task")!
+  expect(raw).not.toContain("135790")
+  expect(raw).not.toContain("token-abcdefghijklmnopqrstuvwxyz")
+  expect(loadTask(owner).decided?.ticket).toBe("t1")
+  expect(loadTask(owner).result).toEqual(done)
+  // Another login in the same workspace, or another workspace: nothing, and the entry is dropped.
+  expect(loadTask(ownerKey("w1", "other-login")!)).toEqual({})
+  expect(store.size).toBe(0)
+  saveTask({
+    owner,
+    decided: secret,
+    result: done,
+    withdrawn: null,
+    resumeDismissed: false,
+  })
+  expect(loadTask(ownerKey("w2", "token-abcdefghijklmnopqrstuvwxyz")!)).toEqual(
+    {}
+  )
+  expect(store.size).toBe(0)
+})
+
+it("an unreadable or nobody's memory is dropped; an empty task keeps nothing", () => {
+  store.set("genesy.flow.task", "{not json")
+  expect(loadTask("w1:x")).toEqual({})
+  expect(store.size).toBe(0)
+  saveTask({
+    owner: "w1:x",
+    decided: null,
+    result: null,
+    withdrawn: null,
+    resumeDismissed: false,
+  })
+  expect(store.size).toBe(0)
+})
+
+// P6-3: an approval on its way when the tab reloaded is resolved from Office's status, never re-sent.
+const approved = { ticket: "t", operationId: "stock_set_levels", summary: "Set stock levels" } as VoiceReview
+const status = (s: string, operation = "stock_set_levels") => ({ status: s, data: { actionId: "a", operation } })
+
+it("an approval in flight resolves to its receipt once Office says it completed", () => {
+  expect(approvalOutcome(approved, [status("completed")])).toEqual({ status: "completed" })
+})
+
+it("running, unknown or failed after a reload: not confirmed yet, never 'not done'", () => {
+  for (const s of ["running", "unknown", "failed", "partial"])
+    expect(approvalOutcome(approved, [status(s)])).toEqual({ status: "unknown" })
+})
+
+it("waits while Office has not answered or lists only other operations", () => {
+  expect(approvalOutcome(approved, [])).toBeNull()
+  expect(approvalOutcome(approved, [status("completed", "products_update")])).toBeNull()
+  expect(approvalOutcome(approved, [status("awaiting_review")])).toBeNull()
+})
+
+it("a batch is matched by its own id", () => {
+  const batch = { ticket: "b", kind: "batch", batchId: "b-1" } as VoiceReview
+  const task = { status: "completed", data: { batchId: "b-1", kind: "batch" as const } }
+  expect(approvalOutcome(batch, [task])).toEqual({ status: "completed" })
+  expect(approvalOutcome(batch, [{ ...task, data: { ...task.data, batchId: "b-2" } }])).toBeNull()
 })

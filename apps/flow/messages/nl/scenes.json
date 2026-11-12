@@ -21,10 +21,15 @@
     "refresh": "Vernieuwen",
     "restricted": "Niet beschikbaar voor je rol",
     "retry": "Opnieuw proberen",
+    "busy": "Het is druk, nieuwe poging over {seconds, plural, one {# seconde} other {# seconden}}.",
+    "gone": "Dit is niet meer beschikbaar.",
+    "offline": "Je bent offline. Dit laadt zodra je weer online bent.",
     "failed": "Dit kon niet worden geladen.",
     "notFound": "Deze scène bestaat niet.",
     "sceneError": "Deze scène kon niet worden getoond. Je gesprek gaat gewoon door.",
-    "fresh": "{seconds} s geleden bijgewerkt",
+    "freshNow": "Zojuist bijgewerkt",
+    "freshMinutes": "{minutes, plural, one {# min} other {# min}} geleden bijgewerkt",
+    "freshAt": "Bijgewerkt om {time}",
     "refreshing": "Vernieuwen…",
     "stale": "Gegevens zijn mogelijk verouderd",
     "refreshFailed": "Vernieuwen lukte niet. Eerdere gegevens worden getoond.",
@@ -108,7 +113,10 @@
         "till_open_shifts": "{count, plural, one {# kassadienst staat nog open} other {# kassadiensten staan nog open}}",
         "lots_quarantined": "{count, plural, one {# partij in quarantaine} other {# partijen in quarantaine}}",
         "webhooks_failed": "{count, plural, one {# webhook mislukt} other {# webhooks mislukken}}"
-      }
+      },
+      "snooze": "Uitstellen",
+      "untilTomorrow": "Tot morgen",
+      "forWeek": "7 dagen"
     },
     "scene": {
       "pulse": {
@@ -144,6 +152,20 @@
       "sales": "Verkoop · {period}",
       "stock": "Stock Watch · bewaard"
     },
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "table": {
+      "product": "Product",
+      "item": "Item",
+      "order": "Bestelling",
+      "date": "Datum",
+      "total": "Totaal",
+      "invoice": "Factuur",
+      "due": "Vervalt",
+      "open": "Open",
+      "actions": "Acties",
+      "rowActions": "Acties voor {name}"
+    },
+    "showAll": "Alles tonen",
+    "showLess": "Minder tonen"
   }
 }

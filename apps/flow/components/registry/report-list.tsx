@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatDateTime } from "@genesy/ui/lib/format"
 import { useReports, useWorkspace } from "@/lib/use-scene-data"
+import { useSyncGuard } from "@/lib/use-sync-guard"
 import { DataState, Restricted } from "./data-state"
 import type { RegistryProps } from "./types"
 
@@ -37,6 +38,7 @@ function Reports() {
   }
   const update = useScheduledReportsUpdate({ mutation: done })
   const remove = useScheduledReportsDelete({ mutation: done })
+  const once = useSyncGuard()
   const rows = query.data?.data ?? []
   return (
     <section
@@ -72,11 +74,15 @@ function Reports() {
                 className="min-h-11"
                 disabled={update.isPending}
                 onClick={() =>
-                  update.mutate({
-                    workspace: ws,
-                    schedule: r.id,
-                    data: { active: !r.active },
-                  })
+                  void once(() =>
+                    update
+                      .mutateAsync({
+                        workspace: ws,
+                        schedule: r.id,
+                        data: { active: !r.active },
+                      })
+                      .catch(() => null)
+                  )
                 }
               >
                 {r.active ? t("pause") : t("resume")}
@@ -90,7 +96,11 @@ function Reports() {
                 destructive
                 disabled={remove.isPending}
                 onConfirm={() =>
-                  remove.mutate({ workspace: ws, schedule: r.id })
+                  void once(() =>
+                    remove
+                      .mutateAsync({ workspace: ws, schedule: r.id })
+                      .catch(() => null)
+                  )
                 }
               />
             </li>

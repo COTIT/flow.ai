@@ -20,7 +20,12 @@ export function Comparison({ component, restricted }: RegistryProps) {
   const net = metric === "sales.net"
   const rows = query.data?.data.currencies ?? []
   return (
-    <DataState query={query} empty={!rows.length} emptyTitle={t("noSales")}>
+    <DataState
+      query={query}
+      empty={!rows.length}
+      emptyTitle={t("noSales")}
+      reserve={106}
+    >
       <div
         data-comparison=""
         className="flex flex-col gap-2 rounded-2xl border bg-card p-4"

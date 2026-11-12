@@ -31,6 +31,22 @@ test("F: a read-back that disagrees with the proposal shows the server's value",
   await expect(receipt(page)).toContainText(k.receipt.reference)
 })
 
+test("P6-5: an unconfirmed outcome shows what was approved, never a blank new value", async ({
+  page,
+}) => {
+  await mockApi(page, flowApi(readBack("149.00")))
+  const agent = await fakeAgent(page)
+  await stockRoutes(page, () => ({ status: "unknown", data: {} }))
+  await proposeStock(page, agent, 150)
+  await scene(page).getByRole("button", { name: v.approve }).click()
+  await expect(receipt(page)).toHaveAttribute("data-receipt", "unknown")
+  // Labelled as the approval, not as a value the server confirmed (no read-back ran).
+  await expect(receipt(page).locator("[data-receipt-new]")).toHaveText(
+    k.receipt.approved.replace("{value}", "150")
+  )
+  await expect(receipt(page)).not.toContainText("149")
+})
+
 test.describe("the read-back fails", () => {
   test.use({
     allow: { responses: [{ url: "/v1/workspace/w1/products/p-500/stock-with-bins", status: 503 }] },

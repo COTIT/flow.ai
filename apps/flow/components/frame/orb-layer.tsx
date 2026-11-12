@@ -54,11 +54,27 @@ export function OrbLayer() {
   const voice = useVoice()
   const immersive = useFlow((s) => s.immersive)
   const resultOpen = useFlow((s) => s.resultOpen)
-  const mode = orbMode({ pathname, resultOpen, immersive })
+  const conversing = voice.messages.length > 0
+  const sheetShown = useFlow((s) => s.sheetShown)
+  const mode = orbMode({
+    pathname,
+    resultOpen,
+    immersive,
+    conversing,
+    sheetShown,
+  })
+  // In the conversation itself the orb is only a picture of it (the controls sit beside it).
+  const picture =
+    pathname === "/" &&
+    immersive &&
+    !resultOpen &&
+    (voice.connected || voice.starting || voice.upgrading)
   const slot = useFlow((s) => s.slots[mode])
   const layer = useRef<HTMLDivElement>(null)
   const orb = useRef<HTMLButtonElement>(null)
   const placed = useRef<OrbMode | null>(null)
+  /** Places the orb now (set while a slot is measured); focus uses it to stay in view. */
+  const placeNow = useRef<() => void>(() => {})
   const live = voice.connected || voice.starting || voice.upgrading
 
   useLayoutEffect(() => {
@@ -90,6 +106,7 @@ export function OrbLayer() {
       element.style.visibility = "visible"
     }
     place()
+    placeNow.current = place
     const later = () => {
       if (dead) return
       cancelAnimationFrame(frame)
@@ -100,7 +117,16 @@ export function OrbLayer() {
     resize.observe(slot)
     const scroller = slot.closest("[data-flow-scroll]")
     scroller?.addEventListener("scroll", later, { passive: true })
+    // A slot can move without resizing (the phone sheet rising, the rail opening): follow any
+    // pane that changes size, and any transition that ends.
+    const host = box.parentElement
+    host?.addEventListener("transitionend", later)
+    for (const pane of Array.from(host?.children ?? []))
+      if (pane !== box) resize.observe(pane)
     window.visualViewport?.addEventListener("resize", later)
+    // A rotation re-places it at once, never from the old screen's coordinates (P10-9).
+    window.addEventListener("resize", place)
+    window.addEventListener("orientationchange", place)
     void document.fonts?.ready.then(later)
     return () => {
       dead = true
@@ -108,16 +134,20 @@ export function OrbLayer() {
       cancelAnimationFrame(frame)
       resize.disconnect()
       scroller?.removeEventListener("scroll", later)
+      host?.removeEventListener("transitionend", later)
       window.visualViewport?.removeEventListener("resize", later)
+      window.removeEventListener("resize", place)
+      window.removeEventListener("orientationchange", place)
     }
   }, [slot, mode])
 
-  const label =
-    mode === "ambient" && !live ? t("orbStart") : t("orbOpen")
+  const label = mode === "ambient" && !live ? t("orbStart") : t("orbOpen")
   return (
     <div
       ref={layer}
-      className="pointer-events-none absolute inset-0 overflow-clip"
+      // Above the panes' sticky header rows (z-10), below the dock layer and the header.
+      // Clipped and paint-contained: the orb can never widen the page (P10-9).
+      className="pointer-events-none absolute inset-0 z-20 overflow-clip [contain:layout_paint]"
     >
       <button
         ref={orb}
@@ -125,12 +155,24 @@ export function OrbLayer() {
         data-orb={mode}
         aria-label={label}
         // In the conversation the orb is only a picture; elsewhere it opens or starts it.
-        tabIndex={mode === "immersive" ? -1 : 0}
-        aria-hidden={mode === "immersive" || undefined}
+        tabIndex={picture ? -1 : 0}
+        aria-hidden={picture || undefined}
         style={{ width: BASE, height: BASE, visibility: "hidden" }}
         className="pointer-events-auto absolute top-0 left-0 origin-top-left rounded-full focus-visible:ring-4 focus-visible:ring-(--gold) focus-visible:outline-none"
+        // A keyboard user never lands on an orb scrolled out of view (SW1): bring its place in.
+        onFocus={() => {
+          const at = slot?.getBoundingClientRect()
+          const view = slot
+            ?.closest("[data-flow-scroll]")
+            ?.getBoundingClientRect()
+          if (!slot || !at || !view) return
+          if (at.top < view.top || at.bottom > view.bottom) {
+            slot.scrollIntoView({ block: "nearest" })
+            placeNow.current()
+          }
+        }}
         onClick={() => {
-          if (mode === "immersive") return
+          if (picture) return
           if (mode === "ambient" && !live) {
             void voice.start(false)
             return

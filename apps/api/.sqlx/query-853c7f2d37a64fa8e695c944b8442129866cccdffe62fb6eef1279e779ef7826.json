@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.name AS \"warehouse!\", l.code AS \"lot!\",\n                  coalesce((SELECT s.stock_lvl FROM stocks s WHERE s.workspace_id=$1 AND s.lot_id=l.id\n                     AND s.warehouse_id=w.id AND s.bin_id IS NULL AND s.deleted_at IS NULL),0) AS \"level!\"\n           FROM lots l JOIN warehouses w ON w.workspace_id=l.workspace_id AND w.id=$3 AND w.deleted_at IS NULL\n           WHERE l.workspace_id=$1 AND l.id=$2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "warehouse!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "lot!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "level!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "853c7f2d37a64fa8e695c944b8442129866cccdffe62fb6eef1279e779ef7826"
+}

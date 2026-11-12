@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -19,13 +19,16 @@ import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { Freshness } from "@/components/registry/data-state"
+import { BENTO_CLASS, BENTO_GRID, BENTO_SINGLE, bentoSize } from "@/lib/bento"
 import { BUILT_IN, keepKey, pendingFirst, sceneLayout } from "@/lib/scenes"
+import { flowStore } from "@/lib/flow-store"
 import { TTL } from "@/lib/scene-data"
 import {
   useRefreshOnOutcome,
   useRefreshScenes,
   useWorkspace,
 } from "@/lib/use-scene-data"
+import { BentoTile } from "./bento-tile"
 
 const PERIODS: FlowPeriod[] = [
   "this_week",
@@ -75,6 +78,31 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   const remove = useFlowScenesDelete({ mutation: saved })
   const layout = sceneLayout(sceneKey)
   const scene = list.data?.data.find((s) => s.scene === sceneKey)
+  const shown = scene
+    ? period
+      ? scene.config.components.map((c) => (c.period ? { ...c, period } : c))
+      : scene.config.components
+    : []
+  // The agent knows what this scene shows (ids and types only), until the scene closes.
+  const visible = JSON.stringify(
+    shown
+      .filter((c) => !scene?.restricted.includes(c.id))
+      .map(({ id, type, metric, period: p }) => ({
+        id,
+        type,
+        metric,
+        period: p,
+      }))
+  )
+  const writing = useRef(false)
+  // A write is done once the saved scenes are read again (its success refetches them).
+  useEffect(() => {
+    writing.current = false
+  }, [list.dataUpdatedAt])
+  useEffect(() => {
+    flowStore.setState({ visible: JSON.parse(visible) })
+    return () => flowStore.setState({ visible: null })
+  }, [visible])
 
   if (!layout || (list.isSuccess && !scene))
     return <Notice variant="info" title={t("notFound")} />
@@ -97,9 +125,10 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
   if (!scene) return <Skeleton className="h-40 w-full rounded-2xl" />
 
   const builtIn = (BUILT_IN as readonly string[]).includes(sceneKey)
-  const shown = period
-    ? scene.config.components.map((c) => (c.period ? { ...c, period } : c))
-    : scene.config.components
+  // Already in that order: nothing to do until the order changes.
+  const ordered =
+    JSON.stringify(pendingFirst(scene.config)) === JSON.stringify(scene.config)
+  const drawn = shown.filter((c) => componentFor(c.type))
   const keptKey = period ? keepKey(period) : null
   const kept =
     !!keptKey && !!list.data?.data.some((s) => s.scene === keptKey && !s.hidden)
@@ -108,24 +137,34 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
     key = sceneKey,
     done = t("saved")
   ) => {
+    // One write per press, however fast the next press comes (P2-3b): held until the saved
+    // scenes are read again, or the write fails.
+    if (writing.current) return
+    writing.current = true
     // A new write: no stale "Saved", no old error from the other mutation (its own resets on mutate).
     say("")
     remove.reset()
     update.mutate(
       { workspace: ws, scene: key, data: body },
-      { onSuccess: () => say(done) }
+      {
+        onSuccess: () => say(done),
+        onError: () => (writing.current = false),
+      }
     )
   }
 
   return (
     <article aria-labelledby="scene-title" className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h1 id="scene-title" className="text-xl font-semibold">
-          {title(scene)}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t(`scene.${layout}.lead`)}
-        </p>
+      {/* Main board: the title on the left, its freshness and actions on the right. */}
+      <header className="flex flex-wrap items-end gap-x-4 gap-y-1">
+        <div className="mr-auto min-w-0">
+          <h1 id="scene-title" className="text-xl font-semibold">
+            {title(scene)}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t(`scene.${layout}.lead`)}
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Freshness staleAfter={TTL.attention} />
           <Button
@@ -142,7 +181,7 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
               variant="outline"
               size="sm"
               className="min-h-11"
-              disabled={update.isPending}
+              disabled={update.isPending || ordered}
               onClick={() =>
                 write(
                   { config: pendingFirst(scene.config) },
@@ -194,8 +233,13 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
             className="min-h-11"
             disabled={update.isPending || remove.isPending}
             onClick={() => {
+              if (writing.current) return
+              writing.current = true
               say("")
-              const home = { onSuccess: () => router.push("/") }
+              const home = {
+                onSuccess: () => router.push("/"),
+                onError: () => (writing.current = false),
+              }
               if (builtIn)
                 update.mutate(
                   { workspace: ws, scene: sceneKey, data: { hidden: true } },
@@ -225,18 +269,29 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
           {t("scene.studio.title")}
         </Link>
       ) : null}
-      <div className="flex flex-col gap-3">
-        {shown.map((component) => {
-          const Component = componentFor(component.type)
-          return Component ? (
-            <div key={component.id} data-component={component.id}>
-              <Component
-                component={component}
-                restricted={scene.restricted.includes(component.id)}
-              />
-            </div>
-          ) : null
-        })}
+      <div className="@container">
+        <div
+          data-bento
+          className={drawn.length > 1 ? BENTO_GRID : BENTO_SINGLE}
+        >
+          {drawn.map((component) => {
+            const Component = componentFor(component.type)
+            const size = bentoSize(component.type, drawn.length)
+            return Component ? (
+              <BentoTile
+                key={component.id}
+                id={component.id}
+                size={size}
+                className={BENTO_CLASS[size]}
+              >
+                <Component
+                  component={component}
+                  restricted={scene.restricted.includes(component.id)}
+                />
+              </BentoTile>
+            ) : null
+          })}
+        </div>
       </div>
     </article>
   )

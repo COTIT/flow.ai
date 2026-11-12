@@ -1,5 +1,6 @@
 {
   "shell": {
+    "workspaceSwitched": "Overgeschakeld naar {name}",
     "phaseLabel": "Spraak",
     "phase": {
       "ready": "Klaar",
@@ -23,6 +24,7 @@
     "suggested": "Voorgesteld voor jou",
     "mic": "Microfoon",
     "switchVoice": "Overschakelen naar spraak",
+    "reviewReady": "Controle klaar: {summary}. Actie goedkeuren en Annuleren staan er net boven.",
     "orb": {
       "idle": "Genesy is klaar",
       "connecting": "Verbinden",
@@ -34,6 +36,22 @@
       "recovering": "Herstellen",
       "error": "Er ging iets mis",
       "ended": "Gesprek beëindigd"
-    }
+    },
+    "offlineNavigation": "Je bent offline. Dit opent zodra je weer online bent.",
+    "skipToContent": "Naar de inhoud",
+    "menu": "Menu",
+    "showHeader": "Toon de kopbalk",
+    "hideHeader": "Verberg de kopbalk",
+    "headerHint": "Veeg omlaag vanaf de bovenkant voor het menu",
+    "showConversation": "Toon gesprek",
+    "hideConversation": "Verberg gesprek",
+    "resizeConversation": "Gesprek breder of smaller maken",
+    "jumpToLatest": "Naar het nieuwste",
+    "raiseConversation": "Gesprek omhoog",
+    "lowerConversation": "Gesprek omlaag",
+    "newReply": "Genesy antwoordde",
+    "signOutTitle": "Afmelden en dit gesprek beëindigen?",
+    "signOutText": "Genesy stopt met luisteren en je wordt op dit apparaat afgemeld.",
+    "signOutStay": "Aangemeld blijven"
   }
 }

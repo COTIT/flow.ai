@@ -1,0 +1,1041 @@
+// Flow layout (canvas 8AQVf7XEiV1cSyqPi5G6p9, boards Main, Conversation, Split, Tablet, Phone,
+// PhoneSheet) over a SIMULATED API and voice. Runs at 1280, 834 and 375 (the three projects).
+import type { Locator, Page } from "@playwright/test"
+
+import {
+  expectNoHorizontalScroll,
+  expectSingleScroller,
+  expectTapTargets,
+} from "../../src/test"
+import { expect, test } from "./storefront-api"
+import { revealHeader, s } from "./shell"
+import { proposeStock, readBack, receipt, scene, stockRoutes } from "./task"
+import { chat, fakeAgent, send, startText, v, watch } from "./voice"
+
+test.beforeEach(({ api }) => void api)
+
+const header = (page: Page) => page.locator("[data-flow-header]")
+const rail = (page: Page) =>
+  page.getByRole("complementary", { name: s.conversation })
+const sheet = (page: Page) => page.getByRole("region", { name: s.conversation })
+const width = (page: Page) => page.viewportSize()?.width ?? 1280
+
+const dock = (page: Page) => page.getByRole("region", { name: s.dock })
+const composer = (page: Page) => page.getByLabel(v.message)
+
+/** The one dock is drawn over `container`'s dock slot (it never moves in the DOM). */
+async function expectDockIn(page: Page, container: Locator) {
+  await expect(dock(page)).toBeVisible()
+  await expect
+    .poll(async () => {
+      const d = (await dock(page).boundingBox())!
+      const c = (await container.boundingBox())!
+      return (
+        d.x >= c.x - 1 &&
+        d.x + d.width <= c.x + c.width + 1 &&
+        d.y >= c.y - 1 &&
+        d.y + d.height <= c.y + c.height + 1
+      )
+    })
+    .toBe(true)
+}
+
+/** Talk, then go to Morning Pulse by the page's own links (the conversation stays). */
+async function talkThenPulse(page: Page) {
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "Hello")
+  await expect(page.getByRole("log")).toContainText("Answer: Hello")
+  await page.getByRole("button", { name: s.backHome }).click()
+  await page.getByRole("link", { name: /Morning Pulse/ }).click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+}
+
+test.describe("header (D2)", () => {
+  test("floats hidden, never pushes content, and stays a landmark", async ({
+    page,
+  }) => {
+    await page.goto("/scenes/pulse")
+    const h1 = page.getByRole("heading", { level: 1 })
+    await expect(h1).toBeVisible()
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    await expect(page.getByRole("banner")).toHaveCount(1)
+    await expect(header(page)).not.toHaveAttribute("aria-hidden")
+    // Content starts at the top: no reserved header row above the scene bar.
+    const top = await page
+      .getByRole("button", { name: s.backHome })
+      .evaluate((b) => b.getBoundingClientRect().top)
+    expect(top).toBeLessThan(80)
+    // The scroller keeps the browser's pull-to-refresh out.
+    await expect(page.locator("[data-flow-scroll]")).toHaveCSS(
+      "overscroll-behavior-y",
+      "contain"
+    )
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })
+
+  test("keyboard: Tab reveals it, Escape hides it and focus goes to the content", async ({
+    page,
+  }) => {
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await page.keyboard.press("Tab")
+    await expect(
+      page.getByRole("link", { name: s.skipToContent })
+    ).toBeFocused()
+    // Touch screens have the handle next in order; then the header's own controls.
+    for (
+      let i = 0;
+      i < 3 &&
+      !(await header(page).evaluate((h) => h.contains(document.activeElement)));
+      i++
+    )
+      await page.keyboard.press("Tab")
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    const focused = page.locator(":focus")
+    await expect(focused).toBeVisible()
+    expect(
+      await header(page).evaluate((h) => h.contains(document.activeElement))
+    ).toBe(true)
+    await page.keyboard.press("Escape")
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    await expect(page.locator("#flow-content")).toBeFocused()
+  })
+
+  test("pointer: the top edge reveals it, leaving hides it", async ({
+    page,
+  }) => {
+    test.skip(width(page) < 1024, "desktop pointer behaviour")
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await page.mouse.move(400, 2)
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    await page.mouse.move(400, 600)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+  })
+
+  test("touch: the handle and a swipe down from just below the top show it; a tap outside hides it", async ({
+    page,
+  }) => {
+    test.skip(width(page) >= 1024, "touch projects")
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    const handle = page.getByRole("button", { name: s.showHeader })
+    await expect(handle).toBeVisible()
+    await handle.click()
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    await expect(
+      page.getByRole("button", { name: s.hideHeader })
+    ).toHaveAttribute("aria-expanded", "true")
+    await page.touchscreen.tap(width(page) / 2, 500)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    // Option A: a swipe down starting just below the safe area.
+    await page.evaluate(() => {
+      const touch = (y: number) =>
+        new Touch({
+          identifier: 1,
+          target: document.body,
+          clientX: 200,
+          clientY: y,
+        })
+      document.dispatchEvent(
+        new TouchEvent("touchstart", {
+          touches: [touch(12)],
+          changedTouches: [touch(12)],
+        })
+      )
+      document.dispatchEvent(
+        new TouchEvent("touchend", { touches: [], changedTouches: [touch(90)] })
+      )
+    })
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+  })
+
+  test("reduced motion: it fades, never slides", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    const motion = await header(page).evaluate(
+      (h) => getComputedStyle(h).transitionProperty
+    )
+    expect(motion).toBe("opacity")
+  })
+})
+
+test.describe("bento (Main, Tablet, Phone boards)", () => {
+  for (const scheme of ["light", "dark"] as const)
+    test(`Morning Pulse: 12 / 6 / 2 columns by results width, small and wide tiles (${scheme})`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.goto("/scenes/pulse")
+      const grid = page.locator("[data-bento]")
+      await expect(grid).toBeVisible()
+      const columns = await grid.evaluate(
+        (g) => getComputedStyle(g).gridTemplateColumns.split(" ").length
+      )
+      const results = await page
+        .locator("[data-flow-scroll]")
+        .evaluate((m) => m.clientWidth)
+      expect(columns).toBe(results >= 1024 ? 12 : results >= 640 ? 6 : 2)
+      await expect(page.locator('[data-size="small"]').first()).toBeVisible()
+      await expectSingleScroller(page)
+      await expectNoHorizontalScroll(page)
+    })
+})
+
+test.describe("conversation beside the results (Split, PhoneSheet boards)", () => {
+  test("desktop/tablet rail: open, resize with keys, hide and show; panes scroll on their own", async ({
+    page,
+  }) => {
+    test.skip(width(page) < 640, "the phone gets the sheet")
+    await talkThenPulse(page)
+    const desktop = width(page) >= 1024
+    if (!desktop) {
+      // Tablet: collapsed on a scene; the bottom dock stays.
+      await expect(rail(page)).toHaveCount(0)
+      await expect(page.getByRole("region", { name: s.dock })).toBeVisible()
+      await page.getByRole("button", { name: s.showConversation }).click()
+    }
+    await expect(rail(page)).toBeVisible()
+    await expect(rail(page).getByRole("log")).toContainText("Answer: Hello")
+    // The dock moved into the rail: still exactly one.
+    await expect(page.getByRole("region", { name: s.dock })).toHaveCount(1)
+    await expectDockIn(page, rail(page))
+    await expectSingleScroller(page)
+
+    const grip = page.getByRole("separator", { name: s.resizeConversation })
+    const before = Number(await grip.getAttribute("aria-valuenow"))
+    expect(before).toBe(desktop ? 400 : 340)
+    await grip.focus()
+    await page.keyboard.press("ArrowLeft")
+    await expect(grip).toHaveAttribute("aria-valuenow", String(before + 20))
+    // The rail grows to 520 px, less where the results would drop under 360 px.
+    const max = Math.min(520, width(page) - 48 - 360)
+    await expect(grip).toHaveAttribute("aria-valuemax", String(max))
+    await page.keyboard.press("End")
+    await expect(grip).toHaveAttribute("aria-valuenow", String(max))
+    await page.keyboard.press("Home")
+    await expect(grip).toHaveAttribute("aria-valuenow", "320")
+    const box = await rail(page).boundingBox()
+    expect(Math.round(box?.width ?? 0)).toBe(320)
+
+    await rail(page).getByRole("button", { name: s.hideConversation }).click()
+    await expect(rail(page)).toHaveCount(0)
+    await expect(page.getByRole("region", { name: s.dock })).toBeVisible()
+    await expectSingleScroller(page)
+    await page.getByRole("button", { name: s.showConversation }).click()
+    await expect(rail(page)).toBeVisible()
+    await expectNoHorizontalScroll(page)
+  })
+
+  test("the rail follows the newest line; scrolled up it offers Jump to latest", async ({
+    page,
+  }) => {
+    test.skip(width(page) < 1024, "desktop rail")
+    await talkThenPulse(page)
+    const log = rail(page).getByRole("log")
+    for (let i = 1; i <= 8; i++) {
+      await send(
+        page,
+        `Question ${i} ${"with a longer line of words ".repeat(4)}`
+      )
+      await expect(log).toContainText(`Answer: Question ${i}`)
+    }
+    const atBottom = () =>
+      log.evaluate((l) => l.scrollHeight - l.scrollTop - l.clientHeight < 48)
+    expect(await log.evaluate((l) => l.scrollHeight > l.clientHeight)).toBe(
+      true
+    )
+    expect(await atBottom()).toBe(true)
+    await expectSingleScroller(page)
+    await log.evaluate((l) => {
+      l.scrollTop = 0
+      l.dispatchEvent(new Event("scroll"))
+    })
+    const jump = rail(page).getByRole("button", { name: s.jumpToLatest })
+    await expect(jump).toBeVisible()
+    await jump.click()
+    await expect(jump).toHaveCount(0)
+    expect(await atBottom()).toBe(true)
+  })
+
+  test("phone sheet: peek with the dock, raise, Escape lowers and focus returns", async ({
+    page,
+  }) => {
+    test.skip(width(page) >= 640, "phone only")
+    await talkThenPulse(page)
+    const raise = page.getByRole("button", { name: s.raiseConversation })
+    await expect(raise).toBeVisible()
+    await expectDockIn(page, sheet(page))
+    await expect(sheet(page).getByRole("log")).toHaveCount(0)
+    await expectSingleScroller(page)
+    await raise.click()
+    const lower = page.getByRole("button", { name: s.lowerConversation })
+    await expect(lower).toHaveAttribute("aria-expanded", "true")
+    await expect(sheet(page).getByRole("log")).toContainText("Answer: Hello")
+    await expectDockIn(page, sheet(page))
+    const height = await sheet(page).evaluate(
+      (el) => el.getBoundingClientRect().height
+    )
+    expect(height).toBeGreaterThan(page.viewportSize()!.height * 0.5)
+    await expectSingleScroller(page)
+    await page.keyboard.press("Escape")
+    await expect(raise).toBeFocused()
+    await expect(sheet(page).getByRole("log")).toHaveCount(0)
+    await expectNoHorizontalScroll(page)
+  })
+})
+
+test("conversation view: the orb stays pinned while the transcript scrolls (one scroller)", async ({
+  page,
+}) => {
+  await fakeAgent(page, (text, a) =>
+    a.say(`Answer: ${text} ${"more words ".repeat(20)}`)
+  )
+  await page.goto("/")
+  await startText(page)
+  for (let i = 1; i <= 6; i++) {
+    await send(page, `Line ${i}`)
+    await expect(page.getByRole("log")).toContainText(`Answer: Line ${i}`)
+  }
+  await expect(page.getByLabel(v.message)).toBeVisible()
+  await expectSingleScroller(page, "[data-flow-scroll]", { strict: true })
+  await expectNoHorizontalScroll(page)
+})
+
+test("SW9: the composer is one stable field: focus and draft survive a review opening, a scene change and the rail or sheet", async ({
+  page,
+}) => {
+  const agent = await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  const field = composer(page)
+  await field.fill("half a thought")
+  await field.focus()
+  await field.evaluate((el) => ((window as unknown as { kept: Element }).kept = el))
+  const same = () =>
+    field.evaluate((el) => (window as unknown as { kept: Element }).kept === el)
+
+  // The agent proposes an action while the person is typing: the review opens beside it.
+  agent.call("orders_create", { body: { reference: "Flow e2e order" } })
+  await expect(page.getByRole("region", { name: chat.results })).toContainText("Flow e2e order")
+  await expect(field).toBeFocused()
+  await expect(field).toHaveValue("half a thought")
+  expect(await same()).toBe(true)
+  // Enter sends nothing while the action waits.
+  await page.keyboard.press("Enter")
+  await expect(field).toHaveValue("half a thought")
+
+  // The rail or sheet opens and closes; the field is the same element with the same draft.
+  const w = page.viewportSize()!.width
+  if (w >= 640) {
+    const toggle = page.getByRole("button", { name: s.hideConversation }).first()
+    if (await toggle.isVisible()) {
+      await toggle.click()
+      await page.getByRole("button", { name: s.showConversation }).click()
+    }
+  } else {
+    await page.getByRole("button", { name: s.raiseConversation }).click()
+    await page.getByRole("button", { name: s.lowerConversation }).click()
+  }
+  await expect(field).toHaveValue("half a thought")
+  expect(await same()).toBe(true)
+
+  // A scene change: still the same field, the draft kept.
+  await page.getByRole("button", { name: s.backHome }).click()
+  await expect(field).toHaveValue("half a thought")
+  expect(await same()).toBe(true)
+  await expectSingleScroller(page)
+})
+
+test("conversing: the orb steps aside (small, in the header row) and the transcript gets the height", async ({
+  page,
+}) => {
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "Hello")
+  await expect(page.getByRole("log")).toContainText("Answer: Hello")
+  const header = page.locator("[data-conversation-header]")
+  await expect(header).toBeVisible()
+  // The orb glides into the header row and stays visible there, at most 56 px.
+  await expect
+    .poll(async () => {
+      const o = (await page.locator("[data-orb]").boundingBox())!
+      const h = (await header.boundingBox())!
+      return o.width <= 56 && o.y >= h.y - 1 && o.y + o.height <= h.y + h.height + 1
+    })
+    .toBe(true)
+  await expect(page.locator("[data-orb]")).toBeVisible()
+  // The transcript has at least 70% of the screen above the dock.
+  const room = await page.evaluate(() => {
+    const main = document.querySelector("[data-flow-scroll]")!.getBoundingClientRect()
+    const head = document.querySelector("[data-conversation-header]")!.getBoundingClientRect()
+    const dock = document.querySelector("[data-dock-layer]")!.getBoundingClientRect()
+    return (main.bottom - head.bottom) / (window.innerHeight - dock.height)
+  })
+  expect(room).toBeGreaterThanOrEqual(0.7)
+  await expectSingleScroller(page)
+  await expectNoHorizontalScroll(page)
+})
+
+for (const size of [
+  { name: "phone landscape", width: 812, height: 375 },
+  { name: "200% zoom on a laptop", width: 640, height: 400 },
+])
+  test(`SW2: on a short screen (${size.name}) the scene keeps most of the height and every control is reachable`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await expect(page.locator("[data-dock-layer]")).toBeVisible()
+    const share = await page.evaluate(
+      () =>
+        document.querySelector("[data-flow-scroll]")!.getBoundingClientRect().height /
+        window.innerHeight
+    )
+    expect(share).toBeGreaterThanOrEqual(0.55)
+    // The dock, the way home and (on request) the header stay reachable.
+    await expect(composer(page)).toBeInViewport()
+    await expect(page.getByRole("button", { name: s.backHome })).toBeInViewport()
+    for (
+      let i = 0;
+      i < 4 &&
+      !(await header(page).evaluate((h) => h.contains(document.activeElement)));
+      i++
+    )
+      await page.keyboard.press("Tab")
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })
+
+test("P3-2: a conversation started away from home shows there (rail, or the phone sheet)", async ({
+  page,
+}) => {
+  // Each answer is its own event, as a real agent's are.
+  let event = 0
+  await fakeAgent(page, (text, a) =>
+    a.emit({
+      type: "agent_response",
+      agent_response_event: { agent_response: `Answer: ${text}`, event_id: ++event },
+    })
+  )
+  await page.goto("/scenes/pulse")
+  await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeVisible()
+  await composer(page).fill("How were sales this week?")
+  await composer(page).press("Enter")
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  if (width(page) >= 640) {
+    // Desktop and tablet: the rail opens beside the scene with the answer.
+    await expect(rail(page)).toBeVisible()
+    await expect(rail(page).getByRole("log")).toContainText(
+      "Answer: How were sales this week?"
+    )
+    // Hidden again, a new reply is announced on its toggle.
+    await rail(page).getByRole("button", { name: s.hideConversation }).click()
+    await send(page, "And last week?")
+    await expect(
+      page.getByRole("button", { name: new RegExp(s.showConversation) })
+    ).toContainText(s.newReply)
+  } else {
+    // Phone: the sheet peeks with the last line.
+    await expect(sheet(page)).toContainText("Answer: How were sales this week?")
+  }
+  await expectSingleScroller(page)
+})
+
+for (const size of [
+  { width: 375, height: 812 },
+  { width: 812, height: 375 },
+])
+  test(`P4-2: ten attachments never push the dock past the screen (${size.width}×${size.height})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page)
+    await page.goto("/")
+    await startText(page)
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64"
+    )
+    await page.getByLabel(v.chooseFiles).setInputFiles(
+      Array.from({ length: 10 }, (_, i) => ({
+        name: `shelf-${i + 1}.png`,
+        mimeType: "image/png",
+        buffer: png,
+      }))
+    )
+    await expect(page.getByRole("list", { name: v.attachments })).toContainText("shelf-10.png")
+    const dockBox = (await page.locator("[data-dock-layer]").boundingBox())!
+    expect(dockBox.height).toBeLessThanOrEqual(size.height * 0.5)
+    await expect(composer(page)).toBeInViewport()
+    await expect(page.getByRole("button", { name: v.send, exact: true })).toBeInViewport()
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })
+
+test("P10-3: Log out asks first while a conversation is live; a near-miss tap never signs out at once", async ({
+  page,
+}) => {
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await revealHeader(page)
+  const logout = header(page).getByRole("button", { name: "Log out" })
+  const box = (await logout.boundingBox())!
+  // 44 px, with clear space around it.
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  // A tap a few px off its centre (touch adjustment may snap it onto the button).
+  const x = box.x + box.width / 2 + 3
+  const y = box.y + box.height / 2 + 6
+  if (test.info().project.use.hasTouch) await page.touchscreen.tap(x, y)
+  else await page.mouse.click(x, y)
+  const ask = page.getByRole("alertdialog").filter({ hasText: s.signOutTitle })
+  await expect(ask).toBeVisible()
+  await ask.getByRole("button", { name: s.signOutStay }).click()
+  await expect(ask).toHaveCount(0)
+  await expect(page).not.toHaveURL(/\/login/)
+  await expect(composer(page)).toBeVisible()
+})
+
+test("P4 / P10-1: header controls keep their place when the status changes, and are 44 px on touch at any width", async ({
+  page,
+}) => {
+  if (test.info().project.use.hasTouch) await page.setViewportSize({ width: 812, height: 375 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await page.waitForLoadState("networkidle")
+  await revealHeader(page)
+  const logout = header(page).getByRole("button", { name: "Log out" })
+  const before = (await logout.boundingBox())!
+  await expectTapTargets(page, { within: "[data-flow-header]" })
+  await startText(page)
+  await revealHeader(page)
+  await expect(page.locator("[data-phase]")).toHaveAttribute("data-phase", "live")
+  const after = (await logout.boundingBox())!
+  expect(Math.round(after.x)).toBe(Math.round(before.x))
+  expect(Math.round(after.y)).toBe(Math.round(before.y))
+})
+
+for (const size of [
+  { width: 320, height: 568, keyboard: 0.42 },
+  { width: 812, height: 375, keyboard: 0.55 },
+])
+  test(`P10-2: with the keyboard up (${size.width}×${size.height}, ${size.keyboard * 100}%) the field and Send stay above it`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await composer(page).focus()
+    const visible = Math.round(size.height * (1 - size.keyboard))
+    // The on-screen keyboard: the visual viewport shrinks and says so.
+    await page.evaluate((h) => {
+      Object.defineProperty(window.visualViewport, "height", { configurable: true, get: () => h })
+      window.visualViewport!.dispatchEvent(new Event("resize"))
+    }, visible)
+    await expect
+      .poll(async () => {
+        const field = (await composer(page).boundingBox())!
+        const send = (await page.getByRole("button", { name: v.send, exact: true }).boundingBox())!
+        return Math.max(field.y + field.height, send.y + send.height)
+      })
+      .toBeLessThanOrEqual(visible)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    // The frame fits the visible part: nothing of it hangs below the keyboard's edge.
+    const frame = await page
+      .locator("[data-dock-layer]")
+      .evaluate((el) => ((el as HTMLElement).offsetParent as HTMLElement).getBoundingClientRect().bottom)
+    expect(frame).toBeLessThanOrEqual(visible + 1)
+    await expect(composer(page)).toBeFocused()
+  })
+
+test("charts fill their tile, with day labels and the lowest and highest value (at a glance)", async ({
+  page,
+}) => {
+  await page.goto("/scenes/pulse")
+  const chart = page.locator('[data-chart="line"]').first()
+  await expect(chart.locator("svg").first()).toBeVisible()
+  const fill = await chart.evaluate((section) => {
+    const svg = section.querySelector("svg")!.getBoundingClientRect()
+    const head = section.querySelector("h3")!.getBoundingClientRect()
+    const box = section.getBoundingClientRect()
+    // The drawing takes most of the room under the title.
+    return svg.height / (box.bottom - head.bottom)
+  })
+  expect(fill).toBeGreaterThanOrEqual(0.5)
+  // One label per day (7 days), and the range of the line.
+  await expect(chart.locator("[data-day]")).toHaveCount(7)
+  await expect(chart.locator("[data-range=max]")).toBeVisible()
+  await expect(chart.locator("[data-range=min]")).toBeVisible()
+})
+
+// P10-4: phone landscape. The chrome never eats the height: the content keeps >= 120 px, every
+// control is tappable, nothing overflows.
+for (const size of [
+  { width: 740, height: 360 },
+  { width: 812, height: 375 },
+  { width: 667, height: 375 },
+  { width: 568, height: 320 },
+])
+  test(`P10-4: phone landscape ${size.width}×${size.height}: home, conversation and a scene keep room`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+    const room = async (where: string) => {
+      const h = await page
+        .locator("[data-flow-scroll]")
+        .evaluate((m) => m.getBoundingClientRect().height)
+      expect(h, `${where}: content height`).toBeGreaterThanOrEqual(120)
+      await expectSingleScroller(page)
+      await expectNoHorizontalScroll(page)
+    }
+    await page.goto("/")
+    const start = page.getByRole("button", { name: v.textInstead, exact: true })
+    await start.scrollIntoViewIfNeeded()
+    await start.click({ trial: true }) // reachable and not under the dock
+    await room("home")
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1, name: "Morning Pulse" })).toBeAttached()
+    await page.getByRole("button", { name: s.backHome }).click({ trial: true })
+    await room("scene")
+    await page.goto("/")
+    await startText(page)
+    await send(page, "Hello")
+    await expect(page.getByRole("log").first()).toContainText("Answer: Hello")
+    await composer(page).click({ trial: true })
+    await page.getByRole("button", { name: v.send, exact: true }).click({ trial: true })
+    await room("conversation")
+    // A scene while the conversation goes on (the phone sheet, or the rail).
+    await page.getByRole("button", { name: s.backHome }).first().click()
+    await page.getByRole("link", { name: /Morning Pulse/ }).click()
+    await expect(page).toHaveURL(/\/scenes\/pulse$/)
+    await composer(page).click({ trial: true })
+    await room("scene with the conversation")
+  })
+
+test("P4-1: a draft of only invisible characters is never sent", async ({ page }) => {
+  const agent = await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await composer(page).fill("​​⁠")
+  await composer(page).press("Enter")
+  await page.waitForTimeout(600)
+  const typed = agent.sent.filter((e) => e.type === "user_message")
+  expect(typed).toEqual([])
+})
+
+test("P4-1: invisible characters typed on home start no conversation", async ({ page }) => {
+  await fakeAgent(page)
+  const sessions = watch(page, "session")
+  await page.goto("/")
+  await composer(page).fill("​ ​")
+  await composer(page).press("Enter")
+  await page.waitForTimeout(800)
+  expect(sessions.filter((r) => r.method === "POST")).toHaveLength(0)
+})
+
+for (const size of [
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+  { width: 834, height: 1112 },
+])
+  test(`at a glance: Morning Pulse's first screen shows whole tiles above the dock (${size.width}×${size.height})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await page.goto("/scenes/pulse")
+    await expect(page.locator("[data-chart] svg").first()).toBeVisible()
+    await expect(page.locator("[data-dock-layer]")).toBeVisible()
+    const cut = await page.evaluate(() => {
+      const dock = document.querySelector("[data-dock-layer]")!.getBoundingClientRect().top
+      return [...document.querySelectorAll<HTMLElement>("[data-component]")]
+        .map((el) => ({ id: el.dataset.component, box: el.getBoundingClientRect() }))
+        .filter(({ box }) => box.top < dock && box.bottom > dock + 1)
+        .map(({ id, box }) => `${id} ends ${Math.round(box.bottom - dock)} px under the dock`)
+    })
+    expect(cut).toEqual([])
+    // The chart's day labels are on screen.
+    await expect(page.locator("[data-chart] [data-day]").first()).toBeInViewport()
+  })
+
+/** A touch swipe as the page sees it (start and end), from y0 to y1 at x. */
+const swipe = (page: Page, x: number, y0: number, y1: number) =>
+  page.evaluate(
+    ({ x, y0, y1 }) => {
+      const at = (y: number) =>
+        new Touch({ identifier: 7, target: document.body, clientX: x, clientY: y })
+      document.dispatchEvent(
+        new TouchEvent("touchstart", { touches: [at(y0)], changedTouches: [at(y0)] })
+      )
+      document.dispatchEvent(
+        new TouchEvent("touchend", { touches: [], changedTouches: [at(y1)] })
+      )
+    },
+    { x, y0, y1 }
+  )
+
+test.describe("touch gestures (P10-5..7)", () => {
+  test.beforeEach(({ page }) => {
+    test.skip(!test.info().project.use.hasTouch, "touch projects")
+    void page
+  })
+
+  test("P10-5: tapping the handle shows the header, tapping it again hides it", async ({
+    page,
+  }) => {
+    await page.goto("/scenes/pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    const handle = page.locator("[data-flow-handle]")
+    const box = (await handle.boundingBox())!
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+  })
+
+  test("P10-6: in a live conversation on a short screen, the first swipe from the top reveals the header", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    let event = 0
+    await fakeAgent(page, (text, a) =>
+      a.emit({
+        type: "agent_response",
+        agent_response_event: { agent_response: `Answer: ${text} ${"words ".repeat(30)}`, event_id: ++event },
+      })
+    )
+    await page.goto("/")
+    await startText(page)
+    for (let i = 1; i <= 4; i++) {
+      await send(page, `Line ${i}`)
+      await expect(page.getByRole("log").first()).toContainText(`Answer: Line ${i}`)
+    }
+    // The conversation follows its newest line: the scroller is not at its top.
+    expect(
+      await page.locator("[data-flow-scroll]").evaluate((m) => m.scrollTop)
+    ).toBeGreaterThan(0)
+    await swipe(page, 160, 14, 90)
+    await expect(header(page)).toHaveAttribute("data-shown", "true")
+  })
+
+  test("P10-7: with the phone sheet raised, the orb sits in the sheet and never covers its handle", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+    await page.goto("/")
+    await startText(page)
+    await send(page, "Hello")
+    await expect(page.getByRole("log")).toContainText("Answer: Hello")
+    await page.getByRole("button", { name: s.backHome }).first().click()
+    await page.getByRole("button", { name: s.raiseConversation }).click()
+    const lower = page.getByRole("button", { name: s.lowerConversation })
+    await expect(lower).toBeVisible()
+    await expect
+      .poll(async () => {
+        const o = (await page.locator("[data-orb]").boundingBox())!
+        const h = (await lower.boundingBox())!
+        const s = (await sheet(page).boundingBox())!
+        const overHandle =
+          o.x < h.x + h.width && o.x + o.width > h.x && o.y < h.y + h.height && o.y + o.height > h.y
+        return !overHandle && o.y >= s.y - 1
+      })
+      .toBe(true)
+    // A tap on the handle lowers the sheet (it never opens the full conversation instead).
+    const h = (await lower.boundingBox())!
+    await page.touchscreen.tap(h.x + h.width / 2, h.y + h.height / 2)
+    await expect(page.getByRole("button", { name: s.raiseConversation })).toBeVisible()
+    await expect(page.locator("[data-conversation-header]")).toHaveCount(0)
+  })
+})
+
+test("P10-1 / INT-2: the handle and the skip link are 44 px; status text never sticks out", async ({
+  page,
+}) => {
+  await page.goto("/scenes/pulse")
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+  if (test.info().project.use.hasTouch) {
+    for (const size of [null, { width: 667, height: 375 }]) {
+      if (size) await page.setViewportSize(size)
+      const handle = (await page.locator("[data-flow-handle]").boundingBox())!
+      expect(handle.height).toBeGreaterThanOrEqual(44)
+      expect(handle.width).toBeGreaterThanOrEqual(44)
+    }
+  }
+  await page.keyboard.press("Tab")
+  const skip = page.getByRole("link", { name: s.skipToContent })
+  await expect(skip).toBeFocused()
+  expect((await skip.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  // Rotation with a draft: no status line is wider than its box unless it ellipsizes.
+  await composer(page).fill("A draft that stays while the phone turns")
+  await page.setViewportSize({ width: 667, height: 375 })
+  await page.setViewportSize({ width: 375, height: 667 })
+  // What is painted: resize events fire in the next rendering step.
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  )
+  const out = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[role="status"]')]
+      .filter((el) => el.offsetParent !== null && !el.closest(".sr-only"))
+      .filter((el) => {
+        const r = el.getBoundingClientRect()
+        return r.width > 2 && r.height > 2 // visually hidden labels are not on screen
+      })
+      .filter(
+        (el) =>
+          el.scrollWidth > el.clientWidth + 1 &&
+          getComputedStyle(el).textOverflow !== "ellipsis"
+      )
+      .map((el) => `${el.tagName} ${el.textContent?.slice(0, 30)}`)
+  )
+  expect(out).toEqual([])
+})
+
+/** Mobile Chrome zooms the page out when anything widens the layout: it must never happen. */
+async function expectNotZoomed(page: Page, width: number) {
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  )
+  const v = await page.evaluate(() => ({
+    scale: window.visualViewport?.scale ?? 1,
+    inner: window.innerWidth,
+    scroll: document.documentElement.scrollWidth,
+  }))
+  expect(v, "never zoomed out").toEqual({ scale: 1, inner: width, scroll: width })
+}
+
+test("P10-9: rotating on a scene during a conversation never zooms the app out", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.isMobile, "mobile zoom")
+  await page.setViewportSize({ width: 375, height: 667 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  await page.getByRole("link", { name: /Morning Pulse/ }).click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  await page.waitForTimeout(700) // the orb lands
+  await expectNotZoomed(page, 375)
+  await page.setViewportSize({ width: 667, height: 375 })
+  await expectNotZoomed(page, 667)
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.waitForTimeout(700)
+  await expectNotZoomed(page, 375)
+  // At phone width list scenes are cards: no table row is wider than the screen.
+  const wide = await page.evaluate(() =>
+    [...document.querySelectorAll("tr")]
+      .filter((r) => r.getBoundingClientRect().right > innerWidth + 1)
+      .filter((r) => !r.closest(".sr-only"))
+      .map((r) => Math.round(r.getBoundingClientRect().right))
+  )
+  expect(wide).toEqual([])
+})
+
+test("P10-8: on a short, narrow screen the conversation bar's words never run into its buttons", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 667, height: 375 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  const bar = page.locator("[data-conversation-header]")
+  await expect(bar).toBeVisible()
+  const clash = await bar.evaluate((b) => {
+    const words = [...b.querySelectorAll<HTMLElement>("[role=status], p, span")].filter(
+      (el) => el.getBoundingClientRect().width > 2 && el.textContent?.trim()
+    )
+    const buttons = [...b.querySelectorAll("button")].map((x) => x.getBoundingClientRect())
+    const hit = (a: DOMRect, c: DOMRect) =>
+      a.left < c.right && a.right > c.left && a.top < c.bottom && a.bottom > c.top
+    return words
+      .filter((w) => !w.closest("button"))
+      .flatMap((w) => {
+        const r = w.getBoundingClientRect()
+        const over = buttons.some((x) => hit(r, x))
+        const cut = w.scrollWidth > w.clientWidth + 1 && getComputedStyle(w).textOverflow !== "ellipsis"
+        return over || cut ? [`${w.tagName} ${w.textContent?.slice(0, 20)} over=${over} cut=${cut}`] : []
+      })
+  })
+  expect(clash).toEqual([])
+  // The first-visit hint never sits on the conversation's bar.
+  await expect(page.getByText(s.headerHint)).toHaveCount(0)
+  await expectSingleScroller(page)
+})
+
+test("P10-10: rotating during a conversation keeps it reachable at every size (sheet, rail or its toggle)", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.hasTouch, "phones and tablets turn")
+  await page.setViewportSize({ width: 375, height: 812 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log")).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  const reachable = async (w: number) => {
+    // The conversation shows (rail or sheet), or a visible control opens it.
+    const pane = page.locator("aside#flow-rail, section[aria-label] [aria-label='" + s.raiseConversation + "'], section[aria-label] [aria-label='" + s.lowerConversation + "']")
+    const toggle = page.getByRole("button", { name: s.showConversation })
+    await expect(pane.or(toggle).first(), `reachable at ${w}`).toBeVisible()
+    const wide = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("aside, section")]
+        .map((el) => el.getBoundingClientRect().right)
+        .filter((r) => r > innerWidth + 1)
+    )
+    expect(wide, `nothing wider than ${w}`).toEqual([])
+  }
+  await reachable(375)
+  for (const size of [
+    { width: 812, height: 375 },
+    { width: 375, height: 812 },
+    { width: 812, height: 375 },
+    { width: 320, height: 568 },
+  ]) {
+    await page.setViewportSize(size)
+    await page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+    )
+    await reachable(size.width)
+  }
+})
+
+for (const size of [
+  { width: 640, height: 400 },
+  { width: 844, height: 390 },
+])
+  test(`P9-7: with a review open on a short screen (${size.width}×${size.height}) the review keeps most of the height`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await stockRoutes(page)
+    const agent = await fakeAgent(page)
+    await proposeStock(page, agent)
+    await expect(scene(page)).toContainText("Confirm action 135790")
+    await page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+    )
+    const h = await page
+      .locator("[data-flow-scroll]")
+      .evaluate((m) => m.getBoundingClientRect().height)
+    expect(h, "review content height").toBeGreaterThanOrEqual(Math.round(size.height * 0.55))
+    await expect(header(page)).not.toHaveAttribute("data-shown")
+    await expectSingleScroller(page)
+  })
+
+test("P10-2: with the phone sheet raised and the keyboard up, the field and Send stay above it", async ({
+  page,
+}) => {
+  test.skip(!test.info().project.use.isMobile, "phone")
+  await page.setViewportSize({ width: 375, height: 667 })
+  await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+  await page.goto("/")
+  await startText(page)
+  await send(page, "hi")
+  await expect(page.getByRole("log").first()).toContainText("Answer: hi")
+  await page.getByRole("button", { name: s.backHome }).first().click()
+  await page.getByRole("button", { name: s.raiseConversation }).click()
+  await composer(page).focus()
+  const visible = Math.round(667 * 0.58)
+  await page.evaluate((h) => {
+    Object.defineProperty(window.visualViewport, "height", { configurable: true, get: () => h })
+    window.visualViewport!.dispatchEvent(new Event("resize"))
+  }, visible)
+  await expect
+    .poll(async () => {
+      const f = (await composer(page).boundingBox())!
+      const b = (await page.getByRole("button", { name: v.send, exact: true }).boundingBox())!
+      return Math.max(f.y + f.height, b.y + b.height)
+    })
+    .toBeLessThanOrEqual(visible)
+})
+
+test("K2: at 200% zoom, every header control reached by Tab is on screen at once", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 640, height: 400 })
+  await page.goto("/scenes/pulse")
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+  const off: string[] = []
+  for (let i = 0; i < 14; i++) {
+    await page.keyboard.press("Tab")
+    // No wait: the focused control must be on screen the moment it has focus.
+    const f = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null
+      if (!el?.closest("[data-flow-header]")) return null
+      const r = el.getBoundingClientRect()
+      const on = r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth
+      return on ? null : `${el.getAttribute("aria-label") ?? el.textContent?.trim()} at ${Math.round(r.top)}..${Math.round(r.bottom)}`
+    })
+    if (f) off.push(f)
+  }
+  expect(off).toEqual([])
+})
+
+for (const size of [
+  { width: 640, height: 400 },
+  { width: 700, height: 420 },
+  { width: 727, height: 450 },
+])
+  test(`K4: at 200% zoom (${size.width}×${size.height}) the conversation sheet sits under the scene and Send stays on screen`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size)
+    await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
+    await page.goto("/scenes/sales")
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await composer(page).focus()
+    await page.keyboard.type("Sales today?")
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("button", { name: s.raiseConversation })).toBeVisible()
+    const send = page.getByRole("button", { name: v.send, exact: true })
+    await send.focus()
+    const b = (await send.boundingBox())!
+    expect(b.x + b.width).toBeLessThanOrEqual(size.width)
+    expect(b.y + b.height).toBeLessThanOrEqual(size.height)
+    // The sheet spans the width under the scene (never a narrow column beside it).
+    const sh = (await sheet(page).boundingBox())!
+    expect(sh.width).toBeGreaterThan(size.width * 0.9)
+    await expectSingleScroller(page)
+    await expectNoHorizontalScroll(page)
+  })
+
+test("R2: at 200% zoom, the receipt that takes focus after Approve is on screen", async ({
+  page,
+  api,
+}) => {
+  await page.setViewportSize({ width: 640, height: 400 })
+  const stock = readBack("120.00")["GET /workspace/w1/products/p-500/stock-with-bins"]!
+  api.on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => stock.body as object)
+  await stockRoutes(page)
+  const agent = await fakeAgent(page)
+  await proposeStock(page, agent)
+  const approve = scene(page).getByRole("button", { name: v.approve })
+  await approve.focus()
+  await page.keyboard.press("Enter")
+  await expect(receipt(page)).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null
+        if (!el || el === document.body) return "body"
+        const r = el.getBoundingClientRect()
+        return r.top >= 0 && r.bottom <= innerHeight ? "on screen" : `off ${Math.round(r.top)}..${Math.round(r.bottom)}`
+      })
+    )
+    .toBe("on screen")
+  await expectSingleScroller(page)
+})

@@ -1,6 +1,7 @@
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, ILUNDO, mockApi, readiness, RUAHA } from "./api"
+import { revealHeader } from "./shell"
 
 test.beforeEach(async ({ page }) => {
   await readiness(page, 200, { enabled: true, ready: true })
@@ -30,15 +31,22 @@ test("two workspaces: switching changes the shown and saved workspace", async ({
   await page.goto("/")
   const picker = page.getByRole("combobox", { name: "Workspace" })
   await expect(picker).toContainText(ILUNDO.display_name)
+  await revealHeader(page)
   await picker.click()
   await page
     .getByRole("option", { name: RUAHA.display_name, exact: true })
     .click()
   await expect(picker).toContainText(RUAHA.display_name)
-  // The header names who and where (the picker, when shown, also does).
+  // The header names who and where (the picker, when shown, also does). Its sr-only status line
+  // (P9-3) announces the switch; it is not the visible line.
   await expect(
-    page.locator("[data-flow-header] p", { hasText: RUAHA.display_name })
+    page.locator("[data-flow-header] p:not([role=status])", {
+      hasText: RUAHA.display_name,
+    })
   ).toBeVisible()
+  await expect(
+    page.locator("[data-flow-header] p[role=status]")
+  ).toContainText(RUAHA.display_name)
   expect(await saved(page)).toBe("w2")
   await expectNoHorizontalScroll(page)
 })

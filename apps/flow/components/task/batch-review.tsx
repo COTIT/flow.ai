@@ -6,6 +6,7 @@ import { Button } from "@genesy/ui/components/button"
 import { useVoice } from "@genesy/voice/components/provider"
 import { notIncludedRows } from "@genesy/voice/lib/presentation"
 import { batchCounts } from "@genesy/voice/lib/task"
+import { useOnceIntent } from "@/lib/use-once-intent"
 
 /**
  * A batch in numbers: before approval, what matched and what is kept out (nothing is written for
@@ -17,8 +18,9 @@ export function BatchReview() {
   const voice = useVoice()
   const batch = voice.batchProgress
   const review = voice.review?.kind === "batch" ? voice.review : null
-  if (!review && !batch) return null
   const counts = batch?.steps.length ? batchCounts(batch) : null
+  const rest = useOnceIntent(`${batch?.id}:${counts?.notRun}`)
+  if (!review && !batch) return null
   const ran = batch && !["proposed", "approved"].includes(batch.state)
   return (
     <section
@@ -48,10 +50,9 @@ export function BatchReview() {
           <p className="mr-auto">{t("batch.continueText")}</p>
           <Button
             className="min-h-11"
-            disabled={!voice.connected || voice.busy}
-            onClick={() =>
-              void voice.send(t("batch.continueMessage", { count: counts.notRun }))
-            }
+            disabled={!voice.connected || voice.busy || rest.pending}
+            aria-busy={rest.pending}
+            onClick={() => void rest.send(t("batch.continueMessage", { count: counts.notRun }))}
           >
             {t("batch.continue")}
           </Button>

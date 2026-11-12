@@ -6,10 +6,11 @@ import { ChevronRight, ExternalLink } from "lucide-react"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
-import { dailyAsSales, type Money, type ResultView } from "../../lib/views"
+import { dailyAsSales, type Money, type ResultView, drawnAs } from "../../lib/views"
 import { fieldName } from "../../lib/helpers"
 import { useVoice } from "../provider"
 import { SalesChart } from "./sales-chart"
+import { KindChart } from "./kinds"
 
 type Of<K extends ResultView["kind"]> = Extract<ResultView, { kind: K }>
 /** A host's own words for a record status; `domain` is the record kind, e.g. "orders". */
@@ -233,9 +234,11 @@ function Attention({ view }: { view: Of<"attention"> }) {
 export function VoiceResult({ views, statusLabel }: { views: ResultView[]; statusLabel?: StatusLabel }) {
   const first = views[0]
   if (!first) return null
+  // An asked-for kind, and pictures with no special drawing of their own, use the shared kinds.
   const body =
-    first.kind === "sales" ? <SalesChart views={views.filter((v): v is Of<"sales"> => v.kind === "sales")} />
-    : first.kind === "sales_daily" ? <SalesChart views={dailyAsSales(first)} />
+    first.presentation || first.kind === "comparison" || first.kind === "breakdown" ? <KindChart views={views} />
+    : first.kind === "sales" ? <SalesChart views={views.filter((v): v is Of<"sales"> => v.kind === "sales")} />
+    : first.kind === "sales_daily" ? <SalesChart views={dailyAsSales(first)} trend />
     : first.kind === "records" ? <Records view={first} />
     : first.kind === "lot_origin" ? <LotOrigin view={first} />
     : first.kind === "trail" ? <Trail view={first} />
@@ -243,7 +246,7 @@ export function VoiceResult({ views, statusLabel }: { views: ResultView[]; statu
     : null
   return body ? (
     <HostStatus.Provider value={statusLabel}>
-      <div data-role="result" data-kind={first.kind} className={CARD}>{body}</div>
+      <div key={drawnAs(first)} data-role="result" data-kind={first.kind} className={CARD}>{body}</div>
     </HostStatus.Provider>
   ) : null
 }

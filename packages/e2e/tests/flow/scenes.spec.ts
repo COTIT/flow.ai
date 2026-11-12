@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 
 import { expect, test } from "./storefront-api"
 import { HONEY, sc } from "./scenes-api"
-import { orbAt, phase, s as shell } from "./shell"
+import { orbAt, phase, s as shell, homeOrb } from "./shell"
 import { fakeAgent, startText, watch } from "./voice"
 
 // Every test signs in and gets the stand-in API, also those that never touch `api`.
@@ -21,9 +21,11 @@ test("Stock Watch lists products below minimum; selecting one marks it for the c
   ).toBeVisible()
   const honey = page.locator(`[data-record="${HONEY}"]`)
   await expect(honey).toContainText("Raw Honey 500g")
-  await expect(honey).toContainText("Available 14")
-  await expect(honey).toContainText("Minimum 20")
-  await expect(honey).toContainText("Short by 6")
+  // Lists board: a table row (labelled cells on a phone).
+  const row = page.locator(`[data-row="${HONEY}"]`)
+  await expect(row.getByRole("cell").nth(0)).toContainText("14")
+  await expect(row.getByRole("cell").nth(1)).toContainText("20")
+  await expect(row.getByRole("cell").nth(2)).toContainText("6")
   await honey.click()
   await expect(honey).toHaveAttribute("aria-pressed", "true")
 })
@@ -129,7 +131,7 @@ test("a live conversation opens Morning Pulse, then Stock Watch: orb compact, on
   await startText(page)
   await orbAt(page, "immersive")
   await page.getByRole("button", { name: shell.backHome }).click()
-  await orbAt(page, "ambient")
+  await orbAt(page, homeOrb(page))
   await yourFlow(page)
     .getByRole("link", { name: /Morning Pulse/ })
     .click()
@@ -149,4 +151,33 @@ test("a live conversation opens Morning Pulse, then Stock Watch: orb compact, on
   await expect(phase(page)).toHaveText(new RegExp(shell.phase.live))
   expect(agent.connections).toBe(1)
   expect(sessions.filter((x) => x.method === "POST")).toHaveLength(1)
+})
+
+test("the agent quietly knows what the open scene shows (ids and types, never values)", async ({
+  page,
+}) => {
+  const agent = await fakeAgent(page)
+  await page.goto("/")
+  await startText(page)
+  const contexts = () =>
+    agent.sent
+      .filter((e) => e.type === "contextual_update")
+      .map((e) => String(e.text))
+      .filter((text) => text.includes("flow_context"))
+      .map((text) => JSON.parse(text).flow_context)
+  await page.getByRole("button", { name: shell.backHome }).click()
+  await yourFlow(page).getByRole("link", { name: /Morning Pulse/ }).click()
+  await expect(page).toHaveURL(/\/scenes\/pulse$/)
+  await expect
+    .poll(() => contexts().at(-1))
+    .toEqual({
+      active_scene: "pulse",
+      visible: [
+        { id: "sales-today", type: "metric_card", metric: "sales.gross", period: "today" },
+        { id: "orders-pending", type: "metric_card", metric: "orders.pending", period: "today" },
+        { id: "sales-trend", type: "line_chart", metric: "sales.gross", period: "last_7_days" },
+        { id: "attention", type: "attention_panel" },
+      ],
+    })
+  expect(JSON.stringify(contexts())).not.toMatch(/€|\d{3,}/)
 })

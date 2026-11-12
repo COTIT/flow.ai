@@ -1,5 +1,6 @@
 {
   "shell": {
+    "workspaceSwitched": "Umehamia {name}",
     "phaseLabel": "Sauti",
     "phase": {
       "ready": "Tayari",
@@ -23,6 +24,7 @@
     "suggested": "Imependekezwa kwako",
     "mic": "Maikrofoni",
     "switchVoice": "Badili kwenda sauti",
+    "reviewReady": "Ukaguzi uko tayari: {summary}. Idhinisha kitendo na Ghairi viko juu kidogo.",
     "orb": {
       "idle": "Genesy yuko tayari",
       "connecting": "Inaunganisha",
@@ -34,6 +36,22 @@
       "recovering": "Inarejesha",
       "error": "Kuna tatizo",
       "ended": "Mazungumzo yameisha"
-    }
+    },
+    "offlineNavigation": "Uko nje ya mtandao. Hii itafunguka utakaporudi mtandaoni.",
+    "skipToContent": "Ruka hadi maudhui",
+    "menu": "Menyu",
+    "showHeader": "Onyesha kichwa",
+    "hideHeader": "Ficha kichwa",
+    "headerHint": "Telezesha chini kutoka juu kupata menyu",
+    "showConversation": "Onyesha mazungumzo",
+    "hideConversation": "Ficha mazungumzo",
+    "resizeConversation": "Badilisha upana wa mazungumzo",
+    "jumpToLatest": "Nenda kwa jipya zaidi",
+    "raiseConversation": "Inua mazungumzo",
+    "lowerConversation": "Shusha mazungumzo",
+    "newReply": "Genesy amejibu",
+    "signOutTitle": "Ondoka na kumaliza mazungumzo haya?",
+    "signOutText": "Genesy itaacha kusikiliza na utaondolewa kwenye kifaa hiki.",
+    "signOutStay": "Endelea kuingia"
   }
 }

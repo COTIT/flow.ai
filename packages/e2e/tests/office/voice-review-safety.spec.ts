@@ -98,6 +98,69 @@ const reviews: Review[] = [
     hides: ["Stock from", "stock_from"],
   },
   {
+    // P3-3: the number being set leads the card, before More details.
+    name: "setting stock levels shows the warehouse, old and new amount, with a plain title",
+    operationId: "stock_set_levels",
+    request: "Set the honey stock to 130.",
+    extra: { method: "POST" },
+    details: {
+      workspace: "w1",
+      target: { product: "01950000-0000-7000-8000-000000000005" },
+      record: { type: "product", label: "Raw Honey 500g" },
+      current: {
+        kind: "stock",
+        locked: { id: "01950000-0000-7000-8000-000000000005", slots: [] },
+        changes: [{ field: "stock", label: "Main store", before: "14", after: "130" }],
+      },
+      changes: {
+        warehouses: [{ warehouse_id: "01950000-0000-7000-8000-000000000006", stock_lvl: 130 }],
+      },
+    },
+    shows: [
+      en.voice.operationTitles.stock_set_levels,
+      "Raw Honey 500g",
+      `Main store · ${en.voice.reviewFields.stock}`,
+      "14",
+      "130",
+    ],
+    hides: ["Run action", en.voice.operationActions.run],
+  },
+  {
+    name: "confirming an order shows its status change in words",
+    operationId: "orders_confirm",
+    request: "Confirm order 1042.",
+    extra: { method: "POST" },
+    details: {
+      workspace: "w1",
+      target: { order: "01950000-0000-7000-8000-000000000007" },
+      record: { type: "order", label: "1042" },
+      current: {
+        kind: "order",
+        changes: [{ field: "status", before: en.voice.values.draft, after: en.voice.values.open }],
+      },
+      changes: {},
+    },
+    shows: [en.voice.operationTitles.orders_confirm, en.voice.reviewFields.status, "Draft", "Open"],
+  },
+  {
+    name: "without API rows, the request's plain values lead and ids stay hidden",
+    operationId: "relations_update",
+    request: "Rename Kendall's company to Mama Nzuri Ltd.",
+    details: {
+      workspace: "w1",
+      target: { relation: "01950000-0000-7000-8000-000000000008" },
+      record: { type: "customer", label: "Kendall Moreau" },
+      changes: {
+        company_name: "Mama Nzuri Ltd",
+        country_id: "01950000-0000-7000-8000-000000000009",
+        address: { city: "Arusha" },
+      },
+    },
+    shows: [en.voice.reviewFields.company_name, "Mama Nzuri Ltd"],
+    hides: ["Arusha", "country"],
+    newOnly: true,
+  },
+  {
     name: "setting an exchange rate names the pair and shows old and new rate with the day",
     operationId: "currency_rates_create",
     request: "Set the euro to shilling rate to 3000 from 1 November.",

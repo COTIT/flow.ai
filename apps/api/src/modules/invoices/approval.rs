@@ -4,7 +4,10 @@ use super::{repo, service};
 use crate::{
     AppError,
     modules::{
-        assistant::{dto::ProposalInput, preconditions, repo::Owner},
+        assistant::{
+            dto::ProposalInput, preconditions, preconditions_repo::payment_amount, repo::Owner,
+            review_rows::money,
+        },
         permissions,
     },
 };
@@ -70,8 +73,13 @@ pub async fn capture(
             input.body.clone().unwrap_or_else(|| json!({})),
         )?;
         let facts = service::review_create(conn, owner.workspace_id, &request).await?;
-        let review =
-            json!({"version":1,"operation_id":operation,"facts":{"kind":"invoice","priced":facts}});
+        let total = money(
+            "total",
+            &facts["currency"],
+            None,
+            minor(&facts["total_minor"])?,
+        );
+        let review = json!({"version":1,"operation_id":operation,"facts":{"kind":"invoice","priced":facts,"changes":[total]}});
         if review.to_string().len() > 32768 {
             return Err(AppError::field(
                 "body",
@@ -104,11 +112,13 @@ pub async fn capture(
         None
     };
     let facts = current(conn, owner.workspace_id, id, contact).await?;
+    let changes = rows(conn, owner.workspace_id, input, id, &facts).await?;
     let mut review =
         json!({"version":1,"operation_id":operation,"facts":{"kind":"invoice","locked":facts}});
     if let Some(priced) = priced {
         review["facts"]["priced"] = priced;
     }
+    review["facts"]["changes"] = changes.into();
     if review.to_string().len() > 32768 {
         return Err(AppError::field(
             "body",
@@ -116,6 +126,55 @@ pub async fn capture(
         ));
     }
     Ok(Some(review))
+}
+
+fn minor(value: &Value) -> Result<i64, AppError> {
+    value
+        .as_i64()
+        .ok_or_else(|| AppError::Internal("invoice review total".into()))
+}
+
+/// Total and paid rows. Update is left out: its quote holds line changes, not a new total.
+async fn rows(
+    conn: &mut PgConnection,
+    workspace: Uuid,
+    input: &ProposalInput,
+    id: Uuid,
+    locked: &Value,
+) -> Result<Vec<Value>, AppError> {
+    let currency = &locked["currency"];
+    let total = minor(&locked["total_minor"])?;
+    let paid = locked["paid_minor"].as_i64().unwrap_or_default();
+    Ok(match input.operation_id.as_str() {
+        "invoices_duplicate" => vec![money("total", currency, None, total)],
+        "invoice_payments_create" => {
+            let payment = preconditions::validated::<
+                crate::modules::invoice_payments::dto::CreatePaymentRequest,
+            >(input.body.clone().unwrap_or_else(|| json!({})))?;
+            let decimals = currency["decimals"]
+                .as_u64()
+                .and_then(|d| u32::try_from(d).ok())
+                .ok_or_else(|| AppError::Internal("invoice currency decimals".into()))?;
+            let amount = crate::money::minor(payment.amount, decimals)?;
+            vec![
+                money("payment", currency, None, amount),
+                money("paid", currency, Some(paid), paid + amount),
+            ]
+        }
+        "invoice_payments_void" => {
+            let payment = input
+                .path
+                .split('/')
+                .nth(7)
+                .and_then(|v| Uuid::parse_str(v).ok())
+                .ok_or(AppError::NotFound)?;
+            let amount = payment_amount(conn, workspace, id, payment)
+                .await?
+                .ok_or(AppError::NotFound)?;
+            vec![money("paid", currency, Some(paid), paid - amount)]
+        }
+        _ => Vec::new(),
+    })
 }
 
 async fn current(

@@ -9,6 +9,7 @@ import { useRights } from "@genesy/api-client/rights"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { dismissHint, readActivity } from "@/lib/activity"
 import { useActivityKey } from "@/lib/pills"
+import { useTakeFocus } from "@/lib/use-take-focus"
 
 /** Uses after which the hint has done its job. */
 const FAMILIAR = 5
@@ -19,17 +20,35 @@ const AREAS = [
   ["invoices", "invoice.list"],
 ] as const
 
-/** First-visit guidance under the orb: short, dismissible, only about what this role may do. */
+/**
+ * First-visit guidance under the orb: short, dismissible, only about what this role may do.
+ * Dismissed or familiar, it shrinks to one quiet "What can Genesy do?" link to the explorer.
+ */
 export function DiscoveryHint() {
   const t = useTranslations("discovery.hint")
   const locale = useLocale()
   const rights = useRights()
   const key = useActivityKey()
   const [dismissed, setDismissed] = useState(false)
-  if (!key || !rights.read || dismissed) return null
+  // P9-1: the Dismiss button goes away; keyboard focus moves to the link that replaces the tip.
+  const link = useTakeFocus<HTMLAnchorElement>(dismissed)
+  if (!key || !rights.read) return null
   const { uses, hintDismissed } = readActivity(key)
   const total = Object.values(uses).reduce((sum, use) => sum + use.n, 0)
-  if (hintDismissed || total >= FAMILIAR) return null
+  // Once the tip is gone, a quiet link keeps the explorer findable (pills may be full).
+  if (dismissed || hintDismissed || total >= FAMILIAR)
+    return (
+      <Link
+        ref={link}
+        href="/explore"
+        className={buttonVariants({
+          variant: "ghost",
+          className: "min-h-11 text-muted-foreground",
+        })}
+      >
+        {t("whatCanDo")}
+      </Link>
+    )
 
   const areas = AREAS.filter(([, right]) => rights.may(right))
     .slice(0, 3)

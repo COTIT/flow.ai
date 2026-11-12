@@ -377,3 +377,28 @@ it("warns that publishing replaces the shop design, in the user's language", () 
   expect(reviewWarnings(facts("storefront_design_edit"), "en")).toEqual([])
   expect(reviewWarnings(facts("storefront_design_restore"), "en")).toEqual([])
 })
+
+it("words an order status row and formats stock and refund rows exactly", () => {
+  const order = (operation_id: string, changes: unknown[]) => ({
+    version: 1,
+    operation_id,
+    facts: { kind: "order", locked: { id: "o" }, changes },
+  })
+  expect(
+    reviewFacts(order("orders_confirm", [{ field: "status", before: "draft", after: "open" }]), "orders_confirm", "nl")?.changes
+  ).toEqual([{ field: "status", before: "Concept", after: "Open" }])
+  const eur = { code: "EUR", decimals: 2 }
+  expect(
+    reviewFacts(
+      order("orders_refund", [
+        { field: "refund", currency: eur, after_minor: 500 },
+        { field: "paid", currency: eur, before_minor: 1250, after_minor: 750 },
+      ]),
+      "orders_refund",
+      "en"
+    )?.changes
+  ).toEqual([
+    { field: "refund", currency: "EUR", after: "€5.00" },
+    { field: "paid", currency: "EUR", before: "€12.50", after: "€7.50" },
+  ])
+})

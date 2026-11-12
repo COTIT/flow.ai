@@ -9,6 +9,7 @@ import { flowStore, useFlow } from "@/lib/flow-store"
 import { useTask } from "@/lib/task-store"
 import { BatchReview } from "./batch-review"
 import { Clarify } from "./clarify"
+import { Expired } from "./expired"
 import { Receipt } from "./receipt"
 import { ResultsList, ReviewPanel } from "./results"
 import { Withdrawn } from "./withdrawn"
@@ -23,9 +24,19 @@ export function ApprovalScene() {
   const focus = useFlow((s) => s.resultFocus)
   const decided = useTask((s) => s.decided)
   const result = useTask((s) => s.result)
+  const withdrawn = useTask((s) => s.withdrawn)
   const results = voice.messages.filter(
     (row): row is TranscriptRow => row.role === "result" && !!row.views
   )
+  // Opened by its address with nothing left to show (e.g. a reload ended the conversation):
+  // home instead of an empty scene; replaced, so Back never returns to it.
+  const live = voice.connected || voice.starting || voice.upgrading
+  const empty = !live && !voice.review && !decided && !withdrawn && !results.length
+  useEffect(() => {
+    if (!empty) return
+    history.replaceState(history.state, "", location.pathname)
+    flowStore.setState({ resultOpen: false })
+  }, [empty])
   useEffect(() => {
     if (!focus) return
     const element = document.getElementById(`result-${focus}`)
@@ -39,6 +50,7 @@ export function ApprovalScene() {
         {t("results")}
       </h1>
       <Withdrawn />
+      <Expired />
       <Clarify />
       <BatchReview />
       <ReviewPanel withButtons />

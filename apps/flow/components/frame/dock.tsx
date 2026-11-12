@@ -14,6 +14,7 @@ import {
 } from "@genesy/voice/components/attachments"
 import { useVoice } from "@genesy/voice/components/provider"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
+import { isBlankMessage } from "@genesy/voice/lib/blank"
 import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
 import { Pills } from "@/components/discovery/pills" // F3
@@ -50,6 +51,24 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const resultOpen = useFlow((s) => s.resultOpen)
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
+  const composer = useRef<HTMLInputElement>(null)
+  const held = Boolean(voice.review)
+  // A control turns disabled (upgrading, or held by a review) and the browser drops its focus to
+  // the page: a keyboard user goes on at the review's button (K1), else in the message box (P9-4;
+  // a tap never pops the phone keyboard). Held dock buttons stay focusable (aria-disabled, K4),
+  // yet the review is still where a keyboard user goes next. Focus anywhere else is left alone.
+  useEffect(() => {
+    const active = document.activeElement as HTMLButtonElement | null
+    if (!(voice.upgrading || held) || !active?.matches(":focus-visible")) return
+    const heldHere = held && active.getAttribute("aria-disabled") === "true"
+    if (!active.disabled && !active.closest("[inert]") && !heldHere) return
+    const review = held
+      ? document.querySelector<HTMLElement>(
+          '[data-task-state="needs_approval"] button'
+        )
+      : null
+    ;(review ?? composer.current)?.focus()
+  }, [voice.upgrading, held])
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
   const { query: readiness, state } = useReadiness()
@@ -67,7 +86,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
     if (!voice.connected) return
     const typed = flowStore.getState().draft
     const { rest } = parseWake(typed.trim())
-    if (rest) void deliver(rest, typed)
+    if (rest && !isBlankMessage(rest)) void deliver(rest, typed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.starting, voice.connected])
 
@@ -76,7 +95,10 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
 
   // F3: `text` lets a suggestion send its instruction exactly as typing it + Enter would.
   const submit = async (text = draft) => {
-    const { wake, rest } = parseWake(text.trim())
+    const parsed = parseWake(text.trim())
+    const { wake } = parsed
+    // Only invisible characters (zero-width marks survive trim): nothing to send (P4-1).
+    const rest = isBlankMessage(parsed.rest) ? "" : parsed.rest
     const files = voice.attachments.some((file) => file.state !== "submitted")
     if (!rest && !wake && !files) return
     if (!voice.connected) {
@@ -108,92 +130,113 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   return (
     <section
       aria-label={t("shell.dock")}
-      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3"
+      // Short screens (phone landscape, zoomed laptop): one row, suggestions beside the field.
+      // Never taller than ~45% of the visible screen (P4-2): what sits above the field scrolls in
+      // the dock's own pane; the field and Send always stay in view.
+      className="flex max-h-[calc(var(--flow-vh,100dvh)*0.45)] min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [&_li_p]:min-w-0 [&_li_p]:truncate [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-flow-pane]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-flow-pane]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
     >
-      {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
-      <Pills
-        disabled={Boolean(voice.review)}
-        ask={(text) => {
-          flowStore.getState().setDraft(text)
-          void submit(text)
-        }}
-      />
-      {state && state !== "available" && !live ? (
-        <Notice
-          variant={look[state].variant}
-          title={t(`flow.${look[state].title}`)}
-          action={
-            state === "unknown" || state === "not_ready" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={readiness.isFetching}
-                onClick={() => void readiness.refetch()}
-              >
-                {t("flow.retry")}
-              </Button>
-            ) : null
-          }
-        >
-          {look[state].text ? t(`flow.${look[state].text}`) : null}
-        </Notice>
-      ) : null}
-      {phase === "ended" ? (
-        <p role="status" className="text-sm">
-          {t("shell.ended")}{" "}
-          {voice.unfinished || voice.recoveredTasks.length
-            ? `${t("shell.preserved")} `
-            : null}
-          <span className="text-muted-foreground">{t("shell.startAgain")}</span>
-        </p>
-      ) : null}
-      <VoiceUnfinished />
-      {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
-      {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
-      <ResumePrompt ended={phase === "ended"} /> {/* F4 */}
-      {handoff ? (
-        <Notice variant="info" title={t("flow.chat.secureTitle")}>
-          {handoffHref ? (
-            <>
-              <a
-                href={handoffHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ className: "mt-2 min-h-11" })}
-              >
-                {t("flow.chat.openInOffice")}
-                <ExternalLink aria-hidden />
-              </a>
-              <p className="mt-2 text-xs">{t("flow.chat.officeSignIn")}</p>
-            </>
-          ) : (
-            t("flow.chat.officeNotLinked")
-          )}
-        </Notice>
-      ) : null}
-      {voice.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {voice.error}
-        </p>
-      ) : null}
-      {voice.connected ? (
-        <AttachmentList
-          onPreview={(file, opener) => {
-            previewReturn.current = opener
-            setPreviewKey(file.key)
+      <div
+        data-flow-pane="dock"
+        className="relative flex max-h-[calc(var(--flow-vh,100dvh)*0.45-5rem)] min-h-0 min-w-0 shrink flex-col gap-2 overflow-y-auto overscroll-y-contain [@media(max-height:500px)]:max-h-[calc(var(--flow-vh,100dvh)*0.45-1rem)]"
+      >
+        {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
+        <Pills
+          disabled={Boolean(voice.review)}
+          ask={(text) => {
+            flowStore.getState().setDraft(text)
+            void submit(text)
           }}
         />
-      ) : null}
-      {/* While an action waits for approval nothing here can be used, so nothing cancels it by accident. */}
+        {state && state !== "available" && !live ? (
+          <Notice
+            variant={look[state].variant}
+            title={t(`flow.${look[state].title}`)}
+            action={
+              state === "unknown" || state === "not_ready" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={readiness.isFetching}
+                  onClick={() => void readiness.refetch()}
+                >
+                  {t("flow.retry")}
+                </Button>
+              ) : null
+            }
+          >
+            {look[state].text ? t(`flow.${look[state].text}`) : null}
+          </Notice>
+        ) : null}
+        {/* P9-4: always mounted, so a screen reader hears when a review arrives. A live region,
+            not a second role="status": the dock's status line stays the one status. */}
+        <p aria-live="polite" className="sr-only">
+          {voice.review
+            ? t("shell.reviewReady", { summary: voice.review.summary })
+            : ""}
+        </p>
+        {phase === "ended" ? (
+          <p role="status" className="text-sm">
+            {t("shell.ended")}{" "}
+            {voice.unfinished || voice.recoveredTasks.length
+              ? `${t("shell.preserved")} `
+              : null}
+            <span className="text-muted-foreground">
+              {t("shell.startAgain")}
+            </span>
+          </p>
+        ) : null}
+        <VoiceUnfinished />
+        {/* F4: the active task (review, run, receipt) on home; scenes show it in the scene bar. */}
+        {pathname === "/" && !resultOpen ? <TaskCapsule /> : null}
+        <ResumePrompt
+          idle={!(voice.connected || voice.starting || voice.upgrading)}
+        />{" "}
+        {/* F4; P5-1: also after a reload, never while starting */}
+        {handoff ? (
+          <Notice variant="info" title={t("flow.chat.secureTitle")}>
+            {handoffHref ? (
+              <>
+                <a
+                  href={handoffHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ className: "mt-2 min-h-11" })}
+                >
+                  {t("flow.chat.openInOffice")}
+                  <ExternalLink aria-hidden />
+                </a>
+                <p className="mt-2 text-xs">{t("flow.chat.officeSignIn")}</p>
+              </>
+            ) : (
+              t("flow.chat.officeNotLinked")
+            )}
+          </Notice>
+        ) : null}
+        {voice.error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {voice.error}
+          </p>
+        ) : null}
+        {voice.connected ? (
+          <AttachmentList
+            onPreview={(file, opener) => {
+              previewReturn.current = opener
+              setPreviewKey(file.key)
+            }}
+          />
+        ) : null}
+      </div>
+      {/* While an action waits for approval nothing here sends or acts, so nothing cancels it by
+          accident; the field itself stays focused and keeps what the person is typing (SW9). */}
       <form
-        inert={Boolean(voice.review)}
+        data-held={held || undefined}
         className="flex min-w-0 items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault()
-          void submit()
+          if (!held) void submit()
         }}
         onPaste={(e) => {
-          if (!voice.connected || !e.clipboardData.files.length) return
+          if (held || !voice.connected || !e.clipboardData.files.length) return
           e.preventDefault()
           voice.choose(Array.from(e.clipboardData.files))
         }}
@@ -216,15 +259,19 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
               type="button"
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11"
               aria-label={t("voice.addFiles")}
-              onClick={() => picker.current?.click()}
+              aria-disabled={held || undefined}
+              className={`min-h-11 min-w-11 ${held ? "opacity-50" : ""}`}
+              onClick={() => {
+                if (!held) picker.current?.click()
+              }}
             >
               <Paperclip aria-hidden />
             </Button>
           </>
         ) : null}
         <Input
+          ref={composer}
           aria-label={t("voice.message")}
           placeholder={t("shell.placeholder")}
           autoComplete="off"
@@ -240,10 +287,13 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
             type="button"
             variant="outline"
             size="icon"
-            className="min-h-11 min-w-11"
+            className="min-h-11 min-w-11 aria-disabled:opacity-50"
             aria-label={t("voice.start")}
+            aria-disabled={held || undefined}
             disabled={state !== "available"}
-            onClick={() => void voice.start(false)}
+            onClick={() => {
+              if (!held) void voice.start(false)
+            }}
           >
             <Mic aria-hidden />
           </Button>
@@ -275,9 +325,12 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         <Button
           type="submit"
           size="icon"
-          className="min-h-11 min-w-11"
+          className="min-h-11 min-w-11 aria-disabled:opacity-50"
           aria-label={t("voice.send")}
           // Unknown readiness still sends (Enter included); the start checks it first.
+          // While a review waits it stays focusable (aria-disabled): disabling it would drop
+          // the person's focus to <body> the moment the review arrives.
+          aria-disabled={held || undefined}
           disabled={!live && !!state && state !== "available"}
         >
           <Send aria-hidden />

@@ -21,10 +21,15 @@
     "refresh": "Refresh",
     "restricted": "Not available for your role",
     "retry": "Try again",
+    "busy": "Busy, trying again in {seconds, plural, one {# second} other {# seconds}}.",
+    "gone": "This isn't available any more.",
+    "offline": "You're offline. This loads when you're back online.",
     "failed": "Couldn't load this.",
     "notFound": "This scene doesn't exist.",
     "sceneError": "This scene couldn't be shown. Your conversation is unaffected.",
-    "fresh": "Updated {seconds} s ago",
+    "freshNow": "Updated just now",
+    "freshMinutes": "Updated {minutes, plural, one {# min} other {# min}} ago",
+    "freshAt": "Updated at {time}",
     "refreshing": "Refreshing…",
     "stale": "Data may be outdated",
     "refreshFailed": "Couldn't refresh. Showing earlier data.",
@@ -108,7 +113,10 @@
         "till_open_shifts": "{count, plural, one {# till shift still open} other {# till shifts still open}}",
         "lots_quarantined": "{count, plural, one {# lot in quarantine} other {# lots in quarantine}}",
         "webhooks_failed": "{count, plural, one {# webhook failing} other {# webhooks failing}}"
-      }
+      },
+      "snooze": "Snooze",
+      "untilTomorrow": "Until tomorrow",
+      "forWeek": "For 7 days"
     },
     "scene": {
       "pulse": {
@@ -144,6 +152,20 @@
       "sales": "Sales · {period}",
       "stock": "Stock Watch · saved"
     },
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "table": {
+      "product": "Product",
+      "item": "Item",
+      "order": "Order",
+      "date": "Date",
+      "total": "Total",
+      "invoice": "Invoice",
+      "due": "Due",
+      "open": "Open",
+      "actions": "Actions",
+      "rowActions": "Actions for {name}"
+    },
+    "showAll": "Show all",
+    "showLess": "Show less"
   }
 }

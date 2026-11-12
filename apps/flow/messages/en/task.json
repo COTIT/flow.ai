@@ -61,7 +61,8 @@
       "unknownText": "Don't repeat it: it may already have happened. Genesy checks the recorded outcome.",
       "check": "Ask Genesy to check",
       "checkMessage": "Check whether my last approved change completed. Don't repeat it.",
-      "next": "Next"
+      "next": "Next",
+      "approved": "Approved: {value}"
     },
     "clarify": {
       "title": "Which product did you mean?",
@@ -96,7 +97,16 @@
       "title": "Continue where you left off",
       "awaiting": "{summary} · waiting for your approval.",
       "continue": "Continue review",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "ran": "{summary} · it ran.",
+      "failed": "{summary} · it did not run.",
+      "unconfirmed": "{summary} · it couldn't be confirmed. Check before repeating it.",
+      "outcomes": "Since you were last here"
+    },
+    "expired": {
+      "title": "Review expired",
+      "askAgain": "Ask again",
+      "askAgainMessage": "That review expired before I approved it. Please prepare it again."
     }
   }
 }

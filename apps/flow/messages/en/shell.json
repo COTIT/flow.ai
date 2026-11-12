@@ -1,5 +1,6 @@
 {
   "shell": {
+    "workspaceSwitched": "Switched to {name}",
     "phaseLabel": "Voice",
     "phase": {
       "ready": "Ready",
@@ -23,6 +24,7 @@
     "suggested": "Suggested for you",
     "mic": "Microphone",
     "switchVoice": "Switch to voice",
+    "reviewReady": "Review ready: {summary}. Approve action and Cancel are just above.",
     "orb": {
       "idle": "Genesy is ready",
       "connecting": "Connecting",
@@ -34,6 +36,22 @@
       "recovering": "Recovering",
       "error": "Something went wrong",
       "ended": "Conversation ended"
-    }
+    },
+    "offlineNavigation": "You're offline. This opens when you're back online.",
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "showHeader": "Show the header",
+    "hideHeader": "Hide the header",
+    "headerHint": "Swipe down from the top for the menu",
+    "showConversation": "Show conversation",
+    "hideConversation": "Hide conversation",
+    "resizeConversation": "Resize the conversation",
+    "jumpToLatest": "Jump to latest",
+    "raiseConversation": "Raise the conversation",
+    "lowerConversation": "Lower the conversation",
+    "newReply": "Genesy replied",
+    "signOutTitle": "Sign out and end this conversation?",
+    "signOutText": "Genesy stops listening and you are signed out on this device.",
+    "signOutStay": "Stay signed in"
   }
 }

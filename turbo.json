@@ -78,6 +78,11 @@
         "PLAYWRIGHT_BROWSERS_PATH",
         "E2E_PORT_OFFSET",
         "E2E_STACK_OFFSET",
+        "PERSONA_SEED",
+        "PERSONA_STEPS",
+        "PERSONA_BUDGET_MS",
+        "FINDINGS_RED",
+        "PERSONA_VERBOSE",
         "E2E_DESIGN",
         "SHOP_DESIGN_ENABLED",
         "FLOW_URL"

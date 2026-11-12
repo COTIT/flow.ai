@@ -11,6 +11,7 @@ import {
   root,
   test,
 } from "./storefront-api"
+import { revealHeader } from "./shell"
 
 const region = "Storefront preview"
 
@@ -289,6 +290,7 @@ test("switching workspace reloads the frame for the other workspace only", async
     frame.getByRole("heading", { name: "From farm to your table" })
   ).toBeVisible()
 
+  await revealHeader(page)
   await page.getByRole("combobox", { name: "Workspace" }).click()
   await page.getByRole("option", { name: "Ruaha Growers" }).click()
   await expect(page.getByRole("region", { name: region })).toHaveCount(0)
