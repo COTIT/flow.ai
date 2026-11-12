@@ -58,13 +58,20 @@ export function useHeaderReveal(
     }
     const focusin = (e: FocusEvent) => {
       const target = el(e.target)
-      if (target?.closest(DIALOG))
-        return dispatch({ type: "dialog", open: true })
+      // A dialog opened from the header (sign out) sits above it: the header stays, so focus
+      // returns to a control on screen when it closes.
+      if (target?.closest(DIALOG)) {
+        if (!inHeader(e.relatedTarget)) dispatch({ type: "dialog", open: true })
+        return
+      }
       dispatch({ type: "dialog", open: false })
       if (inHeader(target)) {
         dispatch({ type: "popup", open: false })
-        // Only keyboard focus holds it open; a mouse click inside leaves it to the pointer.
-        if (target?.matches(":focus-visible")) dispatch({ type: "focusin" })
+        // Focus inside always shows it (a focused control is never off screen); only keyboard
+        // focus holds it open, a mouse click inside leaves it to the pointer.
+        dispatch({
+          type: target?.matches(":focus-visible") ? "focusin" : "swipe",
+        })
         return
       }
       if (target?.closest(POPUP)) return dispatch({ type: "popup", open: true })
@@ -80,9 +87,16 @@ export function useHeaderReveal(
       dispatch({ type: "focusout" })
     }
     const key = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || !shown.current) return
-      if (document.querySelector(`${POPUP},${DIALOG}`)) return // the menu/dialog closes first
-      if (inHeader(document.activeElement))
+      if (e.key !== "Escape") return
+      const inside = inHeader(document.activeElement)
+      // Focus inside counts even if it never revealed it: Escape never leaves focus on a hidden header.
+      if (!shown.current && !inside) return
+      // An open menu or dialog closes first (closed popups stay mounted, marked data-closed).
+      const open = [...document.querySelectorAll(`${POPUP},${DIALOG}`)].some(
+        (el) => !el.closest("[data-closed]")
+      )
+      if (open) return
+      if (inside)
         document.querySelector<HTMLElement>("[data-flow-content]")?.focus()
       dispatch({ type: "escape" })
     }

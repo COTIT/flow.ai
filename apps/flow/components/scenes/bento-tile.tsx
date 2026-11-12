@@ -68,6 +68,16 @@ export function BentoTile({
       ref={tile}
       data-component={id}
       data-size={size}
+      // Keyboard focus on a row behind the cut opens the tile: focus is never hidden.
+      onFocus={(e) => {
+        const el = tile.current
+        const target = e.target as Element
+        if (!el || !over || rows?.asked || target.closest("[data-tile-footer]"))
+          return
+        const cut = el.getBoundingClientRect().bottom - FOOTER_PX - 32
+        if (target.getBoundingClientRect().bottom > cut)
+          setRows({ n: tracksFor(el.scrollHeight + FOOTER_PX), asked: true })
+      }}
       style={rows ? { gridRow: `span ${rows.n}` } : undefined}
       className={`relative min-w-0 [&>*:first-child]:h-full ${rows?.asked ? "" : "@min-[640px]:overflow-hidden"} ${className}`}
     >
