@@ -311,7 +311,8 @@ test("probe: the first Tab lands on a visible control, and the whole page is rea
     page.getByRole("button", { name: typeInstead, exact: true }),
     page.getByRole("link", { name: d.hint.explore }),
     page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first(),
-    page.getByLabel(v.message),
+    // Orb-first home's dock holds the suggestions (the message box opens with the conversation).
+    page.getByRole("region", { name: shell.dock }).getByRole("list").getByRole("button").first(),
   ])
     expect(await tabTo(page, target, { max: 120 }), `unreachable: ${target}`).toBe(true)
 })

@@ -43,7 +43,8 @@ export const labels = {
   backHome: inAnyLocale((m) => m.shell.backHome),
   message: inAnyLocale((m) => m.voice.message),
   send: inAnyLocale((m) => m.voice.send),
-  textInstead: inAnyLocale((m) => m.voice.textInstead),
+  // Home's way to start typing (orb-first home: "Type instead").
+  textInstead: inAnyLocale((m) => m.shell.typeInstead),
   addFiles: inAnyLocale((m) => m.voice.addFiles),
   approve: inAnyLocale((m) => m.voice.approve),
 }

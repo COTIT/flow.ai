@@ -20,7 +20,7 @@ import type { Persona } from "./harness"
 
 export type Locale = "en" | "nl" | "sw"
 const pack = (voice: typeof voiceEn, shell: typeof shellEn, common: typeof commonEn) => ({
-  textInstead: voice.voice.textInstead,
+  textInstead: shell.shell.typeInstead, // orb-first home: "Type instead"
   message: voice.voice.message,
   send: voice.voice.send,
   approve: voice.voice.approve,

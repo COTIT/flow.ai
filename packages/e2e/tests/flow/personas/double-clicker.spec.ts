@@ -17,7 +17,7 @@ import {
   stockReview,
   stockRoutes as baseStockRoutes,
 } from "../task"
-import { startText, v, type Agent } from "../voice"
+import { startText, v, type Agent, typeInstead } from "../voice"
 import { expect, test, type Persona, type Step } from "./harness"
 
 const many = (p: Persona) => p.pick(["double", "triple"] as const)
@@ -194,7 +194,7 @@ test("double-clicker: everything twice or three times, before the last one finis
     { name: "back home (double/triple)", weight: 3, run: () => tap(persona, page.getByRole("button", { name: shell.backHome }), many(persona)) },
     { name: "storefront (double)", weight: 1, run: () => tap(persona, page.getByRole("link", { name: "Storefront", exact: true }), "double") },
     { name: "orb (double/triple)", weight: 3, run: () => tap(persona, page.locator("[data-orb]:not([aria-hidden])"), many(persona)) },
-    { name: "use text (triple)", weight: 2, run: () => tap(persona, page.getByRole("button", { name: v.textInstead, exact: true }), "triple") },
+    { name: "use text (triple)", weight: 2, run: () => tap(persona, page.getByRole("button", { name: typeInstead, exact: true }), "triple") },
     {
       name: "ask, then Enter again and again",
       weight: 4,
@@ -280,7 +280,7 @@ test("double-clicker: everything twice or three times, before the last one finis
 
 test("P2: Use text instead, triple-clicked, opens one conversation", async ({ persona, page }) => {
   await page.goto("/")
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click({ clickCount: 3 })
+  await page.getByRole("button", { name: typeInstead, exact: true }).click({ clickCount: 3 })
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
   await page.waitForTimeout(500)
   expect(persona.agent.connections, "one socket").toBe(1)
@@ -601,8 +601,8 @@ test("P2: End conversation double-clicked, then Use text instead hammered", asyn
   await page.goto("/")
   await startText(page)
   await page.getByRole("button", { name: v.end }).dblclick()
-  await persona.click(page.getByRole("button", { name: v.textInstead, exact: true }), "triple")
-  await persona.click(page.getByRole("button", { name: v.textInstead, exact: true }), "double")
+  await persona.click(page.getByRole("button", { name: typeInstead, exact: true }), "triple")
+  await persona.click(page.getByRole("button", { name: typeInstead, exact: true }), "double")
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
   await page.waitForTimeout(500)
   expect(persona.agent.connections, "one new socket after the first").toBe(2)

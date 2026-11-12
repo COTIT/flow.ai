@@ -3,7 +3,7 @@
 import { expect, notice, test, tunnel } from "./offline"
 import { sc } from "./scenes-api"
 import { dock, s } from "./shell"
-import { v } from "./voice"
+import { v, typeInstead } from "./voice"
 
 test.beforeEach(({ api, guard }) => void [api, guard])
 
@@ -74,10 +74,10 @@ test("the voice offline alert goes once the browser is back online", async ({
   const flip = await tunnel(page)
   await page.goto("/")
   await expect(
-    page.getByRole("button", { name: v.textInstead, exact: true })
+    page.getByRole("button", { name: typeInstead, exact: true })
   ).toBeVisible()
   await flip(true)
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click()
+  await page.getByRole("button", { name: typeInstead, exact: true }).click()
   const offlineAlert = dock(page)
     .getByRole("alert")
     .filter({ hasText: v.offline })
