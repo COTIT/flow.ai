@@ -23,12 +23,19 @@ type Options = { allow: Allow }
  * Failures a test causes on purpose (offline, a 503 it routes), per page: the guard lets requests
  * matching these through; everything else still fails the test.
  */
-const injected = new WeakMap<Page, RegExp[]>()
-export function markInjected(page: Page, url: RegExp) {
+/** A URL pattern, or any test of a URL (e.g. one that holds only for a while). */
+type UrlMatch = { test(url: string): boolean }
+const injected = new WeakMap<Page, UrlMatch[]>()
+export function markInjected(page: Page, url: UrlMatch) {
   injected.set(page, [...(injected.get(page) ?? []), url])
 }
 const isInjected = (page: Page, url: string) =>
   injected.get(page)?.some((re) => re.test(url)) ?? false
+/** "Failed to load chunk <url>" for a chunk whose request the test cut (offline, failApi, tunnel). */
+const injectedChunk = (page: Page, text: string) => {
+  const chunk = text.match(/Failed to load chunk (\S+)/)?.[1]
+  return !!chunk && isInjected(page, new URL(chunk, page.url()).href)
+}
 
 /** Records a page's problems (console errors, page errors, failed or >= 400 requests). */
 export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
@@ -57,8 +64,7 @@ export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
     // The browser's own offline error page: its scripts are not the app's (e.g. a reload offline).
     if (page.url().startsWith("chrome-error://")) return
     // A code chunk that failed to load because the test cut that request (offline, failApi).
-    const chunk = e.message.match(/Failed to load chunk (\S+)/)?.[1]
-    if (chunk && isInjected(page, new URL(chunk, page.url()).href)) return
+    if (injectedChunk(page, e.message)) return
     problems.push(`page error: ${e.message}`)
   })
   page.on("console", (m) => {
@@ -67,6 +73,8 @@ export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
     if (m.text().startsWith("Failed to load resource:")) return
     if (allow.console?.includes(m.text())) return
     if (allow.consolePrefix?.some((p) => m.text().startsWith(p))) return
+    // Next also logs the lost chunk as "ChunkLoadError: Failed to load chunk <url>".
+    if (injectedChunk(page, m.text())) return
     problems.push(`console error: ${m.text()}`)
   })
   return problems

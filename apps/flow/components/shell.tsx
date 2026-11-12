@@ -83,8 +83,38 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   // A new scene starts at its top, never at the scroll position of the page before.
   const scroller = useRef<HTMLElement>(null)
+  const moved = useRef(false)
+
+  // The content area shrinks (a sheet or rail appears): the focused control stays in view.
+  useEffect(() => {
+    const main = scroller.current
+    if (!main) return
+    const keep = new ResizeObserver(() => {
+      const el = document.activeElement
+      if (!(el instanceof HTMLElement) || el === main || !main.contains(el))
+        return
+      const box = el.getBoundingClientRect()
+      const view = main.getBoundingClientRect()
+      if (box.bottom > view.bottom || box.top < view.top)
+        el.scrollIntoView({ block: "nearest" })
+    })
+    keep.observe(main)
+    return () => keep.disconnect()
+  }, [])
   useEffect(() => {
     scroller.current?.scrollTo(0, 0)
+    // A page load starts at the document's top (skip link first); only an in-app move
+    // continues focus at the new content.
+    if (!moved.current) {
+      moved.current = true
+      return
+    }
+    // The control that navigated is gone: focus starts at the new content, never on <body>.
+    const frame = requestAnimationFrame(() => {
+      if (document.activeElement === document.body)
+        scroller.current?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(frame)
   }, [pathname, resultOpen])
 
   // The task scene is an address (`/?view=task`): Back, Forward and reload find it again.

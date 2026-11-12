@@ -10,6 +10,7 @@ import { GenesyVoiceProvider } from "@genesy/voice/components/provider"
 import { Shell } from "@/components/shell"
 import { useDraftKeeper } from "@/lib/draft-keeper"
 import { flowHref } from "@/lib/links"
+import { focusLoginOnArrival } from "@/lib/login-focus"
 import { followOtherTabs } from "@/lib/other-tabs"
 
 /**
@@ -42,6 +43,7 @@ export function SignedIn({
     // After an expired login, back to the same place (the login page checks `next`); a logout by choice starts at home.
     const here = window.location.pathname + window.location.search
     const back = sessionStore.getState().expired && here !== "/"
+    focusLoginOnArrival()
     router.replace(back ? `/login?next=${encodeURIComponent(here)}` : "/login")
   }, [hydrated, token, router])
 

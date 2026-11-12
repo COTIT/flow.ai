@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 
 import { expect, test } from "./storefront-api"
 import { HONEY, sc } from "./scenes-api"
-import { orbAt, phase, s as shell } from "./shell"
+import { orbAt, phase, s as shell, homeOrb } from "./shell"
 import { fakeAgent, startText, watch } from "./voice"
 
 // Every test signs in and gets the stand-in API, also those that never touch `api`.
@@ -131,7 +131,7 @@ test("a live conversation opens Morning Pulse, then Stock Watch: orb compact, on
   await startText(page)
   await orbAt(page, "immersive")
   await page.getByRole("button", { name: shell.backHome }).click()
-  await orbAt(page, "ambient")
+  await orbAt(page, homeOrb(page))
   await yourFlow(page)
     .getByRole("link", { name: /Morning Pulse/ })
     .click()

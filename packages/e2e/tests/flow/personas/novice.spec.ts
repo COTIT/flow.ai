@@ -481,14 +481,13 @@ test("probe: a member asks for a change they may not make and is told so", async
 
 // P3-3: the stock review leads with only "Product: Raw Honey 500g" under the title "Run action for
 // stock"; the amount being set (14 → 130) is not on the card. A novice approves without seeing
-// the number unless they open "More details". The API's stock facts carry `locked` slots but no
-// `changes`, so reviewSummary has no rows to lead with.
+// the number unless they open "More details". Fixed by P3-3: the API's stock facts carry
+// `changes` rows (warehouse · before → after) that lead the card; kept as a regression guard.
 test("P3-3: a stock review shows the new amount before approving, without opening details", async ({
   persona,
   page,
   api,
 }) => {
-  test.fail()
   await setup(page, api)
   await proposeStock(page, persona.agent, 130)
   const card = scene(page)

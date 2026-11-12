@@ -139,7 +139,9 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
           e.clientY > e.currentTarget.getBoundingClientRect().top &&
           leave()
         }
-        className={`absolute inset-x-3 top-[calc(var(--flow-safe-top)+0.75rem)] z-40 flex flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5 shadow-lg transition-[translate,opacity] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity md:inset-x-4 md:top-[calc(var(--flow-safe-top)+1rem)] ${shown ? "" : "pointer-events-none -translate-y-[calc(100%+2rem)] opacity-0 motion-reduce:translate-y-0 [&:focus-within]:pointer-events-auto"}`}
+        // Focus inside shows it at once (no slide): a focused control is on screen the moment it
+        // has focus, also at 200% zoom (K2).
+        className={`absolute inset-x-3 top-[calc(var(--flow-safe-top)+0.75rem)] z-40 flex flex-wrap items-center gap-2 rounded-2xl glass-strong px-4 py-2.5 shadow-lg transition-[translate,opacity] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-opacity md:inset-x-4 md:top-[calc(var(--flow-safe-top)+1rem)] ${shown ? "" : "pointer-events-none -translate-y-[calc(100%+2rem)] opacity-0 focus-within:pointer-events-auto focus-within:translate-y-0 focus-within:opacity-100 focus-within:transition-none motion-reduce:translate-y-0"}`}
       >
         <Link href="/" className="mr-auto flex min-h-11 items-center gap-2">
           <LogoIcon aria-hidden="true" className="size-7 shrink-0" />
@@ -248,7 +250,12 @@ function WorkspacePicker() {
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
+            <SelectItem
+              key={o.value}
+              value={o.value}
+              // A visible ring on the focused option (a background alone is not seen, P9-2).
+              className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
+            >
               {o.label}
             </SelectItem>
           ))}

@@ -679,7 +679,9 @@ test.describe("reference upload retry", () => {
   })
 })
 
-test("parallel native preparations keep one exact review and reject the second proposal", async ({
+// P6-2: a call made while another is in flight waits in one slot (never alongside); a queued write
+// reaches its turn after the first review opened, so it is refused before any call to Office.
+test("parallel native preparations keep one exact review; the second waits and is refused once the first review exists", async ({
   page,
   api: _api,
 }) => {
@@ -826,16 +828,23 @@ test("parallel native preparations keep one exact review and reject the second p
     .click()
   await page.getByLabel("Message the assistant").fill("Prepare both requests")
   await page.getByRole("button", { name: "Send", exact: true }).click()
-  await expect.poll(() => rejected).toMatchObject({ status: "failed" })
+  // While the first is held: a status read is answered, the second write waits (no answer yet).
   await expect
     .poll(() => previousStatus)
     .toMatchObject({
       status: "completed",
       message: "Previous action remains completed.",
     })
+  expect(rejected).toBeUndefined()
   expect(preparations).toBe(1)
   expect(commits).toBe(0)
   release()
+  // Its turn comes with the first review open: refused before reaching Office.
+  await expect.poll(() => rejected).toMatchObject({
+    status: "failed",
+    message: "Finish the current review first.",
+  })
+  expect(preparations).toBe(1)
   await expect(
     page.getByRole("dialog", { name: "Review action" })
   ).toContainText("First concurrent proposal")
@@ -851,6 +860,138 @@ test("parallel native preparations keep one exact review and reject the second p
     en.voice.taskStates.completed
   )
   expect(preparations).toBe(1)
+  await page
+    .getByRole("button", { name: "End conversation", exact: true })
+    .click()
+})
+
+// P6-2's only new path: the first preparation fails (no review), so the queued write then runs
+// alone. It still opens exactly one review of its own and needs an explicit approval.
+test("a write queued behind a failed preparation runs alone and still needs its own approval", async ({
+  page,
+  api: _api,
+}) => {
+  void _api
+  let preparations = 0
+  let commits = 0
+  let release = () => {}
+  const firstPreparation = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route("**/api/voice/session", (route) => {
+    if (route.request().method() === "DELETE")
+      return route.fulfill({ json: { status: "ended" } })
+    if (route.request().postDataJSON()?.command === "heartbeat")
+      return route.fulfill({ json: { status: "active" } })
+    return route.fulfill({
+      json: {
+        sessionId: "queued-session",
+        conversationId: "queued-conversation",
+        signedUrl:
+          "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=test",
+      },
+    })
+  })
+  await page.route("**/api/voice/tools", async (route) => {
+    const body = route.request().postDataJSON()
+    if (body.command === "status")
+      return route.fulfill({ json: { status: "completed", data: [] } })
+    preparations++
+    if (preparations === 1) {
+      await firstPreparation
+      return route.fulfill({
+        json: { status: "failed", message: "The first order could not be prepared." },
+      })
+    }
+    return route.fulfill({
+      json: {
+        status: "requires_confirmation",
+        data: { actionId: "second-action" },
+        review: {
+          ticket: "second-ticket",
+          summary: "Second concurrent proposal",
+          confirmationCode: "123456",
+          confirmationPhrase: "Confirm action 123456",
+          target: "Current workspace",
+          details: { reference: body.arguments.body.reference },
+          expiresAt: new Date(Date.now() + 120000).toISOString(),
+        },
+      },
+    })
+  })
+  await page.route("**/api/voice/confirm", (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({
+      ticket: "second-ticket",
+      decision: "approve",
+    })
+    commits++
+    return route.fulfill({
+      json: { status: "completed", message: "Only the second proposal was created." },
+    })
+  })
+  await page.routeWebSocket("wss://api.elevenlabs.io/**", (socket) => {
+    socket.onMessage((raw) => {
+      const event = JSON.parse(String(raw))
+      if (event.type === "conversation_initiation_client_data")
+        socket.send(
+          JSON.stringify({
+            type: "conversation_initiation_metadata",
+            conversation_initiation_metadata_event: {
+              conversation_id: "queued-conversation",
+              agent_output_audio_format: "pcm_16000",
+              user_input_audio_format: "pcm_16000",
+            },
+          })
+        )
+      if (event.type === "user_message")
+        for (const position of ["first", "second"])
+          socket.send(
+            JSON.stringify({
+              type: "client_tool_call",
+              client_tool_call: {
+                tool_name: "execute_genesy_tool",
+                tool_call_id: position,
+                parameters: {
+                  operation_id: "orders_create",
+                  arguments_json: JSON.stringify({
+                    body: {
+                      reference: position,
+                      lines: [
+                        {
+                          product_id: "0193f6b0-1c2d-7e3f-8a9b-aaaaaaaaaaaa",
+                          quantity: "1",
+                        },
+                      ],
+                    },
+                  }),
+                },
+              },
+            })
+          )
+    })
+  })
+  await page.goto("/voice")
+  await page
+    .getByRole("button", { name: "Use text instead", exact: true })
+    .click()
+  await page.getByLabel("Message the assistant").fill("Prepare both requests")
+  await page.getByRole("button", { name: "Send", exact: true }).click()
+  await expect.poll(() => preparations).toBe(1)
+  await page.waitForTimeout(500)
+  expect(preparations, "the second waits while the first is in flight").toBe(1)
+  release()
+  // The first failed without a review: the queued second runs alone and opens its own review.
+  await expect(
+    page.getByRole("dialog", { name: "Review action" })
+  ).toContainText("Second concurrent proposal")
+  expect(preparations).toBe(2)
+  await page.waitForTimeout(500)
+  expect(commits, "nothing is created without an explicit approval").toBe(0)
+  await page
+    .getByRole("button", { name: "Approve action", exact: true })
+    .click()
+  await expect.poll(() => commits).toBe(1)
+  expect(preparations).toBe(2)
   await page
     .getByRole("button", { name: "End conversation", exact: true })
     .click()

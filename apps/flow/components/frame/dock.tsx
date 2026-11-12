@@ -52,16 +52,23 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
   const picker = useRef<HTMLInputElement>(null)
   const previewReturn = useRef<HTMLElement | null>(null)
   const composer = useRef<HTMLInputElement>(null)
-  // Switch to voice turns disabled while upgrading and the browser drops its focus to the page;
-  // a keyboard user goes on in the message box (P9-4; a tap never pops the phone keyboard).
+  const held = Boolean(voice.review)
+  // A control turns disabled (upgrading, or held by a review) and the browser drops its focus to
+  // the page: a keyboard user goes on at the review's button (K1), else in the message box (P9-4;
+  // a tap never pops the phone keyboard). Focus anywhere else is left alone.
   useEffect(() => {
     const active = document.activeElement as HTMLButtonElement | null
-    if (voice.upgrading && active?.disabled && active.matches(":focus-visible"))
-      composer.current?.focus()
-  }, [voice.upgrading])
+    if (!(voice.upgrading || held) || !active?.matches(":focus-visible")) return
+    if (!active.disabled && !active.closest("[inert]")) return
+    const review = held
+      ? document.querySelector<HTMLElement>(
+          '[data-task-state="needs_approval"] button'
+        )
+      : null
+    ;(review ?? composer.current)?.focus()
+  }, [voice.upgrading, held])
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const live = phase === "live"
-  const held = Boolean(voice.review)
   const { query: readiness, state } = useReadiness()
 
   // Clears the box only if it still holds what was sent (typing during the send stays).
@@ -124,7 +131,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
       // Short screens (phone landscape, zoomed laptop): one row, suggestions beside the field.
       // Never taller than ~45% of the visible screen (P4-2): what sits above the field scrolls in
       // the dock's own pane; the field and Send always stay in view.
-      className="flex max-h-[calc(var(--flow-vh,100dvh)*0.45)] min-w-0 shrink-0 flex-col gap-2 [&_li_p[role=status]]:min-w-0 [&_li_p[role=status]]:truncate rounded-2xl glass-strong p-3 [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-flow-pane]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-flow-pane]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
+      className="flex max-h-[calc(var(--flow-vh,100dvh)*0.45)] min-w-0 shrink-0 flex-col gap-2 rounded-2xl glass-strong p-3 [&_li_p]:min-w-0 [&_li_p]:truncate [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:flex-wrap [@media(max-height:500px)]:items-center [@media(max-height:500px)]:p-2 [@media(max-height:500px)]:[&>*]:basis-full [@media(max-height:500px)]:[&>[data-flow-pane]]:flex-[2_1_0] [@media(max-height:500px)]:[&>[data-flow-pane]]:basis-0 [@media(max-height:500px)]:[&>form]:flex-[3_1_0] [@media(max-height:500px)]:[&>form]:basis-0"
     >
       <div
         data-flow-pane="dock"
@@ -161,7 +168,9 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         {/* P9-4: always mounted, so a screen reader hears when a review arrives. A live region,
             not a second role="status": the dock's status line stays the one status. */}
         <p aria-live="polite" className="sr-only">
-          {voice.review ? t("shell.reviewReady", { summary: voice.review.summary }) : ""}
+          {voice.review
+            ? t("shell.reviewReady", { summary: voice.review.summary })
+            : ""}
         </p>
         {phase === "ended" ? (
           <p role="status" className="text-sm">
