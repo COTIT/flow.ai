@@ -110,7 +110,7 @@ test.describe("P9-4: a review or a voice upgrade never strands keyboard focus", 
     await expect(box).toHaveValue("set honey to")
     // Said once, politely: a screen reader hears that a review is ready and how to reach it.
     await expect(
-      page.locator('[aria-live="polite"], [role="status"]').filter({ hasText: /^Review ready/ })
+      page.locator('[aria-live="polite"], [role="status"]').filter({ hasText: /^A change is ready to check/ })
     ).toHaveCount(1)
     // From the composer, Approve is reachable by keyboard (presses measured both ways).
     const presses = async (key: "Tab" | "Shift+Tab") => {
