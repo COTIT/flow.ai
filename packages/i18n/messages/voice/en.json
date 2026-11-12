@@ -583,6 +583,75 @@
         "title": "Sales compared",
         "change": "{change} vs {period}",
         "noBase": "No sales in {period} to compare with"
+      },
+      "stock": {
+        "title": "Stock",
+        "perBin": "Stock per place",
+        "empty": "No stock found",
+        "noWarehouse": "No warehouse",
+        "noBin": "No set place",
+        "reserved": "{count} reserved",
+        "minimum": "minimum {count}",
+        "available": "available",
+        "inStock": "in stock"
+      },
+      "search": {
+        "title": "Search results",
+        "none": "Nothing found",
+        "products": "Products",
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "lots": "Batches",
+        "relations": "Customers"
+      },
+      "document": {
+        "draft": "Draft (no number yet)",
+        "linesExcl": "Lines (excl. VAT)",
+        "linesIncl": "Lines (incl. VAT)",
+        "stock": "Stock per place",
+        "open": "Open in Office"
+      },
+      "facts": {
+        "customer": "Customer",
+        "created": "Created",
+        "picked": "Picked",
+        "paid": "Paid",
+        "reference": "Reference",
+        "due": "Due",
+        "productNr": "Product number",
+        "ean": "Barcode",
+        "priceIncl": "Price incl. VAT",
+        "available": "Available",
+        "reserved": "Reserved"
+      },
+      "totals": {
+        "subtotal": "Subtotal",
+        "vat": "VAT",
+        "total": "Total",
+        "paid": "Paid",
+        "open": "Still to pay"
+      },
+      "till": {
+        "sales": "Till sales",
+        "shifts": "Till shifts",
+        "noSales": "No till sales",
+        "noShifts": "No till shifts",
+        "mismatch": "charged other prices",
+        "opened": "Opened {at}",
+        "closed": "closed {at}",
+        "expected": "expected in drawer",
+        "counted": "counted",
+        "methods": {
+          "cash": "Cash",
+          "card": "Card"
+        },
+        "state": {
+          "open": "Open",
+          "closed": "Closed",
+          "short": "Short",
+          "over": "Over",
+          "even": "Even"
+        }
       }
     },
     "suggestions": "Suggestions",

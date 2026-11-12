@@ -583,6 +583,75 @@
         "title": "Verkoop vergeleken",
         "change": "{change} t.o.v. {period}",
         "noBase": "Geen verkoop in {period} om mee te vergelijken"
+      },
+      "stock": {
+        "title": "Voorraad",
+        "perBin": "Voorraad per plek",
+        "empty": "Geen voorraad gevonden",
+        "noWarehouse": "Geen magazijn",
+        "noBin": "Geen vaste plek",
+        "reserved": "{count} gereserveerd",
+        "minimum": "minimum {count}",
+        "available": "beschikbaar",
+        "inStock": "op voorraad"
+      },
+      "search": {
+        "title": "Zoekresultaten",
+        "none": "Niets gevonden",
+        "products": "Producten",
+        "orders": "Bestellingen",
+        "invoices": "Facturen",
+        "lots": "Partijen",
+        "relations": "Klanten"
+      },
+      "document": {
+        "draft": "Concept (nog geen nummer)",
+        "linesExcl": "Regels (excl. btw)",
+        "linesIncl": "Regels (incl. btw)",
+        "stock": "Voorraad per plek",
+        "open": "Openen in Office"
+      },
+      "facts": {
+        "customer": "Klant",
+        "created": "Gemaakt",
+        "picked": "Gepickt",
+        "paid": "Betaald",
+        "reference": "Referentie",
+        "due": "Vervalt",
+        "productNr": "Productnummer",
+        "ean": "Streepjescode",
+        "priceIncl": "Prijs incl. btw",
+        "available": "Beschikbaar",
+        "reserved": "Gereserveerd"
+      },
+      "totals": {
+        "subtotal": "Subtotaal",
+        "vat": "Btw",
+        "total": "Totaal",
+        "paid": "Betaald",
+        "open": "Nog te betalen"
+      },
+      "till": {
+        "sales": "Kassaverkopen",
+        "shifts": "Kassadiensten",
+        "noSales": "Geen kassaverkopen",
+        "noShifts": "Geen kassadiensten",
+        "mismatch": "andere prijzen gerekend",
+        "opened": "Geopend {at}",
+        "closed": "gesloten {at}",
+        "expected": "hoort in de la",
+        "counted": "geteld",
+        "methods": {
+          "cash": "Contant",
+          "card": "Pin"
+        },
+        "state": {
+          "open": "Open",
+          "closed": "Gesloten",
+          "short": "Tekort",
+          "over": "Over",
+          "even": "Klopt"
+        }
       }
     },
     "suggestions": "Suggesties",

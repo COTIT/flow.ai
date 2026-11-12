@@ -566,6 +566,8 @@ async function withSheet(page: Page, size: { width: number; height: number }) {
   await live(page, size)
   await page.getByLabel(labels.message).fill("Sales today?")
   await page.getByLabel(labels.message).press("Enter")
+  // The message is in the conversation before leaving it (a slow device opens it a moment later).
+  await expect(page.getByRole("log", { name: "Conversation transcript" })).toContainText("Sales today?")
   await page.getByRole("button", { name: labels.backHome }).first().click()
   await expect(sheetHandle(page)).toBeVisible()
 }

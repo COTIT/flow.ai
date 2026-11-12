@@ -113,9 +113,10 @@ describe("Office messages", () => {
       expect(acknowledged).toBeDefined()
       expect(snoozed).toBeDefined()
       // Added since (voice results): labels of the breakdown and comparison pictures.
-      const { breakdown, compare, ...unchanged } = results as typeof results & { breakdown?: unknown; compare?: unknown }
-      expect(breakdown).toBeDefined()
-      expect(compare).toBeDefined()
+      // P2: labels of the stock, search and record-detail pictures.
+      const { breakdown, compare, stock, search, document, facts, totals, till, ...unchanged } = results as typeof results &
+        Record<"breakdown" | "compare" | "stock" | "search" | "document" | "facts" | "totals" | "till", unknown>
+      for (const added of [breakdown, compare, stock, search, document, facts, totals, till]) expect(added).toBeDefined()
       // Added since (P6-1/SW6): plain-words lines for a dropped line, offline, no microphone.
       // P6-5: an approval made offline was never sent.
       const {

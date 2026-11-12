@@ -583,6 +583,75 @@
         "title": "Mauzo yakilinganishwa",
         "change": "{change} ukilinganisha na {period}",
         "noBase": "Hakuna mauzo katika {period} ya kulinganisha"
+      },
+      "stock": {
+        "title": "Akiba",
+        "perBin": "Akiba kwa kila mahali",
+        "empty": "Hakuna akiba iliyopatikana",
+        "noWarehouse": "Hakuna ghala",
+        "noBin": "Hakuna mahali maalum",
+        "reserved": "{count} zimehifadhiwa",
+        "minimum": "kiwango cha chini {count}",
+        "available": "zinapatikana",
+        "inStock": "ziko ghalani"
+      },
+      "search": {
+        "title": "Matokeo ya utafutaji",
+        "none": "Hakuna kilichopatikana",
+        "products": "Bidhaa",
+        "orders": "Maagizo",
+        "invoices": "Ankara",
+        "lots": "Makundi",
+        "relations": "Wateja"
+      },
+      "document": {
+        "draft": "Rasimu (bado haina namba)",
+        "linesExcl": "Mistari (bila VAT)",
+        "linesIncl": "Mistari (pamoja na VAT)",
+        "stock": "Akiba kwa kila mahali",
+        "open": "Fungua katika Office"
+      },
+      "facts": {
+        "customer": "Mteja",
+        "created": "Iliundwa",
+        "picked": "Ilichukuliwa",
+        "paid": "Imelipwa",
+        "reference": "Kumbukumbu",
+        "due": "Tarehe ya mwisho",
+        "productNr": "Namba ya bidhaa",
+        "ean": "Msimbopau",
+        "priceIncl": "Bei pamoja na VAT",
+        "available": "Zinapatikana",
+        "reserved": "Zimehifadhiwa"
+      },
+      "totals": {
+        "subtotal": "Jumla ndogo",
+        "vat": "VAT",
+        "total": "Jumla",
+        "paid": "Imelipwa",
+        "open": "Bado kulipwa"
+      },
+      "till": {
+        "sales": "Mauzo ya kaunta",
+        "shifts": "Zamu za kaunta",
+        "noSales": "Hakuna mauzo ya kaunta",
+        "noShifts": "Hakuna zamu za kaunta",
+        "mismatch": "bei tofauti zilitozwa",
+        "opened": "Ilifunguliwa {at}",
+        "closed": "ilifungwa {at}",
+        "expected": "inayotarajiwa droo",
+        "counted": "iliyohesabiwa",
+        "methods": {
+          "cash": "Taslimu",
+          "card": "Kadi"
+        },
+        "state": {
+          "open": "Wazi",
+          "closed": "Imefungwa",
+          "short": "Pungufu",
+          "over": "Ziada",
+          "even": "Sawa"
+        }
       }
     },
     "suggestions": "Mapendekezo",

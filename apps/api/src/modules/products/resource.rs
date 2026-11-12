@@ -64,6 +64,7 @@ pub struct Embeds {
 /// One product. `detail`: GET one (Laravel loaded more there).
 pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
     let vat = p.vat_group_id.and_then(|id| e.vat_groups.get(&id));
+    let currency = e.currencies.get(&p.currency_id);
     let vat_pct = vat.map_or(Decimal::ZERO, |v| v.vat_amount);
     let mutates = PHYSICAL.contains(&p.kind.as_str()) && p.has_stock;
     let lines = e.stocks.get(&p.id).map_or(&[][..], Vec::as_slice);
@@ -136,6 +137,9 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "impact_on_wholesale_price": column(p.impact_on_wholesale_price, 4),
         "price": price,
         "price_incl": price_incl,
+        // Top-level for money cards; same currency as `relationships.currency`.
+        "currency": currency.and_then(|c| c["asset_type"].as_str()).map(str::to_uppercase),
+        "decimals": currency.map(|c| c["decimals"].clone()),
         "price_without_correction": uncorrected,
         "price_without_correction_incl": uncorrected_incl,
         "import_id": p.import_id,
@@ -188,7 +192,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "created_at": p.created_at,
         "last_updated_at": p.updated_at,
         "relationships": {
-            "currency": e.currencies.get(&p.currency_id),
+            "currency": currency,
             "active_special_offer": active.map(OfferResource::from),
             // Laravel loaded them on the detail only; list rows load today's offers.
             "special_offers": if detail {
@@ -392,6 +396,12 @@ pub struct ProductDoc {
     impact_on_wholesale_price: String,
     price: String,
     price_incl: String,
+    /// Currency of the prices: upper-case ISO 4217 code; null if that currency was deleted.
+    #[schema(required = true, example = "EUR")]
+    currency: Option<String>,
+    /// The currency's minor-unit exponent, for display. Price strings stay major units.
+    #[schema(required = true)]
+    decimals: Option<i16>,
     price_without_correction: String,
     price_without_correction_incl: String,
     #[schema(required = true)]

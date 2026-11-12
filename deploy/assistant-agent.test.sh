@@ -14,7 +14,7 @@ for env,entry in evidence['provider'].get('applied',{}).items():
     assert env in {'development','staging','production'} and entry['versionId'].startswith('agtvrsn_')
     assert re.fullmatch('[0-9a-f]{64}',entry['governedSha256']) and re.fullmatch('[0-9a-f]{64}',entry['templateSha256'])
 source=(root.parent/'packages/voice/src/components/provider.tsx').read_text()
-assert len(template['clientTools'])==2
+assert len(template['clientTools'])==3
 for tool in template['clientTools']:
     assert tool['type']=='client' and tool['name']+': (' in source,'snapshot tool not implemented by Office'
     assert tool['expects_response'] is True
@@ -38,6 +38,9 @@ assert 'I cancelled the card because you sent a new message' in prompt,'cancel-o
 assert 'Never answer a question about an open card by reading out its confirmation phrase' in prompt,'phrase echo guard missing'
 assert '[Discoverability]' in prompt and '[/Discoverability]' in prompt,'discoverability block missing'
 assert 'Each account is private' in prompt and 'supply link with consent' in prompt,'account privacy line missing'
+assert '[Opening screens]' in prompt and 'open_flow_view' in prompt and 'never changes anything' in prompt,'P4 opening-screens block missing'
+open_view=next(tool for tool in template['clientTools'] if tool['name']=='open_flow_view')
+assert list(open_view['parameters']['properties'])==['view'] and open_view['parameters']['required']==['view'],'open_flow_view takes only a view'
 assert 'Till refunds are done on the till' in prompt and 'Kassaretouren gaan via de kassa' in prompt and 'Marejesho ya mauzo ya kaunta' in prompt,'till refund wording missing'
 assert 'meta.open_totals' in prompt and 'never add amounts yourself' in prompt,'owe rule must use backend totals'
 assert 'up to 25 exact actions' in prompt and '"remaining"' in prompt,'bulk continuation sentence missing'
@@ -77,7 +80,7 @@ assert 'saved period' in prompt,'Flow context period caveat missing'
 assert 'replaces' in prompt and 'presentation' in prompt and 'Reads stay reads' in prompt,'change-in-place contract missing'
 assert 'Never invent data to fit a chart' in prompt,'charts must never fake data'
 kinds=['line','sparkline','bar','hbar','pie','donut','kpi','delta','meter','table','list','timeline','map']
-for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table'}.items():
+for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table','quantities':'list, hbar, bar, table','hits':'list, table','document':'list, table, kpi'}.items():
     assert f'{shape}: {allowed}' in prompt,'chart kinds per data shape missing: '+shape
 assert 'flow_scenes_update' in prompt and 'review card' in prompt,'scene chart changes must stay a reviewed write'
 params=execute['parameters']

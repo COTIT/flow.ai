@@ -209,6 +209,14 @@ test("idle returner: works, leaves mid-flow, comes back after expiry, sleep, hid
       if (expired) await page.getByRole("button", { name: "Refresh" }).first().click({ timeout: 1_000 }).catch(() => {})
       if (expired) await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click({ timeout: 1_000 }).catch(() => {})
       if (expired) await talk(page).catch(() => {})
+      // Still here (e.g. the storefront has none of the above): send through the dock, which is on
+      // every page and reaches the server. A half-typed draft is sent as it is (the refused session
+      // sends nothing, so it stays); an empty box gets a short question.
+      if (expired && !onLogin(page)) {
+        const box = page.getByLabel(v.message)
+        if (!(await box.inputValue().catch(() => "x"))) await box.fill("Are you there?").catch(() => {})
+        await box.press("Enter").catch(() => {})
+      }
     }
     if (expired) await expect(page).toHaveURL(LOGIN)
     if (!onLogin(page)) return

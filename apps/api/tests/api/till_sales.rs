@@ -629,14 +629,19 @@ async fn a_sale_carries_its_lines_for_the_receipt(pool: PgPool) {
           "line_total": 363 },
     ]);
     assert_eq!(res["data"]["lines"], want, "booked lines");
+    let money = |d: &Value| (d["currency"].clone(), d["decimals"].clone());
+    let eur = (json!("EUR"), json!(2));
+    assert_eq!(money(&res["data"]), eur, "amounts name their currency");
     let (status, again) = post(&w, &w.t1, &body).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(again["data"]["lines"], want, "a replay answers the same");
     let (status, got) = w.api.call(Method::GET, "/sales/r-1", None, &w.t1).await;
     assert_eq!(status, StatusCode::OK, "{got}");
     assert_eq!(got["data"]["lines"], want, "reprint after a reload");
+    assert_eq!(money(&got["data"]), eur, "reprint");
     let (_, list) = w.api.call(Method::GET, "/sales", None, &w.api.owner).await;
     assert_eq!(list["data"][0]["lines"], want, "office list");
+    assert_eq!(money(&list["data"][0]), eur, "office list");
     let (status, _) = w.api.call(Method::GET, "/sales/r-1", None, &w.t2).await;
     assert_eq!(status, StatusCode::NOT_FOUND, "another register");
 }

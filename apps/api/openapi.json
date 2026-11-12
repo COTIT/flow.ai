@@ -19224,6 +19224,22 @@
             "format": "date-time",
             "type": "string"
           },
+          "currency": {
+            "description": "Currency of the prices: upper-case ISO 4217 code; null if that currency was deleted.",
+            "example": "EUR",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decimals": {
+            "description": "The currency's minor-unit exponent, for display. Price strings stay major units.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "default_warehouse": {
             "description": "Short warehouse on lists, full warehouse on the single GET.",
             "type": [
@@ -19705,6 +19721,8 @@
           "impact_on_wholesale_price",
           "price",
           "price_incl",
+          "currency",
+          "decimals",
           "price_without_correction",
           "price_without_correction_incl",
           "import_id",
@@ -23800,6 +23818,16 @@
           "client_ref": {
             "type": "string"
           },
+          "currency": {
+            "description": "Currency of every amount here: upper-case ISO 4217 code.",
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "description": "Minor-unit exponent: amounts / 10^decimals = major units.",
+            "format": "int32",
+            "type": "integer"
+          },
           "due": {
             "description": "Paid: cash rounded to the currency's step, card = total.",
             "format": "int64",
@@ -23892,6 +23920,8 @@
           "change",
           "card_reference",
           "sold_at",
+          "currency",
+          "decimals",
           "lines"
         ],
         "type": "object"
@@ -24880,6 +24910,16 @@
               "null"
             ]
           },
+          "currency": {
+            "description": "Currency of every amount here (the register's): upper-case ISO 4217 code.",
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "description": "Minor-unit exponent: amounts / 10^decimals = major units.",
+            "format": "int32",
+            "type": "integer"
+          },
           "difference": {
             "description": "counted − expected: negative = short.",
             "format": "int64",
@@ -24925,7 +24965,9 @@
           "closed_by",
           "closed_at",
           "counted",
-          "difference"
+          "difference",
+          "currency",
+          "decimals"
         ],
         "type": "object"
       },

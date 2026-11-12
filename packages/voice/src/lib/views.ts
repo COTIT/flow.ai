@@ -5,6 +5,8 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ROWS = 5
 const BREAKDOWN_ROWS = 8
+const LINES = 12
+const STOCK_ROWS = 20
 
 export type Money = { minor: number; decimals: number; currency: string }
 export type RecordRow = {
@@ -83,7 +85,61 @@ export type ResultView = (
       // Gross per period and the API's own change (basis points; null when the base is 0).
       currencies: { currency: string; decimals: number; current: number; base: number; change_bp: number | null }[]
     }
+  | {
+      kind: "stock"
+      // list: GET /products/stocks (per product); bins: one product's stock per bin path.
+      scope: "list" | "bins"
+      total: number | null
+      href: string | null
+      groups: { title: string | null; rows: StockRow[] }[]
+    }
+  | { kind: "search"; groups: { key: SearchKey; rows: SearchHit[] }[] }
+  | {
+      kind: "document"
+      resource: "orders" | "invoices" | "products"
+      title: string | null
+      status: string | null
+      href: string
+      facts: Fact[]
+      // Which money the lines carry, as the API gives it per line; null: lines are stock rows.
+      lineMoney: "excl" | "incl" | null
+      lines: { label: string | null; quantity: string | null; money: Money | null }[]
+      totals: { key: string; money: Money }[]
+    }
+  | { kind: "till_sales"; total: number; href: string; rows: TillSale[] }
+  | { kind: "till_shifts"; total: number; href: string; rows: TillShift[] }
 ) & { presentation?: Kind }
+
+/** A till sale as booked. `money` is null when the reply has no currency: no amount is guessed. */
+export type TillSale = { label: string; at: string; method: string | null; mismatch: boolean; money: Money | null; href: string | null }
+/** A drawer shift; `state` follows the API's own `difference` sign once closed. */
+export type TillShift = {
+  opened: string
+  closed: string | null
+  state: "open" | "closed" | "short" | "over" | "even"
+  expected: Money | null
+  counted: Money | null
+  difference: Money | null
+}
+
+/** Quantities are the API's decimal text, shown as written. `available` is null where the API has none. */
+export type StockRow = {
+  label: string | null
+  detail: string | null
+  available: string | null
+  level: string
+  reserved: string
+  minimum: number | null
+  href: string | null
+}
+export type SearchKey = "products" | "orders" | "invoices" | "lots" | "relations"
+export type SearchHit = { label: string; detail: string | null; status: string | null; money: Money | null; href: string | null }
+/** One header fact of a record: text as the API wrote it, or a date to format. */
+export type Fact =
+  | { key: string; text: string }
+  | { key: string; date: string }
+  // A major-unit decimal string as the API wrote it, with the currency it is in.
+  | { key: string; price: string; currency: string; decimals: number }
 
 type Resource = "orders" | "invoices" | "products" | "lots"
 type Obj = Record<string, unknown>
@@ -223,9 +279,237 @@ export function dailyAsSales(view: Extract<ResultView, { kind: "sales_daily" }>)
   }))
 }
 
+const decimal = (v: unknown) => (typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) ? v : null)
+/** "12.5000" → "12.50": only zeros past two places are dropped, so the price is never rounded. */
+const price = (v: unknown) => decimal(v)?.replace(/^(-?\d+\.\d\d\d*?)0+$/, "$1") ?? null
+const name = (v: unknown, key = "name") => (obj(v) ? text(v[key]) : null)
+const joined = (...parts: (string | null)[]) => parts.filter(Boolean).join(" › ") || null
+
+/** Rows grouped by warehouse, in the API's order. */
+function byWarehouse(list: Obj[], row: (r: Obj) => StockRow | null, warehouse: (r: Obj) => string | null) {
+  const groups: { title: string | null; rows: StockRow[] }[] = []
+  for (const r of list) {
+    const parsed = row(r)
+    if (!parsed) continue
+    const title = warehouse(r)
+    const group = groups.find((g) => g.title === title) ?? groups[groups.push({ title, rows: [] }) - 1]!
+    group.rows.push(parsed)
+  }
+  return groups
+}
+
+function stockView(operationId: string, body: Obj): ResultView | undefined {
+  const list = rows(body.data)
+  if (!list) return
+  if (operationId === "stock_list")
+    return {
+      kind: "stock",
+      scope: "list",
+      total: int(obj(body.meta) ? body.meta.total : undefined) ?? list.length,
+      href: "/stock",
+      groups: byWarehouse(
+        list.slice(0, STOCK_ROWS),
+        (r) => {
+          const rel = obj(r.relationships) ? r.relationships : {}
+          const product = obj(rel.product) ? rel.product : {}
+          const label = text(product.name), level = decimal(r.stock_lvl), reserved = decimal(r.reserved)
+          const key = id(product.id)
+          if (!label || !level || !reserved) return null
+          return {
+            label,
+            detail: [text(product.product_nr), name(r.lot, "code")].filter(Boolean).join(" · ") || null,
+            available: decimal(r.available),
+            level,
+            reserved,
+            minimum: int(r.minimal_stock_level),
+            href: key ? `/products/${key}` : null,
+          }
+        },
+        (r) => name(obj(r.relationships) ? r.relationships.warehouse : null)
+      ),
+    }
+  return {
+    kind: "stock",
+    scope: "bins",
+    total: null,
+    href: null,
+    groups: byWarehouse(
+      list.slice(0, STOCK_ROWS),
+      (r) => {
+        const level = decimal(r.stock_lvl), reserved = decimal(r.reserved)
+        if (!level || !reserved) return null
+        const shelf = obj(r.shelf) ? r.shelf : null
+        const row = shelf && obj(shelf.row) ? shelf.row : null
+        return {
+          label: joined(
+            text(row?.row_name) ?? text(row?.row_code),
+            text(shelf?.shelf_name) ?? text(shelf?.shelf_code),
+            name(r.bin, "bin_name") ?? name(r.bin, "bin_code")
+          ),
+          detail: name(r.lot, "code"),
+          available: null,
+          level,
+          reserved,
+          minimum: null,
+          href: null,
+        }
+      },
+      (r) => name(r.warehouse)
+    ),
+  }
+}
+
+const SEARCH: { key: SearchKey; hit: (r: Obj) => SearchHit | null }[] = [
+  { key: "products", hit: (r) => link("products", r, text(r.name), text(r.product_nr), null, null) },
+  { key: "orders", hit: (r) => link("orders", r, text(r.number), text(r.reference), text(r.status), money(r.total, r.decimals, r.currency)) },
+  { key: "invoices", hit: (r) => link("invoices", r, text(r.number), text(r.customer_name), text(r.status), null) },
+  { key: "lots", hit: (r) => link("lots", r, text(r.code), text(r.product_name), null, null) },
+  // Office has no relation page: a customer is named, never linked.
+  { key: "relations", hit: (r) => (text(r.name) ? { label: text(r.name)!, detail: null, status: null, money: null, href: null } : null) },
+]
+function link(resource: Resource, r: Obj, label: string | null, detail: string | null, status: string | null, cash: Money | null): SearchHit | null {
+  const key = id(r.id)
+  return label ? { label, detail, status, money: cash, href: key ? `/${resource}/${key}` : null } : null
+}
+
+function documentView(operationId: string, data: Obj): ResultView | undefined {
+  const key = id(data.id)
+  if (!key) return
+  const facts = (list: [string, string | null, "text" | "date"][]) =>
+    list.flatMap(([k, v, as]) => (v ? [as === "date" ? { key: k, date: v } : { key: k, text: v }] : []))
+  if (operationId === "orders_get") {
+    const cash = (minor: unknown) => money(minor, data.decimals, data.currency)
+    const number = text(data.number), total = cash(data.total), subtotal = cash(data.subtotal), vat = cash(data.vat)
+    if (!number || !total || !subtotal || !vat) return
+    return {
+      kind: "document",
+      resource: "orders",
+      title: number,
+      status: text(data.status),
+      href: `/orders/${key}`,
+      facts: facts([
+        ["customer", text(data.customer_name), "text"],
+        ["created", text(data.created_at), "date"],
+        ["picked", text(data.picked_at), "date"],
+        ["paid", text(data.paid_at), "date"],
+      ]),
+      lineMoney: "excl",
+      lines: (rows(data.lines) ?? []).slice(0, LINES).map((l) => ({ label: text(l.title), quantity: decimal(l.quantity), money: cash(l.line_excl) })),
+      totals: [{ key: "subtotal", money: subtotal }, { key: "vat", money: vat }, { key: "total", money: total }],
+    }
+  }
+  if (operationId === "invoices_get") {
+    const m = obj(data.money) ? data.money : null
+    const cash = (minor: unknown) => (m ? money(minor, m.decimals, m.currency) : null)
+    const total = cash(m?.total), paid = cash(m?.paid), open = cash(m?.open)
+    if (!total || !paid || !open) return
+    return {
+      kind: "document",
+      resource: "invoices",
+      title: text(data.invoice_nr),
+      status: text(data.status),
+      href: `/invoices/${key}`,
+      facts: facts([
+        ["reference", obj(data.customer_ref) ? text(data.customer_ref.reference) : null, "text"],
+        ["due", text(data.due_date), "date"],
+      ]),
+      lineMoney: "incl",
+      lines: (rows(data.items) ?? []).slice(0, LINES).map((l) => ({ label: text(l.title), quantity: decimal(l.quantity), money: cash(l.total_minor) })),
+      totals: [{ key: "total", money: total }, { key: "paid", money: paid }, { key: "open", money: open }],
+    }
+  }
+  const title = text(data.name)
+  if (!title) return
+  const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? String(v) : null)
+  const code = typeof data.currency === "string" && /^[A-Z]{3}$/.test(data.currency) ? data.currency : null
+  const places = int(data.decimals)
+  const amount = decimal(data.price_incl)
+  const currency = code && places !== null && places >= 0 && places <= 4 && amount ? { price: amount, currency: code, decimals: places } : null
+  return {
+    kind: "document",
+    resource: "products",
+    title,
+    status: text(data.status),
+    href: `/products/${key}`,
+    facts: [
+      ...facts([
+        ["productNr", text(data.product_nr), "text"],
+        ["ean", text(data.ean13), "text"],
+      ]),
+      // With its currency when the reply has one; else the trimmed text, never a guessed symbol.
+      ...(currency ? [{ key: "priceIncl", ...currency }] : facts([["priceIncl", price(data.price_incl), "text"]])),
+      ...facts([
+        ["available", count(data.total_available_stock), "text"],
+        ["reserved", count(data.total_reserved_stock), "text"],
+      ]),
+    ],
+    lineMoney: null,
+    lines: (rows(data.stocks) ?? []).slice(0, LINES).map((r) => ({
+      label: joined(name(r.warehouse), name(r.bin, "bin_name") ?? name(r.bin, "bin_code")),
+      quantity: decimal(r.stock_lvl),
+      money: null,
+    })),
+    totals: [],
+  }
+}
+
 export function resultView(operationId: string, response: unknown): ResultView | undefined {
   const body = obj(response) ? response : undefined
   if (!body) return
+  if (operationId === "stock_list" || operationId === "stock_with_bins") return stockView(operationId, body)
+  if (operationId === "till_sales_list" || operationId === "till_shifts_list") {
+    const list = rows(body.data)
+    if (!list) return
+    const total = int(obj(body.meta) ? body.meta.total : undefined) ?? list.length
+    if (operationId === "till_sales_list")
+      return {
+        kind: "till_sales",
+        total,
+        href: "/till/sales",
+        rows: list.slice(0, STOCK_ROWS).flatMap((r) => {
+          const label = text(r.number), at = text(r.sold_at), order = id(r.order_id)
+          return label && at
+            ? [{ label, at, method: text(r.method), mismatch: (int(r.price_mismatch) ?? 0) !== 0, money: money(r.total, r.decimals, r.currency), href: order ? `/orders/${order}` : null }]
+            : []
+        }),
+      }
+    return {
+      kind: "till_shifts",
+      total,
+      href: "/till/shifts",
+      rows: list.slice(0, STOCK_ROWS).flatMap((r) => {
+        const opened = text(r.opened_at)
+        if (!opened) return []
+        const closed = text(r.closed_at), difference = int(r.difference)
+        const cash = (minor: unknown) => (minor === null ? null : money(minor, r.decimals, r.currency))
+        return [{
+          opened,
+          closed,
+          state: !closed ? "open" as const
+            : difference === null ? "closed" as const
+            : difference < 0 ? "short" as const
+            : difference > 0 ? "over" as const
+            : "even" as const,
+          expected: cash(r.expected),
+          counted: cash(r.counted),
+          difference: cash(r.difference),
+        }]
+      }),
+    }
+  }
+  if (operationId === "search_quick" && obj(body.data)) {
+    const data = body.data
+    return {
+      kind: "search",
+      // A null group is one the caller may not list: left out, never reported as empty.
+      groups: SEARCH.flatMap(({ key, hit }) => {
+        const list = rows(data[key])
+        return list ? [{ key, rows: list.flatMap((r) => hit(r) ?? []) }] : []
+      }),
+    }
+  }
+  if (["orders_get", "invoices_get", "products_get"].includes(operationId) && obj(body.data))
+    return documentView(operationId, body.data)
   const resource = LISTS[operationId]
   if (resource) {
     const list = rows(body.data)
@@ -399,7 +683,9 @@ export const KINDS = [
 export type Kind = (typeof KINDS)[number]
 
 /** What a result's data is, whatever read it came from. */
-export type Shape = "series" | "totals" | "comparison" | "breakdown" | "share" | "counts" | "rows" | "events"
+export type Shape =
+  | "series" | "totals" | "comparison" | "breakdown" | "share" | "counts" | "rows" | "events"
+  | "quantities" | "hits" | "document"
 const SHAPE: Record<ResultView["kind"], Shape> = {
   sales_daily: "series",
   sales: "totals",
@@ -409,6 +695,11 @@ const SHAPE: Record<ResultView["kind"], Shape> = {
   attention: "counts",
   records: "rows",
   trail: "events",
+  stock: "quantities",
+  till_sales: "rows",
+  till_shifts: "rows",
+  search: "hits",
+  document: "document",
 }
 export const shapeOf = (view: ResultView) => SHAPE[view.kind]
 
@@ -422,6 +713,9 @@ export const SUPPORTS: Record<Shape, readonly Kind[]> = {
   counts: ["list", "bar", "hbar", "pie", "donut", "kpi", "table"],
   rows: ["list", "kpi", "table"],
   events: ["timeline", "list", "table"],
+  quantities: ["list", "hbar", "bar", "table"],
+  hits: ["list", "table"],
+  document: ["list", "table", "kpi"],
 }
 export const drawnAs = (view: ResultView): Kind => view.presentation ?? SUPPORTS[shapeOf(view)][0]!
 

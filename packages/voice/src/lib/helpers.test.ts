@@ -1,5 +1,5 @@
-import { afterEach, expect, it, vi } from "vitest"
-import { progressOf, SAFE_HREF, splitLinks, spokenText, whenSlow } from "./helpers"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { formatPrice, formatQuantity, progressOf, SAFE_HREF, splitLinks, spokenText, whenSlow } from "./helpers"
 
 afterEach(() => vi.useRealTimers())
 
@@ -63,4 +63,24 @@ it("links what the host's whitelist allows", () => {
     { text: "see " },
     { text: "a", href: "/assistant/x" },
   ])
+})
+
+describe("formatPrice", () => {
+  it("formats an API major-unit decimal string with its currency, rounding for display only", () => {
+    expect(formatPrice("11.6600", 2, "EUR", "en")).toBe("€11.66")
+    expect(formatPrice("1.2350", 2, "USD", "en")).toBe("$1.24")
+    expect(formatPrice("1500.0000", 0, "TZS", "en")).toMatch(/^TZS\s1,500$/)
+  })
+})
+
+describe("formatQuantity", () => {
+  it("drops only trailing zeros: the same value, never rounded", () => {
+    expect(formatQuantity("20.00", "en")).toBe("20")
+    expect(formatQuantity("-2.00", "en")).toBe("-2")
+    expect(formatQuantity("1.50", "en")).toBe("1.5")
+    expect(formatQuantity("1.5", "en")).toBe("1.5")
+    expect(formatQuantity("0.125", "en")).toBe("0.125")
+    expect(formatQuantity("1234.50", "en")).toBe("1,234.5")
+    expect(formatQuantity("1234.50", "nl")).toBe("1.234,5")
+  })
 })
