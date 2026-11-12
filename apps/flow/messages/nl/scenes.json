@@ -116,7 +116,8 @@
       },
       "snooze": "Herinner me later",
       "untilTomorrow": "Morgen",
-      "forWeek": "Over een week"
+      "forWeek": "Over een week",
+      "later": "Later"
     },
     "scene": {
       "pulse": {
@@ -166,6 +167,40 @@
       "rowActions": "Acties voor {name}"
     },
     "showAll": "Alles tonen",
-    "showLess": "Minder tonen"
+    "showLess": "Minder tonen",
+    "rowAction": {
+      "restock": "Aanvullen",
+      "restockAsk": "Vul {name} aan. Er zijn er {shortfall} te weinig voor het minimum.",
+      "openInOffice": "Openen in Office",
+      "newTab": "{action}: {name} (opent een nieuw tabblad)"
+    },
+    "compare": {
+      "button": "Vergelijk met vorige week",
+      "buttonBefore": "Vergelijk met de periode ervoor",
+      "title": {
+        "today": "Vandaag en gisteren",
+        "yesterday": "Gisteren en de dag ervoor",
+        "this_week": "Deze week en vorige week",
+        "last_week": "Vorige week en de week ervoor",
+        "last_7_days": "De laatste 7 dagen en de 7 ervoor",
+        "this_month": "Deze maand en vorige maand"
+      },
+      "what": "Wat",
+      "orders": "Bestellingen",
+      "difference": "Verschil",
+      "base": {
+        "today": "Gisteren",
+        "yesterday": "De dag ervoor",
+        "this_week": "Vorige week",
+        "last_week": "De week ervoor",
+        "last_7_days": "De 7 dagen ervoor",
+        "this_month": "Vorige maand"
+      }
+    },
+    "routines": {
+      "emptyTitle": "Nog geen rapporten",
+      "emptyText": "Genesy kan je elke week een verkoopoverzicht mailen.",
+      "setUp": "Stel een weekrapport in"
+    }
   }
 }

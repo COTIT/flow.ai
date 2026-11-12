@@ -661,8 +661,9 @@ async function hammerPulse(persona: Persona, page: Page, click: (button: Locator
   const writes = writeLog(page)
   await page.goto("/scenes/pulse")
   const main = page.locator("main")
-  // Lists board: in the bento the attention list may show its row menu (⋯) instead.
-  await expect(main.getByRole("button", { name: /^(Mark as seen|Actions for .*)$/ }).first()).toBeVisible()
+  // Lists board: in the bento the attention list may show its row menu (⋯), or (P3) Later ▾ beside
+  // the row's next step, instead.
+  await expect(main.getByRole("button", { name: /^(Mark as seen|Actions for .*|Later .*)$/ }).first()).toBeVisible()
   for (const name of [/^Mark as seen$/, /^Remind me tomorrow$/, /^Remind me in a week$/, /first$/, /Remove from Your Flow/]) {
     const button = main.getByRole("button", { name }).first()
     if (!(await button.isVisible().catch(() => false))) continue

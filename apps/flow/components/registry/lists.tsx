@@ -7,6 +7,7 @@ import { formatMoney } from "@genesy/ui/lib/money"
 import { useAttention, useOpenOrders } from "@/lib/use-scene-data"
 import { DataState, Restricted } from "./data-state"
 import { RecordTable } from "./record-table"
+import { useOpenInOffice, useRestock } from "./row-steps"
 import type { RegistryProps } from "./types"
 
 function Panel({
@@ -31,6 +32,7 @@ export function OrderList({ restricted }: RegistryProps) {
   const t = useTranslations("scenes")
   const locale = useLocale()
   const query = useOpenOrders(!restricted)
+  const office = useOpenInOffice()
   if (restricted) return <Restricted title={t("pendingOrders")} />
   const rows = query.data?.data ?? []
   return (
@@ -59,6 +61,10 @@ export function OrderList({ restricted }: RegistryProps) {
                 formatMoney(o.total, o.decimals, o.currency, locale),
             },
           ]}
+          actions={(o) => {
+            const open = office(`/orders/${o.id}`)
+            return open ? { inline: open } : null
+          }}
         />
       </DataState>
     </Panel>
@@ -69,6 +75,7 @@ export function StockList({ restricted }: RegistryProps) {
   const t = useTranslations("scenes")
   const locale = useLocale()
   const query = useAttention()
+  const restock = useRestock()
   if (restricted || query.data?.data.stock === null)
     return <Restricted title={t("stockTitle")} />
   const rows = query.data?.data.stock?.below_minimum.items ?? []
@@ -104,6 +111,14 @@ export function StockList({ restricted }: RegistryProps) {
               value: (p) => formatQty(p.shortfall, locale),
             },
           ]}
+          actions={(p) => {
+            const step = restock({
+              id: p.product_id,
+              name: p.product_name,
+              shortfall: p.shortfall,
+            })
+            return step ? { inline: step } : null
+          }}
         />
       </DataState>
     </Panel>
