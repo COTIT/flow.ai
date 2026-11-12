@@ -32,3 +32,67 @@ export const BENTO_GRID =
 
 /** A scene of one component: natural height, nothing to line up with. */
 export const BENTO_SINGLE = "grid grid-cols-1 gap-3"
+
+/** One tile as the band planner sees it: its type, and whether it has nothing to show. */
+export type PlanInput = { id: string; type: string; empty?: boolean }
+/** Where it goes: its row ("band"), its column span, and whether it is a slim empty line. */
+export type PlanTile = { id: string; band: number; span: number; slim: boolean }
+
+/**
+ * The fit rule (bento fit): tiles are laid out in rows ("bands") whose spans always add up to the
+ * full width, in the saved order (so reading and Tab order never change). Metrics (and empty
+ * components, drawn as slim lines) pair up; at 12 columns up to two metrics share a row with the
+ * next big tile, which takes the rest; a row with nothing to share widens its tiles to the width.
+ */
+export function planBands(
+  list: readonly PlanInput[],
+  cols: 12 | 6 | 2
+): PlanTile[] {
+  const small = (t: PlanInput) => !!t.empty || SMALL.has(t.type)
+  const out: PlanTile[] = []
+  let band = 0
+  const row = (tiles: readonly PlanInput[], spans: readonly number[]) => {
+    tiles.forEach((t, i) =>
+      out.push({ id: t.id, band, span: spans[i]!, slim: !!t.empty })
+    )
+    band++
+  }
+  /** Spans that share `width` evenly; the last tile takes what is left. */
+  const even = (n: number, width: number) =>
+    Array.from({ length: n }, (_, i) =>
+      i < n - 1
+        ? Math.floor(width / n)
+        : width - Math.floor(width / n) * (n - 1)
+    )
+  const unit = cols === 12 ? 3 : cols === 6 ? 3 : 1 // a metric's width
+  const perRow = cols / unit // metrics a row holds
+  let i = 0
+  while (i < list.length) {
+    let k = 0
+    while (i + k < list.length && k < perRow && small(list[i + k]!)) k++
+    if (k > 0) {
+      const next = list[i + k]
+      // At 12 columns a big tile joins one or two metrics and takes the rest of the row.
+      if (cols === 12 && next && !small(next) && k * unit <= cols / 2) {
+        row(
+          [...list.slice(i, i + k), next],
+          [...Array(k).fill(unit), cols - k * unit]
+        )
+        i += k + 1
+      } else {
+        row(list.slice(i, i + k), even(k, cols))
+        i += k
+      }
+      continue
+    }
+    const next = list[i + 1]
+    if (cols === 12 && next && !small(next)) {
+      row([list[i]!, next], [6, 6])
+      i += 2
+    } else {
+      row([list[i]!], [cols])
+      i += 1
+    }
+  }
+  return out
+}
