@@ -152,3 +152,16 @@ test.describe("P9-4: a review or a voice upgrade never strands keyboard focus", 
     expect(await onBody(page), "focus lost to <body> after Switch to voice").toBe(false)
   })
 })
+
+test("P9-5: the explorer's tab panel shows keyboard focus with the same ring as a button", async ({
+  page,
+}) => {
+  await seedSession(page)
+  await mockApi(page, discoveryApi(OWNER))
+  await page.goto("/explore")
+  const panel = page.getByRole("tabpanel").first()
+  await expect(panel).toBeVisible()
+  const look = await focusLook(panel)
+  expect(look.visible).toBe(true)
+  expect(look.ring, "no visible focus on the tab panel").not.toBe("none")
+})
