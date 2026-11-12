@@ -277,6 +277,11 @@ pub struct SaleResource {
     #[schema(required = true)]
     card_reference: Option<String>,
     sold_at: DateTime<Utc>,
+    /// Currency of every amount here: upper-case ISO 4217 code.
+    #[schema(example = "EUR")]
+    currency: String,
+    /// Minor-unit exponent: amounts / 10^decimals = major units.
+    decimals: i16,
     /// The booked lines, in order, for the receipt.
     lines: Vec<SaleLine>,
 }
@@ -334,6 +339,8 @@ impl SaleResource {
             change: s.change,
             card_reference: s.card_reference,
             sold_at: s.sold_at,
+            currency: s.currency,
+            decimals: s.decimals,
         }
     }
 }

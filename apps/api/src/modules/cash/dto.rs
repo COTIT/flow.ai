@@ -257,6 +257,11 @@ pub struct ShiftResource {
     /// counted − expected: negative = short.
     #[schema(required = true)]
     difference: Option<i64>,
+    /// Currency of every amount here (the register's): upper-case ISO 4217 code.
+    #[schema(example = "EUR")]
+    currency: String,
+    /// Minor-unit exponent: amounts / 10^decimals = major units.
+    decimals: i16,
 }
 
 impl From<ShiftRow> for ShiftResource {
@@ -272,6 +277,8 @@ impl From<ShiftRow> for ShiftResource {
             closed_at: s.closed_at,
             counted: s.counted,
             difference: s.difference,
+            currency: s.currency,
+            decimals: s.decimals,
         }
     }
 }

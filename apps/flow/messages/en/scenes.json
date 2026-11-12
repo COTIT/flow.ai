@@ -1,7 +1,7 @@
 {
   "scenes": {
     "yourFlow": "Your Flow",
-    "yourFlowText": "Scenes you keep. Open one to see it in full.",
+    "yourFlowText": "Your saved screens. Tap one to open it.",
     "personalised": "Personalised",
     "open": "Open {name}",
     "hidden": "Hidden scenes",
@@ -12,8 +12,8 @@
     "resetDone": "Your Flow is back to its defaults.",
     "remove": "Remove from Your Flow",
     "removed": "Removed from Your Flow.",
-    "keep": "Keep in Your Flow",
-    "kept": "In Your Flow",
+    "keep": "Add to my screens",
+    "kept": "On my screens",
     "saved": "Saved to Your Flow.",
     "saveFailed": "Couldn't save. Your Flow is unchanged.",
     "pendingFirst": "Show pending orders first",
@@ -44,17 +44,17 @@
       "last_7_days": "Last 7 days",
       "this_month": "This month"
     },
-    "periodLabel": "Period",
+    "periodLabel": "Dates",
     "metric": {
       "sales_gross": "Sales",
-      "sales_net": "Sales excl. VAT",
+      "sales_net": "Sales without VAT",
       "orders_pending": "Pending orders",
       "orders_draft": "Draft orders",
       "stock_below_minimum": "Products below minimum",
       "invoices_overdue": "Overdue invoices",
       "invoices_unpaid": "Unpaid invoices"
     },
-    "vsBefore": "{change} vs the period before",
+    "vsBefore": "{change} compared with the period before",
     "noChange": "Same as the period before",
     "noSales": "No sales in this period.",
     "orders": "{count, plural, one {# order} other {# orders}}",
@@ -67,7 +67,7 @@
     "available": "Available",
     "minimum": "Minimum",
     "shortfall": "Short by",
-    "selected": "Selected",
+    "selected": "Picked · tell Genesy what to do",
     "invoices": "Invoices",
     "noInvoices": "No unpaid invoices.",
     "reports": "Scheduled reports",
@@ -80,7 +80,7 @@
     "active": "Active",
     "paused": "Paused",
     "nextRun": "Next: {when}",
-    "planned": "Planned: conditional monitoring (for example \"tell me when honey drops below 20\").",
+    "planned": "Coming later: alerts such as \"tell me when honey drops below 20\".",
     "report": {
       "sales_summary": "Sales report",
       "attention": "What needs attention",
@@ -93,30 +93,31 @@
       "monthly": "Monthly"
     },
     "noticed": {
-      "label": "Flow noticed",
-      "headline": "{count, plural, one {# priority needs your attention.} other {# priorities need your attention.}}",
+      "label": "Needs your attention",
+      "headline": "{count, plural, one {# thing needs your attention.} other {# things need your attention.}}",
       "impact": "Your most urgent issue affects {count, plural, one {# open order} other {# open orders}}.",
-      "review": "Review priorities",
+      "review": "See what needs attention",
       "calm": "Nothing needs your attention right now.",
       "lead": "Things needing your attention.",
-      "acknowledge": "Acknowledge",
-      "acknowledged": "Acknowledged",
-      "snoozeTomorrow": "Snooze until tomorrow",
-      "snoozeWeek": "Snooze 7 days",
+      "acknowledge": "Mark as seen",
+      "acknowledged": "Seen",
+      "snoozeTomorrow": "Remind me tomorrow",
+      "snoozeWeek": "Remind me in a week",
       "reviewStock": "Review stock",
       "reviewOrders": "Review orders",
       "affects": "{count, plural, one {# open order} other {# open orders}}",
       "kind": {
         "stock_below_minimum": "{count, plural, one {# product below its minimum stock level} other {# products below their minimum stock levels}}",
-        "orders_open": "{count, plural, one {# order needs fulfillment attention} other {# orders need fulfillment attention}}",
+        "orders_open": "{count, plural, one {# order waiting to be sent} other {# orders waiting to be sent}}",
         "invoices_overdue": "{count, plural, one {# overdue invoice} other {# overdue invoices}}",
         "till_open_shifts": "{count, plural, one {# till shift still open} other {# till shifts still open}}",
         "lots_quarantined": "{count, plural, one {# lot in quarantine} other {# lots in quarantine}}",
         "webhooks_failed": "{count, plural, one {# webhook failing} other {# webhooks failing}}"
       },
-      "snooze": "Snooze",
-      "untilTomorrow": "Until tomorrow",
-      "forWeek": "For 7 days"
+      "snooze": "Remind me later",
+      "untilTomorrow": "Tomorrow",
+      "forWeek": "In a week",
+      "later": "Later"
     },
     "scene": {
       "pulse": {
@@ -128,7 +129,7 @@
         "lead": "Products below their minimum, and by how much."
       },
       "noticed": {
-        "title": "Flow noticed",
+        "title": "Needs your attention",
         "lead": "Things needing your attention."
       },
       "orders": {
@@ -140,7 +141,7 @@
         "lead": "How sales are going."
       },
       "routines": {
-        "title": "My Routines",
+        "title": "Scheduled reports",
         "lead": "Reports Genesy sends you on a schedule."
       },
       "studio": {
@@ -166,6 +167,40 @@
       "rowActions": "Actions for {name}"
     },
     "showAll": "Show all",
-    "showLess": "Show less"
+    "showLess": "Show less",
+    "rowAction": {
+      "restock": "Restock",
+      "restockAsk": "Restock {name}. It is {shortfall} below its minimum.",
+      "openInOffice": "Open in Office",
+      "newTab": "{action}: {name} (opens a new tab)"
+    },
+    "compare": {
+      "button": "Compare with last week",
+      "buttonBefore": "Compare with the period before",
+      "title": {
+        "today": "Today and yesterday",
+        "yesterday": "Yesterday and the day before",
+        "this_week": "This week and last week",
+        "last_week": "Last week and the week before",
+        "last_7_days": "The last 7 days and the 7 before",
+        "this_month": "This month and last month"
+      },
+      "what": "What",
+      "orders": "Orders",
+      "difference": "Difference",
+      "base": {
+        "today": "Yesterday",
+        "yesterday": "The day before",
+        "this_week": "Last week",
+        "last_week": "The week before",
+        "last_7_days": "The 7 days before",
+        "this_month": "Last month"
+      }
+    },
+    "routines": {
+      "emptyTitle": "No reports yet",
+      "emptyText": "Genesy can email you a sales summary every week.",
+      "setUp": "Set up a weekly report"
+    }
   }
 }

@@ -1,7 +1,7 @@
 {
   "scenes": {
     "yourFlow": "Your Flow",
-    "yourFlowText": "Scènes die je bewaart. Open er een om alles te zien.",
+    "yourFlowText": "Je bewaarde schermen. Tik erop om te openen.",
     "personalised": "Persoonlijk",
     "open": "{name} openen",
     "hidden": "Verborgen scènes",
@@ -12,8 +12,8 @@
     "resetDone": "Your Flow staat weer op de standaardinstellingen.",
     "remove": "Verwijderen uit Your Flow",
     "removed": "Verwijderd uit Your Flow.",
-    "keep": "Bewaren in Your Flow",
-    "kept": "In Your Flow",
+    "keep": "Toevoegen aan mijn schermen",
+    "kept": "Op mijn schermen",
     "saved": "Bewaard in Your Flow.",
     "saveFailed": "Opslaan lukte niet. Your Flow is ongewijzigd.",
     "pendingFirst": "Openstaande bestellingen eerst tonen",
@@ -44,17 +44,17 @@
       "last_7_days": "Afgelopen 7 dagen",
       "this_month": "Deze maand"
     },
-    "periodLabel": "Periode",
+    "periodLabel": "Datums",
     "metric": {
       "sales_gross": "Verkoop",
-      "sales_net": "Verkoop excl. btw",
+      "sales_net": "Verkoop zonder btw",
       "orders_pending": "Openstaande bestellingen",
       "orders_draft": "Conceptbestellingen",
       "stock_below_minimum": "Producten onder minimum",
       "invoices_overdue": "Achterstallige facturen",
       "invoices_unpaid": "Onbetaalde facturen"
     },
-    "vsBefore": "{change} t.o.v. de vorige periode",
+    "vsBefore": "{change} vergeleken met de vorige periode",
     "noChange": "Gelijk aan de vorige periode",
     "noSales": "Geen verkoop in deze periode.",
     "orders": "{count, plural, one {# bestelling} other {# bestellingen}}",
@@ -67,7 +67,7 @@
     "available": "Beschikbaar",
     "minimum": "Minimum",
     "shortfall": "Tekort",
-    "selected": "Geselecteerd",
+    "selected": "Gekozen · zeg Genesy wat te doen",
     "invoices": "Facturen",
     "noInvoices": "Geen onbetaalde facturen.",
     "reports": "Geplande rapporten",
@@ -80,7 +80,7 @@
     "active": "Actief",
     "paused": "Gepauzeerd",
     "nextRun": "Volgende: {when}",
-    "planned": "Gepland: voorwaardelijke bewaking (bijvoorbeeld \"laat me weten als honing onder 20 zakt\").",
+    "planned": "Komt later: meldingen zoals \"laat me weten als honing onder 20 zakt\".",
     "report": {
       "sales_summary": "Verkooprapport",
       "attention": "Wat aandacht nodig heeft",
@@ -93,30 +93,31 @@
       "monthly": "Maandelijks"
     },
     "noticed": {
-      "label": "Flow noticed",
-      "headline": "{count, plural, one {# prioriteit vraagt je aandacht.} other {# prioriteiten vragen je aandacht.}}",
+      "label": "Vraagt je aandacht",
+      "headline": "{count, plural, one {# ding vraagt je aandacht.} other {# dingen vragen je aandacht.}}",
       "impact": "Je meest dringende punt raakt {count, plural, one {# openstaande bestelling} other {# openstaande bestellingen}}.",
-      "review": "Prioriteiten bekijken",
+      "review": "Bekijk wat aandacht vraagt",
       "calm": "Er vraagt nu niets je aandacht.",
       "lead": "Dingen die je aandacht nodig hebben.",
       "acknowledge": "Markeer als gezien",
       "acknowledged": "Gezien",
-      "snoozeTomorrow": "Uitstellen tot morgen",
-      "snoozeWeek": "7 dagen uitstellen",
+      "snoozeTomorrow": "Herinner me morgen",
+      "snoozeWeek": "Herinner me over een week",
       "reviewStock": "Voorraad bekijken",
       "reviewOrders": "Bestellingen bekijken",
       "affects": "{count, plural, one {# openstaande bestelling} other {# openstaande bestellingen}}",
       "kind": {
         "stock_below_minimum": "{count, plural, one {# product onder de minimale voorraad} other {# producten onder de minimale voorraad}}",
-        "orders_open": "{count, plural, one {# bestelling moet nog worden afgehandeld} other {# bestellingen moeten nog worden afgehandeld}}",
+        "orders_open": "{count, plural, one {# bestelling wacht op verzending} other {# bestellingen wachten op verzending}}",
         "invoices_overdue": "{count, plural, one {# achterstallige factuur} other {# achterstallige facturen}}",
         "till_open_shifts": "{count, plural, one {# kassadienst staat nog open} other {# kassadiensten staan nog open}}",
         "lots_quarantined": "{count, plural, one {# partij in quarantaine} other {# partijen in quarantaine}}",
         "webhooks_failed": "{count, plural, one {# webhook mislukt} other {# webhooks mislukken}}"
       },
-      "snooze": "Uitstellen",
-      "untilTomorrow": "Tot morgen",
-      "forWeek": "7 dagen"
+      "snooze": "Herinner me later",
+      "untilTomorrow": "Morgen",
+      "forWeek": "Over een week",
+      "later": "Later"
     },
     "scene": {
       "pulse": {
@@ -128,7 +129,7 @@
         "lead": "Producten onder hun minimum, en hoeveel."
       },
       "noticed": {
-        "title": "Flow noticed",
+        "title": "Vraagt je aandacht",
         "lead": "Dingen die je aandacht nodig hebben."
       },
       "orders": {
@@ -140,7 +141,7 @@
         "lead": "Hoe de verkoop loopt."
       },
       "routines": {
-        "title": "My Routines",
+        "title": "Geplande rapporten",
         "lead": "Rapporten die Genesy je volgens schema stuurt."
       },
       "studio": {
@@ -166,6 +167,40 @@
       "rowActions": "Acties voor {name}"
     },
     "showAll": "Alles tonen",
-    "showLess": "Minder tonen"
+    "showLess": "Minder tonen",
+    "rowAction": {
+      "restock": "Aanvullen",
+      "restockAsk": "Vul {name} aan. Er zijn er {shortfall} te weinig voor het minimum.",
+      "openInOffice": "Openen in Office",
+      "newTab": "{action}: {name} (opent een nieuw tabblad)"
+    },
+    "compare": {
+      "button": "Vergelijk met vorige week",
+      "buttonBefore": "Vergelijk met de periode ervoor",
+      "title": {
+        "today": "Vandaag en gisteren",
+        "yesterday": "Gisteren en de dag ervoor",
+        "this_week": "Deze week en vorige week",
+        "last_week": "Vorige week en de week ervoor",
+        "last_7_days": "De laatste 7 dagen en de 7 ervoor",
+        "this_month": "Deze maand en vorige maand"
+      },
+      "what": "Wat",
+      "orders": "Bestellingen",
+      "difference": "Verschil",
+      "base": {
+        "today": "Gisteren",
+        "yesterday": "De dag ervoor",
+        "this_week": "Vorige week",
+        "last_week": "De week ervoor",
+        "last_7_days": "De 7 dagen ervoor",
+        "this_month": "Vorige maand"
+      }
+    },
+    "routines": {
+      "emptyTitle": "Nog geen rapporten",
+      "emptyText": "Genesy kan je elke week een verkoopoverzicht mailen.",
+      "setUp": "Stel een weekrapport in"
+    }
   }
 }

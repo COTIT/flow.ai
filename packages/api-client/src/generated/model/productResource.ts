@@ -50,6 +50,16 @@ export interface ProductResource {
   country_of_origin: string | null;
   created_at: string;
   /**
+     * Currency of the prices: upper-case ISO 4217 code; null if that currency was deleted.
+     * @nullable
+     */
+  currency: string | null;
+  /**
+     * The currency's minor-unit exponent, for display. Price strings stay major units.
+     * @nullable
+     */
+  decimals: number | null;
+  /**
      * Short warehouse on lists, full warehouse on the single GET.
      * @nullable
      */

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  coalesce(s.expected,\n                           (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                            WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                              AND l.kind <> 'close_count')) AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference,\n                  count(*) OVER () AS \"total!\"\n           FROM drawer_shifts s WHERE s.workspace_id = $1\n             AND ($4::bool IS NULL OR (s.closed_at IS NULL) = $4)\n             AND ($5::uuid IS NULL OR s.register_id = $5)\n             AND ($6::timestamptz IS NULL OR s.opened_at >= $6)\n             AND ($7::timestamptz IS NULL OR s.opened_at < $7)\n           ORDER BY s.opened_at DESC, s.id DESC\n           LIMIT $2 OFFSET $3",
+  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  coalesce(s.expected,\n                           (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                            WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                              AND l.kind <> 'close_count')) AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference,\n                  upper(c.asset_type) AS \"currency!\", c.decimals,\n                  count(*) OVER () AS \"total!\"\n           FROM drawer_shifts s\n           JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id\n           JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id\n           WHERE s.workspace_id = $1\n             AND ($4::bool IS NULL OR (s.closed_at IS NULL) = $4)\n             AND ($5::uuid IS NULL OR s.register_id = $5)\n             AND ($6::timestamptz IS NULL OR s.opened_at >= $6)\n             AND ($7::timestamptz IS NULL OR s.opened_at < $7)\n           ORDER BY s.opened_at DESC, s.id DESC\n           LIMIT $2 OFFSET $3",
   "describe": {
     "columns": [
       {
@@ -110,6 +110,23 @@
       },
       {
         "ordinal": 10,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
         "name": "total!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -137,8 +154,10 @@
       true,
       true,
       true,
+      null,
+      false,
       null
     ]
   },
-  "hash": "8766b45e12438670f2f92f687b6d136bc36e2ceaae75aad39271b7e5afde53c1"
+  "hash": "cfe70e4c041130ff73b25ff57ad6ef30d3b8674891a12d92701e11334d7636e7"
 }

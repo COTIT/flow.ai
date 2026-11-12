@@ -16,8 +16,18 @@ import { formatQty } from "@genesy/ui/lib/format"
 import { usePriorities, useWorkspace } from "@/lib/use-scene-data"
 import { useSyncGuard } from "@/lib/use-sync-guard"
 import { DataState, Restricted } from "./data-state"
-import { RecordTable } from "./record-table"
+import { RecordTable, type RowAction } from "./record-table"
+import { useOpenInOffice, useRestock } from "./row-steps"
 import type { RegistryProps } from "./types"
+
+/** The Office page that deals with one item of a kind (its record, or the list). */
+const OFFICE: Partial<Record<string, (ref: string) => string>> = {
+  "orders.open": (ref) => `/orders/${ref}`,
+  "invoices.overdue": (ref) => `/invoices/${ref}`,
+  "lots.quarantined": (ref) => `/lots/${ref}`,
+  "till.open_shifts": () => "/till/shifts",
+  "webhooks.failed": () => "/settings/webhooks",
+}
 
 /** Where "Review" goes for a kind; kinds without a scene get no review link. */
 export const REVIEW: Partial<Record<string, string>> = {
@@ -44,6 +54,8 @@ function Group({ group }: { group: PriorityGroup }) {
     },
   })
   const once = useSyncGuard()
+  const restock = useRestock()
+  const office = useOpenInOffice()
   const send = (data: Parameters<typeof mark.mutate>[0]["data"]) =>
     // A second click in the same frame must not send the same write again.
     void once(() => mark.mutateAsync({ workspace: ws, data }).catch(() => null))
@@ -131,10 +143,31 @@ function Group({ group }: { group: PriorityGroup }) {
           ) =>
             // P2-3a: through the same-frame guard, never mark.mutate directly.
             send({ kind: group.kind, ref_id: item.ref_id, ...data })
-          const snooze = can("snooze")
-            ? {
-                label: t("noticed.snooze"),
-                items: [
+          // The item's own next step: restock it, or open it where it is dealt with.
+          const path = OFFICE[group.kind]?.(item.ref_id)
+          const step: RowAction | undefined =
+            group.kind === "stock.below_minimum"
+              ? restock({
+                  id: item.ref_id,
+                  name: item.label,
+                  shortfall: item.shortfall,
+                })
+              : path
+                ? office(path)
+                : undefined
+          const ack = can("acknowledge") && !item.acknowledged
+          const later = [
+            ...(ack && step
+              ? [
+                  {
+                    key: "ack",
+                    label: t("noticed.acknowledge"),
+                    onSelect: () => markAs({ state: "acknowledged" as const }),
+                  },
+                ]
+              : []),
+            ...(can("snooze")
+              ? [
                   {
                     key: "tomorrow",
                     label: t("noticed.snoozeTomorrow"),
@@ -149,23 +182,33 @@ function Group({ group }: { group: PriorityGroup }) {
                     onSelect: () =>
                       markAs({ state: "snoozed", snooze: "seven_days" }),
                   },
-                ],
-              }
-            : undefined
-          const ack = can("acknowledge")
-          if (!ack && !snooze) return null
-          return {
-            disabled: mark.isPending,
-            status:
-              ack && item.acknowledged ? t("noticed.acknowledged") : undefined,
-            inline: ack
+                ]
+              : []),
+          ]
+          // No next step: Acknowledge stays the button, as before.
+          const inline =
+            step ??
+            (ack
               ? {
                   key: "ack",
                   label: t("noticed.acknowledge"),
                   onSelect: () => markAs({ state: "acknowledged" }),
                 }
+              : undefined)
+          if (!inline && !later.length) return null
+          return {
+            disabled: mark.isPending,
+            status:
+              can("acknowledge") && item.acknowledged
+                ? t("noticed.acknowledged")
+                : undefined,
+            inline,
+            group: later.length
+              ? {
+                  label: t(step ? "noticed.later" : "noticed.snooze"),
+                  items: later,
+                }
               : undefined,
-            group: snooze,
           }
         }}
       />

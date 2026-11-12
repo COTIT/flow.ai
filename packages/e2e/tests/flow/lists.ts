@@ -4,8 +4,9 @@ import { expect } from "../../src/test"
 import { sc } from "./scenes-api"
 
 /**
- * Runs a row action the way the person sees it at this width (Lists board): inline Acknowledge and
- * the Snooze ▾ menu (table ≥ 980 px, cards < 600 px), or the ⋯ row menu (600–979 px).
+ * Runs a row action the way the person sees it at this width (Lists board): the Later ▾ menu
+ * beside the row's next step (or inline Acknowledge + Snooze ▾ where a row has no next step) in
+ * the table (≥ 940 px) and cards (< 520 px), or the ⋯ row menu (520–939 px).
  * `press` clicks the control that writes (e.g. twice in one task, P2-3a); opening a menu stays one click.
  */
 export async function rowAction(
@@ -21,14 +22,27 @@ export async function rowAction(
     name: sc.noticed.acknowledge,
     exact: true,
   })
+  const later = row.getByRole("button", {
+    name: new RegExp(`^${sc.noticed.later} `),
+  })
   // Wait for the row to render in this width's form before picking a path.
-  await expect(more.or(ack).filter({ visible: true })).toHaveCount(1)
+  await expect(more.or(later).or(ack).filter({ visible: true })).not.toHaveCount(0)
   if (await more.isVisible()) {
     await more.click()
     const label = {
       acknowledge: sc.noticed.acknowledge,
       tomorrow: sc.noticed.snoozeTomorrow,
       week: sc.noticed.snoozeWeek,
+    }[action]
+    await press(page.getByRole("menuitem", { name: label, exact: true }))
+    return expect(page.getByRole("menu")).toHaveCount(0)
+  }
+  if (await later.isVisible()) {
+    await later.click()
+    const label = {
+      acknowledge: sc.noticed.acknowledge,
+      tomorrow: sc.noticed.untilTomorrow,
+      week: sc.noticed.forWeek,
     }[action]
     await press(page.getByRole("menuitem", { name: label, exact: true }))
     return expect(page.getByRole("menu")).toHaveCount(0)

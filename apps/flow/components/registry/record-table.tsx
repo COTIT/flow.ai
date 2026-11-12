@@ -2,9 +2,9 @@
 
 import type { ReactNode } from "react"
 import { useTranslations } from "next-intl"
-import { ChevronDown, MoreHorizontal } from "lucide-react"
+import { ChevronDown, ExternalLink, MoreHorizontal } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@genesy/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,15 +29,17 @@ export type RowAction = {
   label: string
   /** Its name inside its group's menu ("For 7 days"). */
   short?: string
-  onSelect: () => void
+  /** A page in a new tab (Open in Office) instead of a press. */
+  href?: string
+  onSelect?: () => void
 }
 
 export type RowActions = {
-  /** Shown as a button (Acknowledge). */
+  /** Shown as a button: the row's next step (Restock, Open in Office). */
   inline?: RowAction
   /** Shown behind one menu button (Snooze ▾). */
   group?: { label: string; items: RowAction[] }
-  /** Replaces the inline action once done (Acknowledged). */
+  /** A short note beside the actions (Acknowledged). */
   status?: string
   disabled?: boolean
 }
@@ -212,40 +214,30 @@ function SelectName({
 
 function Actions({ name, act }: { name: string; act: RowActions }) {
   const t = useTranslations("scenes")
-  const all = [
-    ...(act.inline && !act.status ? [act.inline] : []),
-    ...(act.group?.items ?? []),
-  ]
+  const later = act.group?.items ?? []
   return (
-    <>
-      <div
-        className={`${INLINE} items-center justify-end gap-1 @max-[519px]:gap-2`}
-      >
-        {act.status ? (
-          <span
-            data-acknowledged=""
-            className="px-3 text-[13px] text-muted-foreground @max-[519px]:flex-1 @max-[519px]:px-0"
-          >
-            {act.status}
-          </span>
-        ) : act.inline ? (
-          <Button
-            variant="ghost"
-            className="min-h-11 rounded-full @max-[519px]:flex-1 @max-[519px]:border @max-[519px]:bg-background"
-            disabled={act.disabled}
-            onClick={act.inline.onSelect}
-          >
-            {act.inline.label}
-          </Button>
-        ) : null}
-        {act.group ? (
+    <div className="flex items-center justify-end gap-1 @max-[519px]:flex-wrap @max-[519px]:gap-2">
+      {act.status ? (
+        <span
+          data-acknowledged=""
+          className="px-3 text-[13px] text-muted-foreground @max-[519px]:w-full @max-[519px]:px-0 @min-[520px]:@max-[939px]:hidden"
+        >
+          {act.status}
+        </span>
+      ) : null}
+      {/* The next step stays in sight at every width; only the rest folds into the ⋯ menu. */}
+      {act.inline ? (
+        <Step name={name} action={act.inline} disabled={act.disabled} />
+      ) : null}
+      {act.group ? (
+        <div className={`${INLINE} @max-[519px]:flex-1`}>
           <DropdownMenu>
             <DropdownMenuTrigger
               disabled={act.disabled}
               render={
                 <Button
                   variant="outline"
-                  className="min-h-11 rounded-full @max-[519px]:flex-1"
+                  className="min-h-11 rounded-full @max-[519px]:min-h-12 @max-[519px]:flex-1"
                   aria-label={`${act.group.label} ${name}`}
                 />
               }
@@ -254,21 +246,15 @@ function Actions({ name, act }: { name: string; act: RowActions }) {
               <ChevronDown aria-hidden />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-48">
-              {act.group.items.map((a) => (
-                <DropdownMenuItem
-                  key={a.key}
-                  className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
-                  onClick={a.onSelect}
-                >
-                  {a.short ?? a.label}
-                </DropdownMenuItem>
+              {later.map((a) => (
+                <Item key={a.key} action={a} label={a.short ?? a.label} />
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : null}
-      </div>
-      {all.length ? (
-        <div className={`${MENU} justify-end`}>
+        </div>
+      ) : null}
+      {later.length ? (
+        <div className={MENU}>
           <DropdownMenu>
             <DropdownMenuTrigger
               disabled={act.disabled}
@@ -284,19 +270,71 @@ function Actions({ name, act }: { name: string; act: RowActions }) {
               <MoreHorizontal aria-hidden />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-56">
-              {all.map((a) => (
-                <DropdownMenuItem
-                  key={a.key}
-                  className="min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
-                  onClick={a.onSelect}
-                >
-                  {a.label}
-                </DropdownMenuItem>
+              {later.map((a) => (
+                <Item key={a.key} action={a} label={a.label} />
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       ) : null}
-    </>
+    </div>
+  )
+}
+
+const STEP =
+  "min-h-11 rounded-full @max-[519px]:flex-1 @max-[519px]:min-h-12 @max-[519px]:text-[15px]"
+
+/** The row's next step: a filled button, or a link that opens a new tab. */
+function Step({
+  name,
+  action,
+  disabled,
+}: {
+  name: string
+  action: RowAction
+  disabled?: boolean
+}) {
+  const t = useTranslations("scenes")
+  if (action.href)
+    return (
+      <a
+        href={action.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={t("rowAction.newTab", { action: action.label, name })}
+        className={buttonVariants({ variant: "outline", className: STEP })}
+      >
+        {action.label}
+        <ExternalLink aria-hidden />
+      </a>
+    )
+  return (
+    <Button
+      className={STEP}
+      aria-label={`${action.label} ${name}`}
+      disabled={disabled}
+      onClick={action.onSelect}
+    >
+      {action.label}
+    </Button>
+  )
+}
+
+function Item({ action, label }: { action: RowAction; label: string }) {
+  const look = "min-h-11 focus:ring-2 focus:ring-(--gold) focus:ring-inset"
+  return action.href ? (
+    <DropdownMenuItem
+      className={look}
+      render={
+        <a href={action.href} target="_blank" rel="noopener noreferrer" />
+      }
+    >
+      {label}
+      <ExternalLink aria-hidden className="ml-auto" />
+    </DropdownMenuItem>
+  ) : (
+    <DropdownMenuItem className={look} onClick={action.onSelect}>
+      {label}
+    </DropdownMenuItem>
   )
 }

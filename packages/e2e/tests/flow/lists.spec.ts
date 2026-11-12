@@ -22,14 +22,18 @@ const item = (page: Page, id: string) => stock(page).locator(`[data-item="${id}"
 
 async function expectForm(page: Page, row: Locator, form: Form) {
   const more = row.getByRole("button", { name: /^Actions for / })
-  const ack = row.getByRole("button", { name: sc.noticed.acknowledge, exact: true })
+  const later = row.getByRole("button", { name: new RegExp(`^${sc.noticed.later} `) })
+  // P3: the row's next step stays in sight at every width; the rest waits in Later ▾ or ⋯.
+  await expect(row.getByRole("button", { name: /^Restock / })).toBeVisible()
+  await expect(
+    row.getByRole("button", { name: sc.noticed.acknowledge, exact: true })
+  ).toHaveCount(0)
   if (form === "menu") {
     await expect(more).toBeVisible()
-    await expect(ack).toBeHidden()
+    await expect(later).toBeHidden()
   } else {
     await expect(more).toBeHidden()
-    await expect(ack).toBeVisible()
-    await expect(row.getByRole("button", { name: /^Snooze / })).toBeVisible()
+    await expect(later).toBeVisible()
   }
   if (form === "cards") {
     // Labelled numbers; the whole name, never cut off.
@@ -90,7 +94,7 @@ test("row actions work from the keyboard", async ({ page, api }) => {
   const more = tea.getByRole("button", { name: /^Actions for / })
   const trigger = (await more.isVisible())
     ? more
-    : tea.getByRole("button", { name: /^Snooze / })
+    : tea.getByRole("button", { name: new RegExp(`^${sc.noticed.later} `) })
   await trigger.focus()
   await page.keyboard.press("Enter")
   await expect(page.getByRole("menu")).toBeVisible()

@@ -110,8 +110,8 @@ test("a restricted attention or report panel says so and never asks for its data
     ],
   }))
   for (const [path, title] of [
-    ["/scenes/noticed", "Flow noticed"],
-    ["/scenes/routines", "My Routines"],
+    ["/scenes/noticed", "Needs your attention"],
+    ["/scenes/routines", "Scheduled reports"],
   ] as const) {
     await page.goto(path)
     await expect(

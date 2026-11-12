@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                  s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.unsellable_lines, s.due,\n                  s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,\n                  count(*) OVER () AS \"total_rows!\"\n           FROM till_sales s\n           JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n           WHERE s.workspace_id = $1 AND (NOT $2 OR s.mismatched_lines > 0)\n             AND ($5::uuid IS NULL OR s.register_id = $5)\n             AND ($6::timestamptz IS NULL OR s.sold_at >= $6)\n             AND ($7::timestamptz IS NULL OR s.sold_at < $7)\n           ORDER BY s.created_at DESC, s.order_id DESC\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                  s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.unsellable_lines, s.due,\n                  s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,\n                  upper(c.asset_type) AS \"currency!\", c.decimals,\n                  count(*) OVER () AS \"total_rows!\"\n           FROM till_sales s\n           JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE s.workspace_id = $1 AND (NOT $2 OR s.mismatched_lines > 0)\n             AND ($5::uuid IS NULL OR s.register_id = $5)\n             AND ($6::timestamptz IS NULL OR s.sold_at >= $6)\n             AND ($7::timestamptz IS NULL OR s.sold_at < $7)\n           ORDER BY s.created_at DESC, s.order_id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -203,6 +203,23 @@
       },
       {
         "ordinal": 18,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 19,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
         "name": "total_rows!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -238,8 +255,10 @@
       true,
       true,
       false,
+      null,
+      false,
       null
     ]
   },
-  "hash": "da5ee71baf56cf9434934aaa41625dc7e4644410c22af3f0858b29fed0007478"
+  "hash": "62639d848fd2be9f1dc043fbc69445f35ff956b7ed1e49b9fe3929daf257dec4"
 }

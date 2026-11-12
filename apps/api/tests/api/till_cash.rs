@@ -553,3 +553,54 @@ async fn a_count_quote_under_another_workspace_is_a_404(pool: PgPool) {
     let (status, _) = common::send(&t.api.app, Method::POST, &uri, Some(body), Some(&t.t1)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+/// Shift amounts name the register's currency: ISO code and minor-unit exponent.
+#[sqlx::test]
+async fn shifts_name_the_register_currency(pool: PgPool) {
+    let t = till(pool).await;
+    let money = |d: &Value| (d["currency"].clone(), d["decimals"].clone());
+    let (status, res) = t.open(&t.t1, &[(100, 5)]).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(money(&res["data"]), (json!("EUR"), json!(2)), "open");
+    let (_, res) = t.call(Method::GET, "/shift", None, &t.t1).await;
+    assert_eq!(money(&res["data"]), (json!("EUR"), json!(2)), "current");
+    let (status, res) = t.close(&t.t1, &[(100, 5)]).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(money(&res["data"]), (json!("EUR"), json!(2)), "close");
+
+    // Register 2 runs on shillings: 0 decimals.
+    let (status, tzs) = common::send(
+        &t.api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/currencies", t.api.ws),
+        Some(json!({ "name": "Shilling", "asset_type": "tzs", "decimals": 0, "default_currency": false, "active": true })),
+        Some(&t.api.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{tzs}");
+    sqlx::query("UPDATE till_registers SET currency_id = $2::uuid WHERE workspace_id = $1::uuid AND name = 'Till 2'")
+        .bind(&t.api.ws)
+        .bind(tzs["data"]["currency_id"].as_str().unwrap())
+        .execute(&t.api.pool)
+        .await
+        .unwrap();
+    let (status, res) = t.open(&t.t2, &[(100, 5)]).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(
+        money(&res["data"]),
+        (json!("TZS"), json!(0)),
+        "open in shillings"
+    );
+
+    let (_, res) = t.call(Method::GET, "/shifts", None, &t.api.owner).await;
+    assert_eq!(
+        money(&res["data"][0]),
+        (json!("TZS"), json!(0)),
+        "office list"
+    );
+    assert_eq!(
+        money(&res["data"][1]),
+        (json!("EUR"), json!(2)),
+        "office list"
+    );
+}

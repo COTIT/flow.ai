@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Till sales (`SaleResource`), drawer shifts (`ShiftResource`) and product docs carry `currency` (upper-case ISO 4217 code) and `decimals` (minor-unit exponent) for their amounts, so a voice result card can format one reply without extra register or currency lookups. Sales use the order's currency, shifts the register's, products their own (same as `relationships.currency`). Amounts unchanged; additive.
+
 - Assistant reviews of stock, order and invoice writes list old → new `changes` rows (`docs/api/assistant.md`), so the review card shows what changes before approval (persona finding P3-3: a stock review showed only the product). Computed in the API from captured facts: quantities as exact decimal strings, money in integer minor units. `stock_mutate`, `stock_set_requirements`, `stock_move_between_bins` and `lots_stock_mutate` now capture rows-only facts (permission checked first; nothing compared at execution). Stock slot facts include the bin name.
 
 - Globadyme submit releases its per-payment dispatch fence (session advisory lock) before returning, on success and on every error. The fence used to outlive the call until the closed connection's backend exited, so a submit right after a refused one (setup disabled) could skip as "already dispatching" and the Shop got `200` `creating` without a checkout link instead of `503` `payment_setup_required`; refund resolution could also see a finished dispatch as still active. Cancellation still frees it by closing the connection. Single dispatch unchanged.

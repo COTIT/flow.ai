@@ -16,6 +16,10 @@ export interface SaleResource {
   /** @nullable */
   change: number | null;
   client_ref: string;
+  /** Currency of every amount here: upper-case ISO 4217 code. */
+  currency: string;
+  /** Minor-unit exponent: amounts / 10^decimals = major units. */
+  decimals: number;
   /** Paid: cash rounded to the currency's step, card = total. */
   due: number;
   /** The booked lines, in order, for the receipt. */

@@ -143,14 +143,14 @@ test.describe("findings", () => {
     await expect(kept.or(page.getByText(DRAFT)).or(page.getByText(/draft/i)).first()).toBeVisible({ timeout: 5_000 })
   })
 
-  // P8-2 (fixed, regression guard): a review that simply expired turns the orb to its error state: "Something went wrong"
+  // P8-2 (fixed, regression guard): a review that simply expired turns the orb to its error state ("That didn't work. Try again.", once "Something went wrong")
   // next to "This review expired." (orb.ts: any voice.error is "error").
-  test("P8-2 an expired review is not announced as \"Something went wrong\"", async ({ persona, page, api }) => {
+  test("P8-2 an expired review is not announced as an error", async ({ persona, page, api }) => {
     await setup(persona, page, api)
     await propose(persona, page)
     await sleep(page, 11 * MIN, { hidden: false })
     await expect(page.getByText(v.expired).first()).toBeVisible()
-    await expect(page.getByText("Something went wrong", { exact: true })).toHaveCount(0)
+    await expect(page.getByText("That didn't work. Try again.", { exact: true })).toHaveCount(0)
   })
 
   // P8-3 (fixed, regression guard): the login expired on a scene; after logging in again the person lands on home, not on
@@ -192,7 +192,7 @@ test.describe("findings", () => {
     expect(confirms).toEqual([]) // refused before Office: nothing ran
     await logInAgain(page)
     await expect(page).not.toHaveURL(LOGIN) // back in (to `next` when it was given)
-    const again = page.getByRole("button", { name: v.approve }).or(page.getByRole("button", { name: "Continue review" }))
+    const again = page.getByRole("button", { name: v.approve }).or(page.getByRole("button", { name: "Check it now" }))
     await expect(again.or(page.getByText(/not (run|approved|sent)|did not/i)).first()).toBeVisible({ timeout: 5_000 })
   })
 })
@@ -209,6 +209,14 @@ test("idle returner: works, leaves mid-flow, comes back after expiry, sleep, hid
       if (expired) await page.getByRole("button", { name: "Refresh" }).first().click({ timeout: 1_000 }).catch(() => {})
       if (expired) await page.getByRole("region", { name: sc.yourFlow }).getByRole("link").first().click({ timeout: 1_000 }).catch(() => {})
       if (expired) await talk(page).catch(() => {})
+      // Still here (e.g. the storefront has none of the above): send through the dock, which is on
+      // every page and reaches the server. A half-typed draft is sent as it is (the refused session
+      // sends nothing, so it stays); an empty box gets a short question.
+      if (expired && !onLogin(page)) {
+        const box = page.getByLabel(v.message)
+        if (!(await box.inputValue().catch(() => "x"))) await box.fill("Are you there?").catch(() => {})
+        await box.press("Enter").catch(() => {})
+      }
     }
     if (expired) await expect(page).toHaveURL(LOGIN)
     if (!onLogin(page)) return
@@ -325,7 +333,7 @@ test.describe("a running batch", () => {
     await persona.check()
   })
 
-  // P8-5 (fixed, regression guard): a paused run is labelled "Genesy is working" in the task line (capsule.tsx: only ENDED
+  // P8-5 (fixed, regression guard): a paused run is labelled "Working" in the task line (capsule.tsx: only ENDED
   // states get their own label; "paused" falls back to "working").
   test("P8-5 a paused run is not labelled \"Genesy is working\"", async ({ persona, page, api }) => {
     await run(persona, page, api)
