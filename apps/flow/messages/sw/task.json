@@ -1,12 +1,12 @@
 {
   "task": {
     "label": "Kazi inayoendelea",
-    "working": "Genesy inafanya kazi",
+    "working": "Inafanya kazi",
     "states": {
       "preparing": "Inaandaa",
       "running": "Inaendelea",
       "waiting_input": "Inakusubiri",
-      "needs_approval": "Inahitaji idhini",
+      "needs_approval": "Inahitaji ruhusa yako",
       "paused": "Imesitishwa",
       "failed": "Imeshindikana",
       "partial": "Imekamilika kwa sehemu",
@@ -16,10 +16,10 @@
     },
     "milestones": {
       "preparing": "Inaandaa mabadiliko.",
-      "preparingReview": "Inaandaa ukaguzi.",
+      "preparingReview": "Inaandaa badiliko ulikague.",
       "waitingInput": "Inasubiri chaguo lako.",
-      "waitingConfirmation": "Inasubiri uthibitisho.",
-      "executing": "Inatekeleza mabadiliko yaliyoidhinishwa.",
+      "waitingConfirmation": "Inasubiri ruhusa yako.",
+      "executing": "Inafanya badiliko.",
       "paused": "Imesitishwa. Hakuna kitakachoendelea hadi uamue.",
       "completed": "Imethibitishwa na Genesy.",
       "partial": "Sehemu tu imefanyika.",
@@ -30,7 +30,7 @@
     "counts": "{done} kati ya {total} zimefanyika · {failed} zimeshindikana · {notRun} hazijaendeshwa · {unknown} zinahitaji ukaguzi",
     "review": "Kagua",
     "pause": "Sitisha",
-    "openReceipt": "Tazama matokeo",
+    "openReceipt": "Tazama kilichobadilika",
     "dismiss": "Funga",
     "withdrawn": "Imeondolewa · haikutumwa kamwe",
     "receipt": {
@@ -96,7 +96,7 @@
     "resume": {
       "title": "Endelea ulipoachia",
       "awaiting": "{summary} · inasubiri idhini yako.",
-      "continue": "Endelea na ukaguzi",
+      "continue": "Kagua sasa",
       "dismiss": "Funga",
       "ran": "{summary} · imefanyika.",
       "failed": "{summary} · haikufanyika.",
@@ -104,7 +104,7 @@
       "outcomes": "Tangu ulipokuwa hapa"
     },
     "expired": {
-      "title": "Ukaguzi umeisha muda",
+      "title": "Muda wa badiliko hili umeisha",
       "askAgain": "Omba tena",
       "askAgainMessage": "Ukaguzi ule uliisha muda kabla sijauidhinisha. Tafadhali uandae tena."
     }
