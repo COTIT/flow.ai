@@ -21,6 +21,8 @@ export type Query = {
   isFetching: boolean
   dataUpdatedAt: number
   error?: unknown
+  /** "paused" = waiting for the network to come back (offline), not fetching. */
+  fetchStatus?: string
   /** The last failed try while retries are still running. */
   failureReason?: unknown
   refetch: () => unknown
@@ -68,6 +70,13 @@ export function DataState({
           variant="info"
           title={t("busy", { seconds: Math.ceil(waiting.retryAfter) })}
         />
+      </Held>
+    )
+  // Offline with nothing to show yet: say so; react-query resumes by itself on reconnect.
+  if (query.isPending && query.fetchStatus === "paused")
+    return (
+      <Held px={reserve}>
+        <Notice variant="warning" title={t("offline")} />
       </Held>
     )
   if (query.isPending)
