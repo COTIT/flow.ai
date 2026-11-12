@@ -22,7 +22,10 @@ const byCamel = new Map(
 export function opOf(name) {
   const bare = name
     .replace(/^(use|get)(?=[A-Z])/, "")
-    .replace(/(Infinite)?(QueryOptions|QueryKey|MutationOptions|MutationKey|Url)$/, "")
+    .replace(
+      /(Infinite)?(QueryOptions|QueryKey|MutationOptions|MutationKey|Url)$/,
+      ""
+    )
   return byCamel.get(bare[0].toLowerCase() + bare.slice(1))
 }
 
@@ -31,14 +34,22 @@ const IMPORT =
 const names = (list) =>
   list
     .split(",")
-    .map((n) => n.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, ""))
+    .map((n) =>
+      n
+        .trim()
+        .split(/\s+as\s+/)[0]
+        .replace(/^type\s+/, "")
+    )
     .filter(Boolean)
 
 function importedOps(source) {
   const ops = new Set()
   const helpers = new Set()
   for (const [, list, from] of source.matchAll(IMPORT)) {
-    if (from.startsWith("@genesy/api-client/endpoints/") || from.startsWith("./generated/"))
+    if (
+      from.startsWith("@genesy/api-client/endpoints/") ||
+      from.startsWith("./generated/")
+    )
       for (const n of names(list)) {
         const op = opOf(n)
         if (op) ops.add(op)
@@ -56,7 +67,10 @@ const byRoute = new Map(
 /** `apiRequest({ url, method })` calls in one file, resolved through the file's own `const x = \`…\``. */
 function requestOps(source) {
   const consts = Object.fromEntries(
-    [...source.matchAll(/const\s+(\w+)\s*=\s*`([^`]*)`/g)].map(([, k, v]) => [k, v])
+    [...source.matchAll(/const\s+(\w+)\s*=\s*`([^`]*)`/g)].map(([, k, v]) => [
+      k,
+      v,
+    ])
   )
   const expand = (s, depth = 0) =>
     depth > 3
@@ -89,7 +103,8 @@ function walk(dir, out = []) {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) {
       if (!["node_modules", ".next"].includes(entry.name)) walk(path, out)
-    } else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(path)
+    } else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name))
+      out.push(path)
   }
   return out
 }
@@ -102,7 +117,12 @@ function walk(dir, out = []) {
 export function officeScreenOps() {
   const files = ["app", "components", "lib"]
     .flatMap((d) => walk(join(office, d)))
-    .filter((f) => !/[/\\]lib[/\\]voice[/\\]|[/\\]app[/\\]\(app\)[/\\]voice[/\\]|[/\\]components[/\\]voice[/\\]/.test(f))
+    .filter(
+      (f) =>
+        !/[/\\]lib[/\\]voice[/\\]|[/\\]app[/\\]\(app\)[/\\]voice[/\\]|[/\\]components[/\\]voice[/\\]/.test(
+          f
+        )
+    )
   const ops = new Map()
   const unmatched = []
   const helpers = new Set()
@@ -117,7 +137,8 @@ export function officeScreenOps() {
     for (const op of imported.ops) add(op, where)
     for (const h of imported.helpers) helpers.add(h)
     for (const { op, route } of requestOps(source))
-      op ? add(op, where) : unmatched.push({ file: where, route })
+      if (op) add(op, where)
+      else unmatched.push({ file: where, route })
   }
   // Helper modules (auth, rights, storefront-review…) call generated hooks themselves.
   for (const helper of helpers)
@@ -128,7 +149,8 @@ export function officeScreenOps() {
       } catch {
         continue
       }
-      for (const op of importedOps(source).ops) add(op, `@genesy/api-client/${helper}`)
+      for (const op of importedOps(source).ops)
+        add(op, `@genesy/api-client/${helper}`)
     }
   return { ops, unmatched }
 }

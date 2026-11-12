@@ -12,6 +12,7 @@
     "test": "vitest run",
     "voice:generate": "node scripts/generate-voice-catalog.mjs",
     "voice:check": "node scripts/generate-voice-catalog.mjs --check",
+    "voice:coverage": "node scripts/voice-coverage.mjs",
     "voice:triage": "node scripts/voice-heal.mjs triage",
     "voice:heal": "node scripts/voice-heal.mjs heal",
     "voice:demand": "node scripts/voice-heal.mjs demand"

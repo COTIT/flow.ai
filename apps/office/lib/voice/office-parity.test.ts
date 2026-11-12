@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { officeScreenOps, policy } from "../../scripts/office-parity-scan.mjs"
+import { coverage, coverageMarkdown } from "../../scripts/voice-coverage.mjs"
 import { discoverTools } from "./catalog"
 import manifest from "./office-parity.json"
 
@@ -59,5 +60,57 @@ const phrases = Object.entries(entries).flatMap(([op, entry]) =>
 describe("Office actions are findable by voice", () => {
   it.each(phrases)("%j finds %s", (phrase, op) => {
     expect(top3(phrase)).toContain(op)
+  })
+})
+
+describe("coverage table for CI (G7)", () => {
+  it("counts each area's actions by how voice reaches them", () => {
+    const ops = new Map([
+      ["orders_confirm", new Set(["app/(app)/orders/[id]/page.tsx"])],
+      [
+        "orders_list",
+        new Set(["app/(app)/orders/page.tsx", "app/(app)/page.tsx"]),
+      ],
+      ["till_users_create", new Set(["app/(app)/till/users/page.tsx"])],
+      ["invoices_gateway_refund", new Set(["components/invoice-refund.tsx"])],
+      [
+        "storefront_design_publish",
+        new Set(["@genesy/api-client/storefront-review"]),
+      ],
+      ["auth_logout", new Set(["@genesy/api-client/auth"])],
+    ])
+    const fake = {
+      orders_confirm: { disposition: "execute" },
+      orders_list: { disposition: "execute" },
+      till_users_create: { disposition: "secure_ui" },
+      invoices_gateway_refund: { disposition: "internal" },
+      storefront_design_publish: { disposition: "execute" },
+      auth_logout: { disposition: "identity" },
+    } as unknown as Parameters<typeof coverage>[1]
+    expect(coverage(ops, fake)).toEqual([
+      { area: "components", actions: 1, voice: 0, handoff: 0, officeOnly: 1 },
+      { area: "orders", actions: 2, voice: 2, handoff: 0, officeOnly: 0 },
+      { area: "overview", actions: 1, voice: 1, handoff: 0, officeOnly: 0 },
+      { area: "settings", actions: 1, voice: 1, handoff: 0, officeOnly: 0 },
+      {
+        area: "sign-in and session",
+        actions: 1,
+        voice: 0,
+        handoff: 0,
+        officeOnly: 1,
+      },
+      { area: "till", actions: 1, voice: 0, handoff: 1, officeOnly: 0 },
+    ])
+  })
+
+  it("writes a markdown table with totals", () => {
+    const md = coverageMarkdown(
+      [{ area: "orders", actions: 2, voice: 1, handoff: 1, officeOnly: 0 }],
+      { execute: 413, withWords: 126, withPicture: 13 }
+    )
+    expect(md).toContain("| orders | 2 | 1 | 1 | 0 |")
+    expect(md).toContain(
+      "413 executable operations: 126 with trigger words, 13 drawn as a table or chart"
+    )
   })
 })
