@@ -23,6 +23,7 @@
     "retry": "Jaribu tena",
     "busy": "Kuna shughuli nyingi, tunajaribu tena baada ya {seconds, plural, one {sekunde #} other {sekunde #}}.",
     "gone": "Hii haipatikani tena.",
+    "offline": "Huna mtandao. Hii itapakia utakapopata mtandao tena.",
     "failed": "Imeshindwa kupakia hiki.",
     "notFound": "Onyesho hili halipo.",
     "sceneError": "Onyesho hili halikuweza kuonyeshwa. Mazungumzo yako hayajaathirika.",
