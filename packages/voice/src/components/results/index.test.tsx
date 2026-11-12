@@ -193,15 +193,17 @@ describe("P2 pictures", () => {
     expect(out).toContain('aria-label="Main store"')
     expect(out).toContain('aria-label="Shop"')
     expect(out).toContain(`href="/products/${A}"`)
-    expect(out).toContain("9.00")
-    expect(out).toContain("-1.00")
+    // Quantities read as counts: whole numbers without decimals, like the product card.
+    expect(out).toContain(">9<")
+    expect(out).toContain(">-1<")
+    expect(out).not.toContain("9.00")
     expect(out).toContain("results.stock.reserved")
     expect(out).toContain('href="/stock"')
   })
 
   it("stock per bin: the level, and a plain word for stock without a bin", () => {
     const out = html(<VoiceResult views={[bins]} />)
-    expect(out).toContain("2.00")
+    expect(out).toContain(">2<")
     expect(out).toContain("results.stock.noBin")
     expect(out).not.toContain("<a")
   })
@@ -241,6 +243,7 @@ describe("P2 pictures", () => {
     const out = html(<VoiceResult views={[product]} />)
     expect(out).toContain("12.50")
     expect(out).toContain("Main store › Box 4")
+    expect(out).toContain(">12<")
     expect(out).toContain("results.document.stock")
   })
 })
@@ -263,8 +266,8 @@ describe("P2 pictures redrawn as another allowed kind", () => {
   it("stock as ranked bars keeps the API's text and draws a negative level as an empty bar", () => {
     const out = as(stock, "hbar")
     expect(out).toContain('data-chart="hbar"')
-    expect(out).toContain("9.00")
-    expect(out).toContain("-1.00")
+    expect(out).toContain(">9<")
+    expect(out).toContain(">-1<")
     expect(out.match(/fill-\(--gold\)/g)).toHaveLength(1)
   })
 

@@ -27,7 +27,7 @@ const READS: { op: string; reply: unknown; sees: (string | RegExp)[] }[] = [
       ],
       meta: { total: 31 },
     },
-    sees: ["Wild forest honey 500 g", "20.00", "-2.00", "Arusha shop"],
+    sees: ["Wild forest honey 500 g", "20", "-2", "Arusha shop", "4 reserved"],
   },
   {
     op: "stock_with_bins",
@@ -39,7 +39,7 @@ const READS: { op: string; reply: unknown; sees: (string | RegExp)[] }[] = [
         { id: B, stock_lvl: "3.00", reserved: "0.00", warehouse: { name: "Arusha shop" }, lot: null, shelf: null, bin: { bin_name: "Counter" } },
       ],
     },
-    sees: ["Aisle 2 › Top shelf › Box 4", "18.00", "Counter"],
+    sees: ["Aisle 2 › Top shelf › Box 4", "18", "Counter"],
   },
   {
     op: "search_quick",
@@ -186,6 +186,6 @@ test("stock redrawn in place as ranked bars keeps the API's own figures", async 
   ask(agent, "stock_list", { presentation: "hbar", replaces: picture.id })
   await expect.poll(agent.results).toBe(2)
   await expect(results.locator('[data-role="result"]')).toHaveCount(1)
-  await expect(results.locator('[data-chart="hbar"]')).toContainText("20.00")
+  await expect(results.locator('[data-chart="hbar"]')).toContainText("20")
   await expectNoHorizontalScroll(page)
 })

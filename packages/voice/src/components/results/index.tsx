@@ -4,7 +4,7 @@ import { createContext, useContext, type ReactNode } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { ChevronRight, ExternalLink } from "lucide-react"
 import { EmptyState } from "@genesy/ui/components/empty-state"
-import { formatDate, formatShare } from "@genesy/ui/lib/format"
+import { formatDate, formatQty, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { dailyAsSales, type Money, type ResultView, drawnAs } from "../../lib/views"
 import { fieldName, formatPrice } from "../../lib/helpers"
@@ -232,7 +232,7 @@ function Attention({ view }: { view: Of<"attention"> }) {
 
 /** Stock per product (grouped per warehouse) or one product's stock per bin: the API's quantities as written. */
 function Stock({ view }: { view: Of<"stock"> }) {
-  const { t, href } = useLabels()
+  const { t, locale, href } = useLabels()
   const title = t(view.scope === "list" ? "results.stock.title" : "results.stock.perBin")
   const shown = view.groups.reduce((n, g) => n + g.rows.length, 0)
   if (!shown) return <EmptyState title={t("results.stock.empty")} description={t("results.emptyHint")} className="py-6" />
@@ -260,7 +260,7 @@ function Stock({ view }: { view: Of<"stock"> }) {
                       {/* Its own line that wraps: a narrow screen never cuts the reserved or minimum figure. */}
                       <span className="block whitespace-normal">
                         {[
-                          t("results.stock.reserved", { count: row.reserved }),
+                          t("results.stock.reserved", { count: formatQty(row.reserved, locale) }),
                           row.minimum !== null ? t("results.stock.minimum", { count: row.minimum }) : null,
                         ]
                           .filter(Boolean)
@@ -270,7 +270,7 @@ function Stock({ view }: { view: Of<"stock"> }) {
                   }
                   end={
                     <span className="flex flex-col items-end leading-tight">
-                      <span className="text-base font-semibold">{row.available ?? row.level}</span>
+                      <span className="text-base font-semibold">{formatQty(row.available ?? row.level, locale)}</span>
                       <span className="text-xs text-muted-foreground">
                         {t(row.available !== null ? "results.stock.available" : "results.stock.inStock")}
                       </span>
@@ -366,7 +366,7 @@ function Document({ view }: { view: Of<"document"> }) {
                 <span className="min-w-0 flex-1 truncate">{line.label ?? t("results.stock.noBin")}</span>
                 {line.quantity ? (
                   <span className="shrink-0 text-muted-foreground tabular-nums">
-                    {view.lineMoney ? `× ${line.quantity}` : line.quantity}
+                    {view.lineMoney ? `× ${formatQty(line.quantity, locale)}` : formatQty(line.quantity, locale)}
                   </span>
                 ) : null}
                 {line.money ? <span className="shrink-0 font-medium tabular-nums">{money(line.money)}</span> : null}
