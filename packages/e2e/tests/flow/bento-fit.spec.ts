@@ -1,6 +1,6 @@
 // Bento fit (plan child-bento-fit-plan.md): each scene fits the screen at a glance on iPad and desktop.
 // Targets: grid empty ≤ 5%, no tile > 15% empty height, the first tiles fully visible, nothing cut
-// without a count, reading order = saved order. SIMULATED API. Red until the build lands (BF-1).
+// without a count, reading order = saved order. SIMULATED API.
 import type { Page } from "@playwright/test"
 
 import { expectSingleScroller } from "../../src/test"
@@ -23,10 +23,6 @@ const SCENES = [
   "noticed",
   "routines",
 ] as const
-/** Red on main until the fit build lands (BF-1); Flow noticed and My Routines already fit. */
-const BF1 =
-  "BF-1 open: tiles sized by type (empty grid, empty tile height, cut lists); see child-bento-fit-plan.md"
-const NOT_YET_FIT = new Set(["pulse", "stock", "orders", "sales"])
 /** The first tiles a person must see whole, without scrolling. */
 const PRIMARY = 4
 
@@ -40,10 +36,20 @@ async function glance(page: Page) {
       ...document.querySelectorAll<HTMLElement>("[data-component]"),
     ]
     const grid = tiles[0]?.parentElement?.getBoundingClientRect()
+    // Holes, not gutters: each tile grown by half the 16 px gap (neighbours meet), clipped to the grid.
+    const half = 8
     let covered = 0
     const each = tiles.map((tile) => {
       const r = tile.getBoundingClientRect()
-      covered += r.width * r.height
+      if (grid) {
+        const w =
+          Math.min(r.right + half, grid.right) -
+          Math.max(r.left - half, grid.left)
+        const h =
+          Math.min(r.bottom + half, grid.bottom) -
+          Math.max(r.top - half, grid.top)
+        covered += Math.max(0, w) * Math.max(0, h)
+      }
       // The content's own height: the lowest visible descendant, never the stretched card itself.
       let bottom = r.top
       for (const el of tile.querySelectorAll<HTMLElement>("*")) {
@@ -96,7 +102,6 @@ for (const [width, height] of SIZES)
       page,
       api,
     }) => {
-      test.fail(NOT_YET_FIT.has(scene), BF1)
       sceneWorld(api)
       await page.setViewportSize({ width, height })
       await page.goto(`/scenes/${scene}`)
@@ -112,7 +117,6 @@ for (const [width, height] of [
       page,
       api,
     }) => {
-      test.fail(true, BF1)
       sceneWorld(api)
       await fakeAgent(page, (text, a) => a.say(`Answer: ${text}`))
       await page.setViewportSize({ width, height })
@@ -127,7 +131,6 @@ test("50 products below minimum: Stock Watch shows the rows that fit and how man
   page,
   api,
 }) => {
-  test.fail(true, BF1)
   sceneWorld(api, { stockRows: 50 })
   await page.setViewportSize({ width: 1180, height: 820 })
   await page.goto("/scenes/stock")
@@ -138,7 +141,6 @@ test("no sales and nothing low: Morning Pulse shows slim lines, never big empty 
   page,
   api,
 }) => {
-  test.fail(true, BF1)
   sceneWorld(api, { noSales: true, stockRows: 0 })
   await page.setViewportSize({ width: 1180, height: 820 })
   await page.goto("/scenes/pulse")

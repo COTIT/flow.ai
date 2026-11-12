@@ -313,7 +313,12 @@ export function SceneView({ sceneKey }: { sceneKey: string }) {
                 key={component.id}
                 id={component.id}
                 size={size}
-                className={drawn.length > 1 ? BENTO_PLACE : ""}
+                className={
+                  drawn.length > 1
+                    ? // Beside two stacked metrics the big tile takes their height, never sets it.
+                      `${BENTO_PLACE} ${Number(placed.get(component.id)?.["--r12" as never]) > 1 ? "@min-[1024px]:[contain:size]" : ""} ${size === "chart" ? "@min-[640px]:max-h-[340px]" : ""}`
+                    : ""
+                }
                 style={drawn.length > 1 ? placed.get(component.id) : undefined}
               >
                 <Component

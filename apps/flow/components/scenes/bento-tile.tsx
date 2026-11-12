@@ -8,8 +8,8 @@ import { Button } from "@genesy/ui/components/button"
 
 /** The footer strip that closes a cut card ("Show all (n)"). */
 const FOOTER_PX = 56
-/** Below this the cut would leave too little to read: the tile keeps its natural height. */
-const MIN_CAP_PX = 200
+/** Below this the cut would leave too little to read (one row and the footer): natural height. */
+const MIN_CAP_PX = 140
 /** Rows a list tile shows: table rows, list items. */
 const ROWS = "tbody tr, [data-item], li"
 
@@ -58,6 +58,8 @@ export function BentoTile({
     measure()
     const watch = new ResizeObserver(measure)
     if (el.firstElementChild) watch.observe(el.firstElementChild)
+    // A neighbour above growing moves this tile down: measure again.
+    if (el.parentElement) watch.observe(el.parentElement)
     return () => watch.disconnect()
   }, [open])
   return (
