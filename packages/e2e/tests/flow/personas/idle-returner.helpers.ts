@@ -29,8 +29,12 @@ export class Server {
   }
   /** Registered after the fixture's routes, so it answers first. */
   async attach(page: Page) {
+    // Readiness carries no login (Flow asks it without a token), so an expired one never refuses it.
     const refuse = (path: string) =>
-      this.expired && !path.endsWith("/v1/login") && !path.endsWith("/v1/logout")
+      this.expired &&
+      !path.endsWith("/v1/login") &&
+      !path.endsWith("/v1/logout") &&
+      !path.endsWith("/api/voice/readiness")
     for (const pattern of ["**/v1/**", "**/api/voice/**"])
       await page.route(pattern, (route) => {
         const path = new URL(route.request().url()).pathname
