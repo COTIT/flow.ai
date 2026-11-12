@@ -174,12 +174,19 @@ function discoveryContract(tool: Tool, exact = false): Tool {
 }
 
 const fillerWords = new Set(
-  "the and for with from our this that its are what which who how why does can into about any your their them they have has was were been not but".split(
-    " "
-  )
+  [
+    // en
+    "the and for with from our this that its are what which who how why does can into about any your their them they have has was were been not but",
+    // nl
+    "van het een voor met naar dit deze die dat wat welke hoe wie mijn onze ons zijn nog uit ook bij als kan wil hebben heb heeft wordt worden maar dan aan",
+    // sw
+    "kwa cha vya hii hiyo ile yangu yetu wetu zetu gani zipi upi nini kwenye katika kutoka kama tuna kuna iko ziko bado",
+  ]
+    .join(" ")
+    .split(" ")
 )
 
-/** Search words of a query. Words match as substrings, so short and filler words ("or" in "orders") would match everything. */
+/** Search words of a query. Short and filler words ("or", "van", "kwa") would match the start of too many words. */
 export const queryTerms = (query: string) =>
   query
     .toLowerCase()
@@ -191,6 +198,21 @@ export const queryTerms = (query: string) =>
 
 /** Extra trigger words per operation id; the gap triage tries proposals with them before writing keywords.json. */
 export type ExtraWords = Record<string, string[]>
+
+/** A query word counts where a word of the text starts: "batch" finds "batches", "van" never finds "vandaag". */
+export const matchesTerm = (text: string, term: string) =>
+  wordStarts(text).includes(` ${term}`)
+// Discovery asks about the same few hundred texts for every query word, so each is split once.
+const split = new Map<string, string>()
+function wordStarts(text: string) {
+  let words = split.get(text)
+  if (words === undefined) {
+    if (split.size > 5000) split.clear()
+    words = ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ")}`
+    split.set(text, words)
+  }
+  return words
+}
 
 /** The text a query word must appear in for discovery to count it. */
 export const discoveryText = (tool: Tool, extra: ExtraWords = {}) =>
@@ -219,7 +241,7 @@ export function discoverTools(
         const text = discoveryText(tool, extra)
         return {
           tool,
-          score: terms.filter((term) => text.includes(term)).length,
+          score: terms.filter((term) => matchesTerm(text, term)).length,
         }
       })
       .filter((item) => item.score > 0)

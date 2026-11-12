@@ -147,7 +147,7 @@ describe("checkProposal", () => {
 
 describe("replayHits", () => {
   it("matches the replay regression floor with today's keywords", () => {
-    expect(replayHits({})).toBeGreaterThanOrEqual(184)
+    expect(replayHits({})).toBeGreaterThanOrEqual(186)
   })
 })
 

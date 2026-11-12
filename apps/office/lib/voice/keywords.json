@@ -1084,9 +1084,22 @@
     "sw": ["tuma", "ankara", "mteja"]
   },
   "invoices_update": {
-    "en": [],
-    "nl": ["vervaldatum", "conceptfactuur", "wijzigen"],
-    "sw": ["badilisha", "tarehe", "mwisho", "ankara"]
+    "en": ["due date", "payment term"],
+    "nl": [
+      "vervaldatum",
+      "conceptfactuur",
+      "wijzigen",
+      "betaaltermijn",
+      "factuur",
+      "aanpassen"
+    ],
+    "sw": [
+      "badilisha",
+      "tarehe",
+      "mwisho",
+      "ankara",
+      "tarehe ya mwisho ya kulipa"
+    ]
   },
   "orders_events": {
     "en": ["happened", "show", "timeline"],
@@ -1105,7 +1118,7 @@
   },
   "orders_list": {
     "en": ["show", "today", "waiting", "picked"],
-    "nl": ["bestellingen", "vandaag"],
+    "nl": ["bestellingen", "vandaag", "verkooporders", "verkooporder"],
     "sw": ["onyesha", "oda", "leo"]
   },
   "orders_refund": {
@@ -1207,7 +1220,7 @@
       "quantity",
       "inventory"
     ],
-    "nl": ["hoeveel", "voorraad"],
+    "nl": ["hoeveel", "voorraad", "voorraadniveau", "voorraadniveaus"],
     "sw": ["hisa", "kiasi", "stoo"]
   },
   "stock_movements": {
@@ -1227,7 +1240,14 @@
   },
   "stock_with_bins": {
     "en": ["stored", "warehouse"],
-    "nl": ["waar", "ligt", "voorraad", "magazijn"],
+    "nl": [
+      "waar",
+      "ligt",
+      "voorraad",
+      "magazijn",
+      "magazijnlocatie",
+      "locatie"
+    ],
     "sw": ["wapi", "stoo", "hisa", "ghala"]
   },
   "vat_groups_list": {

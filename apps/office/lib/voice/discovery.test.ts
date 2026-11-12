@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { discoverTools } from "./catalog"
+import { discoverTools, matchesTerm, queryTerms } from "./catalog"
 import replay from "./discovery-replay.fixture.json"
 
 const owner = ["workspace_owner"]
@@ -12,8 +12,8 @@ describe("voice tool discovery", () => {
     const found = replay.filter(({ query, want }) =>
       want.some((id) => top(query).includes(id))
     )
-    // 155 of 225 before short words and punctuation stopped matching, 180 before the Office parity words; raise, never lower.
-    expect(found.length).toBeGreaterThanOrEqual(184)
+    // 155 of 225 before short words and punctuation stopped matching, 180 before the Office parity words, 184 before word-start matching; raise, never lower.
+    expect(found.length).toBeGreaterThanOrEqual(186)
   })
 
   it.each([
@@ -59,6 +59,49 @@ describe("voice tool discovery", () => {
 
   it("ignores filler words and punctuation", () => {
     expect(top("or an a to in by of, it")).toEqual([])
+  })
+})
+
+describe("words match only where a word starts", () => {
+  // Over-matches seen while writing the Office parity phrases: a short query word inside a longer word.
+  it.each([
+    // A word start counts even when the word goes on ("van" starts "vandaag"); the filler list drops "van".
+    ["bestellingen vandaag", "van", true],
+    ["kassaverkopen", "verkopen", false],
+    ["orders of today", "oda", false],
+    ["lots passport unpublish", "publish", false],
+    ["lots passport publish", "publish", true],
+    ["batches in quarantine", "batch", true],
+    ["foto's (images)", "images", true],
+    ["lots_update", "update", true],
+  ])("%j has %j: %s", (text, term, expected) => {
+    expect(matchesTerm(text, term)).toBe(expected)
+  })
+
+  it("drops Dutch and Swahili filler words from a query", () => {
+    expect(queryTerms("welke bestellingen van vandaag staan nog open")).toEqual(
+      ["bestellingen", "vandaag", "staan", "open"]
+    )
+    expect(queryTerms("oda zipi za kaunta kwa leo bado ziko wazi")).toEqual([
+      "oda",
+      "kaunta",
+      "leo",
+      "wazi",
+    ])
+  })
+
+  it("no longer finds today's orders from the Dutch word van", () => {
+    const ids = discoverTools("voorraad mutaties van honing", owner).map(
+      (t) => t.id
+    )
+    expect(ids).not.toContain("orders_list")
+  })
+
+  it.each([
+    ["publish the passport of batch L-12", "lots_passport_publish"],
+    ["paspoort van partij L-12 publiceren", "lots_passport_publish"],
+  ])("puts the exact action first for %j", (query, id) => {
+    expect(discoverTools(query, owner)[0]?.id).toBe(id)
   })
 })
 

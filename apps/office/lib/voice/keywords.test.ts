@@ -195,6 +195,20 @@ describe("voice trigger words", () => {
     expect(top(query)).toContain(id)
   })
 
+  // Words match only at a word start, so a Dutch compound needs its own trigger word.
+  it.each([
+    ["kassaverkopen van vandaag", "till_sales_list"],
+    ["voorraadniveau van honing", "stock_list"],
+    ["verkooporders van deze week", "orders_list"],
+    ["openstaande facturen", "invoices_list"],
+    ["magazijnlocatie van de honing", "stock_with_bins"],
+    ["betaaltermijn van de factuur aanpassen", "invoices_update"],
+    ["kassagebruiker toevoegen", "till_users_create"],
+    ["productcategorieën laten zien", "product_categories_list"],
+  ])("finds the operation for the Dutch compound in %j", (query, id) => {
+    expect(top(query)).toContain(id)
+  })
+
   // A wrong delivery is a correction request, not a new purchase.
   it.each([
     "correct Gift's delivery to 40 kg",
