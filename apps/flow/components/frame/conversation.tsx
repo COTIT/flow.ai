@@ -492,14 +492,23 @@ export function ConversationToggle({
 
 /** Hang up from where the conversation lives (home, rail, sheet, scene bar); only while
  *  connected. Always one labelled button: an icon alone is ambiguous (P6, keep Flow simple). */
-export function EndCall({ className = "" }: { className?: string }) {
+export function EndCall({
+  className = "",
+  tight = false,
+}: {
+  className?: string
+  /** A crowded row (the short-screen dock): less padding, so the message field keeps its room. */
+  tight?: boolean
+}) {
   const t = useTranslations()
   const voice = useVoice()
   if (!voice.connected) return null
   return (
     <Button
       variant="outline"
-      className={`min-h-11 shrink-0 px-3 ${className}`}
+      // The glass theme sizes buttons by their size class: a small one is narrower (P6).
+      size={tight ? "sm" : "default"}
+      className={`min-h-11 shrink-0 ${tight ? "" : "px-3"} ${className}`}
       aria-label={t("voice.end")}
       onClick={() => void voice.end().catch(() => undefined)}
     >

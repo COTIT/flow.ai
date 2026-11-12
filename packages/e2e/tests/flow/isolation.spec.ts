@@ -24,7 +24,7 @@ test("a Flow login never reaches Office's storage", async ({ page }) => {
   await readiness(page, 200, { enabled: true, ready: true })
   await page.goto("/login")
   await logIn(page)
-  await expect(page.getByText("Ilundo Honey Co.")).toBeVisible()
+  await expect(page.locator("[data-flow-header]").getByText("Ilundo Honey Co.")).toBeVisible()
   expect(await savedToken(page)).toBe("e2e-token")
   await page.goto(`${office}/login`)
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible()

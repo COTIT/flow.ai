@@ -36,7 +36,6 @@ test("the conversation's End shows the word End and ends the call", async ({ pag
 test("on a scene, End beside the conversation also says End (rail, sheet or bar)", async ({ page }) => {
   await fakeAgent(page, (_, a) => setTimeout(() => a.say("Hello."), 50))
   await page.goto("/scenes/sales")
-  await page.getByRole("button", { name: v.textInstead, exact: true }).click().catch(() => {})
   await page.getByLabel(v.message).fill("Hello")
   await page.getByRole("button", { name: v.send, exact: true }).click()
   const ends = page.getByRole("button", { name: v.end })
