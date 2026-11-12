@@ -1,6 +1,7 @@
 import {
   discoverTools,
   discoveryText,
+  matchesTerm,
   type ExtraWords,
   getOperation,
   isToolAllowed,
@@ -131,7 +132,7 @@ const domainsFor = (raw: string) => {
 
 const score = (tool: Tool, terms: string[], extra: ExtraWords = {}) => {
   const text = discoveryText(tool, extra)
-  return terms.filter((term) => text.includes(term)).length
+  return terms.filter((term) => matchesTerm(text, term)).length
 }
 
 function best(tools: Tool[], terms: string[], domain = "") {
@@ -298,7 +299,7 @@ export function planHeal(
       continue
     }
     const words = queryTerms(intent)
-      .filter((word) => !discoveryText(tool, extra).includes(word))
+      .filter((word) => !matchesTerm(discoveryText(tool, extra), word))
       .sort()
     const reason = checkProposal(intent, tool.id, words, extra)
     if (reason) {
