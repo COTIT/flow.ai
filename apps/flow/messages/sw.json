@@ -28,14 +28,14 @@
     "loadFailedOffline": "Uko nje ya mtandao. Ukurasa huu utapakia tena ukirudi mtandaoni.",
     "storefront": {
       "title": "Muundo wa duka",
-      "intro": "Kagua matoleo yaliyohifadhiwa kabla ya kuchapisha mabadiliko kwenye duka lako.",
+      "intro": "Tazama duka lako linavyoonekana, jaribu mwonekano mpya, na uchapishe ukiridhika.",
       "created": "Imeundwa",
       "status": "Hali",
       "actions": "Vitendo",
       "empty": "Bado hakuna rasimu za muundo.",
       "draft": "Rasimu",
       "published": "Imechapishwa",
-      "previous": "Ilichapishwa awali",
+      "previous": "Ilikuwa hewani awali",
       "preview": "Hakiki",
       "previewRevision": "Hakiki toleo {number}, lililohifadhiwa {date}",
       "previewRegion": "Hakiki ya duka",
@@ -84,7 +84,11 @@
       "proposalConflict": "Ukurasa wa duka ulibadilika baada ya ukaguzi huu kuandaliwa.",
       "proposalConflictText": "Kuidhinisha kumezimwa kwa ukaguzi huu. Ughairi kisha uombe tena: msaidizi atasoma rasimu mpya na kuandaa ukaguzi mpya.",
       "proposalUnavailableText": "Mabadiliko yaliyoorodheshwa hapo juu bado ni sahihi.",
-      "retry": "Jaribu tena"
+      "retry": "Jaribu tena",
+      "liveNow": "Iko hewani sasa",
+      "newLook": "Mwonekano mpya uko tayari",
+      "versionSaved": "Toleo {number} · lilihifadhiwa {date}",
+      "olderVersions": "{count, plural, one {Toleo la zamani (#)} other {Matoleo ya zamani (#)}}"
     },
     "chat": {
       "storefront": "Duka la mtandaoni",

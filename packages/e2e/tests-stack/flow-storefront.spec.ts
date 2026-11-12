@@ -106,7 +106,7 @@ test("an owner reviews an API draft in Flow's device frame and publishes it", as
   await region.getByRole("button", { name: "Publish", exact: true }).click()
   // F5: the studio's publish card (live → proposed) asks for the confirmation.
   await page
-    .getByRole("region", { name: "Publish storefront revision?" })
+    .getByRole("region", { name: "Publish this new look?" })
     .getByRole("button", { name: "Confirm publish" })
     .click()
   await expect(

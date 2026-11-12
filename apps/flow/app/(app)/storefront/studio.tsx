@@ -13,7 +13,6 @@ import {
 import { useRights } from "@genesy/api-client/rights"
 import { useStorefrontReview } from "@genesy/api-client/storefront-review"
 import { ApiError } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
 import { Button } from "@genesy/ui/components/button"
 import { Card, CardContent } from "@genesy/ui/components/card"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -21,14 +20,6 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { Pager } from "@genesy/ui/components/pager"
 import { Skeleton } from "@genesy/ui/components/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@genesy/ui/components/table"
 import { formatDateTime } from "@genesy/ui/lib/format"
 import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
 import { useVoice } from "@genesy/voice/components/provider"
@@ -104,7 +95,11 @@ function Review({
   const [brief, setBrief] = React.useState(false)
   const [hint, setHint] = React.useState(false)
   // Labels fixed when Confirm is pressed; shown once the API confirms.
-  const asked = React.useRef<{ id: string; live: string; previous: string } | null>(null)
+  const asked = React.useRef<{
+    id: string
+    live: string
+    previous: string
+  } | null>(null)
   const [receipt, setReceipt] = React.useState<typeof asked.current>(null)
   const review = useStorefrontReview({
     workspaceId,
@@ -301,75 +296,96 @@ function Review({
           ) : revisions.data.data.length === 0 ? (
             <EmptyState title={t("empty")} />
           ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("created")}</TableHead>
-                    <TableHead>{t("status")}</TableHead>
-                    <TableHead className="text-right">{t("actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {revisions.data.data.map((revision, index) => (
-                    <TableRow key={revision.revision_id}>
-                      <TableCell className="font-semibold">
-                        <span>
-                          {formatDateTime(revision.created_at, locale)}
-                        </span>
-                        <span className="mt-1 block font-mono text-xs text-muted-foreground">
-                          {revision.revision_id.slice(-8)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex flex-wrap gap-1">
-                          {revision.revision_id ===
-                          current?.draft_revision_id ? (
-                            <Badge variant="slate">{t("draft")}</Badge>
-                          ) : null}
-                          {revision.revision_id ===
-                          current?.published_revision_id ? (
-                            <Badge variant="teal">{t("published")}</Badge>
-                          ) : revision.was_published ? (
-                            <Badge variant="slate">{t("previous")}</Badge>
-                          ) : null}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={busy || state.isError}
-                          aria-pressed={selected === revision.revision_id}
-                          aria-label={t("previewRevision", {
-                            number: review.revisionNumber(index),
-                            date: formatDateTime(revision.created_at, locale),
-                          })}
-                          onClick={() =>
-                            review.selectRevision(revision.revision_id)
-                          }
-                        >
-                          {t("preview")}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {revisions.data.meta.last_page > 1 ? (
-                <Pager
-                  page={revisions.data.meta.current_page}
-                  lastPage={revisions.data.meta.last_page}
-                  summary={t("page", {
-                    page: revisions.data.meta.current_page,
-                    last: revisions.data.meta.last_page,
-                  })}
-                  previous={t("previousPage")}
-                  next={t("nextPage")}
-                  onPage={review.setPage}
-                />
-              ) : null}
-            </>
+            (() => {
+              // P6: the versions in plain words. The live one and a new look waiting to go live
+              // lead; older ones wait behind one link. Never a code.
+              const rows = revisions.data.data.map((revision, index) => ({
+                revision,
+                number: review.revisionNumber(index),
+              }))
+              const live = rows.find((r) => r.revision.revision_id === liveId)
+              const ready =
+                draftId !== liveId
+                  ? rows.find((r) => r.revision.revision_id === draftId)
+                  : undefined
+              const older = rows.filter((r) => r !== live && r !== ready)
+              const row = (r: (typeof rows)[number], label: string | null) => (
+                <li
+                  key={r.revision.revision_id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3"
+                >
+                  <span className="min-w-0 flex-1">
+                    {label ? (
+                      <span className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        {label}
+                      </span>
+                    ) : null}
+                    <span className="block font-medium">
+                      {t("versionSaved", {
+                        number: r.number,
+                        date: formatDateTime(r.revision.created_at, locale),
+                      })}
+                    </span>
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11"
+                    disabled={busy || state.isError}
+                    aria-pressed={selected === r.revision.revision_id}
+                    aria-label={t("previewRevision", {
+                      number: r.number,
+                      date: formatDateTime(r.revision.created_at, locale),
+                    })}
+                    onClick={() =>
+                      review.selectRevision(r.revision.revision_id)
+                    }
+                  >
+                    {t("preview")}
+                  </Button>
+                </li>
+              )
+              const pages =
+                revisions.data.meta.last_page > 1 ? (
+                  <Pager
+                    page={revisions.data.meta.current_page}
+                    lastPage={revisions.data.meta.last_page}
+                    summary={t("page", {
+                      page: revisions.data.meta.current_page,
+                      last: revisions.data.meta.last_page,
+                    })}
+                    previous={t("previousPage")}
+                    next={t("nextPage")}
+                    onPage={review.setPage}
+                  />
+                ) : null
+              return (
+                <>
+                  <ul className="flex flex-col divide-y">
+                    {live ? row(live, t("liveNow")) : null}
+                    {ready ? row(ready, t("newLook")) : null}
+                  </ul>
+                  {older.length ? (
+                    <details className="text-sm">
+                      <summary className="min-h-11 cursor-pointer content-center text-muted-foreground underline-offset-4 hover:underline">
+                        {t("olderVersions", { count: older.length })}
+                      </summary>
+                      <ul className="flex flex-col divide-y">
+                        {older.map((r) =>
+                          row(
+                            r,
+                            r.revision.was_published ? t("previous") : null
+                          )
+                        )}
+                      </ul>
+                      {pages}
+                    </details>
+                  ) : (
+                    pages
+                  )}
+                </>
+              )
+            })()
           )}
         </CardContent>
       </Card>

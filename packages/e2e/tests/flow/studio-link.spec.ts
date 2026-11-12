@@ -148,7 +148,7 @@ test("publication needs its own card: live v1 → proposed v2, no preview tab wh
   const receipt = page.getByRole("region", { name: st.publishedTitle })
   await expect(
     receipt.getByText(
-      "Revision v2 is live. Previous revision v1 stays in history and can be restored as a new draft."
+      "v2 is live now. v1 is kept and can be brought back later."
     )
   ).toBeVisible()
   const calls = api.callsTo("POST", `${root()}/publish`)

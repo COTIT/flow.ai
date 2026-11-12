@@ -176,7 +176,7 @@ test("Flow issues a preview link the Shop opens until revoked; publishing from F
       draft.sections[0].props.heading
     )
     await card.getByRole("button", { name: "Review publication" }).click()
-    const publish = page.getByRole("region", { name: "Publish storefront revision?" })
+    const publish = page.getByRole("region", { name: "Publish this new look?" })
     await publish.getByRole("button", { name: "Confirm publish" }).click()
     await expect(
       page.getByRole("region", { name: "Storefront published" })
