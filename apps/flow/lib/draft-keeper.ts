@@ -39,8 +39,13 @@ export function useDraftKeeper() {
   const owner = useActivityKey()
   useEffect(() => {
     if (!owner) return
-    const kept = keptDraft(window.sessionStorage, owner)
-    if (kept && !flowStore.getState().draft) flowStore.getState().setDraft(kept)
+    // Typed before we knew whose it is (a slow device, /me still loading): keep it now (F2).
+    const typed = flowStore.getState().draft
+    if (typed) keepDraft(window.sessionStorage, owner, typed)
+    else {
+      const kept = keptDraft(window.sessionStorage, owner)
+      if (kept) flowStore.getState().setDraft(kept)
+    }
     return flowStore.subscribe((now, before) => {
       // Signed out: the shell's reset to an empty box is not the person clearing it.
       if (now.draft !== before.draft && sessionStore.getState().token)
