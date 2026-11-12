@@ -13,8 +13,10 @@ import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatDateTime } from "@genesy/ui/lib/format"
 import { useReports, useWorkspace } from "@/lib/use-scene-data"
+import { capability, useRunCapability } from "@/lib/pills"
 import { useSyncGuard } from "@/lib/use-sync-guard"
 import { DataState, Restricted } from "./data-state"
+import { useAskStep } from "./row-steps"
 import type { RegistryProps } from "./types"
 
 /** My Routines: the caller's own scheduled reports. Creating one stays a reviewed voice action. */
@@ -39,6 +41,8 @@ function Reports() {
   const update = useScheduledReportsUpdate({ mutation: done })
   const remove = useScheduledReportsDelete({ mutation: done })
   const once = useSyncGuard()
+  const ask = useAskStep("schedule_weekly_report")
+  const run = useRunCapability((text) => ask?.(text))
   const rows = query.data?.data ?? []
   return (
     <section
@@ -49,7 +53,23 @@ function Reports() {
       {update.isError || remove.isError ? (
         <Notice variant="error" title={t("saveFailed")} />
       ) : null}
-      <DataState query={query} empty={!rows.length} emptyTitle={t("noReports")}>
+      <DataState
+        query={query}
+        empty={!rows.length}
+        emptyTitle={t("routines.emptyTitle")}
+        emptyText={t("routines.emptyText")}
+        emptyAction={
+          ask ? (
+            <Button
+              size="lg"
+              className="h-14 w-full max-w-sm shrink-0 rounded-full text-base"
+              onClick={() => run(capability("schedule_weekly_report"))}
+            >
+              {t("routines.setUp")}
+            </Button>
+          ) : null
+        }
+      >
         <ul className="flex flex-col gap-2">
           {rows.map((r) => (
             <li
