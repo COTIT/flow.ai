@@ -1,11 +1,12 @@
 //! Request-local reviewed facts checked inside ordinary business transactions.
 
 use super::preconditions_repo as snapshot_repo;
+use super::review_rows;
 use super::{dto::ProposalInput, repo::Owner};
 use crate::AppError;
 use crate::{
     http::json::{Rules, Validate},
-    modules::{orders, permissions, products, stock},
+    modules::{lots, orders, permissions, products, stock},
 };
 use serde_json::Value;
 use sqlx::PgConnection;
@@ -144,7 +145,10 @@ pub async fn capture(
         "orders_create" => "order.create",
         "orders_delete" | "orders_refund" => "order.delete",
         "stock_set_levels" => "stock.set_stock_levels",
-        "stock_transfer" => "stock.move",
+        "stock_transfer" | "stock_move_between_bins" => "stock.move",
+        "stock_mutate" => "stock.mutate",
+        "stock_set_requirements" => "stock.set_stock_requirements",
+        "lots_stock_mutate" => "product.update",
         operation if requires_facts(operation) => "order.update",
         _ => return Ok(json!({})),
     };
@@ -169,7 +173,17 @@ pub async fn capture(
             let priced =
                 orders::service::price(conn, workspace, currency, decimals, &order.lines, false)
                     .await?;
-            json!({"kind":"order","priced":orders::service::review_priced(conn,workspace,currency,decimals,warehouse,&priced).await?})
+            let priced = orders::service::review_priced(
+                conn, workspace, currency, decimals, warehouse, &priced,
+            )
+            .await?;
+            let total = review_rows::money(
+                "total",
+                &priced["currency"],
+                None,
+                priced["total_minor"].as_i64().unwrap_or_default(),
+            );
+            json!({"kind":"order","priced":priced,"changes":[total]})
         }
         "stock_transfer" => {
             let transfer = validated::<stock::dto::TransferBody>(body)?;
@@ -177,7 +191,46 @@ pub async fn capture(
         }
         "stock_set_levels" => {
             let entries = validated::<stock::dto::SetLevelsBody>(body)?;
-            json!({"kind":"stock","locked":stock_facts(conn,workspace,target(input)?,&entries).await?})
+            let locked = stock_facts(conn, workspace, target(input)?, &entries).await?;
+            let changes = review_rows::stock_levels(&locked, &entries)?;
+            json!({"kind":"stock","locked":locked,"changes":changes})
+        }
+        // Rows only: these writes take no reviewed before-values, so nothing is bound.
+        "stock_set_requirements" => {
+            let request = validated::<stock::dto::SetRequirementsBody>(body)?;
+            // The write keeps requirements on the warehouse-level row.
+            let entries: Vec<_> = request
+                .entries
+                .iter()
+                .map(|e| entry(e.warehouse_id, None, e.minimal, e.maximum))
+                .collect();
+            let locked = stock_facts(conn, workspace, target(input)?, &entries).await?;
+            json!({"kind":"stock","changes":review_rows::requirements(&locked, &entries)})
+        }
+        "stock_mutate" => {
+            let m = validated::<stock::dto::MutateBody>(body)?;
+            let slot = [entry(m.warehouse_id, m.bin_id, None, None)];
+            let locked = stock_facts(conn, workspace, target(input)?, &slot).await?;
+            json!({"kind":"stock","changes":review_rows::mutation(&locked, m.mutation_value)?})
+        }
+        "stock_move_between_bins" => {
+            let m = validated::<stock::dto::MoveBody>(body)?;
+            let slots = [
+                entry(m.warehouse_id, m.bin_from, None, None),
+                entry(m.warehouse_id, m.bin_to, None, None),
+            ];
+            let locked = stock_facts(conn, workspace, target(input)?, &slots).await?;
+            json!({"kind":"stock","changes":review_rows::moved(&locked, m.quantity)?})
+        }
+        "lots_stock_mutate" => {
+            let m = validated::<lots::dto::StockMutationRequest>(body)?;
+            let (warehouse, lot, level) =
+                snapshot_repo::lot_level(conn, workspace, target(input)?, m.warehouse_id)
+                    .await?
+                    .ok_or_else(|| {
+                        AppError::field("warehouse_id", "The selected warehouse id is invalid.")
+                    })?;
+            json!({"kind":"stock","changes":review_rows::lot(&warehouse, &lot, level, m.quantity)})
         }
         _ => {
             let id = target(input)?;
@@ -185,6 +238,7 @@ pub async fn capture(
                 .await?
                 .ok_or(AppError::NotFound)?;
             let lines = orders::repo::lines(&mut *conn, workspace, &[id]).await?;
+            let request = body.clone();
             let mut facts = json!({"kind":"order","locked":orders::service::review_locked(conn,workspace,&order,&lines).await?});
             if input.operation_id == "orders_invoice" {
                 facts["priced"] =
@@ -221,6 +275,8 @@ pub async fn capture(
                     .await?;
                 }
             }
+            facts["changes"] =
+                review_rows::order(&input.operation_id, &facts, &lines, request)?.into();
             facts
         }
     };
@@ -253,6 +309,23 @@ pub(crate) fn validated<T: serde::de::DeserializeOwned + Validate>(
     let input = request.validate(&mut rules);
     rules.into_result()?;
     input.ok_or_else(|| AppError::field("body", "Invalid business draft."))
+}
+
+/// One requested slot for the shared snapshot query.
+fn entry(
+    warehouse_id: Uuid,
+    bin_id: Option<Uuid>,
+    minimal: Option<i32>,
+    maximum: Option<i32>,
+) -> stock::dto::Entry {
+    stock::dto::Entry {
+        warehouse_id,
+        bin_id,
+        stock_lvl: None,
+        reason: None,
+        minimal,
+        maximum,
+    }
 }
 
 /// Bounded requested slots only; missing rows have the same zero values as first writes.

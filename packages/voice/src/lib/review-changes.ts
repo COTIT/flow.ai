@@ -19,6 +19,26 @@ const shown = (v: unknown, currency: unknown) => {
   return text !== null && typeof currency === "string" && DECIMAL.test(text) ? `${text} ${currency}` : text
 }
 
+/** Request fields a person reads as is; anything else (ids, codes, nested data) stays under
+ * "More details". Each has a `voice.reviewFields` label. */
+const PLAIN = new Set(["name", "title", "first_name", "last_name", "company_name", "email", "phone",
+  "description", "note", "reference", "quantity", "amount", "price", "date", "due_date"])
+const MONEY = new Set(["amount", "price"])
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+
+/** The request's own plain values as new-value rows, for writes the API sent no rows for.
+ * Money only from an exact decimal string or whole number, never a float. */
+function requested(body: unknown, currency: unknown): DiffRow[] {
+  if (!obj(body)) return []
+  return Object.entries(body).flatMap(([field, v]) => {
+    if (!PLAIN.has(field)) return []
+    const exact = typeof v === "string" ? v.trim() !== "" && !UUID.test(v) : Number.isSafeInteger(v)
+    const plain = MONEY.has(field) ? exact : exact || (typeof v === "number" && Number.isFinite(v))
+    const after = plain ? shown(v, MONEY.has(field) ? currency : undefined) : null
+    return after === null ? [] : [{ field, before: null, after, change: null, warning: false }]
+  })
+}
+
 /** What the review card leads with, all from the API (`reviewFacts` already formatted money):
  * changed fields, the record a delete removes, warnings and impact counts. Nothing listed →
  * null, and the card stays as it was: old values are never guessed. */
@@ -45,6 +65,9 @@ export function reviewSummary(details: Obj) {
     obj(r) && typeof r.type === "string" && "label" in r && (r.label === null || typeof r.label === "string")
       ? { type: r.type, label: r.label as string | null }
       : null
+  // Only a record line folds the request away; without one the card already shows it whole.
+  if (!rows.length && record)
+    rows.push(...requested(details.changes, obj(details.current) ? details.current.currency : undefined))
   const warnings = Array.isArray(details.warnings)
     ? details.warnings.filter((w): w is string => typeof w === "string" && w.trim() !== "")
     : []

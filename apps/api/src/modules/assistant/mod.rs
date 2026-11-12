@@ -17,5 +17,6 @@ pub mod preconditions_repo;
 pub mod price_import;
 pub mod repo;
 pub mod retention;
+pub mod review_rows;
 pub mod routes;
 pub mod service;
