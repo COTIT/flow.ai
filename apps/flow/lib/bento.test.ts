@@ -48,7 +48,10 @@ describe("bento sizing (one rule, every scene)", () => {
 
 const tile = (id: string, type: string, empty = false) => ({ id, type, empty })
 const spans = (plan: ReturnType<typeof planBands>) =>
-  plan.map((t) => `${t.band}:${t.id}:${t.span}${t.slim ? "s" : ""}`)
+  plan.map(
+    (t) =>
+      `${t.band}:${t.id}:${t.span}${t.slim ? "s" : ""}${t.rows > 1 ? `r${t.rows}` : ""}${t.stack ? "k" : ""}`
+  )
 
 describe("planBands: rows that fill the width (bento fit)", () => {
   const pulse = [
@@ -57,11 +60,12 @@ describe("planBands: rows that fill the width (bento fit)", () => {
     tile("sales-trend", "line_chart"),
     tile("attention", "attention_panel"),
   ]
+  // Two metrics beside a big tile stack in one 3-column column; the big tile spans both rows.
   it("Morning Pulse: two metrics and the chart share a row; the attention list takes the next", () => {
     expect(spans(planBands(pulse, 12))).toEqual([
-      "0:sales-today:3",
-      "0:orders-pending:3",
-      "0:sales-trend:6",
+      "0:sales-today:3k",
+      "0:orders-pending:3k",
+      "0:sales-trend:9r2",
       "1:attention:12",
     ])
   })
@@ -92,9 +96,9 @@ describe("planBands: rows that fill the width (bento fit)", () => {
         )
       )
     ).toEqual([
-      "0:sales-week:3",
-      "0:net-week:3",
-      "0:sales-daily:6",
+      "0:sales-week:3k",
+      "0:net-week:3k",
+      "0:sales-daily:9r2",
       "1:vs-last-week:12",
     ])
   })
@@ -138,7 +142,7 @@ describe("planBands: rows that fill the width (bento fit)", () => {
           12
         )
       )
-    ).toEqual(["0:m:3", "0:chart:3s", "0:t:6"])
+    ).toEqual(["0:m:3k", "0:chart:3sk", "0:t:9r2"])
   })
   it("tablet (6 columns): metrics pair, big tiles take the row", () => {
     expect(spans(planBands(pulse, 6))).toEqual([
@@ -186,7 +190,13 @@ describe("planBands: rows that fill the width (bento fit)", () => {
         const plan = planBands(list, cols)
         expect(plan.map((t) => t.id)).toEqual(list.map((t) => t.id))
         const rows = new Map<number, number>()
-        for (const t of plan) rows.set(t.band, (rows.get(t.band) ?? 0) + t.span)
+        // Stacked metrics share one column: it counts once.
+        const stacked = new Set<number>()
+        for (const t of plan) {
+          if (t.stack && stacked.has(t.band)) continue
+          if (t.stack) stacked.add(t.band)
+          rows.set(t.band, (rows.get(t.band) ?? 0) + t.span)
+        }
         for (const [, sum] of rows) expect(sum).toBe(cols)
       }
     }

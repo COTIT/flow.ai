@@ -36,7 +36,16 @@ export const BENTO_SINGLE = "grid grid-cols-1 gap-3"
 /** One tile as the band planner sees it: its type, and whether it has nothing to show. */
 export type PlanInput = { id: string; type: string; empty?: boolean }
 /** Where it goes: its row ("band"), its column span, and whether it is a slim empty line. */
-export type PlanTile = { id: string; band: number; span: number; slim: boolean }
+export type PlanTile = {
+  id: string
+  band: number
+  span: number
+  slim: boolean
+  /** Grid rows it spans: 2 for a big tile beside two stacked metrics. */
+  rows: number
+  /** A metric stacked with another in one column beside a big tile. */
+  stack: boolean
+}
 
 /**
  * The fit rule (bento fit): tiles are laid out in rows ("bands") whose spans always add up to the
@@ -51,9 +60,21 @@ export function planBands(
   const small = (t: PlanInput) => !!t.empty || SMALL.has(t.type)
   const out: PlanTile[] = []
   let band = 0
-  const row = (tiles: readonly PlanInput[], spans: readonly number[]) => {
+  const row = (
+    tiles: readonly PlanInput[],
+    spans: readonly number[],
+    stacked = false
+  ) => {
     tiles.forEach((t, i) =>
-      out.push({ id: t.id, band, span: spans[i]!, slim: !!t.empty })
+      out.push({
+        id: t.id,
+        band,
+        span: spans[i]!,
+        slim: !!t.empty,
+        // Two metrics stack in one column; the big tile beside them spans both rows.
+        rows: stacked && i === tiles.length - 1 ? tiles.length - 1 : 1,
+        stack: stacked && i < tiles.length - 1,
+      })
     )
     band++
   }
@@ -74,9 +95,11 @@ export function planBands(
       const next = list[i + k]
       // At 12 columns a big tile joins one or two metrics and takes the rest of the row.
       if (cols === 12 && next && !small(next) && k * unit <= cols / 2) {
+        // One metric sits beside the big tile; two stack in that one column (no empty height).
         row(
           [...list.slice(i, i + k), next],
-          [...Array(k).fill(unit), cols - k * unit]
+          [...Array(k).fill(unit), cols - unit],
+          k === 2
         )
         i += k + 1
       } else {
