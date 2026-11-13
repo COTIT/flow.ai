@@ -859,6 +859,27 @@
         "duplicate": "bidhaa hii tayari iko kwenye orodha",
         "other": "imeachwa"
       }
+    },
+    "reports": {
+      "latest": "Chati ya mwisho",
+      "report": "Ripoti ({count})",
+      "title": "Ripoti",
+      "add": "Ongeza kwenye ripoti",
+      "remove": "Ondoa kwenye ripoti",
+      "snapshot": "Ripoti hii ina matokeo yaliyoonyeshwa tu na inaweza kuwa haijakamilika. Thamani hazisasishwi wakati wa kuhamisha.",
+      "captured": "Muda wa matokeo",
+      "widget": "Kipengele",
+      "period": "Kipindi",
+      "minorUnits": "vipimo vidogo vya sarafu",
+      "basisPoints": "pointi za msingi",
+      "evicted": "Baadhi ya matokeo yaliyochaguliwa hayapatikani tena na yameondolewa kwenye ripoti hii.",
+      "error": "Ripoti haikuweza kupakuliwa. Uteuzi wako umehifadhiwa. Jaribu tena.",
+      "pdf": "Pakua PDF",
+      "excel": "Pakua Excel",
+      "preparing": "Inaandaa ripoti…",
+      "offer": "Unatumia haya kwa ripoti? Chagua matokeo, kisha pakua PDF au Excel.",
+      "prepare": "Andaa ripoti",
+      "dismiss": "Si sasa"
     }
   }
 }

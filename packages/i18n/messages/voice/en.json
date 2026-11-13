@@ -859,6 +859,27 @@
         "duplicate": "this product is already in the list",
         "other": "left out"
       }
+    },
+    "reports": {
+      "latest": "Latest chart",
+      "report": "Report ({count})",
+      "title": "Report",
+      "add": "Add to report",
+      "remove": "Remove from report",
+      "snapshot": "This report contains displayed snapshots only and may be partial. Values are not refreshed during export.",
+      "captured": "Captured",
+      "widget": "Widget",
+      "period": "Period",
+      "minorUnits": "minor units",
+      "basisPoints": "basis points",
+      "evicted": "Some selected results are no longer retained and were removed from this report.",
+      "error": "The report could not be downloaded. Your selection is kept. Try again.",
+      "pdf": "Download PDF",
+      "excel": "Download Excel",
+      "preparing": "Preparing report…",
+      "offer": "Using these for a report? Choose results, then download PDF or Excel.",
+      "prepare": "Prepare report",
+      "dismiss": "Not now"
     }
   }
 }

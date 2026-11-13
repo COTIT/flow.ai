@@ -16,11 +16,16 @@
     "@genesy/api-client": "workspace:*",
     "@genesy/ui": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
+    "exceljs": "4.4.0",
+    "jspdf": "4.2.1",
     "lucide-react": "^1.65.0",
     "motion": "12.43.0",
     "next-intl": "4.14.9",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "react-is": "19.3.1",
+    "recharts": "3.10.1",
+    "svg2pdf.js": "2.9.0"
   },
   "peerDependencies": {
     "next": "^16"

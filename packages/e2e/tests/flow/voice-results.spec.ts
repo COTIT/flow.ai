@@ -124,7 +124,7 @@ for (const { shape, op, kind } of SHAPES)
     const card = (await showResults(page)).locator('[data-role="result"]')
     if (kind === "table") await expect(card.getByRole("table")).toBeVisible()
     else await expect(card.locator(`[data-chart="${kind}"]`)).toBeVisible()
-    if (kind === "pie" || kind === "donut") await expect(card.locator("svg[role=img] path")).toHaveCount(shape === "share" ? 2 : 3)
+    if (kind === "pie" || kind === "donut") await expect(card.locator(".recharts-sector")).toHaveCount(shape === "share" ? 2 : 3)
     // The agent hears how it is drawn, never the picture.
     const heard = JSON.parse(String(agent.sent.find((e) => e.type === "client_tool_result")?.result)) as Record<string, unknown>
     expect(heard).not.toHaveProperty("view")
@@ -132,7 +132,7 @@ for (const { shape, op, kind } of SHAPES)
     await expectNoHorizontalScroll(page)
   })
 
-test("\"make that a bar chart\" redraws the same picture in place", async ({ page }) => {
+test("\"make that a bar chart\" appends a new picture and preserves the old one", async ({ page }) => {
   const { agent, seen } = await open(page)
   ask(agent, "orders_sales_daily")
   await expect.poll(agent.results).toBe(1)
@@ -143,9 +143,9 @@ test("\"make that a bar chart\" redraws the same picture in place", async ({ pag
   ask(agent, "orders_sales_daily", { presentation: "bar", replaces: id })
   await expect.poll(agent.results).toBe(2)
   expect(seen.at(-1)).toMatchObject({ presentation: "bar", replaces: id })
-  await expect(results.locator('[data-role="result"]')).toHaveCount(1)
+  await expect(results.locator('[data-role="result"]')).toHaveCount(2)
   await expect(results.locator('[data-chart="bar"]')).toBeVisible()
-  await expect.poll(() => lastContext(agent)?.pictures).toEqual([expect.objectContaining({ id, shown_as: "bar" })])
+  await expect.poll(() => lastContext(agent)?.pictures).toEqual([expect.objectContaining({ shown_as: "bar" }), expect.objectContaining({ id, shown_as: "line" })])
   await expectNoHorizontalScroll(page)
 })
 
@@ -161,8 +161,8 @@ test("a kind the data cannot take keeps the picture, and the agent is told why a
   const heard = JSON.parse(String(told?.result)) as { on_screen: { instruction: string; shown_as: string } }
   expect(heard.on_screen.shown_as).toBe("line")
   expect(heard.on_screen.instruction).toMatch(/asked for a pie, which does not fit: a pie needs parts of one whole.*bar/)
-  await expect(results.locator('[data-role="result"]')).toHaveCount(1)
-  await expect(results.locator('[data-chart="line"]')).toBeVisible()
+  await expect(results.locator('[data-role="result"]')).toHaveCount(2)
+  await expect(results.locator('[data-chart="line"]')).toHaveCount(2)
 })
 
 test("a picture that is no longer on screen is never removed: the answer is added", async ({ page }) => {
@@ -223,9 +223,9 @@ test("P6-2: reads made while one is answering run in turn; the latest result sho
       .filter((e) => e.type === "client_tool_result")
       .map((e) => [String(e.tool_call_id), JSON.parse(String(e.result)) as Record<string, unknown>])
   )
-  // Office ran one read at a time, in order; the superseded one never ran.
-  expect(asked).toEqual(["old", "new"])
-  expect(heard["call-middle"]).toEqual({ status: "superseded", message: "Replaced by a newer request" })
+  // Every dataset runs once, serially, without losing the middle result.
+  expect(asked).toEqual(["old", "middle", "new"])
+  expect(heard["call-middle"]).toMatchObject({ status: "completed", data: { q: "middle" } })
   expect(heard["call-old"]).toMatchObject({ status: "completed", data: { q: "old" } })
   expect(heard["call-new"]).toMatchObject({ status: "completed", data: { q: "new" } })
   for (const answer of Object.values(heard)) expect(JSON.stringify(answer)).not.toContain("Finish the current review")

@@ -25,7 +25,7 @@ import type {
   VoiceSession,
 } from "../lib/client-contract"
 import { failureReason } from "../lib/client-contract"
-import { createTurn, endedBy, type TurnEnd } from "../lib/turn"
+import { createRequests, createTurn, endedBy, type TurnEnd } from "../lib/turn"
 import { timeZoneUpdate } from "../lib/time-zone"
 import { agentOverride, greetingHint, type Opening } from "../lib/greeting"
 import { contextSync, type SceneContext } from "../lib/scene-context"
@@ -64,6 +64,7 @@ import { voiceFetch } from "../lib/fetch"
 import { isBlankMessage } from "../lib/blank"
 import { watchCapture } from "../lib/capture-watch"
 import { openViewTool, type OpenView } from "../lib/open-view"
+import { ReportSelectionProvider } from "./conversation-results"
 import {
   VoiceRequestError,
   VoiceShownError,
@@ -118,6 +119,10 @@ type VoiceContextValue = {
   capturePaused: boolean
   speaking: boolean
   messages: TranscriptRow[]
+  /** Last fully answered user request; reports group its result snapshots by this id. */
+  completedRequestId: string | null
+  reportOpen: boolean
+  setReportOpen: (open: boolean) => void
   attachments: Attachment[]
   review: VoiceReview | null
   /** The review last approved or cancelled (its proposed values), kept for the receipt after the card closes. */
@@ -261,6 +266,7 @@ function Session({
   const verified = useRef(false)
   const sessionLocale = useRef(locale)
   const seenUtterances = useRef(new Set<number>())
+  const [requests] = useState(() => createRequests(() => crypto.randomUUID()))
   const [identityVerified, setIdentityVerified] = useState(false)
   const dispatching = useRef(false)
   const preparing = useRef<number | null>(null)
@@ -300,6 +306,7 @@ function Session({
     setHeldState(next)
   }, [])
   const [messages, setMessages] = useState<TranscriptRow[]>([])
+  const [completedRequestId, setCompletedRequestId] = useState<string | null>(null)
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [review, setReview] = useState<VoiceReview | null>(null)
   const [decided, setDecided] = useState<VoiceReview | null>(null)
@@ -316,6 +323,11 @@ function Session({
   const [busy, setBusy] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [toolRequests, setToolRequests] = useState(0)
+  const [reportOpen, setReportOpen] = useState(false)
+  const reportRowsNow = useRef(messages)
+  useEffect(() => {
+    reportRowsNow.current = messages
+  }, [messages])
   const [textOnly, setTextOnly] = useState(false)
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
@@ -358,6 +370,7 @@ function Session({
   }
   function beginResponse() {
     turn.begin()
+    setCompletedRequestId(null)
     setUnfinished(null)
     setThinking(true)
     setError("")
@@ -366,6 +379,8 @@ function Session({
   turnEnd.current = (kind, steps) => {
     if (!active.current) return
     setThinking(false)
+    if (kind === "answered" && !proposal.current) setCompletedRequestId(requests.current)
+    requests.finish()
     if (kind === "stalled") {
       add(
         "action",
@@ -596,17 +611,20 @@ function Session({
         mergeTranscript(rows, { role, text, id, ...(href ? { href } : {}) })
       )
   }
-  function showLinks(outcome: VoiceOutcome, operation?: string) {
+  function showLinks(outcome: VoiceOutcome, operation?: string, requestId = requests.current) {
     for (const link of outcome.links ?? [])
       add("link", link.label ?? t("openRecord"), undefined, resolveHref(link.href))
     // voice-rich-results: a chart or cards the server built from the API reply; shown, never spoken.
     const view = outcome.view
-    if (view && active.current)
+    if (view && active.current) {
+      const id = crypto.randomUUID()
+      const metadata = { ...(requestId ? { requestId } : {}), createdAt: new Date().toISOString() }
       setMessages((rows) =>
         outcome.replaces
-          ? replaceView(rows, outcome.replaces, view, operation, crypto.randomUUID())
-          : withView(rows, view, crypto.randomUUID(), operation)
+          ? replaceView(rows, outcome.replaces, view, operation, id, metadata)
+          : withView(rows, view, id, operation, metadata)
       )
+    }
   }
   async function refreshBatch() {
     const id = activeBatch.current?.id ?? batchProgress?.id
@@ -700,27 +718,35 @@ function Session({
       (!statusRead && (proposal.current || dispatching.current))
     )
       return JSON.stringify({ status: "failed", message: t("finishReview") })
-    // P6-2: still one request at a time; a call made meanwhile waits and goes next (newest wins).
-    if (!statusRead && preparing.current === before) {
-      const turn = await slot.wait(
-        () => active.current && before === generation.current
-      )
-      if (turn === "run") return tool(command, body)
-      return JSON.stringify(
-        turn === "superseded"
-          ? { status: "superseded", message: "Replaced by a newer request" }
-          : { status: "cancelled" }
-      )
-    }
-    if (!statusRead && document.visibilityState !== "visible")
-      return JSON.stringify({ status: "paused", message: t("recoveryHint") })
-    if (!statusRead) preparing.current = before
-    const settled = statusRead ? undefined : slot.begin()
+    const requestId = requests.current
+    // Count queued work too: a partial answer cannot finish before its other datasets arrive.
+    const turnToken = turn.toolStart()
+    let settled: (() => void) | null = null
+    let ownsSlot = false
     let quiet = false // failed or awaiting review: no thinking row afterwards
     setToolRequests((count) => count + 1)
-    turn.toolStart()
     setError("")
     try {
+      if (!statusRead) {
+        settled = await slot.acquire(
+          () => active.current && before === generation.current && requestId === requests.current
+        )
+        if (!settled) {
+          quiet = true
+          return JSON.stringify({ status: "cancelled" })
+        }
+        // A prior queued write may now have a review; never dispatch through that gate.
+        if (!verified.current || !session.current || proposal.current || dispatching.current) {
+          quiet = true
+          return JSON.stringify({ status: "failed", message: t("finishReview") })
+        }
+        if (document.visibilityState !== "visible") {
+          quiet = true
+          return JSON.stringify({ status: "paused", message: t("recoveryHint") })
+        }
+        preparing.current = before
+        ownsSlot = true
+      }
       if (statusRead) {
         const actionId = statusId as string
         const owner =
@@ -847,7 +873,7 @@ function Session({
         turnEnd.current("answered", 0)
       } else if (command === "execute") {
         setOutcome({ ...result, operationId: String(body.operationId) })
-        showLinks(result, String(body.operationId))
+        showLinks(result, String(body.operationId), requestId)
         if (result.reason && ["failed", "unknown"].includes(result.status))
           setError(t(`requestErrors.${result.reason}`))
       }
@@ -900,13 +926,13 @@ function Session({
         message: shown,
       })
     } finally {
-      if (!statusRead && preparing.current === before) preparing.current = null
+      if (ownsSlot && preparing.current === before) preparing.current = null
       settled?.()
       if (active.current && before === generation.current) {
         setToolRequests((count) => Math.max(0, count - 1))
-        turn.toolEnd()
+        turn.toolEnd(turnToken)
         // The agent always answers a tool result; show it working until that reply lands.
-        if (!quiet) setThinking(true)
+        if (!quiet && requestId === requests.current) setThinking(true)
       }
     }
   }
@@ -1059,7 +1085,13 @@ function Session({
         const finalizedEvent = Number.isSafeInteger(event_id) && event_id >= 0
         const replayed = finalizedEvent && seenUtterances.current.has(event_id)
         if (finalizedEvent) seenUtterances.current.add(event_id)
-        if (!replayed) beginResponse()
+        if (!replayed) {
+          const request = requests.heard(
+            message,
+            finalizedEvent ? `event:${event_id}` : response_id === undefined ? undefined : `response:${response_id}`
+          )
+          if (request.fresh) beginResponse()
+        }
         if (activeBatch.current && dispatching.current && !replayed)
           void stopBatch("pause")
         if (proposal.current && !dispatching.current && !replayed) {
@@ -1117,6 +1149,13 @@ function Session({
     },
     clientTools: {
       // P4: navigation only, answered here at once; never a request, never a write.
+      open_conversation_report: () => {
+        if (!active.current || !verified.current) return JSON.stringify({ status: "unavailable" })
+        if (!reportRowsNow.current.some((row) => row.role === "result" && row.views?.length))
+          return JSON.stringify({ status: "empty" })
+        setReportOpen(true)
+        return JSON.stringify({ status: "opened" })
+      },
       open_flow_view: (params: { view?: unknown }) =>
         verified.current
           ? openViewTool(openViewNow.current)(params)
@@ -1134,7 +1173,7 @@ function Session({
             tool("execute", {
               operationId: operation_id,
               arguments: JSON.parse(String(arguments_json)),
-              // How to draw a read and which picture it redraws; Office checks both.
+              // How to draw a new snapshot and its source picture; Office checks both.
               ...(presentation ? { presentation } : {}),
               ...(replaces ? { replaces } : {}),
             })
@@ -1367,6 +1406,8 @@ function Session({
     const previousLogicalId = logicalId.current
     sessionLocale.current = sessionLanguage(locale)
     seenUtterances.current.clear()
+    requests.clear()
+    setCompletedRequestId(null)
     setStarting(true)
     setThinking(false)
     setToolRequests(0)
@@ -1380,6 +1421,7 @@ function Session({
       setOutcome(null)
       setProgress(null)
       setMessages([])
+      setReportOpen(false)
       nextOrdinal.current = 0
     }
     try {
@@ -1574,6 +1616,9 @@ function Session({
       setUpgrading(false)
       setStarting(false)
       if (!historyEnabled) setMessages([])
+      setReportOpen(false)
+      requests.clear()
+      setCompletedRequestId(null)
       files.current.forEach((file) => {
         if (file.preview) URL.revokeObjectURL(file.preview)
       })
@@ -2008,6 +2053,7 @@ function Session({
           return false
         sourceEvents.current.set(textEvent.key, textEvent)
       }
+      requests.typed(text.trim() || t(ids.length ? "attachmentRequest" : "sheetRequest"))
       beginResponse()
       if (ids.length || sheets.length) {
         conversation.sendContextualUpdate(
@@ -2383,6 +2429,9 @@ function Session({
         capturePaused,
         speaking: conversation.isSpeaking,
         messages,
+        completedRequestId,
+        reportOpen,
+        setReportOpen,
         attachments,
         review,
         decided,
@@ -2436,7 +2485,7 @@ function Session({
         },
       }}
     >
-      {children}
+      <ReportSelectionProvider>{children}</ReportSelectionProvider>
     </VoiceContext.Provider>
   )
 }

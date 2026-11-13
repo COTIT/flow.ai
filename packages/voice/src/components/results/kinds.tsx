@@ -7,11 +7,11 @@ import { formatDate, formatShare } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { fieldName, formatPrice, formatQuantity } from "../../lib/helpers"
 import { drawnAs, shapeOf, type Kind, type ResultView } from "../../lib/views"
-import { Series } from "./series"
+import { ResultPlot, type PlotKind } from "./plot"
 
 /** One drawn value: `value` is the API's number (drawing scale only), `shown` its formatted text. */
 type Item = { label: string; value: number | null; shown: string }
-type Group = { key: string; title: string | null; items: Item[]; change?: string | null }
+type Group = { key: string; title: string | null; items: Item[]; change?: string | null; formatValue?: (value: number) => string }
 
 const signed = (bp: number, locale: string) => `${bp > 0 ? "+" : bp < 0 ? "−" : ""}${formatShare(Math.abs(bp), locale)}`
 
@@ -33,6 +33,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
         groups: view.currencies.map((c) => ({
           key: c.currency,
           title: c.currency,
+          formatValue: (value) => money(value, c.decimals, c.currency),
           items: c.days.map((d) => ({ label: day(d.date), value: d.gross, shown: money(d.gross, c.decimals, c.currency) })),
         })),
       }
@@ -44,6 +45,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
         groups: currencies.map((currency) => ({
           key: currency,
           title: currency,
+          formatValue: (value) => money(value, sales.flatMap((v) => v.rows).find((r) => r.currency === currency)!.decimals, currency),
           items: sales.flatMap((v) => {
             const row = v.rows.find((r) => r.currency === currency)
             return row ? [{ label: period(v.from, v.to), value: row.gross, shown: money(row.gross, row.decimals, currency) }] : []
@@ -57,6 +59,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
         groups: view.currencies.map((c) => ({
           key: c.currency,
           title: c.currency,
+          formatValue: (value) => money(value, c.decimals, c.currency),
           change: c.change_bp === null ? null : signed(c.change_bp, locale),
           // kpi shows the current period only; the base is never folded into it.
           items: [
@@ -71,6 +74,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
         groups: view.currencies.map((c) => ({
           key: c.currency,
           title: c.currency,
+          formatValue: (value) => money(value, c.decimals, c.currency),
           items: c.rows.map((r) => ({ label: r.label ?? t("breakdown.walkIn"), value: r.gross, shown: money(r.gross, c.decimals, c.currency) })),
         })),
       }
@@ -80,6 +84,7 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
         groups: [{
           key: "materials",
           title: null,
+          formatValue: (value) => formatShare(value, locale),
           items: view.materials.map((m) => ({ label: m.name, value: m.share, shown: m.share === null ? "—" : formatShare(m.share, locale) })),
         }],
       }
@@ -206,60 +211,13 @@ function useGroups(views: ResultView[], kind: Kind): { title: string; groups: Gr
 // One brand colour stepped down per rank; legends repeat it beside every amount.
 const shade = (i: number) => Math.max(1 - i * 0.12, 0.25)
 
-/** Slices sized by the API's amounts: drawing scale only, no share is computed or printed. */
-function Slices({ items, donut, label }: { items: Item[]; donut: boolean; label: string }) {
-  const parts = items.map((i) => Math.max(i.value ?? 0, 0))
-  const total = parts.reduce((n, v) => n + v, 0)
-  if (!total) return null
-  const ends = parts.map((_, i) => parts.slice(0, i + 1).reduce((n, v) => n + v, 0) / total)
-  const point = (turn: number) =>
-    `${50 + 48 * Math.sin(turn * 2 * Math.PI)},${50 - 48 * Math.cos(turn * 2 * Math.PI)}`
-  return (
-    <svg role="img" aria-label={label} viewBox="0 0 100 100" className="size-40 shrink-0 text-(--gold)">
-      {parts.map((part, i) => {
-        if (!part) return null
-        const share = part / total
-        const from = ends[i]! - share
-        const d =
-          share > 0.9999
-            ? "M50,2 A48,48 0 1 1 50,98 A48,48 0 1 1 50,2 Z"
-            : `M50,50 L${point(from)} A48,48 0 ${share > 0.5 ? 1 : 0} 1 ${point(ends[i]!)} Z`
-        return <path key={i} d={d} fill="currentColor" opacity={shade(i)} className="stroke-card" strokeWidth="0.5" />
-      })}
-      {donut ? <circle cx="50" cy="50" r="28" className="fill-card" /> : null}
-    </svg>
-  )
-}
-
-function HBars({ items }: { items: Item[] }) {
-  const top = Math.max(...items.map((i) => i.value ?? 0), 1)
-  return (
-    <ul className="flex flex-col gap-2">
-      {items.map((item, i) => (
-        <li key={i} className="flex flex-col gap-1">
-          <span className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
-            <span className="min-w-0 truncate">{item.label}</span>
-            <span className="font-semibold tabular-nums">{item.shown}</span>
-          </span>
-          <svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" className="h-2.5 w-full">
-            <rect width="100" height="8" rx="4" className="fill-(--hair)" />
-            {item.value && item.value > 0 ? (
-              <rect width={Math.max((item.value / top) * 100, 2)} height="8" rx="4" className="fill-(--gold)" />
-            ) : null}
-          </svg>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 function Legend({ items, swatch }: { items: Item[]; swatch: boolean }) {
   return (
     <ul className="flex min-w-0 flex-1 flex-col gap-1 text-xs">
       {items.map((item, i) => (
         <li key={i} className="flex items-baseline gap-2">
           {swatch ? <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-(--gold)" style={{ opacity: shade(i) }} /> : null}
-          <span className="min-w-0 truncate">{item.label}</span>
+          <span className="min-w-0 break-words">{item.label}</span>
           <span className="ml-auto font-semibold tabular-nums">{item.shown}</span>
         </li>
       ))}
@@ -269,28 +227,17 @@ function Legend({ items, swatch }: { items: Item[]; swatch: boolean }) {
 
 function Drawing({ kind, group, t }: { kind: Kind; group: Group; t: ReturnType<typeof useTranslations> }) {
   const { items } = group
-  const named = items.map((i) => `${i.label}: ${i.shown}`).join("; ")
   switch (kind) {
     case "line":
     case "sparkline":
     case "bar":
-      return (
-        <div className="flex flex-col gap-1">
-          <Series line={kind !== "bar"} values={items.map((i) => i.value ?? 0)} className={kind === "sparkline" ? "h-10" : "h-28"} />
-          <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-            <span>{items[0]?.label}</span>
-            <span>{items.length > 1 ? items.at(-1)?.label : null}</span>
-          </div>
-        </div>
-      )
     case "hbar":
-      return <HBars items={items} />
     case "pie":
     case "donut":
       return (
-        <div className="flex flex-wrap items-center gap-4">
-          <Slices items={items} donut={kind === "donut"} label={named} />
-          <Legend items={items} swatch />
+        <div className="flex min-w-0 flex-col gap-3">
+          <ResultPlot items={items} kind={kind} label={items.map((i) => `${i.label}: ${i.shown}`).join("; ")} formatValue={group.formatValue} />
+          {kind === "pie" || kind === "donut" || kind === "hbar" ? <Legend items={items} swatch={kind !== "hbar"} /> : null}
         </div>
       )
     case "kpi":
@@ -320,7 +267,7 @@ function Drawing({ kind, group, t }: { kind: Kind; group: Group; t: ReturnType<t
           {items.map((item, i) => (
             <li key={i} className="flex flex-col gap-1">
               <span className="flex items-baseline justify-between gap-3 text-xs">
-                <span className="min-w-0 truncate">{item.label}</span>
+                <span className="min-w-0 break-words">{item.label}</span>
                 <span className="font-semibold tabular-nums">{item.shown}</span>
               </span>
               {/* Basis points of a whole the API defines: 10000 is the full bar. */}
@@ -375,21 +322,45 @@ export function KindChart({ views }: { views: ResultView[] }) {
           ))}
         </div>
       )}
-      <table id={tableId} className={table ? "w-full text-left text-xs tabular-nums" : "sr-only"}>
-        <tbody>
-          {shown.flatMap((group) =>
-            group.items.map((item, i) => (
-              <tr key={`${group.key}${i}`} className="border-t border-(--hair)">
-                <th scope="row" className="py-1 pr-2 font-normal">
-                  {shown.length > 1 && group.title ? `${group.title} · ` : null}
-                  {item.label}
-                </th>
-                <td className="py-1 text-right">{item.shown}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <div className={table ? "max-w-full overflow-x-auto" : "sr-only"}>
+        <table id={tableId} className={table ? "w-full text-left text-xs tabular-nums" : "sr-only"}>
+          <tbody>
+            {shown.flatMap((group) =>
+              group.items.map((item, i) => (
+                <tr key={`${group.key}${i}`} className="border-t border-(--hair)">
+                  <th scope="row" className="py-1 pr-2 font-normal">
+                    {shown.length > 1 && group.title ? `${group.title} · ` : null}
+                    {item.label}
+                  </th>
+                  <td className="py-1 text-right">{item.shown}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
+  )
+}
+
+/** Numeric plots of a result at deterministic dimensions for report export. */
+export function ReportChart({ views, width, height }: { views: ResultView[]; width: number; height: number }) {
+  if (!views.length) return null
+  if (views.length > 1 && !views.every((view) => view.kind === "sales"))
+    return <>{views.map((view, i) => <ReportChart key={i} views={[view]} width={width} height={height} />)}</>
+  return <ReportChartBody views={views} width={width} height={height} />
+}
+
+function ReportChartBody({ views, width, height }: { views: ResultView[]; width: number; height: number }) {
+  const first = views[0]!
+  const kind = drawnAs(first)
+  const { title, groups } = useGroups(views, kind)
+  if (!["line", "sparkline", "bar", "hbar", "pie", "donut"].includes(kind)) return null
+  return (
+    <div style={{ width }}>
+      {groups.filter((group) => group.items.length).map((group) => (
+        <ResultPlot key={group.key} items={group.items} kind={kind as PlotKind} label={[title, group.title].filter(Boolean).join(" · ")} formatValue={group.formatValue} width={width} height={height} exportMode />
+      ))}
+    </div>
   )
 }

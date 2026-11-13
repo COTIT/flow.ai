@@ -81,7 +81,7 @@ export function InlineTask() {
   )
 }
 
-/** An answer under Genesy's reply: one small card; "Show all" only when there is more than fits. */
+/** Complete result under the reply; large results can also open in their own screen. */
 export function InlineResult({ row }: { row: TranscriptRow }) {
   const t = useTranslations("scenes")
   const pathname = usePathname()
@@ -96,11 +96,9 @@ export function InlineResult({ row }: { row: TranscriptRow }) {
   return (
     <div
       data-inline-result=""
-      className="flex max-w-md min-w-0 flex-col gap-1 self-start [&_table]:text-sm"
+      className="flex w-full min-w-0 flex-col gap-1 self-start [&_table]:text-sm"
     >
-      <div className="max-h-56 overflow-hidden">
-        <VoiceResult views={views.slice(0, 1)} />
-      </div>
+      <VoiceResult views={views} />
       {more ? (
         <Button
           variant="link"

@@ -859,6 +859,27 @@
         "duplicate": "dit product staat al in de lijst",
         "other": "weggelaten"
       }
+    },
+    "reports": {
+      "latest": "Laatste grafiek",
+      "report": "Rapport ({count})",
+      "title": "Rapport",
+      "add": "Toevoegen aan rapport",
+      "remove": "Verwijderen uit rapport",
+      "snapshot": "Dit rapport bevat alleen weergegeven momentopnamen en kan onvolledig zijn. Waarden worden niet vernieuwd tijdens het exporteren.",
+      "captured": "Vastgelegd",
+      "widget": "Onderdeel",
+      "period": "Periode",
+      "minorUnits": "kleinste valuta-eenheden",
+      "basisPoints": "basispunten",
+      "evicted": "Sommige geselecteerde resultaten zijn niet meer beschikbaar en zijn uit dit rapport verwijderd.",
+      "error": "Het rapport kon niet worden gedownload. Je selectie is bewaard. Probeer het opnieuw.",
+      "pdf": "PDF downloaden",
+      "excel": "Excel downloaden",
+      "preparing": "Rapport voorbereiden…",
+      "offer": "Gebruik je dit voor een rapport? Kies resultaten en download PDF of Excel.",
+      "prepare": "Rapport voorbereiden",
+      "dismiss": "Niet nu"
     }
   }
 }

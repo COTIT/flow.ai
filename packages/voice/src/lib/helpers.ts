@@ -33,6 +33,10 @@ export type TranscriptRow = {
   href?: string
   /** The read a "result" row came from, so the agent can redo or refine it. */
   operation?: string
+  /** Canonical user request that produced this result, shared across its datasets. */
+  requestId?: string
+  /** When the displayed result snapshot was received. */
+  createdAt?: string
 }
 
 /** Office pages and https: the agent-text links Office opens. */

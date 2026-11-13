@@ -130,6 +130,18 @@
         "label": "Mogelijkheden ontdekken",
         "description": "Alles wat Genesy voor je kan doen, per soort taak.",
         "example": "Waarmee kun je me helpen?"
+      },
+      "compare_sales_periods": {
+        "label": "Perioden vergelijken",
+        "description": "Vergelijk deze omzet met de vorige periode.",
+        "example": "Vergelijk deze omzet met de vorige periode.",
+        "prompt": "Vergelijk de totale omzet voor dezelfde datums en verkoopbron als mijn laatste resultaat met de vorige even lange periode. Gebruik door de server berekende verschillen; leg uit als dit niet wordt ondersteund."
+      },
+      "sales_trend_followup": {
+        "label": "Dagelijkse omzet",
+        "description": "Bekijk de dagelijkse omzet voor dezelfde periode.",
+        "example": "Toon de dagelijkse omzet voor deze periode.",
+        "prompt": "Toon de totale dagelijkse omzet voor dezelfde datums en verkoopbron als mijn laatste resultaat. Houd de productrangschikking apart; suggereer geen trend per product."
       }
     }
   }

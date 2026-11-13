@@ -13,7 +13,7 @@ AGENT=agent_FAKEDEV000000001
 printf 'OTHER=1\nELEVENLABS_API_KEY=%s\nELEVENLABS_AGENT_ID=%s\n' "$KEY" "$AGENT" > "$tmp/env.local"
 printf '%s\n' "$KEY" > "$tmp/raw_key"
 
-# Fake provider: one agent and its two client tools, state in files, every request logged.
+# Fake provider: one agent and its client tools, state in files, every request logged.
 cat > "$tmp/fake.py" <<'PY'
 import json, os, pathlib, sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -88,7 +88,7 @@ PY
   python3 - "$HERE" "$tmp/state" "$AGENT" "$1" "${2:-}" <<'PY'
 import copy, json, pathlib, sys
 here, state, agent_id, shared, missing = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3], sys.argv[4] == '1', sys.argv[5]
-IDS = {'discover_genesy_tools': 'tool_DISCOVERFAKE0001', 'execute_genesy_tool': 'tool_EXECUTEFAKE00001', 'open_flow_view': 'tool_OPENVIEWFAKE0001'}
+IDS = {'discover_genesy_tools': 'tool_DISCOVERFAKE0001', 'execute_genesy_tool': 'tool_EXECUTEFAKE00001', 'open_flow_view': 'tool_OPENVIEWFAKE0001', 'open_conversation_report': 'tool_REPORTFAKE000001'}
 t = json.loads((here / 'assistant-agent.template.json').read_text())
 live = copy.deepcopy(t['configuration'])
 cc = live['conversation_config']
@@ -135,7 +135,7 @@ rename() { python3 -c 'import json,sys; p=sys.argv[1]; a=json.load(open(p)); a["
 patches() { grep -c '"method": "PATCH"' "$tmp/state/log" || true; }
 no_secrets() {
   for secret in "$KEY" "$AGENT" voice_FAKEVOICE000001 tool_DISCOVERFAKE0001 tool_EXECUTEFAKE00001 \
-    tool_OPENVIEWFAKE0001 tool_CREATED \
+    tool_OPENVIEWFAKE0001 tool_REPORTFAKE000001 tool_CREATED \
     agent_FAKEPROD00000001 fake-origin.test 'Old prompt'; do
     if grep -qF "$secret" "$tmp/out"; then fail "printed a private value: $secret"; fi
   done
@@ -288,7 +288,7 @@ wanted = next(t for t in template['clientTools'] if t['name'] == 'open_flow_view
 assert posts[0]['body'] == {'tool_config': wanted}, posts[0]['body']
 agent = json.loads((state / 'agent.json').read_text())
 ids = agent['conversation_config']['agent']['prompt']['tool_ids']
-assert ids[:2] == ['tool_DISCOVERFAKE0001', 'tool_EXECUTEFAKE00001'] and ids[2].startswith('tool_CREATED') and len(ids) == 3, ids
+assert ids[:3] == ['tool_DISCOVERFAKE0001', 'tool_EXECUTEFAKE00001', 'tool_REPORTFAKE000001'] and ids[3].startswith('tool_CREATED') and len(ids) == 4, ids
 ev = json.loads(record.read_text())
 assert ev['provider']['applied']['development']['createdTools'] == ['open_flow_view'], ev['provider']['applied']['development']
 PY

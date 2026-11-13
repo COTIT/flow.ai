@@ -136,6 +136,8 @@ describe("Office messages", () => {
         // Added for opt-in history: distinct call control and pending delivery labels.
         endCall,
         delivery,
+        // Added since chart reports: download and selection labels.
+        reports,
         ...rest
       } = voice as typeof voice & Record<string, unknown>
       expect(operationTitles).toBeDefined()
@@ -145,6 +147,7 @@ describe("Office messages", () => {
         queued: expect.any(String),
         sent_unconfirmed: expect.any(String),
       })
+      expect(reports).toBeDefined()
       for (const text of [
         connectionLost,
         offline,

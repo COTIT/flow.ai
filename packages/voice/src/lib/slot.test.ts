@@ -3,67 +3,47 @@ import { oneSlot } from "./slot"
 
 const tick = () => new Promise((r) => setTimeout(r, 0))
 
-describe("oneSlot: one request at a time, one waiting slot", () => {
-  it("a call that arrives while one runs waits, then runs as soon as it settles", async () => {
+describe("oneSlot: serial FIFO", () => {
+  it("retains all three concurrent requests in arrival order", async () => {
     const slot = oneSlot()
-    const done = slot.begin()
-    let turn: string | undefined
-    void slot.wait(() => true).then((t) => (turn = t))
+    const first = await slot.acquire(() => true)
+    const ran: string[] = []
+    void slot.acquire(() => true).then((release) => { ran.push("second"); release?.() })
+    void slot.acquire(() => true).then((release) => { ran.push("third"); release?.() })
     await tick()
-    expect(turn).toBeUndefined()
-    done()
+    expect(ran).toEqual([])
+    first?.()
     await tick()
-    expect(turn).toBe("run")
+    expect(ran).toEqual(["second", "third"])
   })
 
-  it("the newest waiting call wins the slot; the older one is superseded at once", async () => {
+  it("never overlaps work and releases each reservation only once", async () => {
     const slot = oneSlot()
-    const done = slot.begin()
-    const turns: string[] = []
-    void slot.wait(() => true).then((t) => turns.push(`older:${t}`))
-    void slot.wait(() => true).then((t) => turns.push(`newer:${t}`))
+    const first = await slot.acquire(() => true)
+    const second = slot.acquire(() => true)
+    first?.()
+    const releaseSecond = await second
+    let thirdRan = false
+    void slot.acquire(() => true).then((release) => { thirdRan = true; release?.() })
+    first?.()
     await tick()
-    expect(turns).toEqual(["older:superseded"])
-    done()
+    expect(thirdRan).toBe(false)
+    releaseSecond?.()
     await tick()
-    expect(turns).toEqual(["older:superseded", "newer:run"])
+    expect(thirdRan).toBe(true)
   })
 
-  it("never runs a waiting call while one is still running (writes included)", async () => {
+  it("cancels old-request waiters, then dispatches the current request", async () => {
     const slot = oneSlot()
-    const running: string[] = []
-    const run = async (name: string, work: Promise<void>) => {
-      const done = slot.begin()
-      running.push(name)
-      await work
-      running.splice(running.indexOf(name), 1)
-      done()
-    }
-    let finish = () => {}
-    void run("write", new Promise<void>((r) => (finish = r)))
-    let overlap = false
-    void slot.wait(() => true).then(() => {
-      overlap = running.length > 0
-      void run("read", Promise.resolve())
-    })
-    await tick()
-    finish()
-    await tick()
-    expect(overlap).toBe(false)
-  })
-
-  it("a waiting call is cancelled, never run, when the conversation moved on while it waited", async () => {
-    const slot = oneSlot()
-    const done = slot.begin()
-    let generation = 1
-    const mine = generation
-    const turn = slot.wait(() => generation === mine)
-    generation = 2
-    done()
-    await expect(turn).resolves.toBe("cancelled")
-  })
-
-  it("with nothing running a call goes straight on", async () => {
-    await expect(oneSlot().wait(() => true)).resolves.toBe("run")
+    let request = "old"
+    const first = await slot.acquire(() => true)
+    const old = slot.acquire(() => request === "old")
+    const current = slot.acquire(() => request === "new")
+    request = "new"
+    first?.()
+    await expect(old).resolves.toBeNull()
+    const release = await current
+    expect(release).toBeTypeOf("function")
+    release?.()
   })
 })

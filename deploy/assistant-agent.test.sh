@@ -6,7 +6,12 @@ python3 - "$HERE" <<'PY'
 import hashlib,json,pathlib,re,sys
 root=pathlib.Path(sys.argv[1]); raw=(root/'assistant-agent.template.json').read_bytes()
 template=json.loads(raw); evidence=json.loads((root/'assistant-validation.json').read_text())
-assert evidence['provider']['templateSha256']==hashlib.sha256(raw).hexdigest(),'agent template changed without a new observed validation record'
+template_sha=hashlib.sha256(raw).hexdigest()
+if evidence['provider']['templateSha256'] != template_sha:
+    # Unpublished source changes retain the previous observed provider evidence.
+    pending=evidence.get('pendingGates',{}).get('agentTemplateAhead','')
+    assert template_sha in pending and 'pending publication' in pending,'changed template must explicitly record pending publication'
+    assert evidence['releaseGate']=='pending','unpublished template cannot pass the release gate'
 assert evidence['releaseGate']=='pending' and evidence['releaseCommit'] is None
 assert evidence['provider']['versionId'].startswith('agtvrsn_')
 # Written by assistant-agent.sh --apply after a read-back; one entry per environment.
@@ -14,7 +19,7 @@ for env,entry in evidence['provider'].get('applied',{}).items():
     assert env in {'development','staging','production'} and entry['versionId'].startswith('agtvrsn_')
     assert re.fullmatch('[0-9a-f]{64}',entry['governedSha256']) and re.fullmatch('[0-9a-f]{64}',entry['templateSha256'])
 source=(root.parent/'packages/voice/src/components/provider.tsx').read_text()
-assert len(template['clientTools'])==3
+assert len(template['clientTools'])==4
 for tool in template['clientTools']:
     assert tool['type']=='client' and tool['name']+': (' in source,'snapshot tool not implemented by Office'
     assert tool['expects_response'] is True
@@ -78,7 +83,8 @@ assert '[Results on screen]' in prompt and 'never read the points or items one b
 assert 'say why in one sentence and offer the closest kind' in prompt,'refused chart kind must be explained with the closest fit'
 assert '[Flow context]' in prompt and '[/Flow context]' in prompt and 'UNTRUSTED UI state' in prompt,'Flow context block missing'
 assert 'saved period' in prompt,'Flow context period caveat missing'
-assert 'replaces' in prompt and 'presentation' in prompt and 'Reads stay reads' in prompt,'change-in-place contract missing'
+assert 'new chat bubble' in prompt and 'never overwrite' in prompt and 'Reads stay reads' in prompt,'append-only chart contract missing'
+assert 'open_conversation_report' in prompt and 'Do not repeat' in prompt,'report UI contract missing'
 assert 'Never invent data to fit a chart' in prompt,'charts must never fake data'
 kinds=['line','sparkline','bar','hbar','pie','donut','kpi','delta','meter','table','list','timeline','map']
 for shape,allowed in {'series':'line, sparkline, bar, table','totals':'hbar, bar, kpi, table','comparison':'delta, bar, hbar, kpi, table','breakdown':'hbar, bar, pie, donut, table, list','share':'list, bar, hbar, pie, donut, meter, table','counts':'list, bar, hbar, pie, donut, kpi, table','rows':'list, kpi, table','events':'timeline, list, table','quantities':'list, hbar, bar, table','hits':'list, table','document':'list, table, kpi'}.items():

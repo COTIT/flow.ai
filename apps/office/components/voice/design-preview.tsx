@@ -112,6 +112,9 @@ export function VoiceDesignPreview() {
           : transcript
               .slice(0, state === "listening" ? 1 : state === "text" ? 2 : 3)
               .map((row, i) => ({ id: String(i), ...row }) as never),
+      completedRequestId: null,
+      reportOpen: false,
+      setReportOpen: () => {},
       attachments: [],
       review:
         state === "review" ? review : state === "review-batch" ? batch : null,
