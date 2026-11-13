@@ -88,10 +88,28 @@ export function ResultPlot({
   const plotHeight =
     height ??
     (horizontal ? Math.max(260, items.length * 44) : spark ? 96 : undefined)
+  // SVG-to-PDF accepts concrete colors, not theme variables or inherited page fonts.
+  const colors = exportMode
+    ? {
+        gold: "#d0a55f",
+        hair: "#e5e4e1",
+        muted: "#5f5c55",
+        foreground: "#1c1b18",
+        card: "#ffffff",
+      }
+    : {
+        gold: "var(--gold)",
+        hair: "var(--hair)",
+        muted: "var(--muted-foreground)",
+        foreground: "var(--foreground)",
+        card: "var(--card)",
+      }
+  const fontFamily = exportMode ? "Poppins" : undefined
+  const tick = { fill: colors.muted, fontSize: 11, fontFamily }
   const data = items.map((item, i) => ({
     ...item,
     value: polar && item.value !== null ? Math.max(item.value, 0) : item.value,
-    fill: "var(--gold)",
+    fill: colors.gold,
     fillOpacity: shade(i),
   }))
   const tooltip = exportMode ? null : (
@@ -99,10 +117,18 @@ export function ResultPlot({
       trigger={touch ? "click" : "hover"}
       content={ValueTooltip}
       isAnimationActive={false}
-      cursor={polar ? false : { fill: "var(--hair)", stroke: "var(--hair)" }}
+      cursor={polar ? false : { fill: colors.hair, stroke: colors.hair }}
     />
   )
-  const dimensions = fixed ? { width, height } : {}
+  const dimensions = fixed
+    ? {
+        width,
+        height,
+        ref: (svg: SVGSVGElement | null) => {
+          if (exportMode && svg) svg.setAttribute("font-family", "Poppins")
+        },
+      }
+    : {}
   const chart = polar ? (
     <PieChart
       {...dimensions}
@@ -118,8 +144,8 @@ export function ResultPlot({
         cy="50%"
         outerRadius="88%"
         innerRadius={kind === "donut" ? "52%" : 0}
-        stroke="var(--card)"
-        activeShape={{ stroke: "var(--foreground)", strokeWidth: 3 }}
+        stroke={colors.card}
+        activeShape={{ stroke: colors.foreground, strokeWidth: 3 }}
         inactiveShape={{ opacity: 0.55 }}
         isAnimationActive={false}
       />
@@ -133,29 +159,29 @@ export function ResultPlot({
       accessibilityLayer
       margin={{ top: 16, right: 12, bottom: spark ? 4 : 12, left: 4 }}
     >
-      {spark ? null : <CartesianGrid vertical={false} stroke="var(--hair)" />}
+      {spark ? null : <CartesianGrid vertical={false} stroke={colors.hair} />}
       <XAxis
         dataKey="label"
         hide={spark}
         minTickGap={28}
-        tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+        tick={tick}
         tickLine={false}
       />
       <YAxis
         hide={spark}
         width={64}
         tickFormatter={formatValue}
-        tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+        tick={tick}
         tickLine={false}
         axisLine={false}
       />
       <Line
         dataKey="value"
         type="linear"
-        stroke="var(--gold)"
+        stroke={colors.gold}
         strokeWidth={2}
         dot={data.length === 1}
-        activeDot={{ r: 6, stroke: "var(--foreground)", strokeWidth: 2 }}
+        activeDot={{ r: 6, stroke: colors.foreground, strokeWidth: 2 }}
         connectNulls={false}
         isAnimationActive={false}
       />
@@ -173,14 +199,14 @@ export function ResultPlot({
       <CartesianGrid
         horizontal={!horizontal}
         vertical={horizontal}
-        stroke="var(--hair)"
+        stroke={colors.hair}
       />
       <XAxis
         type={horizontal ? "number" : "category"}
         dataKey={horizontal ? undefined : "label"}
         tickFormatter={horizontal ? formatValue : undefined}
         minTickGap={28}
-        tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+        tick={tick}
         tickLine={false}
       />
       <YAxis
@@ -188,14 +214,14 @@ export function ResultPlot({
         dataKey={horizontal ? "label" : undefined}
         width={horizontal ? 112 : 64}
         tickFormatter={horizontal ? undefined : formatValue}
-        tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+        tick={tick}
         tickLine={false}
         axisLine={false}
       />
       <Bar
         dataKey="value"
-        fill="var(--gold)"
-        activeBar={{ stroke: "var(--foreground)", strokeWidth: 2 }}
+        fill={colors.gold}
+        activeBar={{ stroke: colors.foreground, strokeWidth: 2 }}
         maxBarSize={48}
         isAnimationActive={false}
       />
