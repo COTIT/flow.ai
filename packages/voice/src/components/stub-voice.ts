@@ -17,6 +17,7 @@ export function stubVoice(overrides: Partial<VoiceContextValue> = {}): VoiceCont
     capturePaused: false,
     speaking: false,
     messages: [],
+    completedRequestId: null,
     attachments: [],
     review: null,
     decided: null,

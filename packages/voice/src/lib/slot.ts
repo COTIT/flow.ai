@@ -1,31 +1,31 @@
-/** One request at a time with a single waiting slot (P6-2). A call that arrives while one runs
- * waits and goes next; a newer call takes the slot from an older waiting one, which is
- * superseded at once; a waiting call whose conversation moved on is cancelled, never run. */
+/** Serial requests in arrival order. Recheck ownership before each dispatch. */
 export function oneSlot() {
-  let running: Promise<void> | null = null
-  let waiting: ((turn: "superseded") => void) | null = null
+  type Waiting = { current: () => boolean; resolve: (release: (() => void) | null) => void }
+  let running = false
+  const waiting: Waiting[] = []
+  const next = () => {
+    if (running) return
+    const task = waiting.shift()
+    if (!task) return
+    if (!task.current()) {
+      task.resolve(null)
+      next()
+      return
+    }
+    running = true
+    let released = false
+    task.resolve(() => {
+      if (released) return
+      released = true
+      running = false
+      next()
+    })
+  }
   return {
-    /** Marks a request as running; call the returned function once it has settled. */
-    begin() {
-      let done = () => {}
-      const settled = new Promise<void>((resolve) => (done = resolve))
-      running = settled
-      return () => {
-        if (running === settled) running = null
-        done()
-      }
-    },
-    wait(current: () => boolean): Promise<"run" | "superseded" | "cancelled"> {
-      waiting?.("superseded")
-      const settled = running ?? Promise.resolve()
+    acquire(current: () => boolean): Promise<(() => void) | null> {
       return new Promise((resolve) => {
-        const mine = resolve
-        waiting = mine
-        void settled.then(() => {
-          if (waiting !== mine) return
-          waiting = null
-          resolve(current() ? "run" : "cancelled")
-        })
+        waiting.push({ current, resolve })
+        next()
       })
     },
   }
