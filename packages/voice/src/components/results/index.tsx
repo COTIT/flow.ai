@@ -18,7 +18,7 @@ export type StatusLabel = (domain: string | undefined, status: string) => string
 const HostStatus = createContext<StatusLabel | undefined>(undefined)
 
 const CARD =
-  "w-full max-w-[36rem] min-w-0 self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card p-4 text-sm"
+  "w-full min-w-0 self-start rounded-2xl rounded-bl-md border border-(--hair) bg-card p-4 text-sm"
 const humanize = fieldName
 
 function useLabels() {
@@ -507,6 +507,8 @@ function TillShifts({ view }: { view: Of<"till_shifts"> }) {
 export function VoiceResult({ views, statusLabel }: { views: ResultView[]; statusLabel?: StatusLabel }) {
   const first = views[0]
   if (!first) return null
+  if (views.length > 1 && !views.every((view) => view.kind === "sales"))
+    return <div className="flex w-full min-w-0 flex-col gap-3">{views.map((view, i) => <VoiceResult key={i} views={[view]} statusLabel={statusLabel} />)}</div>
   // An asked-for kind, and pictures with no special drawing of their own, use the shared kinds.
   const body =
     first.presentation || first.kind === "comparison" || first.kind === "breakdown" ? <KindChart views={views} />

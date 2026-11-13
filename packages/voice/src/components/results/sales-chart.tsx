@@ -6,7 +6,7 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatDate } from "@genesy/ui/lib/format"
 import { formatMoney } from "@genesy/ui/lib/money"
 import type { ResultView } from "../../lib/views"
-import { Series } from "./series"
+import { ResultPlot } from "./plot"
 
 type Sales = Extract<ResultView, { kind: "sales" }>
 
@@ -33,8 +33,7 @@ export function SalesChart({ views, trend = false }: { views: Sales[]; trend?: b
     return <EmptyState title={t("noSales")} description={t("noSalesHint")} className="py-6" />
   const groups = currencies.map((currency) => {
     const bars = views.map((v) => ({ label: period(v), row: v.rows.find((r) => r.currency === currency) }))
-    const top = Math.max(...bars.map((b) => b.row?.gross ?? 0), 1)
-    return { currency, bars, top }
+    return { currency, bars }
   })
   return (
     <section aria-label={title} className="flex flex-col gap-3">
@@ -50,77 +49,57 @@ export function SalesChart({ views, trend = false }: { views: Sales[]; trend?: b
           {table ? t("showChart") : t("showTable")}
         </button>
       </div>
-      {table ? null : trend ? (
-        <div aria-hidden className="flex flex-col gap-4" data-chart="line">
-          {groups.map(({ currency, bars }) => (
-            <div key={currency} className="flex flex-col gap-1">
-              <Series line values={bars.map((b) => b.row?.gross ?? 0)} />
-              <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-                <span>{bars[0]?.label}</span>
-                <span>{currency}</span>
-                <span>{bars.at(-1)?.label}</span>
+      {table ? null : (
+        <div className="flex min-w-0 flex-col gap-4" data-chart={trend ? "line" : "hbar"}>
+          {groups.map(({ currency, bars }) => {
+            const decimals = bars.find((bar) => bar.row)?.row?.decimals ?? 2
+            return (
+              <div key={currency} className="flex min-w-0 flex-col gap-2">
+                <span className="text-xs text-muted-foreground">{currency}</span>
+                <ResultPlot
+                  kind={trend ? "line" : "hbar"}
+                  label={`${title} · ${currency}`}
+                  formatValue={(value) => formatMoney(value, decimals, currency, locale)}
+                  items={bars.map(({ label, row }) => ({
+                    label,
+                    value: row?.gross ?? null,
+                    shown: row ? formatMoney(row.gross, row.decimals, currency, locale) : "—",
+                    detail: row ? t("orders", { count: row.orders }) : undefined,
+                  }))}
+                />
               </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div aria-hidden className="flex flex-col gap-4" data-chart="">
-          {groups.map(({ currency, bars, top }) => (
-            <div key={currency} className="flex flex-col gap-3">
-              {bars.map(({ label, row }) => (
-                <div key={label} className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="font-semibold tabular-nums">
-                      {row ? formatMoney(row.gross, row.decimals, currency, locale) : "—"}
-                      <span className="ml-2 font-normal text-muted-foreground">
-                        {t("orders", { count: row?.orders ?? 0 })}
-                      </span>
-                    </span>
-                  </div>
-                  {row && row.net !== null ? (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {t("netBeforeRefunds", { amount: formatMoney(row.net, row.decimals, currency, locale) })}
-                    </span>
-                  ) : null}
-                  <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="h-2.5 w-full">
-                    <rect width="100" height="8" rx="4" className="fill-(--hair)" />
-                    {row && row.gross > 0 ? (
-                      <rect width={Math.max((row.gross / top) * 100, 2)} height="8" rx="4" className="fill-(--gold)" />
-                    ) : null}
-                  </svg>
-                </div>
-              ))}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
-      <table id={tableId} className={table ? "w-full text-left text-xs tabular-nums" : "sr-only"}>
-        <thead className="text-muted-foreground">
-          <tr>
-            <th scope="col" className="py-1 pr-2 font-medium">{t("periodColumn")}</th>
-            <th scope="col" className="py-1 pr-2 text-right font-medium">{t("gross")}</th>
-            <th scope="col" className="py-1 pr-2 text-right font-medium">{t("net")}</th>
-            <th scope="col" className="py-1 pr-2 text-right font-medium">{t("vat")}</th>
-            <th scope="col" className="py-1 pr-2 text-right font-medium">{t("refunded")}</th>
-            <th scope="col" className="py-1 text-right font-medium">{t("resources.orders")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {groups.flatMap(({ currency, bars }) =>
-            bars.map(({ label, row }) => (
-              <tr key={`${currency}${label}`} className="border-t border-(--hair)">
-                <th scope="row" className="py-1 pr-2 font-normal">{label}</th>
-                <td className="py-1 pr-2 text-right">{row ? formatMoney(row.gross, row.decimals, currency, locale) : "—"}</td>
-                <td className="py-1 pr-2 text-right">{row && row.net !== null ? formatMoney(row.net, row.decimals, currency, locale) : "—"}</td>
-                <td className="py-1 pr-2 text-right">{row && row.vat !== null ? formatMoney(row.vat, row.decimals, currency, locale) : "—"}</td>
-                <td className="py-1 pr-2 text-right">{row && row.refunded !== null ? formatMoney(row.refunded, row.decimals, currency, locale) : "—"}</td>
-                <td className="py-1 text-right">{row?.orders ?? 0}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <div className={table ? "max-w-full overflow-x-auto" : "sr-only"}>
+        <table id={tableId} className={table ? "w-full text-left text-xs tabular-nums" : "sr-only"}>
+          <thead className="text-muted-foreground">
+            <tr>
+              <th scope="col" className="py-1 pr-2 font-medium">{t("periodColumn")}</th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">{t("gross")}</th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">{t("net")}</th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">{t("vat")}</th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">{t("refunded")}</th>
+              <th scope="col" className="py-1 text-right font-medium">{t("resources.orders")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.flatMap(({ currency, bars }) =>
+              bars.map(({ label, row }) => (
+                <tr key={`${currency}${label}`} className="border-t border-(--hair)">
+                  <th scope="row" className="py-1 pr-2 font-normal">{label}</th>
+                  <td className="py-1 pr-2 text-right">{row ? formatMoney(row.gross, row.decimals, currency, locale) : "—"}</td>
+                  <td className="py-1 pr-2 text-right">{row && row.net !== null ? formatMoney(row.net, row.decimals, currency, locale) : "—"}</td>
+                  <td className="py-1 pr-2 text-right">{row && row.vat !== null ? formatMoney(row.vat, row.decimals, currency, locale) : "—"}</td>
+                  <td className="py-1 pr-2 text-right">{row && row.refunded !== null ? formatMoney(row.refunded, row.decimals, currency, locale) : "—"}</td>
+                  <td className="py-1 text-right">{row?.orders ?? 0}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }
