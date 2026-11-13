@@ -1,5 +1,5 @@
 import { expect, test, designs } from "./storefront-api"
-import { capsule, k, scene } from "./task"
+import { backToCard, k, scene, taskLine } from "./task"
 import { fakeAgent, startText, v } from "./voice"
 import { revealHeader } from "./shell"
 
@@ -107,12 +107,12 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
   await revealHeader(page)
   await page.getByRole("link", { name: "Storefront" }).click()
   await expect(page).toHaveURL(/\/storefront$/)
-  await expect(capsule(page)).toHaveAttribute(
+  await expect(await taskLine(page)).toHaveAttribute(
     "data-task-state",
     "needs_approval"
   )
-  await capsule(page).getByRole("button", { name: k.review }).click()
-  await expect(page).toHaveURL(/\/\?view=task$/)
+  await backToCard(page)
+  await expect(page).toHaveURL(/\/storefront$/)
   await expect(summary).toContainText("21 changes matched")
   expect(confirms).toHaveLength(0)
 

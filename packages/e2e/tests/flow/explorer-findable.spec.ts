@@ -53,7 +53,8 @@ test("owner with alerts: suggestions full, the dismissed tip leaves a link to th
 }) => {
   await mockApi(page, api(OWNER, LOW_STOCK))
   await page.goto("/")
-  await expect(pills(page)).toHaveCount(4)
+  // Full = the most it shows (P5: at most three).
+  await expect(pills(page)).toHaveCount(3)
   await expect(pills(page).filter({ hasText: label("explore") })).toHaveCount(0)
   await dismissTip(page)
   await page.reload()

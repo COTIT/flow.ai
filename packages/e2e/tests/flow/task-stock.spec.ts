@@ -3,6 +3,7 @@ import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, ILUNDO, mockApi, RUAHA } from "./api"
 import { orbAt, revealHeader } from "./shell"
 import {
+  backToCard,
   capsule,
   k,
   proposeStock,
@@ -10,6 +11,7 @@ import {
   receipt,
   scene,
   stockRoutes,
+  taskLine,
 } from "./task"
 import { fakeAgent, send, startText, v, watch, typeInstead } from "./voice"
 
@@ -34,8 +36,8 @@ test("A: ambiguous honey → choose 500g → set 120 → 'actually 150' → only
   agent.say("I found three honey products. Which one did you mean?")
 
   // The question becomes a choice: the task waits for input, reachable from the dock.
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "waiting_input")
-  await capsule(page).getByRole("button", { name: k.review }).click()
+  await expect(await taskLine(page)).toHaveAttribute("data-task-state", "waiting_input")
+  await backToCard(page)
   const choice = page.getByRole("form", { name: k.clarify.title })
   await expect(choice.getByRole("radio")).toHaveCount(3)
   await expectNoHorizontalScroll(page)
@@ -91,7 +93,8 @@ test("A: ambiguous honey → choose 500g → set 120 → 'actually 150' → only
     path: { product: "p-500" },
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 150 }] },
   })
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await expect(await taskLine(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await backToCard(page)
 
   // Only the 150 proposal is approved (design test 5: success without a reset).
   await scene(page).getByRole("button", { name: v.approve }).click()
@@ -142,7 +145,7 @@ test("a voice answer while the chooser is open wins; the chooser is gone, never 
   agent.call("products_list", { query: { q: "honey" } })
   await expect.poll(agent.results).toBe(1)
   agent.say("Which one did you mean?")
-  await capsule(page).getByRole("button", { name: k.review }).click()
+  // P5: the choice shows in place, in the conversation.
   const choice = page.getByRole("form", { name: k.clarify.title })
   // A pick is under way on screen...
   await choice.getByRole("radio", { name: /Raw Honey 500g/ }).check()

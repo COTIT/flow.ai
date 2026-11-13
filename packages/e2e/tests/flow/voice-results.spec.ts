@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { type Agent, chat, fakeAgent, startText } from "./voice"
+import { type Agent, fakeAgent, startText } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket. Office's
 // view choice is unit-tested (apps/office/lib/voice/present.test.ts, routes.test.ts); here a
@@ -104,9 +104,9 @@ async function open(page: Page) {
   return { agent, seen }
 }
 
-const pane = (page: Page) => page.getByRole("region", { name: chat.results })
+// P5: answers show inline under the reply (each in its own card in the conversation).
+const pane = (page: Page) => page.getByRole("log").first().locator("[data-inline-result]")
 async function showResults(page: Page) {
-  await page.getByRole("log").getByRole("button", { name: chat.showResult }).first().click()
   return pane(page)
 }
 
@@ -231,7 +231,8 @@ test("P6-2: reads made while one is answering run in turn; the latest result sho
   for (const answer of Object.values(heard)) expect(JSON.stringify(answer)).not.toContain("Finish the current review")
   agent.say("Here are the products.")
   const results = await showResults(page)
-  await expect(results.locator('[data-role="result"]').first()).toContainText("NEW ANSWER")
+  // Inline answers run oldest to newest: the newest is the last one.
+  await expect(results.locator('[data-role="result"]').last()).toContainText("NEW ANSWER")
   await expect(page.getByText("Finish the current review first.")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })

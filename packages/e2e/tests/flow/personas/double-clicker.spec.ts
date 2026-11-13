@@ -16,6 +16,7 @@ import {
   scene,
   stockReview,
   stockRoutes as baseStockRoutes,
+  taskLine,
 } from "../task"
 import { startText, typeInstead, v, type Agent } from "../voice"
 import { editable, expect, openComposer, test, type Persona, type Step } from "./harness"
@@ -598,13 +599,14 @@ test("P2: capsule Review double-clicked from another page is one step in history
   await revealHeader(page)
   await page.getByRole("link", { name: "Storefront", exact: true }).click()
   await expect(page).toHaveURL(/\/storefront$/)
+  // P5: the card shows in the conversation beside the page; hidden, the capsule is the way back.
+  const line = await taskLine(page)
   const before = await depth(page)
-  await capsule(page).getByRole("button", { name: k.review }).dblclick()
-  await expect(page).toHaveURL(/\/\?view=task$/)
-  await page.waitForTimeout(500)
-  expect(await depth(page), "one history entry for one intent").toBe(before + 1)
-  await page.goBack()
+  await line.getByRole("button", { name: k.review }).dblclick()
+  await expect(scene(page)).toContainText("Confirm action 135790")
   await expect(page).toHaveURL(/\/storefront$/)
+  await page.waitForTimeout(500)
+  expect(await depth(page), "one intent, in place: no history entry").toBe(before)
   await persona.check()
 })
 
@@ -829,7 +831,7 @@ test("P2: Clarify Prepare change, double-clicked, asks once", async ({
   persona.agent.call("products_list", { query: { q: "honey" } })
   await expect.poll(persona.agent.results).toBe(1)
   persona.agent.say("I found three honey products. Which one did you mean?")
-  await capsule(page).getByRole("button", { name: k.review }).click()
+  // P5: the choice shows in place, in the conversation.
   const choice = page.getByRole("form", { name: k.clarify.title })
   await choice.getByRole("radio", { name: /Raw Honey 500g/ }).check()
   await choice
@@ -918,7 +920,7 @@ async function askWhichProduct(persona: Persona, page: Page) {
   persona.agent.call("products_list", { query: { q: "honey" } })
   await expect.poll(persona.agent.results).toBe(1)
   persona.agent.say("I found three honey products. Which one did you mean?")
-  await expect(capsule(page)).toHaveAttribute(
+  await expect(await taskLine(page)).toHaveAttribute(
     "data-task-state",
     "waiting_input"
   )
@@ -945,7 +947,8 @@ test("P2-2: View result double-clicked opens the receipt, not another scene", as
   await page.waitForTimeout(1_600) // the agent's turn has settled; the suggestions are live
   await open.dblclick()
   await page.waitForTimeout(1_000)
-  await expect(page).toHaveURL(/\/\?view=task$/)
+  // P5: in place, on home's conversation; never another scene.
+  await expect(page).toHaveURL(/\/$/)
   await expect(receipt(page)).toBeVisible()
 })
 
@@ -960,7 +963,7 @@ test("P2-2: Review double-tapped while Genesy waits for a choice opens the choic
   await askWhichProduct(persona, page)
   await capsule(page).getByRole("button", { name: k.review }).dblclick()
   await page.waitForTimeout(1_000)
-  await expect(page).toHaveURL(/\/\?view=task$/)
+  await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("form", { name: k.clarify.title })).toBeVisible()
 })
 

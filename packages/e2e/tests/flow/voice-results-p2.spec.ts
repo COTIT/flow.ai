@@ -4,7 +4,7 @@ import { resultView } from "../../../voice/src/lib/views"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { type Agent, chat, fakeAgent, startText } from "./voice"
+import { type Agent, fakeAgent, startText } from "./voice"
 
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket. Each read
 // answers with the picture Office's server builds: resultView() over an API-shaped reply, so the
@@ -160,8 +160,8 @@ for (const { op, sees } of READS)
     await startText(page)
     ask(agent, op)
     await expect.poll(agent.results).toBe(1)
-    await page.getByRole("log").getByRole("button", { name: chat.showResult }).first().click()
-    const card = page.getByRole("region", { name: chat.results }).locator('[data-role="result"]')
+    // P5: the answer shows inline under the reply.
+    const card = page.getByRole("log").first().locator("[data-inline-result]").locator('[data-role="result"]')
     for (const text of sees) await expect(card).toContainText(text)
     const heard = JSON.parse(String(agent.sent.find((e) => e.type === "client_tool_result")?.result)) as Record<string, unknown>
     expect(heard).not.toHaveProperty("view")
@@ -176,8 +176,8 @@ test("stock redrawn in place as ranked bars keeps the API's own figures", async 
   await startText(page)
   ask(agent, "stock_list")
   await expect.poll(agent.results).toBe(1)
-  await page.getByRole("log").getByRole("button", { name: chat.showResult }).first().click()
-  const results = page.getByRole("region", { name: chat.results })
+  // P5: the answer shows inline under the reply.
+  const results = page.getByRole("log").first().locator("[data-inline-result]")
   const sent = () => agent.sent.filter((e) => e.type === "contextual_update" && String(e.text).includes("pictures"))
   await expect.poll(() => sent().length).toBeGreaterThan(0)
   const context = JSON.parse(String(sent().at(-1)!.text)) as { flow_context: { pictures: { id: string; supports: string[] }[] } }

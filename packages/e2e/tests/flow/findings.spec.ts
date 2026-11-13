@@ -180,7 +180,8 @@ test("SW5: a review that expires while open says so where the card was", async (
   await expect
     .poll(() => agent.sent.filter((e) => e.type === "user_message").length)
     .toBe(1)
-  await expect(scene(page)).not.toContainText("This review expired")
+  // Where the card was (P5: its slot in the conversation stays, empty).
+  await expect(page.locator("[data-inline-task]").first()).not.toContainText("This review expired")
 })
 
 test("SW6: a refused microphone says so in plain words, never the browser's raw error", async ({

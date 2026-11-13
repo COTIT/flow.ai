@@ -9,8 +9,32 @@ test.beforeEach(({ api }) => void api)
 
 const results = (page: Page) => page.getByRole("region", { name: chat.results })
 
+/** An orders answer too big for its inline card (5 rows): it offers "Show all" (P5). */
+async function bigAnswer(page: Page) {
+  const rows = Array.from({ length: 5 }, (_, i) => ({
+    id: `o-${i}`,
+    label: `ORD-01${i}`,
+    detail: "Neema Shop · Open",
+    amount: { cents: 100_000 + i, currency: "USD", decimals: 2 },
+  }))
+  await page.route("**/api/voice/tools", async (route) => {
+    const body = route.request().postDataJSON() as { operationId?: string }
+    if (body?.operationId !== "orders_list") return route.fallback()
+    await route.fulfill({
+      json: {
+        status: "completed",
+        data: { total: 5 },
+        view: { kind: "records", resource: "orders", total: 5, href: "/orders", rows },
+      },
+    })
+  })
+}
+const showAll = (page: Page) =>
+  page.getByRole("log").first().getByRole("button", { name: "Show all" }).click()
+
 /** A text conversation started with "Type instead", one turn answered. */
 async function talking(page: Page) {
+  await bigAnswer(page)
   const agent = await fakeAgent(page, (text, a) =>
     setTimeout(() => a.say(`Found: ${text}`), 120)
   )
@@ -34,11 +58,7 @@ test("J1: Show in results from a scene's conversation opens the Results screen",
   await expect(page).toHaveURL(/\/scenes\/sales$/)
   agent.call("orders_list")
   await expect.poll(agent.results).toBe(1)
-  await page
-    .getByRole("log")
-    .getByRole("button", { name: chat.showResult })
-    .first()
-    .click()
+  await showAll(page) // P5: answers show inline; a big one opens the Results screen
   await expect(page).toHaveURL(/\/\?view=task$/)
   await expect(results(page)).toBeVisible()
 })
@@ -49,11 +69,7 @@ test("J4: Back to home from the Results screen lands on the home screen, not the
   const agent = await talking(page)
   agent.call("orders_list")
   await expect.poll(agent.results).toBe(1)
-  await page
-    .getByRole("log")
-    .getByRole("button", { name: chat.showResult })
-    .first()
-    .click()
+  await showAll(page) // P5: answers show inline; a big one opens the Results screen
   await expect(results(page)).toBeVisible()
   await page.getByRole("button", { name: s.backHome }).first().click()
   await expect(results(page)).toBeHidden()

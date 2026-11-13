@@ -3,6 +3,7 @@ import type { Page, Route } from "@playwright/test"
 import taskEn from "../../../../apps/flow/messages/en/task.json" with { type: "json" }
 import type { MockReply } from "../../src/api-mock"
 import { expect } from "../../src/test"
+import { s as shell } from "./shell"
 import { chat, startText, type Agent } from "./voice"
 
 /**
@@ -18,8 +19,35 @@ export const k = taskEn.task
 export const capsule = (page: Page) => page.getByRole("status", { name: k.label })
 /** The receipt an approved action turns into. */
 export const receipt = (page: Page) => page.locator("[data-receipt]")
+/** Where the task shows (P5): the card in the conversation, or the Results screen ("Show all"). */
 export const scene = (page: Page) =>
-  page.getByRole("region", { name: chat.results })
+  page
+    .locator("[data-inline-task]:not(:empty)")
+    .or(page.getByRole("region", { name: chat.results }))
+    .first()
+
+/**
+ * The task line as the person sees it once the conversation is hidden (P5: while the card is on
+ * screen the capsule is hidden, so the line's state is read where it shows).
+ */
+export async function taskLine(page: Page) {
+  // Beside a scene: hide the rail or sheet; on home: leave the full conversation.
+  const hide = page.getByRole("button", { name: shell.hideConversation }).filter({ visible: true }).first()
+  const home = page.getByRole("button", { name: shell.backHome }).filter({ visible: true }).first()
+  // The way out can move as the first reply lands (the orb steps aside): find it again each try.
+  await expect(async () => {
+    if (!(await capsule(page).isVisible()))
+      if (new URL(page.url()).pathname === "/") await home.click({ timeout: 1_000 })
+      else await hide.click({ timeout: 1_000 })
+    await expect(capsule(page)).toBeVisible({ timeout: 1_000 })
+  }).toPass()
+  return capsule(page)
+}
+/** Back from the hidden conversation to the card, by the capsule's own button. */
+export async function backToCard(page: Page) {
+  await capsule(page).getByRole("button").first().click()
+  await expect(scene(page)).toBeVisible()
+}
 
 export const HONEY = [
   { id: "p-250", label: "Raw Honey 250g", detail: "HNY-250" },

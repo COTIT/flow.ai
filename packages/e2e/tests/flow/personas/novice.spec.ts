@@ -10,6 +10,7 @@ import { member } from "../storefront-api"
 import { menuItem, moreMenu, sc } from "../scenes-api"
 import { s as shell } from "../shell"
 import {
+  backToCard,
   capsule,
   k,
   proposeStock,
@@ -17,6 +18,7 @@ import {
   receipt,
   scene,
   stockRoutes,
+  taskLine,
 } from "../task"
 import { startText, v } from "../voice"
 import { markInjected } from "../../../src/test"
@@ -479,9 +481,12 @@ test("P3-2: Try it in the explorer shows what Genesy answered", async ({
 /** While talking, home is the conversation; its own Back to home leads to Your Flow. */
 async function toYourFlow(page: Page) {
   const flow = page.getByRole("region", { name: sc.yourFlow })
-  for (let i = 0; i < 3 && !(await flow.isVisible()); i++)
-    await page.getByRole("button", { name: shell.backHome }).click()
-  await expect(flow).toBeVisible()
+  // The visible way home, found again each try (it moves as the conversation's header settles).
+  const home = page.getByRole("button", { name: shell.backHome }).filter({ visible: true }).first()
+  await expect(async () => {
+    if (!(await flow.isVisible())) await home.click({ timeout: 1_000 })
+    await expect(flow).toBeVisible({ timeout: 1_000 })
+  }).toPass()
 }
 
 test("probe: a review left open survives wandering through scenes and Back", async ({
@@ -497,19 +502,23 @@ test("probe: a review left open survives wandering through scenes and Back", asy
     .getByRole("region", { name: sc.yourFlow })
     .getByRole("link", { name: /Stock Watch/ })
     .click()
-  await expect(capsule(page)).toHaveAttribute(
+  // The scene has arrived (home shows the task line too, so it alone proves nothing).
+  await expect(page).toHaveURL(/\/scenes\/stock$/)
+  await expect(await taskLine(page)).toHaveAttribute(
     "data-task-state",
     "needs_approval"
   )
   await page.goBack()
+  await expect(page).toHaveURL(/\/$/)
   await toYourFlow(page)
   await page
     .getByRole("region", { name: sc.yourFlow })
     .getByRole("link", { name: /Order Focus/ })
     .click()
+  await expect(page).toHaveURL(/\/scenes\/orders$/)
   await expectNoDeadEnd(page)
   // Comes back through the task line: the same review, still decidable.
-  await capsule(page).getByRole("button", { name: k.review }).click()
+  await (await taskLine(page)).getByRole("button", { name: k.review }).click()
   await expect(scene(page)).toContainText("Confirm action 135790")
   await expect(
     scene(page).getByRole("button", { name: v.approve })
@@ -538,7 +547,9 @@ test("probe: cancel halfway, then the same goal another way", async ({
   // Retries by typing, Genesy proposes again with another number.
   await page
     .getByRole("button", { name: shell.backHome })
-    .click()
+    .filter({ visible: true })
+    .first()
+    .click({ timeout: 5_000 })
     .catch(() => {})
   await persona.say("set the hony stock to 130 pls", "enter")
   persona.agent.call("stock_set_levels", {
@@ -546,10 +557,11 @@ test("probe: cancel halfway, then the same goal another way", async ({
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 130 }] },
   })
   await expect(page.locator("[data-withdrawn]")).toContainText("→ 120")
-  await expect(capsule(page)).toHaveAttribute(
+  await expect(await taskLine(page)).toHaveAttribute(
     "data-task-state",
     "needs_approval"
   )
+  await backToCard(page)
   await scene(page).getByRole("button", { name: v.approve }).click()
   await expect(receipt(page)).toHaveAttribute("data-receipt", "completed")
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("130")

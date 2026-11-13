@@ -13,8 +13,8 @@ import {
   test,
 } from "./storefront-api"
 import type { FakeApi } from "../office/fake-api"
-import { chat, fakeAgent, startText, v, watch } from "./voice"
-import { k, receipt } from "./task"
+import { fakeAgent, startText, v, watch } from "./voice"
+import { k, receipt, scene } from "./task"
 
 // SIMULATED voice (fake ElevenLabs socket + mock upstream) and a faked API: a storefront design
 // review in the conversation, with the page it leads to shown before approval.
@@ -56,7 +56,7 @@ async function propose(page: Page, operation: string, args: unknown) {
   await startText(page)
   agent.call(operation, args)
   // The review opens the result scene by itself, buttons included.
-  const review = page.getByRole("region", { name: chat.results })
+  const review = scene(page)
   await expect(
     review.getByText(v.review, { exact: false }).first()
   ).toBeVisible()
@@ -128,7 +128,7 @@ async function editReview(page: Page, api: FakeApi) {
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
   await expect(
-    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
+    scene(page).getByRole("link", { name: /Storefront design/ })
   ).toBeVisible()
   // The frame fetched nothing: no API call, no write; only its own page, by GET.
   expect(fromFrame.filter((r) => r.method() !== "GET")).toEqual([])
@@ -285,7 +285,7 @@ test("an approval that meets a moved draft is refused in plain words", async ({
   await expect(receipt(page)).toContainText(k.receipt.title.failed)
   await expect(page.getByText(k.receipt.title.completed)).toHaveCount(0)
   await expect(
-    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
+    scene(page).getByRole("link", { name: /Storefront design/ })
   ).toHaveCount(0)
 })
 
@@ -305,7 +305,7 @@ test.describe("the approval's answer is lost", () => {
     await expect(receipt(page)).toHaveAttribute("data-receipt", "unknown")
     await expect(receipt(page)).toContainText(k.receipt.title.unknown)
     await expect(
-      page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
+      scene(page).getByRole("link", { name: /Storefront design/ })
     ).toHaveCount(0)
   })
 })

@@ -5,6 +5,7 @@ import { expect, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
 import { s } from "./shell"
 import {
+  backToCard,
   capsule,
   proposeStock,
   readBack,
@@ -15,7 +16,8 @@ import {
 import { fakeAgent, v, typeInstead } from "./voice"
 
 // SIMULATED voice (fake ElevenLabs socket + Office-shaped answers); read-back is the mocked API.
-// The task card (review → receipt) stays reachable on every way out and back.
+// The task card (review → receipt) stays reachable on every way out and back. P5: the card shows
+// in place (no task address); the way back is the capsule, which jumps to the card.
 
 const MEMORY = "genesy.flow.task"
 
@@ -28,7 +30,7 @@ async function approved(page: Page) {
   const agent = await fakeAgent(page)
   await stockRoutes(page)
   await proposeStock(page, agent, 120)
-  await expect(page).toHaveURL(/\/\?view=task$/)
+  await expect(page).toHaveURL(/\/$/)
   await scene(page).getByRole("button", { name: v.approve }).click()
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("120")
 }
@@ -36,7 +38,7 @@ async function approved(page: Page) {
 const backHome = (page: Page) =>
   page.getByRole("button", { name: s.backHome }).first().click()
 
-test("a review left with Back to home comes back with the browser's Back, and goes again with Forward", async ({
+test("a review left with Back to home comes back by the capsule, and goes again with Back to home", async ({
   page,
 }) => {
   const agent = await fakeAgent(page)
@@ -44,9 +46,9 @@ test("a review left with Back to home comes back with the browser's Back, and go
   await proposeStock(page, agent, 120)
   await backHome(page)
   await expect(scene(page)).toHaveCount(0)
-  await page.goBack()
+  await backToCard(page)
   await expect(scene(page)).toContainText("Confirm action 135790")
-  await page.goForward()
+  await backHome(page)
   await expect(scene(page)).toHaveCount(0)
   await expect(capsule(page)).toHaveAttribute(
     "data-task-state",
@@ -54,13 +56,13 @@ test("a review left with Back to home comes back with the browser's Back, and go
   )
 })
 
-test("an approved card: home, then Back, shows its receipt again", async ({
+test("an approved card: home, then the capsule, shows its receipt again", async ({
   page,
 }) => {
   await approved(page)
   await backHome(page)
   await expect(receipt(page)).toHaveCount(0)
-  await page.goBack()
+  await backToCard(page)
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("120")
 })
 
@@ -69,6 +71,7 @@ test("the receipt survives a reload of the tab; its memory holds no confirmation
 }) => {
   await approved(page)
   await page.reload()
+  await backToCard(page)
   await expect(receipt(page).locator("[data-receipt-new]")).toHaveText("120")
   await backHome(page)
   await expect(capsule(page)).toHaveAttribute("data-task-state", "completed")

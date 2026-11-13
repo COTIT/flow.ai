@@ -1,7 +1,7 @@
 import { seedSession } from "../../src/session"
 import { expect, test } from "../../src/test"
 import { flowApi, mockApi } from "./api"
-import { capsule, k, proposeStock, readBack, scene, stockRoutes } from "./task"
+import { backToCard, k, proposeStock, readBack, scene, stockRoutes, taskLine } from "./task"
 import { fakeAgent, watch } from "./voice"
 
 // SIMULATED voice: the fake socket sends ElevenLabs' interruption and transcript events.
@@ -21,8 +21,9 @@ test("B: an interruption alone cancels nothing; the correction withdraws the pro
   agent.say("I found Raw Honey 500g, and the current—")
   agent.emit({ type: "interruption", interruption_event: { event_id: 3 } })
   // Being interrupted is not a decision: the review is still open, nothing was sent.
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await expect(await taskLine(page)).toHaveAttribute("data-task-state", "needs_approval")
   expect(confirms).toHaveLength(0)
+  await backToCard(page)
 
   agent.emit({
     type: "user_transcript",
@@ -30,8 +31,8 @@ test("B: an interruption alone cancels nothing; the correction withdraws the pro
   })
   await expect.poll(() => confirms.length).toBe(1)
   expect(confirms[0]).toMatchObject({ decision: "cancel", ticket: "stock-120" })
-  // The cancelled review's scene closes once the cancel is through.
-  await expect(scene(page)).toHaveCount(0)
+  // The cancelled review closes once the cancel is through (P5: its withdrawn note stays in place).
+  await expect(page.locator("#flow-review-title")).toHaveCount(0)
 
   // The same conversation carries on: the new proposal arrives on the same socket.
   agent.call("stock_set_levels", {
@@ -42,7 +43,7 @@ test("B: an interruption alone cancels nothing; the correction withdraws the pro
   // Above the new review: the replaced one, never sent.
   await expect(page.locator("[data-withdrawn]")).toContainText(k.withdrawn)
   await expect(page.locator("[data-withdrawn]")).toContainText("→ 120")
-  await expect(capsule(page)).toHaveAttribute("data-task-state", "needs_approval")
+  await expect(await taskLine(page)).toHaveAttribute("data-task-state", "needs_approval")
   expect(agent.connections).toBe(1)
   expect(sessions.filter((s) => s.method === "POST")).toHaveLength(1)
   expect(confirms.filter((c) => c.decision === "approve")).toHaveLength(0)

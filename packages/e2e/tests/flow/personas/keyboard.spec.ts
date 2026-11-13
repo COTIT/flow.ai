@@ -632,10 +632,13 @@ test("probe: the task line's Review button is reachable from a scene by keyboard
   ).toBe(true)
   await page.keyboard.press("Enter")
   await expect(page).toHaveURL(/\/scenes\/stock$/)
+  // P5: the review shows in place in the conversation beside the scene; where the conversation is
+  // folded away (a lowered sheet) the task line's Review is the way to it.
   const review = capsule(page).getByRole("button", { name: k.review })
-  await expect(review).toBeVisible()
-  expect(await tabTo(page, review)).toBe(true)
-  await page.keyboard.press("Enter")
+  if (await review.isVisible()) {
+    expect(await tabTo(page, review)).toBe(true)
+    await page.keyboard.press("Enter")
+  }
   // A route change: Next's announcer reads the page; the review must then be reachable.
   await expect(
     scene(page).getByRole("button", { name: v.approve })
@@ -658,14 +661,8 @@ test("probe: choosing a product by keyboard (clarify)", async ({
   persona.agent.call("products_list", { query: { q: "honey" } })
   await expect.poll(persona.agent.results).toBe(1)
   persona.agent.say("I found three honey products. Which one did you mean?")
-  await expect(capsule(page)).toHaveAttribute(
-    "data-task-state",
-    "waiting_input"
-  )
-  expect(
-    await tabTo(page, capsule(page).getByRole("button", { name: k.review }))
-  ).toBe(true)
-  await page.keyboard.press("Enter")
+  // P5: the choice shows in place, in the conversation.
+  await expect(page.getByRole("form", { name: k.clarify.title })).toBeVisible()
   const radios = page
     .getByRole("form", { name: k.clarify.title })
     .getByRole("radio")

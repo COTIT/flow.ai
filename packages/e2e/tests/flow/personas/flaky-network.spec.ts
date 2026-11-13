@@ -7,7 +7,7 @@ import flowEn from "../../../../../apps/flow/messages/en.json" with { type: "jso
 import { markInjected } from "../../../src/test"
 import { sc } from "../scenes-api"
 import { s as shell } from "../shell"
-import { readBack, scene, stockRoutes } from "../task"
+import { backToCard, readBack, scene, stockRoutes } from "../task"
 import { startText, v, typeInstead } from "../voice"
 import { expect, test, type Persona } from "./harness"
 
@@ -323,6 +323,8 @@ test.describe("P6-3: reloading while an approval is on its way loses the task", 
       await page.waitForTimeout(300)
       expect(confirms).toHaveLength(0)
       await persona.reload()
+      // P5: after a reload home's task line is the way back to the card (no task address).
+      await backToCard(page)
       // The person must learn what happened to the change they approved (or that it is being checked).
       await expect(page.locator("body")).toContainText(/Set stock levels|Raw Honey 500g/, { timeout: 8_000 })
       // Office's answer decides what the card says: confirmed only when it completed.

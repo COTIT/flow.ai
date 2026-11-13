@@ -1,3 +1,4 @@
+import { scene } from "./task"
 import type { Page } from "@playwright/test"
 
 import { expectNoHorizontalScroll } from "../../src/test"
@@ -10,7 +11,7 @@ import {
   test,
 } from "./storefront-api"
 import type { FakeApi } from "../office/fake-api"
-import { chat, fakeAgent, send, startText, v, watch } from "./voice"
+import { fakeAgent, send, startText, v, watch } from "./voice"
 
 // SIMULATED voice (fake ElevenLabs socket + mock upstream) and a faked API. Phase 4A: a screenshot
 // or PDF shared as a design reference only informs a typed design edit. It never travels with a
@@ -36,7 +37,7 @@ const edit = {
 
 /** The result scene a review opens by itself; its buttons are inside it. */
 function reviewArea(page: Page) {
-  const review = page.getByRole("region", { name: chat.results })
+  const review = scene(page)
   return { review, actions: review }
 }
 
@@ -100,7 +101,7 @@ async function referenceToEdit(page: Page, api: FakeApi) {
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
   await expect(
-    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
+    scene(page).getByRole("link", { name: /Storefront design/ })
   ).toBeVisible()
 
   expect(uploads.filter((u) => u.method === "POST")).toHaveLength(1)
@@ -152,7 +153,7 @@ test("a file that says 'publish now' still needs its own publish card, and nothi
     .poll(() => confirms.filter((c) => c.method === "POST").length)
     .toBe(1)
   await expect(
-    page.locator("[data-flow-scroll]").getByRole("link", { name: /Storefront design/ })
+    scene(page).getByRole("link", { name: /Storefront design/ })
   ).toBeVisible()
 
   agent.call("storefront_design_publish", {
