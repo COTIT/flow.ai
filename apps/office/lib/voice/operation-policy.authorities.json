@@ -160,7 +160,7 @@
   "apps/api/src/modules/pricing/service.rs": "7f61b31f0b2ea75314a8399ee1ee79d4c511cd7c8d54f17ee91447bf163b243d",
   "apps/api/src/modules/product_brands/handlers.rs": "f952acc92f0ef8a9814b67e86a6bf8f484786c99d0d7c9a2993971a7de1e39e3",
   "apps/api/src/modules/product_brands/service.rs": "ad850b4b29fa6ae987f8482ed8936a085a226d95b89d773ff90e88b80d168f31",
-  "apps/api/src/modules/product_bulk_runs/handlers.rs": "366a13828b1cb9361264282d5c70cb624074b73796787c952d3909127b39e11b",
+  "apps/api/src/modules/product_bulk_runs/handlers.rs": "d48a48600ab0a8fc2160df3556d97dc1e386dc12ce64c85f76e4172c889a3905",
   "apps/api/src/modules/product_bulk_runs/service.rs": "c1cfcba63907068cb4a94642cf485b6c6e28ac4aec426ff74526837a74528d9c",
   "apps/api/src/modules/product_bulk_runs/spend.rs": "6ea0c94e6da9e0a6dfd31bb2e75f395b7753a88758e006166f6922368905b1bd",
   "apps/api/src/modules/product_bulk_runs/worker.rs": "227913d26578b8c27bb3a6cc8c432558421f26f4555d59613c95fc190948fffa",

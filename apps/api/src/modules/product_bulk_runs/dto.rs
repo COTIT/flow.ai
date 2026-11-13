@@ -11,7 +11,7 @@ pub const MAX_SOURCE_BYTES: usize = 10 * 1024 * 1024;
 pub const MAX_INFLATED_BYTES: usize = 128 * 1024 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-#[schema(as=ProductBulkSource)]
+#[schema(as = ProductBulkSource)]
 pub struct Source {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -23,7 +23,7 @@ pub struct Source {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-#[schema(as=ProductBulkRawRow)]
+#[schema(as = ProductBulkRawRow)]
 pub struct RawRow {
     pub source_id: Option<Uuid>,
     pub sheet: Option<String>,
@@ -52,7 +52,7 @@ pub struct ExtractionStep {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkSelection)]
+#[schema(as = ProductBulkSelection)]
 pub struct Selection {
     pub ids: Option<Vec<Uuid>>,
     pub category_id: Option<Uuid>,
@@ -62,14 +62,14 @@ pub struct Selection {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkChange)]
+#[schema(as = ProductBulkChange)]
 pub struct Change {
     pub kind: String,
     pub value: Value,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkSelectionPlan)]
+#[schema(as = ProductBulkSelectionPlan)]
 pub struct SelectionPlan {
     pub selection: Selection,
     pub operation: String,
@@ -79,7 +79,7 @@ pub struct SelectionPlan {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkCreateInput)]
+#[schema(as = ProductBulkCreateInput)]
 pub struct CreateInput {
     pub name: Option<String>,
     pub instruction: Option<String>,
@@ -89,7 +89,7 @@ pub struct CreateInput {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkStageInput)]
+#[schema(as = ProductBulkStageInput)]
 pub struct StageInput {
     pub revision: i64,
     pub text: Option<String>,
@@ -102,7 +102,7 @@ pub struct StageInput {
 
 #[derive(Clone, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkStagedRow)]
+#[schema(as = ProductBulkStagedRow)]
 pub struct StagedRow {
     pub operation: String,
     #[serde(default = "object")]
@@ -125,7 +125,7 @@ fn yes() -> bool {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkMappingInput)]
+#[schema(as = ProductBulkMappingInput)]
 pub struct MappingInput {
     pub revision: i64,
     pub source_id: Uuid,
@@ -136,7 +136,7 @@ pub struct MappingInput {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkRowInput)]
+#[schema(as = ProductBulkRowInput)]
 pub struct RowInput {
     pub revision: i64,
     pub included: Option<bool>,
@@ -147,27 +147,27 @@ pub struct RowInput {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkReviewInput)]
+#[schema(as = ProductBulkReviewInput)]
 pub struct ReviewInput {
     pub revision: i64,
     pub scope: String,
 }
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkApproveInput)]
+#[schema(as = ProductBulkApproveInput)]
 pub struct ApproveInput {
     pub revision: i64,
     pub review_id: Uuid,
 }
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkSettingsInput)]
+#[schema(as = ProductBulkSettingsInput)]
 pub struct SettingsInput {
     pub per_run_cap_usd: String,
 }
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkSavedMappingInput)]
+#[schema(as = ProductBulkSavedMappingInput)]
 pub struct SavedMappingInput {
     pub name: String,
     pub mapping: Value,
@@ -185,7 +185,7 @@ pub struct RowsQuery {
 
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-#[schema(as=ProductBulkResumeInput)]
+#[schema(as = ProductBulkResumeInput)]
 pub struct ResumeInput {
     pub revision: i64,
 }

@@ -28,7 +28,7 @@ pub struct ProductBulkSourceUpload {
     file: String,
 }
 
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs",tag="product-bulk-runs",operation_id="product_bulk_runs_list",params(("workspace"=Uuid,Path),RowsQuery),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs",tag="product_bulk",operation_id="product_bulk_runs_list",params(("workspace"=Uuid,Path),RowsQuery),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn list(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -47,7 +47,7 @@ pub async fn list(
     };
     Ok(Data(json!({"runs":rows,"next":next})))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs",tag="product-bulk-runs",operation_id="product_bulk_runs_create",params(("workspace"=Uuid,Path)),request_body=CreateInput,responses((status=201,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs",tag="product_bulk",operation_id="product_bulk_runs_create",params(("workspace"=Uuid,Path)),request_body=CreateInput,responses((status=201,body=Envelope<Value>,description="Product bulk run created"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn create(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -58,7 +58,7 @@ pub async fn create(
         Data(service::create(&state, &access, input).await?),
     ))
 }
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}",tag="product-bulk-runs",operation_id="product_bulk_runs_get",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}",tag="product_bulk",operation_id="product_bulk_runs_get",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn get(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -71,7 +71,7 @@ pub async fn get(
     )))
 }
 
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/sources",tag="product-bulk-runs",operation_id="product_bulk_runs_source",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body(content=ProductBulkSourceUpload,content_type="multipart/form-data"),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/sources",tag="product_bulk",operation_id="product_bulk_runs_source",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body(content=ProductBulkSourceUpload,content_type="multipart/form-data"),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn source(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -159,7 +159,7 @@ fn sniff(bytes: &[u8], name: &str, declared: &str) -> Result<String, AppError> {
     ))
 }
 
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/stage",tag="product-bulk-runs",operation_id="product_bulk_runs_stage",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=StageInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/stage",tag="product_bulk",operation_id="product_bulk_runs_stage",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=StageInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn stage(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -168,7 +168,7 @@ pub async fn stage(
 ) -> Result<Data<Value>, AppError> {
     Ok(Data(service::stage(&state, &access, id, input).await?))
 }
-#[utoipa::path(patch,path="/workspace/{workspace}/product-bulk-runs/{run}/mapping",tag="product-bulk-runs",operation_id="product_bulk_runs_mapping",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=MappingInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(patch,path="/workspace/{workspace}/product-bulk-runs/{run}/mapping",tag="product_bulk",operation_id="product_bulk_runs_mapping",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=MappingInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn mapping(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -178,7 +178,7 @@ pub async fn mapping(
     Ok(Data(service::mapping(&state, &access, id, input).await?))
 }
 
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}/rows",tag="product-bulk-runs",operation_id="product_bulk_runs_rows",params(("workspace"=Uuid,Path),("run"=Uuid,Path),RowsQuery),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}/rows",tag="product_bulk",operation_id="product_bulk_runs_rows",params(("workspace"=Uuid,Path),("run"=Uuid,Path),RowsQuery),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn rows(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -333,7 +333,7 @@ fn public_projection(
     Value::Object(out)
 }
 
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}/rows/{row}/raw",tag="product-bulk-runs",operation_id="product_bulk_runs_raw",params(("workspace"=Uuid,Path),("run"=Uuid,Path),("row"=Uuid,Path),RowsQuery),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}/rows/{row}/raw",tag="product_bulk",operation_id="product_bulk_runs_raw",params(("workspace"=Uuid,Path),("run"=Uuid,Path),("row"=Uuid,Path),RowsQuery),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn raw(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -362,7 +362,7 @@ pub async fn raw(
         json!({"cells":rows,"next":(end<cells.len()).then_some(end)}),
     ))
 }
-#[utoipa::path(patch,path="/workspace/{workspace}/product-bulk-runs/{run}/rows/{row}",tag="product-bulk-runs",operation_id="product_bulk_runs_row",params(("workspace"=Uuid,Path),("run"=Uuid,Path),("row"=Uuid,Path)),request_body=RowInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(patch,path="/workspace/{workspace}/product-bulk-runs/{run}/rows/{row}",tag="product_bulk",operation_id="product_bulk_runs_row",params(("workspace"=Uuid,Path),("run"=Uuid,Path),("row"=Uuid,Path)),request_body=RowInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn row(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -373,7 +373,7 @@ pub async fn row(
         service::edit_row(&state, &access, run, row, input).await?,
     ))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/reviews",tag="product-bulk-runs",operation_id="product_bulk_runs_review",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=ReviewInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/reviews",tag="product_bulk",operation_id="product_bulk_runs_review",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=ReviewInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn review(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -382,7 +382,7 @@ pub async fn review(
 ) -> Result<Data<Value>, AppError> {
     Ok(Data(service::review(&state, &access, id, input).await?))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/approve",tag="product-bulk-runs",operation_id="product_bulk_runs_approve",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=ApproveInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/approve",tag="product_bulk",operation_id="product_bulk_runs_approve",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=ApproveInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn approve(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -391,7 +391,7 @@ pub async fn approve(
 ) -> Result<Data<Value>, AppError> {
     Ok(Data(service::approve(&state, &access, id, input).await?))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/cancel",tag="product-bulk-runs",operation_id="product_bulk_runs_cancel",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/cancel",tag="product_bulk",operation_id="product_bulk_runs_cancel",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn cancel(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -399,7 +399,7 @@ pub async fn cancel(
 ) -> Result<Data<Value>, AppError> {
     Ok(Data(service::cancel(&state, &access, id).await?))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/remainder",tag="product-bulk-runs",operation_id="product_bulk_runs_remainder",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/remainder",tag="product_bulk",operation_id="product_bulk_runs_remainder",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn remainder(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -408,7 +408,7 @@ pub async fn remainder(
     Ok(Data(service::remainder(&state, &access, id).await?))
 }
 
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/resume",tag="product-bulk-runs",operation_id="product_bulk_runs_resume",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=ResumeInput,responses((status=200,body=Envelope<Value>),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=422,body=UnprocessableBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/{run}/resume",tag="product_bulk",operation_id="product_bulk_runs_resume",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),request_body=ResumeInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn resume(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -417,7 +417,7 @@ pub async fn resume(
 ) -> Result<Data<Value>, AppError> {
     Ok(Data(service::resume(&state, &access, run, input).await?))
 }
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/settings",tag="product-bulk-runs",operation_id="product_bulk_settings_get",params(("workspace"=Uuid,Path)),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/settings",tag="product_bulk",operation_id="product_bulk_settings_get",params(("workspace"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn settings_get(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -428,7 +428,7 @@ pub async fn settings_get(
         json!({"per_run_cap_usd":cap.to_string(),"can_edit":access.is_admin()}),
     ))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/settings",tag="product-bulk-runs",operation_id="product_bulk_settings_set",params(("workspace"=Uuid,Path)),request_body=SettingsInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/settings",tag="product_bulk",operation_id="product_bulk_settings_set",params(("workspace"=Uuid,Path)),request_body=SettingsInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn settings_set(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -460,7 +460,7 @@ pub async fn settings_set(
         json!({"per_run_cap_usd":cap.to_string(),"can_edit":true}),
     ))
 }
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/mappings",tag="product-bulk-runs",operation_id="product_bulk_mappings_get",params(("workspace"=Uuid,Path)),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/mappings",tag="product_bulk",operation_id="product_bulk_mappings_get",params(("workspace"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn mappings_get(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -469,7 +469,7 @@ pub async fn mappings_get(
     let rows:Vec<Value>=sqlx::query_scalar("SELECT to_jsonb(m)-'workspace_id' FROM product_bulk_mappings m WHERE workspace_id=$1 ORDER BY name,id LIMIT 100").bind(access.workspace_id).fetch_all(&state.db).await?;
     Ok(Data(json!({"mappings":rows})))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/mappings",tag="product-bulk-runs",operation_id="product_bulk_mappings_save",params(("workspace"=Uuid,Path)),request_body=SavedMappingInput,responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-bulk-runs/mappings",tag="product_bulk",operation_id="product_bulk_mappings_save",params(("workspace"=Uuid,Path)),request_body=SavedMappingInput,responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn mappings_save(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -494,7 +494,7 @@ pub async fn mappings_save(
     let row:Value=sqlx::query_scalar("INSERT INTO product_bulk_mappings(workspace_id,name,mapping,created_by) VALUES($1,$2,$3,$4) ON CONFLICT(workspace_id,name) DO UPDATE SET mapping=$3 RETURNING to_jsonb(product_bulk_mappings)-'workspace_id'").bind(access.workspace_id).bind(input.name).bind(input.mapping).bind(access.user_id).fetch_one(&state.db).await?;
     Ok(Data(row))
 }
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/template",tag="product-bulk-runs",operation_id="product_bulk_template",params(("workspace"=Uuid,Path)),responses((status=200,body=Envelope<Value>),(status=400,body=MessageBody),(status=401,body=MessageBody),(status=403,body=MessageBody),(status=404,body=MessageBody),(status=409,body=MessageBody),(status=413,body=MessageBody),(status=422,body=UnprocessableBody),(status=503,body=MessageBody)),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/template",tag="product_bulk",operation_id="product_bulk_template",params(("workspace"=Uuid,Path)),responses((status=200,body=Envelope<Value>,description="Product bulk operation result"),(status=400,body=MessageBody,description="Invalid request"),(status=401,body=MessageBody,description="Authentication required"),(status=403,body=MessageBody,description="Missing permission"),(status=404,body=MessageBody,description="Unknown workspace or resource"),(status=409,body=MessageBody,description="Revision or state conflict"),(status=413,body=MessageBody,description="Request too large"),(status=422,body=UnprocessableBody,description="Invalid product bulk input")),security(("bearer"=[])))]
 pub async fn template(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -522,7 +522,7 @@ pub async fn template(
     ))
 }
 
-#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}/report",tag="product-bulk-runs",operation_id="product_bulk_report",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,description="Streaming UTF-8 CSV row receipts")),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-bulk-runs/{run}/report",tag="product_bulk",operation_id="product_bulk_report",params(("workspace"=Uuid,Path),("run"=Uuid,Path)),responses((status=200,description="Streaming UTF-8 CSV row receipts")),security(("bearer"=[])))]
 pub async fn report(
     State(state): State<AppState>,
     access: WorkspaceAccess,

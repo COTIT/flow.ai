@@ -89260,7 +89260,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -89269,7 +89270,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -89278,7 +89280,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -89287,7 +89290,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -89296,7 +89300,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -89305,7 +89310,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -89314,7 +89320,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -89323,7 +89330,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -89360,6 +89368,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -89369,7 +89386,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       },
       "post": {
@@ -89403,7 +89420,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk run created"
           },
           "400": {
             "content": {
@@ -89412,7 +89430,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -89421,7 +89440,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -89430,7 +89450,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -89439,7 +89460,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -89458,7 +89480,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -89467,7 +89490,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -89476,7 +89500,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -89513,6 +89538,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -89522,7 +89556,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -89548,7 +89582,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -89557,7 +89592,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -89566,7 +89602,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -89575,7 +89612,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -89584,7 +89622,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -89593,7 +89632,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -89602,7 +89642,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -89611,7 +89652,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -89648,6 +89690,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -89657,7 +89708,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       },
       "post": {
@@ -89691,7 +89742,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -89700,7 +89752,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -89709,7 +89762,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -89718,7 +89772,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -89727,7 +89782,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -89746,7 +89802,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -89755,7 +89812,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -89764,7 +89822,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -89801,6 +89860,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -89810,7 +89878,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -89836,7 +89904,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -89845,7 +89914,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -89854,7 +89924,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -89863,7 +89934,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -89872,7 +89944,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -89881,7 +89954,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -89890,7 +89964,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -89899,7 +89974,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -89936,6 +90012,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -89945,7 +90030,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       },
       "post": {
@@ -89979,7 +90064,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -89988,7 +90074,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -89997,7 +90084,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90006,7 +90094,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90015,7 +90104,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -90034,7 +90124,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90043,7 +90134,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90052,7 +90144,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90089,6 +90182,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90098,7 +90200,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -90124,7 +90226,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -90133,7 +90236,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -90142,7 +90246,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90151,7 +90256,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90160,7 +90266,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -90169,7 +90276,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90178,7 +90286,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90187,7 +90296,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90224,6 +90334,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90233,7 +90352,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -90268,7 +90387,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -90277,7 +90397,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -90286,7 +90407,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90295,7 +90417,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90304,7 +90427,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -90313,7 +90437,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90322,7 +90447,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90331,7 +90457,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90368,6 +90495,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90377,7 +90513,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -90422,7 +90558,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -90431,7 +90568,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -90440,7 +90578,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90449,7 +90588,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90458,7 +90598,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -90477,7 +90618,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90486,7 +90628,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90495,7 +90638,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90532,6 +90676,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90541,7 +90694,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -90576,7 +90729,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -90585,7 +90739,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -90594,7 +90749,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90603,7 +90759,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90612,7 +90769,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -90621,7 +90779,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90630,7 +90789,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90639,7 +90799,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90676,6 +90837,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90685,7 +90855,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -90730,7 +90900,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -90739,7 +90910,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -90748,7 +90920,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90757,7 +90930,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90766,7 +90940,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -90785,7 +90960,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90794,7 +90970,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90803,7 +90980,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90840,6 +91018,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90849,7 +91036,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -90884,7 +91071,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -90893,7 +91081,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -90902,7 +91091,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -90911,7 +91101,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -90920,7 +91111,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -90929,7 +91121,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -90938,7 +91131,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -90947,7 +91141,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -90984,6 +91179,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -90993,7 +91197,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -91107,7 +91311,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -91152,7 +91356,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -91181,7 +91386,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -91190,7 +91396,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -91209,7 +91416,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -91228,7 +91436,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -91283,7 +91492,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -91328,7 +91537,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -91337,7 +91547,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -91346,7 +91557,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -91355,7 +91567,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -91364,7 +91577,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -91383,7 +91597,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -91392,7 +91607,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -91401,7 +91617,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -91438,6 +91655,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -91447,7 +91673,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -91516,7 +91742,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -91525,7 +91752,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -91534,7 +91762,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -91543,7 +91772,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -91552,7 +91782,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -91561,7 +91792,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -91570,7 +91802,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -91579,7 +91812,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -91616,6 +91850,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -91625,7 +91868,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -91679,7 +91922,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -91688,7 +91932,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -91697,7 +91942,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -91706,7 +91952,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -91715,7 +91962,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -91734,7 +91982,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -91743,7 +91992,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -91752,7 +92002,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -91789,6 +92040,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -91798,7 +92058,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -91876,7 +92136,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -91885,7 +92146,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -91894,7 +92156,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -91903,7 +92166,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -91912,7 +92176,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "409": {
             "content": {
@@ -91921,7 +92186,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -91930,7 +92196,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -91939,7 +92206,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -91976,6 +92244,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -91985,7 +92262,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -92030,7 +92307,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -92039,7 +92317,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -92048,7 +92327,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -92057,7 +92337,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -92066,7 +92347,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -92085,7 +92367,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -92094,7 +92377,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -92103,7 +92387,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -92140,6 +92425,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -92149,7 +92443,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },
@@ -92194,7 +92488,8 @@
                   "$ref": "#/components/schemas/Envelope_Value"
                 }
               }
-            }
+            },
+            "description": "Product bulk operation result"
           },
           "400": {
             "content": {
@@ -92203,7 +92498,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Invalid request"
           },
           "401": {
             "content": {
@@ -92212,7 +92508,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Authentication required"
           },
           "403": {
             "content": {
@@ -92221,7 +92518,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {
@@ -92230,7 +92528,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Unknown workspace or resource"
           },
           "408": {
             "content": {
@@ -92249,7 +92548,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Revision or state conflict"
           },
           "413": {
             "content": {
@@ -92258,7 +92558,8 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
-            }
+            },
+            "description": "Request too large"
           },
           "422": {
             "content": {
@@ -92267,7 +92568,8 @@
                   "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
-            }
+            },
+            "description": "Invalid product bulk input"
           },
           "429": {
             "content": {
@@ -92304,6 +92606,15 @@
                   "$ref": "#/components/schemas/MessageBody"
                 }
               }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },
@@ -92313,7 +92624,7 @@
           }
         ],
         "tags": [
-          "product-bulk-runs"
+          "product_bulk"
         ]
       }
     },

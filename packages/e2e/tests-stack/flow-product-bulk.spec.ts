@@ -164,10 +164,10 @@ test("upload boundaries reject unsupported, empty, oversized and malformed sourc
     )
   } finally {
     releaseIdentity()
+    await page.unrouteAll({ behavior: "wait" })
   }
   const input = page.getByLabel("Source files", { exact: true })
   await expect(input).toBeVisible()
-  await page.unroute(identityRoute)
   for (const file of [
     {
       name: "unsafe.exe",

@@ -45,7 +45,7 @@ export * from './permissions/permissions';
 export * from './price-corrections/price-corrections';
 export * from './pricing/pricing';
 export * from './product-brands/product-brands';
-export * from './product-bulk-runs/product-bulk-runs';
+export * from './product-bulk/product-bulk';
 export * from './product-categories/product-categories';
 export * from './product-fields/product-fields';
 export * from './product-variants/product-variants';
