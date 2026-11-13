@@ -62,6 +62,8 @@ export async function reportPdf(
     if (item.row.createdAt)
       text(`${labels.captured}: ${item.row.createdAt}`, false, 9)
     for (const svg of charts.get(item.row.id) ?? []) {
+      const caption = svg.getAttribute("aria-label")
+      if (caption) text(caption, false, 9)
       const box = svg.viewBox.baseVal
       const height = width * ((box.height || 320) / (box.width || 720))
       if (y + height > bottom) page()
