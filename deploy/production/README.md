@@ -51,7 +51,7 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 ```bash
 # 1. A deploy checkout, separate from staging and CI
 sudo mkdir -p /srv/genesy-prod && sudo chown deploy /srv/genesy-prod
-git clone git@github.com:COTIT/genesy.git /srv/genesy-prod
+git clone git@github.com:COTIT/flow.ai.git /srv/genesy-prod
 cd /srv/genesy-prod/deploy/production
 ```
 
@@ -174,7 +174,7 @@ Flow is its own Next container (`flow`, image `ghcr.io/cotit/genesy-flow:<sha>`,
 Before the first deploy of a commit that contains Flow:
 
 1. **DNS first.** Add the `flow` A and AAAA records (staging README, "DNS records") and wait until they resolve. Without them the deploy's health check still passes (it asks the local Traefik with `--resolve`), but Let's Encrypt keeps failing for that host and `vps-watch` alerts on its missing certificate on every run.
-2. **GHCR package.** The first green `images` run after the merge creates `genesy-flow`. Check its settings: visibility **private**, "Manage Actions access" lists `COTIT/genesy` with **Write**, and the machine account has **Read**. Without Read the VPS pull fails and the deploy stops before its backup and migrations.
+2. **GHCR package.** The first green `images` run after the merge creates `genesy-flow`. Check its settings: visibility **private**, "Manage Actions access" lists `COTIT/flow.ai` with **Write**, and the machine account has **Read**. Without Read the VPS pull fails and the deploy stops before its backup and migrations.
 3. **Rollback past Flow.** A rollback to a commit from before Flow leaves the newer `flow` container running (compose does not remove services the older file lacks). Stop it by hand: `deploy/deploy.sh production compose stop flow`.
 4. **Memory.** Flow adds one Next container per environment: ceilings of 384 MB on staging and 512 MB on production ("Resource limits" above).
 

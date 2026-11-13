@@ -107,7 +107,7 @@ Let's Encrypt can only issue the certificates once these names resolve. The `sta
 ```bash
 # 1. A deploy checkout (as user deploy)
 sudo mkdir -p /srv/genesy-staging && sudo chown deploy /srv/genesy-staging
-git clone git@github.com:COTIT/genesy.git /srv/genesy-staging
+git clone git@github.com:COTIT/flow.ai.git /srv/genesy-staging
 cd /srv/genesy-staging/deploy/staging
 ```
 
@@ -139,9 +139,16 @@ Then deploy (next section). Keep `credentials_key` once you have it: it encrypts
 
 ### GHCR pull token (once, in GitHub)
 
+Repository rename: the source is now `COTIT/flow.ai`. Existing image/package names,
+Compose projects, server paths and domains stay unchanged. For an existing VPS checkout,
+update only its Git remote: `git remote set-url origin git@github.com:COTIT/flow.ai.git`.
+Verify that the existing packages (including `genesy-buildcache`) still grant the renamed
+repository Actions write access before the next release. A green `ci` run on `main`
+confirms publication; a local test run alone does not.
+
 The VPS needs read access to the seven private `ghcr.io/cotit/genesy-*` packages, nothing more. These steps are yours, in GitHub.
 
-1. **COTIT → Settings → Packages:** allow private container packages to be created. The first green `images` run then creates `genesy-api`, `-shop`, `-office`, `-till`, `-field`, `-landing` and `-flow`. Check each one's settings: visibility **private**, and "Manage Actions access" lists `COTIT/genesy` with **Write**.
+1. **COTIT → Settings → Packages:** allow private container packages to be created. The first green `images` run then creates `genesy-api`, `-shop`, `-office`, `-till`, `-field`, `-landing` and `-flow`. Check each one's settings: visibility **private**, and "Manage Actions access" lists `COTIT/flow.ai` with **Write**.
 2. **A machine account** (for example `genesy-deploy-bot`) in COTIT, given **Read** on those seven packages only (package settings → Manage access). It needs no repository access.
 3. **On that account:** a **classic** personal access token with only `read:packages`, expiring in a year (set a reminder). GHCR does not take fine-grained tokens unless GitHub lists a Packages permission for them when you create one.
 
@@ -193,7 +200,7 @@ Flow is its own Next container (`flow`, image `ghcr.io/cotit/genesy-flow:<sha>`,
 Before the first deploy of a commit that contains Flow:
 
 1. **DNS first.** Add the `staging-flow` A and AAAA records ("DNS records" above) and wait until they resolve. Without them the deploy's health check still passes (it asks the local Traefik with `--resolve`), but Let's Encrypt keeps failing for that host and `vps-watch` alerts on its missing certificate on every run.
-2. **GHCR package.** The first green `images` run after the merge creates `genesy-flow`. Check its settings: visibility **private**, "Manage Actions access" lists `COTIT/genesy` with **Write**, and the machine account has **Read**. Without Read the VPS pull fails and the deploy stops before its backup and migrations.
+2. **GHCR package.** The first green `images` run after the merge creates `genesy-flow`. Check its settings: visibility **private**, "Manage Actions access" lists `COTIT/flow.ai` with **Write**, and the machine account has **Read**. Without Read the VPS pull fails and the deploy stops before its backup and migrations.
 3. **Rollback past Flow.** A rollback to a commit from before Flow leaves the newer `flow` container running (compose does not remove services the older file lacks). Stop it by hand: `deploy/deploy.sh staging compose stop flow`.
 4. **Memory.** Flow adds one Next container per environment: ceilings of 384 MB on staging and 512 MB on production (production README, "Resource limits").
 

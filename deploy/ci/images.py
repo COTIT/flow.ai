@@ -167,7 +167,7 @@ def select_artifacts(artifacts):
 def collect():
     _, run_id, _ = context()
     repo = os.environ["GITHUB_REPOSITORY"]
-    if repo.lower() != "cotit/genesy":
+    if repo.lower() != "cotit/flow.ai":
         raise ValueError("unexpected release repository")
     pages = json.loads(run(
         ["gh", "api", "--paginate", "--slurp", "repos/" + repo + "/actions/runs/" + run_id + "/artifacts?per_page=100"],

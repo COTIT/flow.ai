@@ -21,7 +21,7 @@ RUN pnpm --filter "@genesy/${APP}" build && mkdir -p "apps/${APP}/public"
 
 FROM ${NODE_IMAGE} AS runtime
 # Links the GHCR package to the repo (Actions push access) and marks our images on the VPS.
-LABEL org.opencontainers.image.source="https://github.com/COTIT/genesy"
+LABEL org.opencontainers.image.source="https://github.com/COTIT/flow.ai"
 # The server needs only node: drop the package managers the base image ships (and their CVEs),
 # and take Debian security fixes newer than the pinned base (e.g. apt CVE-2026-109518).
 RUN rm -rf /usr/local/lib/node_modules /opt/yarn-* \

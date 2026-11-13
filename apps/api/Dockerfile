@@ -25,7 +25,7 @@ RUN if [ "$ALLOW_FAKE_PAYMENTS" = 1 ]; then set -- --config 'profile.release.pac
 # Same Debian release as build stage (trixie = 13): binary links against its glibc.
 FROM gcr.io/distroless/cc-debian13:nonroot@sha256:08476c244888bfb425bae1ae4dd7c17f093e972aab8426883d97f3c6f280f7c1 AS runtime
 # Links the GHCR package to the repo (Actions push access) and marks our images on the VPS.
-LABEL org.opencontainers.image.source="https://github.com/COTIT/genesy"
+LABEL org.opencontainers.image.source="https://github.com/COTIT/flow.ai"
 COPY --from=build /genesy-360-api /genesy-360-api
 ENV BIND_ADDR=0.0.0.0:8080
 EXPOSE 8080

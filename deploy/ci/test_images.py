@@ -19,7 +19,7 @@ BASE = "b" * 40
 DIGEST = "sha256:" + "c" * 64
 ENV = {
     "GITHUB_SHA": SHA, "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2",
-    "GITHUB_REPOSITORY": "COTIT/genesy", "GH_TOKEN": "test-token",
+    "GITHUB_REPOSITORY": "COTIT/flow.ai", "GH_TOKEN": "test-token",
     "GITHUB_OUTPUT": "/unused/output", "GENESY_REF": "stale-shell-ref",
 }
 
@@ -270,10 +270,10 @@ class ReleaseImagesTests(unittest.TestCase):
         with patch.object(release, "run", side_effect=command), patch.object(release, "images", side_effect=lambda producer, ref: expected(producer, ref)):
             self.assertEqual(release.collect(), {producer: manifest(producer) for producer in release.LAYOUT})
         args = self.commands[0][0]
-        self.assertEqual(args, ["gh", "api", "--paginate", "--slurp", "repos/COTIT/genesy/actions/runs/123/artifacts?per_page=100"])
+        self.assertEqual(args, ["gh", "api", "--paginate", "--slurp", "repos/COTIT/flow.ai/actions/runs/123/artifacts?per_page=100"])
         downloads = [args for args, _ in self.commands[1:]]
         self.assertEqual(len(downloads), 3)
-        self.assertTrue(all(args[2].startswith("repos/COTIT/genesy/actions/artifacts/") and args[2].endswith("/zip") for args in downloads))
+        self.assertTrue(all(args[2].startswith("repos/COTIT/flow.ai/actions/artifacts/") and args[2].endswith("/zip") for args in downloads))
         self.assertTrue(all(ENV["GH_TOKEN"] not in arg for args, _ in self.commands for arg in args))
         with patch.object(release.subprocess, "run", return_value=SimpleNamespace()) as process:
             release.run(["gh", "api", "test"])
@@ -282,9 +282,10 @@ class ReleaseImagesTests(unittest.TestCase):
             self.assertNotIn("env", process.call_args.kwargs)
 
     def test_collect_rejects_wrong_repository_before_download(self):
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "other/genesy"}), patch.object(release, "run") as command, self.assertRaises(ValueError):
-            release.collect()
-        command.assert_not_called()
+        for repo in ("other/flow.ai", "COTIT/genesy"):
+            with self.subTest(repo=repo), patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), patch.object(release, "run") as command, self.assertRaises(ValueError):
+                release.collect()
+            command.assert_not_called()
 
     def test_collect_accepts_older_producer_manifests_during_partial_rerun(self):
         documents = {producer: manifest(producer, 1 if producer != "web" else 2)
@@ -295,8 +296,8 @@ class ReleaseImagesTests(unittest.TestCase):
         with patch.object(release, "run", side_effect=command), patch.object(release, "images", side_effect=lambda producer, ref: expected(producer, ref)):
             self.assertEqual(release.collect(), documents)
         downloads = [args[2] for args, _ in self.commands[1:]]
-        self.assertIn("repos/COTIT/genesy/actions/artifacts/api-production-1/zip", downloads)
-        self.assertNotIn("repos/COTIT/genesy/actions/artifacts/web-1/zip", downloads)
+        self.assertIn("repos/COTIT/flow.ai/actions/artifacts/api-production-1/zip", downloads)
+        self.assertNotIn("repos/COTIT/flow.ai/actions/artifacts/web-1/zip", downloads)
 
     def test_collect_rejects_wrong_manifest_attempt_without_fallback(self):
         command = self.fake_collection(overrides={"web": manifest("web", attempt=1)},
