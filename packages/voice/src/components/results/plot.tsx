@@ -38,6 +38,13 @@ const subscribeTouch = (change: () => void) => {
 const isTouch = () => matchMedia(touchQuery).matches
 const serverTouch = () => false
 const shade = (i: number) => Math.max(1 - i * 0.12, 0.25)
+const wrapLabel = (text: string, columns: number) => {
+  const chars = Array.from(text)
+  const lines: string[] = []
+  for (let i = 0; i < chars.length; i += columns)
+    lines.push(chars.slice(i, i + columns).join(""))
+  return lines.length ? lines : [""]
+}
 
 function ValueTooltip({
   active,
@@ -85,9 +92,31 @@ export function ResultPlot({
   const horizontal = kind === "hbar"
   const spark = kind === "sparkline"
   const fixed = width !== undefined && height !== undefined
+  const legendX = (width ?? 720) * 0.52
+  const legendColumns = Math.max(
+    1,
+    Math.floor(((width ?? 720) - legendX - 36) / 12)
+  )
+  let legendBottom = 24
+  const legend =
+    exportMode && polar
+      ? items.map((item) => {
+          const lines = wrapLabel(item.label, legendColumns)
+          const amounts = wrapLabel(item.shown, legendColumns)
+          const top = legendBottom
+          legendBottom += (lines.length + amounts.length) * 16 + 14
+          return { lines, amounts, top }
+        })
+      : []
   const plotHeight =
-    height ??
-    (horizontal ? Math.max(260, items.length * 44) : spark ? 96 : undefined)
+    height !== undefined
+      ? Math.max(height, legend.length ? legendBottom : 0)
+      : horizontal
+        ? Math.max(260, items.length * 44)
+        : spark
+          ? 96
+          : undefined
+  const pieRadius = Math.min((width ?? 720) * 0.21, (height ?? 320) * 0.44)
   // SVG-to-PDF accepts concrete colors, not theme variables or inherited page fonts.
   const colors = exportMode
     ? {
@@ -123,7 +152,7 @@ export function ResultPlot({
   const dimensions = fixed
     ? {
         width,
-        height,
+        height: plotHeight ?? height,
         ref: (svg: SVGSVGElement | null) => {
           if (exportMode && svg) svg.setAttribute("font-family", "Poppins")
         },
@@ -140,16 +169,55 @@ export function ResultPlot({
         data={data}
         dataKey="value"
         nameKey="label"
-        cx="50%"
-        cy="50%"
-        outerRadius="88%"
-        innerRadius={kind === "donut" ? "52%" : 0}
+        cx={exportMode ? (width ?? 720) * 0.24 : "50%"}
+        cy={exportMode ? (height ?? 320) / 2 : "50%"}
+        outerRadius={exportMode ? pieRadius : "88%"}
+        innerRadius={
+          kind === "donut" ? (exportMode ? pieRadius * 0.59 : "52%") : 0
+        }
         stroke={colors.card}
         activeShape={{ stroke: colors.foreground, strokeWidth: 3 }}
         inactiveShape={{ opacity: 0.55 }}
         isAnimationActive={false}
       />
       {tooltip}
+      {legend.length ? (
+        <g
+          data-report-legend=""
+          fontFamily="Poppins"
+          fontSize={12}
+          fill={colors.foreground}
+        >
+          {legend.map((row, i) => (
+            <g key={i}>
+              <circle
+                cx={legendX + 4}
+                cy={row.top + 6}
+                r={4}
+                fill={colors.gold}
+                fillOpacity={shade(i)}
+              />
+              <text x={legendX + 16} y={row.top + 10}>
+                {row.lines.map((line, j) => (
+                  <tspan key={j} x={legendX + 16} dy={j ? 16 : 0}>
+                    {line}
+                  </tspan>
+                ))}
+                {row.amounts.map((line, j) => (
+                  <tspan
+                    key={`amount-${j}`}
+                    x={legendX + 16}
+                    dy={16}
+                    fontWeight="bold"
+                  >
+                    {line}
+                  </tspan>
+                ))}
+              </text>
+            </g>
+          ))}
+        </g>
+      ) : null}
     </PieChart>
   ) : kind === "line" || spark ? (
     <LineChart

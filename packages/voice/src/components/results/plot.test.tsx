@@ -50,6 +50,29 @@ vi.mock("recharts", () => {
 })
 
 describe("report plot SVG", () => {
+  it("prints complete duplicate pie labels and exact amounts in a growing legend", () => {
+    const label = "Wild honey from a very long named cooperative ".repeat(8)
+    const svg = renderToStaticMarkup(
+      <ResultPlot
+        kind="pie"
+        items={[
+          { label, value: 125050, shown: "$1,250.50" },
+          { label, value: 500, shown: "$5.00" },
+        ]}
+        label="Sales"
+        width={720}
+        height={320}
+        exportMode
+      />
+    )
+    const text = svg.replace(/<[^>]*>/g, "")
+    expect(text.split(label)).toHaveLength(3)
+    expect(text).toContain("$1,250.50")
+    expect(text).toContain("$5.00")
+    expect(svg.match(/<circle/g)).toHaveLength(2)
+    expect(Number(svg.match(/height:(\d+)px/)?.[1])).toBeGreaterThan(320)
+  })
+
   it.each(["line", "sparkline", "bar", "hbar", "pie", "donut"] as PlotKind[])(
     "%s uses explicit print colors and registered font",
     (kind) => {
