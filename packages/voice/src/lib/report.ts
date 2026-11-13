@@ -1,4 +1,5 @@
 import type { TranscriptRow } from "./helpers"
+import { formatMoney } from "@genesy/ui/lib/money"
 import { drawnAs, type ResultView } from "./views"
 
 export type ReportCell = string | number | boolean | null
@@ -17,6 +18,8 @@ export type ReportItem = {
   tables: ReportTable[]
 }
 export type ReportLabels = {
+  locale?: string
+  minorUnits?: string
   title: string
   snapshot: string
   captured: string
@@ -25,6 +28,58 @@ export type ReportLabels = {
   columns: (key: string) => string
 }
 const PLOTS = new Set(["line", "sparkline", "bar", "hbar", "pie", "donut"])
+
+export function fitReportChart(
+  width: number,
+  height: number,
+  maxWidth: number,
+  maxHeight: number
+) {
+  const scale = Math.min(maxWidth / width, maxHeight / height)
+  return { width: width * scale, height: height * scale }
+}
+
+/** PDF uses business amounts; workbook tables retain the exact original units and helper fields. */
+export function pdfReportTables(
+  tables: ReportTable[],
+  locale: string
+): ReportTable[] {
+  return tables
+    .filter((table) => table.key !== "metadata")
+    .map((table) => ({
+      ...table,
+      columns: table.columns.filter(
+        (column) => column !== "decimals" && !column.endsWith(".decimals")
+      ),
+      rows: table.rows.map((row) =>
+        Object.fromEntries(
+          Object.entries(row).map(([column, value]) => {
+            if (
+              typeof value !== "number" ||
+              !(
+                column.endsWith(".minor") ||
+                ["gross", "net", "vat", "refunded", "current", "base"].includes(
+                  column
+                )
+              )
+            )
+              return [column, value]
+            const prefix = column.endsWith(".minor")
+              ? column.slice(0, -"minor".length)
+              : ""
+            const currency = row[`${prefix}currency`]
+            const decimals = row[`${prefix}decimals`]
+            return [
+              column,
+              typeof currency === "string" && typeof decimals === "number"
+                ? formatMoney(value, decimals, currency, locale)
+                : value,
+            ]
+          })
+        )
+      ),
+    }))
+}
 
 export const reportRows = (rows: ReportRow[]) =>
   rows.filter((row) => row.role === "result" && row.views?.length)

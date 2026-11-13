@@ -4,6 +4,8 @@ import type { ResultView } from "./views"
 import {
   answerResultIds,
   latestChart,
+  fitReportChart,
+  pdfReportTables,
   reportTables,
   retainedSelection,
 } from "./report"
@@ -35,6 +37,69 @@ const sales: ResultView = {
 }
 
 describe("report snapshots", () => {
+  it("fits a tall chart and legend on a PDF page without changing its aspect ratio", () => {
+    const fitted = fitReportChart(720, 1200, 269, 170)
+    expect(fitted.height).toBe(170)
+    expect(fitted.width).toBe(102)
+    expect(fitReportChart(720, 320, 269, 170).width).toBe(269)
+  })
+
+  it("formats PDF money from exact units, without changing raw workbook tables", () => {
+    const raw = reportTables({
+      ...sales,
+      rows: [
+        sales.rows[0]!,
+        {
+          currency: "JPY",
+          decimals: 0,
+          gross: -125,
+          net: 0,
+          vat: 0,
+          refunded: null,
+          orders: 0,
+        },
+      ],
+    })
+    const pdf = pdfReportTables(raw, "en-US")
+    expect(pdf).toHaveLength(1)
+    expect(pdf[0]?.columns).not.toContain("decimals")
+    expect(pdf[0]?.rows[0]).toMatchObject({
+      gross: "$1.00",
+      net: "$0.85",
+      vat: "$0.15",
+      refunded: null,
+    })
+    expect(pdf[0]?.rows[1]).toMatchObject({ gross: "-¥125", net: "¥0" })
+    expect(raw[1]?.rows[0]?.gross).toBe(100)
+    const nested = pdfReportTables(
+      [
+        {
+          key: "lines",
+          columns: [
+            "quantity",
+            "money.minor",
+            "money.currency",
+            "money.decimals",
+          ],
+          rows: [
+            {
+              quantity: "2.0000",
+              "money.minor": 125,
+              "money.currency": "EUR",
+              "money.decimals": 2,
+            },
+          ],
+        },
+      ],
+      "en-US"
+    )
+    expect(nested[0]?.rows[0]).toMatchObject({
+      quantity: "2.0000",
+      "money.minor": "€1.25",
+    })
+    expect(nested[0]?.columns).not.toContain("money.decimals")
+  })
+
   it("preserves all sales fields and keeps currencies separate", () => {
     const tables = reportTables({
       ...sales,

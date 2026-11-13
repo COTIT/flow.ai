@@ -265,6 +265,8 @@ export function ConversationResults({
     }
   }
   const labels: ReportLabels = {
+    locale,
+    minorUnits: t("minorUnits"),
     title: t("title"),
     snapshot: t("snapshot"),
     captured: t("captured"),

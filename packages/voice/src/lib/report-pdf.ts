@@ -1,6 +1,8 @@
 import type { jsPDF as Pdf } from "jspdf"
 import {
   reportPeriod,
+  pdfReportTables,
+  fitReportChart,
   type ReportCell,
   type ReportItem,
   type ReportLabels,
@@ -61,16 +63,46 @@ export async function reportPdf(
     if (period) text(`${labels.period}: ${period}`, false, 9)
     if (item.row.createdAt)
       text(`${labels.captured}: ${item.row.createdAt}`, false, 9)
+    for (const metadata of item.tables.filter(
+      (table) => table.key === "metadata"
+    )) {
+      for (const row of metadata.rows) {
+        const context = [
+          "source",
+          "time_zone",
+          "total",
+          "base_from",
+          "base_to",
+          "status",
+          "origin.country",
+          "origin.region",
+          "origin.place",
+        ]
+          .filter((key) => row[key] !== undefined && row[key] !== null)
+          .map((key) => `${labels.columns(key)}: ${asText(row[key])}`)
+        if (context.length) text(context.join(" · "), false, 9)
+      }
+    }
     for (const svg of charts.get(item.row.id) ?? []) {
       const caption = svg.getAttribute("aria-label")
-      if (caption) text(caption, false, 9)
+      pdf.setFont("Poppins", "normal")
+      pdf.setFontSize(9)
+      const captionHeight = caption
+        ? (pdf.splitTextToSize(caption, width) as string[]).length * 6
+        : 0
       const box = svg.viewBox.baseVal
-      const height = width * ((box.height || 320) / (box.width || 720))
-      if (y + height > bottom) page()
-      await pdf.svg(svg, { x: margin, y, width, height })
-      y += height + 6
+      const size = fitReportChart(
+        box.width || 720,
+        box.height || 320,
+        width,
+        bottom - margin - captionHeight
+      )
+      if (y + captionHeight + size.height > bottom) page()
+      if (caption) text(caption, false, 9)
+      await pdf.svg(svg, { x: margin, y, ...size })
+      y += size.height + 6
     }
-    for (const table of item.tables) {
+    for (const table of pdfReportTables(item.tables, labels.locale ?? "en")) {
       // Wide tables split by columns; first column repeats to keep rows identifiable.
       for (let start = 0; start < table.columns.length; start += 5) {
         const columns = start
@@ -96,7 +128,16 @@ export async function reportPdf(
           pdf.line(margin, y + height, margin + width, y + height)
           y += height
         }
-        const headers = columns.map(labels.columns)
+        const headers = columns.map((column) => {
+          const heading = labels.columns(
+            column.endsWith(".minor")
+              ? column.slice(0, -".minor".length)
+              : column
+          )
+          return labels.minorUnits
+            ? heading.replace(` (${labels.minorUnits})`, "")
+            : heading
+        })
         if (y + 20 > bottom) page()
         drawRow(headers, true)
         for (const row of table.rows) {
