@@ -12,6 +12,8 @@ export function createTurn(onEnd: (kind: TurnEnd, steps: number) => void) {
   let tools = 0
   let steps = 0
   let started = false
+  let answer = false
+  let epoch = 0
   let settle: ReturnType<typeof setTimeout> | undefined
   let stall: ReturnType<typeof setTimeout> | undefined
   const clear = () => {
@@ -35,24 +37,32 @@ export function createTurn(onEnd: (kind: TurnEnd, steps: number) => void) {
     },
     begin() {
       clear()
+      epoch++
       open = true
+      tools = 0
       started = false
+      answer = false
       steps = 0
       armStall()
     },
     toolStart() {
       started = true
+      answer = false
       tools++
       clear()
+      return epoch
     },
-    toolEnd() {
+    toolEnd(token = epoch) {
+      if (token !== epoch) return
       tools = Math.max(0, tools - 1)
       steps++
       armStall()
+      if (!tools && open && answer) settle = setTimeout(() => finish("answered"), SETTLE_MS)
     },
     agentLine() {
       if (!open) return clearTimeout(stall)
       started = true
+      answer = true
       armStall()
       clearTimeout(settle)
       if (!tools) settle = setTimeout(() => finish("answered"), SETTLE_MS)
@@ -67,8 +77,47 @@ export function createTurn(onEnd: (kind: TurnEnd, steps: number) => void) {
     },
     stop() {
       clear()
+      epoch++
       open = false
       tools = 0
+    },
+  }
+}
+
+/** Typed requests and their provider echo share one identity; replayed speech never restarts it. */
+export function createRequests(newId: () => string) {
+  let current: string | null = null
+  const typed: { text: string; id: string }[] = []
+  const heard = new Map<string, string>()
+  const words = (text: string) => text.trim().replace(/\s+/g, " ")
+  return {
+    get current() { return current },
+    typed(text: string) {
+      current = newId()
+      typed.push({ text: words(text), id: current })
+      if (typed.length > 200) typed.shift()
+      return current
+    },
+    heard(text: string, key?: string) {
+      const replay = key ? heard.get(key) : undefined
+      if (replay) return { id: replay, fresh: false }
+      const index = typed.findIndex((entry) => entry.text === words(text))
+      const echo = index < 0 ? null : typed.splice(index, 1)[0]!.id
+      const id = echo ?? newId()
+      if (!echo) current = id
+      if (key) {
+        heard.set(key, id)
+        if (heard.size > 200) heard.delete(heard.keys().next().value!)
+      }
+      return { id, fresh: !echo }
+    },
+    finish() {
+      typed.splice(0)
+    },
+    clear() {
+      current = null
+      typed.splice(0)
+      heard.clear()
     },
   }
 }

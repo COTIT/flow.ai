@@ -169,7 +169,7 @@ for (const { op, sees } of READS)
     await expectNoHorizontalScroll(page)
   })
 
-test("stock redrawn in place as ranked bars keeps the API's own figures", async ({ page }) => {
+test("stock appended as ranked bars keeps the API's own figures", async ({ page }) => {
   await office(page)
   const agent = await fakeAgent(page)
   await page.goto("/")
@@ -185,7 +185,7 @@ test("stock redrawn in place as ranked bars keeps the API's own figures", async 
   expect(picture.supports).toEqual(["list", "hbar", "bar", "table"])
   ask(agent, "stock_list", { presentation: "hbar", replaces: picture.id })
   await expect.poll(agent.results).toBe(2)
-  await expect(results.locator('[data-role="result"]')).toHaveCount(1)
+  await expect(results.locator('[data-role="result"]')).toHaveCount(2)
   await expect(results.locator('[data-chart="hbar"]')).toContainText("20")
   await expectNoHorizontalScroll(page)
 })

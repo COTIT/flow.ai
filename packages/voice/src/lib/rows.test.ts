@@ -8,11 +8,12 @@ const records: ResultView = { kind: "records", resource: "orders", total: 0, hre
 const user: TranscriptRow = { id: "u", role: "user", text: "compare" }
 
 describe("withView", () => {
-  it("puts sales answers of one question into one chart", () => {
+  it("keeps separate sales outcomes as independent snapshots", () => {
     const one = withView([user], sales("a"), "r1")
     const two = withView(one, sales("b"), "r2")
-    expect(two).toHaveLength(2)
-    expect(two[1]).toMatchObject({ id: "r1", role: "result", views: [sales("a"), sales("b")] })
+    expect(two).toHaveLength(3)
+    expect(two[1]).toMatchObject({ id: "r1", role: "result", views: [sales("a")] })
+    expect(two[2]).toMatchObject({ id: "r2", role: "result", views: [sales("b")] })
   })
 
   it("a new question or another kind of picture starts a new row", () => {
@@ -30,17 +31,26 @@ describe("withView", () => {
     const rows = Array.from({ length: 200 }, (_, i): TranscriptRow => ({ id: `${i}`, role: "agent", text: "x" }))
     expect(withView(rows, records, "r")).toHaveLength(200)
   })
+
+  it("records answer identity and capture time without changing the dataset", () => {
+    const view = sales("a")
+    const metadata = { requestId: "question-1", createdAt: "2026-11-13T01:02:03Z" }
+    expect(withView([user], view, "r1", "orders_sales_summary", metadata).at(-1)).toMatchObject({
+      id: "r1", views: [view], ...metadata,
+    })
+  })
 })
 
 describe("replaceView", () => {
   const first = withView([user], sales("a"), "r1", "orders_sales_summary")
   const later = [...first, { id: "u2", role: "user" as const, text: "as a table" }]
 
-  it("changes the named picture where it is, keeping its id and place", () => {
+  it("appends a requested chart change without mutating previous history", () => {
     const table = { ...sales("b"), presentation: "table" as const }
     const out = replaceView(later, "r1", table, "orders_sales_summary", "r9")
-    expect(out).toHaveLength(3)
-    expect(out[1]).toEqual({ id: "r1", role: "result", text: "", views: [table], operation: "orders_sales_summary" })
+    expect(out).toHaveLength(4)
+    expect(out.slice(0, 3)).toEqual(later)
+    expect(out[3]).toEqual({ id: "r9", role: "result", text: "", views: [table], operation: "orders_sales_summary" })
   })
 
   it("adds a new picture when the named one is not on screen, and removes nothing", () => {

@@ -130,6 +130,18 @@
         "label": "Explore possibilities",
         "description": "Everything Genesy can do for you, by kind of task.",
         "example": "What can you help me with?"
+      },
+      "compare_sales_periods": {
+        "label": "Compare periods",
+        "description": "Compare these sales with the previous period.",
+        "example": "Compare these sales with the previous period.",
+        "prompt": "Compare overall sales for the same date range and sales source as my latest result with the previous equal-length period. Use backend-calculated changes; explain if the comparison is not supported."
+      },
+      "sales_trend_followup": {
+        "label": "View daily sales",
+        "description": "See overall sales day by day for the same period.",
+        "example": "Show daily sales for this period.",
+        "prompt": "Show overall daily sales for the same date range and sales source as my latest result. Keep the product ranking separate; do not imply a product-level trend."
       }
     }
   }

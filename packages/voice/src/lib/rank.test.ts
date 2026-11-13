@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { FlowCapability } from "./capabilities"
+import { FLOW_CAPABILITIES, type FlowCapability } from "./capabilities"
 import { nextActions, rankPills } from "./rank"
 
 const cap = (
@@ -103,6 +103,13 @@ describe("rankPills", () => {
 })
 
 describe("nextActions", () => {
+  it("offers relevant read-only sales follow-ups only with sales permission", () => {
+    const next = nextActions(FLOW_CAPABILITIES, "products_top_sellers", all)
+    expect(next.map((c) => c.id)).toContain("compare_sales_periods")
+    expect(next.map((c) => c.id)).toContain("sales_trend_followup")
+    expect(next.every((c) => !c.write)).toBe(true)
+    expect(nextActions(FLOW_CAPABILITIES, "products_top_sellers", () => false)).toEqual([])
+  })
   const after = [
     cap("x", { after: ["stock_set_levels"] }),
     cap("y", { after: ["stock_set_levels"], rights: ["order.list"] }),

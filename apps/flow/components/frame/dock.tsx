@@ -14,6 +14,7 @@ import {
 } from "@genesy/voice/components/attachments"
 import { useVoice } from "@genesy/voice/components/provider"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
+import { ConversationResults } from "@genesy/voice/components/conversation-results"
 import { isBlankMessage } from "@genesy/voice/lib/blank"
 import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
 import type { SessionPhase } from "@genesy/voice/lib/presentation"
@@ -168,6 +169,7 @@ export function Dock({ phase }: { phase: SessionPhase["phase"] }) {
         data-flow-pane="dock"
         className="relative flex max-h-[calc(var(--flow-vh,100dvh)*0.45-5rem)] min-h-0 min-w-0 shrink flex-col gap-2 overflow-y-auto overscroll-y-contain [@media(max-height:500px)]:max-h-[calc(var(--flow-vh,100dvh)*0.45-1rem)]"
       >
+        <ConversationResults rows={voice.messages} completedRequestId={voice.completedRequestId} reportOpen={voice.reportOpen} onReportOpenChange={voice.setReportOpen} />
         {/* F3: dynamic suggestions; an instruction starts a text conversation, never the mic. */}
         <Pills
           disabled={Boolean(voice.review)}

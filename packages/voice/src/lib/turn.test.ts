@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { createTurn, endedBy, SETTLE_MS, STALL_MS } from "./turn"
+import { createRequests, createTurn, endedBy, SETTLE_MS, STALL_MS } from "./turn"
 
 let ends: { kind: string; steps: number }[]
 let turn: ReturnType<typeof createTurn>
@@ -118,4 +118,59 @@ it("counts as working only once the agent has started (narration or a tool), so 
   expect(turn.working).toBe(true)
   turn.stop()
   expect(turn.working).toBe(false)
+})
+
+it("queued tools keep an answer open until every dataset has settled", async () => {
+  turn.begin()
+  const first = turn.toolStart()
+  const second = turn.toolStart()
+  const third = turn.toolStart()
+  turn.toolEnd(first)
+  turn.agentLine()
+  await vi.advanceTimersByTimeAsync(SETTLE_MS * 2)
+  expect(ends).toEqual([])
+  turn.toolEnd(second)
+  turn.toolEnd(third)
+  await vi.advanceTimersByTimeAsync(SETTLE_MS)
+  expect(ends).toEqual([{ kind: "answered", steps: 3 }])
+})
+
+it("old-request tools cannot end or hold a new request", async () => {
+  turn.begin()
+  const old = turn.toolStart()
+  turn.begin()
+  turn.toolEnd(old)
+  turn.agentLine()
+  await vi.advanceTimersByTimeAsync(SETTLE_MS)
+  expect(ends).toEqual([{ kind: "answered", steps: 0 }])
+})
+
+it("typed echoes and replayed provider events preserve canonical request identity", () => {
+  let ordinal = 0
+  const requests = createRequests(() => `request-${++ordinal}`)
+  expect(requests.typed("Sales today")).toBe("request-1")
+  expect(requests.heard("Sales today", "1")).toEqual({ id: "request-1", fresh: false })
+  expect(requests.heard("Sales today", "1")).toEqual({ id: "request-1", fresh: false })
+  expect(requests.heard("Sales today", "2")).toEqual({ id: "request-2", fresh: true })
+})
+
+it("late typed echoes cannot replace the identity of a newer typed request", () => {
+  let ordinal = 0
+  const requests = createRequests(() => `request-${++ordinal}`)
+  requests.typed("Sales")
+  requests.typed("Stock")
+  expect(requests.heard("Sales", "1")).toEqual({ id: "request-1", fresh: false })
+  expect(requests.current).toBe("request-2")
+  expect(requests.heard("Stock", "2")).toEqual({ id: "request-2", fresh: false })
+  requests.clear()
+  expect(requests.current).toBeNull()
+  expect(requests.heard("Sales", "1")).toEqual({ id: "request-3", fresh: true })
+})
+
+it("a completed typed request cannot swallow a later identical spoken request", () => {
+  let ordinal = 0
+  const requests = createRequests(() => `request-${++ordinal}`)
+  requests.typed("Sales")
+  requests.finish()
+  expect(requests.heard("Sales", "1")).toEqual({ id: "request-2", fresh: true })
 })

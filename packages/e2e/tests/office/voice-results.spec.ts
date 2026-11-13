@@ -81,7 +81,7 @@ const sales = (from: string, to: string, gross: number, orders: number, net: num
   },
 })
 
-test("two sales answers become one comparison chart with a table equivalent", async ({ page, api: _api }, testInfo) => {
+test("two sales answers remain separate charts with table equivalents", async ({ page, api: _api }, testInfo) => {
   void _api
   await page.emulateMedia({ reducedMotion: "reduce" })
   const voice = await chat(page, (_op, n) =>
@@ -94,17 +94,19 @@ test("two sales answers become one comparison chart with a table equivalent", as
   voice.call("orders_sales_summary")
   await expect.poll(voice.results).toBe(2)
   const log = page.getByRole("log")
-  const chart = log.getByRole("region", { name: r.source.till })
-  await expect(chart).toHaveCount(1)
-  await expect(chart.locator("[data-chart]")).toContainText("TZS 1,250,000")
-  await expect(chart.locator("[data-chart]")).toContainText("TZS 980,000")
-  await expect(chart.locator("[data-chart]")).toContainText("42 orders")
+  const charts = log.getByRole("region", { name: r.source.till })
+  await expect(charts).toHaveCount(2)
+  const chart = charts.first()
+  await expect(chart.locator("[data-chart]")).toBeVisible()
+  await expect(chart).toContainText("TZS 1,250,000")
+  await expect(charts.last()).toContainText("TZS 980,000")
+  await expect(chart.getByRole("table")).toContainText("42")
   // Revenue excl VAT says it is before refunds; a row without the split shows none.
-  await expect(chart.locator("[data-chart]")).toContainText("TZS 1,059,322 excl VAT, before refunds")
-  await expect(chart.locator("[data-chart]").getByText(/excl VAT/)).toHaveCount(1)
+  await expect(chart.getByRole("table")).toContainText("TZS 1,059,322")
+  await expect(chart.getByRole("columnheader", { name: r.net })).toHaveCount(1)
   // The same numbers as a real table, for screen readers and on request.
   const table = chart.getByRole("table")
-  await expect(table.getByRole("row")).toHaveCount(3)
+  await expect(table.getByRole("row")).toHaveCount(2)
   await expect(table.getByRole("columnheader", { name: r.net })).toHaveCount(1)
   await expect(table).toContainText("TZS 190,678")
   await chart.scrollIntoViewIfNeeded()

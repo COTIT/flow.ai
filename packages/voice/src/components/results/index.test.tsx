@@ -5,6 +5,7 @@ import type { ResultView } from "../../lib/views"
 import { VoiceContext } from "../provider"
 import { stubVoice } from "../stub-voice"
 import { VoiceResult } from "./index"
+import { ReportChart } from "./kinds"
 
 vi.mock("next-intl", () => ({
   useTranslations: () => Object.assign((key: string) => key, { has: () => false }),
@@ -29,6 +30,20 @@ const html = (node: React.ReactNode, resolveHref?: (href: string) => string) =>
   )
 
 describe("VoiceResult links", () => {
+  it("uses the available width without a fixed card cap", () => {
+    const out = html(<VoiceResult views={orders} />)
+    expect(out).not.toContain("max-w-[36rem]")
+    expect(out).toContain("w-full")
+  })
+
+  it("renders every independent view in a compound result", () => {
+    const other = { ...orders[0]!, resource: "products", rows: [{ ...((orders[0] as Extract<ResultView, { kind: "records" }>).rows[0]!), label: "Honey" }] } as ResultView
+    const out = html(<VoiceResult views={[...orders, other]} />)
+    expect(out).toContain("Order 1")
+    expect(out).toContain("Honey")
+    expect(out.match(/data-role="result"/g)).toHaveLength(2)
+  })
+
   it("keeps server hrefs as they are by default", () => {
     const out = html(<VoiceResult views={orders} />)
     expect(out).toContain('href="/orders/1"')
@@ -82,7 +97,7 @@ describe("VoiceResult daily sales", () => {
     const out = html(<VoiceResult views={[daily]} />)
     expect(out).toContain('data-kind="sales_daily"')
     expect(out).toContain('data-chart="line"')
-    expect(out.match(/<polyline/g)).toHaveLength(1)
+    expect(out).toContain("recharts-responsive-container")
     expect(out).not.toContain("<rect")
     expect(out).toContain("$10.00")
     expect(out).not.toContain("noSales")
@@ -111,10 +126,18 @@ describe("VoiceResult draws every allowed kind from the API's own figures", () =
   const trail = { kind: "trail", events: [{ kind: "created", from: null, to: null, at: "2026-11-01", by: null }] }
   const as = (view: object, presentation?: string) => html(<VoiceResult views={[{ ...view, ...(presentation ? { presentation } : {}) } as ResultView]} />)
 
+  it("exports every numeric view at fixed dimensions without a responsive container", () => {
+    const out = html(<ReportChart views={[daily, breakdown] as ResultView[]} width={960} height={320} />)
+    expect(out.match(/data-result-chart=""/g)).toHaveLength(2)
+    expect(out).toContain("width:960px;height:320px")
+    expect(out).not.toContain("recharts-responsive-container")
+    expect(html(<ReportChart views={[rows] as ResultView[]} width={960} height={320} />)).toBe("")
+  })
+
   it.each([
-    ["line", daily, "<polyline"],
-    ["sparkline", daily, "h-10"],
-    ["bar", daily, "rounded-t"],
+    ["line", daily, "recharts-responsive-container"],
+    ["sparkline", daily, "height:96px"],
+    ["bar", daily, "recharts-responsive-container"],
     ["hbar", breakdown, "$9,000.00"],
     ["table", daily, '<table id='],
     ["list", breakdown, "breakdown.walkIn"],
@@ -130,11 +153,11 @@ describe("VoiceResult draws every allowed kind from the API's own figures", () =
     for (const kind of ["pie", "donut"]) {
       const out = as(breakdown, kind)
       expect(out).toContain(`data-chart="${kind}"`)
-      expect(out.match(/<path/g)).toHaveLength(2)
+      expect(out).toContain("recharts-responsive-container")
       expect(out).toContain('aria-label="Neema Shop: $9,000.00; breakdown.walkIn: $3,000.00"')
-      expect(out).not.toContain("%")
+      expect(out.replace(/<[^>]*>/g, "")).not.toContain("%")
     }
-    expect(as(counts, "pie").match(/<path/g)).toHaveLength(2)
+    expect(as(counts, "pie")).toContain("Open: 3; Acknowledged: 1")
   })
 
   it("a comparison shows the current period and the API's change, as a delta by default", () => {
@@ -263,12 +286,12 @@ describe("P2 pictures redrawn as another allowed kind", () => {
   const search = { kind: "search", groups: [{ key: "orders", rows: [{ label: "ORD-7", detail: null, status: "open", money: { minor: 5, decimals: 2, currency: "USD" }, href: null }] }] }
   const as = (view: object, presentation: string) => html(<VoiceResult views={[{ ...view, presentation } as ResultView]} />)
 
-  it("stock as ranked bars keeps the API's text and draws a negative level as an empty bar", () => {
+  it("stock as ranked bars keeps the API's positive and negative values", () => {
     const out = as(stock, "hbar")
     expect(out).toContain('data-chart="hbar"')
     expect(out).toContain(">9<")
     expect(out).toContain(">-1<")
-    expect(out.match(/fill-\(--gold\)/g)).toHaveLength(1)
+    expect(out).toContain("recharts-responsive-container")
   })
 
   it("stock and search as tables", () => {

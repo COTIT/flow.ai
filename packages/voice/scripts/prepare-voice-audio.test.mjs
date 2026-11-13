@@ -38,6 +38,10 @@ describe("prepare-voice-audio", () => {
         expect(readFileSync(join(dir, "public/voice-audio", file))).toEqual(
           readFileSync(require.resolve(source))
         )
+      for (const file of ["Poppins-Regular.ttf", "Poppins-SemiBold.ttf"])
+        expect(readFileSync(join(dir, "public/report-fonts", file))).toEqual(
+          readFileSync(new URL(`../../ui/src/fonts/${file}`, import.meta.url))
+        )
     },
     SPAWN_TIMEOUT
   )

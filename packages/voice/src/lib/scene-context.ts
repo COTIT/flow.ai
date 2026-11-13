@@ -13,7 +13,7 @@ export type SceneContext = {
   visible?: VisibleComponent[]
   results_shown?: number
   latest_result?: string
-  /** Result pictures on screen, newest first, by stable id (what to redraw in place). */
+  /** Retained result snapshots, newest first, by stable id (the source for a new drawing). */
   pictures?: Picture[]
   review_open?: boolean
 }
@@ -24,7 +24,7 @@ export type Picture = {
   kind: string
   shape: Shape
   shown_as: Kind
-  /** Every kind it may be redrawn as, in place. */
+  /** Every kind a new drawing of this data may use. */
   supports: readonly Kind[]
   operation?: string
   period?: { from: string; to: string }

@@ -133,10 +133,13 @@ describe("Office messages", () => {
         operationTitles,
         // Added since (P6 plain words): the short End label on phones.
         endShort,
+        // Added since chart reports: download and selection labels.
+        reports,
         ...rest
       } = voice as typeof voice & Record<string, unknown>
       expect(operationTitles).toBeDefined()
       expect(endShort).toBeDefined()
+      expect(reports).toBeDefined()
       for (const text of [
         connectionLost,
         offline,
