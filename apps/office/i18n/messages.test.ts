@@ -133,10 +133,18 @@ describe("Office messages", () => {
         operationTitles,
         // Added since (P6 plain words): the short End label on phones.
         endShort,
+        // Added for opt-in history: distinct call control and pending delivery labels.
+        endCall,
+        delivery,
         ...rest
       } = voice as typeof voice & Record<string, unknown>
       expect(operationTitles).toBeDefined()
       expect(endShort).toBeDefined()
+      expect(endCall).toEqual(expect.any(String))
+      expect(delivery).toEqual({
+        queued: expect.any(String),
+        sent_unconfirmed: expect.any(String),
+      })
       for (const text of [
         connectionLost,
         offline,

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_conversation_sources SET summary=NULL WHERE workspace_id=$1 AND conversation_id=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "521f2f380fb4cbd5de3096df0b981dde93e4d7135e6b4b2cdc01560c3da063ae"
+}

@@ -2193,7 +2193,7 @@ fn every_assistant_control_operation_is_documented() {
                 .is_some_and(|tags| tags.iter().any(|t| t == "assistant"))
         })
         .collect::<Vec<_>>();
-    assert_eq!(ops.len(), 28);
+    assert_eq!(ops.len(), 37);
     for op in ops {
         assert!(
             op["operationId"]

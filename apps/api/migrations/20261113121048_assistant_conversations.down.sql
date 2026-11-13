@@ -1,0 +1,5 @@
+DROP TABLE assistant_conversation_turns;
+DROP TABLE assistant_conversation_sources;
+DROP TABLE assistant_conversations;
+DROP INDEX assistant_sessions_cleanup_fair_idx;
+ALTER TABLE assistant_sessions DROP COLUMN cleanup_attempted_at;

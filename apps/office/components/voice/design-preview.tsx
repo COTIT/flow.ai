@@ -88,6 +88,14 @@ export function VoiceDesignPreview() {
       return 0.35 + 0.3 * Math.sin(t * 6) + 0.2 * Math.sin(t * 17)
     }
     return {
+      historyEnabled: false,
+      logicalConversationId: null,
+      historyRestoring: false,
+      restoreConversation: noop,
+      continueConversation: noop,
+      startNewConversation: noop,
+      endConversation: noop,
+      deleteConversation: noop,
       connected,
       starting: false,
       upgrading: false,

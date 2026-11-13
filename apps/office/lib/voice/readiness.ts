@@ -87,6 +87,47 @@ export function validateNativeMultimodal(
   overrides(configuration.language_presets)
 }
 
+/** History activation requires actual prompt and transcript delivery configuration; audio remains disabled. */
+export function validateConversationHistory(
+  agent: unknown,
+  inventory: unknown
+): void {
+  const configured = object(agent)
+  const platform = object(configured.platform_settings)
+  const prompt = object(
+    object(object(configured.conversation_config).agent).prompt
+  )
+  const overrides = object(
+    object(object(platform.overrides).conversation_config_override).agent
+  )
+  const webhook = object(object(platform.workspace_overrides).webhooks)
+  const rows = object(inventory).webhooks
+  if (
+    typeof prompt.prompt !== "string" ||
+    !prompt.prompt.includes("{{flow_history_context}}") ||
+    object(platform.privacy).record_voice !== false ||
+    overrides.first_message !== true ||
+    object(overrides.prompt).prompt !== false ||
+    typeof webhook.post_call_webhook_id !== "string" ||
+    webhook.exclude_transcript !== false ||
+    webhook.transcript_format !== "json" ||
+    !Array.isArray(webhook.events) ||
+    webhook.events.length !== 1 ||
+    webhook.events[0] !== "transcript" ||
+    !Array.isArray(rows) ||
+    !rows.some((row: unknown) => {
+      const entry = object(row)
+      return (
+        entry.webhook_id === webhook.post_call_webhook_id &&
+        entry.auth_type === "hmac" &&
+        entry.is_disabled === false &&
+        entry.is_auto_disabled === false
+      )
+    })
+  )
+    throw new Error("Conversation history provider configuration is not ready")
+}
+
 async function providerConfiguration(
   key: string,
   agent: string
@@ -110,6 +151,13 @@ async function providerConfiguration(
   if (object(configured).agent_id !== agent)
     throw new Error("Provider configuration belongs to another agent")
   validateNativeMultimodal(configured, models)
+  if ((await voiceSetting("ASSISTANT_CONVERSATIONS_ENABLED")) === "true") {
+    if ((await voiceSetting("ELEVENLABS_WEBHOOK_SECRET")).length < 16)
+      throw new Error(
+        "Conversation transcript authentication is not configured"
+      )
+    validateConversationHistory(configured, await get("/v1/workspace/webhooks"))
+  }
 }
 
 async function checkpointReady(connectionString: string): Promise<boolean> {

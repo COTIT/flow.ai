@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { assistantReadiness, validateNativeMultimodal } from "./readiness"
+import {
+  assistantReadiness,
+  validateConversationHistory,
+  validateNativeMultimodal,
+} from "./readiness"
 
 const db = vi.hoisted(() => ({
   connect: vi.fn(),
@@ -44,6 +48,69 @@ const models = () => ({
     supports_image_input: true,
     supports_document_input: true,
   })),
+})
+
+it("history readiness refuses excluded transcripts, missing prompt binding and recorded audio", () => {
+  const configured = {
+    conversation_config: {
+      agent: {
+        prompt: { prompt: "Untrusted history: {{flow_history_context}}" },
+      },
+    },
+    platform_settings: {
+      privacy: { record_voice: false },
+      overrides: {
+        conversation_config_override: {
+          agent: { first_message: true, prompt: { prompt: false } },
+        },
+      },
+      workspace_overrides: {
+        webhooks: {
+          post_call_webhook_id: "hook",
+          events: ["transcript"],
+          transcript_format: "json",
+          exclude_transcript: false,
+        },
+      },
+    },
+  }
+  const hooks = {
+    webhooks: [
+      {
+        webhook_id: "hook",
+        auth_type: "hmac",
+        is_disabled: false,
+        is_auto_disabled: false,
+      },
+    ],
+  }
+  expect(() => validateConversationHistory(configured, hooks)).not.toThrow()
+  for (const mutate of [
+    (v: typeof configured) => {
+      v.platform_settings.workspace_overrides.webhooks.exclude_transcript = true
+    },
+    (v: typeof configured) => {
+      v.conversation_config.agent.prompt.prompt = "No history"
+    },
+    (v: typeof configured) => {
+      v.platform_settings.privacy.record_voice = true
+    },
+    (v: typeof configured) => {
+      v.platform_settings.overrides.conversation_config_override.agent.prompt.prompt = true
+    },
+  ]) {
+    const invalid = structuredClone(configured)
+    mutate(invalid)
+    expect(() => validateConversationHistory(invalid, hooks)).toThrow()
+  }
+  expect(() =>
+    validateConversationHistory(configured, { webhooks: [] })
+  ).toThrow()
+  expect(() =>
+    validateConversationHistory(configured, {
+      webhooks: [{ ...hooks.webhooks[0], is_auto_disabled: true }],
+    })
+  ).toThrow()
 })
 
 beforeEach(() => {

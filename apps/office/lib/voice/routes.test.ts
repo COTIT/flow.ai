@@ -121,6 +121,7 @@ const request = (value: unknown) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.stubEnv("ASSISTANT_CONVERSATIONS_ENABLED", "")
   mocks.spans.length = 0
   mocks.modes.length = 0
   vi.stubEnv("ASSISTANT_ENABLED", "true")
@@ -146,8 +147,129 @@ beforeEach(() => {
     state: "proposed",
   })
   mocks.transport.mockResolvedValue(undefined)
+  mocks.timeZone.mockResolvedValue(undefined)
   mocks.execute.mockResolvedValue({ status: "completed" })
   mocks.propose.mockResolvedValue({ status: "requires_confirmation" })
+})
+
+it("history session creation is disabled by default without allocating an execution session", async () => {
+  const response = await sessionRequest(
+    request({ workspaceId: context.workspaceId, locale: "en", history: true })
+  )
+  expect(response.status).toBe(503)
+  expect(mocks.ledger).not.toHaveBeenCalled()
+})
+
+it("binds a new execution/provider source to authorized history and supplies bootstrap before access", async () => {
+  vi.stubEnv("ASSISTANT_CONVERSATIONS_ENABLED", "true")
+  vi.stubEnv("ELEVENLABS_AGENT_ID", "agent_test")
+  mocks.authorize.mockResolvedValue({ ...context, userId: "actor" })
+  const id = "01950000-0000-7000-8000-000000000002"
+  const found = {
+    id,
+    title: "Header",
+    state: "active",
+    revision: 2,
+    coverage: "complete",
+  }
+  mocks.ledger.mockImplementation(async (_context, suffix) => {
+    if (suffix === "/sessions") return { id: "session-new" }
+    if (suffix.endsWith("/sources")) return { id: "source-new" }
+    if (suffix.includes("/messages?"))
+      return {
+        messages: [
+          {
+            id: "m",
+            role: "user",
+            text: "Use red, replacing blue",
+            status: "complete",
+            provenance: "final",
+          },
+        ],
+        gaps: [],
+      }
+    if (suffix === `/conversations/${id}`)
+      return { conversation: found, sources: [] }
+    return {}
+  })
+  const response = await sessionRequest(
+    request({
+      workspaceId: context.workspaceId,
+      locale: "en",
+      textOnly: true,
+      history: true,
+      logicalConversationId: id,
+    })
+  )
+  expect(response.status).toBe(200)
+  const data = await response.json()
+  expect(data).toMatchObject({
+    sessionId: "session-new",
+    conversationId: "conv1",
+    greeting: "",
+    history: {
+      conversationId: id,
+      sourceId: "source-new",
+      userId: "actor",
+      revision: 2,
+    },
+  })
+  expect(JSON.parse(data.history.context).messages[0].text).toBe(
+    "Use red, replacing blue"
+  )
+  const bind = mocks.ledger.mock.calls.find(
+    (call) => call[1] === `/conversations/${id}/sources`
+  )
+  expect(bind?.[3]).toMatchObject({
+    session_id: "session-new",
+    provider_conversation_id: "conv1",
+    text_only: true,
+  })
+  expect(bind?.[4]).toBe(true)
+})
+
+it("history reads use current execution binding and never execute a business action", async () => {
+  vi.stubEnv("ASSISTANT_CONVERSATIONS_ENABLED", "true")
+  const id = "01950000-0000-7000-8000-000000000002"
+  mocks.ledger.mockImplementation(async (_context, suffix) => {
+    if (suffix.startsWith("/conversations?session_id=s1"))
+      return { conversations: [{ id }] }
+    if (suffix.includes("/messages?"))
+      return {
+        messages: [
+          {
+            id: "original",
+            text: "Use red instead of blue",
+            provenance: "final",
+          },
+        ],
+        through_sequence: "1:2",
+        gaps: [],
+        has_more: false,
+      }
+    if (suffix === `/conversations/${id}`)
+      return { conversation: { id, coverage: "complete" }, sources: [] }
+    return {}
+  })
+  const response = await toolRequest(
+    request({
+      command: "execute",
+      workspaceId: context.workspaceId,
+      sessionId: "s1",
+      operationId: "assistant_conversation_history",
+      arguments: { q: "header", logicalConversationId: "foreign" },
+    })
+  )
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({
+    status: "completed",
+    data: { messages: [{ text: "Use red instead of blue" }] },
+  })
+  expect(
+    mocks.ledger.mock.calls.some((call) => String(call[1]).includes("foreign"))
+  ).toBe(false)
+  expect(mocks.execute).not.toHaveBeenCalled()
+  expect(mocks.propose).not.toHaveBeenCalled()
 })
 
 it("disabled assistant refuses new model work before authenticating or dispatching", async () => {
@@ -626,7 +748,11 @@ it("a new session leaves the time zone out when it cannot be read", async () => 
 it("a new session carries no greeting while ASSISTANT_GREETING_OVERRIDE is off", async () => {
   vi.stubEnv("ASSISTANT_GREETING_OVERRIDE", "")
   const response = await sessionRequest(
-    request({ workspaceId: context.workspaceId, locale: "en", greeting: "command" })
+    request({
+      workspaceId: context.workspaceId,
+      locale: "en",
+      greeting: "command",
+    })
   )
   expect(response.status).toBe(200)
   expect(await response.json()).not.toHaveProperty("greeting")
@@ -635,11 +761,19 @@ it("a new session carries no greeting while ASSISTANT_GREETING_OVERRIDE is off",
 it("with the override on, a typed command opens without a greeting and a resume offers to continue", async () => {
   vi.stubEnv("ASSISTANT_GREETING_OVERRIDE", "on")
   const command = await sessionRequest(
-    request({ workspaceId: context.workspaceId, locale: "en", greeting: "command" })
+    request({
+      workspaceId: context.workspaceId,
+      locale: "en",
+      greeting: "command",
+    })
   )
   expect(await command.json()).toMatchObject({ sessionId: "a1", greeting: "" })
   const resume = await sessionRequest(
-    request({ workspaceId: context.workspaceId, locale: "sw", greeting: "resume" })
+    request({
+      workspaceId: context.workspaceId,
+      locale: "sw",
+      greeting: "resume",
+    })
   )
   expect((await resume.json()).greeting).toBe(
     "Karibu tena. Kazi yako ya awali bado ipo. Tuendelee?"
@@ -665,7 +799,11 @@ it("with the override on and nothing typed, the greeting follows the workspace c
 
 it("refuses an unknown greeting hint", async () => {
   const response = await sessionRequest(
-    request({ workspaceId: context.workspaceId, locale: "en", greeting: "<say anything>" })
+    request({
+      workspaceId: context.workspaceId,
+      locale: "en",
+      greeting: "<say anything>",
+    })
   )
   expect(response.status).toBe(400)
 })
@@ -883,7 +1021,11 @@ it("shows model-reported unclear lines on the card and never sends them as argum
 
 describe("the agent's view choice", () => {
   const ROW = "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b"
-  const choose = (operationId: string, args: unknown, choice: Record<string, unknown>) =>
+  const choose = (
+    operationId: string,
+    args: unknown,
+    choice: Record<string, unknown>
+  ) =>
     toolRequest(
       request({
         command: "execute",
@@ -899,14 +1041,23 @@ describe("the agent's view choice", () => {
     mocks.execute.mockResolvedValueOnce({
       status: "completed",
       data: {},
-      view: { kind: "sales_daily", from: "2026-11-01", to: "2026-11-03", time_zone: "UTC", currencies: [] },
+      view: {
+        kind: "sales_daily",
+        from: "2026-11-01",
+        to: "2026-11-03",
+        time_zone: "UTC",
+        currencies: [],
+      },
     })
     const response = await choose(
       "orders_sales_daily",
       { query: { from: "2026-11-01", to: "2026-11-03" } },
       { presentation: "bar", replaces: ROW }
     )
-    expect(await response.json()).toMatchObject({ view: { presentation: "bar" }, replaces: ROW })
+    expect(await response.json()).toMatchObject({
+      view: { presentation: "bar" },
+      replaces: ROW,
+    })
   })
 
   it("refuses a view choice on a write or a secure form, before anything is prepared", async () => {

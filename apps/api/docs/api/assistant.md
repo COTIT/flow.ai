@@ -2,7 +2,9 @@
 
 Assistant controls are internal Office bridge routes. They never enter model discovery. Ordinary business routes keep their existing bearer authentication, permissions, validation and response bodies.
 
-All workspace controls require an active workspace member and the same user and login that created the session. Another workspace, user or login gets 404. A revoked login gets 401; inactive membership gets 403.
+This contract covers login-bound execution controls. [Durable conversation history](assistant-conversations.md) belongs to the member and workspace and survives a new login; stored dialogue never restores execution authority.
+
+Execution controls require an active workspace member and the same user and login that created the session. Another workspace, user or login gets 404. A revoked login gets 401; inactive membership gets 403.
 
 ## Sessions
 
@@ -116,9 +118,9 @@ Path includes `/v1`. Timestamp tolerance: 60 seconds. Bodyless controls hash emp
 
 ## Cleanup and retention
 
-Scheduled `assistant_cleanup` runs every minute through the existing Rust job rail. It deletes only whole due conversations at fixed `https://api.elevenlabs.io/v1/convai/conversations/{id}` using optional server-only `ELEVENLABS_API_KEY` (`_FILE` supported). Due means closed, expired, orphaned or login revoked. Fresh in-flight reservations delay cleanup for up to 60 seconds. A chunk processes at most 20 sessions with ten-second provider request timeouts. Only provider 200, 204 or 404 confirms deletion. Other statuses/network failures retain references for later sweeps. Provider acknowledgement does not prove immediate physical removal from every provider backup.
+Scheduled `assistant_cleanup` runs every minute through the existing Rust job rail. It deletes only whole due conversations at fixed `https://api.elevenlabs.io/v1/convai/conversations/{id}` using optional server-only `ELEVENLABS_API_KEY` (`_FILE` supported). Due means closed, expired, orphaned or login revoked. Source-linked durable history first attempts terminal transcript reconciliation and adds one hour of archival grace unless a canonical snapshot is already stored; unlinked legacy sessions keep their existing schedule. Fresh in-flight reservations delay cleanup for up to 60 seconds. A chunk processes at most 20 sessions with ten-second provider request timeouts. Only provider 200, 204 or 404 confirms deletion. Other statuses/network failures retain references for later sweeps. Provider acknowledgement does not prove immediate physical removal from every provider backup.
 
-Signed, bodyless operator endpoints `GET /v1/assistant/cleanup` and `POST /v1/assistant/cleanup/{session}/ack` offer bounded inspection/ack independent of user login. Ack returns 409 while the session is not due or has a fresh upload reservation; confirmed-cleaned retries return 200. Acknowledge only after confirmed provider deletion.
+Signed, bodyless operator endpoints `GET /v1/assistant/cleanup` and `POST /v1/assistant/cleanup/{session}/ack` offer bounded inspection/ack independent of user login. Ack returns 409 while the session is not due, remains within source archival grace or has a fresh upload reservation; confirmed-cleaned retries return 200. Acknowledge only after confirmed provider deletion.
 
 Pending business drafts live temporarily in PostgreSQL JSONB and can exist in database backups. They disappear on dispatch/cancel, become unreadable at expiry, and the minute sweep removes expired payloads. No raw chat or files belong in these drafts. Resolved action audit is deleted after 90 days. Unresolved claims stay until reconciliation establishes an outcome. Cleanup references stay until provider deletion is confirmed.
 

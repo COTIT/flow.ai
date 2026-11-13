@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id,session_id,login_id,state,final_sha256 FROM assistant_conversation_sources WHERE workspace_id=$1 AND conversation_id=$2 AND provider_conversation_id=$3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "login_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "login_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "final_sha256",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "final_sha256"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "10ef524077be4e673b77fd870df410b372c3a9010b0f5729e02006dacf237350"
+}

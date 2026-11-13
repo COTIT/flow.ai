@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('source_id',id,'state',state) AS \"data!\" FROM assistant_conversation_sources WHERE workspace_id=$1 AND conversation_id=$2 AND state<>'final' ORDER BY ordinal DESC LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f7d429ff9a57932dddaff414e6e7c8b140eb0dfa4cc715e5f28082c751c10204"
+}

@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM assistant_conversation_sources s JOIN assistant_sessions a ON a.workspace_id=s.workspace_id AND a.id=s.session_id JOIN access_tokens t ON t.id=a.login_id AND t.user_id=a.user_id WHERE s.workspace_id=$1 AND a.user_id=$2 AND a.id<>$3 AND a.state='active' AND a.expires_at>now() AND a.last_seen_at>now()-interval '15 minutes' AND t.expires_at>now()) AS \"active!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "active!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4ca9383ab80b52a165318d660076d26da3db84a3d43eae9972a315ebcd5b2bfe"
+}

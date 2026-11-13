@@ -1,0 +1,45 @@
+{
+  "history": {
+    "title": "Conversation history",
+    "new": "New conversation",
+    "intro": "Read earlier conversations without changing your current call or draft. Choose Continue or New conversation to start a call.",
+    "searchLabel": "Search conversations",
+    "search": "Search",
+    "error": "Conversation history could not be loaded. Try again.",
+    "retry": "Try again",
+    "loading": "Loading conversation history…",
+    "noResults": "No conversations or messages match your search.",
+    "empty": "No saved conversations yet.",
+    "untitled": "Untitled conversation",
+    "more": "More conversations",
+    "expires": "Saved until {date}",
+    "partial": "Some conversation history may be missing.",
+    "continueText": "Continue with text",
+    "continueVoice": "Continue with voice",
+    "end": "End conversation",
+    "delete": "Delete conversation",
+    "readOnly": "This conversation has ended. You can read it or start a new conversation.",
+    "messageSearch": "Search messages",
+    "noMessages": "No messages saved yet.",
+    "transcript": "Saved messages",
+    "moreMessages": "More messages",
+    "provisional": "Still being finalized",
+    "interrupted": "Interrupted",
+    "deleteDescription": "Delete this saved conversation and its messages? This cannot be undone. Your current call is unchanged.",
+    "confirmDelete": "Delete",
+    "cancel": "Cancel",
+    "state": {
+      "active": "Active",
+      "ended": "Ended",
+      "deleted": "Deleted"
+    },
+    "modality": {
+      "text": "Text",
+      "voice": "Voice"
+    },
+    "status": {
+      "queued": "Not sent",
+      "sent_unconfirmed": "Delivery unconfirmed"
+    }
+  }
+}

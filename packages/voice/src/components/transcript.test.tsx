@@ -15,15 +15,17 @@ vi.mock("next-intl", () => ({
 const html = (
   rows: TranscriptRow[],
   options: {
+    historyEnabled?: boolean
     resolveHref?: (href: string) => string
     renderResult?: (row: TranscriptRow) => React.ReactNode
   } = {}
 ) =>
   renderToStaticMarkup(
     <VoiceContext.Provider
-      value={stubVoice(
-        options.resolveHref ? { resolveHref: options.resolveHref } : {}
-      )}
+      value={stubVoice({
+        historyEnabled: options.historyEnabled,
+        ...(options.resolveHref ? { resolveHref: options.resolveHref } : {}),
+      })}
     >
       <TranscriptRows rows={rows} renderResult={options.renderResult} />
     </VoiceContext.Provider>
@@ -41,6 +43,32 @@ describe("TranscriptRows", () => {
     expect(out).toContain('data-role="action"')
     expect(out).toContain("roles.user")
     expect(out).toContain("Here they are")
+  })
+
+  it("distinguishes queued from sent-but-unconfirmed archived text", () => {
+    const out = html(
+      [
+        {
+          id: "1",
+          role: "user",
+          text: "first",
+          delivery: "queued",
+          historical: true,
+        },
+        {
+          id: "2",
+          role: "user",
+          text: "second",
+          delivery: "sent_unconfirmed",
+          historical: true,
+        },
+      ],
+      { historyEnabled: true }
+    )
+    expect(out).toContain("delivery.queued")
+    expect(out).toContain("delivery.sent_unconfirmed")
+    expect(out).toContain('data-historical="true"')
+    expect(out).not.toContain("completed")
   })
 
   it("opens a record link row in a new tab without opener or referrer", () => {

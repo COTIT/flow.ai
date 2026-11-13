@@ -16,6 +16,7 @@ import { exactOrigin } from "./links"
  */
 const ROUTES: Record<string, Partial<Record<string, number>>> = {
   readiness: { GET: 10_000 },
+  history: { POST: 60_000 },
   session: { POST: 120_000, DELETE: 60_000 },
   tools: { POST: 120_000 },
   batch: { POST: 120_000 },

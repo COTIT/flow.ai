@@ -38,6 +38,7 @@ assert 'I cancelled the card because you sent a new message' in prompt,'cancel-o
 assert 'Never answer a question about an open card by reading out its confirmation phrase' in prompt,'phrase echo guard missing'
 assert '[Discoverability]' in prompt and '[/Discoverability]' in prompt,'discoverability block missing'
 assert 'Each account is private' in prompt and 'supply link with consent' in prompt,'account privacy line missing'
+assert '{{flow_history_context}}' in prompt and 'assistant_conversation_history' in prompt,'history bootstrap or exact retrieval rule missing'
 assert '[Opening screens]' in prompt and 'open_flow_view' in prompt and 'never changes anything' in prompt,'P4 opening-screens block missing'
 open_view=next(tool for tool in template['clientTools'] if tool['name']=='open_flow_view')
 assert list(open_view['parameters']['properties'])==['view'] and open_view['parameters']['required']==['view'],'open_flow_view takes only a view'
@@ -87,7 +88,7 @@ params=execute['parameters']
 assert params['required']==['operation_id','arguments_json'],'presentation and replaces stay optional'
 assert params['properties']['presentation']['type']=='string' and params['properties']['presentation']['enum']==kinds,'presentation must offer every chart kind'
 assert params['properties']['replaces']['type']=='string','replaces names the picture to redraw'
-assert 'presentation, replaces' in source,'Office must forward presentation and replaces'
+assert re.search(r'presentation,\s*replaces', source),'Office must forward presentation and replaces'
 assert 'superseded or cancelled has no answer' in prompt and 'never retry it' in prompt,'a superseded or cancelled tool result must be silent, never retried'
 turn=config['conversation_config']['turn']
 assert turn['turn_timeout']==20 and turn['silence_end_call_timeout']==180,'idle: one check-in after 20 s silence, end after 180 s'

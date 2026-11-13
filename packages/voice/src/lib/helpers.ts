@@ -25,6 +25,8 @@ export type TranscriptRow = {
   id: string
   role: "user" | "agent" | "action" | "link" | "result"
   text: string
+  historical?: boolean
+  delivery?: "queued" | "sent_unconfirmed"
   /** Charts or cards a "result" row shows. */
   views?: ResultView[]
   /** Office page a "link" row opens. */

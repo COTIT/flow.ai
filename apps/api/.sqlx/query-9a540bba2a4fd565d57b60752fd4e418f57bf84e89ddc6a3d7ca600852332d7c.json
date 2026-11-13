@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_conversation_sources SET revision=revision+1 WHERE workspace_id=$1 AND conversation_id=$2 AND id=$3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9a540bba2a4fd565d57b60752fd4e418f57bf84e89ddc6a3d7ca600852332d7c"
+}

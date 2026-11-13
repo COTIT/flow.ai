@@ -14,12 +14,20 @@ pub async fn run(ctx: &Ctx) -> Result<Step, AppError> {
     let Some(key) = ctx.assistant_api_key.as_ref() else {
         return Ok(Step::Done);
     };
+    crate::modules::flow_conversations::service::reconcile(ctx).await?;
     // One chunk bounds network time and leaves later rows for next scheduled minute.
     for due in repo::cleanup_due(&ctx.db).await?.iter().take(20) {
         let id = due["session_id"]
             .as_str()
             .and_then(|s| Uuid::parse_str(s).ok())
             .ok_or_else(|| AppError::Internal("invalid assistant cleanup record".into()))?;
+        let workspace = due["workspace_id"]
+            .as_str()
+            .and_then(|value| Uuid::parse_str(value).ok())
+            .ok_or_else(|| AppError::Internal("invalid assistant cleanup owner".into()))?;
+        if !repo::cleanup_attempted(&ctx.db, workspace, id).await? {
+            continue;
+        }
         if let Some(conversation) = due["conversation_id"].as_str() {
             let url = conversation_url(conversation)?;
             let request = ctx
@@ -41,7 +49,8 @@ pub async fn run(ctx: &Ctx) -> Result<Step, AppError> {
     Ok(Step::Done)
 }
 
-fn conversation_url(id: &str) -> Result<String, AppError> {
+/// Fixed provider URL for validated native conversation reference.
+pub(crate) fn conversation_url(id: &str) -> Result<String, AppError> {
     if !(1..=200).contains(&id.len())
         || !id
             .bytes()

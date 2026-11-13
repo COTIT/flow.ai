@@ -23,13 +23,19 @@ const keys = (value: unknown, prefix = ""): string[] =>
 
 describe("Flow namespace files", () => {
   // F2: scenes.json
-  it.each(locales.flatMap((l) => [[l, "shell"], [l, "scenes"]] as const))(
-    "%s merges %s.json with the same keys as English",
-    async (locale, name) => {
-      const english = await loadMessages("en", flowMessages)
-      const messages = await loadMessages(locale, flowMessages)
-      expect(english[name]).toBeDefined()
-      expect(keys(messages[name]).sort()).toEqual(keys(english[name]).sort())
-    }
-  )
+  it.each(
+    locales.flatMap(
+      (l) =>
+        [
+          [l, "shell"],
+          [l, "scenes"],
+          [l, "history"],
+        ] as const
+    )
+  )("%s merges %s.json with the same keys as English", async (locale, name) => {
+    const english = await loadMessages("en", flowMessages)
+    const messages = await loadMessages(locale, flowMessages)
+    expect(english[name]).toBeDefined()
+    expect(keys(messages[name]).sort()).toEqual(keys(english[name]).sort())
+  })
 })

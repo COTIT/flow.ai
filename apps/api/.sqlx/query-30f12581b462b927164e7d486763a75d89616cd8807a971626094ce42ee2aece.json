@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH picked AS (SELECT s.workspace_id,s.id FROM assistant_conversation_sources s JOIN assistant_conversations c ON c.workspace_id=s.workspace_id AND c.id=s.conversation_id JOIN assistant_sessions a ON a.workspace_id=s.workspace_id AND a.id=s.session_id WHERE c.state<>'deleted' AND c.expires_at>now() AND s.state<>'final' AND s.remote_deleted_at IS NULL AND a.state<>'cleaned' AND (a.state='closed' OR a.expires_at<=now() OR a.last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=a.login_id AND t.expires_at>now())) ORDER BY s.last_reconcile_attempt_at NULLS FIRST,s.created_at,s.id LIMIT 20 FOR UPDATE OF s SKIP LOCKED) UPDATE assistant_conversation_sources s SET last_reconcile_attempt_at=now() FROM picked p WHERE s.workspace_id=p.workspace_id AND s.id=p.id RETURNING s.provider_conversation_id,s.agent_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider_conversation_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "provider_conversation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "agent_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "agent_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "30f12581b462b927164e7d486763a75d89616cd8807a971626094ce42ee2aece"
+}

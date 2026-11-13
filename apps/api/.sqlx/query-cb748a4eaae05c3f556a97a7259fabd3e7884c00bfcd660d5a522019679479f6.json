@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_sessions SET state='cleaned',cleaned_at=now(),conversation_id=NULL WHERE id=$1 AND state<>'cleaned' AND NOT EXISTS(SELECT 1 FROM assistant_uploads u WHERE u.workspace_id=assistant_sessions.workspace_id AND u.session_id=assistant_sessions.id AND u.state='reserved' AND u.created_at>now()-interval '60 seconds') AND (state='closed' OR expires_at<=now() OR last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=login_id AND t.expires_at>now()))  AND (NOT EXISTS(SELECT 1 FROM assistant_conversation_sources source WHERE source.workspace_id=assistant_sessions.workspace_id AND source.session_id=assistant_sessions.id) OR EXISTS(SELECT 1 FROM assistant_conversation_sources source WHERE source.workspace_id=assistant_sessions.workspace_id AND source.session_id=assistant_sessions.id AND (source.state='final' OR least(coalesce(assistant_sessions.closed_at,'infinity'::timestamptz),assistant_sessions.expires_at,assistant_sessions.last_seen_at+interval '15 minutes',coalesce((SELECT t.expires_at FROM access_tokens t WHERE t.id=assistant_sessions.login_id),now()))<=now()-interval '1 hour'))) RETURNING workspace_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_sessions",
+            "name": "workspace_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cb748a4eaae05c3f556a97a7259fabd3e7884c00bfcd660d5a522019679479f6"
+}

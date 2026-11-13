@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',c.id,'title',c.title,'state',c.state,'revision',c.revision,'coverage',CASE WHEN EXISTS(SELECT 1 FROM assistant_conversation_sources s WHERE s.workspace_id=c.workspace_id AND s.conversation_id=c.id AND s.state='partial') THEN 'partial' WHEN EXISTS(SELECT 1 FROM assistant_conversation_sources s WHERE s.workspace_id=c.workspace_id AND s.conversation_id=c.id AND s.state='provisional') THEN 'provisional' ELSE 'complete' END,'last_activity_at',c.last_activity_at,'expires_at',c.expires_at) AS \"data!\" FROM assistant_conversations c WHERE c.workspace_id=$1 AND c.user_id=$2 AND c.id=$3 AND c.state<>'deleted' AND c.expires_at>now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "db86886ec9d00e084e0ee0a6dc31006cedc3740d4cc3051c94bc196168d04f7f"
+}

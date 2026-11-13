@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_sessions a SET state='closed',closed_at=coalesce(closed_at,now()) WHERE a.workspace_id=$1 AND a.user_id=$2 AND a.state='active' AND EXISTS(SELECT 1 FROM assistant_conversation_sources s WHERE s.workspace_id=a.workspace_id AND s.conversation_id=$3 AND s.session_id=a.id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ade74336f69328decb97ae3ef90951d35c8751eb548dfc1cc6764bb09a2217e9"
+}

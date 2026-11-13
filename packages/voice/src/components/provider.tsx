@@ -78,6 +78,16 @@ import {
   type BatchProgress,
 } from "../lib/continuity"
 
+import {
+  acquireMicrophone,
+  historyRows,
+  providerEventKey,
+  sessionHistoryOptions,
+  type ConversationHistory,
+  type HistoryEvent,
+  type HistoryPage,
+} from "../lib/history"
+
 export type Attachment = {
   key: string
   ordinal: number
@@ -89,6 +99,14 @@ export type Attachment = {
   error?: string
 }
 type VoiceContextValue = {
+  historyEnabled: boolean
+  logicalConversationId: string | null
+  historyRestoring: boolean
+  restoreConversation: (id: string) => Promise<void>
+  continueConversation: (id: string, textOnly?: boolean) => Promise<void>
+  startNewConversation: (textOnly?: boolean) => Promise<void>
+  endConversation: () => Promise<void>
+  deleteConversation: (id: string) => Promise<void>
   connected: boolean
   starting: boolean
   upgrading: boolean
@@ -157,6 +175,7 @@ type VoiceContextValue = {
 }
 /** Host wiring; every default is Office's own, so Office passes nothing. */
 export type VoiceHost = {
+  historyEnabled?: boolean
   /** Base of the voice BFF routes. */
   apiBase?: string
   /** Base the SDK audio worklets are served from. */
@@ -196,6 +215,7 @@ function Session({
   children,
   apiBase = "/api/voice",
   audioBase = "/voice-audio",
+  historyEnabled = false,
   resolveHref = sameHref,
   openView,
   onUnauthorized = signOutExpired,
@@ -212,6 +232,29 @@ function Session({
   const query = useQueryClient()
   const raw = useRawConversation()
   const session = useRef<VoiceSession | null>(null)
+  const logicalId = useRef<string | null>(null)
+  const [logicalConversationId, setLogicalConversationId] = useState<
+    string | null
+  >(null)
+  const [historyRestoring, setHistoryRestoring] = useState(false)
+  const logicalEnded = useRef(false)
+  const microphone = useRef<(() => Promise<void>) | null>(null)
+  const sdkStopped = useRef<Promise<void> | null>(null)
+  const sourceEvents = useRef(new Map<string, HistoryEvent>())
+  const sourceOrdinal = useRef(0)
+  const lastAgentEvent = useRef<string | null>(null)
+  const agentEventIds = useRef(new Map<number, string | number>())
+  const sessionTextOnly = useRef(false)
+  const historyWrites = useRef(Promise.resolve())
+  function selectConversation(id: string | null) {
+    logicalId.current = id
+    setLogicalConversationId(id)
+  }
+  async function releaseMicrophone() {
+    const release = microphone.current
+    microphone.current = null
+    await release?.()
+  }
   const shutdown = useRef<Promise<void> | null>(null)
   const active = useRef(true)
   const generation = useRef(0)
@@ -228,6 +271,7 @@ function Session({
   const files = useRef<Attachment[]>([])
   const nextOrdinal = useRef(0)
   const capturePausedRef = useRef(false)
+  const captureLost = useRef(false)
   const proposal = useRef<VoiceReview | null>(null)
   const pendingActionId = useRef<string | undefined>(undefined)
   const activeBatch = useRef<{ id: string; sessionId: string } | null>(null)
@@ -287,7 +331,7 @@ function Session({
   )
   const lastAsk = useRef("")
   /** Typed while the agent still owes an answer; sent one by one after each answer. */
-  const queued = useRef<string[]>([])
+  const queued = useRef<{ text: string; event?: HistoryEvent }[]>([])
   const resumeNotice = useRef("upgradeNotice")
   const timeZone = useRef<string | undefined>(undefined)
   const turnEnd = useRef<(kind: TurnEnd, steps: number) => void>(() => {})
@@ -329,9 +373,19 @@ function Session({
       )
       setUnfinished("stalled")
     }
-    // Everything typed meanwhile goes as one message, answered together.
-    const next = queued.current.splice(0).join("\n")
-    if (next) void send(next, undefined, true)
+    // Office combines pending input; Flow keeps each durable send distinct.
+    if (historyEnabled) {
+      // Only this live turn drains its queue; archived pending input is never replayed.
+      const next = kind === "answered" ? queued.current.shift() : undefined
+      if (kind !== "answered") queued.current = []
+      if (next) void send(next.text, undefined, true, next.event)
+    } else {
+      const next = queued.current
+        .splice(0)
+        .map((entry) => entry.text)
+        .join("\n")
+      if (next) void send(next, undefined, true)
+    }
   }
   function remember(pointer: RecoveryPointer) {
     recovered.current = pointer
@@ -422,6 +476,15 @@ function Session({
       wait.finish({ status: "paused", message: t("recoveryHint") })
     waits.current.clear()
   }
+  function unauthorizedIfCurrent() {
+    const current = sessionStore.getState()
+    if (
+      active.current &&
+      current.token === token &&
+      current.workspaceId === workspaceId
+    )
+      onUnauthorized()
+  }
   const headers = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
@@ -462,7 +525,7 @@ function Session({
         body: wire.body,
         ...init,
       },
-      onUnauthorized
+      unauthorizedIfCurrent
     )
     if (!response.ok) {
       throw new VoiceRequestError(
@@ -472,6 +535,55 @@ function Session({
       )
     }
     return value as T
+  }
+  function persistEvent(
+    event: HistoryEvent,
+    owner = session.current
+  ): Promise<void> {
+    if (!historyEnabled || !owner?.history) return Promise.resolve()
+    const history = owner.history
+    const write = historyWrites.current
+      .catch(() => undefined)
+      .then(async () => {
+        const result = await request<{ status: string }>("history", {
+          command: "events",
+          logicalConversationId: history.conversationId,
+          sourceId: history.sourceId,
+          sessionId: owner.sessionId,
+          events: [event],
+        })
+        if (result.status !== "saved") throw new Error("history_not_saved")
+      })
+    historyWrites.current = write
+    return write
+  }
+  function liveEvent(
+    role: "user" | "agent",
+    text: string,
+    eventId: string | number,
+    interrupted = false
+  ) {
+    const history = session.current?.history
+    if (!history) return
+    const key = providerEventKey(history.sourceId, role, eventId)
+    const prior = sourceEvents.current.get(key)
+    const event: HistoryEvent = {
+      key,
+      ordinal: prior?.ordinal ?? ++sourceOrdinal.current,
+      role,
+      text,
+      modality: sessionTextOnly.current ? "text" : "voice",
+      status: "complete",
+      ...(interrupted ? { interrupted: true } : {}),
+    }
+    sourceEvents.current.set(key, event)
+    if (role === "agent") lastAgentEvent.current = key
+    const before = generation.current
+    void persistEvent(event).catch(() => {
+      if (active.current && before === generation.current)
+        setError(t("requestFailed"))
+    })
+    return key
   }
   function add(
     role: TranscriptRow["role"],
@@ -807,7 +919,7 @@ function Session({
     contextSync(() => (verified.current ? latest.current : null))
   )
   useEffect(() => () => scene.cancel(), [scene])
-  const conversation = useConversation({
+  const callbacks: NonNullable<Parameters<typeof useConversation>[0]> = {
     workletPaths: {
       rawAudioProcessor: `${audioBase}/rawAudioProcessor.js`,
       audioConcatProcessor: `${audioBase}/audioConcatProcessor.js`,
@@ -833,6 +945,8 @@ function Session({
         return
       }
       verified.current = true
+      if (historyEnabled && !sessionTextOnly.current)
+        holdMic(micMode === "hold")
       setIdentityVerified(true)
       setStarting(false)
       conversation.sendContextualUpdate(timeZoneUpdate(timeZone.current))
@@ -860,6 +974,8 @@ function Session({
     },
     onDisconnect: (details) => {
       if (!active.current) return
+      void releaseMicrophone()
+      if (historyEnabled) generation.current++
       const kind = endedBy(details)
       const steps = turn.steps
       const midTurn = turn.open
@@ -926,6 +1042,19 @@ function Session({
     },
     onMessage: ({ source, message, event_id, response_id }) => {
       if (!active.current || !verified.current) return
+      const eventId =
+        source === "user"
+          ? event_id
+          : (response_id ?? agentEventIds.current.get(event_id) ?? event_id)
+      if (historyEnabled && source !== "user")
+        agentEventIds.current.set(event_id, eventId)
+      const historyKey = historyEnabled
+        ? liveEvent(
+            source === "user" ? "user" : "agent",
+            source === "user" ? message : spokenText(message),
+            eventId ?? crypto.randomUUID()
+          )
+        : undefined
       if (source === "user") {
         const finalizedEvent = Number.isSafeInteger(event_id) && event_id >= 0
         const replayed = finalizedEvent && seenUtterances.current.has(event_id)
@@ -957,22 +1086,49 @@ function Session({
       add(
         source === "user" ? "user" : "agent",
         source === "user" ? message : spokenText(message),
-        `${source}:${response_id ?? event_id}`
+        historyKey ?? `${source}:${response_id ?? event_id}`
       )
+    },
+    onAgentResponseCorrection: ({ event_id, corrected_agent_response }) => {
+      if (!historyEnabled || !active.current || !verified.current) return
+      const text = spokenText(corrected_agent_response)
+      const key = liveEvent(
+        "agent",
+        text,
+        agentEventIds.current.get(event_id) ?? event_id,
+        true
+      )
+      if (key) add("agent", text, key)
     },
     onAgentTyping: ({ is_typing }) => {
       if (active.current && verified.current && is_typing) setThinking(true)
     },
     onInterruption: () => {
+      const prior =
+        historyEnabled && lastAgentEvent.current
+          ? sourceEvents.current.get(lastAgentEvent.current)
+          : undefined
+      if (prior) {
+        const event = { ...prior, interrupted: true }
+        sourceEvents.current.set(prior.key, event)
+        void persistEvent(event).catch(() => undefined)
+      }
       if (dispatching.current && activeBatch.current) void stopBatch("pause")
     },
     clientTools: {
       // P4: navigation only, answered here at once; never a request, never a write.
       open_flow_view: (params: { view?: unknown }) =>
-        openViewTool(openViewNow.current)(params),
+        verified.current
+          ? openViewTool(openViewNow.current)(params)
+          : JSON.stringify({ status: "failed" }),
       discover_genesy_tools: ({ query: search }) =>
         delivered(tool("discover", { query: search })),
-      execute_genesy_tool: ({ operation_id, arguments_json, presentation, replaces }) => {
+      execute_genesy_tool: ({
+        operation_id,
+        arguments_json,
+        presentation,
+        replaces,
+      }) => {
         try {
           return delivered(
             tool("execute", {
@@ -996,7 +1152,15 @@ function Session({
         }
       },
     },
-  })
+  }
+  const conversation = useConversation(
+    historyEnabled
+      ? {
+          workletPaths: callbacks.workletPaths,
+          libsampleratePath: callbacks.libsampleratePath,
+        }
+      : callbacks
+  )
   useEffect(() => {
     latest.current = conversation
   })
@@ -1135,7 +1299,10 @@ function Session({
         if (file.preview) URL.revokeObjectURL(file.preview)
       })
       void conversation.endSession()
-      void cleanup(current)
+      void historyWrites.current
+        .finally(() => cleanup(current))
+        .catch(() => undefined)
+      if (!sdkStopped.current) void releaseMicrophone()
     }
     // This subtree is keyed by workspace and token; its cleanup retains their original identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1189,9 +1356,15 @@ function Session({
     // The active canonical batch fixes identity; every poll rechecks ownership server-side.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, review?.kind, review?.batchId])
-  async function start(onlyText: boolean, continuing = false, opening?: Opening) {
-    if (starting || session.current) return
+  async function start(
+    onlyText: boolean,
+    continuing = false,
+    opening?: Opening
+  ) {
+    if (starting || session.current || (historyEnabled && logicalEnded.current))
+      return
     const before = ++generation.current
+    const previousLogicalId = logicalId.current
     sessionLocale.current = sessionLanguage(locale)
     seenUtterances.current.clear()
     setStarting(true)
@@ -1200,9 +1373,10 @@ function Session({
     setError("")
     setTextOnly(onlyText)
     capturePausedRef.current = false
+    captureLost.current = false
     setCapturePaused(false)
     setUnfinished(null)
-    if (!continuing) {
+    if (!continuing && !(historyEnabled && logicalId.current)) {
       setOutcome(null)
       setProgress(null)
       setMessages([])
@@ -1215,7 +1389,7 @@ function Session({
         shutdown.current = null
       }
       if (recovered.current) await cleanup(recovered.current)
-      if (!onlyText && !continuing) {
+      if (!historyEnabled && !onlyText && !continuing) {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
         })
@@ -1227,6 +1401,14 @@ function Session({
       >("session", {
         locale,
         textOnly: onlyText,
+        ...(historyEnabled
+          ? {
+              history: true,
+              ...(logicalId.current
+                ? { logicalConversationId: logicalId.current }
+                : {}),
+            }
+          : {}),
         greeting: continuing
           ? undefined
           : greetingHint(opening, recoveredTasks.length),
@@ -1236,17 +1418,126 @@ function Session({
         void cleanup(issued)
         return
       }
+      if (historyEnabled && !issued.history) {
+        void cleanup(issued)
+        throw new Error("history_initialization_missing")
+      }
+      if (historyEnabled && !onlyText) {
+        try {
+          microphone.current = await acquireMicrophone(
+            navigator.locks,
+            issued.history!.userId,
+            workspaceId!
+          )
+        } catch (error) {
+          void cleanup(issued)
+          throw error
+        }
+        if (!active.current || before !== generation.current) {
+          await releaseMicrophone()
+          void cleanup(issued)
+          return
+        }
+      }
+      if (issued.history) selectConversation(issued.history.conversationId)
+      sourceEvents.current.clear()
+      sourceOrdinal.current = 0
+      lastAgentEvent.current = null
+      agentEventIds.current.clear()
+      sessionTextOnly.current = onlyText
       session.current = issued
       remember({ sessionId: issued.sessionId, workspaceId: workspaceId! })
       setRecoveredTasks([])
+      const initialHistory = sessionHistoryOptions(
+        historyEnabled,
+        continuing || Boolean(previousLogicalId) || opening === "command",
+        issued.history?.context
+      )
+      const lease = microphone.current
+      let markStopped: (() => void) | undefined
+      if (historyEnabled) {
+        sdkStopped.current = new Promise<void>((resolve) => {
+          markStopped = () => {
+            void (async () => {
+              await lease?.()
+              if (microphone.current === lease) microphone.current = null
+              resolve()
+            })()
+          }
+        })
+      }
+      const guarded: Pick<
+        NonNullable<Parameters<typeof useConversation>[0]>,
+        | "onConnect"
+        | "onDisconnect"
+        | "onMessage"
+        | "onError"
+        | "onAgentResponseCorrection"
+        | "onAgentTyping"
+        | "onInterruption"
+        | "clientTools"
+        | "onConversationCreated"
+        | "onStatusChange"
+      > = historyEnabled
+        ? {
+            onStatusChange: ({ status }) => {
+              if (status === "disconnected") markStopped?.()
+            },
+            onConversationCreated: (sdkSession) => {
+              if (!onlyText && sdkSession.type === "voice")
+                sdkSession.setMicMuted(true)
+            },
+            onConnect: (event) => {
+              if (active.current && before === generation.current)
+                callbacks.onConnect?.(event)
+            },
+            onDisconnect: (event) => {
+              if (active.current && before === generation.current)
+                callbacks.onDisconnect?.(event)
+            },
+            onMessage: (event) => {
+              if (active.current && before === generation.current)
+                callbacks.onMessage?.(event)
+            },
+            onError: (...args) => {
+              if (active.current && before === generation.current)
+                callbacks.onError?.(...args)
+            },
+            onAgentResponseCorrection: (event) => {
+              if (active.current && before === generation.current)
+                callbacks.onAgentResponseCorrection?.(event)
+            },
+            onAgentTyping: (event) => {
+              if (active.current && before === generation.current)
+                callbacks.onAgentTyping?.(event)
+            },
+            onInterruption: (event) => {
+              if (active.current && before === generation.current)
+                callbacks.onInterruption?.(event)
+            },
+            clientTools: Object.fromEntries(
+              Object.entries(callbacks.clientTools ?? {}).map(
+                ([name, tool]) => [
+                  name,
+                  (params: unknown) =>
+                    before === generation.current && verified.current
+                      ? tool(params as Record<string, unknown>)
+                      : JSON.stringify({ status: "cancelled" }),
+                ]
+              )
+            ),
+          }
+        : {}
       await conversation.startSession({
+        ...guarded,
+        dynamicVariables: initialHistory.dynamicVariables,
         signedUrl: issued.signedUrl,
         connectionType: "websocket",
         textOnly: onlyText,
         overrides: {
           agent: agentOverride(
             sessionLanguage(sessionLocale.current),
-            issued.greeting
+            initialHistory.firstMessage ?? issued.greeting
           ),
         },
       })
@@ -1256,6 +1547,8 @@ function Session({
         switching.current = false
         setUpgrading(false)
         setError(voiceErrorMessage(e, t))
+        if (sdkStopped.current) conversation.endSession()
+        else void releaseMicrophone()
         setStarting(false)
         const old = session.current
         session.current = null
@@ -1265,6 +1558,11 @@ function Session({
   }
   function end(preserve = false): Promise<void> {
     turn.stop()
+    if (historyEnabled) {
+      generation.current++
+      verified.current = false
+      setIdentityVerified(false)
+    }
     // An ended session has no review to hold.
     holdApproval(null)
     queued.current = []
@@ -1275,7 +1573,7 @@ function Session({
       switching.current = false
       setUpgrading(false)
       setStarting(false)
-      setMessages([])
+      if (!historyEnabled) setMessages([])
       files.current.forEach((file) => {
         if (file.preview) URL.revokeObjectURL(file.preview)
       })
@@ -1283,9 +1581,11 @@ function Session({
     }
     if (!shutdown.current) {
       const old = session.current
+      const stopped = historyEnabled ? sdkStopped.current : null
       // Every caller must await the original teardown, including its failure.
       shutdown.current = (async () => {
-        await stopBatch("cancel")
+        await stopBatch(historyEnabled && preserve ? "pause" : "cancel")
+        await historyWrites.current.catch(() => undefined)
         generation.current++
         session.current = null
         pauseWaits()
@@ -1303,13 +1603,16 @@ function Session({
         // The React control returns void; await SDK capture teardown before secure inputs.
         if (raw) await raw.endSession()
         conversation.endSession()
+        await stopped
+        sdkStopped.current = null
+        await releaseMicrophone()
         await cleanup(old)
         if (old)
           void loadRecovery({
             sessionId: old.sessionId,
             workspaceId: workspaceId!,
           })
-        if (old && !raw) {
+        if (old && !raw && !historyEnabled) {
           setError(t("secureUnknown"))
           throw new VoiceShownError(t("secureUnknown"))
         }
@@ -1318,6 +1621,29 @@ function Session({
     return shutdown.current
   }
   async function upgrade(recoverCapture = false) {
+    if (
+      historyEnabled &&
+      recoverCapture &&
+      capturePausedRef.current &&
+      !textOnly &&
+      verified.current &&
+      session.current &&
+      conversation.status === "connected"
+    ) {
+      const before = generation.current
+      try {
+        if (captureLost.current) await conversation.changeInputDevice({})
+        if (!active.current || before !== generation.current) return
+        captureLost.current = false
+        capturePausedRef.current = false
+        setCapturePaused(false)
+        holdMic(micMode === "hold")
+      } catch {
+        if (active.current && before === generation.current)
+          setError(t("microphoneResumeDenied"))
+      }
+      return
+    }
     if (
       switching.current ||
       (!textOnly && !(recoverCapture && capturePausedRef.current)) ||
@@ -1337,10 +1663,19 @@ function Session({
     switching.current = true
     setUpgrading(true)
     setError("")
+    let permissionLease: (() => Promise<void>) | undefined
     try {
+      if (historyEnabled && textOnly)
+        permissionLease = await acquireMicrophone(
+          navigator.locks,
+          old.history!.userId,
+          workspaceId!
+        )
       // Permission denial must leave the working text connection untouched.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach((track) => track.stop())
+      await permissionLease?.()
+      permissionLease = undefined
       if (
         !active.current ||
         before !== generation.current ||
@@ -1367,6 +1702,7 @@ function Session({
             : t("upgradeFailed")
         )
     } finally {
+      await permissionLease?.()
       if (!continuation.current) {
         switching.current = false
         if (active.current) setUpgrading(false)
@@ -1417,7 +1753,10 @@ function Session({
   useEffect(() => {
     // No mediaDevices (insecure page, tests): no microphone to lose.
     if (navigator.mediaDevices)
-      return watchCapture(navigator.mediaDevices, () => pauseLatest.current())
+      return watchCapture(navigator.mediaDevices, () => {
+        captureLost.current = true
+        pauseLatest.current()
+      })
   }, [])
   useEffect(() => {
     const visibility = () => {
@@ -1491,7 +1830,12 @@ function Session({
     if (file.preview) URL.revokeObjectURL(file.preview)
     updateFiles(files.current.filter((item) => item.key !== key))
   }
-  async function send(text: string, onlyKey?: string, fromQueue = false) {
+  async function send(
+    text: string,
+    onlyKey?: string,
+    fromQueue = false,
+    queuedEvent?: HistoryEvent
+  ) {
     if (
       sending.current ||
       !session.current ||
@@ -1506,7 +1850,46 @@ function Session({
     if (!text.trim() && !selected.length) return false
     // Once the agent is working, a new message would make the provider drop that answer: hold it.
     if (!fromQueue && !selected.length && turn.working && !proposal.current) {
-      queued.current.push(text.trim())
+      if (historyEnabled) {
+        const before = generation.current
+        const owner = session.current
+        const event: HistoryEvent = {
+          key: providerEventKey(
+            session.current!.history!.sourceId,
+            "user",
+            `text:${crypto.randomUUID()}`
+          ),
+          ordinal: ++sourceOrdinal.current,
+          role: "user",
+          text: text.trim(),
+          modality: "text",
+          status: "queued",
+        }
+        try {
+          await persistEvent(event)
+          if (
+            !active.current ||
+            !verified.current ||
+            before !== generation.current ||
+            owner !== session.current
+          )
+            return false
+          sourceEvents.current.set(event.key, event)
+          queued.current.push({ text: text.trim(), event })
+          add("user", event.text, event.key)
+          setMessages((rows) =>
+            rows.map((row) =>
+              row.id === event.key ? { ...row, delivery: "queued" } : row
+            )
+          )
+          return true
+        } catch (error) {
+          if (active.current && before === generation.current)
+            setError(voiceErrorMessage(error, t))
+          return false
+        }
+      }
+      queued.current.push({ text: text.trim() })
       add("user", text.trim())
       return true
     }
@@ -1555,7 +1938,7 @@ function Session({
                 },
                 body: file.file,
               },
-              onUnauthorized
+              unauthorizedIfCurrent
             )
             if (!response.ok)
               throw new VoiceShownError(
@@ -1598,6 +1981,33 @@ function Session({
         })
       }
       if (before !== generation.current || !active.current) return false
+      let textEvent = queuedEvent
+      if (historyEnabled) {
+        textEvent = {
+          ...(queuedEvent ?? {
+            key: providerEventKey(
+              session.current!.history!.sourceId,
+              "user",
+              `text:${crypto.randomUUID()}`
+            ),
+            ordinal: ++sourceOrdinal.current,
+          }),
+          role: "user",
+          text: [text.trim(), ...selected.map((file) => file.name)]
+            .filter(Boolean)
+            .join(" · "),
+          modality: "text",
+          status: "sent_unconfirmed",
+        }
+        await persistEvent(textEvent)
+        if (
+          before !== generation.current ||
+          !active.current ||
+          !verified.current
+        )
+          return false
+        sourceEvents.current.set(textEvent.key, textEvent)
+      }
       beginResponse()
       if (ids.length || sheets.length) {
         conversation.sendContextualUpdate(
@@ -1625,12 +2035,23 @@ function Session({
           "user",
           [text.trim(), ...selected.map((file) => file.name)]
             .filter(Boolean)
-            .join(" · ")
+            .join(" · "),
+          textEvent?.key
         )
       } else {
         conversation.sendUserMessage(text.trim())
-        if (!fromQueue) add("user", text.trim())
+        if (historyEnabled && textEvent) {
+          add("user", text.trim(), textEvent.key)
+        } else if (!fromQueue) add("user", text.trim())
       }
+      if (historyEnabled && textEvent)
+        setMessages((rows) =>
+          rows.map((row) =>
+            row.id === textEvent.key
+              ? { ...row, delivery: "sent_unconfirmed" }
+              : row
+          )
+        )
       return true
     } catch (e) {
       if (active.current && before === generation.current) {
@@ -1832,7 +2253,8 @@ function Session({
   async function resume() {
     const kind = unfinished
     setUnfinished(null)
-    if (kind === "stalled" && lastAsk.current) await send(lastAsk.current)
+    if (!historyEnabled && kind === "stalled" && lastAsk.current)
+      await send(lastAsk.current)
     if (kind === "dropped") {
       // Same path as switching to voice: new session, history as untrusted context, nothing replayed.
       setOutcome(null)
@@ -1842,9 +2264,114 @@ function Session({
       await start(textOnly, true)
     }
   }
+  async function restoreConversation(id: string) {
+    if (!historyEnabled) return
+    if (session.current || starting) await end(true)
+    const before = ++generation.current
+    setHistoryRestoring(true)
+    try {
+      const metadata = await request<{ conversation: ConversationHistory }>(
+        "history",
+        { command: "get", logicalConversationId: id }
+      )
+      const page = await request<HistoryPage>("history", {
+        command: "messages",
+        logicalConversationId: id,
+        revision: metadata.conversation.revision,
+      })
+      if (!active.current || before !== generation.current) return
+      selectConversation(id)
+      logicalEnded.current = metadata.conversation.state === "ended"
+      setMessages(historyRows(page.messages))
+      setTextOnly(true)
+      setError("")
+    } catch (error) {
+      if (active.current && before === generation.current)
+        setError(voiceErrorMessage(error, t))
+      throw error
+    } finally {
+      if (active.current && before === generation.current)
+        setHistoryRestoring(false)
+    }
+  }
+  async function continueConversation(id: string, onlyText = true) {
+    await restoreConversation(id)
+    if (logicalEnded.current || logicalId.current !== id) return
+    continuation.current = true
+    await start(onlyText, true)
+  }
+  async function startNewConversation(onlyText = true) {
+    if (!historyEnabled) return start(onlyText)
+    await end()
+    selectConversation(null)
+    logicalEnded.current = false
+    setMessages([])
+    sourceEvents.current.clear()
+    await start(onlyText)
+  }
+  async function endConversation() {
+    if (!historyEnabled || !logicalId.current) return
+    const id = logicalId.current
+    await end()
+    await request("history", { command: "end", logicalConversationId: id })
+    if (logicalId.current === id) logicalEnded.current = true
+  }
+  async function deleteConversation(id: string) {
+    if (!historyEnabled) return
+    const selected = logicalId.current === id
+    if (selected) await end()
+    const before = generation.current
+    try {
+      await request("history", { command: "delete", logicalConversationId: id })
+      if (
+        !selected ||
+        !active.current ||
+        before !== generation.current ||
+        logicalId.current !== id
+      ) return
+      generation.current++
+      selectConversation(null)
+      logicalEnded.current = false
+      queued.current = []
+      lastAsk.current = ""
+      sourceEvents.current.clear()
+      sourceOrdinal.current = 0
+      lastAgentEvent.current = null
+      agentEventIds.current.clear()
+      taskReferences.current = []
+      uncertain.current = null
+      recovered.current = null
+      reviewSession.current = null
+      setRecovery(null)
+      setRecoveredTasks([])
+      try {
+        saveRecovery(window.sessionStorage, null)
+      } catch {
+        /* Tab storage may be disabled. */
+      }
+      setMessages([])
+      setOutcome(null)
+      setDecided(null)
+      setProgress(null)
+      setHistoryRestoring(false)
+      setError("")
+    } catch (error) {
+      if (selected && active.current && before === generation.current)
+        setError(voiceErrorMessage(error, t))
+      throw error
+    }
+  }
   return (
     <VoiceContext.Provider
       value={{
+        historyEnabled,
+        logicalConversationId,
+        historyRestoring,
+        restoreConversation,
+        continueConversation,
+        startNewConversation,
+        endConversation,
+        deleteConversation,
         connected: conversation.status === "connected" && identityVerified,
         starting,
         upgrading,

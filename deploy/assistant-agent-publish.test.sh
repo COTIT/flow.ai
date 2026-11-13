@@ -79,6 +79,7 @@ fixture() {
   python3 - "$HERE/assistant-validation.json" "$tmp/validation.json" <<'PY'
 import json, sys
 ev = json.load(open(sys.argv[1]))
+ev['provider']['templateSha256'] = '0' * 64
 for env in ('staging', 'production'):
     ev['provider'].get('applied', {}).pop(env, None)
 open(sys.argv[2], 'w').write(json.dumps(ev, indent=2, ensure_ascii=False) + '\n')
@@ -203,6 +204,7 @@ dev = ev['provider']['applied']['development']
 assert dev['versionId'] == 'agtvrsn_new0001' and dev['previousVersionId'] == 'agtvrsn_old0001', dev
 assert dev['templateSha256'] == tsha and re.fullmatch('[0-9a-f]{64}', dev['governedSha256'])
 assert ev['provider']['versionId'] == 'agtvrsn_new0001'
+assert ev['provider']['templateSha256'] == tsha, 'observed template digest remained stale after read-back'
 gate = ev['pendingGates']['agentTemplateAhead']
 assert 'to: staging, production.' in gate and 'development (agtvrsn_new0001)' in gate, gate
 PY

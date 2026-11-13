@@ -524,7 +524,7 @@ export function EndCall({
       // The glass theme sizes buttons by their size class: a small one is narrower (P6).
       size={tight ? "sm" : "default"}
       className={`min-h-11 shrink-0 ${tight ? "" : "px-3"} ${className}`}
-      aria-label={t("voice.end")}
+      aria-label={t(voice.historyEnabled ? "voice.endCall" : "voice.end")}
       onClick={() => void voice.end().catch(() => undefined)}
     >
       <PhoneOff aria-hidden />

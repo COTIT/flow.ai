@@ -6,6 +6,14 @@ const later = async () => undefined
 /** A settled, connected text session for rendering components outside the real provider. */
 export function stubVoice(overrides: Partial<VoiceContextValue> = {}): VoiceContextValue {
   return {
+    historyEnabled: false,
+    logicalConversationId: null,
+    historyRestoring: false,
+    restoreConversation: later,
+    continueConversation: later,
+    startNewConversation: later,
+    endConversation: later,
+    deleteConversation: later,
     connected: true,
     starting: false,
     upgrading: false,

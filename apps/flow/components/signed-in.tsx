@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useSession } from "@genesy/api-client/auth"
 import { sessionStore } from "@genesy/api-client/session"
 import { GenesyVoiceProvider } from "@genesy/voice/components/provider"
+import { HistoryContinuity } from "@/components/history-continuity"
 import { Shell } from "@/components/shell"
 import { useDraftKeeper } from "@/lib/draft-keeper"
 import { flowHref } from "@/lib/links"
@@ -21,9 +22,11 @@ import { useOpenView } from "@/lib/use-open-view"
  */
 export function SignedIn({
   office,
+  historyEnabled = false,
   children,
 }: {
   office: string | null
+  historyEnabled?: boolean
   children: React.ReactNode
 }) {
   const router = useRouter()
@@ -51,7 +54,12 @@ export function SignedIn({
 
   if (!hydrated || !token) return null
   return (
-    <GenesyVoiceProvider resolveHref={resolveHref} openView={openView}>
+    <GenesyVoiceProvider
+      resolveHref={resolveHref}
+      openView={openView}
+      historyEnabled={historyEnabled}
+    >
+      {historyEnabled ? <HistoryContinuity /> : null}
       <Shell>{children}</Shell>
     </GenesyVoiceProvider>
   )

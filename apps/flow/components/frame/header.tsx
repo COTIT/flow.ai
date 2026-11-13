@@ -192,6 +192,20 @@ export function Header({ phase }: { phase: SessionPhase["phase"] }) {
         >
           {t("flow.chat.storefront")}
         </Link>
+        {voice.historyEnabled ? (
+          <Link
+            href="/history"
+            prefetch={false}
+            aria-current={pathname === "/history" ? "page" : undefined}
+            className={buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className: "min-h-11",
+            })}
+          >
+            {t("history.title")}
+          </Link>
+        ) : null}
         <WorkspacePicker />
         {/* Every header control is a 44 px target (SW7). */}
         <LocaleSwitcher className="min-h-11" />

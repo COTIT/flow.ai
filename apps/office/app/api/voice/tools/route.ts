@@ -41,6 +41,12 @@ import {
   notIncludedFromModel,
   withNotIncluded,
 } from "@/lib/voice/file-import"
+import {
+  conversationHistory,
+  historyTool,
+  HISTORY_TOOL,
+} from "@/lib/voice/history"
+import { voiceSetting } from "@/lib/voice/settings"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -170,6 +176,11 @@ async function handle(request: Request, scope: GapScope) {
     if (input.command === "discover") {
       if (files.size) throw new VoiceError("Discovery does not accept files.")
       const query = String(input.query ?? "")
+      const wantsHistory =
+        (await voiceSetting("ASSISTANT_CONVERSATIONS_ENABLED")) === "true" &&
+        /history|conversation|earlier|previous|remember|preference|gesprek|geschiedenis|mazungumzo|awali/i.test(
+          query
+        )
       // The agent reports a request no tool can do as "unsupported: <short request>".
       const unsupported = /^unsupported:\s*(.+)/is.exec(query)?.[1]
       if (unsupported) {
@@ -197,6 +208,7 @@ async function handle(request: Request, scope: GapScope) {
         /import|price ?list|spreadsheet|excel|xlsx|csv|sheet/i.test(query)
       if (
         !found.length &&
+        !wantsHistory &&
         !wantsImport &&
         ![
           BATCH_PREPARE_OPERATION,
@@ -217,27 +229,30 @@ async function handle(request: Request, scope: GapScope) {
       }
       return voiceResponse({
         tools:
-          query === BATCH_PREPARE_OPERATION
-            ? [batchPrepareTool]
-            : query === BATCH_STATUS_OPERATION
-              ? [batchStatusTool]
-              : query === statusTool.id
-                ? [statusTool]
-                : query === IMPORT_PRICES_OPERATION
-                  ? wantsImport
-                    ? [importPricesTool]
-                    : []
-                  : [
-                      ...(wantsImport ? [importPricesTool] : []),
-                      ...found,
-                      ...(manyRecords.test(query)
-                        ? [batchPrepareTool, batchStatusTool]
-                        : []),
-                      ...(/status|task|pending|last/i.test(query)
-                        ? [statusTool]
-                        : []),
-                      ...(asksForPage(query) ? [pageTool] : []),
-                    ],
+          query === HISTORY_TOOL && wantsHistory
+            ? [historyTool]
+            : query === BATCH_PREPARE_OPERATION
+              ? [batchPrepareTool]
+              : query === BATCH_STATUS_OPERATION
+                ? [batchStatusTool]
+                : query === statusTool.id
+                  ? [statusTool]
+                  : query === IMPORT_PRICES_OPERATION
+                    ? wantsImport
+                      ? [importPricesTool]
+                      : []
+                    : [
+                        ...(wantsHistory ? [historyTool] : []),
+                        ...(wantsImport ? [importPricesTool] : []),
+                        ...found,
+                        ...(manyRecords.test(query)
+                          ? [batchPrepareTool, batchStatusTool]
+                          : []),
+                        ...(/status|task|pending|last/i.test(query)
+                          ? [statusTool]
+                          : []),
+                        ...(asksForPage(query) ? [pageTool] : []),
+                      ],
         domains: [
           ...new Set(
             tools
@@ -253,6 +268,13 @@ async function handle(request: Request, scope: GapScope) {
       !Array.isArray(input.arguments)
         ? (input.arguments as Record<string, unknown>)
         : {}
+    if (input.command === "execute" && input.operationId === HISTORY_TOOL) {
+      if (files.size) throw new VoiceError("History reads do not accept files.")
+      return voiceResponse({
+        status: "completed",
+        data: await conversationHistory(context, argumentsValue),
+      })
+    }
     if (
       input.command === "execute" &&
       input.operationId === BATCH_PREPARE_OPERATION

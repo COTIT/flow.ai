@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',c.id,'title',c.title,'state',c.state,'revision',c.revision,'last_activity_at',c.last_activity_at,'expires_at',c.expires_at,'coverage',CASE WHEN EXISTS(SELECT 1 FROM assistant_conversation_sources s WHERE s.workspace_id=c.workspace_id AND s.conversation_id=c.id AND s.state='partial') THEN 'partial' WHEN EXISTS(SELECT 1 FROM assistant_conversation_sources s WHERE s.workspace_id=c.workspace_id AND s.conversation_id=c.id AND s.state='provisional') THEN 'provisional' ELSE 'complete' END) AS \"data!\" FROM assistant_conversations c WHERE c.workspace_id=$1 AND c.user_id=$2 AND c.state<>'deleted' AND c.expires_at>now() AND ($3::timestamptz IS NULL OR (c.last_activity_at,c.id)<($3,$4)) AND ($5::text IS NULL OR c.title ILIKE $5 OR EXISTS(SELECT 1 FROM assistant_conversation_turns t WHERE t.workspace_id=c.workspace_id AND t.conversation_id=c.id AND t.text ILIKE $5)) AND ($6::uuid IS NULL OR EXISTS(SELECT 1 FROM assistant_conversation_sources s JOIN assistant_sessions a ON a.workspace_id=s.workspace_id AND a.id=s.session_id WHERE s.workspace_id=c.workspace_id AND s.conversation_id=c.id AND s.session_id=$6 AND s.login_id=$7 AND a.user_id=$2)) ORDER BY c.last_activity_at DESC,c.id DESC LIMIT $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0b4a36e687111fb0cfc52a8806ecbd8a7d486fb9de23d8e34e8421dc916ea292"
+}

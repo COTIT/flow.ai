@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.ordinal AS source_ordinal,t.ordinal,t.id,jsonb_build_object('id',t.id,'source_id',t.source_id,'key',t.key,'ordinal',t.ordinal,'role',t.role,'text',t.text,'modality',t.modality,'status',t.status,'interrupted',t.interrupted,'provenance',t.provenance) AS \"data!\" FROM assistant_conversation_turns t JOIN assistant_conversation_sources s ON s.workspace_id=t.workspace_id AND s.conversation_id=t.conversation_id AND s.id=t.source_id WHERE t.workspace_id=$1 AND t.conversation_id=$2 AND ($3::uuid IS NULL OR t.source_id=$3) AND ($4::text IS NULL OR t.text ILIKE $4) AND (NOT $5 OR t.status='complete') AND (($6::bigint=0) OR (NOT $5 AND (s.ordinal,t.ordinal,t.id)>($6,$7,$8)) OR ($5 AND (s.ordinal,t.ordinal,t.id)<($6,$7,$8))) ORDER BY CASE WHEN $5 THEN -s.ordinal ELSE s.ordinal END,CASE WHEN $5 THEN -t.ordinal ELSE t.ordinal END,CASE WHEN $5 THEN NULL ELSE t.id END ASC, t.id DESC LIMIT $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_ordinal",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_sources",
+            "name": "ordinal"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "ordinal",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_turns",
+            "name": "ordinal"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assistant_conversation_turns",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Int8",
+        "Int8",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "fa49c25427250bd60d221a6c50c384571c3705d0ddc97662548d3135b1774b9e"
+}

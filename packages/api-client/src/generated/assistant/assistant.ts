@@ -28,19 +28,32 @@ import type {
   ActionInput,
   AdvanceInput,
   AssistantActionsListParams,
+  AssistantConversationsGetParams,
+  AssistantConversationsListParams,
+  AssistantConversationsMessagesParams,
   AssistantSessionsGetParams,
   AttachInput,
   BatchInput,
   CompleteInput,
   ControlListDoc,
+  CreateInput,
+  EnvelopeConversationDetailResource,
+  EnvelopeConversationListResource,
+  EnvelopeConversationMessagesResource,
+  EnvelopeConversationResource,
+  EnvelopeConversationSourceResource,
+  EnvelopeConversationStateResource,
   EnvelopeValue,
+  EventsInput,
   FollowUpInput,
   GapInput,
+  IngestInput,
   MessageBody,
   PauseInput,
   PriceImportInput,
   ProposalInput,
   SessionInput,
+  SourceInput,
   UnprocessableBody,
   UploadInput
 } from '../model';
@@ -224,6 +237,73 @@ export const useAssistantCleanupAck = <TError = ErrorType<MessageBody>,
         TContext
       > => {
       return useMutation(getAssistantCleanupAckMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Replace provisional complete text with signed canonical snapshot.
+ */
+export const assistantConversationsIngest = (
+    ingestInput: BodyType<IngestInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationStateResource>(
+      {url: `/assistant/conversations/ingest`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: ingestInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsIngestMutationKey = () => ['assistantConversationsIngest'] as const;
+
+export const getAssistantConversationsIngestMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsIngest>>, TError,AssistantConversationsIngestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsIngest>>, TError,AssistantConversationsIngestMutationVariables, TContext> => {
+
+const mutationKey = getAssistantConversationsIngestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantConversationsIngest>>, AssistantConversationsIngestMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  assistantConversationsIngest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantConversationsIngestMutationResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsIngest>>>
+    export type AssistantConversationsIngestMutationBody = BodyType<IngestInput>
+    export type AssistantConversationsIngestMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantConversationsIngestMutationVariables = {data: BodyType<IngestInput>}
+
+    /**
+ * @summary Replace provisional complete text with signed canonical snapshot.
+ */
+export const useAssistantConversationsIngest = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsIngest>>, TError,AssistantConversationsIngestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantConversationsIngest>>,
+        TError,
+        AssistantConversationsIngestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantConversationsIngestMutationOptions(options), queryClient);
     }
     /**
  * @summary Set one follow-up signal within 10 minutes of the gap; signature only, filtered by workspace.
@@ -1109,6 +1189,658 @@ export const useAssistantBatchesStart = <TError = ErrorType<MessageBody | Unproc
         TContext
       > => {
       return useMutation(getAssistantBatchesStartMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary List own durable conversations.
+ */
+export const assistantConversationsList = (
+    workspace: string,
+    params?: AssistantConversationsListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationListResource>(
+      {url: `/workspace/${workspace}/assistant/conversations`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsListQueryKey = (workspace: string,
+    params?: AssistantConversationsListParams,) => {
+    return [
+    `/workspace/${workspace}/assistant/conversations`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAssistantConversationsListQueryOptions = <TData = Awaited<ReturnType<typeof assistantConversationsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    params?: AssistantConversationsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAssistantConversationsListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof assistantConversationsList>>> = ({ signal }) => assistantConversationsList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AssistantConversationsListQueryResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsList>>>
+export type AssistantConversationsListQueryError = ErrorType<MessageBody | UnprocessableBody>
+
+
+export function useAssistantConversationsList<TData = Awaited<ReturnType<typeof assistantConversationsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: undefined |  AssistantConversationsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assistantConversationsList>>,
+          TError,
+          Awaited<ReturnType<typeof assistantConversationsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssistantConversationsList<TData = Awaited<ReturnType<typeof assistantConversationsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params?: AssistantConversationsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assistantConversationsList>>,
+          TError,
+          Awaited<ReturnType<typeof assistantConversationsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssistantConversationsList<TData = Awaited<ReturnType<typeof assistantConversationsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params?: AssistantConversationsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List own durable conversations.
+ */
+
+export function useAssistantConversationsList<TData = Awaited<ReturnType<typeof assistantConversationsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params?: AssistantConversationsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAssistantConversationsListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Create durable member dialogue.
+ */
+export const assistantConversationsCreate = (
+    workspace: string,
+    createInput: BodyType<CreateInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationResource>(
+      {url: `/workspace/${workspace}/assistant/conversations`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsCreateMutationKey = () => ['assistantConversationsCreate'] as const;
+
+export const getAssistantConversationsCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsCreate>>, TError,AssistantConversationsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsCreate>>, TError,AssistantConversationsCreateMutationVariables, TContext> => {
+
+const mutationKey = getAssistantConversationsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantConversationsCreate>>, AssistantConversationsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  assistantConversationsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantConversationsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsCreate>>>
+    export type AssistantConversationsCreateMutationBody = BodyType<CreateInput>
+    export type AssistantConversationsCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantConversationsCreateMutationVariables = {workspace: string;data: BodyType<CreateInput>}
+
+    /**
+ * @summary Create durable member dialogue.
+ */
+export const useAssistantConversationsCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsCreate>>, TError,AssistantConversationsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantConversationsCreate>>,
+        TError,
+        AssistantConversationsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantConversationsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Erase dialogue content and retain cleanup tombstone.
+ */
+export const assistantConversationsDelete = (
+    workspace: string,
+    conversation: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationStateResource>(
+      {url: `/workspace/${workspace}/assistant/conversations/${conversation}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsDeleteMutationKey = () => ['assistantConversationsDelete'] as const;
+
+export const getAssistantConversationsDeleteMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsDelete>>, TError,AssistantConversationsDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsDelete>>, TError,AssistantConversationsDeleteMutationVariables, TContext> => {
+
+const mutationKey = getAssistantConversationsDeleteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantConversationsDelete>>, AssistantConversationsDeleteMutationVariables> = (props) => {
+          const {workspace,conversation} = props ?? {};
+
+          return  assistantConversationsDelete(workspace,conversation,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantConversationsDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsDelete>>>
+
+    export type AssistantConversationsDeleteMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantConversationsDeleteMutationVariables = {workspace: string;conversation: string}
+
+    /**
+ * @summary Erase dialogue content and retain cleanup tombstone.
+ */
+export const useAssistantConversationsDelete = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsDelete>>, TError,AssistantConversationsDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantConversationsDelete>>,
+        TError,
+        AssistantConversationsDeleteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantConversationsDeleteMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Read own dialogue metadata and bounded sources.
+ */
+export const assistantConversationsGet = (
+    workspace: string,
+    conversation: string,
+    params?: AssistantConversationsGetParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationDetailResource>(
+      {url: `/workspace/${workspace}/assistant/conversations/${conversation}`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsGetQueryKey = (workspace: string,
+    conversation: string,
+    params?: AssistantConversationsGetParams,) => {
+    return [
+    `/workspace/${workspace}/assistant/conversations/${conversation}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAssistantConversationsGetQueryOptions = <TData = Awaited<ReturnType<typeof assistantConversationsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    conversation: string,
+    params?: AssistantConversationsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAssistantConversationsGetQueryKey(workspace,conversation,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof assistantConversationsGet>>> = ({ signal }) => assistantConversationsGet(workspace,conversation,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && conversation !== null && conversation !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AssistantConversationsGetQueryResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsGet>>>
+export type AssistantConversationsGetQueryError = ErrorType<MessageBody | UnprocessableBody>
+
+
+export function useAssistantConversationsGet<TData = Awaited<ReturnType<typeof assistantConversationsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params: undefined |  AssistantConversationsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assistantConversationsGet>>,
+          TError,
+          Awaited<ReturnType<typeof assistantConversationsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssistantConversationsGet<TData = Awaited<ReturnType<typeof assistantConversationsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params?: AssistantConversationsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assistantConversationsGet>>,
+          TError,
+          Awaited<ReturnType<typeof assistantConversationsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssistantConversationsGet<TData = Awaited<ReturnType<typeof assistantConversationsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params?: AssistantConversationsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read own dialogue metadata and bounded sources.
+ */
+
+export function useAssistantConversationsGet<TData = Awaited<ReturnType<typeof assistantConversationsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params?: AssistantConversationsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAssistantConversationsGetQueryOptions(workspace,conversation,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary End linked execution controls; final flush remains valid.
+ */
+export const assistantConversationsEnd = (
+    workspace: string,
+    conversation: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationResource>(
+      {url: `/workspace/${workspace}/assistant/conversations/${conversation}/end`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsEndMutationKey = () => ['assistantConversationsEnd'] as const;
+
+export const getAssistantConversationsEndMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsEnd>>, TError,AssistantConversationsEndMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsEnd>>, TError,AssistantConversationsEndMutationVariables, TContext> => {
+
+const mutationKey = getAssistantConversationsEndMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantConversationsEnd>>, AssistantConversationsEndMutationVariables> = (props) => {
+          const {workspace,conversation} = props ?? {};
+
+          return  assistantConversationsEnd(workspace,conversation,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantConversationsEndMutationResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsEnd>>>
+
+    export type AssistantConversationsEndMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantConversationsEndMutationVariables = {workspace: string;conversation: string}
+
+    /**
+ * @summary End linked execution controls; final flush remains valid.
+ */
+export const useAssistantConversationsEnd = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsEnd>>, TError,AssistantConversationsEndMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantConversationsEnd>>,
+        TError,
+        AssistantConversationsEndMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantConversationsEndMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Store original execution login observations without tool state.
+ */
+export const assistantConversationsEvents = (
+    workspace: string,
+    conversation: string,
+    eventsInput: BodyType<EventsInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationResource>(
+      {url: `/workspace/${workspace}/assistant/conversations/${conversation}/events`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: eventsInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsEventsMutationKey = () => ['assistantConversationsEvents'] as const;
+
+export const getAssistantConversationsEventsMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsEvents>>, TError,AssistantConversationsEventsMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsEvents>>, TError,AssistantConversationsEventsMutationVariables, TContext> => {
+
+const mutationKey = getAssistantConversationsEventsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantConversationsEvents>>, AssistantConversationsEventsMutationVariables> = (props) => {
+          const {workspace,conversation,data} = props ?? {};
+
+          return  assistantConversationsEvents(workspace,conversation,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantConversationsEventsMutationResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsEvents>>>
+    export type AssistantConversationsEventsMutationBody = BodyType<EventsInput>
+    export type AssistantConversationsEventsMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantConversationsEventsMutationVariables = {workspace: string;conversation: string;data: BodyType<EventsInput>}
+
+    /**
+ * @summary Store original execution login observations without tool state.
+ */
+export const useAssistantConversationsEvents = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsEvents>>, TError,AssistantConversationsEventsMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantConversationsEvents>>,
+        TError,
+        AssistantConversationsEventsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantConversationsEventsMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Page exact dialogue text under content revision.
+ */
+export const assistantConversationsMessages = (
+    workspace: string,
+    conversation: string,
+    params?: AssistantConversationsMessagesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationMessagesResource>(
+      {url: `/workspace/${workspace}/assistant/conversations/${conversation}/messages`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsMessagesQueryKey = (workspace: string,
+    conversation: string,
+    params?: AssistantConversationsMessagesParams,) => {
+    return [
+    `/workspace/${workspace}/assistant/conversations/${conversation}/messages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAssistantConversationsMessagesQueryOptions = <TData = Awaited<ReturnType<typeof assistantConversationsMessages>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    conversation: string,
+    params?: AssistantConversationsMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsMessages>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAssistantConversationsMessagesQueryKey(workspace,conversation,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof assistantConversationsMessages>>> = ({ signal }) => assistantConversationsMessages(workspace,conversation,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && conversation !== null && conversation !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AssistantConversationsMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsMessages>>>
+export type AssistantConversationsMessagesQueryError = ErrorType<MessageBody | UnprocessableBody>
+
+
+export function useAssistantConversationsMessages<TData = Awaited<ReturnType<typeof assistantConversationsMessages>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params: undefined |  AssistantConversationsMessagesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsMessages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assistantConversationsMessages>>,
+          TError,
+          Awaited<ReturnType<typeof assistantConversationsMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssistantConversationsMessages<TData = Awaited<ReturnType<typeof assistantConversationsMessages>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params?: AssistantConversationsMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsMessages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assistantConversationsMessages>>,
+          TError,
+          Awaited<ReturnType<typeof assistantConversationsMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssistantConversationsMessages<TData = Awaited<ReturnType<typeof assistantConversationsMessages>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params?: AssistantConversationsMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsMessages>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Page exact dialogue text under content revision.
+ */
+
+export function useAssistantConversationsMessages<TData = Awaited<ReturnType<typeof assistantConversationsMessages>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    conversation: string,
+    params?: AssistantConversationsMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assistantConversationsMessages>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAssistantConversationsMessagesQueryOptions(workspace,conversation,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Bind provider source after signed execution attachment.
+ */
+export const assistantConversationsSourcesCreate = (
+    workspace: string,
+    conversation: string,
+    sourceInput: BodyType<SourceInput>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeConversationSourceResource>(
+      {url: `/workspace/${workspace}/assistant/conversations/${conversation}/sources`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: sourceInput, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAssistantConversationsSourcesCreateMutationKey = () => ['assistantConversationsSourcesCreate'] as const;
+
+export const getAssistantConversationsSourcesCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsSourcesCreate>>, TError,AssistantConversationsSourcesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsSourcesCreate>>, TError,AssistantConversationsSourcesCreateMutationVariables, TContext> => {
+
+const mutationKey = getAssistantConversationsSourcesCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistantConversationsSourcesCreate>>, AssistantConversationsSourcesCreateMutationVariables> = (props) => {
+          const {workspace,conversation,data} = props ?? {};
+
+          return  assistantConversationsSourcesCreate(workspace,conversation,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistantConversationsSourcesCreateMutationResult = NonNullable<Awaited<ReturnType<typeof assistantConversationsSourcesCreate>>>
+    export type AssistantConversationsSourcesCreateMutationBody = BodyType<SourceInput>
+    export type AssistantConversationsSourcesCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AssistantConversationsSourcesCreateMutationVariables = {workspace: string;conversation: string;data: BodyType<SourceInput>}
+
+    /**
+ * @summary Bind provider source after signed execution attachment.
+ */
+export const useAssistantConversationsSourcesCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistantConversationsSourcesCreate>>, TError,AssistantConversationsSourcesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof assistantConversationsSourcesCreate>>,
+        TError,
+        AssistantConversationsSourcesCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistantConversationsSourcesCreateMutationOptions(options), queryClient);
     }
     /**
  * @summary Record one gap for this workspace; Office bridge signature required.

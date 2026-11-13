@@ -4,6 +4,7 @@ export type VoiceSession = {
   signedUrl: string
   sessionId: string
   conversationId: string
+  history?: import("./history").SessionHistory
 }
 export type VoiceReviewStep = {
   actionId: string

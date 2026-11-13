@@ -10,12 +10,21 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
 }))
 
-const html = (node: React.ReactNode) =>
-  renderToStaticMarkup(<VoiceContext.Provider value={stubVoice()}>{node}</VoiceContext.Provider>)
+const html = (node: React.ReactNode, historyEnabled = false) =>
+  renderToStaticMarkup(
+    <VoiceContext.Provider value={stubVoice({ historyEnabled })}>
+      {node}
+    </VoiceContext.Provider>
+  )
 
 describe("VoiceControls open link", () => {
   it("opens the Office assistant page by default", () => {
     expect(html(<VoiceControls compact />)).toContain('href="/voice"')
+  })
+
+  it("names the opt-in transport action End call, distinct from ending history", () => {
+    expect(html(<VoiceControls />, true)).toContain('aria-label="endCall"')
+    expect(html(<VoiceControls />)).toContain('aria-label="end"')
   })
 
   it("opens the host's assistant page when given", () => {

@@ -1,5 +1,10 @@
 {
   "voice": {
+    "endCall": "Oproep beëindigen",
+    "delivery": {
+      "queued": "In wachtrij",
+      "sent_unconfirmed": "Verzonden; bevestiging niet beschikbaar"
+    },
     "eyebrow": "Je kantoor, in gesprek",
     "title": "Spraakassistent",
     "description": "Praat, typ of deel een referentie terwijl je in Office werkt.",

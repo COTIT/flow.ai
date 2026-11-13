@@ -1,5 +1,10 @@
 {
   "voice": {
+    "endCall": "End call",
+    "delivery": {
+      "queued": "Queued",
+      "sent_unconfirmed": "Sent; confirmation unavailable"
+    },
     "eyebrow": "Your office, in conversation",
     "title": "Voice assistant",
     "description": "Speak, type, or share a reference while working in Office.",

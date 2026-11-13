@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('id',s.id,'conversation_id',s.conversation_id,'ordinal',s.ordinal,'revision',s.revision,'state',s.state,'text_only',s.text_only,'summary',s.summary,'provenance',CASE WHEN s.state='final' THEN 'final' ELSE 'provisional' END) AS \"data!\" FROM assistant_conversation_sources s WHERE s.workspace_id=$1 AND s.conversation_id=$2 AND ($3::bigint IS NULL OR s.ordinal<$3) ORDER BY s.ordinal DESC LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3c8456b5d0f240cf135d7f7e9c76c363e5d6a12fba87715549ef303a9d3574a9"
+}

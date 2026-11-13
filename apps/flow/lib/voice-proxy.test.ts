@@ -83,6 +83,15 @@ const sha = (bytes: Uint8Array) =>
 const BEARER = "Bearer secret-token-123"
 
 describe("allowlist", () => {
+  it("forwards history POST only, never the public webhook", async () => {
+    reply = json(200, { conversations: [] })
+    expect((await call("history", { method: "POST", body: "{}" })).status).toBe(200)
+    expect(seen[0]?.url).toBe("/api/voice/history")
+    expect((await call("history")).status).toBe(405)
+    expect((await call("webhook", { method: "POST", body: "{}" })).status).toBe(404)
+    expect(seen).toHaveLength(1)
+  })
+
   it("forwards readiness to the fixed upstream path, status and body unchanged", async () => {
     reply = json(
       503,

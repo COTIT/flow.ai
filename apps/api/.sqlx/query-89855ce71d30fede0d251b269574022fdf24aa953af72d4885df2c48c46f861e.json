@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_conversation_turns SET ordinal=ordinal+1000000 WHERE workspace_id=$1 AND conversation_id=$2 AND source_id=$3 AND provenance='provisional' AND ordinal<1000000",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "89855ce71d30fede0d251b269574022fdf24aa953af72d4885df2c48c46f861e"
+}

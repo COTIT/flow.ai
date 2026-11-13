@@ -1,0 +1,45 @@
+{
+  "history": {
+    "title": "Gespreksgeschiedenis",
+    "new": "Nieuw gesprek",
+    "intro": "Lees eerdere gesprekken zonder je huidige oproep of concept te wijzigen. Kies Doorgaan of Nieuw gesprek om een oproep te starten.",
+    "searchLabel": "Gesprekken zoeken",
+    "search": "Zoeken",
+    "error": "De gespreksgeschiedenis kon niet worden geladen. Probeer opnieuw.",
+    "retry": "Opnieuw proberen",
+    "loading": "Gespreksgeschiedenis laden…",
+    "noResults": "Geen gesprekken of berichten gevonden.",
+    "empty": "Nog geen opgeslagen gesprekken.",
+    "untitled": "Gesprek zonder titel",
+    "more": "Meer gesprekken",
+    "expires": "Bewaard tot {date}",
+    "partial": "Een deel van de gespreksgeschiedenis ontbreekt mogelijk.",
+    "continueText": "Doorgaan met tekst",
+    "continueVoice": "Doorgaan met spraak",
+    "end": "Gesprek beëindigen",
+    "delete": "Gesprek verwijderen",
+    "readOnly": "Dit gesprek is beëindigd. Je kunt het lezen of een nieuw gesprek starten.",
+    "messageSearch": "Berichten zoeken",
+    "noMessages": "Nog geen berichten opgeslagen.",
+    "transcript": "Opgeslagen berichten",
+    "moreMessages": "Meer berichten",
+    "provisional": "Wordt nog afgerond",
+    "interrupted": "Onderbroken",
+    "deleteDescription": "Dit opgeslagen gesprek en de berichten verwijderen? Dit kan niet ongedaan worden gemaakt. Je huidige oproep blijft staan.",
+    "confirmDelete": "Verwijderen",
+    "cancel": "Annuleren",
+    "state": {
+      "active": "Actief",
+      "ended": "Beëindigd",
+      "deleted": "Verwijderd"
+    },
+    "modality": {
+      "text": "Tekst",
+      "voice": "Spraak"
+    },
+    "status": {
+      "queued": "Niet verzonden",
+      "sent_unconfirmed": "Bezorging niet bevestigd"
+    }
+  }
+}

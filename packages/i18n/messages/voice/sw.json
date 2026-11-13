@@ -1,5 +1,10 @@
 {
   "voice": {
+    "endCall": "Maliza simu",
+    "delivery": {
+      "queued": "Kwenye foleni",
+      "sent_unconfirmed": "Imetumwa; uthibitisho haupatikani"
+    },
     "eyebrow": "Ofisi yako, kwa mazungumzo",
     "title": "Msaidizi wa sauti",
     "description": "Zungumza, andika au shiriki rejea unapofanya kazi katika Office.",

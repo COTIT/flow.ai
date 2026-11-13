@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO assistant_conversation_turns(workspace_id,conversation_id,source_id,key,ordinal,role,text,modality,status,interrupted,provenance) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'provisional') ON CONFLICT(workspace_id,source_id,key,provenance) DO UPDATE SET text=EXCLUDED.text,status=EXCLUDED.status,interrupted=assistant_conversation_turns.interrupted OR EXCLUDED.interrupted WHERE assistant_conversation_turns.workspace_id=$1 AND assistant_conversation_turns.conversation_id=$2 AND assistant_conversation_turns.role=EXCLUDED.role AND assistant_conversation_turns.modality=EXCLUDED.modality AND assistant_conversation_turns.ordinal=EXCLUDED.ordinal AND (CASE assistant_conversation_turns.status WHEN 'queued' THEN 0 WHEN 'sent_unconfirmed' THEN 1 ELSE 2 END)<=(CASE EXCLUDED.status WHEN 'queued' THEN 0 WHEN 'sent_unconfirmed' THEN 1 ELSE 2 END) AND (assistant_conversation_turns.text,assistant_conversation_turns.status,assistant_conversation_turns.interrupted) IS DISTINCT FROM (EXCLUDED.text,EXCLUDED.status,assistant_conversation_turns.interrupted OR EXCLUDED.interrupted)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "14f6e976ce26af641cb95b6c9818459aa00e61da702354cb822369948ed58a9f"
+}

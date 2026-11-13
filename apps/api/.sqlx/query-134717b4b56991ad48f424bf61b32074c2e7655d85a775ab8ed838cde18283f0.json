@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_conversation_sources SET remote_deleted_at=coalesce(remote_deleted_at,now()),state=CASE WHEN state='provisional' THEN 'partial' ELSE state END WHERE workspace_id=$1 AND session_id=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "134717b4b56991ad48f424bf61b32074c2e7655d85a775ab8ed838cde18283f0"
+}

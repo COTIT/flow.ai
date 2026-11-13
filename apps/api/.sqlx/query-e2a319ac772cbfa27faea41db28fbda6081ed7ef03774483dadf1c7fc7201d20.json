@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (s.ordinal::text||':'||t.ordinal::text) AS \"sequence!\" FROM assistant_conversation_turns t JOIN assistant_conversation_sources s ON s.workspace_id=t.workspace_id AND s.conversation_id=t.conversation_id AND s.id=t.source_id WHERE t.workspace_id=$1 AND t.conversation_id=$2 ORDER BY s.ordinal DESC,t.ordinal DESC,t.id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sequence!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e2a319ac772cbfa27faea41db28fbda6081ed7ef03774483dadf1c7fc7201d20"
+}

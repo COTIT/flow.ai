@@ -221,6 +221,7 @@ print('%s: read-back matches the template; version %s' % (env, version))
 record = pathlib.Path(os.environ.get('ASSISTANT_VALIDATION_FILE') or here / 'assistant-validation.json')
 evidence = json.loads(record.read_text())
 provider = evidence['provider']
+provider['templateSha256'] = template_sha
 now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 provider.setdefault('applied', {})[env] = {
     'versionId': version, 'previousVersionId': before.get('version_id'),

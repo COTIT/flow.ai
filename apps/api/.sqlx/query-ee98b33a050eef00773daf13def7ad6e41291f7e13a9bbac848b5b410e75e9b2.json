@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO assistant_conversation_sources(workspace_id,conversation_id,session_id,login_id,provider_conversation_id,agent_id,text_only,ordinal) SELECT $1,$2,$3,$4,$5,$6,$7,coalesce(max(ordinal),0)+1 FROM assistant_conversation_sources WHERE workspace_id=$1 AND conversation_id=$2 RETURNING jsonb_build_object('id',id,'conversation_id',conversation_id,'session_id',session_id,'ordinal',ordinal,'revision',revision,'state',state) AS \"data!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ee98b33a050eef00773daf13def7ad6e41291f7e13a9bbac848b5b410e75e9b2"
+}

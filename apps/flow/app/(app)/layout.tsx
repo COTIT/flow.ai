@@ -11,5 +11,12 @@ export default async function AppLayout({
 }) {
   await connection()
   const office = exactOrigin(process.env.OFFICE_PUBLIC_URL) ?? null
-  return <SignedIn office={office}>{children}</SignedIn>
+  return (
+    <SignedIn
+      office={office}
+      historyEnabled={process.env.ASSISTANT_CONVERSATIONS_ENABLED === "true"}
+    >
+      {children}
+    </SignedIn>
+  )
 }

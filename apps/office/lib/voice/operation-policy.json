@@ -17294,5 +17294,390 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "assistant_conversations_ingest": {
+    "method": "POST",
+    "path": "/assistant/conversations/ingest",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "assistant_bridge"
+      ],
+      "requirements": [
+        {
+          "assistant_bridge": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Signed bridge ingestion after native signature validation or fixed-origin reconciliation",
+        "Allocated source and agent must match; deleted content cannot be restored; final snapshot immutable"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#ingest",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [
+      "control"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/assistant/conversations",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#list",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/conversations",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#create",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [
+      "control"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_delete": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/assistant/conversations/{conversation}",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#delete",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [
+      "control"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/assistant/conversations/{conversation}",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#get",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_end": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/conversations/{conversation}/end",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#end",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [
+      "control"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_events": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/conversations/{conversation}/events",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection",
+        "Source and execution session require exact original login; client dialogue remains provisional"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#events",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [
+      "control"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_messages": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/assistant/conversations/{conversation}/messages",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#messages",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "assistant_conversations_sources_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/assistant/conversations/{conversation}/sources",
+    "disposition": "internal",
+    "reason": "Native conversation control; model reads use the session-bound read-only history tool. Archive content never authorizes business actions.",
+    "authorization": {
+      "schemes": [
+        "assistant_bridge",
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "assistant_bridge": [],
+          "bearer": []
+        }
+      ],
+      "boundary": "assistant_control",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Workspace and user ownership across authorized logins; current membership required",
+        "Conversation tombstones and content revisions prevent stale writes and resurrection",
+        "Signed provider binding must match active execution session and exact original login; competing active source rejected"
+      ],
+      "authority": [
+        "apps/api/src/modules/flow_conversations/handlers.rs#source",
+        "apps/api/src/modules/flow_conversations/service.rs",
+        "apps/api/src/modules/flow_conversations/repo.rs",
+        "apps/api/src/modules/flow_conversations/dto.rs",
+        "apps/api/src/modules/flow_conversations/routes.rs",
+        "apps/api/src/http/assistant.rs",
+        "apps/api/src/http/workspace.rs"
+      ]
+    },
+    "effects": [
+      "control"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }

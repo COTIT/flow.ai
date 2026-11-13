@@ -1,0 +1,45 @@
+{
+  "history": {
+    "title": "Historia ya mazungumzo",
+    "new": "Mazungumzo mapya",
+    "intro": "Soma mazungumzo ya awali bila kubadilisha simu au rasimu yako ya sasa. Chagua Endelea au Mazungumzo mapya kuanza simu.",
+    "searchLabel": "Tafuta mazungumzo",
+    "search": "Tafuta",
+    "error": "Historia ya mazungumzo haikuweza kupakiwa. Jaribu tena.",
+    "retry": "Jaribu tena",
+    "loading": "Inapakia historia ya mazungumzo…",
+    "noResults": "Hakuna mazungumzo au ujumbe unaolingana na utafutaji wako.",
+    "empty": "Bado hakuna mazungumzo yaliyohifadhiwa.",
+    "untitled": "Mazungumzo bila kichwa",
+    "more": "Mazungumzo zaidi",
+    "expires": "Yamehifadhiwa hadi {date}",
+    "partial": "Baadhi ya historia ya mazungumzo inaweza kukosekana.",
+    "continueText": "Endelea kwa maandishi",
+    "continueVoice": "Endelea kwa sauti",
+    "end": "Maliza mazungumzo",
+    "delete": "Futa mazungumzo",
+    "readOnly": "Mazungumzo haya yameisha. Unaweza kuyasoma au kuanza mazungumzo mapya.",
+    "messageSearch": "Tafuta ujumbe",
+    "noMessages": "Bado hakuna ujumbe uliohifadhiwa.",
+    "transcript": "Ujumbe uliohifadhiwa",
+    "moreMessages": "Ujumbe zaidi",
+    "provisional": "Bado yanakamilishwa",
+    "interrupted": "Yamekatizwa",
+    "deleteDescription": "Ufute mazungumzo haya na ujumbe wake? Huwezi kutengua hili. Simu yako ya sasa haitaathiriwa.",
+    "confirmDelete": "Futa",
+    "cancel": "Ghairi",
+    "state": {
+      "active": "Yanaendelea",
+      "ended": "Yameisha",
+      "deleted": "Yamefutwa"
+    },
+    "modality": {
+      "text": "Maandishi",
+      "voice": "Sauti"
+    },
+    "status": {
+      "queued": "Haujatumiwa",
+      "sent_unconfirmed": "Uwasilishaji haujathibitishwa"
+    }
+  }
+}

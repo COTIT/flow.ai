@@ -20,7 +20,7 @@ export function TranscriptRows({
   renderResult?: (row: TranscriptRow) => ReactNode
 }) {
   const t = useTranslations("voice")
-  const { resolveHref } = useVoice()
+  const { resolveHref, historyEnabled } = useVoice()
   return rows.map((row) =>
     // voice-rich-results: server-built picture for a read result.
     row.role === "result" && row.views ? (
@@ -46,6 +46,8 @@ export function TranscriptRows({
       <div
         key={row.id}
         data-role={row.role}
+        data-delivery={row.delivery}
+        data-historical={row.historical || undefined}
         className={
           row.role === "action"
             ? "max-w-[65ch] self-center rounded-full border border-(--hair) px-3 py-1 text-center text-xs text-muted-foreground"
@@ -73,6 +75,11 @@ export function TranscriptRows({
               )
             })
           : row.text}
+        {historyEnabled && row.delivery ? (
+          <span className="mt-1 block text-xs opacity-75" role="status">
+            {t(`delivery.${row.delivery}`)}
+          </span>
+        ) : null}
       </div>
     )
   )

@@ -14,8 +14,14 @@ import { voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
 import { assistantReadiness } from "@/lib/voice/readiness"
 import { workspaceTimeZone } from "@/lib/voice/time-zone"
-import { GREETING_HINTS, sessionGreeting, type GreetingHint } from "@/lib/voice/greeting"
+import {
+  GREETING_HINTS,
+  sessionGreeting,
+  type GreetingHint,
+} from "@/lib/voice/greeting"
 import { noteVoiceFailure, withVoiceTracing } from "@/lib/voice/tracing"
+import { prepareConversation } from "@/lib/voice/history"
+import { voiceSetting } from "@/lib/voice/settings"
 export const runtime = "nodejs"
 
 /** Allocate and bind provider identity before returning signed access to the browser. */
@@ -61,6 +67,14 @@ export async function POST(request: Request) {
       throw new VoiceError("Invalid greeting.")
     if (!(await assistantReadiness()).ready)
       throw new VoiceError("Assistant configuration is not ready.", 503)
+    const history =
+      input.history === true
+        ? await prepareConversation(context, input.logicalConversationId)
+        : undefined
+    if (input.logicalConversationId !== undefined && !history)
+      throw new VoiceError("Conversation history must be explicitly enabled.")
+    if (history && !context.userId)
+      throw new VoiceError("Conversation ownership could not be verified.", 503)
     const zone = workspaceTimeZone(context)
     const [timeZone, greeting] = await Promise.all([
       zone,
@@ -81,11 +95,38 @@ export async function POST(request: Request) {
         { conversation_id: provider.conversationId },
         true
       )
+      const source = history
+        ? await assistantRequest<{ id: string }>(
+            context,
+            `/conversations/${history.conversation.id}/sources`,
+            "POST",
+            {
+              session_id: session.id,
+              provider_conversation_id: provider.conversationId,
+              agent_id: await voiceSetting("ELEVENLABS_AGENT_ID"),
+              text_only: input.textOnly === true,
+            },
+            true
+          )
+        : undefined
       return voiceResponse({
         ...provider,
         sessionId: session.id,
         ...(timeZone ? { timeZone } : {}),
         ...(greeting !== undefined ? { greeting } : {}),
+        ...(history && source
+          ? {
+              ...(input.logicalConversationId ? { greeting: "" } : {}),
+              history: {
+                conversationId: history.conversation.id,
+                sourceId: source.id,
+                userId: context.userId,
+                context: history.context,
+                revision: history.conversation.revision,
+                coverage: history.conversation.coverage,
+              },
+            }
+          : {}),
       })
     } catch (error) {
       await assistantRequest(

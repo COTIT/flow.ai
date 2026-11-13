@@ -112,6 +112,7 @@ impl Modify for BearerAuth {
 pub(crate) fn public() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .merge(assistant::routes::public())
+        .merge(crate::modules::flow_conversations::routes::public())
         .merge(auth::routes::public())
         .merge(invites::routes::public())
         .merge(email_verification::routes::public())
@@ -130,6 +131,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
 pub(crate) fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .merge(assistant::routes::private())
+        .merge(crate::modules::flow_conversations::routes::private())
         .merge(auth::routes::private())
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())

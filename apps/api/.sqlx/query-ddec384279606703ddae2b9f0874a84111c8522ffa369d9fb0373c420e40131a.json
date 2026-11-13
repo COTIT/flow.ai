@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE assistant_conversations SET revision=revision+1,last_activity_at=CASE WHEN $4 THEN now() ELSE last_activity_at END,expires_at=CASE WHEN $4 THEN now()+interval '90 days' ELSE expires_at END WHERE workspace_id=$1 AND user_id=$2 AND id=$3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ddec384279606703ddae2b9f0874a84111c8522ffa369d9fb0373c420e40131a"
+}

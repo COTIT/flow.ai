@@ -317,6 +317,7 @@ pub async fn cancel_upload(
 
 /// Minute sweep expires transient payloads and marks abandoned claims unknown.
 pub async fn expire(db: &PgPool) -> Result<(), sqlx::Error> {
+    close_revoked_sources(db).await?;
     reconcile_refunds(db).await?;
     super::batch_repo::expire(db).await?;
     sqlx::query!("UPDATE assistant_uploads SET state='cancelled' WHERE state='reserved' AND created_at<=now()-interval '60 seconds'").execute(db).await?;
@@ -332,21 +333,38 @@ pub async fn prune(db: &PgPool) -> Result<u64, sqlx::Error> {
     super::batch_repo::prune(db).await?;
     crate::modules::invoices::delivery_repo::prune(db).await?;
     super::retention::prune(db).await?;
+    crate::modules::flow_conversations::service::prune(db).await?;
     super::gaps_repo::prune(db).await?;
     Ok(removed)
 }
 
+async fn close_revoked_sources(db: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!("UPDATE assistant_sessions a SET state='closed',closed_at=coalesce(closed_at,now()) WHERE a.state='active' AND EXISTS(SELECT 1 FROM assistant_conversation_sources s WHERE s.workspace_id=a.workspace_id AND s.session_id=a.id) AND NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=a.login_id AND t.expires_at>now())").execute(db).await?;
+    Ok(())
+}
+
 /// Global internal cleanup inventory: orphaned, closed, expired or revoked-login sessions.
 pub async fn cleanup_due(db: &PgPool) -> Result<Vec<Value>, sqlx::Error> {
-    sqlx::query_scalar!(r#"SELECT jsonb_build_object('session_id',s.id,'workspace_id',s.workspace_id,'conversation_id',s.conversation_id,'file_ids',ARRAY(SELECT u.file_id FROM assistant_uploads u WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id AND u.file_id IS NOT NULL AND u.state<>'cleaned')) AS "data!" FROM assistant_sessions s WHERE s.state<>'cleaned' AND NOT EXISTS(SELECT 1 FROM assistant_uploads u WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id AND u.state='reserved' AND u.created_at>now()-interval '60 seconds') AND (s.state='closed' OR s.expires_at<=now() OR s.last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=s.login_id AND t.expires_at>now())) ORDER BY s.last_seen_at LIMIT 100"#).fetch_all(db).await
+    close_revoked_sources(db).await?;
+    sqlx::query_scalar!(r#"SELECT jsonb_build_object('session_id',s.id,'workspace_id',s.workspace_id,'conversation_id',s.conversation_id,'file_ids',ARRAY(SELECT u.file_id FROM assistant_uploads u WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id AND u.file_id IS NOT NULL AND u.state<>'cleaned')) AS "data!" FROM assistant_sessions s WHERE s.state<>'cleaned' AND NOT EXISTS(SELECT 1 FROM assistant_uploads u WHERE u.workspace_id=s.workspace_id AND u.session_id=s.id AND u.state='reserved' AND u.created_at>now()-interval '60 seconds') AND (s.state='closed' OR s.expires_at<=now() OR s.last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=s.login_id AND t.expires_at>now()))  AND (NOT EXISTS(SELECT 1 FROM assistant_conversation_sources source WHERE source.workspace_id=s.workspace_id AND source.session_id=s.id) OR EXISTS(SELECT 1 FROM assistant_conversation_sources source WHERE source.workspace_id=s.workspace_id AND source.session_id=s.id AND (source.state='final' OR least(coalesce(s.closed_at,'infinity'::timestamptz),s.expires_at,s.last_seen_at+interval '15 minutes',coalesce((SELECT t.expires_at FROM access_tokens t WHERE t.id=s.login_id),now()))<=now()-interval '1 hour'))) ORDER BY s.cleanup_attempted_at NULLS FIRST,s.last_seen_at,s.id LIMIT 100"#).fetch_all(db).await
+}
+
+/// Record attempt before provider I/O so failed deletions rotate behind untouched work.
+pub async fn cleanup_attempted(
+    db: &PgPool,
+    workspace: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    Ok(sqlx::query!("UPDATE assistant_sessions SET cleanup_attempted_at=now() WHERE workspace_id=$1 AND id=$2 AND state<>'cleaned'",workspace,id).execute(db).await?.rows_affected()>0)
 }
 
 /// Ack after provider confirms deletion; clear references and expire pending drafts atomically.
 pub async fn cleanup_ack(db: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let mut tx = db.begin().await?;
-    let row=sqlx::query!("UPDATE assistant_sessions SET state='cleaned',cleaned_at=now(),conversation_id=NULL WHERE id=$1 AND state<>'cleaned' AND NOT EXISTS(SELECT 1 FROM assistant_uploads u WHERE u.workspace_id=assistant_sessions.workspace_id AND u.session_id=assistant_sessions.id AND u.state='reserved' AND u.created_at>now()-interval '60 seconds') AND (state='closed' OR expires_at<=now() OR last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=login_id AND t.expires_at>now())) RETURNING workspace_id",id).fetch_optional(&mut *tx).await?;
+    let row=sqlx::query!("UPDATE assistant_sessions SET state='cleaned',cleaned_at=now(),conversation_id=NULL WHERE id=$1 AND state<>'cleaned' AND NOT EXISTS(SELECT 1 FROM assistant_uploads u WHERE u.workspace_id=assistant_sessions.workspace_id AND u.session_id=assistant_sessions.id AND u.state='reserved' AND u.created_at>now()-interval '60 seconds') AND (state='closed' OR expires_at<=now() OR last_seen_at<=now()-interval '15 minutes' OR NOT EXISTS(SELECT 1 FROM access_tokens t WHERE t.id=login_id AND t.expires_at>now()))  AND (NOT EXISTS(SELECT 1 FROM assistant_conversation_sources source WHERE source.workspace_id=assistant_sessions.workspace_id AND source.session_id=assistant_sessions.id) OR EXISTS(SELECT 1 FROM assistant_conversation_sources source WHERE source.workspace_id=assistant_sessions.workspace_id AND source.session_id=assistant_sessions.id AND (source.state='final' OR least(coalesce(assistant_sessions.closed_at,'infinity'::timestamptz),assistant_sessions.expires_at,assistant_sessions.last_seen_at+interval '15 minutes',coalesce((SELECT t.expires_at FROM access_tokens t WHERE t.id=assistant_sessions.login_id),now()))<=now()-interval '1 hour'))) RETURNING workspace_id",id).fetch_optional(&mut *tx).await?;
     let updated = row.is_some();
     if let Some(row) = row {
+        sqlx::query!("UPDATE assistant_conversation_sources SET remote_deleted_at=coalesce(remote_deleted_at,now()),state=CASE WHEN state='provisional' THEN 'partial' ELSE state END WHERE workspace_id=$1 AND session_id=$2",row.workspace_id,id).execute(&mut *tx).await?;
         sqlx::query!("UPDATE assistant_uploads SET state='cleaned',file_id=NULL WHERE workspace_id=$1 AND session_id=$2",row.workspace_id,id).execute(&mut *tx).await?;
         sqlx::query!("UPDATE assistant_actions SET state='expired',proposal=NULL,review_facts='{}'::jsonb,finished_at=now() WHERE workspace_id=$1 AND session_id=$2 AND state IN ('proposed','approved','batch_pending')",row.workspace_id,id).execute(&mut *tx).await?;
     }
