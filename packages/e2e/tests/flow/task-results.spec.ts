@@ -63,8 +63,10 @@ test("a sales answer draws its chart in the results", async ({ page }) => {
   agent.call("orders_sales_summary")
   await expect.poll(agent.results).toBe(1)
   const pane = await results(page, 0)
-  await expect(pane.locator("[data-chart]")).toContainText("TZS 1,250,000")
-  await expect(pane.locator("[data-chart]")).toContainText("42 orders")
+  await pane.getByRole("application").focus()
+  await page.keyboard.press("ArrowRight")
+  await expect(pane.getByRole("tooltip")).toContainText(/TZS\s1,250,000/)
+  await expect(pane.getByRole("tooltip")).toContainText("42 orders")
   await expectNoHorizontalScroll(page)
 })
 
@@ -102,9 +104,10 @@ test("daily sales over a week draw as a trend line, never a progress bar per day
   agent.call("orders_sales_daily", { query: { from: days[0], to: days.at(-1) } })
   const scene = await results(page, 0)
   const chart = scene.locator('[data-kind="sales_daily"]')
-  await expect(chart.locator('[data-chart="line"] polyline')).toHaveCount(1)
-  await expect(chart.locator("rect")).toHaveCount(0)
+  await expect(chart.locator('[data-chart="line"] .recharts-line-curve')).toHaveCount(1)
+  await expect(chart.locator(".recharts-bar-rectangle")).toHaveCount(0)
   // The numbers stay the API's, in the table behind the picture.
+  await expect(chart.getByRole("row")).toHaveCount(days.length + 1)
   await expect(chart.getByRole("table")).toContainText("$50.00")
 })
 
