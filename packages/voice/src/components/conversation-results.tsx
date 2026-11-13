@@ -84,6 +84,40 @@ export function ResultSelection({ row }: { row: TranscriptRow }) {
 
 const frame = () =>
   new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+/** Include pane ancestors: Office's outer scroller and Flow's page can move during a modal. */
+function captureScroll() {
+  const elements = new Set<HTMLElement>()
+  for (const pane of document.querySelectorAll<HTMLElement>(
+    '[data-flow-scroll], [data-flow-pane], [role="log"]'
+  )) {
+    for (
+      let element: HTMLElement | null = pane;
+      element;
+      element = element.parentElement
+    ) {
+      if (
+        element.scrollHeight > element.clientHeight ||
+        element.scrollWidth > element.clientWidth
+      )
+        elements.add(element)
+    }
+  }
+  if (document.scrollingElement instanceof HTMLElement)
+    elements.add(document.scrollingElement)
+  const positions = [...elements].map((element) => ({
+    element,
+    top: element.scrollTop,
+    left: element.scrollLeft,
+  }))
+  return () => {
+    for (const { element, top, left } of positions) {
+      if (!element.isConnected) continue
+      element.scrollTop = top
+      element.scrollLeft = left
+    }
+  }
+}
 const PLOTS = new Set(["line", "sparkline", "bar", "hbar", "pie", "donut"])
 function hasPlotData(view: ResultView): boolean {
   if (!PLOTS.has(drawnAs(view))) return false
@@ -146,6 +180,9 @@ export function ConversationResults({
   const exportRoot = useRef<HTMLDivElement>(null)
   const latestButton = useRef<HTMLButtonElement>(null)
   const reportButton = useRef<HTMLButtonElement>(null)
+  const previewScroll = useRef<(() => void) | null>(null)
+  const reportScroll = useRef<(() => void) | null>(null)
+  const reportWasOpen = useRef(false)
   const rowsKey = available.map((row) => row.id).join("\n")
   const [seenRows, setSeenRows] = useState(rowsKey)
   if (seenRows !== rowsKey) {
@@ -184,6 +221,16 @@ export function ConversationResults({
     // Reconcile only when the retained IDs change; selection changes never evict anything.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rowsKey])
+
+  useEffect(() => {
+    if (reportOpen) {
+      if (!reportWasOpen.current) reportScroll.current ??= captureScroll()
+      if (completedRequestId) selection?.offered.add(completedRequestId)
+    } else if (reportWasOpen.current) {
+      reportScroll.current?.()
+    }
+    reportWasOpen.current = reportOpen
+  }, [reportOpen, completedRequestId, selection?.offered])
 
   const title = (view: ResultView) => {
     if ("title" in view && view.title) return view.title
@@ -320,7 +367,10 @@ export function ConversationResults({
               />
             }
             onClick={() => {
-              if (latest) setPreview(latest)
+              if (latest) {
+                previewScroll.current = captureScroll()
+                setPreview(latest)
+              }
             }}
           >
             {t("latest")}
@@ -329,6 +379,8 @@ export function ConversationResults({
             data-chart-preview
             className="max-h-[90dvh] overflow-y-auto sm:max-w-5xl"
             finalFocus={() => {
+              previewScroll.current?.()
+              previewScroll.current = null
               latestButton.current?.focus({ preventScroll: true })
               return false
             }}
@@ -340,6 +392,9 @@ export function ConversationResults({
         </Dialog>
         <Dialog open={reportOpen} onOpenChange={onReportOpenChange}>
           <DialogTrigger
+            onClick={() => {
+              reportScroll.current = captureScroll()
+            }}
             render={
               <Button
                 ref={reportButton}
@@ -354,6 +409,8 @@ export function ConversationResults({
             data-report-picker
             className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl"
             finalFocus={() => {
+              reportScroll.current?.()
+              reportScroll.current = null
               reportButton.current?.focus({ preventScroll: true })
               return false
             }}
@@ -443,6 +500,7 @@ export function ConversationResults({
             variant="outline"
             className="min-h-11"
             onClick={() => {
+              reportScroll.current = captureScroll()
               selection.setSelected(answerResultIds(rows, offer))
               selection.offered.add(offer)
               setDismissedOffer(offer)
