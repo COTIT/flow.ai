@@ -120,10 +120,10 @@ export function ResultPlot({
   // SVG-to-PDF accepts concrete colors, not theme variables or inherited page fonts.
   const colors = exportMode
     ? {
-        gold: "#d0a55f",
-        hair: "#e5e4e1",
-        muted: "#5f5c55",
-        foreground: "#1c1b18",
+        gold: "#C5A15B",
+        hair: "#E2E3DC",
+        muted: "#6D7067",
+        foreground: "#252622",
         card: "#ffffff",
       }
     : {

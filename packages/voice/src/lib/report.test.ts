@@ -8,6 +8,8 @@ import {
   pdfReportTables,
   reportTables,
   retainedSelection,
+  reportItems,
+  reportSummary,
 } from "./report"
 
 const row = (id: string, view: ResultView, requestId = "request-1") =>
@@ -37,6 +39,72 @@ const sales: ResultView = {
 }
 
 describe("report snapshots", () => {
+  it("presents only supplied sales totals, keeping currencies and periods separate", () => {
+    const first = row("totals", {
+      ...sales,
+      rows: [
+        {
+          ...sales.rows[0]!,
+          gross: -125,
+          net: null,
+          vat: null,
+          refunded: 0,
+          orders: 0,
+        },
+        { ...sales.rows[0]!, currency: "JPY", decimals: 0, gross: 300 },
+      ],
+    })
+    first.views!.unshift({
+      kind: "records",
+      resource: "orders",
+      total: 1,
+      href: "/orders",
+      rows: [],
+    })
+    const rows = [
+      first,
+      row("later", { ...sales, from: "2026-12-01", to: "2026-12-02" }),
+      row("daily", {
+        kind: "sales_daily",
+        from: sales.from,
+        to: sales.to,
+        time_zone: "UTC",
+        currencies: [
+          {
+            currency: "USD",
+            decimals: 2,
+            days: [{ date: sales.from, gross: 9999, net: 9000, orders: 1 }],
+          },
+        ],
+      }),
+    ]
+    const items = reportItems(
+      rows,
+      rows.map((r) => r.id),
+      (view) => (view.kind === "sales" ? "Sales totals" : "Other result")
+    )
+    const summary = reportSummary(items, "en-US")
+    expect(summary.map((s) => [s.title, s.currency, s.period])).toEqual([
+      ["Sales totals", "USD", "2026-11-01 – 2026-11-02"],
+      ["Sales totals", "JPY", "2026-11-01 – 2026-11-02"],
+      ["Sales totals", "USD", "2026-12-01 – 2026-12-02"],
+    ])
+    expect(summary[0]!.metrics).toEqual([
+      { key: "gross", raw: -125, value: "-$1.25" },
+      { key: "orders", raw: 0, value: "0" },
+      { key: "refunded", raw: 0, value: "$0.00" },
+    ])
+    expect(summary[0]).toMatchObject({
+      rowId: "totals",
+      viewIndex: 1,
+      decimals: 2,
+    })
+    expect(items[0]!.viewTitles).toEqual(["Other result", "Sales totals"])
+    expect(
+      items[0]!.tables.find((t) => t.key === "sales")?.rows[0]?.gross
+    ).toBe(-125)
+  })
+
   it("fits a tall chart and legend on a PDF page without changing its aspect ratio", () => {
     const fitted = fitReportChart(720, 1200, 269, 170)
     expect(fitted.height).toBe(170)
