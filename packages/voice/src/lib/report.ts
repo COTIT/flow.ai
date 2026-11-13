@@ -15,6 +15,7 @@ export type ReportRow = TranscriptRow & {
 export type ReportItem = {
   row: ReportRow
   title: string
+  viewTitles?: string[]
   tables: ReportTable[]
 }
 export type ReportLabels = {
@@ -26,6 +27,74 @@ export type ReportLabels = {
   widget: string
   period: string
   columns: (key: string) => string
+  brand?: string
+  businessName?: string
+  summary?: string
+  details?: string
+  source?: string
+  currency?: string
+  continued?: string
+  rawData?: string
+  data?: string
+  selectedResults?: string
+  chartTitle?: string
+  page?: (current: number, total: number) => string
+  sections?: (tableKey: string) => string
+}
+
+export type ReportSummary = {
+  rowId: string
+  viewIndex: number
+  title: string
+  period: string
+  captured?: string
+  currency: string
+  decimals: number
+  metrics: { key: string; value: string; raw: number }[]
+}
+
+/** Direct totals only: rankings and daily snapshots cannot establish complete sales totals. */
+export function reportSummary(
+  items: ReportItem[],
+  locale = "en"
+): ReportSummary[] {
+  return items.flatMap((item) =>
+    (item.row.views ?? []).flatMap((view, viewIndex) =>
+      view.kind !== "sales"
+        ? []
+        : view.rows.map((row) => ({
+            rowId: item.row.id,
+            viewIndex,
+            title: item.viewTitles?.[viewIndex] ?? item.title,
+            period: reportPeriod({ ...item.row, views: [view] }),
+            captured: item.row.createdAt,
+            currency: row.currency,
+            decimals: row.decimals,
+            metrics: (
+              ["gross", "net", "vat", "orders", "refunded"] as const
+            ).flatMap((key) => {
+              const raw = row[key]
+              return raw === null
+                ? []
+                : [
+                    {
+                      key,
+                      raw,
+                      value:
+                        key === "orders"
+                          ? new Intl.NumberFormat(locale).format(raw)
+                          : formatMoney(
+                              raw,
+                              row.decimals,
+                              row.currency,
+                              locale
+                            ),
+                    },
+                  ]
+            }),
+          }))
+    )
+  )
 }
 const PLOTS = new Set(["line", "sparkline", "bar", "hbar", "pie", "donut"])
 
@@ -241,6 +310,7 @@ export function reportItems(
       return {
         row: frozen,
         title: title(frozen.views![0]!),
+        viewTitles: frozen.views!.map(title),
         tables: frozen.views!.flatMap(reportTables),
       }
     })

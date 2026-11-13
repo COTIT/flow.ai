@@ -12,6 +12,8 @@ import {
   type SetStateAction,
 } from "react"
 import { useLocale, useTranslations } from "next-intl"
+import { useSession } from "@genesy/api-client/auth"
+import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
 import { Button } from "@genesy/ui/components/button"
 import { Checkbox } from "@genesy/ui/components/checkbox"
 import {
@@ -163,6 +165,9 @@ export function ConversationResults({
   const t = useTranslations("voice.reports")
   const result = useTranslations("voice.results")
   const locale = useLocale()
+  const token = useSession((state) => state.token)
+  const workspaceId = useSession((state) => state.workspaceId)
+  const workspaces = useUsersWorkspaces({ query: { enabled: Boolean(token) } })
   const selection = useContext(ReportSelection)
   const available = reportRows(rows)
   const latest = latestChart(rows)
@@ -261,6 +266,22 @@ export function ConversationResults({
   }
   const labels: ReportLabels = {
     locale,
+    brand: "GENESY",
+    businessName: workspaces.data?.data.find(
+      (workspace) => workspace.id === workspaceId
+    )?.display_name,
+    summary: t("summary"),
+    details: t("details"),
+    source: t("source"),
+    currency: t("currency"),
+    continued: t("continued"),
+    rawData: t("rawData"),
+    data: t("data"),
+    selectedResults: t("selectedResults"),
+    chartTitle: t("chartTitle"),
+    page: (current, total) => t("page", { current, total }),
+    sections: (key) =>
+      t.has(`sections.${key}`) ? t(`sections.${key}`) : fieldName(key),
     minorUnits: t("minorUnits"),
     title: t("title"),
     snapshot: t("snapshot"),
@@ -271,9 +292,11 @@ export function ConversationResults({
       const text = key
         .split(".")
         .map((part) =>
-          result.has(`facts.${part}`)
-            ? result(`facts.${part}`)
-            : fieldName(part)
+          t.has(`columns.${part}`)
+            ? t(`columns.${part}`)
+            : result.has(`facts.${part}`)
+              ? result(`facts.${part}`)
+              : fieldName(part)
         )
         .join(" · ")
       return key.endsWith("minor") ||

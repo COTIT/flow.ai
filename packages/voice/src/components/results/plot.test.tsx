@@ -88,7 +88,7 @@ describe("report plot SVG", () => {
       )
       expect(svg).not.toContain("var(")
       expect(svg).toContain('font-family="Poppins"')
-      expect(svg).toContain("#d0a55f")
+      expect(svg).toContain("#C5A15B")
     }
   )
 })
