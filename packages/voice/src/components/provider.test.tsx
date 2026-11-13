@@ -28,6 +28,11 @@ beforeEach(() => {
 })
 
 describe("GenesyVoiceProvider audio worklets", () => {
+  it("registers a report picker tool that is unavailable without a verified session", () => {
+    renderToStaticMarkup(<GenesyVoiceProvider>x</GenesyVoiceProvider>)
+    const clientTools = seen.options?.clientTools as Record<string, () => string>
+    expect(JSON.parse(clientTools.open_conversation_report!())).toEqual({ status: "unavailable" })
+  })
   it("loads them from Office's /voice-audio by default", () => {
     renderToStaticMarkup(<GenesyVoiceProvider>x</GenesyVoiceProvider>)
     expect(seen.options).toMatchObject({

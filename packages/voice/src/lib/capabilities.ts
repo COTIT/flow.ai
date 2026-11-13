@@ -228,6 +228,26 @@ export const FLOW_CAPABILITIES: FlowCapability[] = [
   },
   // Operate
   {
+    id: "compare_sales_periods",
+    group: "understand",
+    ops: ["orders_sales_compare"],
+    rights: ["order.list"],
+    write: false,
+    entry: { prompt: true },
+    scenes: ["sales"],
+    after: ["products_top_sellers", "orders_sales_summary", "orders_sales_daily"],
+  },
+  {
+    id: "sales_trend_followup",
+    group: "understand",
+    ops: ["orders_sales_daily"],
+    rights: ["order.list"],
+    write: false,
+    entry: { prompt: true },
+    scenes: ["sales"],
+    after: ["products_top_sellers", "orders_sales_summary"],
+  },
+  {
     id: "review_low_stock",
     group: "operate",
     ops: ["stock_list"],

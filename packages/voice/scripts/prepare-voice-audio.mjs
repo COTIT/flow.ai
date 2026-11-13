@@ -23,3 +23,8 @@ await copyFile(
   require.resolve("@alexanderolsen/libsamplerate-js/dist/libsamplerate.worklet.js"),
   resolve(target, "libsamplerate.worklet.js")
 )
+// PDF embeds the same fonts as the app, including non-ASCII business labels.
+const fonts = resolve(publicDir, "report-fonts")
+await mkdir(fonts, { recursive: true })
+for (const file of ["Poppins-Regular.ttf", "Poppins-SemiBold.ttf"])
+  await copyFile(new URL(`../../ui/src/fonts/${file}`, import.meta.url), resolve(fonts, file))

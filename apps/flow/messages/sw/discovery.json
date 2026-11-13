@@ -130,6 +130,18 @@
         "label": "Gundua uwezekano",
         "description": "Kila kitu Genesy inaweza kukufanyia, kwa aina ya kazi.",
         "example": "Unaweza kunisaidia na nini?"
+      },
+      "compare_sales_periods": {
+        "label": "Linganisha vipindi",
+        "description": "Linganisha mauzo haya na kipindi kilichotangulia.",
+        "example": "Linganisha mauzo haya na kipindi kilichotangulia.",
+        "prompt": "Linganisha mauzo yote ya tarehe na chanzo cha mauzo cha matokeo yangu ya mwisho na kipindi kilichotangulia chenye urefu sawa. Tumia tofauti zilizokokotolewa na seva; eleza kama ulinganisho haupatikani."
+      },
+      "sales_trend_followup": {
+        "label": "Mauzo ya kila siku",
+        "description": "Angalia mauzo ya kila siku ya kipindi hicho.",
+        "example": "Onyesha mauzo ya kila siku ya kipindi hiki.",
+        "prompt": "Onyesha mauzo yote ya kila siku ya tarehe na chanzo cha mauzo cha matokeo yangu ya mwisho. Weka orodha ya bidhaa kando; usidokeze mwelekeo wa mauzo wa kila bidhaa."
       }
     }
   }

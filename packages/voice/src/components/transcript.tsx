@@ -1,11 +1,12 @@
 "use client"
 
-import { Fragment, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import { useTranslations } from "next-intl"
 import { ExternalLink } from "lucide-react"
 import { splitLinks, type TranscriptRow } from "../lib/helpers"
 import { useVoice } from "./provider"
 import { VoiceResult } from "./results/index"
+import { ResultSelection } from "./conversation-results"
 
 /**
  * The conversation lines: user and agent bubbles, action notes, record links and result cards.
@@ -24,11 +25,10 @@ export function TranscriptRows({
   return rows.map((row) =>
     // voice-rich-results: server-built picture for a read result.
     row.role === "result" && row.views ? (
-      renderResult ? (
-        <Fragment key={row.id}>{renderResult(row)}</Fragment>
-      ) : (
-        <VoiceResult key={row.id} views={row.views} />
-      )
+      <div key={row.id} className="flex w-full min-w-0 flex-col gap-1">
+        {renderResult ? renderResult(row) : <VoiceResult views={row.views} />}
+        <ResultSelection row={row} />
+      </div>
     ) : row.role === "link" && row.href ? (
       <a
         key={row.id}

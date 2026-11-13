@@ -64,6 +64,7 @@ import { voiceFetch } from "../lib/fetch"
 import { isBlankMessage } from "../lib/blank"
 import { watchCapture } from "../lib/capture-watch"
 import { openViewTool, type OpenView } from "../lib/open-view"
+import { ReportSelectionProvider } from "./conversation-results"
 import {
   VoiceRequestError,
   VoiceShownError,
@@ -102,6 +103,8 @@ type VoiceContextValue = {
   messages: TranscriptRow[]
   /** Last fully answered user request; reports group its result snapshots by this id. */
   completedRequestId: string | null
+  reportOpen: boolean
+  setReportOpen: (open: boolean) => void
   attachments: Attachment[]
   review: VoiceReview | null
   /** The review last approved or cancelled (its proposed values), kept for the receipt after the card closes. */
@@ -276,6 +279,11 @@ function Session({
   const [busy, setBusy] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [toolRequests, setToolRequests] = useState(0)
+  const [reportOpen, setReportOpen] = useState(false)
+  const reportRowsNow = useRef(messages)
+  useEffect(() => {
+    reportRowsNow.current = messages
+  }, [messages])
   const [textOnly, setTextOnly] = useState(false)
   const [capturePaused, setCapturePaused] = useState(false)
   const [error, setError] = useState("")
@@ -327,7 +335,7 @@ function Session({
   turnEnd.current = (kind, steps) => {
     if (!active.current) return
     setThinking(false)
-    if (kind === "answered") setCompletedRequestId(requests.current)
+    if (kind === "answered" && !proposal.current) setCompletedRequestId(requests.current)
     requests.finish()
     if (kind === "stalled") {
       add(
@@ -992,6 +1000,13 @@ function Session({
     },
     clientTools: {
       // P4: navigation only, answered here at once; never a request, never a write.
+      open_conversation_report: () => {
+        if (!active.current || !verified.current) return JSON.stringify({ status: "unavailable" })
+        if (!reportRowsNow.current.some((row) => row.role === "result" && row.views?.length))
+          return JSON.stringify({ status: "empty" })
+        setReportOpen(true)
+        return JSON.stringify({ status: "opened" })
+      },
       open_flow_view: (params: { view?: unknown }) =>
         openViewTool(openViewNow.current)(params),
       discover_genesy_tools: ({ query: search }) =>
@@ -1002,7 +1017,7 @@ function Session({
             tool("execute", {
               operationId: operation_id,
               arguments: JSON.parse(String(arguments_json)),
-              // How to draw a read and which picture it redraws; Office checks both.
+              // How to draw a new snapshot and its source picture; Office checks both.
               ...(presentation ? { presentation } : {}),
               ...(replaces ? { replaces } : {}),
             })
@@ -1232,6 +1247,7 @@ function Session({
       setOutcome(null)
       setProgress(null)
       setMessages([])
+      setReportOpen(false)
       nextOrdinal.current = 0
     }
     try {
@@ -1302,6 +1318,7 @@ function Session({
       setUpgrading(false)
       setStarting(false)
       setMessages([])
+      setReportOpen(false)
       requests.clear()
       setCompletedRequestId(null)
       files.current.forEach((file) => {
@@ -1886,6 +1903,8 @@ function Session({
         speaking: conversation.isSpeaking,
         messages,
         completedRequestId,
+        reportOpen,
+        setReportOpen,
         attachments,
         review,
         decided,
@@ -1939,7 +1958,7 @@ function Session({
         },
       }}
     >
-      {children}
+      <ReportSelectionProvider>{children}</ReportSelectionProvider>
     </VoiceContext.Provider>
   )
 }

@@ -23,6 +23,7 @@ import { useVoice } from "@genesy/voice/components/provider"
 import { VoiceControls } from "@genesy/voice/components/controls"
 import { StrandsStatus } from "@genesy/voice/components/strands-status"
 import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
+import { ConversationResults } from "@genesy/voice/components/conversation-results"
 import { ReviewDiff } from "@genesy/voice/components/review-diff"
 import {
   NotIncluded,
@@ -158,6 +159,7 @@ export function VoiceConversation({
                 <VoiceThinking />
               </div>
               <VoiceUnfinished />
+              <ConversationResults rows={voice.messages} completedRequestId={voice.completedRequestId} reportOpen={voice.reportOpen} onReportOpenChange={voice.setReportOpen} />
               <VoiceSuggestions items={tips.chips} onPick={pick} />
               {!follow ? (
                 <Button
