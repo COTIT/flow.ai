@@ -23,6 +23,17 @@ import { TemplateDownloads } from "./templates"
 
 export function ProductBulkList() {
   const owner = useBulkOwner()
+  const t = useTranslations("productBulk")
+  if (!owner.ready)
+    return (
+      <section
+        className="mx-auto flex w-full max-w-5xl flex-col gap-5 pb-8"
+        data-product-bulk-list
+      >
+        <BulkNav />
+        <p role="status">{t("loading")}</p>
+      </section>
+    )
   return <List key={`${owner.workspace}:${owner.user}`} owner={owner} />
 }
 function List({

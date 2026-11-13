@@ -166,7 +166,7 @@
   "apps/api/src/modules/product_bulk_runs/worker.rs": "227913d26578b8c27bb3a6cc8c432558421f26f4555d59613c95fc190948fffa",
   "apps/api/src/modules/product_categories/handlers.rs": "bd2f1a92fc86238b5ec424d62b6e286eb869cdfda3403f898e77798fca9501fe",
   "apps/api/src/modules/product_categories/service.rs": "f8a971d131b286ecd78c3d56de8c702251d269eaaa7932a540c4f9fde2f01ee9",
-  "apps/api/src/modules/product_fields/handlers.rs": "7874f5b3b9e0b6ca57013c6a729ecbd4a432d6f5d0dcaba5e89c2d6693a487cf",
+  "apps/api/src/modules/product_fields/handlers.rs": "0eeb41b307914fc8c3cf1ba52279bfaf4ee991ab227d310851606446b24276f0",
   "apps/api/src/modules/product_fields/repo.rs": "8c3bce56150891747b139b482aa33444193a65fe5a06c70bdc7a7d62bf4d6e2f",
   "apps/api/src/modules/product_fields/service.rs": "1d92e6614883ea702b19a3d4353c0cee0ca257f643a197e952738a20573a5314",
   "apps/api/src/modules/product_images/handlers.rs": "ee7c10194363cffefe180acde7b79723c381bee8ceec521dbae529ba647920c4",

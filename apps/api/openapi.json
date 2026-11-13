@@ -92380,6 +92380,16 @@
             },
             "description": "Missing permission"
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace"
+          },
           "409": {
             "content": {
               "application/json": {
@@ -92519,6 +92529,16 @@
               }
             },
             "description": "Missing permission"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or definition"
           },
           "408": {
             "content": {
@@ -92681,6 +92701,16 @@
             },
             "description": "Missing permission"
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or definition"
+          },
           "409": {
             "content": {
               "application/json": {
@@ -92799,6 +92829,16 @@
               }
             },
             "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission"
           },
           "404": {
             "content": {

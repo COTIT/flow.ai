@@ -20,7 +20,7 @@ fn read(a: &WorkspaceAccess) -> Result<(), AppError> {
         Err(AppError::Forbidden("This action is unauthorized."))
     }
 }
-#[utoipa::path(get,path="/workspace/{workspace}/product-fields",tag="product_fields",operation_id="product_fields_list",params(("workspace"=Uuid,Path),ListQuery),responses((status=422,body=ValidationErrorBody,description="Invalid filter"),(status=200,body=Envelope<Vec<FieldDefinition>>,description="Field definitions"),(status=403,body=MessageBody,description="Missing permission")),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-fields",tag="product_fields",operation_id="product_fields_list",params(("workspace"=Uuid,Path),ListQuery),responses((status=404,body=MessageBody,description="Unknown workspace"),(status=422,body=ValidationErrorBody,description="Invalid filter"),(status=200,body=Envelope<Vec<FieldDefinition>>,description="Field definitions"),(status=403,body=MessageBody,description="Missing permission")),security(("bearer"=[])))]
 pub async fn list(
     State(s): State<AppState>,
     a: WorkspaceAccess,
@@ -31,7 +31,7 @@ pub async fn list(
         service::list(&s.db, a.workspace_id, q.status.as_deref()).await?,
     ))
 }
-#[utoipa::path(get,path="/workspace/{workspace}/product-fields/{field}",tag="product_fields",operation_id="product_fields_get",params(("workspace"=Uuid,Path),("field"=Uuid,Path)),responses((status=200,body=Envelope<FieldDefinition>,description="Field definition"),(status=404,body=MessageBody,description="Unknown definition")),security(("bearer"=[])))]
+#[utoipa::path(get,path="/workspace/{workspace}/product-fields/{field}",tag="product_fields",operation_id="product_fields_get",params(("workspace"=Uuid,Path),("field"=Uuid,Path)),responses((status=403,body=MessageBody,description="Missing permission"),(status=200,body=Envelope<FieldDefinition>,description="Field definition"),(status=404,body=MessageBody,description="Unknown definition")),security(("bearer"=[])))]
 pub async fn get(
     State(s): State<AppState>,
     a: WorkspaceAccess,
@@ -40,7 +40,7 @@ pub async fn get(
     read(&a)?;
     Ok(Data(service::get(&s.db, a.workspace_id, id).await?))
 }
-#[utoipa::path(post,path="/workspace/{workspace}/product-fields",tag="product_fields",operation_id="product_fields_create",params(("workspace"=Uuid,Path)),request_body=DefinitionRequest,responses((status=422,body=ValidationErrorBody,description="Invalid definition"),(status=201,body=Envelope<FieldDefinition>,description="Created definition"),(status=403,body=MessageBody,description="Missing permission")),security(("bearer"=[])))]
+#[utoipa::path(post,path="/workspace/{workspace}/product-fields",tag="product_fields",operation_id="product_fields_create",params(("workspace"=Uuid,Path)),request_body=DefinitionRequest,responses((status=404,body=MessageBody,description="Unknown workspace or definition"),(status=422,body=ValidationErrorBody,description="Invalid definition"),(status=201,body=Envelope<FieldDefinition>,description="Created definition"),(status=403,body=MessageBody,description="Missing permission")),security(("bearer"=[])))]
 pub async fn create(
     State(s): State<AppState>,
     a: Can<FieldAdmin>,
@@ -62,7 +62,7 @@ pub async fn update(
         service::save(&s.db, a.workspace_id, Some(id), r).await?,
     ))
 }
-#[utoipa::path(delete,path="/workspace/{workspace}/product-fields/{field}",tag="product_fields",operation_id="product_fields_archive",params(("workspace"=Uuid,Path),("field"=Uuid,Path)),responses((status=200,body=Envelope<FieldDefinition>,description="Field definition"),(status=403,body=MessageBody,description="Missing permission")),security(("bearer"=[])))]
+#[utoipa::path(delete,path="/workspace/{workspace}/product-fields/{field}",tag="product_fields",operation_id="product_fields_archive",params(("workspace"=Uuid,Path),("field"=Uuid,Path)),responses((status=404,body=MessageBody,description="Unknown workspace or definition"),(status=200,body=Envelope<FieldDefinition>,description="Field definition"),(status=403,body=MessageBody,description="Missing permission")),security(("bearer"=[])))]
 pub async fn archive(
     State(s): State<AppState>,
     a: Can<FieldAdmin>,

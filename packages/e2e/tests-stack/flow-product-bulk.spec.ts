@@ -141,8 +141,33 @@ test("upload boundaries reject unsupported, empty, oversized and malformed sourc
   const urls = await servers(info)
   const account = await owner(request, urls)
   await login(page, urls, account)
-  await page.goto(`${urls.flow}/imports/products`)
+  let releaseIdentity!: () => void
+  const identityGate = new Promise<void>((resolve) => {
+    releaseIdentity = resolve
+  })
+  let identityFetched = false
+  const identityRoute = "**/v1/me"
+  await page.route(identityRoute, async (route) => {
+    const response = await route.fetch()
+    identityFetched = true
+    await identityGate
+    await route.fulfill({ response })
+  })
+  try {
+    await page.goto(`${urls.flow}/imports/products`)
+    await expect.poll(() => identityFetched).toBe(true)
+    await expect(
+      page.locator("[data-product-bulk-list]").getByRole("status")
+    ).toBeVisible()
+    await expect(page.getByLabel("Source files", { exact: true })).toHaveCount(
+      0
+    )
+  } finally {
+    releaseIdentity()
+  }
   const input = page.getByLabel("Source files", { exact: true })
+  await expect(input).toBeVisible()
+  await page.unroute(identityRoute)
   for (const file of [
     {
       name: "unsafe.exe",
@@ -158,6 +183,13 @@ test("upload boundaries reject unsupported, empty, oversized and malformed sourc
   ]) {
     await test.step(`frontend rejects ${file.name}`, async () => {
       await input.setInputFiles(file)
+      await expect
+        .poll(() =>
+          input.evaluate((element: HTMLInputElement) =>
+            Array.from(element.files ?? []).map((selected) => selected.name)
+          )
+        )
+        .toEqual([file.name])
       await expect(
         page.getByRole("button", { name: "Save draft", exact: true })
       ).toBeDisabled()
