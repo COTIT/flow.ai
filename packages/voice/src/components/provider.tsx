@@ -343,7 +343,9 @@ function Session({
   )
   const lastAsk = useRef("")
   /** Typed while the agent still owes an answer; sent one by one after each answer. */
-  const queued = useRef<{ text: string; event?: HistoryEvent }[]>([])
+  const queued = useRef<
+    { text: string; event?: HistoryEvent; ready?: boolean }[]
+  >([])
   const resumeNotice = useRef("upgradeNotice")
   const timeZone = useRef<string | undefined>(undefined)
   const turnEnd = useRef<(kind: TurnEnd, steps: number) => void>(() => {})
@@ -376,6 +378,20 @@ function Session({
     setError("")
     if (!proposal.current && !dispatching.current) setOutcome(null)
   }
+  function drainQueued() {
+    if (
+      !historyEnabled ||
+      !active.current ||
+      !verified.current ||
+      !session.current ||
+      turn.open ||
+      sending.current ||
+      !queued.current[0]?.ready
+    )
+      return
+    const next = queued.current.shift()!
+    void send(next.text, undefined, true, next.event)
+  }
   turnEnd.current = (kind, steps) => {
     if (!active.current) return
     setThinking(false)
@@ -391,9 +407,8 @@ function Session({
     // Office combines pending input; Flow keeps each durable send distinct.
     if (historyEnabled) {
       // Only this live turn drains its queue; archived pending input is never replayed.
-      const next = kind === "answered" ? queued.current.shift() : undefined
       if (kind !== "answered") queued.current = []
-      if (next) void send(next.text, undefined, true, next.event)
+      else drainQueued()
     } else {
       const next = queued.current
         .splice(0)
@@ -1113,8 +1128,10 @@ function Session({
             void confirm("cancel")
           }
         }
-      } else if (turn.open) turn.agentLine()
-      else setThinking(false)
+      } else {
+        if (turn.open) turn.agentLine()
+        if (historyEnabled || !turn.open) setThinking(false)
+      }
       add(
         source === "user" ? "user" : "agent",
         source === "user" ? message : spokenText(message),
@@ -1136,6 +1153,7 @@ function Session({
       if (active.current && verified.current && is_typing) setThinking(true)
     },
     onInterruption: () => {
+      if (historyEnabled) queued.current = []
       const prior =
         historyEnabled && lastAgentEvent.current
           ? sourceEvents.current.get(lastAgentEvent.current)
@@ -1894,7 +1912,12 @@ function Session({
     if (isBlankMessage(text)) text = ""
     if (!text.trim() && !selected.length) return false
     // Once the agent is working, a new message would make the provider drop that answer: hold it.
-    if (!fromQueue && !selected.length && turn.working && !proposal.current) {
+    if (
+      !fromQueue &&
+      !selected.length &&
+      !proposal.current &&
+      (turn.working || (historyEnabled && queued.current.length > 0))
+    ) {
       if (historyEnabled) {
         const before = generation.current
         const owner = session.current
@@ -1910,17 +1933,22 @@ function Session({
           modality: "text",
           status: "queued",
         }
+        // Reserve FIFO position before the durable acknowledgement can outlive this turn.
+        const queue = queued.current
+        const entry = { text: text.trim(), event, ready: false }
+        queue.push(entry)
         try {
           await persistEvent(event)
           if (
             !active.current ||
             !verified.current ||
             before !== generation.current ||
-            owner !== session.current
+            owner !== session.current ||
+            queue !== queued.current
           )
             return false
           sourceEvents.current.set(event.key, event)
-          queued.current.push({ text: text.trim(), event })
+          entry.ready = true
           add("user", event.text, event.key)
           setMessages((rows) =>
             rows.map((row) =>
@@ -1931,7 +1959,11 @@ function Session({
         } catch (error) {
           if (active.current && before === generation.current)
             setError(voiceErrorMessage(error, t))
+          const index = queue.indexOf(entry)
+          if (index >= 0) queue.splice(index, 1)
           return false
+        } finally {
+          drainQueued()
         }
       }
       queued.current.push({ text: text.trim() })
@@ -1941,6 +1973,7 @@ function Session({
     lastAsk.current = text.trim() || lastAsk.current
     sending.current = true
     const before = generation.current
+    const queue = queued.current
     setBusy(true)
     setError("")
     const patch = (key: string, changes: Partial<Attachment>) =>
@@ -2048,7 +2081,8 @@ function Session({
         if (
           before !== generation.current ||
           !active.current ||
-          !verified.current
+          !verified.current ||
+          (fromQueue && queue !== queued.current)
         )
           return false
         sourceEvents.current.set(textEvent.key, textEvent)
@@ -2107,7 +2141,10 @@ function Session({
       return false
     } finally {
       sending.current = false
-      if (active.current && before === generation.current) setBusy(false)
+      if (active.current && before === generation.current) {
+        setBusy(false)
+        drainQueued()
+      }
     }
   }
   async function confirm(

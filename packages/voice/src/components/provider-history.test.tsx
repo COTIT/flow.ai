@@ -735,6 +735,319 @@ describe("opt-in provider continuity", () => {
       "sent_unconfirmed"
     )
   })
+  it("drains acknowledged input even when its prior turn already ended", async () => {
+    vi.useFakeTimers()
+    await mount()
+    const options = await start()
+    await act(async () => {
+      await voice.send("first")
+    })
+    await act(async () =>
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "first answer",
+        event_id: 1,
+      })
+    )
+    let release!: () => void
+    queuedWrite = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let pending!: Promise<boolean>
+    await act(async () => {
+      pending = voice.send("second")
+      await Promise.resolve()
+    })
+    await act(async () => vi.advanceTimersByTimeAsync(1500))
+    await act(async () => {
+      release()
+      expect(await pending).toBe(true)
+    })
+    expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+      "first",
+      "second",
+    ])
+    expect(voice.messages.find((row) => row.text === "second")?.delivery).toBe(
+      "sent_unconfirmed"
+    )
+  })
+  it("keeps newer input behind a queued save whose acknowledgement is delayed", async () => {
+    vi.useFakeTimers()
+    await mount()
+    const options = await start()
+    await act(async () => {
+      await voice.send("first")
+    })
+    await act(async () =>
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "first answer",
+        event_id: 1,
+      })
+    )
+    let release!: () => void
+    queuedWrite = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let second!: Promise<boolean>
+    let third!: Promise<boolean>
+    await act(async () => {
+      second = voice.send("second")
+      await Promise.resolve()
+    })
+    await act(async () => vi.advanceTimersByTimeAsync(1500))
+    await act(async () => {
+      third = voice.send("third")
+      await Promise.resolve()
+    })
+    await act(async () => {
+      release()
+      expect(await second).toBe(true)
+      expect(await third).toBe(true)
+    })
+    expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+      "first",
+      "second",
+    ])
+    await act(async () =>
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "second answer",
+        event_id: 2,
+      })
+    )
+    await act(async () => vi.advanceTimersByTimeAsync(1500))
+    expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+      "first",
+      "second",
+      "third",
+    ])
+    const events = calls
+      .filter((c) => c.path === "history" && c.body.command === "events")
+      .flatMap((c) => c.body.events)
+    for (const text of ["second", "third"]) {
+      const queued = events.find(
+        (event) => event.text === text && event.status === "queued"
+      )!
+      const sent = events.find(
+        (event) => event.text === text && event.status === "sent_unconfirmed"
+      )!
+      expect(sent.key).toBe(queued.key)
+      expect(sent.ordinal).toBe(queued.ordinal)
+    }
+  })
+  it("stops thinking when text arrives while retaining the tool-settle window", async () => {
+    vi.useFakeTimers()
+    await mount()
+    const options = await start()
+    await act(async () => {
+      await voice.send("first")
+    })
+    expect(voice.thinking).toBe(true)
+    await act(async () => vi.advanceTimersByTimeAsync(1000))
+    expect(voice.thinking).toBe(true)
+    await act(async () =>
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "first answer",
+        event_id: 1,
+      })
+    )
+    expect(voice.thinking).toBe(false)
+    expect(voice.completedRequestId).toBe(null)
+    await act(async () => {
+      expect(await voice.send("second")).toBe(true)
+    })
+    expect(sdk.sendUserMessage).toHaveBeenCalledTimes(1)
+    await act(async () => vi.advanceTimersByTimeAsync(1499))
+    expect(sdk.sendUserMessage).toHaveBeenCalledTimes(1)
+    await act(async () => vi.advanceTimersByTimeAsync(1))
+    expect(sdk.sendUserMessage).toHaveBeenNthCalledWith(2, "second")
+    expect(voice.thinking).toBe(true)
+  })
+  it.each(["end", "interrupt"])(
+    "never replays accepted queued text after %s",
+    async (stop) => {
+      vi.useFakeTimers()
+      await mount()
+      const options = await start()
+      await act(async () => {
+        await voice.send("first")
+      })
+      await act(async () =>
+        options.onMessage!({
+          source: "ai",
+          role: "agent",
+          message: "first answer",
+          event_id: 1,
+        })
+      )
+      await act(async () => {
+        expect(await voice.send("pending")).toBe(true)
+      })
+      if (stop === "end") {
+        await act(async () => voice.end())
+        await act(async () => voice.continueConversation("logical-1", true))
+        await act(async () =>
+          sdk.sessions.at(-1)!.onConnect!({ conversationId: "transport-1" })
+        )
+      } else await act(async () => options.onInterruption!({ event_id: 1 }))
+      await act(async () => vi.advanceTimersByTimeAsync(5000))
+      expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+        "first",
+      ])
+      expect(
+        calls
+          .filter((c) => c.path === "history" && c.body.command === "events")
+          .flatMap((c) => c.body.events)
+          .some(
+            (event) => event.text === "pending" && event.status === "queued"
+          )
+      ).toBe(true)
+    }
+  )
+  it.each(["end", "interrupt"])(
+    "invalidates a queued acknowledgement pending during %s",
+    async (stop) => {
+      vi.useFakeTimers()
+      await mount()
+      const options = await start()
+      await act(async () => {
+        await voice.send("first")
+      })
+      await act(async () =>
+        options.onMessage!({
+          source: "ai",
+          role: "agent",
+          message: "first answer",
+          event_id: 1,
+        })
+      )
+      let release!: () => void
+      queuedWrite = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      let pending!: Promise<boolean>
+      await act(async () => {
+        pending = voice.send("interrupted pending")
+        await Promise.resolve()
+      })
+      let ended: Promise<void> | undefined
+      if (stop === "end")
+        await act(async () => {
+          ended = voice.end()
+        })
+      else await act(async () => options.onInterruption!({ event_id: 1 }))
+      await act(async () => {
+        release()
+        expect(await pending).toBe(false)
+        await ended
+      })
+      await act(async () => vi.advanceTimersByTimeAsync(1500))
+      expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+        "first",
+      ])
+      if (stop === "end") {
+        await act(async () => voice.continueConversation("logical-1", true))
+        await act(async () =>
+          sdk.sessions.at(-1)!.onConnect!({ conversationId: "transport-1" })
+        )
+      }
+      await act(async () => {
+        expect(await voice.send("new live input")).toBe(true)
+      })
+      expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+        "first",
+        "new live input",
+      ])
+    }
+  )
+  it("removes a failed queue save and sends the later accepted entry once", async () => {
+    vi.useFakeTimers()
+    await mount()
+    const options = await start()
+    await act(async () => {
+      await voice.send("first")
+    })
+    await act(async () =>
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "first answer",
+        event_id: 1,
+      })
+    )
+    let reject!: (reason: Error) => void
+    queuedWrite = new Promise<void>((_, fail) => {
+      reject = fail
+    })
+    let failed!: Promise<boolean>
+    let accepted!: Promise<boolean>
+    await act(async () => {
+      failed = voice.send("failed save")
+      await Promise.resolve()
+    })
+    await act(async () => {
+      accepted = voice.send("accepted later")
+      await Promise.resolve()
+    })
+    await act(async () => vi.advanceTimersByTimeAsync(1500))
+    await act(async () => {
+      queuedWrite = null
+      reject(new Error("save unavailable"))
+      expect(await failed).toBe(false)
+      expect(await accepted).toBe(true)
+    })
+    expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+      "first",
+      "accepted later",
+    ])
+    expect(voice.messages.some((row) => row.text === "failed save")).toBe(false)
+    await act(async () => vi.advanceTimersByTimeAsync(5000))
+    expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+      "first",
+      "accepted later",
+    ])
+  })
+  it("defers queue draining until an in-flight send releases its guard", async () => {
+    vi.useFakeTimers()
+    await mount()
+    const options = await start()
+    await act(async () => {
+      await voice.send("first")
+    })
+    await act(async () =>
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "first answer",
+        event_id: 1,
+      })
+    )
+    await act(async () => {
+      await voice.send("second")
+      await voice.send("third")
+    })
+    sdk.sendUserMessage.mockImplementationOnce(() => {
+      options.onMessage!({
+        source: "ai",
+        role: "agent",
+        message: "second answer",
+        event_id: 2,
+      })
+      vi.advanceTimersByTime(1500)
+    })
+    await act(async () => vi.advanceTimersByTimeAsync(1500))
+    expect(sdk.sendUserMessage.mock.calls.map(([text]) => text)).toEqual([
+      "first",
+      "second",
+      "third",
+    ])
+  })
   it("never moves a pending old-source text write into a resumed source", async () => {
     await mount()
     const options = await start()
