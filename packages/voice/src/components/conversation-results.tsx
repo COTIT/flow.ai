@@ -85,8 +85,8 @@ export function ResultSelection({ row }: { row: TranscriptRow }) {
 const frame = () =>
   new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 
-/** Include pane ancestors: Office's outer scroller and Flow's page can move during a modal. */
-function captureScroll() {
+/** Include fitting panes too: incoming results can make them scroll during a modal. */
+export function captureScroll() {
   const elements = new Set<HTMLElement>()
   for (const pane of document.querySelectorAll<HTMLElement>(
     '[data-flow-scroll], [data-flow-pane], [role="log"]'
@@ -95,13 +95,8 @@ function captureScroll() {
       let element: HTMLElement | null = pane;
       element;
       element = element.parentElement
-    ) {
-      if (
-        element.scrollHeight > element.clientHeight ||
-        element.scrollWidth > element.clientWidth
-      )
-        elements.add(element)
-    }
+    )
+      elements.add(element)
   }
   if (document.scrollingElement instanceof HTMLElement)
     elements.add(document.scrollingElement)

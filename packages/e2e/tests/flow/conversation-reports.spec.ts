@@ -67,7 +67,7 @@ test("a new chart preserves history; full-size plots respond to pointer and keyb
   const sliceBox = await slice.boundingBox()
   // The pie center belongs to both paths; use an interior point of the first wedge.
   const position = { x: sliceBox!.width / 4, y: sliceBox!.height / 4 }
-  if (info.project.name.endsWith("mobile")) await slice.tap({ position })
+  if (info.project.use.hasTouch) await slice.tap({ position })
   else await slice.hover({ position })
   await expect(pie.getByRole("tooltip")).toContainText("Wild honey")
   await expect(pie.getByRole("tooltip")).toContainText("1,200.50")
