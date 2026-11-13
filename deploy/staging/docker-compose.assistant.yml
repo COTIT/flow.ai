@@ -13,6 +13,7 @@ services:
       ELEVENLABS_AGENT_ID: ${ELEVENLABS_AGENT_ID:-}
       ASSISTANT_GREETING_OVERRIDE: ${ASSISTANT_GREETING_OVERRIDE:-off}
       ELEVENLABS_API_KEY_FILE: /run/secrets/elevenlabs_api_key
+      ELEVENLABS_WEBHOOK_SECRET_FILE: /run/secrets/elevenlabs_webhook_secret
       ASSISTANT_BRIDGE_SECRET_FILE: /run/secrets/assistant_bridge_secret
       ASSISTANT_CHECKPOINT_URL_FILE: /run/secrets/assistant_checkpoint_url
       LANGSMITH_API_KEY_FILE: /run/secrets/langsmith_api_key
@@ -21,10 +22,12 @@ services:
       LANGSMITH_HIDE_INPUTS: "true"
       LANGSMITH_HIDE_OUTPUTS: "true"
       LANGCHAIN_CALLBACKS_BACKGROUND: "false"
-    secrets: [elevenlabs_api_key, assistant_bridge_secret, assistant_checkpoint_url, langsmith_api_key]
+    secrets: [elevenlabs_api_key, elevenlabs_webhook_secret, assistant_bridge_secret, assistant_checkpoint_url, langsmith_api_key]
 secrets:
   elevenlabs_api_key:
     file: ${SECRETS_DIR:-./secrets}/elevenlabs_api_key
+  elevenlabs_webhook_secret:
+    file: ${SECRETS_DIR:-./secrets}/elevenlabs_webhook_secret
   assistant_bridge_secret:
     file: ${SECRETS_DIR:-./secrets}/assistant_bridge_secret
   assistant_checkpoint_url:

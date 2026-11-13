@@ -98,7 +98,7 @@ async function setup(page: Page, api: import("../../office/fake-api").FakeApi) {
 
 async function startVoice(page: Page) {
   await startControl(page).first().click()
-  await expect(page.getByRole("button", { name: v.end })).toBeVisible()
+  await expect(page.getByRole("button", { name: v.endCall })).toBeVisible()
   // The dock's attach button exists only once the session is verified.
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
 }
@@ -337,7 +337,7 @@ test("voice-first talker: barge-in, voice+text, mic flips, spoken yes, scenes, s
       run: async () => {
         if (!(await live())) return
         // End lives in the conversation view; from the dashboard a person opens it with the orb.
-        const end = page.getByRole("button", { name: v.end, exact: true }).first()
+        const end = page.getByRole("button", { name: v.endCall, exact: true }).first()
         if (!(await end.isVisible())) await page.getByRole("button", { name: shell.orbOpen, exact: true }).click()
         await expect(end, "End is reachable to hang up").toBeVisible()
         slowTools = true

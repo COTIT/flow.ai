@@ -39,7 +39,7 @@ test("a reference file uploads through Flow with the message, and ending clears 
     .poll(() => JSON.stringify(agent.sent))
     .toContain("provider-file-1")
 
-  await page.getByRole("button", { name: v.end }).click()
+  await page.getByRole("button", { name: v.endCall }).click()
   await expect(tray).toBeHidden()
   await expect(page.getByText("shelf.png")).toHaveCount(0)
 })

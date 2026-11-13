@@ -52,7 +52,7 @@ async function micControl(page: Page) {
 
 async function startVoice(page: Page) {
   await tapOrb(page) // orb-first home: the orb starts voice
-  await expect(page.getByRole("button", { name: v.end })).toBeVisible()
+  await expect(page.getByRole("button", { name: v.endCall })).toBeVisible()
   // The attach button exists only once the session is verified.
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
 }

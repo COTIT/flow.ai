@@ -24,7 +24,7 @@ test("the conversation's End shows the word End and ends the call", async ({ pag
   await page.getByRole("button", { name: typeInstead, exact: true }).click()
   await page.getByLabel(v.message).fill("Hello")
   await page.getByRole("button", { name: v.send, exact: true }).click()
-  const end = page.locator("[data-conversation-header]").getByRole("button", { name: v.end })
+  const end = page.locator("[data-conversation-header]").getByRole("button", { name: v.endCall })
   await expect(end).toBeVisible()
   await expect.poll(() => seenWords(end)).toMatch(/^End/)
   const box = (await end.boundingBox())!
@@ -38,7 +38,7 @@ test("on a scene, End beside the conversation also says End (rail, sheet or bar)
   await page.goto("/scenes/sales")
   await page.getByLabel(v.message).fill("Hello")
   await page.getByRole("button", { name: v.send, exact: true }).click()
-  const ends = page.getByRole("button", { name: v.end })
+  const ends = page.getByRole("button", { name: v.endCall })
   await expect(ends.first()).toBeVisible()
   // One End in sight, and it says its name.
   const shown = await ends.evaluateAll((els) => els.filter((e) => (e as HTMLElement).offsetParent !== null).length)

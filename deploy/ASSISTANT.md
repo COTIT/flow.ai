@@ -11,12 +11,17 @@ Keep `deploy/<environment>/secrets/` at mode `700`. Place these files inside it:
 | File | Consumer | Contents |
 | --- | --- | --- |
 | `elevenlabs_api_key` | API and Office | Same environment-specific provider key; API uses it for cleanup |
+| `elevenlabs_webhook_secret` | Office only | HMAC signing secret from this environment's ElevenLabs transcription webhook, at least 16 characters |
 | `assistant_bridge_secret` | API and Office | Same random bridge signing secret |
 | `assistant_checkpoint_password` | Operator helper only | Password for `assistant_checkpoint_<environment>` |
 | `assistant_checkpoint_url` | Office only | PostgreSQL URL for that restricted login, host `db`, database `genesy` |
 | `langsmith_api_key` | Office only | Optional tracing key; use an empty file while tracing is off |
 
 Mounted files use mode `444`, matching existing secret files: containers run as different non-root users, and the mode `700` parent directory prevents other host users from reading them. Keep the unmounted `assistant_checkpoint_password` at mode `600`. Percent-encode the password when constructing the URL. Never use the API's administrator URL as the checkpoint URL.
+
+Provision `elevenlabs_webhook_secret` before running the new release's Compose pull, migration or startup commands. Both assistant overlays require this file, including when `ASSISTANT_ENABLED=false` leaves the overlay mounted for cleanup. Copy the provider's webhook signing secret through a private channel; do not generate an unrelated local value or set the plaintext `ELEVENLABS_WEBHOOK_SECRET` alongside its mounted file. The API, Flow and browser receive no webhook secret.
+
+Configure separate ElevenLabs transcription webhooks for each environment: staging uses `https://staging-office.genesy.app/api/voice/history-webhook`; production uses `https://office.genesy.app/api/voice/history-webhook`. Bind each environment's own agent to its webhook and matching signing secret. Enable HMAC authentication, JSON `post_call_transcription` delivery, retries and `exclude_transcript: false`; leave audio delivery and recording disabled. Verify the provider's settings after saving. The provider must be able to reach the callback through the environment's ingress rules. Before accepting the release, prove a complete native transcript commits to the same environment and a duplicate receipt causes no duplicate dialogue or business action. History has no separate rollout switch; use overall assistant admission to pause new sessions if this check fails.
 
 With the database running and `ASSISTANT_ENABLED=false`, bootstrap the role before the release migration:
 
@@ -67,6 +72,19 @@ For a new environment, configure the voice, origins, call limits and signed-sess
 
 Staging publishing is a follow-up to `deploy.sh staging <sha>`, not part of it: the provider change is independent of the image, may touch the shared tool, and its record belongs in the repo. Tests: `bash deploy/assistant-agent-publish.test.sh` (fake provider on 127.0.0.1; no live calls).
 
+For Staging or Production, supply `ASSISTANT_AGENT_WEBHOOK_ID` to bind the existing workspace webhook during the same reviewed publication. Store its ID privately per environment; keep IDs out of the template and repository. For example, with local private credential files:
+
+```bash
+ASSISTANT_AGENT_WEBHOOK_ID="$(cat /absolute/private/staging-webhook-id)" \
+ASSISTANT_AGENT_KEY_FILE=/absolute/private/staging-provider-key \
+ASSISTANT_AGENT_ENV_FILE=/absolute/private/staging.env \
+  bash deploy/assistant-agent.sh staging
+```
+
+Review this dry run, then repeat it with `--apply`. Use Production's own files and `ASSISTANT_AGENT_CONFIRM=production` for its apply. The publisher looks up the selected webhook through the [workspace webhook inventory](https://elevenlabs.io/docs/api-reference/webhooks/list) and requires the exact environment Office HTTPS callback, HMAC authentication and both disabled flags set to false. It refuses an empty, malformed, missing or cross-environment ID before changing the agent. Development does not accept this option.
+
+The runtime binding adds exactly five governed leaves under `platform_settings.workspace_overrides.webhooks`: `post_call_webhook_id`, `events: ["transcript"]`, `transcript_format: "json"`, `exclude_transcript: false` and `send_audio: false`. The delivered event type is `post_call_transcription`. Read-back verifies these fields and the webhook inventory; the diff hides the ID. Evidence records `webhookConfigured: true` and includes these leaves in `governedSha256`; `templateSha256` continues to hash the sanitized source template. Without the option, existing webhook bindings remain outside the governed patch. Configure retries separately on the workspace webhook and prove native delivery/retry against the environment callback; the inventory does not expose retry configuration.
+
 The observed agent disables voice recording and sets retention to zero days with audio/transcript deletion. ElevenLabs documents zero days as immediate deletion; the separate `zero_retention_mode` flag is false, so this snapshot makes no Enterprise Zero Retention Mode claim. See [ElevenLabs privacy settings](https://elevenlabs.io/docs/eleven-agents/customization/privacy). Authentication is enabled; origin requirements and allowlists still need environment review. Verify the offline snapshot with `bash deploy/assistant-agent.test.sh`.
 
 Talk-back and idle settings: the agent's prompt has the four-beat script and the silence check-in, and its turn settings take the turn after 20 s of silence and end the call after 60 s (`turn_timeout` 20, `silence_end_call_timeout` 60). The template also records `force_pre_tool_speech: true` on `execute_genesy_tool`, so the agent always speaks before running a business tool. That flag lives on the client tool itself, and one `execute_genesy_tool` tool is shared by the Production, Staging and Development agents. Flipping it changes all three at once. The Development agent uses its own copy of `execute_genesy_tool`, with the same name, description and schema and the flag on. The shared tool used by Production and Staging was switched to force pre-tool speech on 2026-11-08, with the owner's explicit approval, and a read-only re-fetch confirmed it. Staging has these prompt and turn settings since 2026-11-08 (version `agtvrsn_3701m6wsz4ybfyqtqgp25d3n5yjx`). Production has them too since 2026-11-08 (version `agtvrsn_0401m6wvyhz4f80sgpf0vwt57c33`). For a new environment, set Agent settings → Conversational behavior → "Take turn after silence" 20 s and "End conversation after silence" 60 s, publish, and compare the prompt with this template.
@@ -97,6 +115,8 @@ The agent explains each failure to the user in one plain sentence from the resul
 ## Rollback and recovery
 
 First set `ASSISTANT_ENABLED=false`. Restart the affected services through the reviewed deployment procedure to stop new sessions. Keep provider cleanup credentials until all outstanding remote deletion attempts finish. Preserve ledgers and checkpoints. Existing native invoice delivery jobs continue while assistant admission is disabled, so retain the Rust invoice worker and its mail/PDF configuration too.
+
+For the conversation continuity migration `20261113121048`, pause admission on the new binaries and fix forward. Keep the new Office webhook and Rust ingestion, retention and deletion workers running with their secret files. Older binaries cannot archive or purge the new dialogue correctly, so this migration remains outside the compatible rollback allowlist. Do not reverse it or restore an older database for routine rollback. A binary rollback needs a separate review of retained history and pending provider sources.
 
 For a schema change consisting entirely of the reviewed additive assistant migrations, use:
 

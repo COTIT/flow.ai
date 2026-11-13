@@ -12,7 +12,10 @@ import {
 import { signedProviderSession } from "@/lib/voice/provider"
 import { voiceInput } from "@/lib/voice/input"
 import { requireAssistantAdmission } from "@/lib/voice/admission"
-import { assistantReadiness } from "@/lib/voice/readiness"
+import {
+  assistantReadiness,
+  requireConversationHistoryReady,
+} from "@/lib/voice/readiness"
 import { workspaceTimeZone } from "@/lib/voice/time-zone"
 import {
   GREETING_HINTS,
@@ -67,6 +70,16 @@ export async function POST(request: Request) {
       throw new VoiceError("Invalid greeting.")
     if (!(await assistantReadiness()).ready)
       throw new VoiceError("Assistant configuration is not ready.", 503)
+    if (input.history === true) {
+      try {
+        await requireConversationHistoryReady()
+      } catch {
+        throw new VoiceError(
+          "Conversation history configuration is not ready.",
+          503
+        )
+      }
+    }
     const history =
       input.history === true
         ? await prepareConversation(context, input.logicalConversationId)

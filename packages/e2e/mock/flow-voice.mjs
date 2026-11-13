@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+
 // Fake Office voice server for Flow's conversation specs (tests/flow/chat-*.spec.ts). Flow's
 // built proxy forwards /api/voice/* here (VOICE_UPSTREAM_URL is the mock origin), so these
 // answers prove the real browser -> Flow -> "Office" path. Specs override single answers with
@@ -140,9 +142,65 @@ export async function flowVoice(req, res, path, send, readJson) {
         sessionId: "flow-session",
         conversationId: "flow-conversation",
         signedUrl: FLOW_SIGNED_URL,
+        ...(body.history === true
+          ? {
+              history: {
+                conversationId: body.logicalConversationId ?? randomUUID(),
+                sourceId: randomUUID(),
+                userId: "u1",
+                context: "{}",
+                revision: 0,
+                coverage: "provisional",
+              },
+            }
+          : {}),
       }),
       true
     )
+  }
+  // Generic call specs need transport acknowledgements; history.spec.ts owns archive scenarios.
+  if (route === "history" && req.method === "POST") {
+    const body = await readJson(req)
+    const empty = { cursor: null, has_more: false }
+    if (body.command === "events")
+      return (send(res, 200, { status: "saved" }), true)
+    if (body.command === "list")
+      return (send(res, 200, { conversations: [], ...empty }), true)
+    if (body.command === "messages")
+      return (
+        send(res, 200, {
+          messages: [],
+          revision: body.revision ?? 0,
+          ...empty,
+          through_sequence: 0,
+          gaps: [],
+        }),
+        true
+      )
+    if (body.command === "get" || body.command === "new")
+      return (
+        send(res, 200, {
+          conversation: {
+            id: body.logicalConversationId ?? randomUUID(),
+            title: "",
+            state: "active",
+            revision: 0,
+            coverage: "provisional",
+            last_activity_at: "2026-11-13T08:00:00Z",
+            expires_at: "2027-01-01T08:00:00Z",
+          },
+          sources: [],
+        }),
+        true
+      )
+    if (body.command === "end" || body.command === "delete")
+      return (
+        send(res, 200, {
+          status: body.command === "end" ? "ended" : "deleted",
+        }),
+        true
+      )
+    return (send(res, 400, { message: "Unknown e2e history command." }), true)
   }
   if (route === "tools" && req.method === "POST") {
     const body = await readJson(req).catch(() => ({}))

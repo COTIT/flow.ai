@@ -46,7 +46,6 @@ import {
   historyTool,
   HISTORY_TOOL,
 } from "@/lib/voice/history"
-import { voiceSetting } from "@/lib/voice/settings"
 export const runtime = "nodejs"
 
 const statusTool = {
@@ -177,7 +176,6 @@ async function handle(request: Request, scope: GapScope) {
       if (files.size) throw new VoiceError("Discovery does not accept files.")
       const query = String(input.query ?? "")
       const wantsHistory =
-        (await voiceSetting("ASSISTANT_CONVERSATIONS_ENABLED")) === "true" &&
         /history|conversation|earlier|previous|remember|preference|gesprek|geschiedenis|mazungumzo|awali/i.test(
           query
         )

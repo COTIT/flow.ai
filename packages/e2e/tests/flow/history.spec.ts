@@ -692,3 +692,25 @@ for (const target of ["active", "other"] as const) {
     expect(agent.connections).toBe(1)
   })
 }
+
+test("history is available without a rollout setting and starts no call while browsing", async ({
+  page,
+}) => {
+  const agent = await fakeAgent(page)
+  const sessions = watch(page, "session")
+  await page.goto("/")
+  await page.getByRole("button", { name: s.showHeader, exact: true }).click()
+  await page
+    .getByRole("link", { name: "Conversation history", exact: true })
+    .click()
+  await expect(
+    page.getByRole("heading", { name: "Conversation history", exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByText("No saved conversations yet.", { exact: true })
+  ).toBeVisible()
+  expect(agent.connections).toBe(0)
+  expect(sessions.filter((request) => request.method === "POST")).toHaveLength(
+    0
+  )
+})

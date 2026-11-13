@@ -8,6 +8,8 @@ import { expectNoHorizontalScroll } from "../src/test"
 import { chat, fakeAgent, startText } from "../tests/flow/voice"
 import { ownProduct } from "./till"
 
+import { fakeFlowTransport } from "./flow-voice"
+
 // REAL API replies (a real till sale and shift, a real product) carry each amount's currency and
 // decimals; the card Flow draws from them is real. SIMULATED only the voice transport: the
 // browser's /api/voice calls are answered here with resultView() over the real reply, exactly
@@ -28,15 +30,7 @@ async function raw(request: APIRequestContext, owner: Owner, path: string) {
 /** Flow's voice routes answer as Office would; each read returns the picture of its real reply. */
 async function office(page: Page, replies: Record<string, Reply>) {
   await page.route("**/api/voice/readiness", (route) => route.fulfill({ json: { enabled: true, ready: true } }))
-  await page.route("**/api/voice/session", (route) =>
-    route.fulfill({
-      json: {
-        sessionId: "stack-session",
-        conversationId: "flow-conversation",
-        signedUrl: "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=stack",
-      },
-    })
-  )
+  await fakeFlowTransport(page)
   await page.route("**/api/voice/tools", async (route) => {
     const sent = route.request().postDataJSON() as { command?: string; operationId?: string }
     const reply = sent.command === "execute" ? replies[String(sent.operationId)] : undefined

@@ -17,6 +17,8 @@ import {
 import { expectNoHorizontalScroll } from "../src/test"
 import { fakeAgent, startText } from "../tests/flow/voice"
 
+import { fakeFlowTransport } from "./flow-voice"
+
 // REAL API dry run, Flow and its preview frame; SIMULATED only the voice side (no live agent):
 // the browser's /api/voice calls are answered here with the review Office would propose.
 
@@ -48,16 +50,7 @@ async function proposeEdit(page: Page, body: unknown) {
   await page.route("**/api/voice/readiness", (route) =>
     route.fulfill({ json: { enabled: true, ready: true } })
   )
-  await page.route("**/api/voice/session", (route) =>
-    route.fulfill({
-      json: {
-        sessionId: "stack-session",
-        conversationId: "flow-conversation", // what fakeAgent announces
-        signedUrl:
-          "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=stack",
-      },
-    })
-  )
+  await fakeFlowTransport(page)
   await page.route("**/api/voice/tools", async (route) => {
     const sent = route.request().postDataJSON() as { command?: string }
     if (sent.command !== "execute")

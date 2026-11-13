@@ -50,7 +50,7 @@ test.describe("two businesses", () => {
     // First conversation (typed): afterwards the note has done its job.
     await page.getByRole("button", { name: "Type instead", exact: true }).click()
     await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
-    await page.getByRole("button", { name: v.end }).first().click()
+    await page.getByRole("button", { name: v.endCall }).first().click()
     // A scene opened counts as having started: the tip becomes the quiet link.
     await page.goto("/scenes/stock")
     await expect(page.getByRole("heading", { level: 1, name: "Stock Watch" })).toBeVisible()

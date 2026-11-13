@@ -13,7 +13,7 @@ const answering = (page: Page) =>
   fakeAgent(page, (text, a) => setTimeout(() => a.say(`Found: ${text}`), 120))
 const composer = (page: Page) => page.locator("[data-flow-composer]")
 const rail = (page: Page) => page.locator("#flow-rail")
-const ends = (page: Page) => page.getByRole("button", { name: v.end })
+const ends = (page: Page) => page.getByRole("button", { name: v.endCall })
 
 /** "Type instead" from home, one message and its reply, then back to home. */
 async function talkThenHome(page: Page, text = "Which orders wait?") {

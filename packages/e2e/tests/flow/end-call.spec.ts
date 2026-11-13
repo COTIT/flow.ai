@@ -8,7 +8,7 @@ import { fakeAgent, startText, v, watch } from "./voice"
 
 test.beforeEach(({ api }) => void api)
 
-const ends = (page: Page) => page.getByRole("button", { name: v.end })
+const ends = (page: Page) => page.getByRole("button", { name: v.endCall })
 const live = (page: Page) => page.getByRole("button", { name: v.addFiles })
 const dock = (page: Page) => page.getByRole("region", { name: s.dock })
 
@@ -61,7 +61,7 @@ test("End shows once in every view, only while connected, and one tap ends the c
     // Rail: its header; collapsed, beside Show conversation.
     const rail = page.getByRole("complementary", { name: s.conversation })
     if (await rail.isVisible())
-      await expect(rail.getByRole("button", { name: v.end })).toBeVisible()
+      await expect(rail.getByRole("button", { name: v.endCall })).toBeVisible()
     const hide = page.getByRole("button", { name: s.hideConversation }).first()
     if (await hide.isVisible()) await hide.click() // a tablet opens scenes with it collapsed
     await expect(
@@ -112,7 +112,7 @@ for (const [width, height] of [
       const end = ends(page)
       if (height <= 500) {
         await expect(
-          dock(page).getByRole("button", { name: v.end }),
+          dock(page).getByRole("button", { name: v.endCall }),
           "in the dock row on a short screen"
         ).toBeVisible()
         // Send keeps the row's end; End sits before the mic, the field keeps its room.
@@ -120,7 +120,7 @@ for (const [width, height] of [
           (await dock(page)
             .getByRole("button", { name, exact: true })
             .boundingBox())!
-        const [endBox, sendBox] = [await x(v.end), await x(v.send)]
+        const [endBox, sendBox] = [await x(v.endCall), await x(v.send)]
         const row = (await dock(page).locator("form").boundingBox())!
         expect(Math.round(sendBox.x + sendBox.width), "Send ends the row").toBe(
           Math.round(row.x + row.width)

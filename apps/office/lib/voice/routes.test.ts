@@ -4,6 +4,7 @@ import * as catalog from "./catalog"
 
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
+  historyReady: vi.fn(),
   session: vi.fn(),
   ledger: vi.fn(),
   verify: vi.fn(),
@@ -80,6 +81,7 @@ vi.mock("./file-import", async (original) => ({
 vi.mock("./time-zone", () => ({ workspaceTimeZone: mocks.timeZone }))
 vi.mock("./readiness", () => ({
   assistantReadiness: async () => ({ ready: true }),
+  requireConversationHistoryReady: mocks.historyReady,
 }))
 vi.mock("./provider", () => ({
   signedProviderSession: async () => ({
@@ -121,7 +123,7 @@ const request = (value: unknown) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.stubEnv("ASSISTANT_CONVERSATIONS_ENABLED", "")
+  mocks.historyReady.mockReset().mockResolvedValue(undefined)
   mocks.spans.length = 0
   mocks.modes.length = 0
   vi.stubEnv("ASSISTANT_ENABLED", "true")
@@ -152,7 +154,8 @@ beforeEach(() => {
   mocks.propose.mockResolvedValue({ status: "requires_confirmation" })
 })
 
-it("history session creation is disabled by default without allocating an execution session", async () => {
+it("refuses history session allocation when native transcript delivery is unavailable", async () => {
+  mocks.historyReady.mockRejectedValue(new Error("webhook unavailable"))
   const response = await sessionRequest(
     request({ workspaceId: context.workspaceId, locale: "en", history: true })
   )
@@ -161,7 +164,6 @@ it("history session creation is disabled by default without allocating an execut
 })
 
 it("binds a new execution/provider source to authorized history and supplies bootstrap before access", async () => {
-  vi.stubEnv("ASSISTANT_CONVERSATIONS_ENABLED", "true")
   vi.stubEnv("ELEVENLABS_AGENT_ID", "agent_test")
   mocks.authorize.mockResolvedValue({ ...context, userId: "actor" })
   const id = "01950000-0000-7000-8000-000000000002"
@@ -202,6 +204,7 @@ it("binds a new execution/provider source to authorized history and supplies boo
     })
   )
   expect(response.status).toBe(200)
+  expect(mocks.historyReady).toHaveBeenCalledOnce()
   const data = await response.json()
   expect(data).toMatchObject({
     sessionId: "session-new",
@@ -229,7 +232,6 @@ it("binds a new execution/provider source to authorized history and supplies boo
 })
 
 it("history reads use current execution binding and never execute a business action", async () => {
-  vi.stubEnv("ASSISTANT_CONVERSATIONS_ENABLED", "true")
   const id = "01950000-0000-7000-8000-000000000002"
   mocks.ledger.mockImplementation(async (_context, suffix) => {
     if (suffix.startsWith("/conversations?session_id=s1"))

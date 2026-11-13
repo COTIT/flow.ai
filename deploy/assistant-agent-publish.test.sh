@@ -39,10 +39,13 @@ class H(BaseHTTPRequestHandler):
         if self.headers.get('xi-api-key') != key: return self.reply(401, {'detail': 'bad key'})
         parts = self.path.strip('/').split('/')
         mode = (state / 'mode').read_text().strip() if (state / 'mode').exists() else ''
+        if method == 'GET' and parts == ['v1', 'workspace', 'webhooks']:
+            return self.reply(200, load('webhooks.json'))
         if parts[:3] == ['v1', 'convai', 'agents'] and len(parts) == 4:
             agent = load('agent.json')
             if method == 'PATCH':
                 if mode != 'ignore_patch': merge(agent, body)
+                if mode == 'drop_webhook': agent['platform_settings']['workspace_overrides']['webhooks']['send_audio'] = True
                 if mode == 'drop_voice': agent['conversation_config'].pop('tts', None)
                 n = int((state / 'n').read_text()) + 1 if (state / 'n').exists() else 1
                 (state / 'n').write_text(str(n)); agent['version_id'] = 'agtvrsn_new%04d' % n
@@ -104,6 +107,7 @@ ps['auth']['allowlist'] = [{'hostname': 'office.fake-origin.test'}]
 ps['call_limits'] = {'daily_limit': 150}
 live.update({'agent_id': agent_id, 'name': 'Genesy Development', 'version_id': 'agtvrsn_old0001'})
 (state / 'agent.json').write_text(json.dumps(live))
+(state / 'webhooks.json').write_text(json.dumps({'webhooks': [{'webhook_id': 'hook_FAKESTAGING0001', 'webhook_url': 'https://staging-office.genesy.app/api/voice/history-webhook', 'auth_type': 'hmac', 'is_disabled': False, 'is_auto_disabled': False}, {'webhook_id': 'hook_FAKEPRODUCTION01', 'webhook_url': 'https://office.genesy.app/api/voice/history-webhook', 'auth_type': 'hmac', 'is_disabled': False, 'is_auto_disabled': False}]}))
 tools = {tool['name']: copy.deepcopy(tool) for tool in t['clientTools']}
 tools['execute_genesy_tool'].update({'force_pre_tool_speech': True, 'pre_tool_speech': 'force'})
 tools['execute_genesy_tool']['extra_server_field'] = 'kept'
@@ -136,7 +140,7 @@ patches() { grep -c '"method": "PATCH"' "$tmp/state/log" || true; }
 no_secrets() {
   for secret in "$KEY" "$AGENT" voice_FAKEVOICE000001 tool_DISCOVERFAKE0001 tool_EXECUTEFAKE00001 \
     tool_OPENVIEWFAKE0001 tool_REPORTFAKE000001 tool_CREATED \
-    agent_FAKEPROD00000001 fake-origin.test 'Old prompt'; do
+    agent_FAKEPROD00000001 hook_FAKESTAGING0001 hook_FAKEPRODUCTION01 fake-origin.test 'Old prompt'; do
     if grep -qF "$secret" "$tmp/out"; then fail "printed a private value: $secret"; fi
   done
 }
@@ -297,5 +301,60 @@ no_secrets
 : > "$tmp/state/log"
 run development --apply || fail "second apply after creating the tool failed"
 if grep -q '"method": "POST"' "$tmp/state/log"; then fail "created the tool twice"; fi
+
+# Runtime webhook binding stays out of the sanitized template and dry runs never write.
+fixture 0
+rename "Genesy Staging"
+ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging || fail "webhook dry run failed"
+grep -qF "platform_settings.workspace_overrides.webhooks.post_call_webhook_id" "$tmp/out" || fail "webhook diff missing"
+no_secrets
+[[ "$(patches)" == 0 ]] || fail "webhook dry run wrote"
+cmp -s "$tmp/validation.start.json" "$tmp/validation.json" || fail "webhook dry run changed evidence"
+ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply || fail "webhook apply failed"
+python3 - "$HERE" "$tmp/state" "$tmp/validation.json" <<'PY' || fail "webhook leaves/evidence incorrect"
+import hashlib,json,pathlib,sys
+here,state,record=map(pathlib.Path,sys.argv[1:])
+wanted={'post_call_webhook_id':'hook_FAKESTAGING0001','events':['transcript'],'transcript_format':'json','exclude_transcript':False,'send_audio':False}
+live=json.loads((state/'agent.json').read_text())
+assert live['platform_settings']['workspace_overrides']['webhooks']==wanted
+log=[json.loads(line) for line in (state/'log').read_text().splitlines()]
+patch=next(e['body'] for e in log if e['method']=='PATCH' and e['path'].startswith('/v1/convai/agents/'))
+assert patch['platform_settings']['workspace_overrides']['webhooks']==wanted
+ev=json.loads(record.read_text())['provider']
+assert ev['templateSha256']==hashlib.sha256((here/'assistant-agent.template.json').read_bytes()).hexdigest()
+assert ev['applied']['staging']['webhookConfigured'] is True
+assert 'hook_FAKE' not in json.dumps(ev['applied']['staging'])
+PY
+no_secrets
+: > "$tmp/state/log"
+ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply || fail "webhook no-op failed"
+[[ "$(patches)" == 0 ]] || fail "webhook no-op wrote"
+
+# Invalid IDs/configurations fail before mutations; provider read-back remains mandatory.
+for bad in '' '../foreign' missing_hook hook_FAKEPRODUCTION01; do
+  fixture 0; rename "Genesy Staging"
+  ASSISTANT_AGENT_WEBHOOK_ID="$bad" run staging --apply && fail "accepted invalid/mismatched webhook"
+  [[ "$(patches)" == 0 ]] || fail "invalid webhook mutated agent"
+done
+fixture 0
+ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run development --apply && fail "accepted development webhook override"
+[[ "$(patches)" == 0 ]] || fail "development webhook mutated agent"
+for field in auth_type is_disabled is_auto_disabled webhook_url; do
+  fixture 0; rename "Genesy Staging"
+  python3 - "$tmp/state/webhooks.json" "$field" <<'PY'
+import json,sys
+p,field=sys.argv[1:]; value=json.load(open(p))
+value['webhooks'][0][field]={'auth_type':'basic','is_disabled':True,'is_auto_disabled':True,'webhook_url':'http://staging-office.genesy.app/api/voice/history-webhook'}[field]
+json.dump(value,open(p,'w'))
+PY
+  ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply && fail "accepted unsafe webhook $field"
+  [[ "$(patches)" == 0 ]] || fail "unsafe webhook mutated agent"
+done
+fixture 0; rename "Genesy Production"
+ASSISTANT_AGENT_CONFIRM=production ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKEPRODUCTION01 run production --apply || fail "production webhook failed"
+no_secrets
+fixture 0; rename "Genesy Staging"; echo drop_webhook > "$tmp/state/mode"
+ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply && fail "ignored webhook read-back mismatch"
+cmp -s "$tmp/validation.start.json" "$tmp/validation.json" || fail "webhook mismatch wrote evidence"
 
 echo "assistant-agent-publish.test.sh: all tests passed"

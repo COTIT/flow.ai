@@ -6,6 +6,7 @@
 # Key: a file, never argv: ASSISTANT_AGENT_KEY_FILE, else development apps/office/.env.local
 # (ELEVENLABS_API_KEY=), staging/production $GENESY_ROOT/deploy/<env>/secrets/elevenlabs_api_key.
 # Agent id: ELEVENLABS_AGENT_ID, else ELEVENLABS_AGENT_ID= in ASSISTANT_AGENT_ENV_FILE or the env file.
+# Optional staging/production webhook binding: ASSISTANT_AGENT_WEBHOOK_ID (never stored in template).
 # Production --apply, and any change to a tool other agents share, need ASSISTANT_AGENT_CONFIRM=production.
 # A template client tool the agent lacks is created for that agent alone and attached by --apply.
 set -Eeuo pipefail
@@ -73,6 +74,10 @@ if not agent_id and pathlib.Path(env_file).exists():
     agent_id = env_value(pathlib.Path(env_file).read_text(), 'ELEVENLABS_AGENT_ID')
 if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', agent_id):
     die('no agent id: set ELEVENLABS_AGENT_ID or ASSISTANT_AGENT_ENV_FILE (ASSISTANT.md)')
+webhook_id = os.environ.get('ASSISTANT_AGENT_WEBHOOK_ID')
+if webhook_id is not None:
+    if env not in ('staging', 'production'): die('ASSISTANT_AGENT_WEBHOOK_ID supports staging or production only')
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,200}', webhook_id): die('ASSISTANT_AGENT_WEBHOOK_ID must be an opaque provider id')
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args): return None
@@ -117,9 +122,23 @@ def show(value):
 
 def canonical(value): return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 
+def verify_webhook():
+    inventory = call('GET', '/v1/workspace/webhooks', 'workspace webhooks')
+    rows = inventory.get('webhooks')
+    matches = [row for row in rows if isinstance(row, dict) and row.get('webhook_id') == webhook_id] if isinstance(rows, list) else []
+    expected = 'https://%soffice.genesy.app/api/voice/history-webhook' % ('staging-' if env == 'staging' else '')
+    if len(matches) != 1 or matches[0].get('webhook_url') != expected or matches[0].get('auth_type') != 'hmac' or matches[0].get('is_disabled') is not False or matches[0].get('is_auto_disabled') is not False:
+        die('selected workspace webhook must be enabled, HMAC-authenticated and point to this environment\'s Office history callback')
+
 template_raw = (here / 'assistant-agent.template.json').read_bytes()
 template = json.loads(template_raw)
 template_sha = hashlib.sha256(template_raw).hexdigest()
+WEBHOOK_PATH = ('platform_settings', 'workspace_overrides', 'webhooks')
+WEBHOOK_ID_PATH = WEBHOOK_PATH + ('post_call_webhook_id',)
+if webhook_id is not None:
+    verify_webhook()
+    for field, value in {'post_call_webhook_id': webhook_id, 'events': ['transcript'], 'transcript_format': 'json', 'exclude_transcript': False, 'send_audio': False}.items():
+        put(template['configuration'], WEBHOOK_PATH + (field,), value)
 governed = [(p, v) for p, v in leaves(template['configuration']) if p not in EXCLUDED]
 tool_governed = {t['name']: list(leaves(t)) for t in template['clientTools']}
 tool_template = {t['name']: t for t in template['clientTools']}
@@ -159,7 +178,9 @@ if wrong_env:
     if apply: die(message)
     print('warning: ' + message)
 changes, tool_changes = diff(before, before_tools)
-for path, old, new in changes: print('  %s: %s → %s' % ('.'.join(path), show(old), show(new)))
+for path, old, new in changes:
+    shown_old, shown_new = (('(unset)' if old is MISSING else '<configured>'), '<configured>') if path == WEBHOOK_ID_PATH else (show(old), show(new))
+    print('  %s: %s → %s' % ('.'.join(path), shown_old, shown_new))
 # New in the template: created for this agent only (never shared between environments), then attached.
 for tool in missing: print('  tool %s: create + attach' % tool)
 shared = []
@@ -199,6 +220,7 @@ for tool, fields in tool_changes.items():
     call('PATCH', '/v1/convai/tools/' + tool_id, 'tool', {'tool_config': config})
 
 after, after_tools, still_missing = observe()
+if webhook_id is not None: verify_webhook()
 if still_missing: die('read-back lacks the client tool %s' % ', '.join(still_missing))
 expected_ids = list(get(before, TOOL_IDS) or []) + [tool_id for _, tool_id in created]
 lost = ['.'.join(p) for p in PROTECTED if p != TOOL_IDS and get(before, p) != get(after, p)]
@@ -228,6 +250,7 @@ provider.setdefault('applied', {})[env] = {
     'governedSha256': hashlib.sha256(canonical(projection(after, after_tools)).encode()).hexdigest(),
     'templateSha256': template_sha, 'observedAt': now, 'by': 'deploy/assistant-agent.sh'}
 if created: provider['applied'][env]['createdTools'] = [tool for tool, _ in created]
+if webhook_id is not None: provider['applied'][env]['webhookConfigured'] = True
 current, previous = {'development': ('versionId', 'previousVersionId'),
                      'staging': ('stagingVersionId', 'previousStagingVersionId'),
                      'production': ('productionVersionId', 'previousProductionVersionId')}[env]

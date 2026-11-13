@@ -22,11 +22,9 @@ import { useOpenView } from "@/lib/use-open-view"
  */
 export function SignedIn({
   office,
-  historyEnabled = false,
   children,
 }: {
   office: string | null
-  historyEnabled?: boolean
   children: React.ReactNode
 }) {
   const router = useRouter()
@@ -57,9 +55,9 @@ export function SignedIn({
     <GenesyVoiceProvider
       resolveHref={resolveHref}
       openView={openView}
-      historyEnabled={historyEnabled}
+      historyEnabled
     >
-      {historyEnabled ? <HistoryContinuity /> : null}
+      <HistoryContinuity />
       <Shell>{children}</Shell>
     </GenesyVoiceProvider>
   )

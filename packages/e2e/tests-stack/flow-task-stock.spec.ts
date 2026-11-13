@@ -5,6 +5,8 @@ import { expectNoHorizontalScroll } from "../src/test"
 import { scene } from "../tests/flow/task"
 import { fakeAgent, startText, v } from "../tests/flow/voice"
 
+import { fakeFlowTransport } from "./flow-voice"
+
 // REAL API (stock write and the receipt's read-back), Flow, and its login; SIMULATED only the
 // voice side: the browser's /api/voice calls are answered here as Office would, and the approval
 // performs the exact approved request against the real API with the owner's token (Office's job).
@@ -48,16 +50,7 @@ async function voice(
   await page.route("**/api/voice/readiness", (route) =>
     route.fulfill({ json: { enabled: true, ready: true } })
   )
-  await page.route("**/api/voice/session", (route) =>
-    route.fulfill({
-      json: {
-        sessionId: "stack-session",
-        conversationId: "flow-conversation",
-        signedUrl:
-          "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=stack",
-      },
-    })
-  )
+  await fakeFlowTransport(page)
   await page.route("**/api/voice/tools", async (route) => {
     const sent = route.request().postDataJSON() as { command?: string }
     if (sent.command !== "execute")

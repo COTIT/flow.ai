@@ -877,7 +877,7 @@ test("P2: while an approval is on its way: Approve, Back, Review, End, all twice
     capsule(page).getByRole("button", { name: k.review }),
     "double"
   )
-  await persona.click(page.getByRole("button", { name: v.end }), "double")
+  await persona.click(page.getByRole("button", { name: v.endCall }), "double")
   await expect
     .poll(() => confirms.length, { timeout: 5_000 })
     .toBeGreaterThan(0)
@@ -892,7 +892,7 @@ test("P2: End conversation double-clicked, then Use text instead hammered", asyn
 }) => {
   await page.goto("/")
   await startText(page)
-  await page.getByRole("button", { name: v.end }).dblclick()
+  await page.getByRole("button", { name: v.endCall }).dblclick()
   await persona.click(
     page.getByRole("button", { name: typeInstead, exact: true }),
     "triple"

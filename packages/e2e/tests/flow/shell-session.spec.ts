@@ -64,14 +64,14 @@ test("a text conversation starts on click, carries messages both ways and ends",
   expect(await page.evaluate(() => Reflect.get(window, "micRequests"))).toBe(0)
   await expectNoHorizontalScroll(page)
 
-  await page.getByRole("button", { name: v.end }).click()
+  await page.getByRole("button", { name: v.endCall }).click()
   await expect(
     page.getByRole("button", { name: typeInstead, exact: true })
   ).toBeVisible()
   await expect
     .poll(() => sessions.some((s) => s.method === "DELETE"))
     .toBe(true)
-  // Ending clears the conversation: nothing of it stays on screen.
+  // Ending closes the live view; the saved conversation remains resumable.
   await expect(page.getByText("Hello from Flow")).toHaveCount(0)
 })
 

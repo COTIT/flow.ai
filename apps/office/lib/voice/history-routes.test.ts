@@ -35,7 +35,6 @@ beforeEach(() => {
   mocks.setting.mockReset().mockImplementation(
     async (key: string) =>
       ({
-        ASSISTANT_CONVERSATIONS_ENABLED: "true",
         ELEVENLABS_WEBHOOK_SECRET: secret,
         ELEVENLABS_AGENT_ID: "agent_test",
         ASSISTANT_BRIDGE_SECRET: secret,
@@ -90,15 +89,20 @@ it("refuses arbitrary commands, paths and credentials before storage calls", asy
   expect(mocks.ledger).not.toHaveBeenCalled()
 })
 
-it("keeps new conversation creation off unless explicitly enabled", async () => {
+it("creates authorized conversations without a rollout setting", async () => {
   mocks.setting.mockResolvedValue("")
   expect(
     (await history(request({ workspaceId: ws, command: "new" }))).status
-  ).toBe(503)
-  expect(mocks.ledger).not.toHaveBeenCalled()
+  ).toBe(200)
+  expect(mocks.ledger).toHaveBeenCalledWith(
+    expect.anything(),
+    "/conversations",
+    "POST",
+    {}
+  )
 })
 
-it("commits signed dialogue before acknowledging webhook, even when activation is off", async () => {
+it("commits signed dialogue before acknowledging webhook, independently of assistant admission", async () => {
   const payload = JSON.stringify({
     type: "post_call_transcription",
     data: {

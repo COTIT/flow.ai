@@ -42,7 +42,7 @@ test("the microphone opens only after Start, and can be muted", async ({
   await page.goto("/")
   expect(await page.evaluate(() => Reflect.get(window, "micRequests"))).toBe(0)
   await tapOrb(page) // orb-first home: the orb starts voice
-  await expect(page.getByRole("button", { name: v.end })).toBeVisible()
+  await expect(page.getByRole("button", { name: v.endCall })).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => Reflect.get(window, "micRequests")))
     .toBeGreaterThan(0)

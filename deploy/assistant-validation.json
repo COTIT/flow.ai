@@ -177,7 +177,6 @@
   },
   "scopeCorrection": "User directed stop scope creep: finish existing implementation and queued checks; no added features, test matrices or exhaustive model benchmark.",
   "continuity": {
-    "activationGate": "pending",
     "development": {
       "observedAt": "2026-11-13T12:31:16.214Z",
       "sectionSha256": "b944902ef0d9aabab498e18d063930ad399ff439ccea44b5e8488a83226ae733",
@@ -202,7 +201,7 @@
         "registeredWebhookCount": 0
       }
     },
-    "note": "Only approved history prompt section and empty default were applied to Development. Existing live prompt outside this section, platform settings and tool bindings were preserved. Full repository agent template was not published; Staging and Production were untouched.",
+    "note": "Initial Development history overlay retained as earlier evidence. Staging and Production rollout is authorized; separate HMAC callbacks and server secrets are provisioned. Agent bindings and deployed capture verification are recorded separately.",
     "localValidation": {
       "status": "passed",
       "scope": "isolated local worktree and synthetic fixtures; no staging or production deployment",
@@ -247,6 +246,34 @@
       "physicalAudioVerified": false,
       "sqlxMetadataFreshness": true,
       "finalHistoryBrowserTestsPassed": 36
+    },
+    "availability": "always-on",
+    "releaseVerification": {
+      "staging": "pending",
+      "production": "pending"
+    },
+    "releasePreparation": {
+      "availability": "always-on",
+      "historyRolloutFlag": false,
+      "voiceUnitTests": 570,
+      "officeUnitTests": 1238,
+      "flowUnitTests": 394,
+      "e2eHarnessUnitTests": 48,
+      "historyAndMicrophoneBrowserTests": 45,
+      "realStackBrowserTests": 24,
+      "webhookRegistry": {
+        "staging": {
+          "hmac": true,
+          "retryEnabled": true,
+          "secretInstalled": true
+        },
+        "production": {
+          "hmac": true,
+          "retryEnabled": true,
+          "secretInstalled": true
+        }
+      },
+      "deployed": false
     }
   }
 }

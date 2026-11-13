@@ -17,7 +17,7 @@ test("READY → IN CONVERSATION → ENDED when the person ends it", async ({ pag
   await expect(phase(page)).toHaveText(new RegExp(s.phase.ready))
   await startText(page)
   await expect(phase(page)).toHaveText(new RegExp(s.phase.live))
-  await page.getByRole("button", { name: v.end }).click()
+  await page.getByRole("button", { name: v.endCall }).click()
   await expect(phase(page)).toHaveText(new RegExp(s.phase.ended))
   await expect(dock(page).getByRole("status")).toContainText(s.ended)
   await expect(dock(page).getByRole("status")).not.toContainText(s.preserved)

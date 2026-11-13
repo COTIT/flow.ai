@@ -10,7 +10,6 @@ import {
   conversationId,
   historyQuery,
   historySourceQuery,
-  requireConversationsEnabled,
 } from "@/lib/voice/history"
 import { archiveText } from "@/lib/voice/history-transcript"
 
@@ -39,7 +38,6 @@ export async function POST(request: Request) {
         await assistantRequest(context, `/conversations${historyQuery(input)}`)
       )
     if (input.command === "new") {
-      await requireConversationsEnabled()
       return voiceResponse(
         await assistantRequest(context, "/conversations", "POST", {})
       )

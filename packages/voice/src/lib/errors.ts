@@ -42,7 +42,10 @@ export function voiceErrorMessage(
   if (e instanceof VoiceRequestError)
     return e.kind ? t(e.kind === "offline" ? "offline" : lost) : e.message
   if (e instanceof VoiceShownError) return e.message
-  const device = e instanceof Error ? DEVICE_KEYS[e.name] : undefined
+  const device =
+    e instanceof Error || e instanceof DOMException
+      ? DEVICE_KEYS[e.name]
+      : undefined
   return t(device ?? fallback)
 }
 

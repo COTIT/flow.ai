@@ -3,6 +3,8 @@ import { expectNoHorizontalScroll } from "../src/test"
 import { scene } from "../tests/flow/task"
 import { fakeAgent, startText, v } from "../tests/flow/voice"
 
+import { fakeFlowTransport } from "./flow-voice"
+
 // REAL API review facts (the assistant proposal for a stock write) shown in Flow; SIMULATED only
 // the voice side: /api/voice/tools answers with those facts as Office passes them on
 // (`details.current` = the API's `review_facts.facts`; stock facts carry no money to format).
@@ -54,15 +56,7 @@ for (const [label, viewport] of [
       await page.route("**/api/voice/readiness", (route) =>
         route.fulfill({ json: { enabled: true, ready: true } })
       )
-      await page.route("**/api/voice/session", (route) =>
-        route.fulfill({
-          json: {
-            sessionId: "stack-session",
-            conversationId: "flow-conversation",
-            signedUrl: "wss://api.elevenlabs.io/v1/convai/conversation?conversation_signature=stack",
-          },
-        })
-      )
+      await fakeFlowTransport(page)
       await page.route("**/api/voice/tools", (route) => {
         const sent = route.request().postDataJSON() as { command?: string }
         if (sent.command !== "execute") return route.fulfill({ json: { status: "completed", data: [] } })

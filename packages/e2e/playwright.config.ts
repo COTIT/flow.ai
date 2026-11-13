@@ -21,8 +21,6 @@ const field = `http://127.0.0.1:${fieldPort}`
 const till = `http://127.0.0.1:${tillPort}`
 const landing = `http://127.0.0.1:${landingPort}`
 const flow = `http://127.0.0.1:${flowPort}`
-const flowHistoryPort = 3215 + PORT_OFFSET
-const flowHistory = `http://127.0.0.1:${flowHistoryPort}`
 
 /**
  * Headless end-to-end runs against production builds (`next start`), so `pnpm turbo run e2e`
@@ -63,12 +61,7 @@ export default defineConfig({
       testDir: "tests/flow",
       baseURL: flow,
       tablet: true,
-    }).map((project) => ({ ...project, testIgnore: "**/history.spec.ts" })),
-    ...projectsFor("flow-history", {
-      testDir: "tests/flow",
-      baseURL: flowHistory,
-      tablet: true,
-    }).map((project) => ({ ...project, testMatch: "**/history.spec.ts" })),
+    }),
     // The shared checks themselves (tap targets, layout shift, motion), on inline pages.
     { name: "helpers", testDir: "tests/helpers", use: viewports.desktop },
   ],
@@ -131,18 +124,6 @@ export default defineConfig({
         // Never opened by a test: links only have to point at it.
         OFFICE_PUBLIC_URL: "https://office.genesy.test",
         SHOP_PUBLIC_URL: "https://shop.genesy.test", // F5
-      },
-    },
-    {
-      command: `pnpm --filter @genesy/flow exec next start --port ${flowHistoryPort} --hostname 127.0.0.1`,
-      url: `${flowHistory}/login`,
-      reuseExistingServer: false,
-      env: {
-        API_URL: "http://127.0.0.1:9/v1",
-        VOICE_UPSTREAM_URL: MOCK_ORIGIN,
-        OFFICE_PUBLIC_URL: "https://office.genesy.test",
-        SHOP_PUBLIC_URL: "https://shop.genesy.test",
-        ASSISTANT_CONVERSATIONS_ENABLED: "true",
       },
     },
   ],

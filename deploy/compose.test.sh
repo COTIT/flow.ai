@@ -153,6 +153,31 @@ flow_check "$t/staging.env" staging-flow.genesy.app staging-office.genesy.app \
 flow_check "$t/staging.env" staging-flow.genesy.app staging-office.genesy.app \
   genesy-staging-allow,genesy-staging-noindex "${son[@]}" "$s/docker-compose.assistant.yml"
 
+# Assistant-only and all-four-file chains mount webhook authentication in Office alone.
+webhook_check() {
+  local env_file="$1" args=()
+  shift
+  for f in "$@"; do args+=(-f "$f"); done
+  docker compose "${args[@]}" --env-file "$env_file" --profile cli --profile seed config --format json | python3 -c '
+import json, sys
+config = json.load(sys.stdin)
+name = "elevenlabs_webhook_secret"
+assert config.get("secrets", {}).get(name, {}).get("file", "").endswith("/secrets/" + name), "webhook secret file missing"
+office = config["services"]["office"]
+assert office["environment"].get("ELEVENLABS_WEBHOOK_SECRET_FILE") == "/run/secrets/" + name, "Office webhook secret path missing"
+assert {item["source"] for item in office["secrets"]} >= {name, "elevenlabs_api_key", "assistant_bridge_secret", "assistant_checkpoint_url", "langsmith_api_key"}, "Office secret mount lost"
+for service, value in config["services"].items():
+    assert "ELEVENLABS_WEBHOOK_SECRET" not in value.get("environment", {}), service + " exposes plaintext webhook config"
+    if service != "office":
+        assert "ELEVENLABS_WEBHOOK_SECRET_FILE" not in value.get("environment", {}), service + " receives webhook config"
+        assert name not in {item["source"] for item in value.get("secrets", [])}, service + " receives webhook secret"
+' || fail "webhook secret isolation: $env_file $*"
+}
+webhook_check "$t/prod.env" "$p/docker-compose.production.yml" "$p/docker-compose.assistant.yml"
+webhook_check "$t/prod.env" "${on[@]}" "$p/docker-compose.assistant.yml"
+webhook_check "$t/staging.env" "$s/docker-compose.staging.yml" "$s/docker-compose.assistant.yml"
+webhook_check "$t/staging.env" "${son[@]}" "$s/docker-compose.assistant.yml"
+
 # Field in production: RUAHA's own domain serves it; the old genesy host 301s there, keeping the path.
 docker compose -f "$p/docker-compose.production.yml" --env-file "$t/prod.env" config --format json | python3 -c '
 import json, sys

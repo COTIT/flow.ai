@@ -858,3 +858,19 @@ describe("opt-in provider continuity", () => {
     ).toEqual(["after"])
   })
 })
+
+describe("SDK startup error context", () => {
+  it("maps microphone denial from the SDK callback without exposing its raw message", async () => {
+    await mount()
+    await act(async () => voice.start(true))
+    const options = sdk.sessions.at(-1)!
+    await act(async () =>
+      options.onError?.(
+        "raw browser permission failure",
+        new DOMException("Permission denied", "NotAllowedError")
+      )
+    )
+    expect(voice.error).toBe("microphoneDenied")
+    expect(voice.error).not.toContain("Permission denied")
+  })
+})

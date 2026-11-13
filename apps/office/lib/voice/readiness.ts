@@ -120,6 +120,7 @@ export function validateConversationHistory(
       return (
         entry.webhook_id === webhook.post_call_webhook_id &&
         entry.auth_type === "hmac" &&
+        entry.retry_enabled === true &&
         entry.is_disabled === false &&
         entry.is_auto_disabled === false
       )
@@ -128,36 +129,56 @@ export function validateConversationHistory(
     throw new Error("Conversation history provider configuration is not ready")
 }
 
+async function providerGet(key: string, path: string) {
+  const response = await fetch("https://api.elevenlabs.io" + path, {
+    headers: { "xi-api-key": key },
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(3000),
+  })
+  if (!response.ok) throw new Error("Provider configuration unavailable")
+  return JSON.parse(
+    new TextDecoder().decode(await readBounded(response.body, 2_000_000))
+  ) as unknown
+}
+
 async function providerConfiguration(
   key: string,
   agent: string
 ): Promise<void> {
-  async function get(path: string) {
-    const response = await fetch("https://api.elevenlabs.io" + path, {
-      headers: { "xi-api-key": key },
-      cache: "no-store",
-      redirect: "error",
-      signal: AbortSignal.timeout(3000),
-    })
-    if (!response.ok) throw new Error("Provider configuration unavailable")
-    return JSON.parse(
-      new TextDecoder().decode(await readBounded(response.body, 2_000_000))
-    ) as unknown
-  }
   const [configured, models] = await Promise.all([
-    get(`/v1/convai/agents/${encodeURIComponent(agent)}`),
-    get("/v1/convai/llm/list"),
+    providerGet(key, `/v1/convai/agents/${encodeURIComponent(agent)}`),
+    providerGet(key, "/v1/convai/llm/list"),
   ])
   if (object(configured).agent_id !== agent)
     throw new Error("Provider configuration belongs to another agent")
   validateNativeMultimodal(configured, models)
-  if ((await voiceSetting("ASSISTANT_CONVERSATIONS_ENABLED")) === "true") {
-    if ((await voiceSetting("ELEVENLABS_WEBHOOK_SECRET")).length < 16)
-      throw new Error(
-        "Conversation transcript authentication is not configured"
-      )
-    validateConversationHistory(configured, await get("/v1/workspace/webhooks"))
-  }
+}
+
+/** History starts require native delivery; legacy Office sessions retain their existing checks. */
+export async function requireConversationHistoryReady(): Promise<void> {
+  const [secret, key, agent] = await Promise.all(
+    [
+      "ELEVENLABS_WEBHOOK_SECRET",
+      "ELEVENLABS_API_KEY",
+      "ELEVENLABS_AGENT_ID",
+    ].map(voiceSetting)
+  )
+  if (
+    !secret ||
+    secret.length < 16 ||
+    !key ||
+    !agent ||
+    !/^[a-zA-Z0-9_-]{1,200}$/.test(agent)
+  )
+    throw new Error("Conversation transcript authentication is not configured")
+  const [configured, inventory] = await Promise.all([
+    providerGet(key, `/v1/convai/agents/${encodeURIComponent(agent)}`),
+    providerGet(key, "/v1/workspace/webhooks"),
+  ])
+  if (object(configured).agent_id !== agent)
+    throw new Error("Provider configuration belongs to another agent")
+  validateConversationHistory(configured, inventory)
 }
 
 async function checkpointReady(connectionString: string): Promise<boolean> {

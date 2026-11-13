@@ -79,7 +79,7 @@ test("a call that ends says so plainly, and how to start again", async ({ page }
   await expect(page.getByRole("heading", { level: 1, name: "Scheduled reports" })).toBeVisible()
   await page.getByLabel(v.message).fill("Hello")
   await page.getByRole("button", { name: v.send, exact: true }).click()
-  await page.getByRole("button", { name: "End conversation" }).first().click()
+  await page.getByRole("button", { name: v.endCall }).first().click()
   await expect(page.getByText("Call ended.")).toBeVisible()
   await expect(page.getByText("Tap the orb to talk again, or type below.")).toBeVisible()
   await noJargon(page)

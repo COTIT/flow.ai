@@ -140,13 +140,9 @@ The prune keeps the images of the live and previous version of **both** stacks: 
 deploy/deploy.sh production rollback
 ```
 
-This switches back to the previous version: the commit, `GENESY_REF` and the images it kept. If the deploy changed the database (a migration ran), it refuses, because the old code may not fit the new schema. Then the only way back is:
+For releases without the assistant fingerprint, this switches back to the previous commit, `GENESY_REF` and retained images only when the database schema still fits. Assistant releases use the reviewed compatibility procedure in [assistant rollback and recovery](../ASSISTANT.md#rollback-and-recovery); unreviewed migrations stop binary rollback.
 
-```bash
-deploy/deploy.sh production rollback --restore-db
-```
-
-It restores the `pre-<sha>` dump taken before the deploy, after a fresh `pre-restore` dump and the typed words `restore production`. **Everything written since the deploy is lost.** Check with the user first, and prefer fixing forward.
+For conversation continuity (`20261113121048`), set `ASSISTANT_ENABLED=false` and restart the affected services on the new binaries to pause new sessions. Keep the new Office webhook and Rust ingestion, retention and deletion workers running, with their credentials, while deploying a fix forward. Older binaries lack these workers; the migration stays outside the compatible rollback allowlist. Do not reverse the migration or use `--restore-db` for routine release rollback. Database restore is separate disaster recovery and loses writes since the selected dump.
 
 ## Fallback: build on the VPS
 

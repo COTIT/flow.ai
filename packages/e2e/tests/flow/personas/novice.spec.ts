@@ -320,7 +320,7 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
     {
       name: "end the conversation",
       weight: 1,
-      run: () => persona.click(page.getByRole("button", { name: v.end })),
+      run: () => persona.click(page.getByRole("button", { name: v.endCall })),
     },
     {
       name: "a request fails underneath",

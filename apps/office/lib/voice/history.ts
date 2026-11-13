@@ -33,12 +33,6 @@ export const historyTool = {
   },
 }
 
-/** Rollback disables new history sessions; retained content ingestion and deletion keep running. */
-export async function requireConversationsEnabled() {
-  if ((await voiceSetting("ASSISTANT_CONVERSATIONS_ENABLED")) !== "true")
-    throw new VoiceError("Conversation history is not enabled.", 503)
-}
-
 export function conversationId(value: unknown): string {
   if (typeof value !== "string" || !uuid.test(value))
     throw new VoiceError("Invalid conversation.")
@@ -108,7 +102,6 @@ export async function prepareConversation(
   logicalId: unknown
 ) {
   return withVoiceTracing("genesy_conversation_context_restore", async () => {
-    await requireConversationsEnabled()
     const conversation =
       logicalId === undefined
         ? await assistantRequest<HistoricalConversation>(
@@ -148,7 +141,6 @@ export async function conversationHistory(
   context: VoiceContext,
   input: Record<string, unknown>
 ) {
-  await requireConversationsEnabled()
   if (!context.sessionId)
     throw new VoiceError("Start an assistant session first.")
   const found = await assistantRequest<{

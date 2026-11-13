@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import {
   assistantReadiness,
+  requireConversationHistoryReady,
   validateConversationHistory,
   validateNativeMultimodal,
 } from "./readiness"
@@ -79,6 +80,7 @@ it("history readiness refuses excluded transcripts, missing prompt binding and r
       {
         webhook_id: "hook",
         auth_type: "hmac",
+        retry_enabled: true,
         is_disabled: false,
         is_auto_disabled: false,
       },
@@ -105,6 +107,11 @@ it("history readiness refuses excluded transcripts, missing prompt binding and r
   }
   expect(() =>
     validateConversationHistory(configured, { webhooks: [] })
+  ).toThrow()
+  expect(() =>
+    validateConversationHistory(configured, {
+      webhooks: [{ ...hooks.webhooks[0], retry_enabled: false }],
+    })
   ).toThrow()
   expect(() =>
     validateConversationHistory(configured, {
@@ -315,4 +322,54 @@ it("pre-connects the shared checkpoint pool once storage is ready", async () => 
   warm.mockClear()
   expect((await assistantReadiness(false)).ready).toBe(false)
   expect(warm).not.toHaveBeenCalled()
+})
+
+it("checks native transcript delivery for history sessions without a rollout setting", async () => {
+  const configured = {
+    agent_id: "agent-one",
+    conversation_config: {
+      agent: { prompt: { prompt: "{{flow_history_context}}" } },
+    },
+    platform_settings: {
+      privacy: { record_voice: false },
+      overrides: {
+        conversation_config_override: {
+          agent: { first_message: true, prompt: { prompt: false } },
+        },
+      },
+      workspace_overrides: {
+        webhooks: {
+          post_call_webhook_id: "hook",
+          events: ["transcript"],
+          transcript_format: "json",
+          exclude_transcript: false,
+        },
+      },
+    },
+  }
+  const fetcher = vi.fn(async (url: string) =>
+    Response.json(
+      url.endsWith("/webhooks")
+        ? {
+            webhooks: [
+              {
+                webhook_id: "hook",
+                auth_type: "hmac",
+                retry_enabled: true,
+                is_disabled: false,
+                is_auto_disabled: false,
+              },
+            ],
+          }
+        : configured
+    )
+  )
+  vi.stubGlobal("fetch", fetcher)
+  vi.stubEnv("ELEVENLABS_WEBHOOK_SECRET", "")
+  await expect(requireConversationHistoryReady()).rejects.toThrow()
+  expect(fetcher).not.toHaveBeenCalled()
+  vi.stubEnv("ELEVENLABS_WEBHOOK_SECRET", "synthetic-transcript-secret")
+  await expect(requireConversationHistoryReady()).resolves.toBeUndefined()
+  configured.platform_settings.workspace_overrides.webhooks.exclude_transcript = true
+  await expect(requireConversationHistoryReady()).rejects.toThrow()
 })

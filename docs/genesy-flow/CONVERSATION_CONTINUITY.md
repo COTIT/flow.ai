@@ -1,6 +1,6 @@
 # Flow conversation continuity
 
-Local implementation, 2026-11-13. Activation remains disabled. No staging or production configuration was changed.
+Release preparation, 2026-11-13. Staging and production deployment are authorized. Flow history is always available; there is no history rollout flag.
 
 ## Storage and authority
 
@@ -20,15 +20,15 @@ Provider archival waits until the source is finalized or its cleanup deadline re
 
 Reload authorizes the saved logical ID before restoring text. Microphone use requires explicit activation. Same-origin Web Locks coordinate capture; Rust rejects competing active sources. Saved pointers contain only workspace, user and logical conversation IDs.
 
-## Activation and rollback
+## Deployment and recovery
 
-Apply the additive API migration and deploy the matched API, Office and Flow artifacts under separate deployment authorization. Keep `ASSISTANT_CONVERSATIONS_ENABLED=false` on both Office and Flow until every activation gate passes. Office behavior remains unchanged with history disabled. The development agent's empty `flow_history_context` default permits legacy starts.
+Apply the additive API migration and deploy matched API, Office and Flow artifacts through the normal backup, migration and health checks. Flow always requests persistent history. Existing Office sessions retain their legacy behavior unless they request history. History starts validate the actual HMAC receiver and provider transcript configuration before allocating transport. The agent's empty `flow_history_context` default permits legacy starts.
 
 The public callback is Office's `/api/voice/history-webhook`; Flow does not proxy this route. Configure the development agent for the transcription event only, JSON format, `exclude_transcript: false`, HMAC authentication and retries. Keep audio delivery disabled and preserve existing recording and retention settings. Supply the matching server-only `ELEVENLABS_WEBHOOK_SECRET` or `ELEVENLABS_WEBHOOK_SECRET_FILE`, with at least 16 characters. Read back provider settings and selected workspace webhook configuration.
 
-Activation requires observed complete native transcription, committed local receipt, duplicate/retry handling, provider/config readback and correct resumed recall. Readiness rejects missing history binding, excluded transcripts, recording, general prompt override or missing HMAC webhook configuration. Passing synthetic client tests alone does not satisfy native delivery.
+Release verification requires observed complete native transcription, committed local receipt, duplicate/retry handling, provider/config readback and correct resumed recall. Readiness rejects missing history binding, excluded transcripts, recording, general prompt override or missing HMAC webhook configuration. Passing synthetic client tests alone does not satisfy native delivery.
 
-Rollback first sets the activation switch to false on Office and Flow. Keep ingestion, retention and deletion workers running until pending sources drain. Do not reverse the schema migration as a rollback step.
+If the release fails, pause new assistant sessions with the existing `ASSISTANT_ENABLED=false` admission control on the new binaries. Keep the new Office callback and Rust ingestion, retention and deletion workers running, with credentials, and fix forward. Older binaries cannot maintain this history. Do not reverse the migration or restore the business database for routine rollback.
 
 ## Executed evidence
 
@@ -42,9 +42,9 @@ Combined Office/Flow production checks passed 282 cases with six existing skips.
 
 Final unit suites passed: voice 541, Flow 394, Office 1,237 and generated client 24. Rust checks passed 15 continuity HTTP tests, 119 assistant HTTP tests, 528 library tests and 72 OpenAPI tests. Types, lint, production builds, generated-client freshness, strict Clippy, SQLx metadata freshness and reversible migration checks passed. All 527 existing catalog operations remain unchanged; the nine new conversation controls are internal.
 
-Native webhook delivery and complete transcript capture under current privacy settings remain unverified because publishing a reachable callback requires separate deployment authorization. Real audio capture is also unverified. These gaps block activation; no alternate persistence architecture is enabled automatically.
+Native webhook delivery and complete transcript capture under the current privacy settings await the authorized staging deployment and provider configuration. Real audio capture is also unverified. No alternate persistence architecture is enabled automatically. Release verification is recorded below when executed.
 
-Development readback at `2026-11-13T13:17:46.276Z` confirmed the history prompt binding, recording disabled and zero-day retention. Transcripts remain excluded and no workspace webhook is registered. Those settings must be configured and tested against the authorized callback before activation.
+Development readback at `2026-11-13T13:17:46.276Z` confirmed the history prompt binding, recording disabled and zero-day retention. Transcripts remain excluded and no workspace webhook is registered. Those settings describe Development; Staging and Production use separate environment callbacks and secrets.
 
 Reproducible checks:
 
@@ -54,7 +54,7 @@ pnpm --filter @genesy/office test
 pnpm --filter @genesy/flow test
 pnpm --filter @genesy/office voice:check
 pnpm --filter @genesy/api-client generate:check
-pnpm --filter @genesy/e2e exec playwright test --project=flow-history-desktop --project=flow-history-mobile --project=flow-history-tablet
+pnpm --filter @genesy/e2e exec playwright test history.spec.ts --project=flow-desktop --project=flow-mobile --project=flow-tablet
 ```
 
 The browser command requires current production builds and the configured mock servers. The provider smoke command below needs an explicitly selected development environment file and incurs provider usage; it validates the agent name before starting synthetic text sessions:

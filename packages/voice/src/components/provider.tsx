@@ -1048,11 +1048,11 @@ function Session({
         setOutcome({ status: "unknown", message: t("unknown") })
       updateReview(null)
     },
-    onError: () => {
+    onError: (_message, context) => {
       // A conversation that is over has nothing left to report (e.g. a late send on its socket).
       if (active.current && session.current) {
         setThinking(false)
-        setError(t("requestFailed"))
+        setError(voiceErrorMessage(context, t))
         setStarting(false)
         if (verified.current && !textOnly) pauseCapture()
         if (!verified.current) {
