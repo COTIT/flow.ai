@@ -496,7 +496,7 @@ try {
       exact: true,
     })
   ).toBeVisible()
-  await call("PUT", `/products/${conflict.product_id}`, {
+  await call("POST", `/products/${conflict.product_id}`, {
     name: "Changed after staging review",
   })
   async function approve(kind) {
