@@ -284,6 +284,8 @@ test.describe("authenticated continuity bootstrap", () => {
     await expect.poll(() => agent.connections).toBe(2)
     const starts = () =>
       agent.sent.filter((e) => e.type === "conversation_initiation_client_data")
+    // The socket counts as connected before its bootstrap message arrives.
+    await expect.poll(() => starts().length).toBe(2)
     expect(starts().at(-1)?.dynamic_variables).toMatchObject({
       flow_history_context: JSON.stringify({ correctedQuantity: 24 }),
     })
@@ -309,6 +311,7 @@ test.describe("authenticated continuity bootstrap", () => {
       logicalConversationId: first,
       textOnly: false,
     })
+    await expect.poll(() => starts().length).toBe(3)
     expect(starts().at(-1)?.dynamic_variables).toMatchObject({
       flow_history_context: JSON.stringify({ correctedQuantity: 24 }),
     })
