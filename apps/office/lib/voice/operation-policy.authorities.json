@@ -9,7 +9,7 @@
   "apps/api/src/idempotency.rs": "ed4527be0159b2d091b0c288e2284e385893f01540dfa8ff001fbc9c284f1bde",
   "apps/api/src/jobs/kinds.rs": "40a370aa389034a3467ee7626e0f804fcfc931875ae404fa06e4790adf36ee97",
   "apps/api/src/lib.rs": "bc5f30d552e9a0cde024af3ccae54de0cbb4460997cfcfbf869e6c1d192912af",
-  "apps/api/src/main.rs": "fb8be4594ee014a0d57f57af990da927302324e9b67e6534115eb9b621221a11",
+  "apps/api/src/main.rs": "3629f6266f60813100a6988c728d60c4dd472b95f6fd81a1af54c2340ee0f79b",
   "apps/api/src/modules/analytics/handlers.rs": "89ff160005fbc07654d6a9f885863a4b0615188b8d424dc859a75a485c864b04",
   "apps/api/src/modules/analytics/service.rs": "76cf76008280be0f474c0b9871655e567bfdfc65d4d0b9125658be0caa981b7a",
   "apps/api/src/modules/app_keys/handlers.rs": "7444ea1a8993c7f3f9f7e8065608b361ed5ae363eeb9d4e2d7c40e7aceeba07c",
