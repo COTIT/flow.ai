@@ -441,11 +441,12 @@ try {
   })
   const pageErrors = []
   page.on("pageerror", (error) => pageErrors.push(error.message))
-  await page.goto(`${flow}/login`)
+  // Staging static files have taken up to ~29 s to arrive on a slow link; the defaults (30 s / 5 s) flaked.
+  await page.goto(`${flow}/login`, { timeout: 60_000 })
   await page.getByLabel("Email", { exact: true }).fill(email)
   await page.getByLabel("Password", { exact: true }).fill(password)
   await page.getByRole("button", { name: "Log in", exact: true }).click()
-  await expect(page).toHaveURL(`${flow}/`)
+  await expect(page).toHaveURL(`${flow}/`, { timeout: 30_000 })
   await page.goto(`${flow}/imports/products`)
   await page
     .getByLabel("Name", { exact: true })
