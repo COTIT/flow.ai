@@ -570,14 +570,31 @@ try {
   })
   await page.setViewportSize({ width: 375, height: 812 })
   await page.reload()
+  // <main> mounts after the load event; measure the rendered receipt, one row per CSV line.
+  await expect(page.locator("[data-bulk-row]")).toHaveCount(
+    csv.trim().split("\n").length - 1
+  )
   const width = await page.evaluate(() => {
     // eslint-disable-next-line no-undef -- Executes inside Chromium, not Node.
     const main = document.querySelector("main")
-    return main ? { scroll: main.scrollWidth, client: main.clientWidth } : null
+    if (!main) return null
+    const right = main.getBoundingClientRect().right
+    const widest = [...main.querySelectorAll("*")]
+      .map((el) => ({ el, right: el.getBoundingClientRect().right }))
+      .sort((a, b) => b.right - a.right)[0]
+    return {
+      scroll: main.scrollWidth,
+      client: main.clientWidth,
+      widest:
+        widest && widest.right > right + 1
+          ? `${widest.el.tagName.toLowerCase()}.${String(widest.el.className)} right ${Math.round(widest.right)} > main ${Math.round(right)}`
+          : "none",
+    }
   })
+  assert.ok(width, "Mobile main missing")
   assert.ok(
-    width && width.scroll <= width.client + 1,
-    "Mobile main must not overflow"
+    width.scroll <= width.client + 1,
+    `Mobile main must not overflow: scrollWidth ${width.scroll} > clientWidth ${width.client}; furthest element ${width.widest}`
   )
   await page.screenshot({
     path: join(output, "receipt-mobile.png"),
