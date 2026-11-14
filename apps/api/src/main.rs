@@ -268,6 +268,42 @@ async fn serve() {
         }
         return;
     }
+    // `genesy-360-api seed-afm-catalog --workspace afm|afm-demo [--images] [--app-key]`: AFM's
+    // catalogue into AFM's own workspace (production or staging), then exit. Safe to rerun.
+    // With `--app-key`, stdout carries only the new shop key, for the operator's pipe.
+    if std::env::args().nth(1).as_deref() == Some("seed-afm-catalog") {
+        let args: Vec<String> = std::env::args().skip(2).collect();
+        let Some(workspace) = args
+            .iter()
+            .position(|a| a == "--workspace")
+            .and_then(|i| args.get(i + 1))
+        else {
+            eprintln!("usage: seed-afm-catalog --workspace <afm|afm-demo> [--images] [--app-key]");
+            std::process::exit(2);
+        };
+        let photos = args
+            .iter()
+            .any(|a| a == "--images")
+            .then(|| genesy_360_api::demo::photos::Photos::afm().expect("outbound http client"));
+        let key = args.iter().any(|a| a == "--app-key");
+        match genesy_360_api::demo::afm::sync(state, workspace, photos.as_ref(), key).await {
+            Ok(done) => {
+                eprintln!("seed-afm-catalog {workspace}: {done:?}");
+                if let Some(k) = done.app_key {
+                    println!("{k}");
+                } else if key {
+                    eprintln!(
+                        "a live \"Web shop\" key exists: none made (revoke it in office to make a new one)"
+                    );
+                }
+            }
+            Err(err) => {
+                eprintln!("seed-afm-catalog: {err}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
     // `genesy-360-api create-owner --email E --workspace NAME [--first-name F] [--last-name L]`:
     // the first owner of a production install (signup is off there). Refuses an existing email.
     if std::env::args().nth(1).as_deref() == Some("create-owner") {

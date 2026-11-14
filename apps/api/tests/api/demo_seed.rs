@@ -689,19 +689,19 @@ async fn the_seed_fills_every_module(pool: PgPool) {
     }
     assert!(short.is_empty(), "short:\n{}", short.join("\n"));
 
-    // AFM's real catalogue: its 75 products, each in one of the ten shop categories, its
+    // AFM's real catalogue: its 79 products, each in one of the twelve shop categories, its
     // prices, and the farm's coffee lots on AFM's own whole-bean coffee.
     let exact: &[(i64, &str)] = &[
         (
-            75,
+            79,
             "SELECT count(*) FROM products WHERE workspace_id = $1 AND deleted_at IS NULL",
         ),
         (
-            75,
+            79,
             "SELECT count(*) FROM products WHERE workspace_id = $1 AND category_id IS NOT NULL",
         ),
         (
-            10,
+            12,
             "SELECT count(*) FROM product_categories WHERE workspace_id = $1",
         ),
         (
@@ -943,8 +943,9 @@ async fn with_images_every_product_gets_its_photos_fetched_once(pool: PgPool) {
         .unwrap();
 
     let (missing, total) = seeded.photos.unwrap();
-    assert_eq!((missing, total), (0, 187));
-    assert_eq!(*hits.lock().unwrap(), 187);
+    assert_eq!((missing, total), (0, 192));
+    // 190 distinct URLs: the three gift baskets share one photo.
+    assert_eq!(*hits.lock().unwrap(), 190);
     let afm = "afm-demo";
     let bare = count_in(
         &pool,
@@ -961,7 +962,7 @@ async fn with_images_every_product_gets_its_photos_fetched_once(pool: PgPool) {
             "SELECT count(*) FROM files WHERE workspace_id = $1"
         )
         .await,
-        187
+        192
     );
     // RUAHA's workspace sees none of AFM's photos.
     assert_eq!(
@@ -1004,7 +1005,7 @@ async fn with_images_and_afm_down_the_seed_still_finishes(pool: PgPool) {
         .unwrap();
 
     assert!(seeded.created);
-    assert_eq!(seeded.photos, Some((187, 187)));
+    assert_eq!(seeded.photos, Some((192, 192)));
     assert_eq!(
         count_in(
             &pool,

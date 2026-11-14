@@ -73,20 +73,23 @@ struct AfmFile {
 /// One AFM product.
 #[derive(Deserialize)]
 pub struct AfmProduct {
+    /// Stable `AFM-NNN`: seeds match products by it.
+    pub reference: String,
     pub slug: String,
     pub title: String,
     pub category: String,
     pub short_description: String,
     pub description: String,
-    pub option: Option<String>,
+    /// Option names in the store's order (none, one or two).
+    pub options: Vec<String>,
     pub variants: Vec<AfmVariant>,
     pub images: Vec<String>,
 }
 
-/// One AFM variant: its option value (None without options) and price in cents.
+/// One AFM variant: one value per option (empty without options) and price in cents.
 #[derive(Deserialize)]
 pub struct AfmVariant {
-    pub value: Option<String>,
+    pub values: Vec<String>,
     pub cents: i64,
 }
 
@@ -98,7 +101,7 @@ pub fn afm() -> Result<Vec<AfmProduct>, AppError> {
 }
 
 /// The shop's categories, grouped as AFM's category pages group them: (name, description).
-const CATEGORIES: &[(&str, &str)] = &[
+pub const CATEGORIES: &[(&str, &str)] = &[
     (
         "Honey",
         "Raw wildflower honey from the beekeepers of Illundo, Tanzania.",
@@ -118,6 +121,11 @@ const CATEGORIES: &[(&str, &str)] = &[
     ("Books", "Stories of the farmers behind the market."),
     ("Apparel", "T-shirts from African Farmers Market."),
     ("Stickers", "Stickers from African Farmers Market."),
+    (
+        "Gifts",
+        "Holiday gift baskets: a handwoven basket filled with AFM's honey, tea, coffee and spices.",
+    ),
+    ("Pantry", "Spreads and pantry goods made in Tanzania."),
 ];
 
 /// Sold at the market stall and the store only (the till's store-only goods).
@@ -209,28 +217,17 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
                 json!({ "name": p.title, "price": dollars(cents), "category_id": category,
                         "description": p.description, "short_description": p.short_description,
                         "ean13": ean13(i as u64 + 1), "store_only": store_only,
-                        "reference": format!("AFM-{:03}", i + 1) }),
+                        "reference": p.reference }),
                 &shop.owner,
             )
             .await?;
         let id = text(&created, "product_id")?;
         let mut variants = Vec::new();
-        if let Some(option) = &p.option {
-            let combos: Vec<Value> = p
-                .variants
-                .iter()
-                .enumerate()
-                .map(|(n, v)| {
-                    json!({ "option_value_ids": [v.value], "price": dollars(v.cents),
-                            "sku": format!("AFM-{:03}-{}", i + 1, n + 1) })
-                })
-                .collect();
+        if !p.options.is_empty() {
             let made = api
                 .post(
                     &shop.at(&format!("/products/{id}/variants/generate")),
-                    json!({ "option_types": [{ "name": option,
-                                "values": p.variants.iter().map(|v| json!({ "value": v.value })).collect::<Vec<_>>() }],
-                            "combinations": combos }),
+                    generate_body(&p, &p.variants),
                     &shop.owner,
                 )
                 .await?;
@@ -302,6 +299,50 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
         oversell,
         passports,
     })
+}
+
+/// `variants/generate` body making `wanted` of `p`'s variants: every option with all its values
+/// (find-or-create), one combination per wanted variant, ids as `{value}-{option}-{index}`.
+pub fn generate_body(p: &AfmProduct, wanted: &[AfmVariant]) -> Value {
+    let values: Vec<Vec<&str>> = (0..p.options.len())
+        .map(|o| {
+            let mut seen: Vec<&str> = Vec::new();
+            for v in &p.variants {
+                if let Some(x) = v.values.get(o).filter(|x| !seen.contains(&x.as_str())) {
+                    seen.push(x);
+                }
+            }
+            seen
+        })
+        .collect();
+    let option_types: Vec<Value> = p
+        .options
+        .iter()
+        .zip(&values)
+        .map(|(name, vs)| json!({ "name": name, "values": vs.iter().map(|v| json!({ "value": v })).collect::<Vec<_>>() }))
+        .collect();
+    let combinations: Vec<Value> = wanted
+        .iter()
+        .map(|v| {
+            let ids: Vec<String> = v
+                .values
+                .iter()
+                .enumerate()
+                .map(|(o, x)| {
+                    let i = values[o].iter().position(|y| y == x).unwrap_or_default();
+                    format!("{x}-{o}-{i}")
+                })
+                .collect();
+            let n = p
+                .variants
+                .iter()
+                .position(|w| w.values == v.values)
+                .unwrap_or_default();
+            json!({ "option_value_ids": ids, "price": dollars(v.cents),
+                    "sku": format!("{}-{}", p.reference, n + 1) })
+        })
+        .collect();
+    json!({ "option_types": option_types, "combinations": combinations })
 }
 
 /// (country, region, place, as read).
