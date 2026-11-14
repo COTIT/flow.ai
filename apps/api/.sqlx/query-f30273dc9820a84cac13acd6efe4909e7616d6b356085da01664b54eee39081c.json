@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workspaces SET profile = coalesce(profile, '{}'::jsonb) || jsonb_build_object('company_name', $2::text)\n         WHERE id = $1 AND profile->>'company_name' IS DISTINCT FROM $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f30273dc9820a84cac13acd6efe4909e7616d6b356085da01664b54eee39081c"
+}

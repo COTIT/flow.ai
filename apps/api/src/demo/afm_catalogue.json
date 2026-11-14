@@ -3,30 +3,61 @@
   "note": "AFM's public store, used on staging with AFM's consent. Regular prices in USD cents. Regenerate: node apps/api/scripts/afm-catalogue.mjs",
   "products": [
     {
+      "reference": "AFM-076",
+      "slug": "12vhqdup90mp1j4i1vmkrfzagbroxt",
+      "title": "Rosho Classic Cashew Butter",
+      "category": "Pantry",
+      "short_description": "Made in Tanzania. A story in every spoonful.",
+      "description": "Made in Tanzania. A story in every spoonful.\n\n‘rosho began in a family kitchen in Tanzania in 2020. When the pandemic disrupted the founders’ cashew business, they turned a difficult moment into a new beginning, transforming their cashews into a smooth, creamy spread.\n\nNamed after korosho, the Swahili word for cashews, ‘rosho celebrates the ingredients and craftsmanship of its home country. Tanzanian cashews are roasted, milled, and packed locally, creating work for local women and keeping more value within the community.\n\nEnjoy Classic Cashew Butter spread on toast, stirred into porridge, blended into smoothies, or drizzled over fresh fruit.\n\nFrom a Tanzanian kitchen to your table, discover a delicious expression of East African creativity.\n\nNet weight: 200 g.",
+      "options": [],
+      "variants": [
+        {
+          "values": [],
+          "sku": "SQ6677178",
+          "cents": 1699
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/c630dc50-82d4-41d9-8ad3-131cad6bf403/rosho-classic.jpg?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/12vhqdup90mp1j4i1vmkrfzagbroxt"
+    },
+    {
+      "reference": "AFM-001",
       "slug": "14-x-11-mary-artwork-prints",
       "title": "14 X 11 Mary Artwork Prints",
       "category": "Art",
       "short_description": "Hand-painted as part of The Mary, this 11 x 14 artwork print captures the warmth, resilience, and beauty woven throughout the communities that inspired African Farmers Market.",
       "description": "Hand-painted as part of The Mary, this 11 x 14 artwork print captures the warmth, resilience, and beauty woven throughout the communities that inspired African Farmers Market.\n\nCreated by Kenyan artist Benard Omondi, each piece reflects storytelling through color, culture, and connection — celebrating the spirit of East Africa and the people at the heart of the mission.\n\nPrinted on high-quality art paper and perfect for framing, this piece was made to bring meaning, conversation, and purpose into your space.\n\nSize: 11 x 14\nHand-painted artwork by Benard Omondi\nInspired by The Mary and African Farmers Market\n\nPrints:\n\n“Kuwawezesha Wanawake Wakulima”\n\n“When Women Rise”\n\n“Dreams of Tomorrow”\n\n“Light”",
-      "option": "Print",
+      "options": [
+        "Print"
+      ],
       "variants": [
         {
-          "value": "Kuwawezesha Wanawake Wakulima",
+          "values": [
+            "Kuwawezesha Wanawake Wakulima"
+          ],
           "sku": "SQ6129505",
           "cents": 2099
         },
         {
-          "value": "When Women Rise",
+          "values": [
+            "When Women Rise"
+          ],
           "sku": "SQ8175919",
           "cents": 2099
         },
         {
-          "value": "Dreams of Tomorrow",
+          "values": [
+            "Dreams of Tomorrow"
+          ],
           "sku": "SQ1438485",
           "cents": 2099
         },
         {
-          "value": "Light",
+          "values": [
+            "Light"
+          ],
           "sku": "SQ4712302",
           "cents": 2099
         }
@@ -40,50 +71,69 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/14-x-11-mary-artwork-prints"
     },
     {
+      "reference": "AFM-002",
       "slug": "8-x-11-the-mary-artwork-prints",
       "title": "8 X 10 The Mary Artwork Prints",
       "category": "Art",
       "short_description": "Hand-painted by Kenyan artist Benard Omondi, these 8 x 10 artwork prints are part of The Mary collection created for African Farmers Market.",
       "description": "Hand-painted by Kenyan artist Benard Omondi, these 8 x 10 artwork prints are part of The Mary collection created for African Farmers Market.\n\nEach piece tells a story of resilience, agriculture, community, hope, and opportunity across East Africa through rich color and meaningful storytelling.\n\nPerfect for framing, gifting, or adding warmth and purpose to your space, these prints were created to inspire conversation and connection through art.\n\nSize: 8 x 10\nHand-painted artwork by Benard Omondi\nInspired by The Mary and African Farmers Market\n\nPrints:\n\n“When Women Rise”\n\n“The Mary”\n\n“Kuwawezesha Wanawake Wakulima”\n\n“Dreams of Tomorrow”\n\n“Light”\n\n“Mary’s Farm”\n\n“The Power to Plan”\n\n“Light, Land, Possibility”",
-      "option": "Print",
+      "options": [
+        "Print"
+      ],
       "variants": [
         {
-          "value": "When Women Rise",
+          "values": [
+            "When Women Rise"
+          ],
           "sku": "SQ9274047",
           "cents": 1499
         },
         {
-          "value": "The Mary",
+          "values": [
+            "The Mary"
+          ],
           "sku": "SQ0893438",
           "cents": 1499
         },
         {
-          "value": "Kuwawezesha Wanawake Wakulima",
+          "values": [
+            "Kuwawezesha Wanawake Wakulima"
+          ],
           "sku": "SQ8742445",
           "cents": 1499
         },
         {
-          "value": "Dreams of Tomorrow",
+          "values": [
+            "Dreams of Tomorrow"
+          ],
           "sku": "SQ9785108",
           "cents": 1499
         },
         {
-          "value": "Light",
+          "values": [
+            "Light"
+          ],
           "sku": "SQ3213605",
           "cents": 1499
         },
         {
-          "value": "Mary's Farm",
+          "values": [
+            "Mary's Farm"
+          ],
           "sku": "SQ8949620",
           "cents": 1499
         },
         {
-          "value": "The Power to Plan",
+          "values": [
+            "The Power to Plan"
+          ],
           "sku": "SQ3037969",
           "cents": 1499
         },
         {
-          "value": "Light Land Possibility",
+          "values": [
+            "Light Land Possibility"
+          ],
           "sku": "SQ0254989",
           "cents": 1499
         }
@@ -101,15 +151,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/8-x-11-the-mary-artwork-prints"
     },
     {
+      "reference": "AFM-003",
       "slug": "acacia-bronze-sand-beaded-basket",
       "title": "Acacia Bronze Sand Basket",
       "category": "Baskets",
       "short_description": "Warm, grounded, and beautifully natural, our Acacia Bronze Basket draws its character from the sandy, sun-washed tones of the East African landscape.",
       "description": "Warm, grounded, and beautifully natural, our Acacia Bronze Basket draws its character from the sandy, sun-washed tones of the East African landscape. Its soft neutral coloring highlights the intricate beadwork and woven texture, creating a piece that adds warmth without overwhelming a space.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket is part of a partnership built around craftsmanship and opportunity. Rachel and African Farmers Market help connect these artisans with customers around the world, creating additional income-generating opportunities while celebrating the skill behind their work.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Sand\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-AB-SND",
           "cents": 3800
         }
@@ -123,30 +174,41 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/acacia-bronze-sand-beaded-basket"
     },
     {
+      "reference": "AFM-004",
       "slug": "afm-stickers",
       "title": "AFM Stickers",
       "category": "Stickers",
       "short_description": "These African Farmers Market stickers were created to celebrate storytelling, culture, community, and connection through art and design inspired by East Africa.",
       "description": "These African Farmers Market stickers were created to celebrate storytelling, culture, community, and connection through art and design inspired by East Africa.\n\nFeaturing original AFM artwork, Swahili phrases, community partnerships, and mission-driven designs, each sticker represents something bigger than a product — it represents people, purpose, and the stories behind the movement.\n\nPerfect for water bottles, laptops, journals, coolers, notebooks, market totes, and more.\n\nDurable vinyl sticker\nGloss finish\nWeather resistant\nOriginal African Farmers Market artwork\n\nSticker:\n\n“Illundo Farmers”\n\n“The Mary”\n\n“Asali”\n\n“AFM Logo”",
-      "option": "Sticker",
+      "options": [
+        "Sticker"
+      ],
       "variants": [
         {
-          "value": "Illundo Farmers",
+          "values": [
+            "Illundo Farmers"
+          ],
           "sku": "SQ1971930",
           "cents": 50
         },
         {
-          "value": "The Mary",
+          "values": [
+            "The Mary"
+          ],
           "sku": "SQ1453615",
           "cents": 50
         },
         {
-          "value": "Asali",
+          "values": [
+            "Asali"
+          ],
           "sku": "SQ8801739",
           "cents": 50
         },
         {
-          "value": "AFM Logo",
+          "values": [
+            "AFM Logo"
+          ],
           "sku": "SQ2921401",
           "cents": 50
         }
@@ -160,15 +222,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/afm-stickers"
     },
     {
+      "reference": "AFM-005",
       "slug": "african-mums-benard-omondi",
       "title": "African Mums",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring three women walking together through reflective turquoise water, surrounded by lush vegetation and expressive layers of cream, pink, green, blue, and gold.",
       "description": "Original artwork by Benard Omondi featuring three women walking together through reflective turquoise water, surrounded by lush vegetation and expressive layers of cream, pink, green, blue, and gold.\n\nDimensions: 4.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-002",
           "cents": 115000
         }
@@ -179,15 +242,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/african-mums-benard-omondi"
     },
     {
+      "reference": "AFM-006",
       "slug": "africas-wildest-tanzanian-whole-bean-coffee",
       "title": "Africa’s Wildest Whole Bean Coffee",
       "category": "Coffee",
       "short_description": "Rare, distinctive, and beautifully bold, Africa’s Wildest is crafted with prized peaberry coffee beans, also known as “pearls.” Unlike typical coffee beans, peaberries develop as a single round bean inside the coffee cherry, creating their unique shape…",
       "description": "Rare, distinctive, and beautifully bold, Africa’s Wildest is crafted with prized peaberry coffee beans, also known as “pearls.” Unlike typical coffee beans, peaberries develop as a single round bean inside the coffee cherry, creating their unique shape and sought-after roasting qualities.\n\nOnly about 8 to 10% of the coffee harvest produces these rare pearls, making every tin something special. The blend combines 80% Peaberry Arabica with 20% Robusta for an excellent cup with rich character and depth.\n\nBlend: 80% Peaberry Arabica, 20% Robusta\nForm: Whole bean\nSize: 350 g tin\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-COF-AFW-WB-350",
           "cents": 2499
         }
@@ -199,15 +263,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/africas-wildest-tanzanian-whole-bean-coffee"
     },
     {
+      "reference": "AFM-007",
       "slug": "bao-board-african-strategy-game",
       "title": "East African Bao Board",
       "category": "Toys & games",
       "short_description": "Gather around a game that has brought people together across East Africa for generations. Bao is one of the region’s oldest and most respected strategy games, traditionally played throughout Tanzania, Kenya, Zanzibar, and neighboring areas.",
       "description": "Gather around a game that has brought people together across East Africa for generations. Bao is one of the region’s oldest and most respected strategy games, traditionally played throughout Tanzania, Kenya, Zanzibar, and neighboring areas. The Swahili word bao means “board,” and the game has long encouraged planning, patience, observation, and critical thinking.\n\nOur board uses Bao 6×2, a recognized modern adaptation that brings the spirit and strategy of traditional Bao to a smaller, family-friendly format. Each set includes a 6×2 Bao board and 36 handcrafted East African bone beads, making the game as beautiful to display as it is engaging to play.\n\nDesigned for two players, the goal is to strategically sow and capture beads while thinking several moves ahead. It is easy to begin learning, but the possibilities grow as your strategy develops.\n\nMore than a board game, Bao is a connection to a tradition passed from one generation to the next. We hope this board finds its way into your own family game nights, friendly competitions, and traditions for years to come.\n\nIncludes: 1 Bao 6×2 board + 36 handcrafted East African bone beads\nPlayers: 2",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-GAME-BAO-01",
           "cents": 2999
         }
@@ -218,15 +283,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/bao-board-african-strategy-game"
     },
     {
+      "reference": "AFM-008",
       "slug": "be-calm-benard-omondi",
       "title": "Be Calm",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a reclining woman in a white dress with a white bird in flight, set against an expressive background layered with turquoise, blue, purple, gold, and warm earth tones.",
       "description": "Original artwork by Benard Omondi featuring a reclining woman in a white dress with a white bird in flight, set against an expressive background layered with turquoise, blue, purple, gold, and warm earth tones.\n\nDimensions: 4.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-009",
           "cents": 115000
         }
@@ -237,15 +303,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/be-calm-benard-omondi"
     },
     {
+      "reference": "AFM-009",
       "slug": "black-peppercorn",
       "title": "Black Peppercorn",
       "category": "Spices",
       "short_description": "Bold, aromatic, and full of rich peppery flavor, our black peppercorns are a versatile kitchen essential. Grind them fresh over finished dishes or use them whole to add depth to soups, stews, sauces, marinades, meats, vegetables, and spice blends.",
       "description": "Bold, aromatic, and full of rich peppery flavor, our black peppercorns are a versatile kitchen essential. Grind them fresh over finished dishes or use them whole to add depth to soups, stews, sauces, marinades, meats, vegetables, and spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-BPC-04",
           "cents": 1299
         }
@@ -257,15 +324,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/black-peppercorn"
     },
     {
+      "reference": "AFM-010",
       "slug": "cardamom",
       "title": "Cardamom",
       "category": "Spices",
       "short_description": "Fragrant, warm, and slightly sweet, our cardamom brings a beautifully complex flavor to both sweet and savory dishes. Perfect for curries, rice dishes, baked goods, chai, tea, coffee, and spice blends.",
       "description": "Fragrant, warm, and slightly sweet, our cardamom brings a beautifully complex flavor to both sweet and savory dishes. Perfect for curries, rice dishes, baked goods, chai, tea, coffee, and spice blends. Its distinctive aroma makes it a wonderful addition to both everyday cooking and special recipes.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-CAR-04",
           "cents": 1599
         }
@@ -277,15 +345,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/cardamom"
     },
     {
+      "reference": "AFM-011",
       "slug": "chaotic-mind-pascal-masegesse",
       "title": "Chaotic Mind",
       "category": "Art",
       "short_description": "Original artwork by Tanzanian artist Pascal Masegesse. Chaotic Mind reflects Pascal's multidisciplinary practice and distinctive approach of deconstructing subjects into shapes and intricate details to communicate layered ideas and emotion.",
       "description": "Original artwork by Tanzanian artist Pascal Masegesse. Chaotic Mind reflects Pascal's multidisciplinary practice and distinctive approach of deconstructing subjects into shapes and intricate details to communicate layered ideas and emotion.\n\nArtist: Pascal Masegesse\nMedium: Acrylic on Canvas\nYear: 2025\nDimensions: 120 × 75 cm (47.2 × 29.5 in)",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "NM-004",
           "cents": 47500
         }
@@ -296,15 +365,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/chaotic-mind-pascal-masegesse"
     },
     {
+      "reference": "AFM-012",
       "slug": "daisies-benard-omondi",
       "title": "Daisies",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a cluster of white daisies with warm golden centers against a richly textured olive-green background.",
       "description": "Original artwork by Benard Omondi featuring a cluster of white daisies with warm golden centers against a richly textured olive-green background.\n\nDimensions: 5.9\" × 7.8\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-007",
           "cents": 45000
         }
@@ -315,15 +385,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/daisies-benard-omondi"
     },
     {
+      "reference": "AFM-013",
       "slug": "east-african-amber-tan-beaded-basket",
       "title": "East African Amber Tan Basket",
       "category": "Baskets",
       "short_description": "Warm, golden, and beautifully earthy, our East African Amber Basket brings together rich tan tones and intricate handwoven texture.",
       "description": "Warm, golden, and beautifully earthy, our East African Amber Basket brings together rich tan tones and intricate handwoven texture. Its natural coloring has the warmth of sun-baked earth and amber, giving it an understated beauty that works effortlessly with both neutral spaces and more colorful surroundings.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket carries the individual character of the woman who created it. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating additional income-generating opportunities for Kenyan women.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Tan\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-EAA-TAN",
           "cents": 3800
         }
@@ -337,15 +408,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/east-african-amber-tan-beaded-basket"
     },
     {
+      "reference": "AFM-014",
       "slug": "electric-safari-crocodile",
       "title": "Electric Safari Crocodile",
       "category": "Toys & games",
       "short_description": "Bright, fearless, and bursting with color, our Electric Safari Crocodile puts a playful spin on one of Africa’s most formidable animals.",
       "description": "Bright, fearless, and bursting with color, our Electric Safari Crocodile puts a playful spin on one of Africa’s most formidable animals. Its lively mix of vivid colors gives this handcrafted crocodile an energetic personality that instantly stands out, whether it’s displayed on its own or alongside other pieces from our African animal collection.\n\nHandcrafted in Tanzania, each crocodile carries the individual touches of its maker. Eye color, color placement, and detailing may vary slightly from the photos, making every Electric Safari Crocodile a truly one-of-a-kind piece.\n\nColors: Colorful",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-CROC-ES",
           "cents": 2000
         }
@@ -358,15 +430,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/electric-safari-crocodile"
     },
     {
+      "reference": "AFM-015",
       "slug": "electric-safari-monitor-lizard",
       "title": "Electric Safari Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Bright, bold, and impossible to miss, our Electric Safari Monitor Lizard brings a burst of color to Tanzania’s wild side. Its energetic mix of vivid hues turns this handcrafted animal into a playful statement piece that feels just as much like art as it…",
       "description": "Bright, bold, and impossible to miss, our Electric Safari Monitor Lizard brings a burst of color to Tanzania’s wild side. Its energetic mix of vivid hues turns this handcrafted animal into a playful statement piece that feels just as much like art as it does decor.\n\nHandcrafted in Tanzania, its long silhouette is perfect for stretching across a bookshelf, console, or table where all those brilliant colors can stand out. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, giving every Electric Safari Monitor its own personality.\n\nColors: Colorful\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-ESM",
           "cents": 3000
         }
@@ -380,15 +453,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/electric-safari-monitor-lizard"
     },
     {
+      "reference": "AFM-016",
       "slug": "erengeti-lime-green-monitor-lizard",
       "title": "Serengeti Lime Green Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Vibrant, playful, and wonderfully wild, our Serengeti Lime Green Monitor Lizard takes its inspiration from the bright, living landscape of Tanzania’s Serengeti.",
       "description": "Vibrant, playful, and wonderfully wild, our Serengeti Lime Green Monitor Lizard takes its inspiration from the bright, living landscape of Tanzania’s Serengeti. Its electric lime green coloring gives this handcrafted piece an unmistakable personality and makes it an instant pop of color wherever it lands.\n\nHandcrafted in Tanzania, its long silhouette looks right at home stretched across a bookshelf, console, or table. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, giving every monitor its own one-of-a-kind character.\n\nColor: Lime green\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-SLG",
           "cents": 3000
         }
@@ -401,35 +475,48 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/erengeti-lime-green-monitor-lizard"
     },
     {
+      "reference": "AFM-017",
       "slug": "got-asali-t-shirt",
       "title": "Got Asali? T-shirt",
       "category": "Apparel",
       "short_description": "got asali?",
       "description": "got asali?\n\nAsali is the Swahili word for honey, and this shirt is a conversation starter. Featuring our signature \"Africa in Every Drop\" graphic, this tee represents something bigger than a jar of honey. It represents real partnerships with rural farming communities across Africa and a commitment to creating opportunity where it matters most.\n\nSoft, relaxed fit with the AFM logo on the front chest and the full \"got asali?\" graphic on the back. Wear it proud. Wear it with purpose.\n\nSizes: S · M · L · XL · XXL | Color: Natural 100% cotton",
-      "option": "Size",
+      "options": [
+        "Size"
+      ],
       "variants": [
         {
-          "value": "Small",
+          "values": [
+            "Small"
+          ],
           "sku": "SQ7075488",
           "cents": 2499
         },
         {
-          "value": "Medium",
+          "values": [
+            "Medium"
+          ],
           "sku": "SQ9407807",
           "cents": 2499
         },
         {
-          "value": "Large",
+          "values": [
+            "Large"
+          ],
           "sku": "SQ0174979",
           "cents": 2499
         },
         {
-          "value": "X-Large",
+          "values": [
+            "X-Large"
+          ],
           "sku": "SQ2889049",
           "cents": 2499
         },
         {
-          "value": "XX-Large",
+          "values": [
+            "XX-Large"
+          ],
           "sku": "SQ8267915",
           "cents": 2499
         }
@@ -443,15 +530,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/got-asali-t-shirt"
     },
     {
+      "reference": "AFM-018",
       "slug": "ground-black-pepper",
       "title": "Ground Black Pepper",
       "category": "Spices",
       "short_description": "Bold, aromatic, and wonderfully versatile, our ground black pepper adds rich, peppery flavor and a gentle bite to everyday cooking. Sprinkle it over finished dishes or use it to season meats, vegetables, soups, stews, sauces, marinades, and spice blends.",
       "description": "Bold, aromatic, and wonderfully versatile, our ground black pepper adds rich, peppery flavor and a gentle bite to everyday cooking. Sprinkle it over finished dishes or use it to season meats, vegetables, soups, stews, sauces, marinades, and spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-GBP-04",
           "cents": 1299
         }
@@ -463,15 +551,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-black-pepper"
     },
     {
+      "reference": "AFM-019",
       "slug": "ground-cloves",
       "title": "Ground Cloves",
       "category": "Spices",
       "short_description": "Bold, warm, and beautifully aromatic, our ground cloves bring a rich depth of flavor to both sweet and savory dishes. Perfect for baking, spice blends, marinades, teas, sauces, curries, and warming recipes.",
       "description": "Bold, warm, and beautifully aromatic, our ground cloves bring a rich depth of flavor to both sweet and savory dishes. Perfect for baking, spice blends, marinades, teas, sauces, curries, and warming recipes. A little goes a long way with this fragrant pantry staple.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-GCL-04",
           "cents": 1299
         }
@@ -483,15 +572,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-cloves"
     },
     {
+      "reference": "AFM-020",
       "slug": "ground-cumin",
       "title": "Ground Cumin",
       "category": "Spices",
       "short_description": "Earthy, warm, and deeply aromatic, our ground cumin adds rich, savory flavor to everyday cooking. Its convenient ground form makes it easy to blend into curries, soups, stews, marinades, vegetables, rice dishes, sauces, and homemade spice blends.",
       "description": "Earthy, warm, and deeply aromatic, our ground cumin adds rich, savory flavor to everyday cooking. Its convenient ground form makes it easy to blend into curries, soups, stews, marinades, vegetables, rice dishes, sauces, and homemade spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-GCU-04",
           "cents": 1299
         }
@@ -503,15 +593,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-cumin"
     },
     {
+      "reference": "AFM-021",
       "slug": "ground-pumpkin-seed",
       "title": "Ground Pumpkin Seed",
       "category": "Spices",
       "short_description": "Rich, nutty, and versatile, our ground pumpkin seed adds a delicious earthy flavor and satisfying depth to everyday cooking. Use it to enrich sauces, soups, stews, vegetable dishes, and traditional recipes, or sprinkle it into meals for an easy boost of…",
       "description": "Rich, nutty, and versatile, our ground pumpkin seed adds a delicious earthy flavor and satisfying depth to everyday cooking. Use it to enrich sauces, soups, stews, vegetable dishes, and traditional recipes, or sprinkle it into meals for an easy boost of pumpkin seed flavor.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-GPS-04",
           "cents": 1299
         }
@@ -523,15 +614,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-pumpkin-seed"
     },
     {
+      "reference": "AFM-022",
       "slug": "ground-red-pepper",
       "title": "Ground Red Pepper",
       "category": "Spices",
       "short_description": "Bold, vibrant, and full of heat, our ground red pepper adds a lively kick and rich pepper flavor to your favorite dishes. Its ground form makes it easy to season soups, stews, sauces, curries, marinades, vegetables, meats, and spice blends.",
       "description": "Bold, vibrant, and full of heat, our ground red pepper adds a lively kick and rich pepper flavor to your favorite dishes. Its ground form makes it easy to season soups, stews, sauces, curries, marinades, vegetables, meats, and spice blends. Perfect for adding as much or as little heat as you like.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-GRP-04",
           "cents": 1299
         }
@@ -543,15 +635,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ground-red-pepper"
     },
     {
+      "reference": "AFM-023",
       "slug": "handcrafted-tanzanian-elephant",
       "title": "Handcrafted Tanzanian Elephant",
       "category": "Toys & games",
       "short_description": "Strong, charming, and unmistakably African, our handcrafted elephant celebrates one of Tanzania’s most beloved animals. Each piece is made by hand in Tanzania, giving it an individual character that makes it feel less like ordinary decor and more like a…",
       "description": "Strong, charming, and unmistakably African, our handcrafted elephant celebrates one of Tanzania’s most beloved animals. Each piece is made by hand in Tanzania, giving it an individual character that makes it feel less like ordinary decor and more like a small piece of artistry brought home.\n\nDisplay it on a bookshelf, desk, side table, or alongside other pieces from our African animal collection for a warm reminder of Tanzania’s extraordinary wildlife and craftsmanship.\n\nBecause each elephant is individually handcrafted, color, eye details, and other small features may vary slightly from the photos, making every piece uniquely its own.",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-ELE-TUSK",
           "cents": 1200
         }
@@ -563,15 +656,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/handcrafted-tanzanian-elephant"
     },
     {
+      "reference": "AFM-024",
       "slug": "handcrafted-tanzanian-hyena",
       "title": "Handcrafted Tanzanian Hyena",
       "category": "Toys & games",
       "short_description": "Wild, curious, and packed with personality, our handcrafted hyena celebrates one of Africa’s most recognizable animals. Its natural coloring gives this piece an earthy, safari-inspired feel, while the handmade details bring out the wonderfully quirky…",
       "description": "Wild, curious, and packed with personality, our handcrafted hyena celebrates one of Africa’s most recognizable animals. Its natural coloring gives this piece an earthy, safari-inspired feel, while the handmade details bring out the wonderfully quirky character hyenas are known for.\n\nHandcrafted in Tanzania, it makes a fun addition to a bookshelf, desk, wildlife collection, or a grouping of our African animal pieces.\n\nBecause each hyena is individually handcrafted, color, eye details, and other small features may vary slightly from the photos, making every piece uniquely its own.\n\nStyle: Natural",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-HYE-NAT",
           "cents": 1600
         }
@@ -584,15 +678,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/handcrafted-tanzanian-hyena"
     },
     {
+      "reference": "AFM-025",
       "slug": "holding-on-benard-omondi",
       "title": "Holding On - 1",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a woman holding closely to a tree, surrounded by vivid blue and golden circular patterns and expressive layered brushwork.",
       "description": "Original artwork by Benard Omondi featuring a woman holding closely to a tree, surrounded by vivid blue and golden circular patterns and expressive layered brushwork.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-001",
           "cents": 57500
         }
@@ -603,15 +698,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/holding-on-benard-omondi"
     },
     {
+      "reference": "AFM-026",
       "slug": "holding-on-benard-omondi-003",
       "title": "Holding On - 2",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a resting figure tightly embracing a white pillow, surrounded by expressive mask-like faces and richly layered strokes of blue, gold, orange, cream, and black.",
       "description": "Original artwork by Benard Omondi featuring a resting figure tightly embracing a white pillow, surrounded by expressive mask-like faces and richly layered strokes of blue, gold, orange, cream, and black.\n\nDimensions: 6.5 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-003",
           "cents": 215000
         }
@@ -622,15 +718,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/holding-on-benard-omondi-003"
     },
     {
+      "reference": "AFM-027",
       "slug": "holding-on-benard-omondi-004",
       "title": "Holding On - 3",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a man in a wide-brimmed hat holding a large earthen vessel containing a small tree, surrounded by swirling patterns of blue, orange, yellow, white, and black.",
       "description": "Original artwork by Benard Omondi featuring a man in a wide-brimmed hat holding a large earthen vessel containing a small tree, surrounded by swirling patterns of blue, orange, yellow, white, and black.\n\nDimensions: 6.5 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-004",
           "cents": 215000
         }
@@ -641,15 +738,2879 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/holding-on-benard-omondi-004"
     },
     {
+      "reference": "AFM-077",
+      "slug": "holiday-gift-basket-the-tea-tradition",
+      "title": "Holiday Gift Basket | The Tea Tradition",
+      "category": "Gifts",
+      "short_description": "A celebration of East African traditions, handcrafted treasures and comforting flavours. Includes a set of three handmade beaded baskets from Kenyan women artisans in your selected colour, Kizazi Kenyan Black Tea (large jar), Mary’s Tanzanian Wildflower…",
+      "description": "A celebration of East African traditions, handcrafted treasures and comforting flavours. Includes a set of three handmade beaded baskets from Kenyan women artisans in your selected colour, Kizazi Kenyan Black Tea (large jar), Mary’s Tanzanian Wildflower Honey (7 oz), and one Tanzanian spice jar (4 oz) of your choice. Cardamom is not included. $74.99 with free shipping. This bundle is excluded from discounts and promotional codes.",
+      "options": [
+        "Basket colour",
+        "Spice"
+      ],
+      "variants": [
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ3380674",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7778339",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3468677",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3434257",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Cumin"
+          ],
+          "sku": "SQ4005820",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0047959",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ6738657",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6370604",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Cloves"
+          ],
+          "sku": "SQ4050722",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ3430118",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ0629235",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ6218018",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ1088130",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Cumin"
+          ],
+          "sku": "SQ5628470",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6151268",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ1122594",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Cloves"
+          ],
+          "sku": "SQ3157226",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Cloves"
+          ],
+          "sku": "SQ3543845",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ8055425",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ9686768",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8057403",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ6661210",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8915678",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Cumin"
+          ],
+          "sku": "SQ9775901",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ8889543",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Cloves"
+          ],
+          "sku": "SQ1184437",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Cloves"
+          ],
+          "sku": "SQ9095084",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ3554478",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ3107269",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ0506631",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ5591933",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Cumin"
+          ],
+          "sku": "SQ9188437",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5834137",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ8530801",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7613820",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Cloves"
+          ],
+          "sku": "SQ8212271",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6586769",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ5211582",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8531517",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ8729843",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Cumin"
+          ],
+          "sku": "SQ2176863",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0418381",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ5803728",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7930120",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Cloves"
+          ],
+          "sku": "SQ6505610",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6910755",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ8312780",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ2842624",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7864932",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Cumin"
+          ],
+          "sku": "SQ5772208",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Cumin"
+          ],
+          "sku": "SQ8712775",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ5673582",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7094768",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1300940",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ7994309",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ2926243",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3331137",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ9931283",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Cumin"
+          ],
+          "sku": "SQ3903610",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0639102",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ9746211",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7680651",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Cloves"
+          ],
+          "sku": "SQ5435233",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ1675570",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7039477",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8432745",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ5665852",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Cumin"
+          ],
+          "sku": "SQ7306104",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Cumin"
+          ],
+          "sku": "SQ7596578",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ1818951",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Cloves"
+          ],
+          "sku": "SQ3729647",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Cloves"
+          ],
+          "sku": "SQ5833348",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4855691",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7116423",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3670143",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ0876901",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Cumin"
+          ],
+          "sku": "SQ9989603",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Cumin"
+          ],
+          "sku": "SQ3636350",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ8838600",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7061805",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Cloves"
+          ],
+          "sku": "SQ4059673",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ3957324",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7556811",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ5795532",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ5927011",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Cumin"
+          ],
+          "sku": "SQ4083387",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5381441",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ6329322",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Cloves"
+          ],
+          "sku": "SQ0859319",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Cloves"
+          ],
+          "sku": "SQ7130244",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ1386645",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ1590761",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8186035",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ2173570",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Cumin"
+          ],
+          "sku": "SQ6008729",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5955878",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ3220242",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Cloves"
+          ],
+          "sku": "SQ0732865",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Cloves"
+          ],
+          "sku": "SQ5717575",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ1063835",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7116723",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ2016260",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7191219",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Cumin"
+          ],
+          "sku": "SQ5217622",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6668611",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ0792762",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6860572",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Cloves"
+          ],
+          "sku": "SQ4371417",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6965024",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ2585438",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ5534685",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3196260",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Cumin"
+          ],
+          "sku": "SQ1429412",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5946112",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ1528699",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Cloves"
+          ],
+          "sku": "SQ5006405",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1382538",
+          "cents": 7499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9353afc5-e395-442c-8a62-c2584b15b890/afm-holiday-tea.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/holiday-gift-basket-the-tea-tradition"
+    },
+    {
+      "reference": "AFM-078",
+      "slug": "holiday-gift-basket-the-tea-tradition-5t5z6",
+      "title": "Holiday Gift Basket | The Coffee Collection",
+      "category": "Gifts",
+      "short_description": "A thoughtful gift of African craftsmanship and flavours. Includes a set of three handmade beaded baskets from Kenyan women artisans in your selected colour, Rift Valley Ground Coffee (350 g, Tanzanian Arabica from Utengule Farm), Mary’s Tanzanian…",
+      "description": "A thoughtful gift of African craftsmanship and flavours. Includes a set of three handmade beaded baskets from Kenyan women artisans in your selected colour, Rift Valley Ground Coffee (350 g, Tanzanian Arabica from Utengule Farm), Mary’s Tanzanian Wildflower Honey (7 oz), and one Tanzanian spice jar (4 oz) of your choice. Cardamom is not included. $74.99 with free shipping. This bundle is excluded from discounts and promotional codes.",
+      "options": [
+        "Basket colour",
+        "Spice"
+      ],
+      "variants": [
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ8842601",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ1864332",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8675285",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7075760",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8648771",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6276753",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2763752",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6380706",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Cloves"
+          ],
+          "sku": "SQ8342605",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ7016365",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7146621",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ0153861",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7387433",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Cumin"
+          ],
+          "sku": "SQ5587611",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6517377",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ4312801",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Cloves"
+          ],
+          "sku": "SQ1680373",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Cloves"
+          ],
+          "sku": "SQ6763603",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ7428374",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7120073",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8716148",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3201567",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Cumin"
+          ],
+          "sku": "SQ4304106",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6577453",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2241438",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Cloves"
+          ],
+          "sku": "SQ2783150",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Cloves"
+          ],
+          "sku": "SQ5187240",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ5460528",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ6623417",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ5051208",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ8132076",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8403037",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Cumin"
+          ],
+          "sku": "SQ7607577",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ3804867",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Cloves"
+          ],
+          "sku": "SQ0374808",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Cloves"
+          ],
+          "sku": "SQ7643554",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ8884668",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ2847728",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ7468587",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7634872",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Cumin"
+          ],
+          "sku": "SQ7777842",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Cumin"
+          ],
+          "sku": "SQ2462633",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ7527210",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Cloves"
+          ],
+          "sku": "SQ0425015",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1202470",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ0375423",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ8663210",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8100533",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ2775036",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Cumin"
+          ],
+          "sku": "SQ3031470",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Cumin"
+          ],
+          "sku": "SQ1338515",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ7322367",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Cloves"
+          ],
+          "sku": "SQ5633685",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Cloves"
+          ],
+          "sku": "SQ2410251",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ8250073",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ5688418",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ1733254",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ1308880",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8723322",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6838481",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2741158",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6620222",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Cloves"
+          ],
+          "sku": "SQ8470467",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ2500618",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ4085364",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ5525448",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ2478513",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Cumin"
+          ],
+          "sku": "SQ2478043",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Cumin"
+          ],
+          "sku": "SQ1375571",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ7157216",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Cloves"
+          ],
+          "sku": "SQ8825071",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Cloves"
+          ],
+          "sku": "SQ6016338",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ8337048",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ8048410",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ7754017",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ1586380",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Cumin"
+          ],
+          "sku": "SQ6374525",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Cumin"
+          ],
+          "sku": "SQ2843125",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ5244035",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Cloves"
+          ],
+          "sku": "SQ5745142",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Cloves"
+          ],
+          "sku": "SQ6571250",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ2526327",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ5704572",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ8721624",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ4232773",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Cumin"
+          ],
+          "sku": "SQ4681524",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Cumin"
+          ],
+          "sku": "SQ3754088",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ7584310",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Cloves"
+          ],
+          "sku": "SQ8085802",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Cloves"
+          ],
+          "sku": "SQ8655453",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ0630758",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ5735240",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3580784",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ2753337",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Cumin"
+          ],
+          "sku": "SQ1777861",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Cumin"
+          ],
+          "sku": "SQ4626131",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ4631780",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6617757",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1081841",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6665710",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ8842443",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ2710607",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3724265",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Cumin"
+          ],
+          "sku": "SQ1542056",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Cumin"
+          ],
+          "sku": "SQ3534418",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2461283",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Cloves"
+          ],
+          "sku": "SQ4553230",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Cloves"
+          ],
+          "sku": "SQ2044521",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4618831",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ0875661",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3171305",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3563165",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Cumin"
+          ],
+          "sku": "SQ1105248",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5662083",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ4771742",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Cloves"
+          ],
+          "sku": "SQ4735185",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1824310",
+          "cents": 7499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9353afc5-e395-442c-8a62-c2584b15b890/afm-holiday-tea.png?format=1000w",
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/75e8f59a-efa7-4348-99a1-29573ecb0c6e/afm-holiday-coffee.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/holiday-gift-basket-the-tea-tradition-5t5z6"
+    },
+    {
+      "reference": "AFM-079",
+      "slug": "holiday-gift-basket-the-tea-tradition-pe5kl",
+      "title": "Holiday Gift Basket | The Roselle Ritual",
+      "category": "Gifts",
+      "short_description": "Handcrafted Kenyan treasures with vibrant roselle tea, golden honey and your choice of Tanzanian spice. Includes a set of three handmade beaded baskets from Kenyan women artisans in your selected colour, Mary’s Pantry Roselle Tea, Mary’s Tanzanian…",
+      "description": "Handcrafted Kenyan treasures with vibrant roselle tea, golden honey and your choice of Tanzanian spice. Includes a set of three handmade beaded baskets from Kenyan women artisans in your selected colour, Mary’s Pantry Roselle Tea, Mary’s Tanzanian Wildflower Honey (7 oz), and one Tanzanian spice jar (4 oz) of your choice. Cardamom is not included. $74.99 with free shipping. This bundle is excluded from discounts and promotional codes.",
+      "options": [
+        "Basket colour",
+        "Spice"
+      ],
+      "variants": [
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4345153",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ0511024",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3356158",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7266250",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Cumin"
+          ],
+          "sku": "SQ0524111",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Cumin"
+          ],
+          "sku": "SQ2670017",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ6221640",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6885708",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Acacia Bronze Sand",
+            "Ground Cloves"
+          ],
+          "sku": "SQ8720363",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ2018734",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ2704854",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ0776424",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ5506388",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8052071",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0261534",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ3858042",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Whole Cloves"
+          ],
+          "sku": "SQ5823818",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nakuru Sun Yellow",
+            "Ground Cloves"
+          ],
+          "sku": "SQ4276158",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6014308",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ0318522",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ6837801",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3470608",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8417838",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Cumin"
+          ],
+          "sku": "SQ7184087",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2735407",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Whole Cloves"
+          ],
+          "sku": "SQ6532685",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Olive Grinch Green",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1033106",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6038378",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ3703267",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ1868835",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ8871435",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Cumin"
+          ],
+          "sku": "SQ0186705",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Cumin"
+          ],
+          "sku": "SQ2538057",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ6632235",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7377405",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Watamu Tide Blue",
+            "Ground Cloves"
+          ],
+          "sku": "SQ7833850",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4434250",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ1088843",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ1687764",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ0463410",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Cumin"
+          ],
+          "sku": "SQ6180255",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0628854",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ5341755",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7517254",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "East African Amber Tan",
+            "Ground Cloves"
+          ],
+          "sku": "SQ7738060",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4648644",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ1240423",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ6330865",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7821052",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Cumin"
+          ],
+          "sku": "SQ8843217",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Cumin"
+          ],
+          "sku": "SQ6142282",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ1583285",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Whole Cloves"
+          ],
+          "sku": "SQ8230545",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kilimanjaro Flame Magenta",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1157213",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ3600303",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ8370601",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ7573463",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3801131",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Cumin"
+          ],
+          "sku": "SQ1722873",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5553742",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ4532417",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Whole Cloves"
+          ],
+          "sku": "SQ2010653",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Savanna Gold White Sand",
+            "Ground Cloves"
+          ],
+          "sku": "SQ4536883",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4855736",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ7323216",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ1503621",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ3317022",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Cumin"
+          ],
+          "sku": "SQ2820724",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Cumin"
+          ],
+          "sku": "SQ3871153",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2466481",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Whole Cloves"
+          ],
+          "sku": "SQ4645864",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Zanzibar Hibiscus Pink",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1714665",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ0086742",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ3138344",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ3388427",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7777651",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Cumin"
+          ],
+          "sku": "SQ4057662",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Cumin"
+          ],
+          "sku": "SQ8727872",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ4843211",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Whole Cloves"
+          ],
+          "sku": "SQ4428863",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Tsavo Ochre Pumpkin Orange",
+            "Ground Cloves"
+          ],
+          "sku": "SQ3765252",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ6388737",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ1415166",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ5666158",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ0332321",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Cumin"
+          ],
+          "sku": "SQ0531546",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Cumin"
+          ],
+          "sku": "SQ5258725",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ8220862",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Whole Cloves"
+          ],
+          "sku": "SQ4171550",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Lamu Indigo Dark Blue",
+            "Ground Cloves"
+          ],
+          "sku": "SQ1357625",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ1115327",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ0365080",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ1065835",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ1788857",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Cumin"
+          ],
+          "sku": "SQ6768465",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0381626",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ7518680",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Whole Cloves"
+          ],
+          "sku": "SQ3476235",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Kinjani Emerald Green",
+            "Ground Cloves"
+          ],
+          "sku": "SQ2113374",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ4468553",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ3443207",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ2346566",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ7602214",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Cumin"
+          ],
+          "sku": "SQ0133372",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Cumin"
+          ],
+          "sku": "SQ1015554",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ4404643",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7443010",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Swahili Saffron Orange",
+            "Ground Cloves"
+          ],
+          "sku": "SQ6761482",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Black Pepper"
+          ],
+          "sku": "SQ1224381",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Black Peppercorn"
+          ],
+          "sku": "SQ3458620",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Red Pepper"
+          ],
+          "sku": "SQ5364864",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Red Pepper"
+          ],
+          "sku": "SQ0210274",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Cumin"
+          ],
+          "sku": "SQ4257126",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Cumin"
+          ],
+          "sku": "SQ0835427",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Pumpkin Seed"
+          ],
+          "sku": "SQ2637201",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Whole Cloves"
+          ],
+          "sku": "SQ7436460",
+          "cents": 7499
+        },
+        {
+          "values": [
+            "Nairobi Slate Grey",
+            "Ground Cloves"
+          ],
+          "sku": "SQ0418303",
+          "cents": 7499
+        }
+      ],
+      "images": [
+        "https://images.squarespace-cdn.com/content/v1/696ac5c807b9853c51883ad7/9353afc5-e395-442c-8a62-c2584b15b890/afm-holiday-tea.png?format=1000w"
+      ],
+      "source_url": "https://www.africanfarmersmarketonline.com/store/p/holiday-gift-basket-the-tea-tradition-pe5kl"
+    },
+    {
+      "reference": "AFM-028",
       "slug": "kilimanjaro-flame-magenta-beaded-basket",
       "title": "Kilimanjaro Flame Magenta Basket",
       "category": "Baskets",
       "short_description": "Vibrant, fiery, and made to stand out, our Kilimanjaro Flame Basket glows in a rich magenta that brings instant energy to a room.",
       "description": "Vibrant, fiery, and made to stand out, our Kilimanjaro Flame Basket glows in a rich magenta that brings instant energy to a room. Its saturated color draws attention to the intricate beadwork and handwoven texture, turning a functional basket into a bold piece of Kenyan art.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket represents both creativity and opportunity. Through this partnership, Rachel and African Farmers Market help connect the women’s craftsmanship with customers around the world while supporting additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Magenta\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-KF-MAG",
           "cents": 3800
         }
@@ -663,15 +3624,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-flame-magenta-beaded-basket"
     },
     {
+      "reference": "AFM-029",
       "slug": "kilimanjaro-night-monitor-lizard",
       "title": "Kilimanjaro Night Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Dark, dramatic, and a little mysterious, our Kilimanjaro Night Monitor Lizard pairs deep black with rich purple tones inspired by Mount Kilimanjaro after the sun disappears.",
       "description": "Dark, dramatic, and a little mysterious, our Kilimanjaro Night Monitor Lizard pairs deep black with rich purple tones inspired by Mount Kilimanjaro after the sun disappears. The darker palette gives this handcrafted piece a bold, striking presence while its playful shape keeps it full of character.\n\nHandcrafted in Tanzania, its long silhouette makes an unexpected statement stretched across a bookshelf, console, or table. Each one reflects the individual hand of its maker, so eye color, color placement, and detailing may vary slightly from the photos, making every monitor uniquely its own.\n\nColors: Black & purple\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-KNM",
           "cents": 3000
         }
@@ -685,15 +3647,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-night-monitor-lizard"
     },
     {
+      "reference": "AFM-030",
       "slug": "kilimanjaro-sunset-crocodile",
       "title": "Kilimanjaro Sunset Crocodile",
       "category": "Toys & games",
       "short_description": "Deep purple and vivid blue give our Kilimanjaro Sunset Crocodile a bold, twilight-inspired look. Handcrafted in Tanzania, this colorful little croc captures the dramatic feeling of evening settling over Kilimanjaro while adding a fun, artistic accent to…",
       "description": "Deep purple and vivid blue give our Kilimanjaro Sunset Crocodile a bold, twilight-inspired look. Handcrafted in Tanzania, this colorful little croc captures the dramatic feeling of evening settling over Kilimanjaro while adding a fun, artistic accent to a shelf, desk, or collection.\n\nBecause each crocodile is individually handcrafted, eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Purple & blue",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-CROC-KS",
           "cents": 2000
         }
@@ -706,15 +3669,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-sunset-crocodile"
     },
     {
+      "reference": "AFM-031",
       "slug": "kilimanjaro-sunset-monitor-lizard",
       "title": "Kilimanjaro Sunset Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Rich purple and brilliant blue come together in our Kilimanjaro Sunset Monitor Lizard, inspired by the shifting colors that sweep across the sky as daylight fades around Tanzania’s iconic mountain.",
       "description": "Rich purple and brilliant blue come together in our Kilimanjaro Sunset Monitor Lizard, inspired by the shifting colors that sweep across the sky as daylight fades around Tanzania’s iconic mountain. The combination gives this handcrafted piece a dreamy, dramatic look that feels both playful and striking.\n\nHandcrafted in Tanzania, its long silhouette makes a beautiful statement stretched across a bookshelf, console, or table. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, giving every monitor its own unique character.\n\nColors: Purple & blue\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-KSM",
           "cents": 3000
         }
@@ -728,15 +3692,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kilimanjaro-sunset-monitor-lizard"
     },
     {
+      "reference": "AFM-032",
       "slug": "kinjani-emerald-green-beaded-basket",
       "title": "Kinjani Emerald Green Basket",
       "category": "Baskets",
       "short_description": "Rich, earthy, and beautifully bold, our Kinjani Emerald Basket is woven in a deep green that brings the lush colors of Kenya into your home.",
       "description": "Rich, earthy, and beautifully bold, our Kinjani Emerald Basket is woven in a deep green that brings the lush colors of Kenya into your home. The intricate beadwork and saturated emerald tone give it a grounded, natural beauty that works just as beautifully as a decorative statement as it does for everyday storage.\n\nEach basket is handmade in Kenya by skilled women artisans who work closely with Rachel Bosire. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating meaningful income-generating opportunities for Kenyan women.\n\nBecause every basket is made by hand, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Emerald green\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-KEG-GRN",
           "cents": 3800
         }
@@ -750,17 +3715,18 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kinjani-emerald-green-beaded-basket"
     },
     {
+      "reference": "AFM-033",
       "slug": "kizazi-kenyan-black-tea-small",
       "title": "Kizazi Tea",
       "category": "Tea",
       "short_description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar.",
       "description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar. Enjoy it simply brewed as black tea or prepare it with milk for a warm, creamy cup inspired by East African tea traditions. “Kizazi” means “the next generation,” a fitting name for a tea rooted in tradition and meant to be shared forward.\n\nSize: 4 oz jar, Net Wt. 1.59 (45g)\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-TEA-KIZ-04",
-          "cents": 1499
+          "cents": 1699
         }
       ],
       "images": [
@@ -770,15 +3736,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kizazi-kenyan-black-tea-small"
     },
     {
+      "reference": "AFM-034",
       "slug": "kizazi-tea",
       "title": "Kizazi Tea",
       "category": "Tea",
       "short_description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar.",
       "description": "Rich, bold, and deeply comforting, our Kizazi Tea is a traditional Kenyan black tea with a full-bodied flavor that pairs beautifully with milk and sugar. Enjoy it simply brewed as black tea or prepare it with milk for a warm, creamy cup inspired by East African tea traditions. “Kizazi” means “the next generation,” a fitting name for a tea rooted in tradition and meant to be shared forward.\n\nSize: 18 oz jar, Net Wt. 8.47 oz (240 g)\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-TEA-KIZ-16",
           "cents": 2999
         }
@@ -790,15 +3757,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/kizazi-tea"
     },
     {
+      "reference": "AFM-035",
       "slug": "lamu-indigo-dark-blue-beaded-basket",
       "title": "Lamu Indigo Dark Blue Basket",
       "category": "Baskets",
       "short_description": "Deep, sophisticated, and beautifully textured, our Lamu Indigo Basket is woven in a rich dark blue that gives this handcrafted piece a timeless feel.",
       "description": "Deep, sophisticated, and beautifully textured, our Lamu Indigo Basket is woven in a rich dark blue that gives this handcrafted piece a timeless feel. Its saturated indigo coloring and intricate beadwork make it an easy statement piece, bringing depth and handcrafted character to shelves, tables, or everyday storage.\n\nEach basket is handmade in Kenya by skilled women artisans who work closely with Rachel Bosire. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating meaningful income-generating opportunities for Kenyan women.\n\nBecause every basket is made by hand, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Dark blue\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-LAI-DBL",
           "cents": 3800
         }
@@ -812,15 +3780,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/lamu-indigo-dark-blue-beaded-basket"
     },
     {
+      "reference": "AFM-036",
       "slug": "landscape-1-benard-omondi",
       "title": "Landscape - 1",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a golden landscape with a row of green trees, textured fields, and a sweeping yellow, cream, and gray sky.",
       "description": "Original artwork by Benard Omondi featuring a golden landscape with a row of green trees, textured fields, and a sweeping yellow, cream, and gray sky.\n\nDimensions: 3.2 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-005",
           "cents": 115000
         }
@@ -831,15 +3800,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/landscape-1-benard-omondi"
     },
     {
+      "reference": "AFM-037",
       "slug": "landscape-2-benard-omondi",
       "title": "Landscape 2",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a sweeping landscape with distant dark mountains, richly layered fields, and an expressive sky in blue, gray, gold, and cream.",
       "description": "Original artwork by Benard Omondi featuring a sweeping landscape with distant dark mountains, richly layered fields, and an expressive sky in blue, gray, gold, and cream.\n\nDimensions: 31.4\" × 35.4\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-008",
           "cents": 65000
         }
@@ -850,15 +3820,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/landscape-2-benard-omondi"
     },
     {
+      "reference": "AFM-038",
       "slug": "maombi-ya-baba-benard-omondi",
       "title": "Maombi ya Baba",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring an older man in a woven hat surrounded by colorful fish, with a glowing candle at the center of the richly layered composition.",
       "description": "Original artwork by Benard Omondi featuring an older man in a woven hat surrounded by colorful fish, with a glowing candle at the center of the richly layered composition.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-015",
           "cents": 95000
         }
@@ -869,15 +3840,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/maombi-ya-baba-benard-omondi"
     },
     {
+      "reference": "AFM-039",
       "slug": "maombi-ya-mama-benard-omondi",
       "title": "Maombi ya Mama",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a woman holding a glowing candle, with two figures standing behind her, rendered in layered shades of blue, rust, cream, and warm earth tones.",
       "description": "Original artwork by Benard Omondi featuring a woman holding a glowing candle, with two figures standing behind her, rendered in layered shades of blue, rust, cream, and warm earth tones.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-014",
           "cents": 95000
         }
@@ -888,15 +3860,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/maombi-ya-mama-benard-omondi"
     },
     {
+      "reference": "AFM-040",
       "slug": "nairobi-night-kenyan-woven-makeup-bag",
       "title": "Nairobi Night Makeup Bag",
       "category": "Baskets",
       "short_description": "Bold, practical, and beautifully made, our Nairobi Night Makeup Bag pairs rich black tones with the texture and character of Kenyan design.",
       "description": "Bold, practical, and beautifully made, our Nairobi Night Makeup Bag pairs rich black tones with the texture and character of Kenyan design. Its versatile size makes it perfect for makeup and everyday essentials, but it works just as well for travel toiletries, small accessories, or all those little things that tend to disappear inside a larger bag.\n\nUnlike our baskets, these bags are personally handmade in Nairobi by Rachel Bosire. Rachel works closely with African Farmers Market to support our shared mission of expanding income-generating opportunities for women in Kenya while bringing beautiful Kenyan craftsmanship to customers around the world.\n\nBecause each bag is handmade, slight variations in pattern, color, shape, and detailing are part of its character, making every piece uniquely its own.\n\nColor: Black\nHandmade by: Rachel Bosire\nSourced from: Nairobi, Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ACC-NN-BLK",
           "cents": 1299
         }
@@ -910,15 +3883,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/nairobi-night-kenyan-woven-makeup-bag"
     },
     {
+      "reference": "AFM-041",
       "slug": "nairobi-slate-grey-beaded-basket",
       "title": "Nairobi Slate Grey Basket",
       "category": "Baskets",
       "short_description": "Cool, sophisticated, and beautifully understated, our Nairobi Slate Basket pairs soft grey tones with the rich texture of traditional Kenyan beadwork.",
       "description": "Cool, sophisticated, and beautifully understated, our Nairobi Slate Basket pairs soft grey tones with the rich texture of traditional Kenyan beadwork. Its neutral palette gives it a modern feel while allowing the intricate handmade details to take center stage, making it an easy piece to style in nearly any room.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the artistry and individuality of the women who create them. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Grey\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-NS-GRY",
           "cents": 3500
         }
@@ -932,15 +3906,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/nairobi-slate-grey-beaded-basket"
     },
     {
+      "reference": "AFM-042",
       "slug": "nakuru-sun-yellow-beaded-basket",
       "title": "Nakuru Sun Yellow Basket",
       "category": "Baskets",
       "short_description": "Sunny, joyful, and full of warmth, our Nakuru Sun Basket brings a brilliant splash of yellow to traditional Kenyan craftsmanship.",
       "description": "Sunny, joyful, and full of warmth, our Nakuru Sun Basket brings a brilliant splash of yellow to traditional Kenyan craftsmanship. Its cheerful color catches the light beautifully, while the intricate beadwork and woven texture give it the unmistakable character of something created entirely by hand.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the talent and creativity of the women who make them. Through this partnership, Rachel and African Farmers Market help connect their craftsmanship with customers around the world while creating additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Yellow\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-NS-YEL",
           "cents": 3800
         }
@@ -954,15 +3929,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/nakuru-sun-yellow-beaded-basket"
     },
     {
+      "reference": "AFM-043",
       "slug": "ndani-ya-mbuyu-benard-omondi",
       "title": "Ndani ya Mbuyu",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a figure nestled within a pod-like form beneath a sweeping baobab tree, surrounded by warm golden-orange landscape tones and richly textured natural details.",
       "description": "Original artwork by Benard Omondi featuring a figure nestled within a pod-like form beneath a sweeping baobab tree, surrounded by warm golden-orange landscape tones and richly textured natural details.\n\nDimensions: 5.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-010",
           "cents": 215000
         }
@@ -973,15 +3949,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ndani-ya-mbuyu-benard-omondi"
     },
     {
+      "reference": "AFM-044",
       "slug": "ngorongoro-monitor-lizard",
       "title": "Ngorongoro Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Deep black and vibrant green give our Ngorongoro Forest Monitor Lizard a bold, earthy look inspired by the lush landscapes surrounding Tanzania’s Ngorongoro region.",
       "description": "Deep black and vibrant green give our Ngorongoro Forest Monitor Lizard a bold, earthy look inspired by the lush landscapes surrounding Tanzania’s Ngorongoro region. The contrast between its dark base and bright green detailing makes this handcrafted piece especially striking, with a wild, almost camouflaged feel that suits its name perfectly.\n\nHandcrafted in Tanzania, its long silhouette brings an unexpected bit of African wildlife and artistry to a bookshelf, console, or table. Each one is individually made, so eye color, color placement, and detailing may vary slightly from the photos, making every monitor uniquely its own.\n\nColors: Black & green\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-NGO",
           "cents": 3000
         }
@@ -995,15 +3972,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ngorongoro-monitor-lizard"
     },
     {
+      "reference": "AFM-045",
       "slug": "nostalgic-memories-pascal-masegesse",
       "title": "Nostalgic Memories",
       "category": "Art",
       "short_description": "Original artwork by Tanzanian artist Pascal Masegesse. Nostalgic Memories reflects Pascal's practice of drawing from memory and nature, using shapes and layered details to evoke nostalgic scenes and create space for reflection and connection.",
       "description": "Original artwork by Tanzanian artist Pascal Masegesse. Nostalgic Memories reflects Pascal's practice of drawing from memory and nature, using shapes and layered details to evoke nostalgic scenes and create space for reflection and connection.\n\nArtist: Pascal Masegesse\nMedium: Acrylic on Canvas\nYear: 2024\nDimensions: 76.5 × 76.5 cm (30.1 × 30.1 in)",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "NM-001",
           "cents": 53800
         }
@@ -1014,15 +3992,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/nostalgic-memories-pascal-masegesse"
     },
     {
+      "reference": "AFM-046",
       "slug": "nyawawa-benard-omondi",
       "title": "Nyawawa",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a striking portrait with bold white and red facial markings, surrounded by a moody blue-gray landscape and richly layered red, black, and golden tones.",
       "description": "Original artwork by Benard Omondi featuring a striking portrait with bold white and red facial markings, surrounded by a moody blue-gray landscape and richly layered red, black, and golden tones.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-017",
           "cents": 95000
         }
@@ -1033,15 +4012,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/nyawawa-benard-omondi"
     },
     {
+      "reference": "AFM-047",
       "slug": "ray-of-hope-benard-omondi",
       "title": "Ray of Hope",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a woman with closed eyes framed by beautiful hair, alongside a branching tree, glowing circular forms, and small green shoots against a richly layered teal, blue, gold, and earth-toned background.",
       "description": "Original artwork by Benard Omondi featuring a woman with closed eyes framed by beautiful hair, alongside a branching tree, glowing circular forms, and small green shoots against a richly layered teal, blue, gold, and earth-toned background.\n\nDimensions: 4.9 ft × 6.5 ft\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-006",
           "cents": 165000
         }
@@ -1052,15 +4032,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ray-of-hope-benard-omondi"
     },
     {
+      "reference": "AFM-048",
       "slug": "rift-valley-mist-monitor-lizard",
       "title": "Rift Valley Mist Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Inspired by the cool, misty tones of Tanzania’s Rift Valley, this handcrafted monitor lizard blends soft blue, grey, and silver into a piece that feels both playful and striking.",
       "description": "Inspired by the cool, misty tones of Tanzania’s Rift Valley, this handcrafted monitor lizard blends soft blue, grey, and silver into a piece that feels both playful and striking. Its elongated shape and hand-finished details give it plenty of personality, whether it’s stretched across a bookshelf, displayed on a table, or paired with other pieces from our African animal collection.\n\nHandcrafted in Tanzania, each monitor carries the small variations that come with something made by hand. Eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Blue, grey & silver\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-RVM",
           "cents": 3000
         }
@@ -1073,15 +4054,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/rift-valley-mist-monitor-lizard"
     },
     {
+      "reference": "AFM-049",
       "slug": "rift-valley-tanzanian-ground-coffee",
       "title": "Rift Valley Ground Coffee",
       "category": "Coffee",
       "short_description": "Rich, full-bodied, and beautifully balanced, our Rift Valley Ground Coffee is 100% pure Arabica grown at Utengule Farm in Tanzania.",
       "description": "Rich, full-bodied, and beautifully balanced, our Rift Valley Ground Coffee is 100% pure Arabica grown at Utengule Farm in Tanzania. Made from Grade A beans, this exceptional coffee offers fine citrus acidity with subtle blackberry undertones and the satisfying full body characteristic of high-grown East African coffee.\n\nUtengule Farm has cultivated coffee for more than a century, growing traditional Arabica varieties of Bourbon origin under mixed shade. Sustainable growing practices help preserve the fertile soil while producing coffee recognized for its exceptional quality around the world.\n\nArabica: 100%\nForm: Ground coffee\nSourced from: Utengule Farm, Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-COF-RVG-GR",
           "cents": 2999
         }
@@ -1093,17 +4075,18 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/rift-valley-tanzanian-ground-coffee"
     },
     {
+      "reference": "AFM-050",
       "slug": "roselle-tea-tanzania",
       "title": "Mary's Pantry Roselle Tea",
       "category": "Tea",
       "short_description": "Bright, refreshing, and naturally vibrant, our Roselle Tea is made from roselle grown in Tanzania. When steeped, roselle creates a beautiful deep red herbal tea with a pleasantly tart, fruity flavor.",
       "description": "Bright, refreshing, and naturally vibrant, our Roselle Tea is made from roselle grown in Tanzania. When steeped, roselle creates a beautiful deep red herbal tea with a pleasantly tart, fruity flavor. Enjoy it warm for a comforting cup or chilled for a crisp, refreshing drink. Naturally caffeine-free.\n\nSize: 16 oz jar, Net Wt. 2.82 oz (80g)\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-TEA-ROS-18",
-          "cents": 1999
+          "cents": 2199
         }
       ],
       "images": [
@@ -1113,15 +4096,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/roselle-tea-tanzania"
     },
     {
+      "reference": "AFM-051",
       "slug": "ruaha-bloom-crocodile",
       "title": "Ruaha Bloom Crocodile",
       "category": "Toys & games",
       "short_description": "Playful and unexpected, our Ruaha Bloom Crocodile pairs rich purple with lively green for a color combination that feels almost as vibrant as the Tanzanian landscape that inspired its name.",
       "description": "Playful and unexpected, our Ruaha Bloom Crocodile pairs rich purple with lively green for a color combination that feels almost as vibrant as the Tanzanian landscape that inspired its name. Handcrafted in Tanzania, this whimsical crocodile is an easy way to bring bold color, African artistry, and a little personality into your space.\n\nBecause each crocodile is individually handcrafted, eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Purple & green",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-CROC-RB",
           "cents": 2000
         }
@@ -1134,15 +4118,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ruaha-bloom-crocodile"
     },
     {
+      "reference": "AFM-052",
       "slug": "ruaha-grasslands-natural-basket",
       "title": "Ruaha Grasslands Basket",
       "category": "Baskets",
       "short_description": "Natural, warm, and beautifully understated, our Ruaha Grasslands Basket celebrates the earthy tones and organic textures found across East Africa’s open landscapes.",
       "description": "Natural, warm, and beautifully understated, our Ruaha Grasslands Basket celebrates the earthy tones and organic textures found across East Africa’s open landscapes. Its neutral coloring lets the handwoven texture take center stage, creating a versatile piece that feels at home in nearly any space.\n\nHandmade by skilled women artisans, each basket carries the character of traditional craftsmanship into the home. Its natural palette makes it beautiful for displaying on its own, pairing with other woven pieces, or adding texture and functional storage to a room.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each piece one of a kind.\n\nColor: Natural\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-RG-NAT",
           "cents": 2000
         }
@@ -1154,15 +4139,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/ruaha-grasslands-natural-basket"
     },
     {
+      "reference": "AFM-053",
       "slug": "savanna-gold-white-sand-beaded-basket",
       "title": "Savanna Gold White Sand Basket",
       "category": "Baskets",
       "short_description": "Soft, natural, and effortlessly beautiful, our Savanna Gold Basket brings the warm neutral tones of sunlit sand into a piece of traditional Kenyan craftsmanship.",
       "description": "Soft, natural, and effortlessly beautiful, our Savanna Gold Basket brings the warm neutral tones of sunlit sand into a piece of traditional Kenyan craftsmanship. Its creamy white-sand coloring lets the intricate beadwork and handwoven texture shine, making it an easy addition to both colorful and neutral spaces.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket helps carry their craftsmanship beyond their local communities. Through this partnership, Rachel and African Farmers Market are working to create greater income-generating opportunities for Kenyan women while celebrating the artistry behind every piece.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: White Sand\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-SG-WS",
           "cents": 3800
         }
@@ -1176,15 +4162,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/savanna-gold-white-sand-beaded-basket"
     },
     {
+      "reference": "AFM-054",
       "slug": "savannah-copper-crocodile",
       "title": "Savannah Copper Crocodile",
       "category": "Toys & games",
       "short_description": "Dark, earthy, and full of character, our Savannah Copper Crocodile combines rich maroon and black tones for a striking look inspired by the warmth and depth of the African savanna.",
       "description": "Dark, earthy, and full of character, our Savannah Copper Crocodile combines rich maroon and black tones for a striking look inspired by the warmth and depth of the African savanna. Handcrafted in Tanzania, this little croc has a moodier palette than its colorful companions, making it a distinctive piece of African art for shelves, desks, and collected spaces.\n\nBecause each crocodile is individually handcrafted, eye color and detailing may vary slightly from the photos, making every piece uniquely its own.\n\nColors: Maroon & black",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-CROC-SC",
           "cents": 2000
         }
@@ -1197,15 +4184,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/savannah-copper-crocodile"
     },
     {
+      "reference": "AFM-055",
       "slug": "smile-wilson-fantson-mpango",
       "title": "Smile",
       "category": "Art",
       "short_description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. Smile reflects Wilson's surrealist painting practice, which moves beyond traditional portraiture through dreamlike imagery, detailed observation, and imaginative visual storytelling.",
       "description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. Smile reflects Wilson's surrealist painting practice, which moves beyond traditional portraiture through dreamlike imagery, detailed observation, and imaginative visual storytelling.\n\nArtist: Wilson Fantson Mpango\nMedium: Acrylic on Canvas\nYear: 2026\nDimensions: 142 × 92 cm (55.9 × 36.2 in)",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "NM-003",
           "cents": 103700
         }
@@ -1216,15 +4204,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/smile-wilson-fantson-mpango"
     },
     {
+      "reference": "AFM-056",
       "slug": "swahili-saffron-orange-beaded-basket",
       "title": "Swahili Saffron Orange Basket",
       "category": "Baskets",
       "short_description": "Warm, vibrant, and full of texture, our Swahili Saffron Basket brings a beautiful wash of rich orange into the home. Its glowing color inspired the name, while the intricate beadwork turns an everyday basket into a piece of functional art.",
       "description": "Warm, vibrant, and full of texture, our Swahili Saffron Basket brings a beautiful wash of rich orange into the home. Its glowing color inspired the name, while the intricate beadwork turns an everyday basket into a piece of functional art.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the craftsmanship and creativity of the women who create it. Through this partnership, Rachel and African Farmers Market are helping connect Kenyan women with income-generating opportunities and customers around the world.\n\nUse it as a statement piece on its own or for stylish storage throughout your home. Because every basket is handmade, variations in color, pattern, shape, and size are part of its character, ensuring no two are exactly alike.\n\nColor: Orange\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-SSO-ORG",
           "cents": 3800
         }
@@ -1238,15 +4227,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/swahili-saffron-orange-beaded-basket"
     },
     {
+      "reference": "AFM-057",
       "slug": "tanzania-rice-winnowing-basket-handwoven",
       "title": "Tanzania Rice Winnowing Basket – Handwoven",
       "category": "Baskets",
       "short_description": "Rooted in everyday Tanzanian tradition, this extra-large handwoven basket is inspired by the winnowing baskets traditionally used to separate rice and grain after harvest.",
       "description": "Rooted in everyday Tanzanian tradition, this extra-large handwoven basket is inspired by the winnowing baskets traditionally used to separate rice and grain after harvest. Its broad, shallow shape and natural woven texture reflect a practical craft that has been part of daily life and food preparation for generations.\n\nToday, it makes a beautiful piece of functional art for the home. Display it as a statement piece, use it to bring natural texture to a table or wall, or incorporate it into everyday storage and styling. Its simplicity allows the craftsmanship of the weaving itself to take center stage.\n\nBecause each basket is woven by hand, variations in color, weave, shape, and size are part of its character, making every piece uniquely its own.\n\nSize: X-Large\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-TRW-XL",
           "cents": 3000
         }
@@ -1257,15 +4247,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/tanzania-rice-winnowing-basket-handwoven"
     },
     {
+      "reference": "AFM-058",
       "slug": "tanzanian-wildflower-honey-13oz",
       "title": "Mary's Tanzanian Wildflower Honey 13oz",
       "category": "Honey",
       "short_description": "This isn't grocery store honey. Mary's Tanzanian Wildflower Honey is raw, unfiltered, and traced directly to the beekeepers of Illundo, Tanzania.",
       "description": "This isn't grocery store honey. Mary's Tanzanian Wildflower Honey is raw, unfiltered, and traced directly to the beekeepers of Illundo, Tanzania. African Farmers Market creates direct partnerships with rural farming communities across Africa and champions opportunity for women in agriculture. Buy a jar. Know your source. Taste the difference.\n\n13 oz · Cork Top · Product of Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-HON-TZ-13",
           "cents": 2799
         }
@@ -1277,15 +4268,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/tanzanian-wildflower-honey-13oz"
     },
     {
+      "reference": "AFM-059",
       "slug": "tanzanian-wildflower-honey-7oz",
       "title": "Mary's Tanzanian Wildflower Honey 7oz.",
       "category": "Honey",
       "short_description": "Small jar. Big story. Tucked inside this 7 oz bottle is raw, unfiltered wildflower honey straight from the hives of Illundo, Tanzania.",
       "description": "Small jar. Big story. Tucked inside this 7 oz bottle is raw, unfiltered wildflower honey straight from the hives of Illundo, Tanzania. African Farmers Market builds direct partnerships with rural farming communities across Africa and creates real opportunity for women in agriculture. A perfect introduction to honey that actually means something.\n\n7 oz · Cork Top · Product of Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-HON-TZ-7",
           "cents": 1999
         }
@@ -1297,15 +4289,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/tanzanian-wildflower-honey-7oz"
     },
     {
+      "reference": "AFM-060",
       "slug": "thats-the-light-benard-omondi",
       "title": "That's the Light",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring two figures walking together through an expressive, textured field of bright yellow, turquoise, blue, white, green, and red.",
       "description": "Original artwork by Benard Omondi featuring two figures walking together through an expressive, textured field of bright yellow, turquoise, blue, white, green, and red.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-012",
           "cents": 47500
         }
@@ -1316,15 +4309,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/thats-the-light-benard-omondi"
     },
     {
+      "reference": "AFM-061",
       "slug": "the-burden-benard-omondi",
       "title": "The Burden",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a bold portrait with expansive natural hair, geometric yellow glasses, layered denim elements, and a swirling blue, white, and yellow background.",
       "description": "Original artwork by Benard Omondi featuring a bold portrait with expansive natural hair, geometric yellow glasses, layered denim elements, and a swirling blue, white, and yellow background.\n\nDimensions: 35.4\" × 43.4\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-016",
           "cents": 67500
         }
@@ -1335,15 +4329,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/the-burden-benard-omondi"
     },
     {
+      "reference": "AFM-062",
       "slug": "the-mary-a-story-of-light-land-and-the-women-of-east-africa",
       "title": "The Mary: A Story of Light, Land, and the Women of East Africa",
       "category": "Books",
       "short_description": "A beautifully illustrated children's book inspired by the women, farmers, and communities of East Africa. Through Mary's journey, young readers discover resilience, hope, and how small changes can create lasting impact.",
       "description": "A beautifully illustrated children's book inspired by the women, farmers, and communities of East Africa. Through Mary's journey, young readers discover resilience, hope, and how small changes can create lasting impact.\n\nMary is not just one girl.\n\nShe is many women.\n\nSet in a small village in East Africa, The Mary: A Story of Light, Land, and the Women of East Africa follows a woman whose world begins to change as new opportunities bring light, education, and hope to her community.\n\nBeautifully illustrated by Kenyan artist Benard Omondi, this inspiring children's book introduces readers to resilience, community, and the power of possibility. Inspired by real-world efforts supporting women farmers and rural communities across East Africa, The Mary connects farm to table and soil to soul through a story that encourages empathy, curiosity, and understanding.\n\nRecommended for ages 5–9.\nWritten by Darci Dillin • Illustrated by Benard Omondi",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "SQ4367042",
           "cents": 2200
         }
@@ -1355,35 +4350,48 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/the-mary-a-story-of-light-land-and-the-women-of-east-africa"
     },
     {
+      "reference": "AFM-063",
       "slug": "the-mary-t-shirt-1",
       "title": "The Mary T-Shirt",
       "category": "Apparel",
       "short_description": "The Mary",
       "description": "The Mary\n\nKuwawezesha Wanawake Wakulima means “Empowering Female Farmers” — a message rooted in the mission behind African Farmers Market and the communities we work alongside across East Africa.\n\nThis minimalist design pairs clean front lettering with our signature female farmer emblem on the back, representing strength, agriculture, resilience, and opportunity.\n\nSoft, relaxed fit made for everyday wear with purpose behind every thread.\n\nSizes: S · M · L · XL · XXL | Color: White | 100% cotton",
-      "option": "Size",
+      "options": [
+        "Size"
+      ],
       "variants": [
         {
-          "value": "Small",
+          "values": [
+            "Small"
+          ],
           "sku": "SQ1130440",
           "cents": 2499
         },
         {
-          "value": "Medium",
+          "values": [
+            "Medium"
+          ],
           "sku": "SQ1469927",
           "cents": 2499
         },
         {
-          "value": "Large",
+          "values": [
+            "Large"
+          ],
           "sku": "SQ8640393",
           "cents": 2499
         },
         {
-          "value": "X-Large",
+          "values": [
+            "X-Large"
+          ],
           "sku": "SQ0745209",
           "cents": 2499
         },
         {
-          "value": "XX-Large",
+          "values": [
+            "XX-Large"
+          ],
           "sku": "SQ8075607",
           "cents": 2499
         }
@@ -1397,15 +4405,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/the-mary-t-shirt-1"
     },
     {
+      "reference": "AFM-064",
       "slug": "tsavo-ochre-pumpkin-orange-beaded-basket",
       "title": "Tsavo Ochre Pumpkin Orange Basket",
       "category": "Baskets",
       "short_description": "Warm and sun-soaked, our Tsavo Ochre Basket pairs a rich pumpkin orange with the beautiful texture of traditional Kenyan beadwork.",
       "description": "Warm and sun-soaked, our Tsavo Ochre Basket pairs a rich pumpkin orange with the beautiful texture of traditional Kenyan beadwork. Its earthy, glowing color was inspired by the ochre tones of the East African landscape, creating a piece that feels bold without losing its natural warmth.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket represents both artistry and opportunity. Through this partnership, Rachel and African Farmers Market help connect Kenyan women with customers around the world while supporting income-generating opportunities through their craft.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Pumpkin orange\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-TO-POR",
           "cents": 3800
         }
@@ -1419,15 +4428,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/tsavo-ochre-pumpkin-orange-beaded-basket"
     },
     {
+      "reference": "AFM-065",
       "slug": "tsavo-olive-grinch-green-beaded-basket",
       "title": "Tsavo Olive Grinch Green Basket",
       "category": "Baskets",
       "short_description": "Bright, earthy, and full of personality, our Tsavo Olive Basket takes a traditional Kenyan craft and gives it an unexpected burst of Grinch green.",
       "description": "Bright, earthy, and full of personality, our Tsavo Olive Basket takes a traditional Kenyan craft and gives it an unexpected burst of Grinch green. The vivid shade brings out the texture of the intricate beadwork, creating a basket that feels playful, energetic, and completely at home as a statement piece.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the creativity and craftsmanship of the women who make them. Through this partnership, Rachel and African Farmers Market help connect their work with customers around the world while creating additional income-generating opportunities.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Grinch Green\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-TO-GRG",
           "cents": 3800
         }
@@ -1441,15 +4451,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/tsavo-olive-grinch-green-beaded-basket"
     },
     {
+      "reference": "AFM-066",
       "slug": "untitled-wilson-fantson-mpango",
       "title": "Untitled",
       "category": "Art",
       "short_description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. This acrylic-on-canvas work reflects Wilson's surrealist approach to painting and his interest in creating imaginative, expressive interpretations of the human experience.",
       "description": "Original artwork by Tanzanian artist Wilson Fantson Mpango. This acrylic-on-canvas work reflects Wilson's surrealist approach to painting and his interest in creating imaginative, expressive interpretations of the human experience.\n\nArtist: Wilson Fantson Mpango\nMedium: Acrylic on Canvas\nYear: 2025\nDimensions: 42 × 44.5 cm (16.5 × 17.5 in)",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "NM-002",
           "cents": 41000
         }
@@ -1460,15 +4471,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/untitled-wilson-fantson-mpango"
     },
     {
+      "reference": "AFM-067",
       "slug": "uvuvi-benard-omondi",
       "title": "Uvuvi",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring a vibrant fishing scene with figures near the water, a large green fish in the foreground, and a glowing golden circle above the richly layered composition.",
       "description": "Original artwork by Benard Omondi featuring a vibrant fishing scene with figures near the water, a large green fish in the foreground, and a glowing golden circle above the richly layered composition.\n\nDimensions: 19.6\" × 23.6\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-013",
           "cents": 55000
         }
@@ -1479,15 +4491,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/uvuvi-benard-omondi"
     },
     {
+      "reference": "AFM-068",
       "slug": "vigango-benard-omondi",
       "title": "Vigango",
       "category": "Art",
       "short_description": "Original artwork by Benard Omondi featuring two tall, stylized carved figures set against a richly layered landscape of water, trees, vegetation, and warm earth-toned color.",
       "description": "Original artwork by Benard Omondi featuring two tall, stylized carved figures set against a richly layered landscape of water, trees, vegetation, and warm earth-toned color.\n\nDimensions: 35.4\" × 39.3\"\nArtist: Benard Omondi\nOriginal: One of a kind\nShipping: Free",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "BO-011",
           "cents": 65000
         }
@@ -1498,15 +4511,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/vigango-benard-omondi"
     },
     {
+      "reference": "AFM-069",
       "slug": "watamu-tide-blue-beaded-basket",
       "title": "Watamu Tide Blue Basket",
       "category": "Baskets",
       "short_description": "Cool, calming, and rich with color, our Watamu Tide Basket takes its inspiration from the brilliant blue waters along Kenya’s Indian Ocean coast.",
       "description": "Cool, calming, and rich with color, our Watamu Tide Basket takes its inspiration from the brilliant blue waters along Kenya’s Indian Ocean coast. Its vivid blue beadwork and handwoven texture bring a refreshing coastal feel to the home while still carrying the warmth and character of something made entirely by hand.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket celebrates the artistry behind traditional basket weaving. Through this partnership, Rachel and African Farmers Market help connect these women with customers around the world while creating additional income-generating opportunities through their craft.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Blue\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-WT-BLU",
           "cents": 3800
         }
@@ -1520,15 +4534,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/watamu-tide-blue-beaded-basket"
     },
     {
+      "reference": "AFM-070",
       "slug": "whole-cloves",
       "title": "Whole Cloves",
       "category": "Spices",
       "short_description": "Bold, fragrant, and intensely aromatic, our whole cloves bring deep warmth and complexity to both sweet and savory recipes. Perfect for steeping in teas, simmering in sauces and curries, seasoning meats, infusing beverages, and adding rich spice to baked…",
       "description": "Bold, fragrant, and intensely aromatic, our whole cloves bring deep warmth and complexity to both sweet and savory recipes. Perfect for steeping in teas, simmering in sauces and curries, seasoning meats, infusing beverages, and adding rich spice to baked goods and holiday recipes.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-WCL-04",
           "cents": 1299
         }
@@ -1540,15 +4555,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/whole-cloves"
     },
     {
+      "reference": "AFM-071",
       "slug": "whole-cumin",
       "title": "Whole Cumin",
       "category": "Spices",
       "short_description": "Earthy, warm, and wonderfully aromatic, our whole cumin seeds bring a deep, savory flavor to a wide variety of dishes. Toast them to release their rich aroma or add them whole to curries, rice dishes, soups, stews, vegetables, marinades, and spice blends.",
       "description": "Earthy, warm, and wonderfully aromatic, our whole cumin seeds bring a deep, savory flavor to a wide variety of dishes. Toast them to release their rich aroma or add them whole to curries, rice dishes, soups, stews, vegetables, marinades, and spice blends.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-WCU-04",
           "cents": 1299
         }
@@ -1560,15 +4576,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/whole-cumin"
     },
     {
+      "reference": "AFM-072",
       "slug": "whole-red-pepper",
       "title": "Whole Red Pepper",
       "category": "Spices",
       "short_description": "Bold, vibrant, and full of flavor, our whole red peppers bring a warm, spicy kick to your cooking. Use them whole to infuse soups, stews, sauces, and curries, or crush and grind them to add heat and depth to marinades, spice blends, vegetables, and your…",
       "description": "Bold, vibrant, and full of flavor, our whole red peppers bring a warm, spicy kick to your cooking. Use them whole to infuse soups, stews, sauces, and curries, or crush and grind them to add heat and depth to marinades, spice blends, vegetables, and your favorite savory dishes.\n\nSize: 4 oz\nSourced from: Tanzania",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-SP-WRP-04",
           "cents": 1299
         }
@@ -1580,15 +4597,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/whole-red-pepper"
     },
     {
+      "reference": "AFM-073",
       "slug": "zanzibar-dawn-pastel-monitor-lizard",
       "title": "Zanzibar Dawn Pastel Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Soft, colorful, and full of personality, our Zanzibar Dawn Monitor Lizard takes its name from the dreamy colors of daybreak along the Tanzanian coast.",
       "description": "Soft, colorful, and full of personality, our Zanzibar Dawn Monitor Lizard takes its name from the dreamy colors of daybreak along the Tanzanian coast. Its mix of gentle pastel tones gives this handcrafted piece a lighter, more whimsical feel while still making a beautiful statement.\n\nHandcrafted in Tanzania, its long silhouette looks especially fun stretched across a bookshelf, console, or table. Each one carries the individual touches of the artisan who made it, so eye color, color placement, and detailing may vary slightly from the photos, making every monitor truly one of a kind.\n\nColors: Pastel & multicolor\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-ZDP",
           "cents": 3000
         }
@@ -1601,15 +4619,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/zanzibar-dawn-pastel-monitor-lizard"
     },
     {
+      "reference": "AFM-074",
       "slug": "zanzibar-hibiscus-pink-beaded-basket",
       "title": "Zanzibar Hibiscus Pink Basket",
       "category": "Baskets",
       "short_description": "Bright, joyful, and blooming with color, our Zanzibar Hibiscus Basket takes its name from the vivid tropical flowers found along the East African coast.",
       "description": "Bright, joyful, and blooming with color, our Zanzibar Hibiscus Basket takes its name from the vivid tropical flowers found along the East African coast. Its rich pink beadwork brings warmth and personality into a room, creating a piece that feels cheerful, artistic, and unmistakably handmade.\n\nHandmade in Kenya by skilled women artisans who work closely with Rachel Bosire, each basket represents generations of craftsmanship while creating meaningful income-generating opportunities for the women who make them. Through Rachel’s partnership with African Farmers Market, their artistry can reach homes far beyond Kenya.\n\nBecause every basket is handmade, variations in color, pattern, shape, and size are part of its character, making each one truly one of a kind.\n\nColor: Pink\nHandmade by: Women artisans in Kenya\nSourced from: Kenya",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-BAS-ZH-PNK",
           "cents": 3800
         }
@@ -1623,15 +4642,16 @@
       "source_url": "https://www.africanfarmersmarketonline.com/store/p/zanzibar-hibiscus-pink-beaded-basket"
     },
     {
+      "reference": "AFM-075",
       "slug": "zanzibar-water-monitor-lizard",
       "title": "Zanzibar Water Monitor Lizard",
       "category": "Toys & games",
       "short_description": "Cool blues and vivid greens give our Zanzibar Water Monitor Lizard a refreshing, tropical feel inspired by the waters and lush landscape of Zanzibar.",
       "description": "Cool blues and vivid greens give our Zanzibar Water Monitor Lizard a refreshing, tropical feel inspired by the waters and lush landscape of Zanzibar. Handcrafted in Tanzania, its striking color combination and wonderfully quirky shape make it an eye-catching piece for a shelf, desk, or collection of African art.\n\nBecause each monitor is individually handcrafted, eye color and detailing may vary slightly from the photos, giving every piece its own unique personality.\n\nColors: Blue & green\nLength: 21.46 inches",
-      "option": null,
+      "options": [],
       "variants": [
         {
-          "value": null,
+          "values": [],
           "sku": "AFM-ANI-MON-ZWM",
           "cents": 3000
         }

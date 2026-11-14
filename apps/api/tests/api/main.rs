@@ -5,6 +5,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+mod afm_catalog;
 mod analytics;
 mod app_keys;
 mod assistant;

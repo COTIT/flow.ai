@@ -4,7 +4,7 @@
 // Polite: one request at a time, a pause between them, a named user agent.
 //   node apps/api/scripts/afm-catalogue.mjs            # fetch and write
 // Photos are not downloaded here: the seed fetches them (`seed-demo --images`) into the bucket.
-import { writeFile } from "node:fs/promises"
+import { readFile, writeFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 
 const SITE = "https://www.africanfarmersmarketonline.com"
@@ -29,6 +29,15 @@ export const CATEGORIES = {
   Books: "Books",
   Apparel: "Apparel",
   Stickers: "Stickers",
+}
+
+// AFM's unlisted store category (on no category page) → the shop's, by product slug: the
+// holiday baskets are AFM's /gift page; the cashew butter is only on Shop All.
+export const UNLISTED = {
+  "holiday-gift-basket-the-tea-tradition": "Gifts",
+  "holiday-gift-basket-the-tea-tradition-5t5z6": "Gifts",
+  "holiday-gift-basket-the-tea-tradition-pe5kl": "Gifts",
+  "12vhqdup90mp1j4i1vmkrfzagbroxt": "Pantry",
 }
 
 const SHORT_MAX = 255
@@ -87,22 +96,24 @@ export function transform(page) {
     const main = [...item.categoryIds].sort(
       (a, b) => order.indexOf(a) - order.indexOf(b)
     )[0]
-    const category = CATEGORIES[names[main]]
+    const category =
+      CATEGORIES[names[main]] ??
+      (names[main] === undefined ? UNLISTED[item.urlId] : undefined)
     if (!category)
       throw new Error(`${item.title}: no shop category for "${names[main]}"`)
     const text = htmlToText(item.excerpt)
-    const option = s.variantOptionOrdering[0] ?? null
+    const options = s.variantOptionOrdering
     return {
       slug: item.urlId,
       title: item.title.replace(/^"(.*)"$/, "$1").trim(),
       category,
       short_description: cut(text.split("\n\n")[0] ?? "", SHORT_MAX),
       description: cut(text, LONG_MAX),
-      option,
+      options,
       variants: s.variants.map((v) => ({
-        value: option
-          ? (v.optionValues.find((o) => o.optionName === option)?.value ?? null)
-          : null,
+        values: options.map(
+          (o) => v.optionValues.find((x) => x.optionName === o)?.value ?? null
+        ),
         sku: v.sku,
         cents: v.price,
       })),
@@ -110,6 +121,27 @@ export function transform(page) {
       source_url: `${SITE}${item.fullUrl}`,
     }
   })
+}
+
+/** Each product's stable `reference`: the one its slug had before, else the next free number
+ * (new slugs in slug order). Seeds match products by it, so it never moves. */
+export function references(products, previous) {
+  const had = new Map(previous.map((p) => [p.slug, p.reference]))
+  let next = Math.max(
+    0,
+    ...previous.map((p) => Number(p.reference.replace("AFM-", "")))
+  )
+  const fresh = new Map(
+    products
+      .map((p) => p.slug)
+      .filter((slug) => !had.has(slug))
+      .sort()
+      .map((slug) => [slug, `AFM-${String(++next).padStart(3, "0")}`])
+  )
+  return products.map((p) => ({
+    reference: had.get(p.slug) ?? fresh.get(p.slug),
+    ...p,
+  }))
 }
 
 async function get(url) {
@@ -133,10 +165,13 @@ async function main() {
     if (url) await new Promise((r) => setTimeout(r, PAUSE_MS))
   }
   products.sort((a, b) => a.slug.localeCompare(b.slug))
+  const previous = await readFile(OUT, "utf8")
+    .then((f) => JSON.parse(f).products.filter((p) => p.reference))
+    .catch(() => [])
   const out = {
     source: SITE,
     note: "AFM's public store, used on staging with AFM's consent. Regular prices in USD cents. Regenerate: node apps/api/scripts/afm-catalogue.mjs",
-    products,
+    products: references(products, previous),
   }
   await writeFile(OUT, JSON.stringify(out, null, 2) + "\n")
   const variants = products.reduce((n, p) => n + p.variants.length, 0)
