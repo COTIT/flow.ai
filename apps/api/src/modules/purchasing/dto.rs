@@ -264,6 +264,7 @@ impl Validate for CancelPayload {
 
 /// GET /purchase-orders query.
 #[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct OrderListQuery {
     /// draft, confirmed or cancelled.
     pub state: Option<String>,
@@ -274,6 +275,7 @@ pub struct OrderListQuery {
 
 /// GET list query of child resources.
 #[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct PageQuery {
     pub page: Option<String>,
     pub page_size: Option<String>,
