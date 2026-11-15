@@ -12,7 +12,10 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    http::json::{Rules, Validate, optional},
+    http::{
+        json::{Rules, Validate, optional},
+        list::Paginated,
+    },
     idempotency::ClientRef,
 };
 
@@ -811,4 +814,197 @@ mod tests {
             ]
         );
     }
+}
+
+/// `?from=&to=` on range reports: `[from, to)`.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct RangeQuery {
+    /// First day, inclusive (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub from: Option<String>,
+    /// Day after the last, exclusive (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub to: Option<String>,
+}
+
+fn report_range(r: &mut Rules, from: Option<String>, to: Option<String>) -> Option<Range> {
+    let (start, end) = (date(r, "from", from), date(r, "to", to));
+    let (start, end) = (start?, end?);
+    r.check(
+        "to",
+        end > start,
+        "The to date must be after the from date.",
+    );
+    Some(Range { start, end })
+}
+
+impl Validate for RangeQuery {
+    type Valid = Range;
+
+    fn validate(self, r: &mut Rules) -> Option<Range> {
+        report_range(r, self.from, self.to)
+    }
+}
+
+/// `?account_id=&from=&to=&page=&page_size=` on the general ledger.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct LedgerQuery {
+    #[param(value_type = Uuid)]
+    pub account_id: Option<String>,
+    /// First day, inclusive (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub from: Option<String>,
+    /// Day after the last, exclusive (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub to: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}
+
+impl Validate for LedgerQuery {
+    type Valid = (Uuid, Range);
+
+    fn validate(self, r: &mut Rules) -> Option<(Uuid, Range)> {
+        let account = uuid(r, "account_id", self.account_id);
+        let range = report_range(r, self.from, self.to);
+        Some((account?, range?))
+    }
+}
+
+/// `?as_of=` on the balance sheet: inclusive business date.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct AsOfQuery {
+    /// Last day included (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub as_of: Option<String>,
+}
+
+impl Validate for AsOfQuery {
+    type Valid = NaiveDate;
+
+    fn validate(self, r: &mut Rules) -> Option<NaiveDate> {
+        date(r, "as_of", self.as_of)
+    }
+}
+
+/// An account as named on a report.
+#[derive(Serialize, ToSchema)]
+pub struct ReportAccount {
+    pub id: Uuid,
+    pub code: String,
+    pub name: String,
+    /// asset, liability, equity, income or expense.
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+/// Trial balance columns; functional major-unit strings. Balances sit on their own side.
+#[derive(Serialize, ToSchema)]
+pub struct TrialBalanceColumns {
+    /// Balance before `from`, when debit.
+    pub opening_debit: String,
+    /// Balance before `from`, when credit.
+    pub opening_credit: String,
+    /// Debits in `[from, to)`.
+    pub debit: String,
+    /// Credits in `[from, to)`.
+    pub credit: String,
+    pub closing_debit: String,
+    pub closing_credit: String,
+}
+
+/// One account on the trial balance.
+#[derive(Serialize, ToSchema)]
+pub struct TrialBalanceRow {
+    pub account: ReportAccount,
+    #[serde(flatten)]
+    pub columns: TrialBalanceColumns,
+}
+
+/// Trial balance: every account with posted lines before `to`, by code. Each debit total
+/// equals its credit total.
+#[derive(Serialize, ToSchema)]
+pub struct TrialBalanceResource {
+    pub functional_currency: CurrencyRef,
+    pub from: NaiveDate,
+    pub to: NaiveDate,
+    pub rows: Vec<TrialBalanceRow>,
+    pub totals: TrialBalanceColumns,
+}
+
+/// One posted line on the general ledger; functional amounts.
+#[derive(Serialize, ToSchema)]
+pub struct LedgerLine {
+    pub entry_id: Uuid,
+    pub number: i64,
+    /// manual, source, opening, reversal, fx_revaluation or year_end_close.
+    pub kind: String,
+    pub accounting_date: NaiveDate,
+    pub reason: String,
+    pub line_no: i16,
+    pub relation_id: Option<Uuid>,
+    pub source_ref: Option<String>,
+    pub debit: String,
+    pub credit: String,
+    /// Running balance after this line, debit-positive.
+    pub balance: String,
+}
+
+/// General ledger of one account: balances (debit-positive) plus one page of lines.
+#[derive(Serialize, ToSchema)]
+pub struct GeneralLedgerResource {
+    pub functional_currency: CurrencyRef,
+    pub account: ReportAccount,
+    pub from: NaiveDate,
+    pub to: NaiveDate,
+    pub opening_balance: String,
+    pub debit: String,
+    pub credit: String,
+    pub closing_balance: String,
+    pub lines: Paginated<LedgerLine>,
+}
+
+/// An account with one report amount.
+#[derive(Serialize, ToSchema)]
+pub struct AmountRow {
+    pub account: ReportAccount,
+    pub amount: String,
+}
+
+/// Profit and loss for `[from, to)`; excludes year-end close transfers.
+#[derive(Serialize, ToSchema)]
+pub struct ProfitAndLossResource {
+    pub functional_currency: CurrencyRef,
+    pub from: NaiveDate,
+    pub to: NaiveDate,
+    /// Credit-positive.
+    pub income: Vec<AmountRow>,
+    /// Debit-positive.
+    pub expenses: Vec<AmountRow>,
+    pub total_income: String,
+    pub total_expenses: String,
+    pub net_profit: String,
+}
+
+/// Balance sheet on `as_of` (inclusive). total_assets = total_liabilities_and_equity.
+#[derive(Serialize, ToSchema)]
+pub struct BalanceSheetResource {
+    pub functional_currency: CurrencyRef,
+    pub as_of: NaiveDate,
+    /// Debit-positive.
+    pub assets: Vec<AmountRow>,
+    /// Credit-positive.
+    pub liabilities: Vec<AmountRow>,
+    /// Credit-positive.
+    pub equity: Vec<AmountRow>,
+    pub total_assets: String,
+    pub total_liabilities: String,
+    pub total_equity: String,
+    /// Income − expense not yet moved to equity by a year-end close (all unclosed years).
+    pub current_earnings: String,
+    /// Liabilities + equity + current earnings.
+    pub total_liabilities_and_equity: String,
 }
