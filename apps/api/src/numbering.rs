@@ -13,6 +13,8 @@ pub enum Series {
     Invoice,
     /// Orders (office and web shop).
     Order,
+    /// Posted journal entries (accounting), numbered at posting.
+    Journal,
 }
 
 impl Series {
@@ -20,6 +22,7 @@ impl Series {
         match self {
             Self::Invoice => "invoice",
             Self::Order => "order",
+            Self::Journal => "journal",
         }
     }
 }
