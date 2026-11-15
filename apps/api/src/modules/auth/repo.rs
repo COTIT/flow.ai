@@ -129,15 +129,16 @@ pub async fn prune_old_login_attempts(db: impl PgExecutor<'_>) -> Result<u64, sq
         .map(|done| done.rows_affected())
 }
 
-/// Revoke every session of a user (first email verification, pre-hijack mitigation).
+/// Revoke every session of a user (first email verification, pre-hijack mitigation, password
+/// set by operator). Returns how many ended.
 pub async fn delete_all_for_user(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
-) -> Result<(), sqlx::Error> {
+) -> Result<u64, sqlx::Error> {
     sqlx::query!("DELETE FROM access_tokens WHERE user_id = $1", user_id)
         .execute(db)
         .await
-        .map(|_| ())
+        .map(|done| done.rows_affected())
 }
 
 #[cfg(test)]

@@ -304,6 +304,19 @@ async fn serve() {
         }
         return;
     }
+    // `genesy-360-api set-user-password --workspace afm --email E [--admin] [--first-name F
+    // --last-name L]`: operator-typed password, one line on stdin (deploy/set-user-password.sh).
+    if std::env::args().nth(1).as_deref() == Some("set-user-password") {
+        let args: Vec<String> = std::env::args().skip(2).collect();
+        let code = genesy_360_api::bootstrap::set_user_password_cli(
+            &state,
+            &args,
+            std::io::stdin().lock(),
+            &mut std::io::stderr(),
+        )
+        .await;
+        std::process::exit(code);
+    }
     // `genesy-360-api create-owner --email E --workspace NAME [--first-name F] [--last-name L]`:
     // the first owner of a production install (signup is off there). Refuses an existing email.
     if std::env::args().nth(1).as_deref() == Some("create-owner") {

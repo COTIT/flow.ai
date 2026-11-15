@@ -24,7 +24,7 @@ pub const MAX_CHARS: usize = 255;
 pub struct Password(String);
 
 impl Password {
-    /// A password the server made (an officer-issued temporary one).
+    /// A password from outside a request: server-made (officer temp) or operator-typed (CLI stdin).
     pub(crate) fn generated(plain: String) -> Self {
         Self(plain)
     }

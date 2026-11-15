@@ -113,6 +113,7 @@ mod scheduled_reports;
 mod schema;
 mod searches;
 mod send_message;
+mod set_user_password;
 mod settings;
 mod settings_credentials;
 mod shipment_methods;
