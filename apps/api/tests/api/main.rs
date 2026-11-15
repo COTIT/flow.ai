@@ -137,6 +137,8 @@ mod storefront_design;
 mod storefront_design_edits;
 mod storefront_preview_links;
 mod supply_links;
+mod tax_line;
+mod tax_profiles;
 mod teams;
 mod till_cash;
 mod till_catalog;

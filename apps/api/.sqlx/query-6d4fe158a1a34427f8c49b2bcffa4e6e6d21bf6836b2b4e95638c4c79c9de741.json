@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT state, version, corrects_id, superseded_by_id FROM tax_profiles\n         WHERE workspace_id = $1 AND id = $2 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "tax_profiles",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "tax_profiles",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "corrects_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "tax_profiles",
+            "name": "corrects_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "superseded_by_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "tax_profiles",
+            "name": "superseded_by_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "6d4fe158a1a34427f8c49b2bcffa4e6e6d21bf6836b2b4e95638c4c79c9de741"
+}

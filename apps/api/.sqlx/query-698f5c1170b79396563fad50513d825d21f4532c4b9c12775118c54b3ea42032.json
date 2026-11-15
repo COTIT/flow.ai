@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO tax_rules (workspace_id, profile_id, line_no, code, name, rate, recoverable)\n         SELECT $1, $2, n::smallint, code, name, rate, recoverable\n         FROM unnest($3::text[], $4::text[], $5::numeric[], $6::bool[])\n              WITH ORDINALITY AS t(code, name, rate, recoverable, n)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "TextArray",
+        "TextArray",
+        "NumericArray",
+        "BoolArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "698f5c1170b79396563fad50513d825d21f4532c4b9c12775118c54b3ea42032"
+}

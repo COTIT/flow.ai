@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH n AS (SELECT uuidv7() AS id)\n         INSERT INTO tax_profiles (id, workspace_id, lineage_id, revision, corrects_id, country,\n                                   subdivision, effective_from, effective_to, transaction_types,\n                                   product_category_ids, tax_point, evidence_ref, created_by)\n         SELECT n.id, $1, coalesce($2, n.id), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13\n         FROM n RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "tax_profiles",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Uuid",
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "TextArray",
+        "UuidArray",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5db87d367117a03c434a091b47a443b517ad7b0b7200b58ef816aa21f17c7657"
+}
