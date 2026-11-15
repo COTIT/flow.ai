@@ -7,7 +7,8 @@ import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
 import { cn } from "@genesy/ui/lib/utils"
 import { estimate } from "@/lib/cart-store"
-import { queueStore, replay, useQueue } from "@/lib/sale-queue"
+import { queueStore, replay, useQueue, whereNow } from "@/lib/sale-queue"
+import { useTill } from "@/lib/till-store"
 import { useOnline } from "@/lib/use-online"
 import { useTillMoney } from "@/lib/use-money"
 import { refusal } from "@/lib/refusal"
@@ -26,6 +27,8 @@ export default function QueuePage() {
   const { money } = useTillMoney()
   const online = useOnline()
   const items = useQueue((s) => s.items)
+  // Re-render when who is logged in changes: it decides which waiting sales this till may send.
+  useTill((s) => s.session)
   const syncing = useQueue((s) => s.syncing)
   const allBooked = items.length > 0 && items.every((i) => i.status === "done")
   const waiting = items.filter((i) => i.status === "pending").length
@@ -86,8 +89,20 @@ export default function QueuePage() {
             {items.map((i) => {
               const pieces = i.lines.reduce((n, l) => n + l.quantity, 0)
               const refused = i.status === "conflict" || i.status === "review"
+              const where = i.status === "pending" ? whereNow(i) : "here"
+              // Held: this till never sends it, so the office may record it by hand.
+              const held =
+                where === "otherUser"
+                  ? t("queue.otherUser", { name: i.userName ?? "—" })
+                  : where === "otherRegister"
+                    ? t("queue.otherRegister", {
+                        register: i.registerName ?? "—",
+                      })
+                    : where === "unknown"
+                      ? t("queue.unknownOrigin")
+                      : null
               const said = refusal(
-                i.message,
+                { response: { data: { message: i.message, code: i.code } } },
                 (k) => t(`refusals.${k}`),
                 // Not the status word: the card's badge already says it.
                 t("sale.refused")
@@ -131,6 +146,22 @@ export default function QueuePage() {
                       {t(`queue.${i.status}`)}
                     </span>
                   </div>
+                  {held ? (
+                    <Notice
+                      variant="error"
+                      className="px-3.5 py-2.5"
+                      title={held}
+                    >
+                      <p>{t("queue.showOffice")}</p>
+                    </Notice>
+                  ) : i.status === "pending" && i.message ? (
+                    // Refused for now (no shift open): sent again on the next sync.
+                    <Notice
+                      variant="warning"
+                      className="px-3.5 py-2.5"
+                      title={said.title}
+                    />
+                  ) : null}
                   {refused ? (
                     <Notice
                       variant="error"
@@ -155,8 +186,19 @@ export default function QueuePage() {
                       title={t("queue.mismatch")}
                     />
                   ) : null}
-                  {i.status !== "pending" ? (
-                    <div className="flex justify-end">
+                  {i.status !== "pending" || held ? (
+                    <div className="flex justify-end gap-2.5">
+                      {i.code === "insufficient_stock" &&
+                      i.status === "review" ? (
+                        <Button
+                          className="h-12"
+                          onClick={() =>
+                            queueStore.getState().retry(i.body.client_ref)
+                          }
+                        >
+                          {t("queue.retry")}
+                        </Button>
+                      ) : null}
                       <Button
                         variant="outline"
                         className="h-12"
