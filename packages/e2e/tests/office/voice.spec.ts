@@ -2582,6 +2582,8 @@ for (const shutdown of [
         await page.getByRole("button", { name: "Send", exact: true }).click()
       }
       await handoff.click()
+      // A dev-server client navigation (RSC render + uncached route chunk) can outlast the 5 s expect budget under load.
+      await page.waitForURL(/\/voice\/secure\?/)
       if (shutdown === "failure") {
         const failure = page
           .getByRole("alert")
@@ -2594,6 +2596,7 @@ for (const shutdown of [
           .getByRole("link", { name: en.voice.secureBack, exact: true })
           .click()
         await handoff.click()
+        await page.waitForURL(/\/voice\/secure\?/)
         await expect(failure).toBeVisible()
         expect(descriptions).toBe(0)
         return
