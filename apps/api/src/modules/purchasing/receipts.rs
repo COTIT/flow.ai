@@ -27,7 +27,7 @@ use crate::{
             dto::{Action, Create, CurrencyRef},
             service::{created, not_configured, ok, stale, unsupported},
         },
-        currency_rates::{convert::convert, repo::in_force},
+        currency_rates::repo::in_force,
         purchasing::{
             dto::{
                 AllocationResource, BookInput, BookJournal, BookPayload, BookReview,
@@ -35,7 +35,7 @@ use crate::{
                 PurchaseReceiptResource, RateSnapshot, ReceiptLineResource, ReceiptPayload,
             },
             repo::{self, Booked, NewLanded, NewReceiptLine, Rate, ReceiptLineRow, ReceiptRow},
-            service::{amount, qty, share},
+            service::{amount, qty},
         },
         stock::{
             repo::{self as stock, Bin, Cause, Floor, Mutated, Slot},
@@ -92,45 +92,6 @@ async fn rate(
         field,
         format!("No {} → {} rate is in force on {on}.", from.code, to.code),
     ))
-}
-
-fn conv(minor: i64, r: &Rate, from: &CurrencyRef, to: &CurrencyRef) -> Option<i64> {
-    let d = |c: &CurrencyRef| u32::try_from(c.decimals).ok();
-    convert(minor, r.0, d(from)?, d(to)?, r.1)
-}
-
-/// Split `total` over `bases` proportionally in the given order; the last part takes the
-/// exact remainder. None when every basis is 0 or a part would be negative.
-fn allocate(total: i64, bases: &[i64]) -> Option<Vec<i64>> {
-    let sum: i64 = bases.iter().sum();
-    if sum <= 0 {
-        return None;
-    }
-    let mut out = Vec::with_capacity(bases.len());
-    let mut used = 0_i64;
-    for (i, b) in bases.iter().enumerate() {
-        let v = if i + 1 == bases.len() {
-            total.checked_sub(used)?
-        } else {
-            share(total, Decimal::from(*b), Decimal::from(sum))?
-        };
-        if v < 0 {
-            return None;
-        }
-        used = used.checked_add(v)?;
-        out.push(v);
-    }
-    Some(out)
-}
-
-/// Net PO-currency share a booking of `q` takes from a line (cumulative rounding, the last
-/// unit of the ordered quantity takes the exact rest).
-fn net_share(ext: i64, base: Decimal, booked: (Decimal, i64), q: Decimal) -> Option<i64> {
-    let total = booked.0 + q;
-    if total == base {
-        return Some(ext - booked.1);
-    }
-    Some(share(ext, total, base)? - booked.1)
 }
 
 fn state_of(l: &ReceiptLineRow) -> &'static str {
@@ -195,10 +156,7 @@ async fn resources(
                         accounting_date: l.accounting_date,
                         net_value: l.net_value.map(|v| amount(v, fdp)),
                         landed_value: l.landed_value.map(|v| amount(v, fdp)),
-                        value: l
-                            .net_value
-                            .zip(l.landed_value)
-                            .map(|(n, x)| amount(n + x, fdp)),
+                        value: l.value.map(|v| amount(v, fdp)),
                         rate: match (l.rate, l.rate_inverse, l.rate_source.as_deref()) {
                             (Some(rate), Some(inverse), Some(source)) => Some(RateSnapshot {
                                 rate: rate.normalize().to_string(),
@@ -397,11 +355,19 @@ pub async fn receive(
     Ok(answer)
 }
 
+/// SQL-computed money of one booked line (functional minor units; `doc` in PO currency).
+struct LineValue {
+    net: i64,
+    landed: i64,
+    doc: i64,
+    value: i64,
+    rate: Rate,
+}
+
 /// One line a booking adds.
 struct PlannedLine {
     row: ReceiptLineRow,
-    /// (net functional, landed functional, PO-currency share, rate).
-    value: Option<(i64, i64, i64, Rate)>,
+    value: Option<LineValue>,
 }
 
 /// One component a booking capitalises.
@@ -449,7 +415,8 @@ async fn prepare(
             return Err(backdated());
         }
     }
-    let po_lines = repo::lines(&mut *conn, ws, &[order], true).await?;
+    // Order lines FOR UPDATE: their booked quantity/value feed the cumulative share.
+    repo::lines(&mut *conn, ws, &[order], true).await?;
     // Stock-layer order: pools by (product, warehouse), then line id.
     rows.sort_by_key(|l| (l.product_id, l.warehouse_id, l.id));
     let fp_lines: Vec<Value> = rows
@@ -521,10 +488,9 @@ async fn prepare(
         .await?
         .ok_or_else(not_configured)?;
     let po_rate = rate(conn, ws, &po_currency, &functional, date, "currency_id").await?;
-    let overflow = || AppError::Unprocessable("These amounts can't be converted exactly.".into());
+    let dp = |c: &CurrencyRef| i32::from(c.decimals);
     // Chronology and eligible order, read-only here; the stock layer rechecks under locks.
     let selected: Vec<Uuid> = rows.iter().map(|l| l.id).collect();
-    let mut nets = Vec::with_capacity(rows.len());
     for l in &rows {
         if repo::pending_before_outside(&mut *conn, ws, l.id, &selected).await? {
             return Err(reason(
@@ -539,28 +505,25 @@ async fn prepare(
         {
             return Err(backdated());
         }
-        let po = po_lines
-            .iter()
-            .find(|p| p.id == l.po_line_id)
-            .ok_or(AppError::NotFound)?;
-        let doc = net_share(
-            po.extension,
-            po.base_quantity,
-            (po.booked_quantity, po.booked_value),
-            l.base_quantity,
-        )
-        .ok_or_else(overflow)?;
-        let net = conv(doc, &po_rate, &po_currency, &functional).ok_or_else(overflow)?;
-        nets.push((doc, net));
     }
+    // Money in SQL: cumulative order-line share and its conversion per line.
+    let nets = repo::nets(
+        &mut *conn,
+        ws,
+        &selected,
+        &po_rate,
+        (dp(&po_currency), dp(&functional)),
+    )
+    .await?;
+    let net_of = |id: Uuid| {
+        nets.iter()
+            .find(|n| n.0 == id)
+            .map_or((0, 0), |n| (n.1, n.2))
+    };
     let refs: Vec<Uuid> = input.landed.iter().map(|c| c.component).collect();
     let used = repo::used_components(&mut *conn, ws, order, &refs).await?;
     let mut r = Rules::default();
     let mut costs = Vec::with_capacity(input.landed.len());
-    let mut landed = vec![0_i64; rows.len()];
-    // Allocation order: receipt-line UUID order (stable), whatever the request order.
-    let mut by_id: Vec<usize> = (0..rows.len()).collect();
-    by_id.sort_by_key(|&i| rows[i].id);
     for (i, c) in input.landed.iter().enumerate() {
         let f = |name: &str| format!("payload.landed_costs.{i}.{name}");
         if used.contains(&c.component) {
@@ -576,78 +539,67 @@ async fn prepare(
             r.add(&f("currency_id"), "The selected currency is invalid.");
             continue;
         };
-        let dp = u32::try_from(currency.decimals).unwrap_or(2);
-        let Ok(amount_minor) = minor(c.amount, dp) else {
+        let places = u32::try_from(currency.decimals).unwrap_or(2);
+        let Ok(amount_minor) = minor(c.amount, places) else {
             r.add(
                 &f("amount"),
-                format!("The amount must have at most {dp} decimal places."),
+                format!("The amount must have at most {places} decimal places."),
             );
             continue;
         };
         let cost_rate = rate(conn, ws, &currency, &functional, date, &f("currency_id")).await?;
-        let functional_amount =
-            conv(amount_minor, &cost_rate, &currency, &functional).ok_or_else(overflow)?;
-        let shares: Option<Vec<i64>> = match &c.explicit {
+        let pair = (dp(&currency), dp(&functional));
+        let functional_amount = repo::convert(&mut *conn, amount_minor, &cost_rate, pair).await?;
+        let allocations = match &c.explicit {
             Some(explicit) => {
-                let mut parts = vec![0_i64; rows.len()];
-                let mut ok = true;
-                for (line, a) in explicit {
-                    match (rows.iter().position(|l| l.id == *line), minor(*a, dp)) {
-                        (Some(p), Ok(m)) => parts[p] += m,
-                        _ => ok = false,
+                let parts: Option<Vec<(Uuid, i64)>> = explicit
+                    .iter()
+                    .map(|(line, a)| {
+                        selected
+                            .contains(line)
+                            .then(|| minor(*a, places).ok().map(|m| (*line, m)))
+                            .flatten()
+                    })
+                    .collect();
+                let shares = match parts {
+                    Some(parts) => {
+                        repo::explicit_shares(
+                            &mut *conn,
+                            &parts,
+                            (amount_minor, functional_amount),
+                            &cost_rate,
+                            pair,
+                        )
+                        .await?
                     }
-                }
-                if !ok || parts.iter().sum::<i64>() != amount_minor {
+                    None => None,
+                };
+                if shares.is_none() {
                     r.add(
                         &f("explicit_line_allocations"),
                         "Allocations must name booked lines and add up to the amount.",
                     );
-                    None
-                } else {
-                    // Convert each part; the last (UUID order) takes the exact functional rest.
-                    let mut out = vec![0_i64; rows.len()];
-                    let mut used_f = 0_i64;
-                    let mut ok = true;
-                    for (k, &i) in by_id.iter().enumerate() {
-                        let v = if k + 1 == by_id.len() {
-                            functional_amount - used_f
-                        } else {
-                            conv(parts[i], &cost_rate, &currency, &functional).unwrap_or(-1)
-                        };
-                        ok &= v >= 0;
-                        used_f += v;
-                        out[i] = v;
-                    }
-                    ok.then_some(out)
                 }
+                shares
             }
             None => {
-                let bases: Vec<i64> = by_id.iter().map(|&i| nets[i].1).collect();
-                match allocate(functional_amount, &bases) {
-                    Some(parts) => {
-                        let mut out = vec![0_i64; rows.len()];
-                        for (k, &i) in by_id.iter().enumerate() {
-                            out[i] = parts[k];
-                        }
-                        Some(out)
-                    }
-                    None => {
-                        r.add(
-                            &f("explicit_line_allocations"),
-                            "These lines have no purchase value to spread the cost over. Allocate it explicitly.",
-                        );
-                        None
-                    }
+                let bases: Vec<i64> = selected.iter().map(|id| net_of(*id).1).collect();
+                let shares =
+                    repo::allocate(&mut *conn, functional_amount, &selected, &bases).await?;
+                if shares.is_empty() {
+                    r.add(
+                        &f("explicit_line_allocations"),
+                        "These lines have no purchase value to spread the cost over. Allocate it explicitly.",
+                    );
+                    None
+                } else {
+                    Some(shares)
                 }
             }
         };
-        let Some(shares) = shares else { continue };
-        for (i, s) in shares.iter().enumerate() {
-            landed[i] += s;
-        }
-        let mut allocations: Vec<(Uuid, i64)> =
-            rows.iter().zip(&shares).map(|(l, s)| (l.id, *s)).collect();
-        allocations.sort_by_key(|a| a.0);
+        let Some(allocations) = allocations else {
+            continue;
+        };
         costs.push(PlannedCost {
             component: c.component,
             amount: amount_minor,
@@ -660,45 +612,49 @@ async fn prepare(
     }
     r.into_result()?;
     let fdp = functional.decimals;
+    // Per-line landed sums, line values and the booking total, in SQL.
+    let shares: Vec<(Uuid, i64)> = costs
+        .iter()
+        .flat_map(|c| c.allocations.iter().copied())
+        .collect();
+    let net_list: Vec<i64> = selected.iter().map(|id| net_of(*id).1).collect();
+    let (sums, total) = repo::booking_totals(&mut *conn, &selected, &net_list, &shares).await?;
     let lines: Vec<PlannedLine> = rows
         .into_iter()
-        .zip(nets)
-        .zip(landed)
-        .map(|((row, (doc, net)), landed)| PlannedLine {
-            row,
-            value: Some((net, landed, doc, po_rate)),
+        .map(|row| {
+            let (doc, net) = net_of(row.id);
+            let (landed, value) = sums
+                .iter()
+                .find(|s| s.0 == row.id)
+                .map_or((0, net), |s| (s.1, s.2));
+            PlannedLine {
+                row,
+                value: Some(LineValue {
+                    net,
+                    landed,
+                    doc,
+                    value,
+                    rate: po_rate,
+                }),
+            }
         })
         .collect();
-    let total: i64 = lines
-        .iter()
-        .filter_map(|l| l.value.map(|v| v.0 + v.1))
-        .sum();
     let pool = if accounting {
-        // (product, warehouse, quantity before, value before, quantity added, value added).
-        let mut acc: Vec<(Uuid, Uuid, Decimal, i64, Decimal, i64)> = Vec::new();
-        for l in &lines {
-            let add = l.value.map_or(0, |v| v.0 + v.1);
-            let (p, w) = (l.row.product_id, l.row.warehouse_id);
-            if let Some(e) = acc.iter_mut().find(|e| e.0 == p && e.1 == w) {
-                e.4 += l.row.base_quantity;
-                e.5 += add;
-                continue;
-            }
-            let (q, v, _) =
-                repo::pool_state(&mut *conn, ws, p, w)
-                    .await?
-                    .unwrap_or((Decimal::ZERO, 0, None));
-            acc.push((p, w, q, v, l.row.base_quantity, add));
-        }
+        let values: Vec<i64> = selected
+            .iter()
+            .map(|id| sums.iter().find(|s| s.0 == *id).map_or(0, |s| s.2))
+            .collect();
         Some(
-            acc.into_iter()
-                .map(|(product_id, warehouse_id, q, v, dq, dv)| PoolPreview {
-                    product_id,
-                    warehouse_id,
-                    quantity_before: qty(q),
-                    value_before: amount(v, fdp),
-                    quantity_after: qty(q + dq),
-                    value_after: amount(v + dv, fdp),
+            repo::pool_preview(&mut *conn, ws, &selected, &values)
+                .await?
+                .into_iter()
+                .map(|p| PoolPreview {
+                    product_id: p.product_id,
+                    warehouse_id: p.warehouse_id,
+                    quantity_before: qty(p.quantity_before),
+                    value_before: amount(p.value_before, fdp),
+                    quantity_after: qty(p.quantity_after),
+                    value_after: amount(p.value_after, fdp),
                 })
                 .collect(),
         )
@@ -711,7 +667,7 @@ async fn prepare(
             "action": "book", "receipt": receipt, "version": receipt_version,
             "order_version": order_version, "date": date, "active": true,
             "functional": functional.id, "lines": fp_lines,
-            "values": lines.iter().map(|l| l.value.map(|v| json!([v.0, v.1, v.2, rate_json(&v.3)]))).collect::<Vec<_>>(),
+            "values": lines.iter().map(|l| l.value.as_ref().map(|v| json!([v.net, v.landed, v.doc, v.value, rate_json(&v.rate)]))).collect::<Vec<_>>(),
             "costs": costs.iter().map(|c| json!([c.component, c.amount, c.currency.id, c.functional,
                 rate_json(&c.rate), c.evidence_ref, c.allocations])).collect::<Vec<_>>(),
         })
@@ -730,10 +686,10 @@ async fn prepare(
                 BookReviewLine {
                     receipt_line_id: l.row.id,
                     base_quantity: qty(l.row.base_quantity),
-                    net_value: v.map(|v| amount(v.0, fdp)),
-                    landed_value: v.map(|v| amount(v.1, fdp)),
-                    value: v.map(|v| amount(v.0 + v.1, fdp)),
-                    rate: v.map(|v| snapshot(&v.3)),
+                    net_value: v.map(|v| amount(v.net, fdp)),
+                    landed_value: v.map(|v| amount(v.landed, fdp)),
+                    value: v.map(|v| amount(v.value, fdp)),
+                    rate: v.map(|v| snapshot(&v.rate)),
                 }
             })
             .collect(),
@@ -830,7 +786,7 @@ pub async fn book(
             related: Some(("purchase_receipt_line", row.id)),
             value: Valued::Receipt {
                 line: row.id,
-                value: l.value.map_or(0, |v| v.0 + v.1),
+                value: l.value.as_ref().map_or(0, |v| v.value),
                 date,
             },
             ..Cause::default()
@@ -848,7 +804,7 @@ pub async fn book(
             po_line: row.po_line_id,
             quantity: row.base_quantity,
             date,
-            value: l.value,
+            value: l.value.as_ref().map(|v| (v.net, v.landed, v.doc, v.rate)),
         };
         repo::mark_booked(&mut tx, ws, &booked, access.user_id).await?;
     }
@@ -877,29 +833,4 @@ pub async fn book(
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[receipt]).await?;
     tx.commit().await?;
     Ok(answer)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn landed_split_by_basis_with_exact_rest() {
-        assert_eq!(allocate(1000, &[1, 1, 1]), Some(vec![333, 333, 334]));
-        assert_eq!(allocate(1000, &[200, 300]), Some(vec![400, 600]));
-        assert_eq!(allocate(5, &[0, 0]), None);
-        assert_eq!(allocate(7, &[0, 10]), Some(vec![0, 7]));
-    }
-
-    #[test]
-    fn partial_bookings_round_cumulatively_and_end_exact() {
-        let d = |s: &str| s.parse::<Decimal>().unwrap();
-        // 3 units for 1000: 333, 334 (cumulative 667), then exactly 333.
-        assert_eq!(net_share(1000, d("3"), (d("0"), 0), d("1")), Some(333));
-        assert_eq!(net_share(1000, d("3"), (d("1"), 333), d("1")), Some(334));
-        assert_eq!(net_share(1000, d("3"), (d("2"), 667), d("1")), Some(333));
-        // order 5 → 2 then 3.
-        assert_eq!(net_share(5000, d("5"), (d("0"), 0), d("2")), Some(2000));
-        assert_eq!(net_share(5000, d("5"), (d("2"), 2000), d("3")), Some(3000));
-    }
 }

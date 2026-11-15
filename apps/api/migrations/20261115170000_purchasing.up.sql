@@ -4,6 +4,35 @@
 -- remainders. Quantities are base units, numeric(19,2). Amounts are integer minor units:
 -- PO currency on orders, functional currency on booked receipt lines and landed costs.
 
+-- Generic money helpers (money rule: the database computes, the API passes through). Every
+-- rounding goes through money_round_div (half away from zero, exact).
+
+-- `minor` units of a currency with `from_dp` decimals in minor units of one with `to_dp`.
+-- `rate` = major `to` per major `from`; `inverse`: stored the other way (1 `to` = rate `from`).
+CREATE FUNCTION money_convert(minor bigint, rate numeric, from_dp int, to_dp int, inverse boolean)
+RETURNS bigint LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+RETURN (CASE WHEN inverse
+             THEN money_round_div(minor * 10::numeric ^ to_dp, rate * 10::numeric ^ from_dp)
+             ELSE money_round_div(minor * rate * 10::numeric ^ to_dp, 10::numeric ^ from_dp)
+        END)::bigint;
+
+-- Split `total` over `ids` by `bases` (same order): each part money_round_div(total × base,
+-- Σ bases), the last id (uuid order) takes the exact rest. No rows when Σ bases is 0.
+CREATE FUNCTION money_allocate(total bigint, ids uuid[], bases bigint[])
+RETURNS TABLE (id uuid, amount bigint) LANGUAGE sql STABLE STRICT AS $$
+    WITH x AS (
+        SELECT u.id, u.base, sum(u.base) OVER () AS whole,
+               row_number() OVER (ORDER BY u.id DESC) = 1 AS last
+        FROM unnest(ids, bases) AS u(id, base)
+    ), s AS (
+        SELECT x.id, x.last,
+               CASE WHEN x.last THEN 0 ELSE money_round_div(total::numeric * x.base, x.whole)::bigint END AS part
+        FROM x WHERE x.whole > 0
+    )
+    SELECT s.id, CASE WHEN s.last THEN total - sum(s.part) OVER () ELSE s.part END
+    FROM s ORDER BY s.id
+$$;
+
 CREATE TABLE purchase_orders (
     id                   uuid        PRIMARY KEY DEFAULT uuidv7(),
     workspace_id         uuid        NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,

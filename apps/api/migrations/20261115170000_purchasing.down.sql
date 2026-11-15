@@ -14,3 +14,5 @@ DROP TABLE purchase_receipts;
 DROP TABLE purchase_order_closures;
 DROP TABLE purchase_order_lines;
 DROP TABLE purchase_orders;
+DROP FUNCTION money_allocate(bigint, uuid[], bigint[]);
+DROP FUNCTION money_convert(bigint, numeric, int, int, boolean);

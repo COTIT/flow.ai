@@ -112,6 +112,10 @@ pub struct OrderRow {
     pub confirmed_at: Option<DateTime<Utc>>,
     pub cancelled_at: Option<DateTime<Utc>>,
     pub cancel_reason: Option<String>,
+    /// Σ extension, and the extension share of received and open quantities (SQL rounding).
+    pub ordered_total: i64,
+    pub received_total: i64,
+    pub open_total: i64,
 }
 
 /// Orders by id (`ids` None = a filtered page, newest first) plus the filtered total.
@@ -130,10 +134,19 @@ pub async fn orders(
                   c.decimals AS currency_decimals, o.purchase_date, o.expected_date,
                   o.reference, o.note, o.default_warehouse_id, o.version, o.created_by,
                   o.created_at, o.updated_at, o.confirmed_by, o.confirmed_at, o.cancelled_at,
-                  o.cancel_reason, count(*) OVER () AS "total!"
+                  o.cancel_reason, count(*) OVER () AS "total!",
+                  t.ordered AS "ordered!", t.received AS "received!", t.open AS "open!"
            FROM purchase_orders o
            JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            JOIN relations r ON r.workspace_id = o.workspace_id AND r.id = o.supplier_id
+           CROSS JOIN LATERAL (
+               SELECT coalesce(sum(l.extension), 0)::bigint AS ordered,
+                      coalesce(sum(money_round_div(l.extension * l.received_quantity,
+                                                   l.base_quantity)), 0)::bigint AS received,
+                      coalesce(sum(money_round_div(l.extension * (l.base_quantity
+                                       - l.received_quantity - l.closed_quantity),
+                                   l.base_quantity)), 0)::bigint AS open
+               FROM purchase_order_lines l WHERE l.purchase_order_id = o.id) t
            WHERE o.workspace_id = $1 AND ($2::uuid IS NULL OR o.id = $2)
              AND ($3::text IS NULL OR o.state = $3)
              AND ($4::uuid IS NULL OR o.supplier_id = $4)
@@ -174,6 +187,9 @@ pub async fn orders(
             confirmed_at: r.confirmed_at,
             cancelled_at: r.cancelled_at,
             cancel_reason: r.cancel_reason,
+            ordered_total: r.ordered,
+            received_total: r.received,
+            open_total: r.open,
         })
         .collect();
     Ok((rows, total))
@@ -198,7 +214,6 @@ pub struct LineRow {
     pub received_quantity: Decimal,
     pub booked_quantity: Decimal,
     pub closed_quantity: Decimal,
-    pub booked_value: i64,
 }
 
 /// Lines of `orders`, by order then line number. `lock` takes them FOR UPDATE (id order).
@@ -223,8 +238,7 @@ pub async fn lines(
         r#"SELECT l.id, l.purchase_order_id, l.line_no, l.product_id, p.name AS product_name,
                   p.unit AS product_unit, l.purchase_unit_id, u.code AS "unit_code?",
                   l.input_quantity, l.ratio, l.base_quantity, l.unit_price, l.extension,
-                  l.warehouse_id, l.received_quantity, l.booked_quantity, l.closed_quantity,
-                  l.booked_value
+                  l.warehouse_id, l.received_quantity, l.booked_quantity, l.closed_quantity
            FROM purchase_order_lines l
            JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
            LEFT JOIN purchase_units u ON u.workspace_id = l.workspace_id
@@ -328,11 +342,12 @@ pub struct NewLine {
     pub ratio: Decimal,
     pub base_quantity: Decimal,
     pub unit_price: Decimal,
-    pub extension: i64,
     pub warehouse: Option<Uuid>,
 }
 
-/// Replace every line of a draft (numbered from 1 in input order).
+/// Replace every line of a draft (numbered from 1 in input order). The extension
+/// (quantity × price at the order currency's decimals) is computed here, in SQL; a total past
+/// bigint fails with `numeric_value_out_of_range`.
 pub async fn replace_lines(
     conn: &mut PgConnection,
     ws: Uuid,
@@ -351,10 +366,13 @@ pub async fn replace_lines(
         "INSERT INTO purchase_order_lines (workspace_id, purchase_order_id, line_no, product_id,
              purchase_unit_id, input_quantity, ratio, base_quantity, unit_price, extension,
              warehouse_id)
-         SELECT $1, $2, n::int, x.product, x.unit, x.q, x.ratio, x.base, x.price, x.ext, x.wh
+         SELECT $1, $2, n::int, x.product, x.unit, x.q, x.ratio, x.base, x.price,
+                money_round_div(x.q * x.price * 10::numeric ^ c.decimals, 1)::bigint, x.wh
          FROM unnest($3::uuid[], $4::uuid[], $5::numeric[], $6::numeric[], $7::numeric[],
-                     $8::numeric[], $9::bigint[], $10::uuid[])
-              WITH ORDINALITY AS x(product, unit, q, ratio, base, price, ext, wh, n)",
+                     $8::numeric[], $9::uuid[])
+              WITH ORDINALITY AS x(product, unit, q, ratio, base, price, wh, n)
+         JOIN purchase_orders o ON o.workspace_id = $1 AND o.id = $2
+         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id",
         ws,
         order,
         &lines.iter().map(|l| l.product).collect::<Vec<_>>(),
@@ -363,7 +381,6 @@ pub async fn replace_lines(
         &col(|l| l.ratio),
         &col(|l| l.base_quantity),
         &col(|l| l.unit_price),
-        &lines.iter().map(|l| l.extension).collect::<Vec<_>>(),
         &lines.iter().map(|l| l.warehouse).collect::<Vec<_>>() as &[Option<Uuid>],
     )
     .execute(conn)
@@ -684,6 +701,8 @@ pub struct ReceiptLineRow {
     pub rate_source: Option<String>,
     pub rate_date: Option<NaiveDate>,
     pub journal_entry_id: Option<Uuid>,
+    /// net + landed, functional minor units.
+    pub value: Option<i64>,
 }
 
 /// Lines of `receipts` (id order); `only` narrows to those ids and takes them FOR UPDATE.
@@ -710,7 +729,8 @@ pub async fn receipt_lines(
         r#"SELECT l.id, l.receipt_id, l.po_line_id, l.product_id, l.warehouse_id, l.bin_id,
                   b.shelf_id AS "shelf_id?", l.lot_id, l.base_quantity, l.late, l.booked_at,
                   l.accounting_date, l.net_value, l.landed_value, l.rate, l.rate_inverse,
-                  l.rate_source, l.rate_date, l.journal_entry_id
+                  l.rate_source, l.rate_date, l.journal_entry_id,
+                  l.net_value + l.landed_value AS value
            FROM purchase_receipt_lines l
            LEFT JOIN warehouse_section_row_bins b ON b.workspace_id = l.workspace_id
                                                  AND b.id = l.bin_id
@@ -1060,9 +1080,9 @@ pub async fn supplier_open(
                   coalesce(sum(o.open_value / 10::numeric ^ c.decimals)
                            FILTER (WHERE c.default_currency), 0) AS "value!"
            FROM (SELECT o.supplier_id, o.currency_id,
-                        sum(round(l.extension * (l.base_quantity - l.received_quantity
-                                                 - l.closed_quantity) / l.base_quantity))
-                            AS open_value
+                        sum(money_round_div(l.extension * (l.base_quantity
+                                                - l.received_quantity - l.closed_quantity),
+                                            l.base_quantity)) AS open_value
                  FROM purchase_orders o
                  JOIN purchase_order_lines l ON l.purchase_order_id = o.id
                  WHERE o.workspace_id = $1 AND o.supplier_id = ANY($2) AND o.state = 'confirmed'
@@ -1080,4 +1100,185 @@ pub async fn supplier_open(
             .map(|r| (r.supplier_id, r.orders, r.value))
             .collect()
     })
+}
+
+/// Cumulative order-line share (PO-currency minor units, the last unit of the ordered quantity
+/// takes the exact rest) and its functional conversion, per receipt line: (line, doc, net).
+pub async fn nets(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    lines: &[Uuid],
+    rate: &Rate,
+    (from_dp, to_dp): (i32, i32),
+) -> Result<Vec<(Uuid, i64, i64)>, sqlx::Error> {
+    sqlx::query!(
+        r#"WITH d AS (
+               SELECT r.id,
+                      CASE WHEN o.booked_quantity + r.base_quantity = o.base_quantity
+                           THEN o.extension - o.booked_value
+                           ELSE money_round_div(o.extension * (o.booked_quantity + r.base_quantity),
+                                                o.base_quantity)::bigint - o.booked_value
+                      END AS doc
+               FROM purchase_receipt_lines r
+               JOIN purchase_order_lines o ON o.workspace_id = r.workspace_id AND o.id = r.po_line_id
+               WHERE r.workspace_id = $1 AND r.id = ANY($2))
+           SELECT id AS "id!", doc AS "doc!", money_convert(doc, $3, $4, $5, $6) AS "net!"
+           FROM d ORDER BY id"#,
+        ws,
+        lines,
+        rate.0,
+        from_dp,
+        to_dp,
+        rate.1
+    )
+    .fetch_all(conn)
+    .await
+    .map(|rs| rs.into_iter().map(|r| (r.id, r.doc, r.net)).collect())
+}
+
+/// `minor` converted with `rate` (SQL `money_convert`).
+pub async fn convert(
+    conn: &mut PgConnection,
+    minor: i64,
+    rate: &Rate,
+    (from_dp, to_dp): (i32, i32),
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT money_convert($1, $2, $3, $4, $5) AS "v!""#,
+        minor,
+        rate.0,
+        from_dp,
+        to_dp,
+        rate.1
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// `total` split over `ids` by `bases`, last id taking the rest (SQL `money_allocate`); empty
+/// when every basis is 0.
+pub async fn allocate(
+    conn: &mut PgConnection,
+    total: i64,
+    ids: &[Uuid],
+    bases: &[i64],
+) -> Result<Vec<(Uuid, i64)>, sqlx::Error> {
+    sqlx::query!(
+        r#"SELECT id AS "id!", amount AS "amount!" FROM money_allocate($1, $2, $3)"#,
+        total,
+        ids,
+        bases
+    )
+    .fetch_all(conn)
+    .await
+    .map(|rs| rs.into_iter().map(|r| (r.id, r.amount)).collect())
+}
+
+/// Explicit component-currency shares per line converted to functional, the last line (id
+/// order) taking the exact functional rest. None when the parts don't add up to
+/// `amount` or a share would be negative.
+pub async fn explicit_shares(
+    conn: &mut PgConnection,
+    parts: &[(Uuid, i64)],
+    (amount, functional): (i64, i64),
+    rate: &Rate,
+    (from_dp, to_dp): (i32, i32),
+) -> Result<Option<Vec<(Uuid, i64)>>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"WITH p AS (
+               SELECT u.id, sum(u.a)::bigint AS part
+               FROM unnest($1::uuid[], $2::bigint[]) AS u(id, a) GROUP BY u.id),
+           c AS (
+               SELECT p.id, p.part, sum(p.part) OVER () AS whole,
+                      money_convert(p.part, $4, $5, $6, $7) AS conv,
+                      row_number() OVER (ORDER BY p.id DESC) = 1 AS last
+               FROM p)
+           SELECT c.id AS "id!", c.whole::bigint AS "whole!",
+                  (CASE WHEN c.last
+                        THEN $3::bigint - coalesce(sum(c.conv) FILTER (WHERE NOT c.last) OVER (), 0)
+                        ELSE c.conv END)::bigint AS "share!"
+           FROM c ORDER BY c.id"#,
+        &parts.iter().map(|p| p.0).collect::<Vec<_>>(),
+        &parts.iter().map(|p| p.1).collect::<Vec<_>>(),
+        functional,
+        rate.0,
+        from_dp,
+        to_dp,
+        rate.1
+    )
+    .fetch_all(conn)
+    .await?;
+    let ok = rows.first().is_some_and(|r| r.whole == amount) && rows.iter().all(|r| r.share >= 0);
+    Ok(ok.then(|| rows.into_iter().map(|r| (r.id, r.share)).collect()))
+}
+
+/// Per line (line, landed sum, net + landed) and the booking total, from net values and
+/// component shares.
+pub async fn booking_totals(
+    conn: &mut PgConnection,
+    lines: &[Uuid],
+    nets: &[i64],
+    shares: &[(Uuid, i64)],
+) -> Result<(Vec<(Uuid, i64, i64)>, i64), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"WITH n AS (SELECT * FROM unnest($1::uuid[], $2::bigint[]) AS n(id, net)),
+                a AS (SELECT u.id, sum(u.s) AS landed
+                      FROM unnest($3::uuid[], $4::bigint[]) AS u(id, s) GROUP BY u.id)
+           SELECT n.id AS "id!", coalesce(a.landed, 0)::bigint AS "landed!",
+                  (n.net + coalesce(a.landed, 0))::bigint AS "value!",
+                  sum(n.net + coalesce(a.landed, 0)) OVER ()::bigint AS "total!"
+           FROM n LEFT JOIN a ON a.id = n.id ORDER BY n.id"#,
+        lines,
+        nets,
+        &shares.iter().map(|s| s.0).collect::<Vec<_>>(),
+        &shares.iter().map(|s| s.1).collect::<Vec<_>>()
+    )
+    .fetch_all(conn)
+    .await?;
+    let total = rows.first().map_or(0, |r| r.total);
+    Ok((
+        rows.into_iter()
+            .map(|r| (r.id, r.landed, r.value))
+            .collect(),
+        total,
+    ))
+}
+
+/// A pool before and after a booking.
+pub struct PoolPreviewRow {
+    pub product_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub quantity_before: Decimal,
+    pub value_before: i64,
+    pub quantity_after: Decimal,
+    pub value_after: i64,
+}
+
+/// Pools the receipt `lines` (with booking `values`) would change, before and after.
+pub async fn pool_preview(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    lines: &[Uuid],
+    values: &[i64],
+) -> Result<Vec<PoolPreviewRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PoolPreviewRow,
+        r#"WITH v AS (SELECT * FROM unnest($2::uuid[], $3::bigint[]) AS v(id, value))
+           SELECT l.product_id, l.warehouse_id,
+                  coalesce(p.quantity, 0) AS "quantity_before!",
+                  coalesce(p.value, 0) AS "value_before!",
+                  coalesce(p.quantity, 0) + sum(l.base_quantity) AS "quantity_after!",
+                  (coalesce(p.value, 0) + sum(v.value))::bigint AS "value_after!"
+           FROM v
+           JOIN purchase_receipt_lines l ON l.workspace_id = $1 AND l.id = v.id
+           LEFT JOIN inventory_cost_pools p ON p.workspace_id = $1
+                AND p.product_id = l.product_id AND p.warehouse_id = l.warehouse_id
+           GROUP BY l.product_id, l.warehouse_id, p.quantity, p.value
+           ORDER BY l.product_id, l.warehouse_id"#,
+        ws,
+        lines,
+        values
+    )
+    .fetch_all(conn)
+    .await
 }

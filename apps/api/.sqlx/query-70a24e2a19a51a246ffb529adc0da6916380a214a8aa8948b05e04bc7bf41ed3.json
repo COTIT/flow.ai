@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH p AS (\n               SELECT u.id, sum(u.a)::bigint AS part\n               FROM unnest($1::uuid[], $2::bigint[]) AS u(id, a) GROUP BY u.id),\n           c AS (\n               SELECT p.id, p.part, sum(p.part) OVER () AS whole,\n                      money_convert(p.part, $4, $5, $6, $7) AS conv,\n                      row_number() OVER (ORDER BY p.id DESC) = 1 AS last\n               FROM p)\n           SELECT c.id AS \"id!\", c.whole::bigint AS \"whole!\",\n                  (CASE WHEN c.last\n                        THEN $3::bigint - coalesce(sum(c.conv) FILTER (WHERE NOT c.last) OVER (), 0)\n                        ELSE c.conv END)::bigint AS \"share!\"\n           FROM c ORDER BY c.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "whole!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "share!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Int8Array",
+        "Int8",
+        "Numeric",
+        "Int4",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "70a24e2a19a51a246ffb529adc0da6916380a214a8aa8948b05e04bc7bf41ed3"
+}

@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
@@ -38,7 +38,6 @@ use crate::{
         relations::dto::supplier_out,
         stock::repo::live_warehouses,
     },
-    money::{minor, round},
     numbering::{self, Series},
 };
 
@@ -57,12 +56,12 @@ pub fn qty(d: Decimal) -> String {
     d.normalize().to_string()
 }
 
-/// round(v × q / of) in minor units, half away from zero; 0 when `of` is 0.
-pub fn share(v: i64, q: Decimal, of: Decimal) -> Option<i64> {
-    if of.is_zero() {
-        return Some(0);
+/// A line total past the money column (SQL extension overflow) as a field error.
+fn too_large(e: sqlx::Error) -> AppError {
+    match e.as_database_error().and_then(|d| d.code()) {
+        Some(c) if c == "22003" => AppError::field("payload.lines", "A line total is too large."),
+        _ => e.into(),
     }
-    round(Decimal::from(v).checked_mul(q)?.checked_div(of)?, 0).to_i64()
 }
 
 fn not_draft() -> AppError {
@@ -83,10 +82,6 @@ fn open_of(l: &LineRow) -> Decimal {
 
 fn resource(o: OrderRow, lines: Vec<LineRow>, ws: Uuid) -> PurchaseOrderResource {
     let dp = o.currency_decimals;
-    let sum = |f: &dyn Fn(&LineRow) -> i64| lines.iter().map(f).sum::<i64>();
-    let ordered = sum(&|l| l.extension);
-    let received = sum(&|l| share(l.extension, l.received_quantity, l.base_quantity).unwrap_or(0));
-    let open = sum(&|l| share(l.extension, open_of(l), l.base_quantity).unwrap_or(0));
     let any_open = lines.iter().any(|l| open_of(l) > Decimal::ZERO);
     let any_received = lines.iter().any(|l| l.received_quantity > Decimal::ZERO);
     let receipt_status = match (any_received, any_open) {
@@ -126,9 +121,9 @@ fn resource(o: OrderRow, lines: Vec<LineRow>, ws: Uuid) -> PurchaseOrderResource
         note: o.note,
         default_warehouse_id: o.default_warehouse_id,
         totals: PurchaseOrderTotals {
-            ordered: amount(ordered, dp),
-            received: amount(received, dp),
-            open: amount(open, dp),
+            ordered: amount(o.ordered_total, dp),
+            received: amount(o.received_total, dp),
+            open: amount(o.open_total, dp),
         },
         lines: lines
             .into_iter()
@@ -258,7 +253,6 @@ async fn prepare(
     let products = repo::products(&mut *conn, ws, &product_ids).await?;
     let unit_ids: Vec<Uuid> = input.lines.iter().filter_map(|l| l.unit).collect();
     let units = repo::units(&mut *conn, ws, &unit_ids).await?;
-    let dp = currency.as_ref().map_or(2, |c| c.decimals);
     let mut out = Vec::with_capacity(input.lines.len());
     for (i, l) in input.lines.iter().enumerate() {
         let f = |name: &str| format!("payload.lines.{i}.{name}");
@@ -300,15 +294,6 @@ async fn prepare(
             );
             continue;
         };
-        let ext = l
-            .quantity
-            .checked_mul(l.unit_price)
-            .map(|e| round(e, u32::try_from(dp).unwrap_or(2)))
-            .and_then(|e| minor(e, u32::try_from(dp).unwrap_or(2)).ok());
-        let Some(extension) = ext else {
-            r.add(&f("unit_price"), "This line total is too large.");
-            continue;
-        };
         out.push(NewLine {
             product: l.product,
             unit: l.unit,
@@ -316,7 +301,6 @@ async fn prepare(
             ratio,
             base_quantity: base,
             unit_price: l.unit_price,
-            extension,
             warehouse: l.warehouse,
         });
     }
@@ -353,7 +337,9 @@ pub async fn create(
     let lines = prepare(&mut tx, ws, input).await?;
     let number = numbering::next(&mut tx, ws, Series::PurchaseOrder, 1).await?;
     let id = repo::insert_order(&mut tx, ws, number, &header(input), access.user_id).await?;
-    repo::replace_lines(&mut tx, ws, id, &lines).await?;
+    repo::replace_lines(&mut tx, ws, id, &lines)
+        .await
+        .map_err(too_large)?;
     let answer = created(&get(&mut tx, ws, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
@@ -396,7 +382,9 @@ pub async fn update(
     let input = &cmd.input.payload;
     let lines = prepare(&mut tx, ws, input).await?;
     repo::update_order(&mut tx, ws, id, &header(input)).await?;
-    repo::replace_lines(&mut tx, ws, id, &lines).await?;
+    repo::replace_lines(&mut tx, ws, id, &lines)
+        .await
+        .map_err(too_large)?;
     let answer = ok(&get(&mut tx, ws, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
@@ -595,17 +583,4 @@ pub async fn events(
             detail: e.detail,
         })
         .collect())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn share_rounds_half_away_and_handles_zero() {
-        let d = |s: &str| s.parse::<Decimal>().unwrap();
-        assert_eq!(share(1000, d("2"), d("5")), Some(400));
-        assert_eq!(share(1001, d("1"), d("2")), Some(501));
-        assert_eq!(share(1000, d("1"), d("0")), Some(0));
-    }
 }

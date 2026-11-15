@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id, l.purchase_order_id, l.line_no, l.product_id, p.name AS product_name,\n                  p.unit AS product_unit, l.purchase_unit_id, u.code AS \"unit_code?\",\n                  l.input_quantity, l.ratio, l.base_quantity, l.unit_price, l.extension,\n                  l.warehouse_id, l.received_quantity, l.booked_quantity, l.closed_quantity,\n                  l.booked_value\n           FROM purchase_order_lines l\n           JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id\n           LEFT JOIN purchase_units u ON u.workspace_id = l.workspace_id\n                                     AND u.id = l.purchase_unit_id\n           WHERE l.workspace_id = $1 AND l.purchase_order_id = ANY($2)\n           ORDER BY l.purchase_order_id, l.line_no",
+  "query": "SELECT l.id, l.purchase_order_id, l.line_no, l.product_id, p.name AS product_name,\n                  p.unit AS product_unit, l.purchase_unit_id, u.code AS \"unit_code?\",\n                  l.input_quantity, l.ratio, l.base_quantity, l.unit_price, l.extension,\n                  l.warehouse_id, l.received_quantity, l.booked_quantity, l.closed_quantity\n           FROM purchase_order_lines l\n           JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id\n           LEFT JOIN purchase_units u ON u.workspace_id = l.workspace_id\n                                     AND u.id = l.purchase_unit_id\n           WHERE l.workspace_id = $1 AND l.purchase_order_id = ANY($2)\n           ORDER BY l.purchase_order_id, l.line_no",
   "describe": {
     "columns": [
       {
@@ -189,17 +189,6 @@
             "name": "closed_quantity"
           }
         }
-      },
-      {
-        "ordinal": 17,
-        "name": "booked_value",
-        "type_info": "Int8",
-        "origin": {
-          "Table": {
-            "table": "purchase_order_lines",
-            "name": "booked_value"
-          }
-        }
       }
     ],
     "parameters": {
@@ -225,9 +214,8 @@
       true,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "0ee4f159b18395e14917da726ce59da222da2440c67ba79e0476bc7bbc123bb3"
+  "hash": "3b4ff27691ffc79bea21e43029abaca1e33f24a82dcfc789841ba8b57b78ab72"
 }

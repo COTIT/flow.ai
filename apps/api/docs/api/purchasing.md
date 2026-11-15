@@ -4,6 +4,10 @@ Flow ERP M3 (masterplan §11, §7, §10): purchase orders, partial receipts, boo
 
 A receipt accepts goods: nothing is in stock or the books yet. Booking adds the stock and, in an active book, its value: DR inventory / CR GRNI once per receipt line. Bills, supplier payments, returns, corrections and late-receipt review come with M5.
 
+## Money in the database
+
+Every amount is computed in SQL with `money_round_div` (exact, half away from zero): line extensions, order totals, cumulative receipt values, conversion (`money_convert(minor, rate, from_dp, to_dp, inverse)`), landed-cost splits (`money_allocate(total, ids, bases)`: last id takes the rest), line values, booking totals, pool previews and the supplier open value. The API passes the results through.
+
 ## Envelopes and replay
 
 Every write takes the accounting envelopes (`docs/api/accounting.md`) and a required `Idempotency-Key` header:

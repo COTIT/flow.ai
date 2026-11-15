@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id, l.receipt_id, l.po_line_id, l.product_id, l.warehouse_id, l.bin_id,\n                  b.shelf_id AS \"shelf_id?\", l.lot_id, l.base_quantity, l.late, l.booked_at,\n                  l.accounting_date, l.net_value, l.landed_value, l.rate, l.rate_inverse,\n                  l.rate_source, l.rate_date, l.journal_entry_id\n           FROM purchase_receipt_lines l\n           LEFT JOIN warehouse_section_row_bins b ON b.workspace_id = l.workspace_id\n                                                 AND b.id = l.bin_id\n           WHERE l.workspace_id = $1 AND l.receipt_id = ANY($2)\n             AND ($3::uuid[] IS NULL OR l.id = ANY($3))\n           ORDER BY l.id",
+  "query": "SELECT l.id, l.receipt_id, l.po_line_id, l.product_id, l.warehouse_id, l.bin_id,\n                  b.shelf_id AS \"shelf_id?\", l.lot_id, l.base_quantity, l.late, l.booked_at,\n                  l.accounting_date, l.net_value, l.landed_value, l.rate, l.rate_inverse,\n                  l.rate_source, l.rate_date, l.journal_entry_id,\n                  l.net_value + l.landed_value AS value\n           FROM purchase_receipt_lines l\n           LEFT JOIN warehouse_section_row_bins b ON b.workspace_id = l.workspace_id\n                                                 AND b.id = l.bin_id\n           WHERE l.workspace_id = $1 AND l.receipt_id = ANY($2)\n             AND ($3::uuid[] IS NULL OR l.id = ANY($3))\n           ORDER BY l.id",
   "describe": {
     "columns": [
       {
@@ -211,6 +211,12 @@
             "name": "journal_entry_id"
           }
         }
+      },
+      {
+        "ordinal": 19,
+        "name": "value",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -239,8 +245,9 @@
       true,
       true,
       true,
-      true
+      true,
+      null
     ]
   },
-  "hash": "01f53a143330bb47bac72b1de57479475eedde76fc3ab2f85055581f9ca6180c"
+  "hash": "9facef05d0c32ccc5cec0593043a26b8c6d1d4f3f0baa90a0c4af1f066e33cc2"
 }

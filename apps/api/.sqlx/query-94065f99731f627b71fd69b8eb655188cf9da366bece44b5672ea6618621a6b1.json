@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH n AS (SELECT * FROM unnest($1::uuid[], $2::bigint[]) AS n(id, net)),\n                a AS (SELECT u.id, sum(u.s) AS landed\n                      FROM unnest($3::uuid[], $4::bigint[]) AS u(id, s) GROUP BY u.id)\n           SELECT n.id AS \"id!\", coalesce(a.landed, 0)::bigint AS \"landed!\",\n                  (n.net + coalesce(a.landed, 0))::bigint AS \"value!\",\n                  sum(n.net + coalesce(a.landed, 0)) OVER ()::bigint AS \"total!\"\n           FROM n LEFT JOIN a ON a.id = n.id ORDER BY n.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "landed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "value!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Int8Array",
+        "UuidArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "94065f99731f627b71fd69b8eb655188cf9da366bece44b5672ea6618621a6b1"
+}

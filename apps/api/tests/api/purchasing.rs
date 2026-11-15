@@ -1091,3 +1091,37 @@ async fn supplier_list_shows_open_orders(pool: PgPool) {
     assert_eq!(row["open_orders"], 1, "{row}");
     assert_eq!(row["open_order_value"], "30", "{row}");
 }
+
+// --- SQL money functions (money rule: the database computes) -------------------------------
+
+#[sqlx::test]
+async fn sql_money_functions_round_and_split_exactly(pool: PgPool) {
+    let ids = |n: u128| (1..=n).map(Uuid::from_u128).collect::<Vec<_>>();
+    let split = |total: i64, bases: Vec<i64>| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_as::<_, (i64,)>("SELECT amount FROM money_allocate($1, $2, $3)")
+                .bind(total)
+                .bind(ids(bases.len() as u128))
+                .bind(bases)
+                .fetch_all(&pool)
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|r| r.0)
+                .collect::<Vec<_>>()
+        }
+    };
+    assert_eq!(split(1000, vec![1, 1, 1]).await, vec![333, 333, 334]);
+    assert_eq!(split(700, vec![1000, 6000]).await, vec![100, 600]);
+    assert_eq!(split(7, vec![0, 10]).await, vec![0, 7]);
+    assert!(split(5, vec![0, 0]).await.is_empty(), "no basis, no split");
+    let conv: (i64, i64, i64, i64) = sqlx::query_as(
+        "SELECT money_convert(10000, 1.10, 2, 2, false), money_convert(295050, 2950.5, 0, 2, true),
+                money_convert(1, 150, 2, 0, false), money_convert(-1, 149.99, 2, 0, false)",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(conv, (11000, 10000, 2, -1));
+}
