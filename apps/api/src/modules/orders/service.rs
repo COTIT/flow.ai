@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::PgConnection;
 use uuid::Uuid;
@@ -141,19 +141,19 @@ pub async fn price(
     web: bool,
 ) -> Result<Priced, AppError> {
     let ids: Vec<Uuid> = lines.iter().map(|l| l.product_id).collect();
-    let found: HashMap<Uuid, repo::CatalogProduct> = repo::products(&mut *conn, workspace_id, &ids)
-        .await?
-        .into_iter()
-        .map(|p| (p.id, p))
-        .collect();
+    let found: HashMap<Uuid, repo::CatalogProduct> =
+        repo::products(&mut *conn, workspace_id, &ids, dp as i32)
+            .await?
+            .into_iter()
+            .map(|p| (p.id, p))
+            .collect();
     let vids: Vec<Uuid> = lines.iter().filter_map(|l| l.product_variant_id).collect();
     let variants: HashMap<Uuid, repo::CatalogVariant> =
-        repo::variants(&mut *conn, workspace_id, &vids)
+        repo::variants(&mut *conn, workspace_id, &vids, dp as i32)
             .await?
             .into_iter()
             .map(|v| (v.id, v))
             .collect();
-    let scale = Decimal::from(10_i64.pow(dp));
     let mut errors = std::collections::BTreeMap::<String, Vec<String>>::new();
     let mut add = |k: String, m: &str| errors.entry(k).or_default().push(m.to_owned());
     let mut priced = Vec::new();
@@ -183,11 +183,9 @@ pub async fn price(
             },
             None => None,
         };
-        let catalog = variant.map_or(p.price, |v| v.price);
-        let unit = match l.unit_price {
-            Some(u) => Some(u),
-            None => (catalog * scale).round().to_i64(),
-        };
+        let unit = l
+            .unit_price
+            .or_else(|| variant.map_or(p.price_minor, |v| v.price_minor));
         let Some(unit) = unit else {
             add(
                 format!("lines.{n}.unit_price"),

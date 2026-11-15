@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, sku, price FROM product_variants\n         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL",
+  "query": "SELECT id, product_id, sku,\n                  CASE WHEN m.v BETWEEN -9223372036854775808 AND 9223372036854775807\n                       THEN m.v::bigint END AS price_minor\n           FROM product_variants\n           CROSS JOIN LATERAL (SELECT money_round_div(price * 10::numeric ^ $3::int, 1) AS v) m\n           WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -38,28 +38,24 @@
       },
       {
         "ordinal": 3,
-        "name": "price",
-        "type_info": "Numeric",
-        "origin": {
-          "Table": {
-            "table": "product_variants",
-            "name": "price"
-          }
-        }
+        "name": "price_minor",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "UuidArray"
+        "UuidArray",
+        "Int4"
       ]
     },
     "nullable": [
       false,
       false,
       true,
-      false
+      null
     ]
   },
-  "hash": "d3169d76d2d4efd297f2d5676d8d7f20972102cd73237b69f80b9b0170ede37f"
+  "hash": "dc00ba54ec12140226dfa7d392a69b91b65a88faf176bf020822c80712ccec19"
 }

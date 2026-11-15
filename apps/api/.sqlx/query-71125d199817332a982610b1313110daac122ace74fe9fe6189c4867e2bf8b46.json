@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.id, p.name, p.price, p.currency_id, p.has_stock,\n                  (p.status = 'active' AND NOT p.archived) AS \"sellable!\",\n                  coalesce(v.vat_amount, 0) AS \"vat!\"\n           FROM products p\n           LEFT JOIN vat_groups v ON v.workspace_id = p.workspace_id AND v.id = p.vat_group_id\n                AND v.deleted_at IS NULL\n           WHERE p.workspace_id = $1 AND p.id = ANY($2) AND p.deleted_at IS NULL",
+  "query": "SELECT p.id, p.name,\n                  CASE WHEN m.v BETWEEN -9223372036854775808 AND 9223372036854775807\n                       THEN m.v::bigint END AS price_minor,\n                  p.currency_id, p.has_stock,\n                  (p.status = 'active' AND NOT p.archived) AS \"sellable!\",\n                  coalesce(v.vat_amount, 0) AS \"vat!\"\n           FROM products p\n           CROSS JOIN LATERAL (SELECT money_round_div(p.price * 10::numeric ^ $3::int, 1) AS v) m\n           LEFT JOIN vat_groups v ON v.workspace_id = p.workspace_id AND v.id = p.vat_group_id\n                AND v.deleted_at IS NULL\n           WHERE p.workspace_id = $1 AND p.id = ANY($2) AND p.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -27,14 +27,9 @@
       },
       {
         "ordinal": 2,
-        "name": "price",
-        "type_info": "Numeric",
-        "origin": {
-          "Table": {
-            "table": "products",
-            "name": "price"
-          }
-        }
+        "name": "price_minor",
+        "type_info": "Int8",
+        "origin": "Expression"
       },
       {
         "ordinal": 3,
@@ -74,18 +69,19 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "UuidArray"
+        "UuidArray",
+        "Int4"
       ]
     },
     "nullable": [
       false,
       false,
-      false,
+      null,
       false,
       false,
       null,
       null
     ]
   },
-  "hash": "67c3d5204c7d75bd4a1c369a173e0490dad9fd409cde8cfa4ec895dccaad168e"
+  "hash": "71125d199817332a982610b1313110daac122ace74fe9fe6189c4867e2bf8b46"
 }
