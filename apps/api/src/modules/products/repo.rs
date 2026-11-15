@@ -873,3 +873,69 @@ fn serialize_optional_decimal<S: serde::Serializer>(
         None => s.serialize_none(),
     }
 }
+
+/// Lock a product before changing its master meaning: `FOR UPDATE` blocks new stock rows,
+/// reservations and lines (their FKs take KEY SHARE) until commit; its stock rows `FOR SHARE
+/// NOWAIT` block level writes. NOWAIT: a stock writer may hold a slot and then wait on the
+/// product key lock held here, so waiting would deadlock (lock order product, then stock).
+pub async fn lock_for_master_change(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "SELECT id FROM products WHERE workspace_id = $1 AND id = $2 FOR UPDATE",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "SELECT id FROM stocks WHERE workspace_id = $1 AND product_id = $2 AND deleted_at IS NULL
+         ORDER BY id FOR SHARE NOWAIT",
+        workspace_id,
+        id,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    Ok(())
+}
+
+/// True once the product has stock on hand or reserved, a reservation, an order line or an
+/// invoice line.
+pub async fn has_economic_history(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    // shortcut: items has no (workspace_id, product_id) index (seq scan, as delete's
+    // product_in_use); runs only when a frozen field changes. Index it if items grows large.
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM stocks WHERE workspace_id = $1 AND product_id = $2
+                            AND deleted_at IS NULL AND (stock_lvl <> 0 OR reserved <> 0))
+               OR EXISTS (SELECT 1 FROM stock_reservations WHERE workspace_id = $1 AND product_id = $2)
+               OR EXISTS (SELECT 1 FROM order_lines WHERE workspace_id = $1 AND product_id = $2)
+               OR EXISTS (SELECT 1 FROM items WHERE workspace_id = $1 AND product_id = $2)
+             AS "used!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(&mut *conn)
+    .await
+}
+
+/// True when the product has any purchase unit (their ratios name its base unit).
+pub async fn has_purchase_units(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM purchase_units WHERE workspace_id = $1 AND product_id = $2)
+             AS "e!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(&mut *conn)
+    .await
+}

@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search as pattern_of},
@@ -239,7 +239,8 @@ pub async fn create(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 409, body = MessageBody, description = "Stock is being written; retry after it finishes"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `product_master_frozen`: unit, type, stock tracking or serial tracking can't change once the product has stock, reservations, orders or invoices"),
     ),
     security(("bearer" = []))
 )]
