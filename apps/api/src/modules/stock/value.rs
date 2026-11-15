@@ -52,7 +52,7 @@ fn reason(code: &'static str, message: &str) -> AppError {
 
 /// 422 `insufficient_stock`: an issue larger than the pool.
 pub fn insufficient() -> AppError {
-    reason("insufficient_stock", "There isn't enough stock for this.")
+    AppError::insufficient_stock("There isn't enough stock for this.")
 }
 
 /// Shared book gate, then whether the book is active. Every stock writer comes here through
