@@ -216,12 +216,15 @@ async fn products_import_creates_only_valid_rows(db: PgPool) {
                 product(1, "Maize flour"),
                 product(2, ""),
                 product(3, "Rice"),
+                // Natively valid; invalid only by the import's duplicate-key rule.
+                json!({"row_number": 4, "fields": {"name": "Dup A", "price": "1", "barcode": "dup"}}),
+                json!({"row_number": 5, "fields": {"name": "Dup B", "price": "1", "barcode": "dup"}}),
             ],
         )
         .await;
     assert_eq!(batch["state"], "validated");
     assert_eq!(batch["counts"]["valid"], 2, "{batch}");
-    assert_eq!(batch["counts"]["invalid"], 1, "{batch}");
+    assert_eq!(batch["counts"]["invalid"], 3, "{batch}");
     let invalid = w.rows(&batch, "?status=invalid").await;
     assert_eq!(invalid["data"][0]["row_number"], 2);
     assert!(
@@ -239,8 +242,8 @@ async fn products_import_creates_only_valid_rows(db: PgPool) {
 
     let done = w.get(&batch).await;
     assert_eq!(done["state"], "completed", "{done}");
-    assert_eq!(done["counts"]["applied"], 2);
-    assert_eq!(done["counts"]["invalid"], 1);
+    assert_eq!(done["counts"]["applied"], 2, "{done}");
+    assert_eq!(done["counts"]["invalid"], 3, "{done}");
     assert_eq!(
         w.count("SELECT count(*) FROM products WHERE workspace_id=$1 AND deleted_at IS NULL")
             .await,

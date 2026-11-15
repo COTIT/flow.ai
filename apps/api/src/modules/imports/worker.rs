@@ -95,7 +95,7 @@ pub async fn run(ctx: &Ctx, job: &Claimed) -> Result<Step, AppError> {
             }
             Err(error) => {
                 tx.rollback().await?;
-                sqlx::query("UPDATE import_rows SET status = 'failed', issues = $2 WHERE id = $1 AND status = 'valid'")
+                sqlx::query("UPDATE import_rows SET status = 'failed', issues = $2 WHERE id = $1")
                     .bind(row_id)
                     .bind(json!([profiles::issue(&error)]))
                     .execute(&ctx.db)
