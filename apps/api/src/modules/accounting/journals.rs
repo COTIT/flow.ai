@@ -813,7 +813,8 @@ pub struct SourceJournal<'a> {
 
 /// Post `j` as a `source` journal in the caller's transaction; its id. 422
 /// `accounting_not_configured` without functional currency or an active mapped account per
-/// role, `accounting_period_closed` without an open period on the date. The effect identity
+/// role (accounts locked FOR SHARE), `accounting_period_closed` without an open period on the
+/// date. The effect identity
 /// makes a second posting of the same source a database error.
 pub async fn post_source(
     conn: &mut PgConnection,
@@ -828,11 +829,19 @@ pub async fn post_source(
     let account = |role: &str| {
         mappings
             .iter()
-            .find(|m| m.role == role && m.active)
+            .find(|m| m.role == role)
             .map(|m| m.account_id)
             .ok_or_else(not_configured)
     };
     let (debit, credit) = (account(j.debit)?, account(j.credit)?);
+    // As manual posting: FOR SHARE in id order, so a deactivation waits for this posting or
+    // this posting sees it; active read under the lock.
+    let locked = repo::line_accounts(&mut *conn, ws, &[debit, credit]).await?;
+    for id in [debit, credit] {
+        if !locked.iter().any(|a| a.0 == id && a.1) {
+            return Err(not_configured());
+        }
+    }
     let period = repo::open_period(&mut *conn, ws, j.date)
         .await?
         .ok_or_else(period_closed)?;

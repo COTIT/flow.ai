@@ -1051,3 +1051,194 @@ async fn farmer_purchase_is_refused_in_an_active_book(pool: PgPool) {
     assert_eq!(batches, 1, "only the batch bought before activation");
     assert_eq!(snapshot(&c.f.pool, &c.f.ws).await, before);
 }
+
+#[sqlx::test]
+async fn a_deactivated_mapped_account_takes_no_stock_posting(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    seed(w.pool(), &w.api.ws, &w.honey, &w.main, None, "10", 1000).await;
+    sqlx::query(
+        "UPDATE accounts SET active = false
+         WHERE id = (SELECT account_id FROM account_mappings WHERE role = 'cogs')",
+    )
+    .execute(w.pool())
+    .await
+    .unwrap();
+    let before = w.snap().await;
+    let (s, res, _) = w.sell(&w.honey, "1").await;
+    assert_eq!(
+        (s, code(&res)),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "accounting_not_configured"
+        ),
+        "{res}"
+    );
+    let after = w.snap().await;
+    // The order itself was created and confirmed by `sell`; the refused complete wrote nothing.
+    for k in ["levels", "entries", "journals", "allocations", "pools"] {
+        assert_eq!(after[k], before[k], "{k}");
+    }
+    let decreases: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM stock_movements WHERE movement_type = 'decrease'")
+            .fetch_one(w.pool())
+            .await
+            .unwrap();
+    assert_eq!(decreases, 0);
+    w.books().await;
+}
+
+#[sqlx::test]
+async fn supply_dispatch_and_receive_are_refused_in_active_books(pool: PgPool) {
+    let c = chain(pool).await;
+    let (a, a_ws) = common::signup(&c.f.app, "owner@afm.test", "afm").await;
+    let (s, res) =
+        c.f.ws_call(
+            Method::POST,
+            "/supply-links",
+            Some(json!({ "to_workspace_id": a_ws, "fields": [] })),
+            &c.f.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let link = res["data"]["id"].as_str().unwrap().to_owned();
+    let call = |ws: &str, tail: String, body: Option<Value>, token: &str| {
+        let uri = format!("/v1/workspace/{ws}{tail}");
+        let (app, token) = (c.f.app.clone(), token.to_owned());
+        async move {
+            let (s, b) = send_raw(&app, Method::POST, &uri, body, Some(&token), &[]).await;
+            (
+                s,
+                serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null),
+            )
+        }
+    };
+    let (s, _) = call(&a_ws, format!("/supply-links/{link}/accept"), None, &a).await;
+    assert_eq!(s, StatusCode::OK);
+    let dispatch = json!({ "link_id": link, "warehouse_id": c.warehouse, "quantity": "1" });
+    // Sent while the farm's book is still in setup.
+    let (s, res) = call(
+        &c.f.ws,
+        format!("/lots/{}/transfers", c.raw),
+        Some(dispatch.clone()),
+        &c.f.owner,
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let transfer = res["data"]["id"].as_str().unwrap().to_owned();
+
+    c.activate().await;
+    let before = snapshot(&c.f.pool, &c.f.ws).await;
+    let (s, res) = call(
+        &c.f.ws,
+        format!("/lots/{}/transfers", c.raw),
+        Some(dispatch),
+        &c.f.owner,
+    )
+    .await;
+    assert_eq!(
+        (s, code(&res)),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unsupported_active_erp_operation"
+        ),
+        "dispatch: {res}"
+    );
+    assert_eq!(snapshot(&c.f.pool, &c.f.ws).await, before);
+
+    let (_, res) = call(
+        &a_ws,
+        "/products".into(),
+        Some(json!({ "name": "AFM maize", "price": 10 })),
+        &a,
+    )
+    .await;
+    let product = res["data"]["product_id"].as_str().unwrap().to_owned();
+    let (_, res) = call(
+        &a_ws,
+        "/warehouses".into(),
+        Some(json!({ "name": "US hub" })),
+        &a,
+    )
+    .await;
+    let wh = res["data"]["warehouse_id"].as_str().unwrap().to_owned();
+    activate(&c.f.pool, &a_ws).await;
+    let before = snapshot(&c.f.pool, &a_ws).await;
+    let (s, res) = call(
+        &a_ws,
+        format!("/supply-transfers/{transfer}/receive"),
+        Some(
+            json!({ "product_id": product, "code": "AFM-1", "warehouse_id": wh, "quantity": "1" }),
+        ),
+        &a,
+    )
+    .await;
+    assert_eq!(
+        (s, code(&res)),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unsupported_active_erp_operation"
+        ),
+        "receive: {res}"
+    );
+    assert_eq!(snapshot(&c.f.pool, &a_ws).await, before);
+    let received: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM lots WHERE workspace_id = $1::uuid")
+            .bind(&a_ws)
+            .fetch_one(&c.f.pool)
+            .await
+            .unwrap();
+    assert_eq!(received, 0);
+}
+
+#[sqlx::test]
+async fn a_deactivation_in_flight_holds_back_the_stock_posting(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    seed(w.pool(), &w.api.ws, &w.honey, &w.main, None, "10", 1000).await;
+    let (s, o) = w
+        .post(
+            "/orders",
+            json!({ "lines": [{ "product_id": w.honey, "quantity": "1" }] }),
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{o}");
+    let id = o["data"]["order_id"].as_str().unwrap().to_owned();
+    w.post(&format!("/orders/{id}/confirm"), json!({})).await;
+    let (_, o) = w
+        .req(Method::GET, &format!("/orders/{id}"), None, None)
+        .await;
+    let lines: Vec<Value> = o["data"]["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| json!({ "line_id": l["id"], "quantity": l["quantity"] }))
+        .collect();
+    w.post(&format!("/orders/{id}/pick"), json!({ "lines": lines }))
+        .await;
+    // Deactivation of the COGS account, not yet committed.
+    let mut deactivate = w.pool().begin().await.unwrap();
+    sqlx::query(
+        "UPDATE accounts SET active = false
+         WHERE id = (SELECT account_id FROM account_mappings WHERE role = 'cogs')",
+    )
+    .execute(&mut *deactivate)
+    .await
+    .unwrap();
+    let path = format!("/orders/{id}/complete");
+    let complete = w.post(&path, json!({}));
+    let commit = async {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        deactivate.commit().await.unwrap();
+    };
+    let ((s, res), ()) = tokio::join!(complete, commit);
+    assert_eq!(
+        (s, code(&res)),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "accounting_not_configured"
+        ),
+        "posting waited for the deactivation and saw it: {res}"
+    );
+    w.books().await;
+}
