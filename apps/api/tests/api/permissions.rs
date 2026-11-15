@@ -71,7 +71,9 @@ async fn member_gets_laravel_catalog_shape(pool: PgPool) {
         ])
     );
     let enforced = class["api_enforced"].as_array().unwrap();
-    assert_eq!(enforced.len(), 247);
+    assert_eq!(enforced.len(), 249);
+    assert!(enforced.contains(&json!("cashregister.refund")));
+    assert!(enforced.contains(&json!("cashregister.adjust")));
     assert_eq!(enforced[0], "association.create");
     assert!(data.get("workspace_admin").is_none());
 }

@@ -15,7 +15,10 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    http::{app_key::AppKey, workspace::WorkspaceAccess},
+    http::{
+        app_key::AppKey,
+        workspace::{NOT_ALLOWED, WorkspaceAccess},
+    },
     modules::{
         app_keys::{
             repo::{self as keys, NewKey},
@@ -29,8 +32,10 @@ use crate::{
         till::{
             dto::{
                 NewRegister, NewTillUser, Pair, PairedRegister, PairedResource, PairingCode,
-                RegisterKeyed, SessionResource, TillLoginResource, TillUserBrief, TillUserPatch,
+                PrivilegedCashier, PrivilegedMember, PrivilegedSessionResource, RegisterKeyed,
+                SessionResource, TillLoginResource, TillUserBrief, TillUserPatch,
             },
+            privileged::PrivilegedTill,
             repo::{self, RegisterRow, SessionRow, UserRow},
         },
     },
@@ -412,4 +417,32 @@ fn minor_units(values: &[Value], dp: u32) -> Vec<i64> {
 /// End the caller's session.
 pub async fn logout(state: &AppState, session: &SessionRow) -> Result<(), AppError> {
     Ok(repo::end_session(&state.db, session.workspace_id, session.id).await?)
+}
+
+/// Permissions a privileged Till approval can carry, sorted.
+pub const PRIVILEGED: [&str; 2] = ["cashregister.adjust", "cashregister.refund"];
+
+/// Approval context of `p`; 403 when the member holds no privileged Till permission.
+pub fn privileged_session(p: &PrivilegedTill) -> Result<PrivilegedSessionResource, AppError> {
+    let permissions: Vec<_> = PRIVILEGED
+        .into_iter()
+        .filter(|n| p.member.allows(n))
+        .collect();
+    if permissions.is_empty() {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    Ok(PrivilegedSessionResource {
+        member: PrivilegedMember {
+            user_id: p.member.user_id,
+            permissions,
+        },
+        register: PairedRegister {
+            id: p.till.register_id,
+            name: p.till.register_name.clone(),
+        },
+        cashier: PrivilegedCashier {
+            till_user_id: p.till.till_user_id,
+            name: p.till.user_name.clone(),
+        },
+    })
 }
