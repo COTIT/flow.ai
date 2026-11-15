@@ -348,7 +348,7 @@ pub async fn duplicate(
         (status = 200, body = super::delivery::Reply, description = "Numbered invoice and transport receipt"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send` / `workspace.send-message`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
-        (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"),
+        (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, no usable mail server, or code `insufficient_stock`: a line asks more than its warehouse can sell, stores included"),
     ),
     security(("bearer" = []))
 )]
@@ -372,7 +372,7 @@ pub async fn send(
         (status = 200, body = super::delivery::Reply, description = "Numbered invoice and transport receipt"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send` / `workspace.send-message`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
-        (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"),
+        (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, no usable mail server, or code `insufficient_stock`: a line asks more than its warehouse can sell, stores included"),
     ),
     security(("bearer" = []))
 )]

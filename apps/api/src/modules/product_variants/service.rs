@@ -112,8 +112,12 @@ pub async fn create(
 ) -> Result<Uuid, AppError> {
     let product_id = parse(product_id)?;
     let mut tx = state.db.begin().await?;
+    let active = crate::modules::products::service::books_active(&mut tx, workspace_id).await?;
     let p = lock_product(&mut tx, workspace_id, product_id).await?;
     let mut v = prepare_create(p.id, &f, p.price)?;
+    if !v.is_default {
+        crate::modules::products::service::active_guard(&p.kind, p.has_stock, true, active)?;
+    }
     crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
     if v.is_default {
         crate::modules::products::service::refuse_if_used(&mut tx, workspace_id, p.id, "default")
@@ -221,7 +225,10 @@ pub async fn generate(
 ) -> Result<GeneratedVariants, AppError> {
     let (p, pv) = product(state, workspace_id, product_id).await?;
     let mut tx = state.db.begin().await?;
+    let active = crate::modules::products::service::books_active(&mut tx, workspace_id).await?;
     let p = lock_product(&mut tx, workspace_id, p.id).await?;
+    // Generated sizes are never the default.
+    crate::modules::products::service::active_guard(&p.kind, p.has_stock, true, active)?;
     repo::lock_options(&mut tx, workspace_id).await?;
     crate::modules::products::approval::check_generation(&mut tx, workspace_id, &p, &g).await?;
     let mut by_index: Vec<Vec<Uuid>> = Vec::new();

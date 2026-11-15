@@ -7,6 +7,7 @@ mod common;
 
 mod accounting;
 mod accounting_schema;
+mod active_products;
 mod afm_catalog;
 mod analytics;
 mod app_keys;
@@ -113,6 +114,7 @@ mod quick_search;
 mod rate_limit;
 mod relations;
 mod request_timeouts;
+mod sale_availability;
 mod sales_groups;
 mod scheduled_reports;
 mod schema;
