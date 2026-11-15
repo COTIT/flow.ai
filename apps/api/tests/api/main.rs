@@ -91,6 +91,7 @@ mod lot_stock;
 mod lots;
 mod me;
 mod member_removal;
+mod money_sql;
 mod numbering;
 mod orders;
 mod payments;
