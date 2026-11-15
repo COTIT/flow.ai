@@ -108,6 +108,32 @@ The journal gets the next number of the workspace's journal series, its period a
 
 The original must be a posted `manual` journal. Any other kind gets 422 `unsupported_active_erp_operation`: source entries are corrected through their own workflow. The date must not be before the original's and must fall in an open period. The reversal is a new posted `reversal` entry with every line's sides swapped and the same functional amounts and rate snapshot. It records a `manual_journal/reversed` effect, so a second reversal gets 409. The original never changes; its `reversed_by` points at the reversal. No bank or provider refund is started.
 
+## Cash places
+
+A cash place is a register's drawer (`{kind: "drawer", id: <register id>}`) or a vault (`{kind: "vault", id}`).
+
+**Book cash** of a place = its posted ledger rows: sales, transfers, adjustments (later receipts, payments, refunds). Shift open and close counts are observations and never add cash, so opening a drawer with 50 three times leaves book cash unchanged. A count that differs from book cash changes it only through a reviewed adjustment. Shift `expected`/`difference` stay the physical drawer figures of that shift.
+
+Limit until activation (M8): no opening baseline or cutover filter yet, so every non-count row since the place began counts. The existing Till cash writers (sale, shift open/close, transfer) don't take the book gate yet; both are M8 prerequisites.
+
+### GET /accounting/cash-places (`accounting_cash_places_list`, `accounting.read`)
+
+`{data: [{kind, id, name, currency: {id, code, decimals}, balance, open_shift_id}]}`. `balance` is minor units; `open_shift_id` only for drawers with an open shift.
+
+### POST /accounting/cash-adjustments/review, POST /accounting/cash-adjustments (`cashregister.adjust`)
+
+Review body: `{cash_place, counted_amount, accounting_date}`. `counted_amount` is decimal text in major units (`"50.00"`), converted to minor units in SQL; more decimals than the currency has → 422. Review answer: `{cash_place, currency, expected, counted, difference, accounting_date, book, journal, review_fingerprint}` with `journal` = `{debit_role, credit_role, amount}` in an active book, else null. No writes.
+
+Post: C envelope `{client_ref, payload: {cash_place, counted_amount, accounting_date, count_evidence_ref, reason, review_fingerprint}}`, `Idempotency-Key` required, replay by `client_ref`. The facts are recomputed under the place lock; a different fingerprint → 409 `stale_document`. 201 `{data: {id, cash_place, currency, expected, counted, difference, accounting_date, count_evidence_ref, reason, actor: {kind: "member", user_id}, till_user_id, journal_entry_id, created_at}}`.
+
+Effects, once (effect identity `cash_adjustment`/id/`posted`):
+- every book: one `adjustment` ledger row on the place, amount = counted − expected, member actor, no shift (a drawer can be repaired with no shift open; closed shifts never change);
+- active book: one `source` journal: over → DR `cash` / CR `cash_over_short`; short → DR `cash_over_short` / CR `cash`.
+
+Errors: 422 field errors (invalid place, `counted_amount`, nothing to adjust when counted = expected), 422 `unsupported_active_erp_operation` (place currency ≠ functional currency in an active book), 422 `accounting_period_closed`, 409 `stale_document` / reused `client_ref`, 403 missing `cashregister.adjust`, 404 not a member.
+
+The Till variant is `POST /till/cash-adjustments` (`docs/api/till.md`).
+
 ## Permissions
 
 `accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` are used now. `accounting.reconcile`, `accounting.close`, `accounting.revalue` and `accounting.activate` are catalogued for later milestones.

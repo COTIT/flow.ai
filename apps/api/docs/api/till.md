@@ -158,6 +158,11 @@ The till calls this to confirm an approval login before it shows the approval fo
 - 403: inactive membership, or the member holds neither permission.
 - 404: the caller is not a member of the workspace, or the till session belongs to another workspace.
 
+
+### Drawer cash adjustment (`till_cash_adjustments_create`, `cashregister.adjust`)
+
+`POST /till/cash-adjustments/review` `{target_cash_place: {kind: "drawer", id: <session register>}, counted_amount}` and `POST /till/cash-adjustments` (C envelope, `Idempotency-Key`, payload adds `count_evidence_ref`, `reason`, `review_fingerprint`). Both need the two logins above and the member's live `cashregister.adjust` (403 otherwise, including a manager who only reset a PIN). `counted_amount` is integer minor units. Only the session's own drawer: another register → 404, a vault → 422 (vaults are Office-only). The accounting date is today in the book timezone. The ledger row records the member as actor and the till user as cashier context. Effects and errors as `POST /accounting/cash-adjustments` (`docs/api/accounting.md` "Cash places").
+
 ## Catalog (till token)
 
 ### `GET /till/catalog?page&page_size&updated_since&code`

@@ -30,6 +30,7 @@ mod attention;
 mod attention_priorities;
 mod body_limits;
 mod bootstrap;
+mod cash_places;
 mod checkout;
 mod cli_migrate;
 mod currencies;
