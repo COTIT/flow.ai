@@ -108,6 +108,28 @@ The journal gets the next number of the workspace's journal series, its period a
 
 The original must be a posted `manual` journal. Any other kind gets 422 `unsupported_active_erp_operation`: source entries are corrected through their own workflow. The date must not be before the original's and must fall in an open period. The reversal is a new posted `reversal` entry with every line's sides swapped and the same functional amounts and rate snapshot. It records a `manual_journal/reversed` effect, so a second reversal gets 409. The original never changes; its `reversed_by` points at the reversal. No bank or provider refund is started.
 
+## Reports
+
+Read-only, `accounting.read`, `GET` under `/accounting/reports`. Only posted journals count; drafts never do. Amounts are the stored functional values (the book's functional currency), summed and formatted in SQL as exact strings in major units ("1250.50"). No rate is applied again: a later currency rate never changes a posted figure. Ranges are `from` inclusive, `to` exclusive; `as_of` includes that day. Dates are `YYYY-MM-DD` and required; there's no default to today.
+
+| Route | operation_id | Query |
+|---|---|---|
+| `/reports/trial-balance` | `accounting_trial_balance` | `from`, `to` |
+| `/reports/general-ledger` | `accounting_general_ledger` | `account_id`, `from`, `to`, `page`, `page_size` (default 50, max 100) |
+| `/reports/profit-and-loss` | `accounting_profit_and_loss` | `from`, `to` |
+| `/reports/balance-sheet` | `accounting_balance_sheet` | `as_of` |
+
+Each answers `{data: …}` with `functional_currency` and its dates.
+
+- **Trial balance**: one row per account with a posted line before `to`, ordered by code (`account` = id, code, name, type). Columns: `opening_debit`/`opening_credit` (balance before `from`, shown on its own side), `debit`/`credit` (activity in the range), `closing_debit`/`closing_credit`. `totals` sums each column; each debit total equals its credit total. Year-end close entries count.
+- **General ledger**: one account. `opening_balance`, `debit`, `credit`, `closing_balance` (balances are debit-positive, so a credit balance is negative), and `lines` = one page `{data, meta}` of posted lines oldest first (date, journal number, line number): `entry_id`, `number`, `kind`, `accounting_date`, `reason`, `line_no`, `relation_id`, `source_ref`, `debit`, `credit`, `balance`. `balance` is the running balance after the line; it carries on across pages. An account of another workspace, or none, gets 404.
+- **Profit and loss**: `income` (credit-positive) and `expenses` (debit-positive) per account, `total_income`, `total_expenses`, `net_profit`. Year-end close transfers (`kind = year_end_close`) are left out.
+- **Balance sheet**: `assets` (debit-positive), `liabilities` and `equity` (credit-positive) per account, their totals, `current_earnings` and `total_liabilities_and_equity` (= liabilities + equity + current earnings = `total_assets`). `current_earnings` is income − expense through `as_of` not yet moved to equity by a year-end close, across every year not yet closed; there's no split between this year and earlier years until year-end close exists. A close moves it into retained earnings, so it's counted once.
+
+422 field errors: missing or malformed date, `to` not after `from`, missing or malformed `account_id`. A book without a functional currency gets 422 `accounting_not_configured`.
+
+Not yet: party ledger, receivables and payables aging (they need open items and allocations, M4/M5), inventory valuation and close checks.
+
 ## Permissions
 
 `accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` are used now. `accounting.reconcile`, `accounting.close`, `accounting.revalue` and `accounting.activate` are catalogued for later milestones.

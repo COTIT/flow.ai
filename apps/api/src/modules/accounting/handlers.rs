@@ -12,7 +12,7 @@ use crate::{
     AppState,
     error::{AppError, ValidationErrorBody},
     http::{
-        json::ValidatedJson,
+        json::{Rules, Validate, ValidatedJson},
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
@@ -20,12 +20,13 @@ use crate::{
     idempotency::{Answer, Command},
     modules::accounting::{
         dto::{
-            AccountPatch, AccountPayload, AccountResource, Action, Create, JournalPayload,
-            JournalResource, ListQuery, PeriodPayload, PeriodResource, PostPayload, ReversePayload,
-            ReverseReviewBody, ReviewResource, SetupPayload, SetupResource, YearPayload,
-            YearResource,
+            AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
+            Create, GeneralLedgerResource, JournalPayload, JournalResource, LedgerQuery, ListQuery,
+            PeriodPayload, PeriodResource, PostPayload, ProfitAndLossResource, RangeQuery,
+            ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload, SetupResource,
+            TrialBalanceResource, YearPayload, YearResource,
         },
-        journals, service,
+        journals, reports, service,
     },
 };
 
@@ -449,4 +450,117 @@ pub async fn journals_reverse(
     cmd: Command<Action<ReversePayload>>,
 ) -> Result<Answer, AppError> {
     journals::reverse(&state, &access, id(&raw)?, cmd).await
+}
+
+/// Validate a report query; field errors are 422.
+fn valid<Q: Validate>(q: Q) -> Result<Q::Valid, AppError> {
+    let mut r = Rules::default();
+    let v = q.validate(&mut r);
+    r.into_result()?;
+    v.ok_or(AppError::NotFound)
+}
+
+/// accounting_trial_balance: Opening, activity and closing per account, posted only.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/trial-balance", tag = "accounting",
+    operation_id = "accounting_trial_balance",
+    summary = "Trial balance for [from, to)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), RangeQuery),
+    responses(
+        (status = 200, body = Envelope<TrialBalanceResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid dates, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn trial_balance(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<RangeQuery>,
+) -> Result<Data<TrialBalanceResource>, AppError> {
+    let range = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::trial_balance(&mut conn, access.workspace_id, range).await?,
+    ))
+}
+
+/// accounting_general_ledger: One account's posted lines with a running balance.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/general-ledger", tag = "accounting",
+    operation_id = "accounting_general_ledger",
+    summary = "General ledger of one account for [from, to)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), LedgerQuery),
+    responses(
+        (status = 200, body = Envelope<GeneralLedgerResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or account, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn general_ledger(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<LedgerQuery>,
+) -> Result<Data<GeneralLedgerResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (account, range) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::general_ledger(&mut conn, access.workspace_id, account, range, page).await?,
+    ))
+}
+
+/// accounting_profit_and_loss: Income and expense, excluding year-end close transfers.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/profit-and-loss", tag = "accounting",
+    operation_id = "accounting_profit_and_loss",
+    summary = "Profit and loss for [from, to)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), RangeQuery),
+    responses(
+        (status = 200, body = Envelope<ProfitAndLossResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid dates, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn profit_and_loss(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<RangeQuery>,
+) -> Result<Data<ProfitAndLossResource>, AppError> {
+    let range = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::profit_and_loss(&mut conn, access.workspace_id, range).await?,
+    ))
+}
+
+/// accounting_balance_sheet: Balances on as_of (inclusive) with unclosed earnings.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/balance-sheet", tag = "accounting",
+    operation_id = "accounting_balance_sheet",
+    summary = "Balance sheet on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), AsOfQuery),
+    responses(
+        (status = 200, body = Envelope<BalanceSheetResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid date, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn balance_sheet(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<AsOfQuery>,
+) -> Result<Data<BalanceSheetResource>, AppError> {
+    let as_of = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::balance_sheet(&mut conn, access.workspace_id, as_of).await?,
+    ))
 }

@@ -6,6 +6,7 @@
 mod common;
 
 mod accounting;
+mod accounting_reports;
 mod accounting_schema;
 mod active_products;
 mod afm_catalog;

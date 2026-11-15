@@ -1,0 +1,115 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH r AS (\n               SELECT a.id, a.code, a.name, a.type,\n                      CASE a.type WHEN 'asset'\n                          THEN sum(jl.functional_debit - jl.functional_credit)\n                          ELSE sum(jl.functional_credit - jl.functional_debit) END AS amount\n               FROM journal_lines jl\n               JOIN journal_entries je ON je.workspace_id = jl.workspace_id AND je.id = jl.entry_id\n               JOIN accounts a ON a.workspace_id = jl.workspace_id AND a.id = jl.account_id\n               WHERE jl.workspace_id = $1 AND je.state = 'posted' AND je.accounting_date <= $2\n               GROUP BY a.id),\n           t AS (\n               SELECT id, code, name, type, GROUPING(id) AS total,\n                      coalesce(sum(amount), 0) AS amount,\n                      coalesce(sum(amount) FILTER (WHERE type = 'asset'), 0) AS assets,\n                      coalesce(sum(amount) FILTER (WHERE type = 'liability'), 0) AS liabilities,\n                      coalesce(sum(amount) FILTER (WHERE type = 'equity'), 0) AS equity,\n                      coalesce(sum(amount) FILTER (WHERE type IN ('income', 'expense')), 0) AS earnings\n               FROM r GROUP BY GROUPING SETS ((id, code, name, type), ()))\n           SELECT id AS \"id?\", code AS \"code?\", name AS \"name?\", type AS \"type?\", total AS \"total!\",\n                  round(amount / 10::numeric ^ $3::int, $3::int)::text AS \"amount!\",\n                  round(assets / 10::numeric ^ $3::int, $3::int)::text AS \"assets!\",\n                  round(liabilities / 10::numeric ^ $3::int, $3::int)::text AS \"liabilities!\",\n                  round(equity / 10::numeric ^ $3::int, $3::int)::text AS \"equity!\",\n                  round(earnings / 10::numeric ^ $3::int, $3::int)::text AS \"earnings!\",\n                  round((liabilities + equity + earnings) / 10::numeric ^ $3::int, $3::int)::text\n                      AS \"liabilities_and_equity!\"\n           FROM t\n           WHERE total = 1 OR type IN ('asset', 'liability', 'equity')\n           ORDER BY total, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "total!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "assets!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "liabilities!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "equity!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "earnings!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "liabilities_and_equity!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "3b8f8a27c014dd7127425b0d471e294112f95c0314e24cd7eb4404aa09cbd563"
+}
