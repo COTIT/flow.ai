@@ -40,7 +40,53 @@ export const PRODUCT = {
   /** Accounts specs: the API refuses the shop's key as revoked (401) or short of a scope (403). */
   accountsKeyRevoked: "acc00401-0000-4000-8000-000000000401",
   accountsKeyNoScope: "acc00403-0000-4000-8000-000000000403",
+  /** Product page only (not in the catalogue): two options, 13 colours x 9 spices less one. */
+  basket: "b5000000-0000-4000-8000-000000000001",
+  /** Product page only: one option whose values are longer than a button is wide. */
+  prints: "b5000000-0000-4000-8000-000000000002",
 }
+
+/** The basket's options in AFM's order; one combination is missing, one costs more. */
+export const BASKET = {
+  colours: [
+    "Acacia Bronze Sand",
+    "East African Amber Tan",
+    "Kilimanjaro Flame Magenta",
+    "Kinjani Emerald Green",
+    "Lamu Indigo Dark Blue",
+    "Nairobi Slate Grey",
+    "Nakuru Sun Yellow",
+    "Savanna Gold White Sand",
+    "Swahili Saffron Orange",
+    "Tsavo Ochre Pumpkin Orange",
+    "Tsavo Olive Grinch Green",
+    "Watamu Tide Blue",
+    "Zanzibar Hibiscus Pink",
+  ],
+  spices: [
+    "Ground Red Pepper",
+    "Black Peppercorn",
+    "Ground Black Pepper",
+    "Whole Cumin",
+    "Ground Cumin",
+    "Whole Cloves",
+    "Ground Cloves",
+    "Cardamom",
+    "Ground Pumpkin Seed",
+  ],
+  /** No such variant: picking it falls back to a real one. */
+  missing: ["Zanzibar Hibiscus Pink", "Ground Pumpkin Seed"],
+  /** The one combination that costs $84.99 (the rest $74.99). */
+  dearer: ["Lamu Indigo Dark Blue", "Cardamom"],
+}
+
+/** The prints' one option: values that wrap in a button. */
+export const PRINTS = [
+  "Kuwawezesha Wanawake Wakulima",
+  "When Women Rise",
+  "Dreams of Tomorrow",
+  "Light, Land and Possibility",
+]
 
 /** AFM's shop categories, as `GET /storefront/categories` names them. */
 export const CATEGORY = {
