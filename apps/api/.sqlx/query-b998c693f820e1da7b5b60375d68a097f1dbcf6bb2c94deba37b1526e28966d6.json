@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT CASE WHEN $2 THEN (SELECT count(*) FROM accounting_periods WHERE workspace_id = $1)\n                       ELSE (SELECT count(*) FROM accounting_fiscal_years WHERE workspace_id = $1)\n                  END AS \"n!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b998c693f820e1da7b5b60375d68a097f1dbcf6bb2c94deba37b1526e28966d6"
+}

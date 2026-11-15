@@ -3,6 +3,8 @@
 //! replayed byte for byte for the same request (method, path, body); another request under
 //! the key is refused. A parallel copy waits on the key's row until the first commits, then
 //! replays. Keys live per workspace for a day. No header: no dedupe.
+//! Financial commands (`Command`) replay for good from `accounting_commands`, keyed by the
+//! envelope's `client_ref` per operation.
 
 use axum::{
     body::{Body, Bytes},
@@ -189,16 +191,21 @@ fn key_of(
         .map(str::trim)
         .filter(|k| (1..=255).contains(&k.len()))
         .ok_or_else(|| AppError::Unprocessable(BAD_KEY.into()))?;
+    Ok(Some(Key {
+        key: key.to_owned(),
+        hash: request_hash(method, path, body),
+    }))
+}
+
+/// sha256 of method + path + body: what a stored answer is bound to.
+fn request_hash(method: &Method, path: &str, body: &[u8]) -> [u8; 32] {
     let mut h = Sha256::new();
     h.update(method.as_str());
     h.update(b"\n");
     h.update(path);
     h.update(b"\n");
     h.update(body);
-    Ok(Some(Key {
-        key: key.to_owned(),
-        hash: h.finalize().into(),
-    }))
+    h.finalize().into()
 }
 
 /// A validated JSON body (as `ValidatedJson`) plus its Idempotency-Key.
@@ -254,6 +261,144 @@ impl<S: Send + Sync> FromRequestParts<S> for KeyOnly {
         )
         .map(Self)
     }
+}
+
+/// A command input that carries its caller-chosen replay identity (`client_ref`).
+pub trait ClientRef {
+    /// The `client_ref` of the envelope.
+    fn client_ref(&self) -> Uuid;
+}
+
+/// A financial command (masterplan §6): validated envelope, required Idempotency-Key and the
+/// fingerprint of method + path + canonical JSON body. Replays live in `accounting_commands`
+/// for good; `client_ref` is the identity, the key is kept as evidence.
+pub struct Command<T: Validate> {
+    pub input: T::Valid,
+    key: String,
+    hash: [u8; 32],
+}
+
+const KEY_REQUIRED: &str = "The Idempotency-Key header is required.";
+const REF_REUSED: &str = "This client_ref was already used for a different request.";
+
+impl<S, T> FromRequest<S> for Command<T>
+where
+    S: Send + Sync,
+    T: DeserializeOwned + Validate,
+{
+    type Rejection = AppError;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, AppError> {
+        let (method, uri, headers) = (
+            req.method().clone(),
+            req.uri().clone(),
+            req.headers().clone(),
+        );
+        let bytes = Bytes::from_request(req, state).await.map_err(|rejection| {
+            match rejection.status() {
+                StatusCode::PAYLOAD_TOO_LARGE => AppError::PayloadTooLarge,
+                _ if crate::http::timeout::is_body_timeout(&rejection) => AppError::BodyTimeout,
+                _ => AppError::field("body", rejection.body_text()),
+            }
+        })?;
+        // Same key rules as `Keyed`, but mandatory.
+        let key = key_of(&method, uri.path(), headers.get(HEADER), b"")?
+            .ok_or_else(|| AppError::Unprocessable(KEY_REQUIRED.into()))?
+            .key;
+        // Canonical body: serde_json maps are sorted, so key order and spacing don't matter.
+        let canonical = serde_json::from_slice::<serde_json::Value>(&bytes)
+            .map(|v| v.to_string().into_bytes())
+            .unwrap_or_else(|_| bytes.to_vec());
+        let hash = request_hash(&method, uri.path(), &canonical);
+        let mut again = Request::new(Body::from(bytes));
+        *again.method_mut() = method;
+        *again.uri_mut() = uri;
+        *again.headers_mut() = headers;
+        let ValidatedJson(input) = ValidatedJson::<T>::from_request(again, state).await?;
+        Ok(Self { input, key, hash })
+    }
+}
+
+/// The committed answer of a command already run under this `client_ref` and operation;
+/// None when fresh. Run first in the write's transaction: a copy in flight holds the row, so
+/// this waits and then replays. Another actor or another body under the ref → 409.
+pub async fn command_replay<T: Validate>(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    operation: &str,
+    user_id: Uuid,
+    cmd: &Command<T>,
+) -> Result<Option<Answer>, AppError>
+where
+    T::Valid: ClientRef,
+{
+    let client_ref = cmd.input.client_ref();
+    let fresh = sqlx::query_scalar!(
+        r#"INSERT INTO accounting_commands (workspace_id, operation, client_ref, user_id,
+                                            idempotency_key, request_hash)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (workspace_id, operation, client_ref) DO NOTHING
+           RETURNING true AS "fresh!""#,
+        workspace_id,
+        operation,
+        client_ref,
+        user_id,
+        cmd.key,
+        &cmd.hash[..],
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .is_some();
+    if fresh {
+        return Ok(None);
+    }
+    let stored = sqlx::query!(
+        "SELECT user_id, request_hash, status, response FROM accounting_commands
+         WHERE workspace_id = $1 AND operation = $2 AND client_ref = $3",
+        workspace_id,
+        operation,
+        client_ref,
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    if stored.user_id != user_id || stored.request_hash != cmd.hash {
+        return Err(AppError::Conflict(REF_REUSED));
+    }
+    let status = u16::try_from(stored.status)
+        .ok()
+        .filter(|s| (200..300).contains(s))
+        .ok_or_else(|| AppError::Internal("accounting command without an answer".into()))?;
+    Ok(Some(Answer {
+        status,
+        body: stored.response,
+    }))
+}
+
+/// Store a fresh command's answer and the ids it touched, in the write's transaction.
+pub async fn command_finish<T: Validate>(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    operation: &str,
+    cmd: &Command<T>,
+    answer: &Answer,
+    source_ids: &[Uuid],
+) -> Result<(), sqlx::Error>
+where
+    T::Valid: ClientRef,
+{
+    sqlx::query!(
+        "UPDATE accounting_commands SET status = $4, response = $5, source_ids = $6
+         WHERE workspace_id = $1 AND operation = $2 AND client_ref = $3",
+        workspace_id,
+        operation,
+        cmd.input.client_ref(),
+        i16::try_from(answer.status).unwrap_or(200),
+        &answer.body,
+        source_ids,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
 }
 
 #[cfg(test)]

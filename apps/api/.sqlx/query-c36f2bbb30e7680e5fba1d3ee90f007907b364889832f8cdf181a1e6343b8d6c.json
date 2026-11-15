@@ -1,0 +1,185 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.entry_id, l.line_no, l.account_id, a.code AS account_code, l.relation_id,\n                l.source_ref, l.debit, l.credit, l.functional_debit, l.functional_credit,\n                l.rate, l.rate_inverse, l.rate_source, l.rate_date\n         FROM journal_lines l\n         JOIN accounts a ON a.workspace_id = l.workspace_id AND a.id = l.account_id\n         WHERE l.workspace_id = $1 AND l.entry_id = ANY($2)\n         ORDER BY l.entry_id, l.line_no",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "entry_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "entry_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "line_no",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "line_no"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "account_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "source_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "source_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "debit",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "debit"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "credit",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "credit"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "functional_debit",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "functional_debit"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "functional_credit",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "functional_credit"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "rate",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "rate"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "rate_inverse",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "rate_inverse"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "rate_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "rate_source"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "rate_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "rate_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c36f2bbb30e7680e5fba1d3ee90f007907b364889832f8cdf181a1e6343b8d6c"
+}

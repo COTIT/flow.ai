@@ -1,0 +1,237 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.number, e.kind, e.state, e.accounting_date, e.currency_id,\n                  upper(c.asset_type) AS \"currency_code!\", c.decimals AS currency_decimals,\n                  e.reason, e.evidence_ref, e.reversal_of,\n                  (SELECT r.id FROM journal_entries r WHERE r.reversal_of = e.id) AS reversed_by,\n                  e.period_id, e.posted_by, e.posted_at, e.version, e.created_by,\n                  e.created_at, e.updated_at\n           FROM journal_entries e\n           JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id\n           WHERE e.workspace_id = $1 AND ($2::uuid IS NULL OR e.id = $2)\n           ORDER BY e.accounting_date DESC, e.id DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "accounting_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "accounting_date"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "evidence_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "evidence_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "reversal_of",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "reversal_of"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "reversed_by",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "period_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "period_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "posted_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "posted_by"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "posted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "posted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8856279d41f21efe808c85aa634162c04222c1ecdb96771d1a30a3007c62a3d8"
+}

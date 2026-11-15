@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE journal_entries SET state = 'posted', number = $3, period_id = $4, effect_id = $5,\n                posted_by = $6, posted_at = now(), version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6acef620535254c1d5576a30864eed23e9559e749823b0fa0530574de1ca3937"
+}
