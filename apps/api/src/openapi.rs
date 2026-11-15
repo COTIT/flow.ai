@@ -150,6 +150,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(currency_rates::routes::private())
         .merge(users::routes::private())
         .merge(permissions::routes::private())
+        .merge(crate::modules::imports::routes::private())
         .merge(workspaces::routes::private())
         .merge(teams::routes::private())
         .merge(search::routes::private())

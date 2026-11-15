@@ -104,6 +104,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "hourregistration",
         &["create", "delete", "get", "list", "update"],
     ),
+    // import: genesy master-data imports (masterplan §15).
+    (
+        "import",
+        &["apply", "create", "get", "list", "upload", "validate"],
+    ),
     ("invite", &["create", "delete", "get", "list"]),
     (
         "invoice",
@@ -269,8 +274,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 49);
-        assert_eq!(names().count(), 258);
+        assert_eq!(GROUPS.len(), 50);
+        assert_eq!(names().count(), 264);
     }
 
     #[test]
