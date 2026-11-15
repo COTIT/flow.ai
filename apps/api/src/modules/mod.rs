@@ -59,6 +59,7 @@ pub mod product_images;
 pub mod product_variants;
 pub mod products;
 pub mod purchase_units;
+pub mod purchasing;
 pub mod relations;
 pub mod sales_groups;
 pub mod scheduled_reports;

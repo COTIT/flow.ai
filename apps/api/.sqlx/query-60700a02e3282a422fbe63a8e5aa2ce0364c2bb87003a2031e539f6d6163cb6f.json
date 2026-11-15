@@ -1,0 +1,123 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, purchase_order_id, number, effective_receipt_date, note, version,\n                  created_by, recorded_at, count(*) OVER () AS \"total!\"\n           FROM purchase_receipts\n           WHERE workspace_id = $1 AND purchase_order_id = $2 AND ($3::uuid IS NULL OR id = $3)\n           ORDER BY number DESC LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purchase_order_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "purchase_order_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "number"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "effective_receipt_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "effective_receipt_date"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "recorded_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "recorded_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "60700a02e3282a422fbe63a8e5aa2ce0364c2bb87003a2031e539f6d6163cb6f"
+}

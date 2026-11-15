@@ -70,7 +70,8 @@ pub const MAX_LINES: usize = 100;
 const REF_MAX: usize = 255;
 const REASON_MAX: usize = 1000;
 
-fn uuid(r: &mut Rules, field: &str, value: Option<String>) -> Option<Uuid> {
+/// Required UUID string.
+pub fn uuid(r: &mut Rules, field: &str, value: Option<String>) -> Option<Uuid> {
     let v = r.required(field, value)?;
     let id = Uuid::parse_str(&v).ok();
     r.check(
@@ -81,14 +82,16 @@ fn uuid(r: &mut Rules, field: &str, value: Option<String>) -> Option<Uuid> {
     id
 }
 
-fn opt_uuid(r: &mut Rules, field: &str, value: Option<String>) -> Option<Option<Uuid>> {
+/// Optional UUID string; blank = None.
+pub fn opt_uuid(r: &mut Rules, field: &str, value: Option<String>) -> Option<Option<Uuid>> {
     match optional(value) {
         None => Some(None),
         Some(v) => uuid(r, field, Some(v)).map(Some),
     }
 }
 
-fn date(r: &mut Rules, field: &str, value: Option<String>) -> Option<NaiveDate> {
+/// Required `YYYY-MM-DD` date.
+pub fn date(r: &mut Rules, field: &str, value: Option<String>) -> Option<NaiveDate> {
     let v = r.required(field, value)?;
     let d = NaiveDate::parse_from_str(&v, "%Y-%m-%d").ok();
     r.check(

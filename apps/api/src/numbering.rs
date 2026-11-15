@@ -15,6 +15,10 @@ pub enum Series {
     Order,
     /// Posted journal entries (accounting), numbered at posting.
     Journal,
+    /// Purchase orders, numbered at create.
+    PurchaseOrder,
+    /// Purchase receipts.
+    PurchaseReceipt,
 }
 
 impl Series {
@@ -23,6 +27,8 @@ impl Series {
             Self::Invoice => "invoice",
             Self::Order => "order",
             Self::Journal => "journal",
+            Self::PurchaseOrder => "purchase_order",
+            Self::PurchaseReceipt => "purchase_receipt",
         }
     }
 }

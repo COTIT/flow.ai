@@ -139,6 +139,7 @@ Only when the workspace's accounting book is `active` (Flow ERP M2); a setup boo
 - Dates: business date in the book timezone; never before the pool's last valued date (422 `backdated_valuation`); same-day order by sequence.
 - Refused with nothing written (422 `{message, code}`): `insufficient_stock` (more than the pool), `accounting_not_configured` (missing functional currency or mapped role), `accounting_period_closed`, and `unsupported_active_erp_operation` for stock from before activation, supply transfers between workspaces, buying from farmers and supply corrections.
 - `transfer-stock`, `stocks` mutate, lot stock mutations and packings need `Idempotency-Key`; the answer replays for good. Setup books keep the one-day replay (`transfer-stock` takes the header too).
+- Purchase receipts (M3, `docs/api/purchasing.md`): booking a receipt line adds stock at its purchase value (DR inventory / CR GRNI, dated the receipt date). While a receipt waits to be booked, every other change of that pool is refused with 422 `receipt_booking_required`.
 
 ## Reads
 

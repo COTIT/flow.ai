@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT quantity, value, last_accounting_date FROM inventory_cost_pools\n         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "last_accounting_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "last_accounting_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2b21d1aed590076ad83e8dd700e0911dad5b4c496c4a211dc3a8591a277c8ed5"
+}

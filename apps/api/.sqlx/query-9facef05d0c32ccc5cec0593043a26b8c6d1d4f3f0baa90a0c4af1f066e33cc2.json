@@ -1,0 +1,253 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.receipt_id, l.po_line_id, l.product_id, l.warehouse_id, l.bin_id,\n                  b.shelf_id AS \"shelf_id?\", l.lot_id, l.base_quantity, l.late, l.booked_at,\n                  l.accounting_date, l.net_value, l.landed_value, l.rate, l.rate_inverse,\n                  l.rate_source, l.rate_date, l.journal_entry_id,\n                  l.net_value + l.landed_value AS value\n           FROM purchase_receipt_lines l\n           LEFT JOIN warehouse_section_row_bins b ON b.workspace_id = l.workspace_id\n                                                 AND b.id = l.bin_id\n           WHERE l.workspace_id = $1 AND l.receipt_id = ANY($2)\n             AND ($3::uuid[] IS NULL OR l.id = ANY($3))\n           ORDER BY l.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "receipt_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "receipt_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "po_line_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "po_line_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "bin_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "bin_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "shelf_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "shelf_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "base_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "base_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "late",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "late"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "booked_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "booked_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "accounting_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "accounting_date"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "net_value",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "net_value"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "landed_value",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "landed_value"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "rate",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "rate"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "rate_inverse",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "rate_inverse"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "rate_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "rate_source"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "rate_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "rate_date"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "journal_entry_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "journal_entry_id"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "value",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "9facef05d0c32ccc5cec0593043a26b8c6d1d4f3f0baa90a0c4af1f066e33cc2"
+}

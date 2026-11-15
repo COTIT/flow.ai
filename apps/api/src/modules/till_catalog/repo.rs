@@ -113,6 +113,7 @@ pub async fn products(
                         AND s.warehouse_id = $3 AND s.bin_id IS NULL AND s.deleted_at IS NULL
                         AND (s.lot_id IS NULL OR (l.status = 'released'
                              AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
+                        AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id, s.product_id)
                   ) END AS stock,
                   (SELECT coalesce(json_agg(json_build_object(
                               'id', v.id, 'sku', v.sku, 'ean13', v.ean13, 'barcode', v.barcode,
