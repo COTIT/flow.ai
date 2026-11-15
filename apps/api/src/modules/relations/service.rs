@@ -214,12 +214,21 @@ async fn list(
     }
     let ids: Vec<Uuid> = rows.iter().map(|(r, _, _)| r.id).collect();
     let mut contacts = contacts::repo::for_relations(&state.db, workspace_id, &ids).await?;
+    let open = if flags.suppliers {
+        crate::modules::purchasing::repo::supplier_open(&state.db, workspace_id, &ids).await?
+    } else {
+        Vec::new()
+    };
     let data = rows
         .into_iter()
         .map(|row| {
             let id = row.0.id;
             let mine = contacts.extract_if(.., |c| c.relation_id == id).collect();
-            RelationIndexResource::new(row, mine, flags)
+            let mut r = RelationIndexResource::new(row, mine, flags);
+            if let Some((_, count, value)) = open.iter().find(|o| o.0 == id) {
+                r.set_open_orders(*count, *value);
+            }
+            r
         })
         .collect();
     Ok((data, total))

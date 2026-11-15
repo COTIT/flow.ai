@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT company_name, alias, addresses, supplier_data FROM relations\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "company_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "company_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "alias",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "alias"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "addresses",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "addresses"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "supplier_data",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "supplier_data"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "83f01186d16f628b75ad0af27cc0f7a067170a30e310e9bfb340fd8dcf0a61d9"
+}

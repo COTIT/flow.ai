@@ -41,21 +41,21 @@ const ROLES: [&str; 26] = [
     "financial_loss",
 ];
 
-struct World {
-    app: Router,
-    pool: PgPool,
-    owner: String,
-    ws: String,
-    eur: String,
+pub(super) struct World {
+    pub(super) app: Router,
+    pub(super) pool: PgPool,
+    pub(super) owner: String,
+    pub(super) ws: String,
+    pub(super) eur: String,
     /// role → account id.
-    roles: std::collections::HashMap<&'static str, String>,
+    pub(super) roles: std::collections::HashMap<&'static str, String>,
     /// Unmapped expense and income accounts manual journals may use.
-    expense: String,
-    income: String,
+    pub(super) expense: String,
+    pub(super) income: String,
 }
 
 /// Ada owns `acme`; `ready` sets up the book, a 2027 year with a January period.
-async fn world(pool: PgPool) -> World {
+pub(super) async fn world(pool: PgPool) -> World {
     let app = app(pool.clone());
     let (owner, ws) = signup(&app, "ada@example.com", "acme").await;
     let eur: String = sqlx::query_scalar(
@@ -82,7 +82,7 @@ async fn world(pool: PgPool) -> World {
 
 impl World {
     /// Request with a fresh Idempotency-Key; status and JSON body.
-    async fn call(
+    pub(super) async fn call(
         &self,
         method: Method,
         path: &str,
@@ -95,7 +95,7 @@ impl World {
         (s, serde_json::from_slice(&b).unwrap_or(Value::Null))
     }
 
-    async fn raw(
+    pub(super) async fn raw(
         &self,
         method: Method,
         path: &str,
@@ -116,7 +116,7 @@ impl World {
         (s, b)
     }
 
-    async fn create(&self, path: &str, payload: Value) -> Value {
+    pub(super) async fn create(&self, path: &str, payload: Value) -> Value {
         let (s, b) = self
             .call(
                 Method::POST,
@@ -129,7 +129,7 @@ impl World {
         b["data"].clone()
     }
 
-    async fn account(&self, code: &str, kind: &str) -> String {
+    pub(super) async fn account(&self, code: &str, kind: &str) -> String {
         let a = self
             .create(
                 "/accounts",
@@ -139,14 +139,14 @@ impl World {
         a["id"].as_str().unwrap().to_owned()
     }
 
-    async fn setup(&self) -> Value {
+    pub(super) async fn setup(&self) -> Value {
         let (s, b) = self.call(Method::GET, "/setup", None, &self.owner).await;
         assert_eq!(s, StatusCode::OK, "{b}");
         b["data"].clone()
     }
 
     /// Map every role to its own account, set EUR + UTC, add 2027 with a January period.
-    async fn ready(&mut self) -> String {
+    pub(super) async fn ready(&mut self) -> String {
         let mut mappings = serde_json::Map::new();
         for (i, role) in ROLES.iter().enumerate() {
             let id = self.account(&format!("R{i:02}"), "asset").await;
@@ -185,7 +185,7 @@ impl World {
     }
 
     // shortcut: activation by SQL until M8 activate route.
-    async fn activate(&self) {
+    pub(super) async fn activate(&self) {
         sqlx::query(
             "UPDATE accounting_settings SET state = 'active', cutover_at = now(), activated_at = now(),
                     activated_by = (SELECT created_by_user_id FROM workspaces WHERE id = $1::uuid)
@@ -197,12 +197,12 @@ impl World {
         .unwrap();
     }
 
-    fn journal_body(&self, date: &str, lines: Value) -> Value {
+    pub(super) fn journal_body(&self, date: &str, lines: Value) -> Value {
         json!({"client_ref": Uuid::now_v7(), "payload": {
             "accounting_date": date, "currency_id": self.eur, "reason": "Accrue rent", "lines": lines}})
     }
 
-    async fn draft(&self, date: &str, debit: &str, credit: &str) -> Value {
+    pub(super) async fn draft(&self, date: &str, debit: &str, credit: &str) -> Value {
         let (s, b) = self
             .call(
                 Method::POST,
@@ -220,7 +220,7 @@ impl World {
         b["data"].clone()
     }
 
-    async fn post_review(&self, id: &Value) -> (StatusCode, Value) {
+    pub(super) async fn post_review(&self, id: &Value) -> (StatusCode, Value) {
         self.call(
             Method::POST,
             &format!("/journals/{}/post/review", id.as_str().unwrap()),
@@ -230,7 +230,7 @@ impl World {
         .await
     }
 
-    async fn post(&self, j: &Value) -> (StatusCode, Value) {
+    pub(super) async fn post(&self, j: &Value) -> (StatusCode, Value) {
         let (s, review) = self.post_review(&j["id"]).await;
         assert_eq!(s, StatusCode::OK, "{review}");
         self.call(
@@ -245,7 +245,7 @@ impl World {
         .await
     }
 
-    async fn reverse(&self, j: &Value, date: &str) -> (StatusCode, Value) {
+    pub(super) async fn reverse(&self, j: &Value, date: &str) -> (StatusCode, Value) {
         let id = j["id"].as_str().unwrap();
         let (s, review) = self
             .call(

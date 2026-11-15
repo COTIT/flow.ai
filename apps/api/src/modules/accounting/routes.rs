@@ -18,4 +18,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::journals_post))
         .routes(routes!(handlers::journals_reverse_review))
         .routes(routes!(handlers::journals_reverse))
+        .routes(routes!(handlers::trial_balance))
+        .routes(routes!(handlers::general_ledger))
+        .routes(routes!(handlers::profit_and_loss))
+        .routes(routes!(handlers::balance_sheet))
 }

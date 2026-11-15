@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT effect_id AS \"e!\" FROM journal_entries WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "e!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_entries",
+            "name": "effect_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "018040e07cf38e594dd82d3118dcf6a2fbf8e2ac58365c38e535c8400f5778b9"
+}

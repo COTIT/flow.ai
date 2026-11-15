@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM tax_profiles\n           WHERE workspace_id = $1 AND ($2::text IS NULL OR country = $2)\n             AND ($3::text IS NULL OR state = $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e444603fa2d443fb53645bd33cf10981f5915c7d27813552ae67a5c01b5c918c"
+}
