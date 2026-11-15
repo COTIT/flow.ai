@@ -25,7 +25,7 @@ const KEY_REQUIRED: &str = "The Idempotency-Key header is required.";
 
 /// GET /products/{product}/purchase-units -> `{data:[...]}`.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/products/{product}/purchase-units", tag = "products",
+    get, path = "/workspace/{workspace}/products/{product}/purchase-units", tag = "purchase_units",
     operation_id = "purchase_units_list", summary = "List a product's purchase units",
     description = "Supplier units with their exact ratio to the product's unit, ordered by code (at most 50).",
     params(
@@ -51,7 +51,7 @@ pub async fn list(
 
 /// POST /products/{product}/purchase-units.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/products/{product}/purchase-units", tag = "products",
+    post, path = "/workspace/{workspace}/products/{product}/purchase-units", tag = "purchase_units",
     operation_id = "purchase_units_create", summary = "Add a purchase unit",
     description = "Requires `Idempotency-Key`. The category must match the product unit's (kg, gram: mass; cm, m: length; m2: area; liter, m3: volume; pc, single: count). Box or unit-less products are refused. The ratio never changes afterwards. The same `client_ref` with the same content replays (200); other content is 409.",
     params(
@@ -81,7 +81,7 @@ pub async fn create(
 
 /// PATCH /products/{product}/purchase-units/{unit}.
 #[utoipa::path(
-    patch, path = "/workspace/{workspace}/products/{product}/purchase-units/{unit}", tag = "products",
+    patch, path = "/workspace/{workspace}/products/{product}/purchase-units/{unit}", tag = "purchase_units",
     operation_id = "purchase_units_update", summary = "Turn a purchase unit on or off",
     description = "Requires `Idempotency-Key`. Only `active` changes; code, category and ratio are fixed. `expected_version` must match the stored version (409 otherwise); a change bumps it by one.",
     params(

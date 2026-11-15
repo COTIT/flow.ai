@@ -51,6 +51,7 @@ export * from './product-categories/product-categories';
 export * from './product-fields/product-fields';
 export * from './product-variants/product-variants';
 export * from './products/products';
+export * from './purchase-units/purchase-units';
 export * from './relations/relations';
 export * from './sales-groups/sales-groups';
 export * from './scheduled-reports/scheduled-reports';

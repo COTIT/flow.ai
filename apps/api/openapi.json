@@ -103418,7 +103418,7 @@
         ],
         "summary": "List a product's purchase units",
         "tags": [
-          "products"
+          "purchase_units"
         ]
       },
       "post": {
@@ -103611,7 +103611,7 @@
         ],
         "summary": "Add a purchase unit",
         "tags": [
-          "products"
+          "purchase_units"
         ]
       }
     },
@@ -103806,7 +103806,7 @@
         ],
         "summary": "Turn a purchase unit on or off",
         "tags": [
-          "products"
+          "purchase_units"
         ]
       }
     },
