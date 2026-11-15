@@ -72,6 +72,7 @@ pub mod storefront;
 pub mod storefront_design;
 pub mod supply_chain;
 pub mod supply_links;
+pub mod tax_profiles;
 pub mod teams;
 pub mod till;
 pub mod till_catalog;

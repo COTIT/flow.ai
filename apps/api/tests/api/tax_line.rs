@@ -246,7 +246,11 @@ async fn inclusive_components_take_the_exact_remainder(pool: PgPool) {
     let w = world(pool, "ada@example.com", "acme").await;
     let p = w
         .profile(Spec {
-            components: &[("STATE", "10", false), ("CITY", "5", false), ("ZERO", "0", false)],
+            components: &[
+                ("STATE", "10", false),
+                ("CITY", "5", false),
+                ("ZERO", "0", false),
+            ],
             ..Spec::default()
         })
         .await;
@@ -471,11 +475,7 @@ async fn verified_content_is_immutable(pool: PgPool) {
                                      evidence_ref)
          SELECT workspace_id, id, NULL, 'x', 'y' FROM tax_profiles WHERE id = $1",
     ] {
-        let err = sqlx::query(sql)
-            .bind(p)
-            .execute(&w.pool)
-            .await
-            .unwrap_err();
+        let err = sqlx::query(sql).bind(p).execute(&w.pool).await.unwrap_err();
         let code = err.as_database_error().and_then(|d| d.code());
         assert!(
             matches!(code.as_deref(), Some("23514" | "55000")),

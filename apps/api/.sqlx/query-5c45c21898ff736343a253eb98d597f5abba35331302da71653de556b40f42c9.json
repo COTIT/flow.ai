@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM tax_rules WHERE workspace_id = $1 AND profile_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c45c21898ff736343a253eb98d597f5abba35331302da71653de556b40f42c9"
+}
