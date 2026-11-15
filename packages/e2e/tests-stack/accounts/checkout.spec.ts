@@ -1,6 +1,6 @@
 import { apiAs, cred, expect, test, unique, urls } from "../../src/stack"
 
-type Warehouse = { id: string; is_store: boolean }
+type Warehouse = { id: string; default_warehouse: boolean }
 
 test.describe("stock gone between cart and order", () => {
   test("the shop says so in words by the line, and places nothing", async ({
@@ -8,7 +8,7 @@ test.describe("stock gone between cart and order", () => {
     request,
   }) => {
     const owner = await apiAs(request, cred("office (AFM)", "owner"))
-    // A product of the test's own, one in the web warehouse (data rule 1).
+    // A product of the test's own, one in the warehouse checkout sells from (data rule 1).
     const name = `e2e last jar ${unique()}`
     const { product_id: id } = await owner.post<{ product_id: string }>(
       owner.ws("/products"),
@@ -19,7 +19,7 @@ test.describe("stock gone between cart and order", () => {
       }
     )
     const depot = (await owner.get<Warehouse[]>(owner.ws("/warehouses"))).find(
-      (w) => !w.is_store
+      (w) => w.default_warehouse
     )!
     const stock = (lvl: number) =>
       owner.post(owner.ws(`/products/${id}/set-stock-levels`), {
