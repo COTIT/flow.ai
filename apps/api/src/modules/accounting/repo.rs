@@ -726,6 +726,7 @@ pub async fn relations_found(
 pub async fn insert_effect(
     conn: &mut PgConnection,
     ws: Uuid,
+    source_kind: &str,
     source: Uuid,
     effect_kind: &str,
     fingerprint: &[u8],
@@ -734,8 +735,9 @@ pub async fn insert_effect(
     sqlx::query_scalar!(
         "INSERT INTO accounting_effects (workspace_id, source_kind, source_id, effect_kind,
                                          fingerprint, created_by)
-         VALUES ($1, 'manual_journal', $2, $3, $4, $5) RETURNING id",
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
         ws,
+        source_kind,
         source,
         effect_kind,
         fingerprint,

@@ -126,6 +126,20 @@ Moves stock from one warehouse to another warehouse of the same workspace (wareh
 - **Errors:** 403 without `stock.move`; 404 unknown product or another workspace; 409 `lot_recalled`, `lot_quarantined`, `lot_expired`; 422 per field: unknown warehouse or lot (another workspace's included), same warehouse twice (`warehouse_id_to` `Source and target warehouses must be different.`), product without stock tracking (`product`), `quantity` `Insufficient stock available. Available: x, Reserved: y, Requested: z`.
 - **Assistant review** (`stock_transfer`): facts `{kind: "stock_transfer", locked: {product, lot, from, to}, changes: [{field: "stock_from"|"stock_to", label: <warehouse name>, before, after}]}`. Levels are as of proposal; only `locked` is rechecked at approval, and the floor still refuses if stock dropped since. A transfer the route would refuse fails at proposal with a plain 422 and no review.
 
+## Valuation in an active book
+
+Only when the workspace's accounting book is `active` (Flow ERP M2); a setup book writes stock exactly as described above.
+
+- One cost pool per product and warehouse holds the quantity (every live row of the product there: warehouse level, bins, lots) and its value in functional minor units. Value entries are immutable, one per valued ledger row.
+- Sale (order complete, till sale, invoice issue): value = pool value when it empties the pool, else round(value × quantity ÷ pool quantity), half away from zero. The cost is kept per order or invoice, product and warehouse.
+- Return (order return with restock, invoice line lowered): the original cost back, cumulative; the last returned unit takes the exact rest. A sale from before activation has no cost: 422 `legacy_return_cost_required`.
+- Manual change (`stocks`, set levels, lot stock mutation): at the average. Into an empty pool: 422 `unsupported_active_erp_operation` (needs a reviewed value).
+- `transfer-stock` and packing: the exact value leaves one pool and enters the other. Packing needs a kg product into a pc/single product of another product, else 422 `unsupported_active_erp_operation`. Bin moves leave the pool alone.
+- Journals: sale DR cogs / CR inventory; return the reverse; manual change against `inventory_adjustment`. Transfers and packing post none.
+- Dates: business date in the book timezone; never before the pool's last valued date (422 `backdated_valuation`); same-day order by sequence.
+- Refused with nothing written (422 `{message, code}`): `insufficient_stock` (more than the pool), `accounting_not_configured` (missing functional currency or mapped role), `accounting_period_closed`, and `unsupported_active_erp_operation` for stock from before activation, supply transfers between workspaces, buying from farmers and supply corrections.
+- `transfer-stock`, `stocks` mutate, lot stock mutations and packings need `Idempotency-Key`; the answer replays for good. Setup books keep the one-day replay (`transfer-stock` takes the header too).
+
 ## Reads
 
 | Route | Permission | Answer |

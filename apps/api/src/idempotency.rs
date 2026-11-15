@@ -401,6 +401,97 @@ where
     Ok(())
 }
 
+/// Permanent identity of an existing economic write that has no `client_ref` (masterplan §6:
+/// workspace + actor + operation + stable Idempotency-Key): the first 16 bytes of their
+/// sha256, as the `accounting_commands.client_ref`.
+fn legacy_ref(workspace_id: Uuid, operation: &str, user_id: Uuid, key: &Key) -> Uuid {
+    let mut h = Sha256::new();
+    h.update(workspace_id.as_bytes());
+    h.update(operation);
+    h.update(b"\n");
+    h.update(user_id.as_bytes());
+    h.update(key.key.as_bytes());
+    let digest: [u8; 32] = h.finalize().into();
+    let mut id = [0u8; 16];
+    id.copy_from_slice(&digest[..16]);
+    Uuid::from_bytes(id)
+}
+
+/// `replay` for a write that must not repeat ever (active books): the key is required (422)
+/// and its answer lives in `accounting_commands` for good. Same key, other request → 422.
+pub async fn permanent_replay(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    operation: &str,
+    user_id: Uuid,
+    key: Option<&Key>,
+) -> Result<Option<Answer>, AppError> {
+    let key = key.ok_or_else(|| AppError::Unprocessable(KEY_REQUIRED.into()))?;
+    let client_ref = legacy_ref(workspace_id, operation, user_id, key);
+    let fresh = sqlx::query_scalar!(
+        r#"INSERT INTO accounting_commands (workspace_id, operation, client_ref, user_id,
+                                            idempotency_key, request_hash)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (workspace_id, operation, client_ref) DO NOTHING
+           RETURNING true AS "fresh!""#,
+        workspace_id,
+        operation,
+        client_ref,
+        user_id,
+        key.key,
+        &key.hash[..],
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .is_some();
+    if fresh {
+        return Ok(None);
+    }
+    let stored = sqlx::query!(
+        "SELECT request_hash, status, response FROM accounting_commands
+         WHERE workspace_id = $1 AND operation = $2 AND client_ref = $3",
+        workspace_id,
+        operation,
+        client_ref,
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    if stored.request_hash != key.hash {
+        return Err(AppError::Unprocessable(REUSED.into()));
+    }
+    let status = u16::try_from(stored.status)
+        .ok()
+        .filter(|s| (200..300).contains(s))
+        .ok_or_else(|| AppError::Internal("accounting command without an answer".into()))?;
+    Ok(Some(Answer {
+        status,
+        body: stored.response,
+    }))
+}
+
+/// Store the answer of a fresh [`permanent_replay`], in the write's transaction.
+pub async fn permanent_finish(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    operation: &str,
+    user_id: Uuid,
+    key: &Key,
+    answer: &Answer,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE accounting_commands SET status = $4, response = $5
+         WHERE workspace_id = $1 AND operation = $2 AND client_ref = $3",
+        workspace_id,
+        operation,
+        legacy_ref(workspace_id, operation, user_id, key),
+        i16::try_from(answer.status).unwrap_or(200),
+        &answer.body,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

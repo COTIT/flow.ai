@@ -16,7 +16,7 @@ Each section gives counts plus at most 5 items, oldest first. A section is `null
 Definitions:
 
 - `overdue`: unpaid and `due_date` before local midnight today in settings `general.timezone`. An unset or unknown zone counts as UTC.
-- `out_of_stock`: a live product with `has_stock` whose available stock, Σ (level − reserved) over its live stock rows, is at most 0. Rows in a lot that is quarantined, recalled or past `expires_on` are left out. One empty lot next to a full one is not out of stock; a tracked product never stocked is.
+- `out_of_stock`: a live product with `has_stock` whose sale availability (the storefront `available_stock` rule: default warehouse, dispatch rows, no bin, each row level − reserved never below 0) is at most 0. Rows in a lot that is quarantined, recalled or past `expires_on` are left out. One empty lot next to a full one is not out of stock; a tracked product never stocked is.
 - `held_orders`: distinct orders holding stock on a lot that is not released.
 - `invoices.open`: Σ (total − paid) of unpaid invoices, one entry per currency, summed in SQL.
 
@@ -65,7 +65,7 @@ Performance: two statements per section (count, items), no per-row queries. Part
 
 ## Below minimum (`stock.below_minimum`)
 
-A stock-tracked product is below its minimum when its sellable `available` (the `out_of_stock` rule: level − reserved, held and expired lots left out, all warehouses) is less than its minimum. Minimum = the sum of the product's row `minimal_stock_level` when that is above 0, else the workspace `product.low_stock_threshold` (default 5). `shortfall` = minimum − available. The summary carries `stock.below_minimum {count, items[≤5]}` (largest shortfall first). The scheduled `stock` email keeps its own rule.
+A stock-tracked product is below its minimum when its sellable `available` (the `out_of_stock` rule: default warehouse, dispatch rows, level − reserved never below 0 per row, held and expired lots left out) is less than its minimum. Minimum = the sum of the product's default-warehouse row `minimal_stock_level` when that is above 0, else the workspace `product.low_stock_threshold` (default 5). `shortfall` = minimum − available. The summary carries `stock.below_minimum {count, items[≤5]}` (largest shortfall first). The scheduled `stock` email keeps its own rule.
 
 ## Flow noticed `GET /attention/priorities` (`attention_priorities`, any member)
 

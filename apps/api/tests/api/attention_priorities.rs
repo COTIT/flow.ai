@@ -90,7 +90,8 @@ async fn below_minimum_uses_row_minimum_else_threshold(pool: PgPool) {
     let w = world(pool).await;
     let api = &w.api;
     let shop = shop(&w).await;
-    invoicing::stock(api, &w.honey, &w.warehouse, 8).await;
+    invoicing::stock(api, &w.honey, &w.warehouse, 3).await;
+    // Stock and minimum at a non-default warehouse don't count: the shop sells from the default.
     invoicing::stock(api, &w.honey, &shop, 4).await;
     sql(&api.pool, "UPDATE stocks SET minimal_stock_level = CASE WHEN warehouse_id = $2::uuid THEN 10 ELSE 5 END WHERE product_id = $1::uuid", &w.honey, &w.warehouse).await;
     invoicing::stock(api, &w.wax, &w.warehouse, 4).await;
@@ -126,9 +127,9 @@ async fn below_minimum_uses_row_minimum_else_threshold(pool: PgPool) {
     );
     let honey = &g["items"][0];
     assert_eq!(honey["ref_id"], w.honey.as_str());
-    assert_eq!(honey["available"], "12.00");
-    assert_eq!(honey["minimum"], "15.00");
-    assert_eq!(honey["shortfall"], "3.00");
+    assert_eq!(honey["available"], "3.00");
+    assert_eq!(honey["minimum"], "10.00");
+    assert_eq!(honey["shortfall"], "7.00");
     assert_eq!(honey["acknowledged"], false);
     assert_eq!(g["headline_ref"], w.honey.as_str());
 

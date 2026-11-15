@@ -87537,7 +87537,7 @@
                 }
               }
             },
-            "description": "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"
+            "description": "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, no usable mail server, or code `insufficient_stock`: a line asks more than its warehouse can sell, stores included"
           },
           "429": {
             "content": {
@@ -87721,7 +87721,7 @@
                 }
               }
             },
-            "description": "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"
+            "description": "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, no usable mail server, or code `insufficient_stock`: a line asks more than its warehouse can sell, stores included"
           },
           "429": {
             "content": {
@@ -98127,11 +98127,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorBody"
+                  "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
             },
-            "description": "Invalid input"
+            "description": "Invalid input, or code `unsupported_product_kind` (giftcard or bundle) or `sku_split_required` (stocked product with a nondefault size) while books are active"
           },
           "429": {
             "content": {
@@ -102110,7 +102110,7 @@
                 }
               }
             },
-            "description": "Invalid input, or code `product_master_frozen`: unit, type, stock tracking or serial tracking can't change once the product has stock, reservations, orders or invoices"
+            "description": "Invalid input, or code `product_master_frozen`: unit, type, stock tracking or serial tracking can't change once the product has stock, reservations, orders or invoices; or code `unsupported_product_kind` (giftcard or bundle) or `sku_split_required` (stocked product with a nondefault size) while books are active"
           },
           "429": {
             "content": {
@@ -105216,6 +105216,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Required in an active accounting book, where the answer is kept for good; otherwise kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -105317,7 +105329,7 @@
                 }
               }
             },
-            "description": "Invalid input, unknown warehouse or lot, same warehouse twice, or not enough free stock"
+            "description": "Invalid input, unknown warehouse or lot, same warehouse twice, not enough free stock, a missing or reused Idempotency-Key, or (active book) an ERP reason `code`"
           },
           "429": {
             "content": {
@@ -105643,7 +105655,7 @@
                 }
               }
             },
-            "description": "Invalid input, or code `product_master_frozen`: the default variant can't change once the product has stock, reservations, orders or invoices"
+            "description": "Invalid input, or code `product_master_frozen`: the default variant can't change once the product has stock, reservations, orders or invoices; or `sku_split_required`: a stocked product gets no nondefault size while books are active"
           },
           "429": {
             "content": {
@@ -105823,11 +105835,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorBody"
+                  "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
             },
-            "description": "Invalid input"
+            "description": "Invalid input, or code `sku_split_required`: a stocked product gets no nondefault size while books are active"
           },
           "429": {
             "content": {
@@ -119486,11 +119498,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorBody"
+                  "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
             },
-            "description": "Invalid input, unknown product, or too little cash tendered"
+            "description": "Invalid input, unknown product, too little cash tendered, or code `insufficient_stock`: a stock-tracked line asks more than the register's warehouse can sell (offline replays too)"
           },
           "429": {
             "content": {
@@ -119631,11 +119643,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorBody"
+                  "$ref": "#/components/schemas/UnprocessableBody"
                 }
               }
             },
-            "description": "Invalid input or unknown product"
+            "description": "Invalid input, unknown product, or code `insufficient_stock`: a stock-tracked line asks more than the register's warehouse can sell"
           },
           "429": {
             "content": {

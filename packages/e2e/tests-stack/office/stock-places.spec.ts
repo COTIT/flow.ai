@@ -5,16 +5,33 @@ import {
   loginOffice,
   openShift,
   pairTill,
+  stackAllow,
   test,
   unique,
   urls,
 } from "../../src/stack"
+import { tillApi } from "../till"
 
 type Warehouse = { id: string; name: string; is_store: boolean }
 
-// The user's report: stock added at one place didn't change a -1 shown for another. Stock is
-// kept per place; each screen must say which place a number is for, and why one is below zero.
-test("office: stock added at one place and sold at another's till; both numbers explained", async ({
+type Movement = { quantity_change: string }
+
+// The till's sale and quote are refused (422) on purpose here.
+test.use({
+  allow: {
+    ...stackAllow,
+    responses: [
+      ...stackAllow.responses,
+      { url: tillApi("/sales"), status: 422 },
+      { url: tillApi("/sales/quote"), status: 422 },
+    ],
+  },
+})
+
+// Stock is kept per place, and a sale takes only what its own place has (masterplan D17): the
+// till refuses what its store doesn't hold, even with stock at the depot; each office number
+// says which place it is for.
+test("office: the till refuses what its store lacks; stock added at the depot stays the depot's", async ({
   page,
   request,
 }) => {
@@ -31,16 +48,23 @@ test("office: stock added at one place and sold at another's till; both numbers 
   const store = warehouses.find((w) => w.id === register.warehouse_id)!
   const depot = warehouses.find((w) => !w.is_store)!
 
-  // The till sells one from its store, which has none recorded: never refused, goes to -1.
+  // The till tries to sell one from its store, which has none: refused, nothing booked.
   await page.goto(`${urls.till}/sale`)
   await page.getByLabel("Scan a barcode or type a name").fill(name)
   await page.getByRole("list", { name: "Products" }).getByRole("button", { name: new RegExp(name) }).click()
   await page.getByRole("button", { name: /^Charge/ }).click()
   const sheet = page.getByRole("dialog", { name: "Take payment" })
-  await sheet.getByRole("button", { name: "Cash" }).click()
-  await sheet.getByRole("button", { name: "Exact" }).click()
-  await sheet.getByRole("button", { name: /^Book sale/ }).click()
-  await expect(page.getByRole("dialog", { name: "Done" })).toBeVisible()
+  await sheet.getByRole("button", { name: "Card" }).click()
+  const refused = page.waitForResponse(
+    (r) => r.url().includes("/till/sales") && r.request().method() === "POST" && !r.url().includes("quote")
+  )
+  await sheet.getByRole("button", { name: /^Book card sale/ }).click()
+  const answer = await refused
+  expect(answer.status()).toBe(422)
+  expect((await answer.json()).code).toBe("insufficient_stock")
+  await expect(page.getByRole("dialog", { name: "Done" })).toBeHidden()
+  const moved = await owner.get<Movement[]>(owner.ws(`/products/${id}/stock-movements?page_size=100`))
+  expect(moved, "no stock taken").toHaveLength(0)
 
   // The office adds 10 at the depot; the message names the place and its new number.
   await loginOffice(page, cred("office (AFM)", "owner"))
@@ -55,34 +79,11 @@ test("office: stock added at one place and sold at another's till; both numbers 
     page.getByRole("status").filter({ hasText: `Added 10 at ${depot.name}: now 10.` })
   ).toBeVisible()
 
-  // The panel: each place with its own number; the store's -1 says why and how to fix it.
+  // The panel: each place with its own number; nothing is below zero.
   const stock = page.getByRole("region", { name: "Stock", exact: true })
   await expect(stock).toContainText(depot.name)
-  await expect(stock).toContainText(store.name)
-  // The total is the API's sum of every place (10 + -1); each place keeps its own number.
-  await expect(stock.getByText("9", { exact: true })).toBeVisible()
-  await expect(stock.getByText("10", { exact: true })).toBeVisible()
-  await expect(stock.locator("[data-slot=badge]").filter({ hasText: /^-1$/ })).toBeVisible()
-  await expect(
-    stock.getByText("More was sold here than was recorded. Count it and correct it.")
-  ).toBeVisible()
-  await expectNoRawValues(page)
-
-  // Correct it opens Change stock at the store, showing its number.
-  await stock.getByRole("button", { name: "Correct it" }).click()
-  await expect(dialog.getByLabel("Warehouse")).toHaveValue(store.id)
-  await expect(dialog.getByText(`Now at ${store.name}: -1`)).toBeVisible()
-  await page.keyboard.press("Escape")
-
-  // The Below zero list: the store row, explained, with the link back to the fix.
-  await page.goto(`${urls.office}/stock/negative`)
-  const row = page.getByRole("row").filter({ hasText: name })
-  await expect(row).toContainText(store.name)
-  await expect(row).toContainText("More was sold here than was recorded.")
-  const fix = row.getByRole("link", { name: "Correct it" })
-  await expect(fix).toHaveAttribute("href", `/products/${id}?change=${store.id}#product-stock`)
-  await fix.click()
-  await expect(page).toHaveURL(new RegExp(`/products/${id}\\?change=${store.id}`))
-  await expect(page.getByRole("dialog").getByLabel("Warehouse")).toHaveValue(store.id)
+  await expect(stock.getByText("10", { exact: true }).first()).toBeVisible()
+  await expect(stock.getByText("More was sold here than was recorded.")).toHaveCount(0)
+  expect(store.id).not.toBe(depot.id)
   await expectNoRawValues(page)
 })

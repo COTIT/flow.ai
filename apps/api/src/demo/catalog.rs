@@ -32,8 +32,6 @@ pub struct Catalog {
     pub products: Vec<Product>,
     pub depot: String,
     pub stall: String,
-    /// Products the store holds one of: till sales take them below zero.
-    pub oversell: Vec<String>,
     /// Lot passports printed after the table: (label, public code).
     pub passports: Vec<(&'static str, String)>,
 }
@@ -136,7 +134,7 @@ const STORE_ONLY: &[&str] = &[
     "whole-red-pepper",
 ];
 
-/// Original paintings: one in the store, so till sales take them below zero.
+/// Original paintings: one in the store.
 const ONE_OFFS: &[&str] = &["chaotic-mind-pascal-masegesse", "daisies-benard-omondi"];
 
 /// Every 14th product has no stock anywhere (the shop's sold-out badge).
@@ -204,7 +202,6 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
     }
 
     let mut products = Vec::new();
-    let mut oversell = Vec::new();
     for (i, p) in afm.into_iter().enumerate() {
         let category = categories
             .get(p.category.as_str())
@@ -275,9 +272,6 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
             )
             .await?;
         }
-        if tiny {
-            oversell.push(id.clone());
-        }
         products.push(Product {
             id,
             slug: p.slug,
@@ -296,7 +290,6 @@ pub async fn seed(shop: &Shop<'_>, store: &str) -> Result<Catalog, AppError> {
         products,
         depot,
         stall,
-        oversell,
         passports,
     })
 }

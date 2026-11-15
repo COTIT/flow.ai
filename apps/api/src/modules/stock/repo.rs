@@ -7,7 +7,14 @@ use serde_json::Value;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::{modules::webhooks, money::round};
+use crate::{
+    error::AppError,
+    modules::{
+        stock::value::{self, Valued},
+        webhooks,
+    },
+    money::round,
+};
 
 /// Where a stock row sits: product + warehouse, plus a bin (with its shelf) or none for the
 /// warehouse-level row, plus a lot or none for the product's no-lot stock.
@@ -50,6 +57,8 @@ pub struct Cause<'a> {
     /// The record that caused it, e.g. `("order", id)`.
     pub related: Option<(&'a str, Uuid)>,
     pub meta: Option<&'a Value>,
+    /// How an active book values the change (default: from `related` and direction).
+    pub value: Valued,
 }
 
 /// How far a decrease may take the level.
@@ -108,7 +117,7 @@ pub async fn mutate(
     change: Decimal,
     floor: Floor,
     cause: &Cause<'_>,
-) -> Result<Mutated, sqlx::Error> {
+) -> Result<Mutated, AppError> {
     let change = round(change, 2);
     let row = match locked(conn, workspace_id, slot).await? {
         Some(row) => row,
@@ -236,11 +245,13 @@ pub async fn locked(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     slot: Slot,
-) -> Result<Option<StockRow>, sqlx::Error> {
+) -> Result<Option<StockRow>, AppError> {
     // A waiter holds a pooled connection; give up instead of starving the pool.
     sqlx::query!("SET LOCAL lock_timeout = '5s'")
         .execute(&mut *conn)
         .await?;
+    // Book gate before any place/stock lock (masterplan §6).
+    let active = value::active(conn, workspace_id).await?;
     sqlx::query_scalar!(
         "SELECT id FROM warehouses
          WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
@@ -251,6 +262,10 @@ pub async fn locked(
     .fetch_optional(&mut *conn)
     .await?
     .ok_or(sqlx::Error::RowNotFound)?;
+    // Pool after its warehouse, before bin and stock rows: slot-key order is pool order.
+    if active {
+        value::pool(conn, workspace_id, slot.product_id, slot.warehouse_id).await?;
+    }
     if let Some(b) = slot.bin {
         sqlx::query_scalar!(
             "SELECT id FROM warehouse_section_row_bins
@@ -280,6 +295,7 @@ pub async fn locked(
     )
     .fetch_optional(&mut *conn)
     .await
+    .map_err(AppError::from)
 }
 
 /// The slot's `(level, reserved)` without a lock; zeros when it has no live row yet.
@@ -313,7 +329,7 @@ pub async fn lock_or_create(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     slot: Slot,
-) -> Result<(StockRow, bool), sqlx::Error> {
+) -> Result<(StockRow, bool), AppError> {
     if let Some(row) = locked(conn, workspace_id, slot).await? {
         return Ok((row, false));
     }
@@ -447,7 +463,7 @@ pub async fn lock_all(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     slots: &[Slot],
-) -> Result<Vec<SlotKey>, sqlx::Error> {
+) -> Result<Vec<SlotKey>, AppError> {
     let mut keyed: Vec<(SlotKey, Slot)> = slots.iter().map(|s| (key(s), *s)).collect();
     keyed.sort_by_key(|k| k.0);
     keyed.dedup_by_key(|k| k.0);
@@ -550,16 +566,17 @@ pub async fn record(
     workspace_id: Uuid,
     row: &StockRow,
     m: &Movement<'_>,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), AppError> {
     let (related_domain, related_id) = m.cause.related.unzip();
-    sqlx::query!(
+    let movement_id = sqlx::query_scalar!(
         "INSERT INTO stock_movements (workspace_id, stock_id, product_id, warehouse_id, shelf_id,
              bin_id, movement_type, quantity_change, quantity_before, quantity_after,
              minimal_stock_level_before, minimal_stock_level_after, maximum_stock_level_before,
              maximum_stock_level_after, reason, is_correction, user_id, related_domain,
              related_id, meta, lot_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-                 $18, $19, $20, $21)",
+                 $18, $19, $20, $21)
+         RETURNING id",
         workspace_id,
         row.id,
         row.product_id,
@@ -582,12 +599,21 @@ pub async fn record(
         m.cause.meta,
         row.lot_id,
     )
-    .execute(&mut *conn)
+    .fetch_one(&mut *conn)
     .await?;
-    // Requirements-only movements leave the level alone: no event.
+    // Requirements-only movements leave the level alone: no event, no value.
     if m.before == m.after {
         return Ok(());
     }
+    value::on_movement(
+        conn,
+        workspace_id,
+        row,
+        movement_id,
+        (m.before, m.after),
+        m.cause,
+    )
+    .await?;
     let payload = serde_json::json!({
         "stock_id": row.id,
         "product_id": row.product_id,
@@ -597,7 +623,8 @@ pub async fn record(
         "quantity_change": format!("{:.2}", m.after - m.before),
         "quantity_after": format!("{:.2}", m.after),
     });
-    webhooks::events::emit(conn, workspace_id, webhooks::events::STOCK_CHANGED, payload).await
+    webhooks::events::emit(conn, workspace_id, webhooks::events::STOCK_CHANGED, payload).await?;
+    Ok(())
 }
 
 /// The live warehouses of the workspace among `ids`.

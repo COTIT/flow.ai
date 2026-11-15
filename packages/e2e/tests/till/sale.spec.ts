@@ -626,3 +626,161 @@ test.describe("cash still short", () => {
     await expect(sheet.getByLabel("Still due")).toHaveCount(0)
   })
 })
+
+test.describe("server error at charge", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: salesUrl, status: 500 },
+        { url: salesUrl, status: 409 },
+      ],
+    },
+  })
+
+  /** Charges €50.00 cash in the open sheet. */
+  async function book50(page: Page) {
+    const sheet = await charge(page)
+    await sheet.getByRole("button", { name: "€50.00" }).click()
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
+    return sheet
+  }
+
+  /** Charges the edited basket: €50.00 still typed, two more zeros make it €5,000.00. */
+  async function bookAgain(page: Page) {
+    const sheet = await charge(page)
+    for (const d of "00")
+      await sheet.getByRole("button", { name: d, exact: true }).click()
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
+  }
+
+  /** Closes the sheet and adds one more candle: the basket changed after the 500. */
+  async function editBasket(page: Page) {
+    await page
+      .getByRole("dialog", { name: "Take payment" })
+      .getByRole("button", { name: "Close" })
+      .click()
+    await scan(page).fill("8712345000028")
+    await scan(page).press("Enter")
+  }
+
+  const refsOf = (api: FakeApi) =>
+    api
+      .callsTo("POST", `/workspace/${WS}/till/sales`)
+      .map((p) => (p.body as { client_ref: string }).client_ref)
+
+  test("booked before the 500: the edited retry is refused as reused and the booked sale is shown", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    let first: ReturnType<typeof booked> | null = null
+    let bookings = 0
+    api
+      .on("POST", "/workspace/:ws/till/sales", ({ body }) => {
+        const b = body as Parameters<typeof booked>[0]
+        if (first)
+          return {
+            status: 409,
+            body: {
+              message:
+                "This client_ref was used for another sale on this register.",
+            },
+          }
+        // The server commits the sale, then fails to answer.
+        first = booked(b)
+        bookings += 1
+        return { status: 500, body: { message: "Something went wrong." } }
+      })
+      .on("GET", "/workspace/:ws/till/sales/:ref", () =>
+        first
+          ? { data: first.body.data }
+          : { status: 404, body: { message: "Not found." } }
+      )
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    await book50(page)
+    await expect(
+      page.getByRole("dialog", { name: "Take payment" }).getByRole("alert")
+    ).toBeVisible()
+    // An answer came back: not an offline sale.
+    await expect(
+      page.getByRole("dialog", { name: "Saved offline" })
+    ).toHaveCount(0)
+
+    await editBasket(page)
+    await bookAgain(page)
+    const receipt = page.getByRole("dialog", { name: "Done" })
+    await expect(receipt.getByText("Sale 1042 booked")).toBeVisible()
+    await receipt.getByRole("button", { name: "New sale" }).click()
+    await expect(page.getByText("The basket is empty.")).toBeVisible()
+    const refs = refsOf(api)
+    expect(refs).toHaveLength(2)
+    expect(refs[0]).toBe(refs[1])
+    expect(bookings).toBe(1)
+  })
+
+  test("not booked before the 500: the edited retry books once under the same client_ref", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    let failed = false
+    let bookings = 0
+    api.on("POST", "/workspace/:ws/till/sales", ({ body }) => {
+      if (!failed) {
+        failed = true
+        return { status: 500, body: { message: "Something went wrong." } }
+      }
+      bookings += 1
+      return booked(body as Parameters<typeof booked>[0])
+    })
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    await book50(page)
+    await expect(
+      page.getByRole("dialog", { name: "Take payment" }).getByRole("alert")
+    ).toBeVisible()
+    await editBasket(page)
+    await bookAgain(page)
+    await expect(
+      page.getByRole("dialog", { name: "Done" }).getByText("Sale 1042 booked")
+    ).toBeVisible()
+    const refs = refsOf(api)
+    expect(refs).toHaveLength(2)
+    expect(refs[0]).toBe(refs[1])
+    expect(bookings).toBe(1)
+  })
+})
+
+test.describe("not enough stock at charge", () => {
+  test.use({ allow: { responses: [{ url: salesUrl, status: 422 }] } })
+
+  test("the refusal is shown in the cashier's words and nothing is queued", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    api.on("POST", "/workspace/:ws/till/sales", () => ({
+      status: 422,
+      body: { message: "Not enough stock.", code: "insufficient_stock" },
+    }))
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    const sheet = await charge(page)
+    await sheet.getByRole("button", { name: "€50.00" }).click()
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
+    await expect(
+      sheet.getByRole("alert").filter({
+        hasText:
+          "Not enough stock for a product in this sale. Ask the office to correct the stock, then try again.",
+      })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("dialog", { name: "Saved offline" })
+    ).toHaveCount(0)
+    await expectTillLook(page, { shift: false })
+  })
+})

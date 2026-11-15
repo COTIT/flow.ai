@@ -61,6 +61,7 @@ import type {
   TillSalesListParams,
   TillShiftsListParams,
   TransferRequest,
+  UnprocessableBody,
   UpdateTillUserRequest,
   ValidationErrorBody
 } from '../model';
@@ -1093,7 +1094,7 @@ export const tillSalesCreate = (
 
 export const getTillSalesCreateMutationKey = () => ['tillSalesCreate'] as const;
 
-export const getTillSalesCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getTillSalesCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext> => {
 
@@ -1122,13 +1123,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type TillSalesCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesCreate>>>
     export type TillSalesCreateMutationBody = BodyType<SaleRequest>
-    export type TillSalesCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type TillSalesCreateMutationVariables = {workspace: string;data: BodyType<SaleRequest>}
 
     /**
  * @summary Book a till sale (or replay it)
  */
-export const useTillSalesCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useTillSalesCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof tillSalesCreate>>,
@@ -1162,7 +1163,7 @@ export const tillSalesQuote = (
 
 export const getTillSalesQuoteMutationKey = () => ['tillSalesQuote'] as const;
 
-export const getTillSalesQuoteMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getTillSalesQuoteMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext> => {
 
@@ -1191,13 +1192,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type TillSalesQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesQuote>>>
     export type TillSalesQuoteMutationBody = BodyType<QuoteRequest>
-    export type TillSalesQuoteMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesQuoteMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type TillSalesQuoteMutationVariables = {workspace: string;data: BodyType<QuoteRequest>}
 
     /**
  * @summary Price a till basket as a sale would (writes nothing)
  */
-export const useTillSalesQuote = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useTillSalesQuote = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof tillSalesQuote>>,

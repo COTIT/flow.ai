@@ -104,6 +104,18 @@ test.describe("offline", () => {
     await expectTillLook(page, { shift: false })
     await saved.getByRole("button", { name: "New sale" }).click()
     expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(0)
+    // The queued sale keeps who rang it up, on which register: replay books it under them only.
+    const stored = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("genesy.till.queue") ?? "{}")
+    )
+    expect(stored.version).toBe(1)
+    expect(stored.state.items[0]).toMatchObject({
+      workspace: WS,
+      registerId: "reg-1",
+      tillUserId: "tu-1",
+      registerName: "Iringa till 1",
+      userName: "Amina",
+    })
 
     await context.setOffline(false)
     await expect(page.getByText("Offline sales synced")).toBeVisible()
@@ -174,9 +186,23 @@ test.describe("lost answer", () => {
 })
 
 /** A queued sale already on the device, from an earlier offline spell. */
-async function seedQueue(page: Page) {
+async function seedQueue(
+  page: Page,
+  origin: Record<string, unknown> = {},
+  version = 1
+) {
   const item = {
     workspace: WS,
+    // Rung up by Amina on this register, unless a spec says otherwise.
+    ...(version >= 1
+      ? {
+          registerId: "reg-1",
+          tillUserId: "tu-1",
+          registerName: "Iringa till 1",
+          userName: "Amina",
+        }
+      : {}),
+    ...origin,
     body: {
       client_ref: REF,
       sold_at: "2026-11-01T09:00:00Z",
@@ -199,7 +225,7 @@ async function seedQueue(page: Page) {
   }
   await page.addInitScript(
     (v) => localStorage.setItem("genesy.till.queue", v),
-    JSON.stringify({ state: { items: [item] }, version: 0 })
+    JSON.stringify({ state: { items: [item] }, version })
   )
 }
 
@@ -420,5 +446,253 @@ test.describe("replay of a product since taken off sale", () => {
         hasText: "A product in this sale is no longer for sale.",
       })
     ).toBeVisible()
+  })
+})
+
+const postsTo = (api: FakeApi) =>
+  api.callsTo("POST", `/workspace/${WS}/till/sales`)
+const getsOf = (api: FakeApi) =>
+  api.callsTo("GET", `/workspace/${WS}/till/sales/${REF}`)
+
+test.describe("rung up by another till user", () => {
+  test.use({ allow: { responses: [{ url: refUrl, status: 404 }] } })
+
+  test("it waits for that user and is never posted under the one logged in", async ({
+    page,
+    api,
+  }) => {
+    serverApi(api)
+    await seedQueue(page, { tillUserId: "tu-2", userName: "Baraka" })
+    await seedTill(page)
+    await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(
+      card.getByText(
+        "Rung up by Baraka. Sent once Baraka logs in on this till."
+      )
+    ).toBeVisible()
+    await expect(card.getByText("Waiting", { exact: true })).toBeVisible()
+    await expect.poll(() => getsOf(api).length).toBe(1)
+    await page.getByRole("button", { name: "Sync now" }).click()
+    await expect.poll(() => getsOf(api).length).toBe(2)
+    expect(postsTo(api)).toHaveLength(0)
+    // Never rebooked under Amina; the office can still record it by hand.
+    await expect(
+      card.getByRole("alert").filter({
+        hasText: "Show it to the office before dismissing it.",
+      })
+    ).toBeVisible()
+    await expectTillLook(page, { shift: false })
+    await card.getByRole("button", { name: "Dismiss" }).click()
+    await expect(page.getByText("All offline sales are booked")).toBeVisible()
+    expect(postsTo(api)).toHaveLength(0)
+  })
+
+  test("its answer that got lost is still found, without a post", async ({
+    page,
+    api,
+  }) => {
+    api.on("GET", "/workspace/:ws/till/sales/:ref", () => ({ data: sale }))
+    await seedQueue(page, { tillUserId: "tu-2", userName: "Baraka" })
+    await seedTill(page)
+    await page.goto("/queue")
+    await expect(page.getByText("Booked as sale 1042 · €25.00")).toBeVisible()
+    expect(postsTo(api)).toHaveLength(0)
+  })
+
+  test("closing the shift waits for it: its cash is in this drawer", async ({
+    page,
+    api,
+  }) => {
+    serverApi(api)
+    await seedQueue(page, { tillUserId: "tu-2", userName: "Baraka" })
+    await seedTill(page)
+    await page.goto("/drawer")
+    await expect(
+      page.getByRole("status").filter({
+        hasText: "1 offline sale still to sync. Sync before closing the shift.",
+      })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Close shift" })
+    ).toBeDisabled()
+  })
+})
+
+test("a sale rung up on another register is held: never asked for, never posted", async ({
+  page,
+  api,
+}) => {
+  serverApi(api)
+  await seedQueue(page, { registerId: "reg-2", registerName: "Iringa till 2" })
+  await seedTill(page)
+  await page.goto("/queue")
+  const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+  await expect(
+    card.getByText(
+      "Rung up on register Iringa till 2. It is only sent from that register."
+    )
+  ).toBeVisible()
+  await page.getByRole("button", { name: "Sync now" }).click()
+  await expect(card).toBeVisible()
+  expect(getsOf(api)).toHaveLength(0)
+  expect(postsTo(api)).toHaveLength(0)
+  await expect(
+    card.getByRole("alert").filter({
+      hasText: "Show it to the office before dismissing it.",
+    })
+  ).toBeVisible()
+  await expectTillLook(page, { shift: false })
+
+  // Not this drawer's cash: closing the shift does not wait for it.
+  await page.goto("/drawer")
+  await expect(page.getByRole("button", { name: "Close shift" })).toBeVisible()
+  await expect(page.getByText("Sync before closing the shift.")).toHaveCount(0)
+
+  await page.goto("/queue")
+  await page.getByRole("button", { name: "Dismiss" }).click()
+  await expect(page.getByText("All offline sales are booked")).toBeVisible()
+  expect(postsTo(api)).toHaveLength(0)
+})
+
+test.describe("saved before the till kept its origin", () => {
+  test.use({ allow: { responses: [{ url: refUrl, status: 404 }] } })
+
+  test("it is looked up but never posted after a 404", async ({
+    page,
+    api,
+  }) => {
+    serverApi(api)
+    await seedQueue(page, {}, 0)
+    await seedTill(page)
+    await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(
+      card.getByText(
+        "It is not known which register rang up this sale, so it is not sent."
+      )
+    ).toBeVisible()
+    await expect.poll(() => getsOf(api).length).toBe(1)
+    expect(postsTo(api)).toHaveLength(0)
+  })
+})
+
+test.describe("replay with no shift open", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: refUrl, status: 404 },
+        { url: salesUrl, status: 409 },
+      ],
+    },
+  })
+
+  test("a cash sale keeps waiting and is sent once the drawer is open", async ({
+    page,
+    api,
+  }) => {
+    serverApi(api)
+    let shiftOpen = false
+    api.on("POST", "/workspace/:ws/till/sales", () =>
+      shiftOpen
+        ? { status: 201, body: { data: sale } }
+        : {
+            status: 409,
+            body: {
+              message:
+                "No shift is open on this register: open the drawer first.",
+            },
+          }
+    )
+    await seedQueue(page, {
+      body: {
+        client_ref: REF,
+        sold_at: "2026-11-01T09:00:00Z",
+        lines: [
+          { product_id: honey.id, quantity: "1", unit_price: honey.unit_price },
+        ],
+        payment: { method: "cash", tendered: 2000 },
+      },
+    })
+    await seedTill(page)
+    await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(
+      card.getByText(
+        "No shift is open on this register. Open the drawer first."
+      )
+    ).toBeVisible()
+    await expect(card.getByText("Waiting", { exact: true })).toBeVisible()
+    await expect(card.getByRole("button", { name: "Dismiss" })).toHaveCount(0)
+
+    shiftOpen = true
+    await page.getByRole("button", { name: "Sync now" }).click()
+    await expect(page.getByText("Booked as sale 1042 · €25.00")).toBeVisible()
+    expect(postsTo(api)).toHaveLength(2)
+    expect(
+      postsTo(api).every(
+        (p) => (p.body as { client_ref: string }).client_ref === REF
+      )
+    ).toBe(true)
+  })
+})
+
+test.describe("replay refused for stock", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: refUrl, status: 404 },
+        { url: salesUrl, status: 422 },
+      ],
+    },
+  })
+
+  test("it is held for review, never retried on its own, and Try again sends the same client_ref", async ({
+    page,
+    api,
+  }) => {
+    serverApi(api)
+    let short = true
+    api.on("POST", "/workspace/:ws/till/sales", () =>
+      short
+        ? {
+            status: 422,
+            body: {
+              message: "Not enough stock.",
+              code: "insufficient_stock",
+            },
+          }
+        : { status: 201, body: { data: sale } }
+    )
+    await seedQueue(page)
+    await seedTill(page)
+    await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(card.getByText("Needs review", { exact: true })).toBeVisible()
+    await expect(
+      card.getByText(
+        "Not enough stock for a product in this sale. Ask the office to correct the stock, then try again."
+      )
+    ).toBeVisible()
+    await expect(
+      card.getByText("Show it to the office before dismissing it.")
+    ).toBeVisible()
+    await expect(card.getByRole("button", { name: "Dismiss" })).toBeVisible()
+    await expectNoRawValues(page)
+    await expectTillLook(page, { shift: false })
+
+    // Sync now leaves it alone: only a person sends it again.
+    await page.getByRole("button", { name: "Sync now" }).click()
+    await expect(card.getByText("Needs review", { exact: true })).toBeVisible()
+    expect(postsTo(api)).toHaveLength(1)
+
+    short = false
+    await card.getByRole("button", { name: "Try again" }).click()
+    await expect(page.getByText("Booked as sale 1042 · €25.00")).toBeVisible()
+    const posts = postsTo(api)
+    expect(posts).toHaveLength(2)
+    expect(
+      posts.map((p) => (p.body as { client_ref: string }).client_ref)
+    ).toEqual([REF, REF])
   })
 })

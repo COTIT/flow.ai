@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM product_variants\n                          WHERE workspace_id = $1 AND product_id = $2 AND NOT is_default\n                            AND deleted_at IS NULL) AS \"has!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "has!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8f662aa338a2a6d552b0817f0fd4dd46d344c79331cb2bbee93b3cc4eb143b55"
+}

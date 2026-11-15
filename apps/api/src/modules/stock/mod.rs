@@ -10,3 +10,4 @@ pub mod resource;
 pub mod routes;
 pub mod service;
 pub mod sweep;
+pub mod value;

@@ -504,9 +504,27 @@ fn push_list_filters<'a>(q: &mut sqlx::QueryBuilder<Postgres>, ws: Uuid, f: &'a 
         q.push(" AND NOT(p.id=ANY(").push_bind(f.exclude).push("))");
     }
     if let Some(level) = f.available_lte {
-        q.push(" AND p.has_stock AND (SELECT coalesce(sum(s.stock_lvl-s.reserved),0) FROM stocks s LEFT JOIN lots l ON l.workspace_id=s.workspace_id AND l.id=s.lot_id WHERE s.workspace_id=p.workspace_id AND s.product_id=p.id AND s.deleted_at IS NULL AND (s.lot_id IS NULL OR (l.status='released' AND (l.expires_on IS NULL OR l.expires_on>=current_date))))<=").push_bind(level);
+        // Storefront sale availability: default warehouse, dispatch rows, each row never below 0.
+        q.push(" AND p.has_stock AND (SELECT coalesce(sum(greatest(s.stock_lvl-s.reserved,0)),0) FROM stocks s LEFT JOIN lots l ON l.workspace_id=s.workspace_id AND l.id=s.lot_id WHERE s.workspace_id=p.workspace_id AND s.product_id=p.id AND s.deleted_at IS NULL AND s.bin_id IS NULL AND s.warehouse_id=(SELECT w.id FROM warehouses w WHERE w.workspace_id=p.workspace_id AND w.default_warehouse AND w.deleted_at IS NULL ORDER BY w.id LIMIT 1) AND (s.lot_id IS NULL OR (l.status='released' AND (l.expires_on IS NULL OR l.expires_on>=current_date))))<=").push_bind(level);
     }
     crate::modules::product_fields::repo::push_filters(q, f.custom_filters);
+}
+
+/// Whether the product has a live size other than its default (masterplan D05).
+pub async fn has_nondefault_variants(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM product_variants
+                          WHERE workspace_id = $1 AND product_id = $2 AND NOT is_default
+                            AND deleted_at IS NULL) AS "has!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(db)
+    .await
 }
 
 /// Lock the live product `id` before a delete; false when there is none. FOR UPDATE conflicts

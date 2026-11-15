@@ -251,7 +251,7 @@ export const productVariantsGenerate = (
 
 export const getProductVariantsGenerateMutationKey = () => ['productVariantsGenerate'] as const;
 
-export const getProductVariantsGenerateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getProductVariantsGenerateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productVariantsGenerate>>, TError,ProductVariantsGenerateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof productVariantsGenerate>>, TError,ProductVariantsGenerateMutationVariables, TContext> => {
 
@@ -280,13 +280,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ProductVariantsGenerateMutationResult = NonNullable<Awaited<ReturnType<typeof productVariantsGenerate>>>
     export type ProductVariantsGenerateMutationBody = BodyType<GenerateVariantsRequest>
-    export type ProductVariantsGenerateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type ProductVariantsGenerateMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type ProductVariantsGenerateMutationVariables = {workspace: string;product: string;data: BodyType<GenerateVariantsRequest>}
 
     /**
  * @summary Generate variants from option types
  */
-export const useProductVariantsGenerate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useProductVariantsGenerate = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productVariantsGenerate>>, TError,ProductVariantsGenerateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof productVariantsGenerate>>,

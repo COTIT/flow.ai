@@ -100,7 +100,7 @@ pub async fn get(
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
         (status = 409, body = MessageBody, description = "Stock is being written; retry after it finishes"),
-        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `product_master_frozen`: the default variant can't change once the product has stock, reservations, orders or invoices"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `product_master_frozen`: the default variant can't change once the product has stock, reservations, orders or invoices; or `sku_split_required`: a stocked product gets no nondefault size while books are active"),
     ),
     security(("bearer" = []))
 )]
@@ -180,7 +180,7 @@ pub async fn delete(
         (status = 201, body = GeneratedVariants, description = "Created variants and exact requested, created and skipped counts"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `sku_split_required`: a stocked product gets no nondefault size while books are active"),
     ),
     security(("bearer" = []))
 )]

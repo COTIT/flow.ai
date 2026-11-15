@@ -32,6 +32,9 @@ use crate::{
     numbering::{self, Series},
 };
 
+/// Effect source kind of manual journals.
+const MANUAL: &str = "manual_journal";
+
 const NOT_MANUAL: &str = "Only manual journals can be changed or reversed here. Correct source entries through their own workflow.";
 
 /// Minor units as an exact decimal string at `dp` places.
@@ -616,8 +619,16 @@ pub async fn post(
     for l in &p.lines {
         repo::set_functional(&mut tx, ws, id, l).await?;
     }
-    let effect =
-        repo::insert_effect(&mut tx, ws, id, "posted", &p.fingerprint, access.user_id).await?;
+    let effect = repo::insert_effect(
+        &mut tx,
+        ws,
+        MANUAL,
+        id,
+        "posted",
+        &p.fingerprint,
+        access.user_id,
+    )
+    .await?;
     let number = numbering::next(&mut tx, ws, Series::Journal, 1).await?;
     repo::mark_posted(&mut tx, ws, id, number, p.period, effect, access.user_id).await?;
     let answer = ok(&get(&mut tx, ws, id).await?);
@@ -750,16 +761,24 @@ pub async fn reverse(
     };
     let reversal = repo::insert_entry(&mut tx, ws, &fields, access.user_id).await?;
     repo::insert_lines(&mut tx, ws, reversal, &p.lines).await?;
-    let effect = repo::insert_effect(&mut tx, ws, id, "reversed", &p.fingerprint, access.user_id)
-        .await
-        .map_err(
-            |e| match e.as_database_error().and_then(|d| d.constraint()) {
-                Some("accounting_effects_identity_key") => {
-                    AppError::Conflict("This journal is already reversed.")
-                }
-                _ => e.into(),
-            },
-        )?;
+    let effect = repo::insert_effect(
+        &mut tx,
+        ws,
+        MANUAL,
+        id,
+        "reversed",
+        &p.fingerprint,
+        access.user_id,
+    )
+    .await
+    .map_err(
+        |e| match e.as_database_error().and_then(|d| d.constraint()) {
+            Some("accounting_effects_identity_key") => {
+                AppError::Conflict("This journal is already reversed.")
+            }
+            _ => e.into(),
+        },
+    )?;
     let number = numbering::next(&mut tx, ws, Series::Journal, 1).await?;
     repo::mark_posted(
         &mut tx,
@@ -775,6 +794,95 @@ pub async fn reverse(
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id, reversal]).await?;
     tx.commit().await?;
     Ok(answer)
+}
+
+/// A source posting in the functional currency: one debit and one credit line on mapped roles.
+pub struct SourceJournal<'a> {
+    pub source_kind: &'a str,
+    pub source_id: Uuid,
+    pub effect_kind: &'a str,
+    pub date: NaiveDate,
+    pub reason: &'a str,
+    pub debit: &'a str,
+    pub credit: &'a str,
+    /// Functional minor units, > 0.
+    pub amount: i64,
+    pub fingerprint: &'a [u8; 32],
+    pub by: Uuid,
+}
+
+/// Post `j` as a `source` journal in the caller's transaction; its id. 422
+/// `accounting_not_configured` without functional currency or an active mapped account per
+/// role (accounts locked FOR SHARE), `accounting_period_closed` without an open period on the
+/// date. The effect identity
+/// makes a second posting of the same source a database error.
+pub async fn post_source(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    j: &SourceJournal<'_>,
+) -> Result<Uuid, AppError> {
+    let currency = repo::settings(&mut *conn, ws, false)
+        .await?
+        .functional_currency_id
+        .ok_or_else(not_configured)?;
+    let mappings = repo::mappings(&mut *conn, ws).await?;
+    let account = |role: &str| {
+        mappings
+            .iter()
+            .find(|m| m.role == role)
+            .map(|m| m.account_id)
+            .ok_or_else(not_configured)
+    };
+    let (debit, credit) = (account(j.debit)?, account(j.credit)?);
+    // As manual posting: FOR SHARE in id order, so a deactivation waits for this posting or
+    // this posting sees it; active read under the lock.
+    let locked = repo::line_accounts(&mut *conn, ws, &[debit, credit]).await?;
+    for id in [debit, credit] {
+        if !locked.iter().any(|a| a.0 == id && a.1) {
+            return Err(not_configured());
+        }
+    }
+    let period = repo::open_period(&mut *conn, ws, j.date)
+        .await?
+        .ok_or_else(period_closed)?;
+    let fields = DraftFields {
+        kind: "source",
+        date: j.date,
+        currency,
+        reason: j.reason,
+        evidence_ref: None,
+        reversal_of: None,
+    };
+    let entry = repo::insert_entry(&mut *conn, ws, &fields, j.by).await?;
+    let line = |line_no, account_id, debit, credit| NewLine {
+        line_no,
+        account_id,
+        relation_id: None,
+        source_ref: None,
+        debit,
+        credit,
+        functional_debit: debit,
+        functional_credit: credit,
+        rate: Decimal::ONE,
+        rate_inverse: false,
+        rate_source: "identity",
+        rate_date: None,
+    };
+    let lines = [line(1, debit, j.amount, 0), line(2, credit, 0, j.amount)];
+    repo::insert_lines(&mut *conn, ws, entry, &lines).await?;
+    let effect = repo::insert_effect(
+        &mut *conn,
+        ws,
+        j.source_kind,
+        j.source_id,
+        j.effect_kind,
+        j.fingerprint,
+        j.by,
+    )
+    .await?;
+    let number = numbering::next(&mut *conn, ws, Series::Journal, 1).await?;
+    repo::mark_posted(&mut *conn, ws, entry, number, period, effect, j.by).await?;
+    Ok(entry)
 }
 
 #[cfg(test)]

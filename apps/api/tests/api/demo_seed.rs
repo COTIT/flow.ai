@@ -264,11 +264,6 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         ),
         (
             afm,
-            1,
-            "SELECT count(*) FROM stocks WHERE workspace_id = $1 AND stock_lvl < 0",
-        ),
-        (
-            afm,
             100,
             "SELECT count(*) FROM stock_movements WHERE workspace_id = $1",
         ),
@@ -688,6 +683,16 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         }
     }
     assert!(short.is_empty(), "short:\n{}", short.join("\n"));
+    // No sale goes below zero (masterplan D17), the demo's till week included.
+    assert_eq!(
+        count_in(
+            &pool,
+            afm,
+            "SELECT count(*) FROM stocks WHERE workspace_id = $1 AND stock_lvl < 0"
+        )
+        .await,
+        0
+    );
 
     // AFM's real catalogue: its 79 products, each in one of the twelve shop categories, its
     // prices, and the farm's coffee lots on AFM's own whole-bean coffee.

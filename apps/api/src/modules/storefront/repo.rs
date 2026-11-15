@@ -86,10 +86,18 @@ pub async fn products(
                               AND vg.deleted_at IS NULL), 0) AS "vat!",
                   upper(c.asset_type) AS "currency!", c.decimals AS currency_decimals,
                   CASE WHEN pg.has_stock THEN (
-                      SELECT coalesce(sum(s.stock_lvl - s.reserved), 0.00::numeric(19, 2))::text
+                      -- Sale availability (masterplan §7): checkout's warehouse (the default),
+                      -- dispatch rows (no bin), each row level − reserved, never below 0.
+                      SELECT coalesce(sum(greatest(s.stock_lvl - s.reserved, 0)),
+                                      0.00::numeric(19, 2))::text
                       FROM stocks s
                       LEFT JOIN lots l ON l.id = s.lot_id
                       WHERE s.workspace_id = $1 AND s.product_id = pg.id AND s.deleted_at IS NULL
+                        AND s.bin_id IS NULL AND s.warehouse_id = (
+                            SELECT w.id FROM warehouses w
+                            WHERE w.workspace_id = $1 AND w.default_warehouse
+                              AND w.deleted_at IS NULL
+                            ORDER BY w.id LIMIT 1)
                         AND (s.lot_id IS NULL OR (l.status = 'released'
                              AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
                   ) END AS available_stock,
@@ -99,8 +107,11 @@ pub async fn products(
                      AND l.published_at IS NOT NULL AND l.status = 'released'
                      AND (l.expires_on IS NULL OR l.expires_on >= current_date)
                      AND EXISTS (SELECT 1 FROM stocks s
+                                 JOIN warehouses w ON w.id = s.warehouse_id
+                                      AND w.default_warehouse AND w.deleted_at IS NULL
                                  WHERE s.workspace_id = $1 AND s.lot_id = l.id
-                                   AND s.deleted_at IS NULL AND s.stock_lvl - s.reserved > 0)
+                                   AND s.bin_id IS NULL AND s.deleted_at IS NULL
+                                   AND s.stock_lvl - s.reserved > 0)
                    ORDER BY least(l.expires_on, l.best_before) NULLS LAST, l.id
                    LIMIT 1) AS passport_code,
                   (SELECT coalesce(json_agg(json_build_object(

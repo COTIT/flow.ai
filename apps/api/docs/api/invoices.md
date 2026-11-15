@@ -251,7 +251,7 @@ As Laravel SendInvoice::mutateStock, for every line whose product is `physical` 
 
 - **Warehouse:** the line's `mutate_from_warehouse_id`, else the product's default warehouse, else the workspace's main warehouse (live ones only). None: `422 {"message": "No warehouse available"}`.
 - **Change:** −(quantity − already moved). A credit note's negative lines put stock back.
-- **Floor:** a store may go negative. Any other warehouse refuses a shortage with `422 {"message": "Insufficient stock for product {reference_vendor - name} in {warehouse}. Available stock: {level}. Required: {quantity}"}`, and nothing of the send is stored (no number used).
+- **Floor:** no warehouse goes negative, stores included (masterplan D17). A shortage is `422 {"message": "Insufficient stock for product {reference_vendor - name} in {warehouse}. Available stock: {level}. Required: {quantity}", "code": "insufficient_stock"}`, and nothing of the send is stored (no number used).
 - Each line's `mutated_from_stock` becomes its quantity.
 - The movement has `related_domain: "invoice"` and `related_id` set; Laravel put the number in `reason`, which doesn't exist yet when stock moves.
 - **Not for orders:** an invoice made from an order (`POST /orders/{order}/invoice`), and a credit note of such an invoice, move no stock on send. The order took it on complete and puts it back through `POST /orders/{order}/returns`; as Laravel, which skipped invoices of orders.

@@ -22,6 +22,7 @@ use crate::{
         stock::{
             repo::{self as stock, Cause, Floor, Mutated, Slot},
             service::tracks_stock,
+            value::{self as stock_value, Valued},
         },
         supply_chain::{
             dto::{NewDispatch, NewPacking, NewReceipt, PackedLotResource, SupplyTransferResource},
@@ -37,6 +38,8 @@ const NOT_SUPPLY_SEND: &str = "Only a lot from a supply batch can be sent over a
 const NOT_LIVE: &str = "The supply link is not live.";
 const NOT_RECEIVER: &str = "Only the receiving workspace receives a transfer.";
 const RECEIVED: &str = "This transfer was already received.";
+const INTERCOMPANY: &str =
+    "Supply transfers between workspaces aren't supported while the accounting book is active.";
 
 fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
@@ -123,15 +126,18 @@ pub async fn pack(
     }
     check_product_warehouse(state, ws, p.product_id, p.warehouse_id).await?;
     let mut tx = state.db.begin().await?;
-    if let Some(a) =
-        idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
-    {
+    let (replay, done) =
+        stock_value::replay(&mut tx, ws, "lots_pack", access.user_id, key.as_ref()).await?;
+    if let Some(a) = done {
         return Ok(a);
     }
     let parent = lots::locked(&mut tx, ws, parent.id)
         .await?
         .ok_or(AppError::NotFound)?;
     check_sendable(&parent)?;
+    if replay.active() {
+        stock_value::check_packing(&mut tx, ws, parent.product_id, p.product_id).await?;
+    }
     let mut child = new_lot(p.product_id, p.code, parent.origin.clone());
     child.best_before = p.best_before;
     child.expires_on = p.expires_on;
@@ -155,6 +161,7 @@ pub async fn pack(
         reason: Some("packing"),
         user_id: Some(access.user_id),
         related: Some(("lot_packing", child.id)),
+        value: Valued::Pack,
         ..Cause::default()
     };
     short(
@@ -188,7 +195,7 @@ pub async fn pack(
         expires_on: child.expires_on,
     };
     let answer = Answer::created(&json!({ "data": packed }));
-    idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
+    replay.finish(&mut tx, ws, key.as_ref(), &answer).await?;
     tx.commit().await?;
     Ok(answer)
 }
@@ -210,6 +217,7 @@ pub async fn dispatch(
     let ws = access.workspace_id;
     // First, so a retry answers as before even if the link was revoked since.
     let mut tx = state.db.begin().await?;
+    stock_value::refuse_active(&mut tx, ws, INTERCOMPANY).await?;
     if let Some(answer) =
         idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
     {
@@ -319,6 +327,7 @@ pub async fn receive(
     }
     check_product_warehouse(state, ws, r.product_id, r.warehouse_id).await?;
     let mut tx = state.db.begin().await?;
+    stock_value::refuse_active(&mut tx, ws, INTERCOMPANY).await?;
     let (sent, received, _) = repo::lock_incoming(&mut tx, t.id, ws)
         .await?
         .ok_or(AppError::NotFound)?;
