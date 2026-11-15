@@ -75,6 +75,13 @@ pub enum AppError {
     /// 503 with a stable code: new payment admission needs merchant setup, not a retry.
     #[error("Online payments require merchant setup.")]
     PaymentSetupRequired,
+    /// `status` with a stable machine `code` beside the message: a business rule refused.
+    #[error("{message}")]
+    Reason {
+        status: StatusCode,
+        code: &'static str,
+        message: String,
+    },
     /// 404. Same body for "missing" and "exists but not yours", so ids can't be probed.
     #[error("not found")]
     NotFound,
@@ -116,6 +123,7 @@ impl AppError {
             | Self::Unprocessable(_)
             | Self::NotFound
             | Self::PayloadTooLarge => true,
+            Self::Reason { status, .. } => status.is_client_error(),
             Self::Database(e) => e
                 .as_database_error()
                 .and_then(|d| d.code())
@@ -254,6 +262,11 @@ impl IntoResponse for AppError {
                 })),
             )
                 .into_response(),
+            Self::Reason {
+                status,
+                code,
+                message,
+            } => (status, Json(json!({ "message": message, "code": code }))).into_response(),
             Self::NotFound => (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "message": "The requested resource could not be found." })),
@@ -340,6 +353,22 @@ mod tests {
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(body["code"], "payment_setup_required");
         assert_eq!(body.as_object().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn reason_has_its_status_message_and_stable_code() {
+        let err = AppError::Reason {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            code: "product_master_frozen",
+            message: "Frozen.".into(),
+        };
+        assert!(err.is_permanent());
+        let (status, body) = render(err).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(
+            body,
+            json!({ "message": "Frozen.", "code": "product_master_frozen" })
+        );
     }
 
     #[tokio::test]

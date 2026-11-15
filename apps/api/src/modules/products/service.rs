@@ -3,6 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use axum::http::StatusCode;
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde_json::Value;
@@ -462,6 +463,9 @@ pub(crate) async fn prepare_update(
     let mut row = before.clone();
     apply(&mut row, f);
     check(conn, workspace_id, &row, f).await?;
+    if let Some(field) = frozen_changes(before, &row).first() {
+        refuse_if_used(conn, workspace_id, before.id, field).await?;
+    }
     if row.gross_price != before.gross_price
         || row.price != before.price
         || row.impact_on_price != before.impact_on_price
@@ -474,6 +478,106 @@ pub(crate) async fn prepare_update(
         normalise_row(&mut row, priority)?;
     }
     Ok(row)
+}
+
+/// Master fields this update changes whose meaning stock, orders and invoices rely on.
+fn frozen_changes(before: &ProductRow, after: &ProductRow) -> Vec<&'static str> {
+    [
+        ("unit", after.unit != before.unit),
+        ("type", after.kind != before.kind),
+        ("has_stock", before.has_stock && !after.has_stock),
+        ("is_serialized", after.is_serialized != before.is_serialized),
+    ]
+    .into_iter()
+    .filter_map(|(field, changed)| changed.then_some(field))
+    .collect()
+}
+
+/// 422 `product_master_frozen` when the product has economic history (stock, reservations,
+/// order or invoice lines); `field` names the master field about to change. Leaves the product
+/// and its stock rows locked so the answer holds until commit; busy stock is 409.
+pub(crate) async fn refuse_if_used(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    field: &str,
+) -> Result<(), AppError> {
+    let unit = field == "unit";
+    repo::lock_for_master_change(conn, workspace_id, id)
+        .await
+        .map_err(|error| {
+            if error
+                .as_database_error()
+                .is_some_and(|e| e.code().as_deref() == Some("55P03"))
+            {
+                AppError::Conflict("Stock is being changed. Try again after that write finishes.")
+            } else {
+                error.into()
+            }
+        })?;
+    // Purchase-unit ratios mean "base units per input unit": a new base unit voids them.
+    if unit && repo::has_purchase_units(conn, workspace_id, id).await? {
+        return Err(AppError::Reason {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            code: "product_master_frozen",
+            message: "The unit can't change while the product has purchase units.".into(),
+        });
+    }
+    if !repo::has_economic_history(conn, workspace_id, id).await? {
+        return Ok(());
+    }
+    let what = match field {
+        "unit" => "The unit",
+        "type" => "The type",
+        "has_stock" => "Stock tracking",
+        "is_serialized" => "Serial tracking",
+        _ => "The default variant",
+    };
+    Err(AppError::Reason {
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+        code: "product_master_frozen",
+        message: format!(
+            "{what} can't change once the product has stock, reservations, orders or invoices."
+        ),
+    })
+}
+
+/// Kinds active books can't post yet (masterplan D18): no liability or component adapter.
+const ACTIVE_BLOCKED: [&str; 3] = ["giftcard", "multi_product_set", "multi_product_group"];
+
+/// Active-books product support (masterplan D05, D18); setup/dormant books (`active` false)
+/// keep every kind. A stocked product with a nondefault variant needs a SKU split first.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "wired to accounting_settings after the accounting core merges"
+    )
+)]
+pub fn active_guard(
+    kind: &str,
+    has_stock: bool,
+    has_nondefault_variants: bool,
+    active: bool,
+) -> Result<(), AppError> {
+    if !active {
+        return Ok(());
+    }
+    if ACTIVE_BLOCKED.contains(&kind) {
+        return Err(AppError::Reason {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            code: "unsupported_product_kind",
+            message: format!("Products of type {kind} aren't supported while books are active."),
+        });
+    }
+    if has_stock && has_nondefault_variants {
+        return Err(AppError::Reason {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            code: "sku_split_required",
+            message: "Each stocked size must be its own product while books are active.".into(),
+        });
+    }
+    Ok(())
 }
 
 /// A new row with Laravel's create defaults; main currency and VAT group filled in.
@@ -1048,4 +1152,50 @@ pub(crate) async fn material_in(
     Ok(
         serde_json::json!({"before":before,"projected":projected,"custom_fields":custom_fields,"dependencies":material_dependencies(conn,ws,&row).await?,"bundle_children":bundle_children}),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn code(r: Result<(), AppError>) -> Option<&'static str> {
+        match r {
+            Ok(()) => None,
+            Err(AppError::Reason {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                code,
+                ..
+            }) => Some(code),
+            Err(e) => panic!("unexpected {e:?}"),
+        }
+    }
+
+    #[test]
+    fn active_guard_blocks_only_in_active_books() {
+        for kind in ACTIVE_BLOCKED {
+            assert_eq!(code(active_guard(kind, false, false, false)), None);
+            assert_eq!(
+                code(active_guard(kind, false, false, true)),
+                Some("unsupported_product_kind")
+            );
+        }
+        assert_eq!(code(active_guard("physical", true, true, false)), None);
+        assert_eq!(
+            code(active_guard("physical", true, true, true)),
+            Some("sku_split_required")
+        );
+        for (kind, stock, variants) in [
+            ("physical", true, false),
+            ("physical", false, true),
+            ("physical_second_chance", true, false),
+            ("service", false, true),
+            ("digital", false, false),
+        ] {
+            assert_eq!(
+                code(active_guard(kind, stock, variants, true)),
+                None,
+                "{kind}"
+            );
+        }
+    }
 }

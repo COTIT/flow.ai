@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM stocks WHERE workspace_id = $1 AND product_id = $2\n                            AND deleted_at IS NULL AND (stock_lvl <> 0 OR reserved <> 0))\n               OR EXISTS (SELECT 1 FROM stock_reservations WHERE workspace_id = $1 AND product_id = $2)\n               OR EXISTS (SELECT 1 FROM order_lines WHERE workspace_id = $1 AND product_id = $2)\n               OR EXISTS (SELECT 1 FROM items WHERE workspace_id = $1 AND product_id = $2)\n             AS \"used!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "used!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a182f29349453abde8c631d3a08e93728f7e1632d1192c7f632f6646d86387e8"
+}
