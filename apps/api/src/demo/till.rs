@@ -1,6 +1,6 @@
 //! AFM tills: the counter and the market stall, four cashiers (one inactive), a back-office safe,
 //! and a week of shifts with cash and card sales. Some shifts close short or over, three sales
-//! were rung at an old price, two items sell below zero, and the counter's shift is open now.
+//! were rung at an old price, and the counter's shift is open now.
 
 use axum::http::Method;
 use chrono::{Duration, Utc};
@@ -164,17 +164,6 @@ pub async fn seed(
                 lines.push(
                     json!({ "product_id": extra.id, "quantity": "1", "unit_price": extra.cents }),
                 );
-            }
-            // Two lines the store holds one of sell three times this week: stock goes below zero.
-            if *register == 0 && s == 5 && *days <= 3 {
-                for id in &catalog.oversell {
-                    let cents = catalog
-                        .products
-                        .iter()
-                        .find(|p| &p.id == id)
-                        .map_or(100, |p| p.cents);
-                    lines.push(json!({ "product_id": id, "quantity": "1", "unit_price": cents }));
-                }
             }
             let payment = if sale_no.is_multiple_of(3) {
                 json!({ "method": "card", "reference": format!("VISA {:04}", 1000 + sale_no) })

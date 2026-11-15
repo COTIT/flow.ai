@@ -229,8 +229,10 @@ async fn bin_stock_is_on_hand_not_for_sale_until_it_moves_to_dispatch(pool: PgPo
         .call(
             Method::POST,
             &format!("/{}/move-stock-between-bins", w.wax),
-            Some(json!({ "warehouse_id": w.shop, "bin_id_from": w.bin, "bin_id_to": null,
-                         "quantity": 4, "reason": "restock" })),
+            Some(
+                json!({ "warehouse_id": w.shop, "bin_id_from": w.bin, "bin_id_to": null,
+                         "quantity": 4, "reason": "restock" }),
+            ),
             &w.api.owner,
         )
         .await;

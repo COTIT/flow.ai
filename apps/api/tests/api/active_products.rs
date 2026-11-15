@@ -66,7 +66,10 @@ async fn setup_books_keep_every_kind_and_sizes(pool: PgPool) {
 async fn active_books_refuse_unsupported_kinds_before_any_write(pool: PgPool) {
     let api = Api::new(pool, "/products").await;
     let card = api
-        .create(json!({ "name": "Old card", "price": 1, "type": "giftcard" }), "product_id")
+        .create(
+            json!({ "name": "Old card", "price": 1, "type": "giftcard" }),
+            "product_id",
+        )
         .await;
     let plain = api
         .create(json!({ "name": "Soap", "price": 1 }), "product_id")
@@ -97,7 +100,6 @@ async fn active_books_refuse_unsupported_kinds_before_any_write(pool: PgPool) {
     let (s, res) = api.update(&card, json!({ "name": "New card" })).await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(code(&res), "unsupported_product_kind");
-
 }
 
 #[sqlx::test]
@@ -133,7 +135,12 @@ async fn active_books_need_a_product_per_stocked_size(pool: PgPool) {
         "combinations": [{ "option_value_ids": ["S"] }, { "option_value_ids": ["M"] }]
     });
     let (s, res) = variants(&shirt)
-        .call(Method::POST, "/generate", Some(generate.clone()), &api.owner)
+        .call(
+            Method::POST,
+            "/generate",
+            Some(generate.clone()),
+            &api.owner,
+        )
         .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(code(&res), "sku_split_required", "{res}");

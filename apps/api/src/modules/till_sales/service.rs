@@ -325,8 +325,15 @@ pub async fn sell(
         related: Some(("order", order_id)),
         ..Cause::default()
     };
-    if let Taken::Short { index, available } =
-        reserve::take(&mut tx, ws, s.warehouse_id, &wants, Floor::Available, &cause).await?
+    if let Taken::Short { index, available } = reserve::take(
+        &mut tx,
+        ws,
+        s.warehouse_id,
+        &wants,
+        Floor::Available,
+        &cause,
+    )
+    .await?
     {
         return Err(short(&charged, wants[index].product_id, available));
     }

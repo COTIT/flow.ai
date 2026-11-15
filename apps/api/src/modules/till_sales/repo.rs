@@ -77,7 +77,10 @@ pub async fn sellable(
     )
     .fetch_all(db)
     .await?;
-    Ok(rows.into_iter().map(|r| (r.product_id, r.available)).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| (r.product_id, r.available))
+        .collect())
 }
 
 /// Hold this register's `client_ref` until the transaction ends: copies of one sale queue up

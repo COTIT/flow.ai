@@ -553,12 +553,17 @@ pub(crate) async fn refuse_if_used(
 
 /// Whether the book is active, read under the shared book gate (masterplan §6: gate first,
 /// before identity, product or stock locks), so activation can't slip in before commit.
-pub(crate) async fn books_active(conn: &mut PgConnection, workspace_id: Uuid) -> Result<bool, AppError> {
+pub(crate) async fn books_active(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+) -> Result<bool, AppError> {
     crate::modules::accounting::gate::shared(conn, &[workspace_id]).await?;
-    Ok(crate::modules::accounting::repo::settings(conn, workspace_id, false)
-        .await?
-        .state
-        == "active")
+    Ok(
+        crate::modules::accounting::repo::settings(conn, workspace_id, false)
+            .await?
+            .state
+            == "active",
+    )
 }
 
 /// Kinds active books can't post yet (masterplan D18): no liability or component adapter.
