@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 /// Map inventory/cogs/inventory_adjustment/opening_equity, set the book active in UTC with a
 /// period around today.
-async fn activate(pool: &PgPool, ws: &str) {
+pub(crate) async fn activate(pool: &PgPool, ws: &str) {
     let mut tx = pool.begin().await.unwrap();
     let (user, currency): (Uuid, Uuid) = sqlx::query_as(
         "SELECT w.created_by_user_id, c.id FROM workspaces w
@@ -74,7 +74,7 @@ async fn activate(pool: &PgPool, ws: &str) {
 
 /// Opening stock as activation will seed it: `qty` on the slot, the pool (added to), and a
 /// posted opening journal DR inventory / CR opening_equity for `value` minor units.
-async fn seed(
+pub(crate) async fn seed(
     pool: &PgPool,
     ws: &str,
     product: &str,
@@ -188,7 +188,7 @@ async fn seed_pool(
 }
 
 /// GL inventory balance equals Σ pool value, and every pool's quantity equals its live slots.
-async fn assert_books(pool: &PgPool, ws: &str) {
+pub(crate) async fn assert_books(pool: &PgPool, ws: &str) {
     let (gl, pools): (i64, i64) = sqlx::query_as(
         "SELECT
            (SELECT coalesce(sum(l.functional_debit - l.functional_credit), 0)::bigint
@@ -220,7 +220,7 @@ async fn assert_books(pool: &PgPool, ws: &str) {
 }
 
 /// Everything a refused write must leave alone.
-async fn snapshot(pool: &PgPool, ws: &str) -> Value {
+pub(crate) async fn snapshot(pool: &PgPool, ws: &str) -> Value {
     sqlx::query_scalar(
         "SELECT json_build_object(
            'movements', (SELECT count(*) FROM stock_movements WHERE workspace_id = $1::uuid),
@@ -240,7 +240,7 @@ async fn snapshot(pool: &PgPool, ws: &str) -> Value {
     .unwrap()
 }
 
-async fn pool_qv(pool: &PgPool, product: &str, warehouse: &str) -> (String, i64) {
+pub(crate) async fn pool_qv(pool: &PgPool, product: &str, warehouse: &str) -> (String, i64) {
     sqlx::query_as(
         "SELECT trim_scale(quantity)::text, value FROM inventory_cost_pools
          WHERE product_id = $1::uuid AND warehouse_id = $2::uuid",
@@ -266,7 +266,7 @@ async fn entries(pool: &PgPool, product: &str) -> Vec<(String, i64)> {
 }
 
 /// Balance (debit − credit) of a mapped role's account.
-async fn role_balance(pool: &PgPool, ws: &str, role: &str) -> i64 {
+pub(crate) async fn role_balance(pool: &PgPool, ws: &str, role: &str) -> i64 {
     sqlx::query_scalar(
         "SELECT coalesce(sum(l.functional_debit - l.functional_credit), 0)::bigint
          FROM journal_lines l JOIN account_mappings m

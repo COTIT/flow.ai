@@ -19,6 +19,7 @@ use crate::{
             journals::{self, SourceJournal},
             service::unsupported,
         },
+        purchasing,
         stock::repo::{Cause, StockRow},
     },
     money::round,
@@ -35,6 +36,13 @@ pub enum Valued {
     Transfer,
     /// Raw kg into packed units (D19): as `Transfer`, across products.
     Pack,
+    /// Booking of a purchase receipt line (M3): adds `value` (functional minor units) dated
+    /// `date`, DR inventory / CR GRNI once per line, in the pool's eligible receipt order.
+    Receipt {
+        line: Uuid,
+        value: i64,
+        date: NaiveDate,
+    },
 }
 
 const NO_OPENING: &str =
@@ -197,16 +205,17 @@ async fn lock_pool(
     .await
 }
 
-/// Lock the product/warehouse pool of an active book, created when missing. Callers hold the
-/// gate ([`active`]) and run it before the stock row lock, so pools lock in slot-key order.
+/// Lock the product/warehouse pool of an active book, created when missing; its last valued
+/// date. Callers hold the gate ([`active`]) and run it before the stock row lock, so pools lock
+/// in slot-key order.
 pub async fn pool(
     conn: &mut PgConnection,
     ws: Uuid,
     product: Uuid,
     warehouse: Uuid,
-) -> Result<(), AppError> {
-    if lock_pool(conn, ws, product, warehouse).await?.is_some() {
-        return Ok(());
+) -> Result<Option<NaiveDate>, AppError> {
+    if let Some(p) = lock_pool(conn, ws, product, warehouse).await? {
+        return Ok(p.last_date);
     }
     let on_hand = sqlx::query_scalar!(
         r#"SELECT coalesce(sum(stock_lvl), 0) AS "q!" FROM stocks
@@ -232,7 +241,7 @@ pub async fn pool(
     .execute(&mut *conn)
     .await?;
     lock_pool(conn, ws, product, warehouse).await?;
-    Ok(())
+    Ok(None)
 }
 
 /// round(v × q / of) in minor units, half away from zero.
@@ -272,6 +281,11 @@ struct Plan {
     roles: Option<(&'static str, &'static str)>,
 }
 
+const RECEIPT_BOOKING: &str = "receipt_booking_required";
+const BOOK_FIRST: &str =
+    "Goods received here are waiting to be booked. Book that receipt before this stock change.";
+const BOOK_EARLIER: &str = "An earlier receipt of this stock is waiting. Book it first.";
+
 const LEGACY_RETURN: &str =
     "This sale has no recorded cost in the book. Its return needs a reviewed cost.";
 
@@ -288,6 +302,14 @@ async fn plan(
     let pair = match cause.value {
         Valued::Transfer => Some(("transfer_out", "transfer_in")),
         Valued::Pack => Some(("pack_out", "pack_in")),
+        Valued::Receipt { value, .. } if !out => {
+            return Ok(Plan {
+                class: "purchase_receipt",
+                value,
+                roles: Some(("inventory", "grni")),
+            });
+        }
+        Valued::Receipt { .. } => return Err(unsupported(UNKNOWN)),
         Valued::Relocate | Valued::Infer => None,
     };
     if let Some((out_class, in_class)) = pair {
@@ -436,6 +458,21 @@ pub async fn on_movement(
     if !timezone_ok {
         return Err(crate::modules::accounting::service::not_configured());
     }
+    let date = match cause.value {
+        Valued::Receipt { line, date, .. } => {
+            // Earliest eligible receipt first (masterplan §7): no older pending line left.
+            if purchasing::repo::pending_before(&mut *conn, ws, line).await? {
+                return Err(reason(RECEIPT_BOOKING, BOOK_EARLIER));
+            }
+            date
+        }
+        _ if purchasing::repo::pending(&mut *conn, ws, row.warehouse_id, Some(row.product_id))
+            .await? =>
+        {
+            return Err(reason(RECEIPT_BOOKING, BOOK_FIRST));
+        }
+        _ => date,
+    };
     if pool.last_date.is_some_and(|last| date < last) {
         return Err(reason(
             "backdated_valuation",
@@ -451,6 +488,11 @@ pub async fn on_movement(
     if value_after < 0 || (quantity_after.is_zero() && value_after != 0) {
         return Err(AppError::Internal("inconsistent inventory pool".into()));
     }
+    // §6 permanent identity: receipt_line/booked for bookings, else the movement.
+    let (source_kind, source_id, effect_kind) = match cause.value {
+        Valued::Receipt { line, .. } => ("purchase_receipt_line", line, "booked"),
+        _ => ("stock_movement", movement_id, "valued"),
+    };
     let journal = match plan.roles {
         Some((debit, credit)) if plan.value != 0 => {
             let fingerprint: [u8; 32] = Sha256::digest(
@@ -463,9 +505,9 @@ pub async fn on_movement(
                     conn,
                     ws,
                     &SourceJournal {
-                        source_kind: "stock_movement",
-                        source_id: movement_id,
-                        effect_kind: "valued",
+                        source_kind,
+                        source_id,
+                        effect_kind,
                         date,
                         reason: plan.class,
                         debit,

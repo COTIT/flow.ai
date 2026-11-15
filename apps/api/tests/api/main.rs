@@ -110,6 +110,7 @@ mod product_master_guards;
 mod product_variants;
 mod products;
 mod purchase_units;
+mod purchasing;
 mod quick_search;
 mod rate_limit;
 mod relations;

@@ -1,0 +1,233 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.purchase_order_id, l.line_no, l.product_id, p.name AS product_name,\n                  p.unit AS product_unit, l.purchase_unit_id, u.code AS \"unit_code?\",\n                  l.input_quantity, l.ratio, l.base_quantity, l.unit_price, l.extension,\n                  l.warehouse_id, l.received_quantity, l.booked_quantity, l.closed_quantity,\n                  l.booked_value\n           FROM purchase_order_lines l\n           JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id\n           LEFT JOIN purchase_units u ON u.workspace_id = l.workspace_id\n                                     AND u.id = l.purchase_unit_id\n           WHERE l.workspace_id = $1 AND l.purchase_order_id = ANY($2)\n           ORDER BY l.purchase_order_id, l.line_no",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purchase_order_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "purchase_order_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "line_no",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "line_no"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "product_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "product_unit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "unit"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "purchase_unit_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "purchase_unit_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "unit_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "input_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "input_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "ratio",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "ratio"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "base_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "base_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "unit_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "unit_price"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "extension",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "extension"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "received_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "received_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "booked_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "booked_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "closed_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "closed_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "booked_value",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_order_lines",
+            "name": "booked_value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0ee4f159b18395e14917da726ce59da222da2440c67ba79e0476bc7bbc123bb3"
+}

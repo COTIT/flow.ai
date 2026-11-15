@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT client_component_ref FROM purchase_landed_costs\n         WHERE workspace_id = $1 AND purchase_order_id = $2 AND client_component_ref = ANY($3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client_component_ref",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "client_component_ref"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b1b78c5a11300411f8e0065ab80fce7d7bcfa2c53d4eb4c5793b538d8ed7bf7a"
+}

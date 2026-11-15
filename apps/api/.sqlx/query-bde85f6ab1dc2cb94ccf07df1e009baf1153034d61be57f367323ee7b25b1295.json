@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE purchase_orders SET supplier_id = $3, currency_id = $4, purchase_date = $5,\n             expected_date = $6, reference = $7, note = $8, default_warehouse_id = $9,\n             version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bde85f6ab1dc2cb94ccf07df1e009baf1153034d61be57f367323ee7b25b1295"
+}

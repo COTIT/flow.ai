@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO purchase_receipt_lines (workspace_id, receipt_id, po_line_id, product_id,\n             warehouse_id, bin_id, lot_id, base_quantity, late, effective_date, recorded_at)\n         SELECT $1, $2, x.po, x.product, x.wh, x.bin, x.lot, x.q, x.late, $10, $11\n         FROM unnest($3::uuid[], $4::uuid[], $5::uuid[], $6::uuid[], $7::uuid[], $8::numeric[],\n                     $9::bool[]) AS x(po, product, wh, bin, lot, q, late)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "UuidArray",
+        "UuidArray",
+        "UuidArray",
+        "NumericArray",
+        "BoolArray",
+        "Date",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8c18add76173184d352f7c43ead5f42a9d127bcfaea80729f7b9e9d9078af060"
+}
