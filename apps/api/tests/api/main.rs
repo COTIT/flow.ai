@@ -92,6 +92,7 @@ mod lots;
 mod me;
 mod member_removal;
 mod money_sql;
+mod tax_line;
 mod numbering;
 mod orders;
 mod payments;
