@@ -1,7 +1,8 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer` and `pdftemplate` (48 / 247). Name =
+//! but never catalogued, plus `specialoffer` and `pdftemplate` (48 / 249). Name =
 //! `group.action`.
+//! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
 
 /// Groups in key order, actions sorted (Laravel `ksort` + `sort`).
@@ -12,7 +13,9 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     ),
     (
         "cashregister",
-        &["create", "delete", "list", "update", "view"],
+        &[
+            "adjust", "create", "delete", "list", "refund", "update", "view",
+        ],
     ),
     ("contact", &["create", "delete", "get", "list", "update"]),
     ("currency", &["create", "delete", "get", "list", "update"]),
@@ -253,7 +256,7 @@ mod tests {
     #[test]
     fn matches_laravel_size() {
         assert_eq!(GROUPS.len(), 48);
-        assert_eq!(names().count(), 247);
+        assert_eq!(names().count(), 249);
     }
 
     #[test]

@@ -61,7 +61,7 @@ pub fn string_enum<'a>(
 
 /// Registers the `bearer` scheme (user tokens), the `app_key` scheme (`gsk_…` app keys) and
 /// the `till_session` scheme (till tokens), all the same header, that operations list under
-/// `security`.
+/// `security`; plus `till_privileged` (`X-Till-Session`, beside `bearer`).
 struct BearerAuth;
 
 impl Modify for BearerAuth {
@@ -104,6 +104,17 @@ impl Modify for BearerAuth {
                         ))
                         .build(),
                 ),
+            );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                "till_privileged",
+                SecurityScheme::ApiKey(utoipa::openapi::security::ApiKey::Header(
+                    utoipa::openapi::security::ApiKeyValue::with_description(
+                        "X-Till-Session",
+                        "Till session token beside a member bearer on privileged Till routes",
+                    ),
+                )),
             );
     }
 }

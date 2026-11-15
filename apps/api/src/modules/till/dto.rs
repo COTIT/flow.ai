@@ -383,3 +383,26 @@ pub struct PairedRegister {
     pub id: Uuid,
     pub name: String,
 }
+
+/// Approving member on a privileged Till request.
+#[derive(Serialize, ToSchema)]
+pub struct PrivilegedMember {
+    pub user_id: Uuid,
+    /// Held privileged Till permissions: `cashregister.adjust`, `cashregister.refund`.
+    pub permissions: Vec<&'static str>,
+}
+
+/// Till user at the register; context only, no authority.
+#[derive(Serialize, ToSchema)]
+pub struct PrivilegedCashier {
+    pub till_user_id: Uuid,
+    pub name: String,
+}
+
+/// GET /till/privileged-session: who approves, on which register, for which cashier.
+#[derive(Serialize, ToSchema)]
+pub struct PrivilegedSessionResource {
+    pub member: PrivilegedMember,
+    pub register: PairedRegister,
+    pub cashier: PrivilegedCashier,
+}

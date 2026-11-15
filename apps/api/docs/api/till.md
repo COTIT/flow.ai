@@ -138,6 +138,26 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 - `register` (on `/till/me` and the `/till/login` reply): `id`, `name`, `warehouse_id`, `currency_id`, `currency {code, decimals}`, and `accepted_cash`: the drawer's notes and coins from settings `cash_register.accepted_cash` (stored as major-unit numbers or strings; the euro list when unset), converted exactly to minor units of the register's currency, sorted and distinct. A value that isn't a whole minor unit is left out.
 - `POST /till/logout` → 204
 
+## Privileged approval (member bearer + till token)
+
+Refunds, returns and cash adjustments at the till (coming in a later milestone) need two logins at once:
+
+- `Authorization: Bearer <member token>`: a real member login (email + password), checked like every member route. Its permissions are read on every request, and logging out ends it.
+- `X-Till-Session: <till token>`: the live till session from `/till/login`, which supplies the register and the cashier. Same liveness rules as above.
+
+A till PIN never stands in for the member login. Linking a till user to a member, or resetting that till user's PIN, gives no member rights: a till token sent as the bearer gets 401. Both values are secrets and are never logged.
+
+Permissions: `cashregister.refund`, `cashregister.adjust`.
+
+### `GET /till/privileged-session`
+
+The till calls this to confirm an approval login before it shows the approval form. Read-only.
+
+- 200 `{data: {member: {user_id, permissions}, register: {id, name}, cashier: {till_user_id, name}}}`. `permissions` lists the ones the member holds out of `cashregister.adjust` and `cashregister.refund`.
+- 401: no live member login, or a missing, malformed or dead till token.
+- 403: inactive membership, or the member holds neither permission.
+- 404: the caller is not a member of the workspace, or the till session belongs to another workspace.
+
 ## Catalog (till token)
 
 ### `GET /till/catalog?page&page_size&updated_since&code`

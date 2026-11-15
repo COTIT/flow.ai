@@ -134,6 +134,7 @@ mod till_cash;
 mod till_catalog;
 mod till_login;
 mod till_pairing;
+mod till_privileged;
 mod till_quote;
 mod till_sales;
 mod users;

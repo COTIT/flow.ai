@@ -24,9 +24,11 @@ use crate::{
         till::{
             dto::{
                 CreateRegisterRequest, CreateTillUserRequest, PairRequest, PairedResource,
-                PairingCode, RegisterKeyed, RegisterResource, SessionResource, TillLoginRequest,
-                TillLoginResource, TillUserBrief, TillUserResource, UpdateTillUserRequest,
+                PairingCode, PrivilegedSessionResource, RegisterKeyed, RegisterResource,
+                SessionResource, TillLoginRequest, TillLoginResource, TillUserBrief,
+                TillUserResource, UpdateTillUserRequest,
             },
+            privileged::PrivilegedTill,
             service,
             session::TillSession,
         },
@@ -272,6 +274,28 @@ pub async fn me(
     session: TillSession,
 ) -> Result<Data<SessionResource>, AppError> {
     Ok(Data(service::session(&state, &session.row).await?))
+}
+
+/// GET /till/privileged-session -> `{data:{member, register, cashier}}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/till/privileged-session", tag = "till",
+    operation_id = "till_privileged_session", summary = "Confirm a privileged Till approval login",
+    description = "Member bearer in `Authorization` plus the live till token in `X-Till-Session`, \
+        both secrets. Member authority comes from the member login only: a till PIN or a till \
+        user's member link never counts. Permissions are read live. Read-only.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<PrivilegedSessionResource>, description = "Approving member, register and cashier"),
+        (status = 401, body = MessageBody, description = "No live member login, or no live till session in `X-Till-Session`"),
+        (status = 403, body = MessageBody, description = "Inactive membership, or neither `cashregister.refund` nor `cashregister.adjust`"),
+        (status = 404, body = MessageBody, description = "Not a member here, or the till session belongs to another workspace"),
+    ),
+    security(("bearer" = [], "till_privileged" = []))
+)]
+pub async fn privileged_session(
+    p: PrivilegedTill,
+) -> Result<Data<PrivilegedSessionResource>, AppError> {
+    Ok(Data(service::privileged_session(&p)?))
 }
 
 /// POST /till/registers/{register}/pairing -> 201 `{data:{code, workspace, expires_at}}`.
