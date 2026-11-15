@@ -483,18 +483,32 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(561)
+    expect(operationManifest).toHaveLength(582)
     expect(tools).toHaveLength(415)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(76)
+    ).toHaveLength(97)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
     ).toBe(true)
+  })
+
+  it("keeps ERP M1 accounting, purchase-unit and privileged Till routes internal until M7 review", () => {
+    const erp = operationManifest.filter(
+      (op) =>
+        op.id.startsWith("accounting_") ||
+        op.id.startsWith("purchase_units_") ||
+        op.id === "till_privileged_session"
+    )
+    expect(erp).toHaveLength(21)
+    for (const op of erp) {
+      expect(op.disposition, op.id).toBe("internal")
+      expect(tools.some((tool) => tool.id === op.id), op.id).toBe(false)
+    }
   })
 
   it("files delivery corrections by voice but leaves the four-eyes decision to the Office", () => {
