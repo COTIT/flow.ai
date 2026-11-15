@@ -99,7 +99,7 @@ Every order resource (get, list, action answers) also carries, loaded in three s
 ```
 
 - `lines`: 1 to 50. `quantity` 0.01 to 100000, at most 2 decimals.
-- Prices default to the catalog: the variant's price when one is sent, else the product's, in the order's currency (a product priced in another currency is a 422). VAT is the product's VAT group (0 without one). `unit_price` (minor units, excl VAT), `discount_percentage` and `title` override.
+- Prices default to the catalog: the variant's price when one is sent, else the product's, in the order's currency, in minor units rounded half away from zero (1.005 → 101) (a product priced in another currency is a 422). VAT is the product's VAT group (0 without one). `unit_price` (minor units, excl VAT), `discount_percentage` and `title` override.
 - Totals come from the pricing engine: line amounts rounded to the currency, VAT once per rate. `summary.vats` lists `{rate, base, vat}` per rate.
 - Currency defaults to the main currency; warehouse to the main warehouse (422 `warehouse_id` when none is set).
 - Numbers come from the `order` numbering settings (`ORD-0001` by default).
