@@ -25,13 +25,16 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CreatePurchaseUnitRequest,
   EnvelopeLinkedProducts,
   EnvelopeMessageBody,
   EnvelopeProductCreated,
   EnvelopeProductResource,
+  EnvelopePurchaseUnitResource,
   EnvelopeSaleStatics,
   EnvelopeTopProducts,
   EnvelopeVecProductImageResource,
+  EnvelopeVecPurchaseUnitResource,
   MessageBody,
   PaginatedProductPriceHistoryRow,
   PaginatedProductResource,
@@ -42,6 +45,8 @@ import type {
   ProductsPriceHistoryParams,
   ProductsTopSellersParams,
   ReplaceImagesRequest,
+  UnprocessableBody,
+  UpdatePurchaseUnitRequest,
   ValidationErrorBody
 } from '../model';
 
@@ -501,7 +506,7 @@ export const productsUpdate = (
 
 export const getProductsUpdateMutationKey = () => ['productsUpdate'] as const;
 
-export const getProductsUpdateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getProductsUpdateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdate>>, TError,ProductsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof productsUpdate>>, TError,ProductsUpdateMutationVariables, TContext> => {
 
@@ -530,13 +535,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ProductsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof productsUpdate>>>
     export type ProductsUpdateMutationBody = BodyType<ProductRequest>
-    export type ProductsUpdateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type ProductsUpdateMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type ProductsUpdateMutationVariables = {workspace: string;product: string;data: BodyType<ProductRequest>}
 
     /**
  * @summary Update a product (send only changed fields)
  */
-export const useProductsUpdate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useProductsUpdate = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdate>>, TError,ProductsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof productsUpdate>>,
@@ -988,6 +993,247 @@ export function useProductsPriceHistory<TData = Awaited<ReturnType<typeof produc
 
 
 /**
+ * Supplier units with their exact ratio to the product's unit, ordered by code (at most 50).
+ * @summary List a product's purchase units
+ */
+export const purchaseUnitsList = (
+    workspace: string,
+    product: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecPurchaseUnitResource>(
+      {url: `/workspace/${workspace}/products/${product}/purchase-units`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getPurchaseUnitsListQueryKey = (workspace: string,
+    product: string,) => {
+    return [
+    `/workspace/${workspace}/products/${product}/purchase-units`
+    ] as const;
+    }
+
+
+export const getPurchaseUnitsListQueryOptions = <TData = Awaited<ReturnType<typeof purchaseUnitsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseUnitsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPurchaseUnitsListQueryKey(workspace,product);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof purchaseUnitsList>>> = ({ signal }) => purchaseUnitsList(workspace,product, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && product !== null && product !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof purchaseUnitsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PurchaseUnitsListQueryResult = NonNullable<Awaited<ReturnType<typeof purchaseUnitsList>>>
+export type PurchaseUnitsListQueryError = ErrorType<MessageBody>
+
+
+export function usePurchaseUnitsList<TData = Awaited<ReturnType<typeof purchaseUnitsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseUnitsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseUnitsList>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseUnitsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseUnitsList<TData = Awaited<ReturnType<typeof purchaseUnitsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseUnitsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseUnitsList>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseUnitsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseUnitsList<TData = Awaited<ReturnType<typeof purchaseUnitsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseUnitsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List a product's purchase units
+ */
+
+export function usePurchaseUnitsList<TData = Awaited<ReturnType<typeof purchaseUnitsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseUnitsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPurchaseUnitsListQueryOptions(workspace,product,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Requires `Idempotency-Key`. The category must match the product unit's (kg, gram: mass; cm, m: length; m2: area; liter, m3: volume; pc, single: count). Box or unit-less products are refused. The ratio never changes afterwards. The same `client_ref` with the same content replays (200); other content is 409.
+ * @summary Add a purchase unit
+ */
+export const purchaseUnitsCreate = (
+    workspace: string,
+    product: string,
+    createPurchaseUnitRequest: BodyType<CreatePurchaseUnitRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePurchaseUnitResource>(
+      {url: `/workspace/${workspace}/products/${product}/purchase-units`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createPurchaseUnitRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPurchaseUnitsCreateMutationKey = () => ['purchaseUnitsCreate'] as const;
+
+export const getPurchaseUnitsCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseUnitsCreate>>, TError,PurchaseUnitsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof purchaseUnitsCreate>>, TError,PurchaseUnitsCreateMutationVariables, TContext> => {
+
+const mutationKey = getPurchaseUnitsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof purchaseUnitsCreate>>, PurchaseUnitsCreateMutationVariables> = (props) => {
+          const {workspace,product,data} = props ?? {};
+
+          return  purchaseUnitsCreate(workspace,product,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PurchaseUnitsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof purchaseUnitsCreate>>>
+    export type PurchaseUnitsCreateMutationBody = BodyType<CreatePurchaseUnitRequest>
+    export type PurchaseUnitsCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type PurchaseUnitsCreateMutationVariables = {workspace: string;product: string;data: BodyType<CreatePurchaseUnitRequest>}
+
+    /**
+ * @summary Add a purchase unit
+ */
+export const usePurchaseUnitsCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseUnitsCreate>>, TError,PurchaseUnitsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof purchaseUnitsCreate>>,
+        TError,
+        PurchaseUnitsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPurchaseUnitsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * Requires `Idempotency-Key`. Only `active` changes; code, category and ratio are fixed. `expected_version` must match the stored version (409 otherwise); a change bumps it by one.
+ * @summary Turn a purchase unit on or off
+ */
+export const purchaseUnitsUpdate = (
+    workspace: string,
+    product: string,
+    unit: string,
+    updatePurchaseUnitRequest: BodyType<UpdatePurchaseUnitRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePurchaseUnitResource>(
+      {url: `/workspace/${workspace}/products/${product}/purchase-units/${unit}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updatePurchaseUnitRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPurchaseUnitsUpdateMutationKey = () => ['purchaseUnitsUpdate'] as const;
+
+export const getPurchaseUnitsUpdateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseUnitsUpdate>>, TError,PurchaseUnitsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof purchaseUnitsUpdate>>, TError,PurchaseUnitsUpdateMutationVariables, TContext> => {
+
+const mutationKey = getPurchaseUnitsUpdateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof purchaseUnitsUpdate>>, PurchaseUnitsUpdateMutationVariables> = (props) => {
+          const {workspace,product,unit,data} = props ?? {};
+
+          return  purchaseUnitsUpdate(workspace,product,unit,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PurchaseUnitsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof purchaseUnitsUpdate>>>
+    export type PurchaseUnitsUpdateMutationBody = BodyType<UpdatePurchaseUnitRequest>
+    export type PurchaseUnitsUpdateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type PurchaseUnitsUpdateMutationVariables = {workspace: string;product: string;unit: string;data: BodyType<UpdatePurchaseUnitRequest>}
+
+    /**
+ * @summary Turn a purchase unit on or off
+ */
+export const usePurchaseUnitsUpdate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof purchaseUnitsUpdate>>, TError,PurchaseUnitsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof purchaseUnitsUpdate>>,
+        TError,
+        PurchaseUnitsUpdateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPurchaseUnitsUpdateMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Get a product's sales figures
  */
 export const productsSaleStatics = (

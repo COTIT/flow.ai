@@ -34,6 +34,7 @@ import type {
   EnvelopeOptionShiftResource,
   EnvelopePairedResource,
   EnvelopePairingCode,
+  EnvelopePrivilegedSessionResource,
   EnvelopeQuoteResource,
   EnvelopeRegisterKeyed,
   EnvelopeSaleResource,
@@ -562,6 +563,99 @@ export function useTillMe<TData = Awaited<ReturnType<typeof tillMe>>, TError = E
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getTillMeQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Member bearer in `Authorization` plus the live till token in `X-Till-Session`, both secrets. Member authority comes from the member login only: a till PIN or a till user's member link never counts. Permissions are read live. Read-only.
+ * @summary Confirm a privileged Till approval login
+ */
+export const tillPrivilegedSession = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePrivilegedSessionResource>(
+      {url: `/workspace/${workspace}/till/privileged-session`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillPrivilegedSessionQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/till/privileged-session`
+    ] as const;
+    }
+
+
+export const getTillPrivilegedSessionQueryOptions = <TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillPrivilegedSessionQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillPrivilegedSession>>> = ({ signal }) => tillPrivilegedSession(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillPrivilegedSessionQueryResult = NonNullable<Awaited<ReturnType<typeof tillPrivilegedSession>>>
+export type TillPrivilegedSessionQueryError = ErrorType<MessageBody>
+
+
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillPrivilegedSession>>,
+          TError,
+          Awaited<ReturnType<typeof tillPrivilegedSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillPrivilegedSession>>,
+          TError,
+          Awaited<ReturnType<typeof tillPrivilegedSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Confirm a privileged Till approval login
+ */
+
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillPrivilegedSessionQueryOptions(workspace,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
