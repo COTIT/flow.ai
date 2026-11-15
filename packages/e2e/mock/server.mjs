@@ -10,6 +10,8 @@ import { URL } from "node:url"
 import { flowVoice } from "./flow-voice.mjs"
 import {
   APP_KEY,
+  BASKET,
+  PRINTS,
   SHOP_CONNECTIONS,
   LOT,
   MOCK_ORIGIN,
@@ -325,6 +327,58 @@ const pageTwo = [
 ]
 const catalogue = [products, pageTwo]
 const allProducts = catalogue.flat()
+
+// Product pages only: not listed, so catalogue counts stay as they are.
+const uuid = (n) =>
+  `b5100000-0000-4000-8000-${n.toString(16).padStart(12, "0")}`
+const option = (id, sku, gross, options) => ({
+  ...variant(id, sku, gross, "", false),
+  options,
+})
+const detailOnly = [
+  {
+    ...products.find((p) => p.id === PRODUCT.honey),
+    id: PRODUCT.basket,
+    name: "Holiday Gift Basket | The Tea Tradition",
+    labels: [],
+    passport: null,
+    images: [],
+    price_gross: 7499,
+    price_net: 7499,
+    available_stock: null,
+    stock_status: null,
+    variants: BASKET.colours.flatMap((colour, c) =>
+      BASKET.spices
+        .filter((spice) => `${colour}|${spice}` !== BASKET.missing.join("|"))
+        .map((spice, s) =>
+          option(
+            uuid(c * 100 + s),
+            `GIFT-${c}-${s}`,
+            `${colour}|${spice}` === BASKET.dearer.join("|") ? 8499 : 7499,
+            [
+              { type: "Basket colour", value: colour },
+              { type: "Spice", value: spice },
+            ]
+          )
+        )
+    ),
+  },
+  {
+    ...products.find((p) => p.id === PRODUCT.honey),
+    id: PRODUCT.prints,
+    name: "14 X 11 Mary Artwork Prints",
+    labels: [],
+    passport: null,
+    images: [],
+    price_gross: 2099,
+    price_net: 2099,
+    available_stock: null,
+    stock_status: null,
+    variants: PRINTS.map((value, i) =>
+      option(uuid(9000 + i), `PRINT-${i}`, 2099, [{ type: "Print", value }])
+    ),
+  },
+]
 // Separate design suite owns this mock process; legacy browser suites stay unchanged.
 const designSuite = process.env.E2E_DESIGN === "true"
 let designMode = "published"
@@ -768,7 +822,7 @@ const handler = async (req, res) => {
   if (product === PRODUCT.accountsKeyNoScope)
     return send(res, 403, { message: "This action is unauthorized." })
   if (product) {
-    const found = allProducts.find((p) => p.id === product)
+    const found = [...allProducts, ...detailOnly].find((p) => p.id === product)
     return found
       ? send(res, 200, { data: found })
       : send(res, 404, { message: "Not found." })
