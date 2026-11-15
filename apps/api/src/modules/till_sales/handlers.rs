@@ -9,7 +9,7 @@ use axum::{
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
@@ -42,7 +42,7 @@ permissions! {
         (status = 401, body = MessageBody, description = "No live till session"),
         (status = 404, body = MessageBody, description = "Workspace is not the session's"),
         (status = 409, body = MessageBody, description = "client_ref used for another sale, or a cash sale without an open shift"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown product, or too little cash tendered"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, unknown product, too little cash tendered, or code `insufficient_stock`: a stock-tracked line asks more than the register's warehouse can sell (offline replays too)"),
     ),
     security(("till_session" = []))
 )]
@@ -76,7 +76,7 @@ pub async fn sell(
         (status = 200, body = Envelope<QuoteResource>, description = "What the sale would book now"),
         (status = 401, body = MessageBody, description = "No live till session"),
         (status = 404, body = MessageBody, description = "Workspace is not the session's"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input or unknown product"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, unknown product, or code `insufficient_stock`: a stock-tracked line asks more than the register's warehouse can sell"),
     ),
     security(("till_session" = []))
 )]

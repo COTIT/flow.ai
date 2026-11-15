@@ -375,22 +375,119 @@ async fn card_is_not_rounded_and_cash_needs_enough_and_a_shift(pool: PgPool) {
     assert_eq!(status, StatusCode::CREATED, "card needs no drawer");
 }
 
+/// The 422 every short sale, replay and quote answers: code `insufficient_stock`, nothing booked.
+fn short_of(res: &Value) {
+    assert_eq!(res["code"], "insufficient_stock", "{res}");
+}
+
+async fn sales_count(w: &W) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM till_sales")
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap()
+}
+
 #[sqlx::test]
-async fn sales_never_stop_for_stock_and_negative_stock_shows(pool: PgPool) {
+async fn a_short_sale_is_refused_and_books_nothing(pool: PgPool) {
     let w = world(pool).await;
+    let cash_before = expected(&w, &w.t1).await;
     let (status, res) = post(
         &w,
         &w.t1,
         &sale("big", json!([line(&w.wax, "12", 300)]), cash(5000)),
     )
     .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    assert!(res["message"].as_str().unwrap().contains("Wax"), "{res}");
+    assert_eq!(level(&w, &w.wax).await, "10.00", "stock untouched");
+    assert_eq!(sales_count(&w).await, 0, "no sale");
+    assert_eq!(expected(&w, &w.t1).await, cash_before, "drawer untouched");
+
+    // The same product over two lines counts once: 6 + 5 > 10.
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale(
+            "split",
+            json!([line(&w.wax, "6", 300), line(&w.wax, "5", 300)]),
+            cash(5000),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+
+    // Exactly what is there sells.
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("all", json!([line(&w.wax, "10", 300)]), cash(5000)),
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED, "{res}");
-    assert_eq!(level(&w, &w.wax).await, "-2.00");
-    let product = w.api.with_base("/products").get(&w.wax).await;
-    assert!(
-        product.to_string().contains("-2"),
-        "office sees the negative level: {product}"
-    );
+    assert_eq!(level(&w, &w.wax).await, "0.00");
+}
+
+#[sqlx::test]
+async fn an_offline_replay_short_of_stock_is_refused(pool: PgPool) {
+    let w = world(pool).await;
+    let mut body = sale("offline-1", json!([line(&w.wax, "11", 300)]), cash(5000));
+    body["sold_at"] = json!((chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339());
+    let (status, res) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    assert_eq!(level(&w, &w.wax).await, "10.00");
+    assert_eq!(sales_count(&w).await, 0);
+}
+
+#[sqlx::test]
+async fn a_sale_never_takes_stock_held_for_an_order(pool: PgPool) {
+    let w = world(pool).await;
+    sqlx::query("UPDATE stocks SET reserved = 8 WHERE product_id = $1::uuid")
+        .bind(&w.wax)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("held", json!([line(&w.wax, "3", 300)]), cash(5000)),
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("free", json!([line(&w.wax, "2", 300)]), cash(5000)),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(level(&w, &w.wax).await, "8.00");
+}
+
+#[sqlx::test]
+async fn the_quote_refuses_a_short_basket(pool: PgPool) {
+    let w = world(pool).await;
+    let quote = |lines: Value| {
+        let api = &w.api;
+        let t = w.t1.clone();
+        async move {
+            api.call(
+                Method::POST,
+                "/sales/quote",
+                Some(json!({ "lines": lines, "payment": { "method": "card" } })),
+                &t,
+            )
+            .await
+        }
+    };
+    let (status, res) = quote(json!([line(&w.wax, "11", 300)])).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    let (status, res) = quote(json!([line(&w.wax, "10", 300)])).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
 }
 
 #[sqlx::test]

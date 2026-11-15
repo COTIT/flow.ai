@@ -330,14 +330,15 @@ async fn resend_repairs_a_missing_link_and_pdf(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn store_stock_may_go_negative_other_stock_may_not(pool: PgPool) {
+async fn short_stock_is_refused_in_every_warehouse_store_included(pool: PgPool) {
     let f = setup(pool).await;
     let short = draft(&f, chairs(&f, 11, None), false).await;
     let (status, res) = send(&f, &short, message(&f, "manual")).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res,
-        json!({ "message": "Insufficient stock for product Chair in Main. Available stock: 10. Required: 11" })
+        json!({ "message": "Insufficient stock for product Chair in Main. Available stock: 10. Required: 11",
+                "code": "insufficient_stock" })
     );
     assert_eq!(
         numbered(&f, &short).await,
@@ -346,14 +347,13 @@ async fn store_stock_may_go_negative_other_stock_may_not(pool: PgPool) {
     );
     assert_eq!(level(&f, &f.main).await, "10.00");
 
+    // A store is no exception: no sale goes below zero (masterplan D17).
     let shop = draft(&f, chairs(&f, 3, Some(&f.shop)), false).await;
-    assert_eq!(send(&f, &shop, message(&f, "manual")).await, ok());
-    assert_eq!(
-        numbered(&f, &shop).await.0,
-        Some(1000),
-        "the refused send took no number"
-    );
-    assert_eq!(level(&f, &f.shop).await, "-3.00");
+    let (status, res) = send(&f, &shop, message(&f, "manual")).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(res["code"], "insufficient_stock", "{res}");
+    assert_eq!(numbered(&f, &shop).await, (None, "draft".into()));
+    assert_eq!(level(&f, &f.shop).await, "0.00");
 }
 
 #[sqlx::test]

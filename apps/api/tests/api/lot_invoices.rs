@@ -116,14 +116,18 @@ async fn short_stock_outside_a_store_refuses_and_writes_nothing(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn a_store_takes_its_lots_then_goes_negative_on_the_no_lot_row(pool: PgPool) {
+async fn a_store_short_of_its_lots_is_refused(pool: PgPool) {
     let f = setup(pool).await;
     lot(&f, "S1", "2099-01-01", &f.shop, 2).await;
 
     let (s, res) = sent(&f, chairs(&f, 5, Some(&f.shop)), false).await;
-    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res["code"], "insufficient_stock", "{res}");
+    assert_eq!(rows(&f, &f.shop).await, [r("-", "0.00"), r("S1", "2.00")]);
 
-    assert_eq!(rows(&f, &f.shop).await, [r("-", "-3.00"), r("S1", "0.00")]);
+    let (s, res) = sent(&f, chairs(&f, 2, Some(&f.shop)), false).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(rows(&f, &f.shop).await, [r("-", "0.00"), r("S1", "0.00")]);
 }
 
 #[sqlx::test]

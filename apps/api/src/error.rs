@@ -144,6 +144,15 @@ impl AppError {
         Self::Validation(BTreeMap::from([(field.to_owned(), vec![message.into()])]))
     }
 
+    /// 422 `insufficient_stock`: a sale asks more than its warehouse can sell (masterplan D17).
+    pub fn insufficient_stock(message: impl Into<String>) -> Self {
+        Self::Reason {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            code: "insufficient_stock",
+            message: message.into(),
+        }
+    }
+
     /// `e` as the one-field 422 when it violated unique index `constraint` (a race the
     /// service pre-check missed, or no pre-check at all), else a 500.
     pub fn unique(e: sqlx::Error, constraint: &str, field: &str, message: &str) -> Self {

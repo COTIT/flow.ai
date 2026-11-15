@@ -964,7 +964,6 @@ pub struct StockLine {
     pub reference_vendor: Option<String>,
     pub warehouse_id: Option<Uuid>,
     pub warehouse_name: Option<String>,
-    pub is_store: Option<bool>,
 }
 
 /// Laravel SendInvoice::mutateStock's lines (Product::shouldMutateStock: physical types with
@@ -978,11 +977,11 @@ pub async fn stock_lines(
         StockLine,
         r#"SELECT i.id, i.quantity, i.mutated_from_stock, p.id AS product_id,
                   p.name AS product_name, p.reference_vendor,
-                  w.id AS "warehouse_id?", w.name AS "warehouse_name?", w.is_store AS "is_store?"
+                  w.id AS "warehouse_id?", w.name AS "warehouse_name?"
            FROM items i
            JOIN products p ON p.workspace_id = i.workspace_id AND p.id = i.product_id
            LEFT JOIN LATERAL (
-               SELECT w.id, w.name, COALESCE(w.is_store, false) AS is_store
+               SELECT w.id, w.name
                FROM warehouses w
                WHERE w.workspace_id = i.workspace_id AND w.deleted_at IS NULL
                  AND (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id)

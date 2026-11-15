@@ -425,14 +425,10 @@ async fn move_stock(
         if change.is_zero() {
             continue;
         }
-        let floor = if l.is_store == Some(true) {
-            Floor::None
-        } else {
-            // Never stock an order holds: web orders are paid against their hold.
-            Floor::Available
-        };
+        // Never below zero, stores included (D17), nor stock an order holds.
+        let floor = Floor::Available;
         let short = |available: Decimal| {
-            AppError::Unprocessable(format!(
+            AppError::insufficient_stock(format!(
                 "Insufficient stock for product {} in {}. Available stock: {}. Required: {}",
                 product_ref(l),
                 l.warehouse_name.as_deref().unwrap_or_default(),

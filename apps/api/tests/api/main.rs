@@ -112,6 +112,7 @@ mod quick_search;
 mod rate_limit;
 mod relations;
 mod request_timeouts;
+mod sale_availability;
 mod sales_groups;
 mod scheduled_reports;
 mod schema;

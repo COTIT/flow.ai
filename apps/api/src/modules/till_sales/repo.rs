@@ -52,6 +52,34 @@ pub struct NewSaleRow<'a> {
     pub sold_at: DateTime<Utc>,
 }
 
+/// What the warehouse can sell now per product, as `stock::reserve::take` with
+/// `Floor::Available` picks it: dispatch rows (no bin), no-lot or released unexpired lots,
+/// each row's level − reserved (never below 0). Products without a row are absent. No locks.
+pub async fn sellable(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    warehouse_id: Uuid,
+    products: &[Uuid],
+) -> Result<Vec<(Uuid, rust_decimal::Decimal)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT s.product_id,
+                  sum(greatest(s.stock_lvl - s.reserved, 0)) AS "available!"
+           FROM stocks s
+           LEFT JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id
+           WHERE s.workspace_id = $1 AND s.warehouse_id = $2 AND s.product_id = ANY($3)
+             AND s.bin_id IS NULL AND s.deleted_at IS NULL
+             AND (s.lot_id IS NULL OR (l.status = 'released'
+                  AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
+           GROUP BY s.product_id"#,
+        workspace_id,
+        warehouse_id,
+        products,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.product_id, r.available)).collect())
+}
+
 /// Hold this register's `client_ref` until the transaction ends: copies of one sale queue up
 /// here, so the second finds the first's row instead of writing again.
 pub async fn lock_ref(
