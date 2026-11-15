@@ -24,10 +24,10 @@ use crate::{
                 ReviewResource, Totals,
             },
             gate,
-            repo::{self, DraftFields, EntryRow, LineRow, NewLine},
+            repo::{self, DraftFields, EntryRow, LineRow, NewLine, SumsRow},
             service::{created, not_configured, ok, period_closed, stale, unsupported},
         },
-        currency_rates::{convert::convert, repo::in_force},
+        currency_rates::repo::in_force,
     },
     numbering::{self, Series},
 };
@@ -60,13 +60,14 @@ fn line_resource(l: &LineRow, dp: i16, fdp: i16) -> LineResource {
     }
 }
 
-fn totals(lines: &[LineRow], dp: i16, fdp: i16) -> Totals {
-    let sum = |f: fn(&LineRow) -> i64| lines.iter().map(f).sum::<i64>();
+/// Line sums (computed in SQL) as decimal strings; no lines → zeros.
+fn totals(s: Option<&SumsRow>, dp: i16, fdp: i16) -> Totals {
+    let s = |f: fn(&SumsRow) -> i64| s.map_or(0, f);
     Totals {
-        debit: amount(sum(|l| l.debit), dp),
-        credit: amount(sum(|l| l.credit), dp),
-        functional_debit: amount(sum(|l| l.functional_debit), fdp),
-        functional_credit: amount(sum(|l| l.functional_credit), fdp),
+        debit: amount(s(|s| s.debit), dp),
+        credit: amount(s(|s| s.credit), dp),
+        functional_debit: amount(s(|s| s.functional_debit), fdp),
+        functional_credit: amount(s(|s| s.functional_credit), fdp),
     }
 }
 
@@ -81,6 +82,7 @@ async fn resources(
     for l in repo::lines(&mut *conn, ws, &ids).await? {
         by_entry.entry(l.entry_id).or_default().push(l);
     }
+    let sums = repo::sums(&mut *conn, ws, &ids).await?;
     let functional = functional(conn, ws).await?;
     let fdp = functional.as_ref().map_or(2, |c| c.decimals);
     Ok(rows
@@ -117,7 +119,7 @@ async fn resources(
                 created_by: e.created_by,
                 created_at: e.created_at,
                 updated_at: e.updated_at,
-                totals: totals(&lines, dp, fdp),
+                totals: totals(sums.iter().find(|s| s.entry_id == e.id), dp, fdp),
                 lines: lines.iter().map(|l| line_resource(l, dp, fdp)).collect(),
                 allowed_actions,
             }
@@ -329,6 +331,7 @@ struct Prepared {
     functional: CurrencyRef,
     date: NaiveDate,
     lines: Vec<NewLine>,
+    sums: SumsRow,
     fingerprint: [u8; 32],
 }
 
@@ -367,7 +370,7 @@ impl Prepared {
             period_id: self.period,
             currency: self.currency.clone(),
             functional_currency: self.functional.clone(),
-            totals: totals(&rows, dp, fdp),
+            totals: totals(Some(&self.sums), dp, fdp),
             lines: rows.iter().map(|l| line_resource(l, dp, fdp)).collect(),
             review_fingerprint: hex::encode(self.fingerprint),
         }
@@ -417,26 +420,6 @@ fn lines_json(lines: &[NewLine]) -> serde_json::Value {
         .collect()
 }
 
-/// Split `total` functional units over `parts` (entry-currency minor units) in line order:
-/// each part converted alone, the last one takes the exact remainder (§5 rounding).
-fn distribute(parts: &[i64], total: i64, conv: &dyn Fn(i64) -> Option<i64>) -> Option<Vec<i64>> {
-    let mut out = Vec::with_capacity(parts.len());
-    let mut used = 0_i64;
-    for (i, p) in parts.iter().enumerate() {
-        let v = if i + 1 == parts.len() {
-            total.checked_sub(used)?
-        } else {
-            conv(*p)?
-        };
-        if v < 0 {
-            return None;
-        }
-        used = used.checked_add(v)?;
-        out.push(v);
-    }
-    Some(out)
-}
-
 /// Post facts for a draft, rechecked under locks (period and accounts FOR SHARE).
 async fn prepare_post(
     conn: &mut PgConnection,
@@ -455,10 +438,7 @@ async fn prepare_post(
         return Err(stale());
     }
     let stored = repo::lines(&mut *conn, ws, &[id]).await?;
-    let (debit, credit) = stored.iter().fold((0_i64, 0_i64), |(d, c), l| {
-        (d.saturating_add(l.debit), c.saturating_add(l.credit))
-    });
-    if stored.len() < 2 || debit != credit {
+    if stored.len() < 2 || !repo::balanced(&mut *conn, ws, id).await? {
         return Err(AppError::field("lines", "Debits and credits must balance."));
     }
     let ids: Vec<Uuid> = stored.iter().map(|l| l.account_id).collect();
@@ -511,34 +491,26 @@ async fn prepare_post(
             ),
         ));
     };
-    let (from, to) = (
-        u32::try_from(currency.decimals).unwrap_or(0),
-        u32::try_from(functional.decimals).unwrap_or(0),
-    );
-    let conv = |minor: i64| convert(minor, rate, from, to, inverse);
     let unconvertible = || {
         AppError::field(
             "lines",
             "The lines can't be converted to the functional currency exactly.",
         )
     };
-    let total = conv(debit).ok_or_else(unconvertible)?;
-    let debits: Vec<i64> = stored
-        .iter()
-        .filter(|l| l.debit > 0)
-        .map(|l| l.debit)
-        .collect();
-    let credits: Vec<i64> = stored
-        .iter()
-        .filter(|l| l.credit > 0)
-        .map(|l| l.credit)
-        .collect();
-    let mut fd = distribute(&debits, total, &conv)
-        .ok_or_else(unconvertible)?
-        .into_iter();
-    let mut fc = distribute(&credits, total, &conv)
-        .ok_or_else(unconvertible)?
-        .into_iter();
+    let dps = (i32::from(currency.decimals), i32::from(functional.decimals));
+    let converted = match repo::converted(&mut *conn, ws, id, rate, inverse, dps).await {
+        Ok(Some(rows)) => rows,
+        Ok(None) => return Err(unconvertible()),
+        // 22003: a converted amount past bigint.
+        Err(sqlx::Error::Database(e)) if e.code().as_deref() == Some("22003") => {
+            return Err(unconvertible());
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let sums = converted
+        .first()
+        .map(|r| r.sums)
+        .ok_or_else(unconvertible)?;
     let lines: Vec<NewLine> = stored
         .iter()
         .map(|l| NewLine {
@@ -548,16 +520,14 @@ async fn prepare_post(
             source_ref: l.source_ref.clone(),
             debit: l.debit,
             credit: l.credit,
-            functional_debit: if l.debit > 0 {
-                fd.next().unwrap_or(0)
-            } else {
-                0
-            },
-            functional_credit: if l.credit > 0 {
-                fc.next().unwrap_or(0)
-            } else {
-                0
-            },
+            functional_debit: converted
+                .iter()
+                .find(|c| c.line_no == l.line_no)
+                .map_or(0, |c| c.functional_debit),
+            functional_credit: converted
+                .iter()
+                .find(|c| c.line_no == l.line_no)
+                .map_or(0, |c| c.functional_credit),
             rate,
             rate_inverse: inverse,
             rate_source: source,
@@ -578,6 +548,7 @@ async fn prepare_post(
             functional,
             date,
             lines,
+            sums,
             fingerprint,
         },
         stored,
@@ -695,6 +666,18 @@ async fn prepare_reverse(
         code: entry.currency_code.clone(),
         decimals: entry.currency_decimals,
     };
+    // Same lines with sides swapped: the stored sums, swapped.
+    let sums = repo::sums(&mut *conn, ws, &[id])
+        .await?
+        .pop()
+        .map(|s| SumsRow {
+            entry_id: id,
+            debit: s.credit,
+            credit: s.debit,
+            functional_debit: s.functional_credit,
+            functional_credit: s.functional_debit,
+        })
+        .ok_or_else(|| AppError::Internal("posted journal without lines".into()))?;
     let fingerprint = fingerprint(&json!({
         "action": "reverse", "entry": entry.id, "version": entry.version, "period": period,
         "date": input.date, "reason": input.reason, "lines": lines_json(&lines),
@@ -707,6 +690,7 @@ async fn prepare_reverse(
             functional,
             date: input.date,
             lines,
+            sums,
             fingerprint,
         },
         stored,
@@ -883,35 +867,4 @@ pub async fn post_source(
     let number = numbering::next(&mut *conn, ws, Series::Journal, 1).await?;
     repo::mark_posted(&mut *conn, ws, entry, number, period, effect, j.by).await?;
     Ok(entry)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn last_part_takes_the_exact_remainder() {
-        // 3 × 0.01 EUR at 1.005 → each rounds to 1, total 0.03015 → 3: parts 1, 1, 1.
-        let conv = |m: i64| convert(m, Decimal::new(1005, 3), 2, 2, false);
-        assert_eq!(
-            distribute(&[1, 1, 1], conv(3).unwrap(), &conv),
-            Some(vec![1, 1, 1])
-        );
-        // 1/3 rate: 100 → 33 each, total 300 → 100: last takes 34.
-        let third = |m: i64| convert(m, Decimal::new(3, 0), 2, 2, true);
-        assert_eq!(
-            distribute(&[100, 100, 100], third(300).unwrap(), &third),
-            Some(vec![33, 33, 34])
-        );
-        assert_eq!(
-            distribute(&[5], 7, &third),
-            Some(vec![7]),
-            "single part is the total"
-        );
-        assert_eq!(
-            distribute(&[100, 1], 10, &|_| Some(50)),
-            None,
-            "never negative"
-        );
-    }
 }

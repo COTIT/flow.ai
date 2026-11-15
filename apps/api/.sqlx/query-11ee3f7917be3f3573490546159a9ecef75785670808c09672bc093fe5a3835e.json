@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id,\n                          CASE WHEN returned_quantity + $6 > issued_quantity THEN NULL\n                               WHEN returned_quantity + $6 = issued_quantity\n                               THEN issued_value - returned_value\n                               ELSE money_round_div(issued_value * (returned_quantity + $6),\n                                                    issued_quantity)::bigint - returned_value\n                          END AS value\n                   FROM inventory_cost_allocations\n                   WHERE workspace_id = $1 AND source_kind = $2 AND source_id = $3\n                     AND product_id = $4 AND warehouse_id = $5\n                   FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_allocations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "11ee3f7917be3f3573490546159a9ecef75785670808c09672bc093fe5a3835e"
+}

@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_cost_pools\n         SET quantity = $2, value = value + $3, last_accounting_date = $4,\n             valuation_sequence = valuation_sequence + 1, version = version + 1, updated_at = now()\n         WHERE id = $1 RETURNING valuation_sequence, value",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "valuation_sequence",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "valuation_sequence"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Int8",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d5d0f85496d87dc46da88cfed2ec8839a99569f5605df0bb4eca0bb6b66f2d21"
+}

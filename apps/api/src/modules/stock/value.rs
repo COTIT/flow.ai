@@ -4,7 +4,7 @@
 //! Provenance the stock layer can't identify is refused; the caller's transaction rolls back.
 
 use chrono::NaiveDate;
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::Decimal;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
@@ -22,7 +22,6 @@ use crate::{
         purchasing,
         stock::repo::{Cause, StockRow},
     },
-    money::round,
 };
 
 /// How a writer's movement is valued. `Infer` reads `cause.related` and the direction.
@@ -244,33 +243,28 @@ pub async fn pool(
     Ok(None)
 }
 
-/// round(v × q / of) in minor units, half away from zero.
-fn share(v: i64, q: Decimal, of: Decimal) -> Option<i64> {
-    round(Decimal::from(v).checked_mul(q)?.checked_div(of)?, 0).to_i64()
+/// round(v × q / of) in minor units, half away from zero, computed in SQL.
+async fn share(conn: &mut PgConnection, v: i64, q: Decimal, of: Decimal) -> Result<i64, AppError> {
+    let value = sqlx::query_scalar!(
+        r#"SELECT money_round_div($1::bigint * $2::numeric, $3::numeric)::bigint AS "v!""#,
+        v,
+        q,
+        of
+    )
+    .fetch_one(conn)
+    .await?;
+    Ok(value)
 }
 
-/// Value an issue of `q` takes from pool (Q, V): all of V when it empties the pool.
-fn issue_value(quantity: Decimal, value: i64, q: Decimal) -> Result<i64, AppError> {
-    if q > quantity {
+/// Value an issue of `q` takes from `pool`: all of its value when it empties the pool.
+async fn issue_value(conn: &mut PgConnection, pool: &Pool, q: Decimal) -> Result<i64, AppError> {
+    if q > pool.quantity {
         return Err(insufficient());
     }
-    if q == quantity {
-        return Ok(value);
+    if q == pool.quantity {
+        return Ok(pool.value);
     }
-    share(value, q, quantity).ok_or_else(|| AppError::Internal("issue value overflow".into()))
-}
-
-/// Value a return of `q` restores from an allocation (issued Iq/Iv, returned Rq/Rv):
-/// cumulative rounding, the final unit takes the exact remainder.
-fn restore_value((iq, iv): (Decimal, i64), (rq, rv): (Decimal, i64), q: Decimal) -> Option<i64> {
-    let total = rq + q;
-    if total > iq {
-        return None;
-    }
-    if total == iq {
-        return Some(iv - rv);
-    }
-    Some(share(iv, total, iq)? - rv)
+    share(conn, pool.value, q, pool.quantity).await
 }
 
 /// What a movement is and what it does to the pool.
@@ -315,7 +309,7 @@ async fn plan(
     if let Some((out_class, in_class)) = pair {
         let (kind, id) = cause.related.ok_or_else(|| unsupported(UNKNOWN))?;
         if out {
-            let value = issue_value(pool.quantity, pool.value, q)?;
+            let value = issue_value(&mut *conn, pool, q).await?;
             return Ok(Plan {
                 class: out_class,
                 value: -value,
@@ -344,15 +338,14 @@ async fn plan(
     match cause.related {
         None if out => Ok(Plan {
             class: "adjustment",
-            value: -issue_value(pool.quantity, pool.value, q)?,
+            value: -issue_value(&mut *conn, pool, q).await?,
             roles: Some(("inventory_adjustment", "inventory")),
         }),
         None => {
             if pool.quantity.is_zero() {
                 return Err(unsupported(EMPTY_POOL));
             }
-            let value = share(pool.value, q, pool.quantity)
-                .ok_or_else(|| AppError::Internal("adjustment value overflow".into()))?;
+            let value = share(&mut *conn, pool.value, q, pool.quantity).await?;
             Ok(Plan {
                 class: "adjustment",
                 value,
@@ -360,7 +353,7 @@ async fn plan(
             })
         }
         Some((kind @ ("order" | "invoice"), id)) if out => {
-            let value = issue_value(pool.quantity, pool.value, q)?;
+            let value = issue_value(&mut *conn, pool, q).await?;
             sqlx::query!(
                 "INSERT INTO inventory_cost_allocations (workspace_id, source_kind, source_id,
                      product_id, warehouse_id, issued_quantity, issued_value)
@@ -386,27 +379,33 @@ async fn plan(
             })
         }
         Some((kind @ ("order" | "invoice"), id)) => {
+            // Cumulative rounding of the original cost; the return reaching the issued quantity
+            // takes the exact rest. NULL: more than was issued.
             let a = sqlx::query!(
-                "SELECT id, issued_quantity, issued_value, returned_quantity, returned_value
-                 FROM inventory_cost_allocations
-                 WHERE workspace_id = $1 AND source_kind = $2 AND source_id = $3
-                   AND product_id = $4 AND warehouse_id = $5
-                 FOR UPDATE",
+                r#"SELECT id,
+                          CASE WHEN returned_quantity + $6 > issued_quantity THEN NULL
+                               WHEN returned_quantity + $6 = issued_quantity
+                               THEN issued_value - returned_value
+                               ELSE money_round_div(issued_value * (returned_quantity + $6),
+                                                    issued_quantity)::bigint - returned_value
+                          END AS value
+                   FROM inventory_cost_allocations
+                   WHERE workspace_id = $1 AND source_kind = $2 AND source_id = $3
+                     AND product_id = $4 AND warehouse_id = $5
+                   FOR UPDATE"#,
                 ws,
                 kind,
                 id,
                 row.product_id,
-                row.warehouse_id
+                row.warehouse_id,
+                q
             )
             .fetch_optional(&mut *conn)
             .await?
             .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
-            let value = restore_value(
-                (a.issued_quantity, a.issued_value),
-                (a.returned_quantity, a.returned_value),
-                q,
-            )
-            .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
+            let value = a
+                .value
+                .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
             sqlx::query!(
                 "UPDATE inventory_cost_allocations
                  SET returned_quantity = returned_quantity + $2, returned_value = returned_value + $3,
@@ -481,12 +480,8 @@ pub async fn on_movement(
     }
     let plan = plan(conn, ws, row, &pool, delta, cause).await?;
     let quantity_after = pool.quantity + delta;
-    let value_after = pool.value + plan.value;
     if quantity_after < Decimal::ZERO {
         return Err(insufficient());
-    }
-    if value_after < 0 || (quantity_after.is_zero() && value_after != 0) {
-        return Err(AppError::Internal("inconsistent inventory pool".into()));
     }
     // §6 permanent identity: receipt_line/booked for bookings, else the movement.
     let (source_kind, source_id, effect_kind) = match cause.value {
@@ -523,18 +518,20 @@ pub async fn on_movement(
         }
         _ => None,
     };
-    let sequence = sqlx::query_scalar!(
+    // New pool value in SQL; the table CHECKs refuse a negative value or value without stock.
+    let (sequence, value_after) = sqlx::query!(
         "UPDATE inventory_cost_pools
-         SET quantity = $2, value = $3, last_accounting_date = $4,
+         SET quantity = $2, value = value + $3, last_accounting_date = $4,
              valuation_sequence = valuation_sequence + 1, version = version + 1, updated_at = now()
-         WHERE id = $1 RETURNING valuation_sequence",
+         WHERE id = $1 RETURNING valuation_sequence, value",
         pool.id,
         quantity_after,
-        value_after,
+        plan.value,
         date
     )
     .fetch_one(&mut *conn)
-    .await?;
+    .await
+    .map(|r| (r.valuation_sequence, r.value))?;
     let (source_kind, source_id) = cause.related.unzip();
     sqlx::query!(
         "INSERT INTO inventory_value_entries (workspace_id, pool_id, sequence, movement_id,
@@ -561,41 +558,4 @@ pub async fn on_movement(
     .execute(&mut *conn)
     .await?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn d(s: &str) -> Decimal {
-        s.parse().unwrap()
-    }
-
-    #[test]
-    fn issue_takes_the_average_and_empties_exactly() {
-        assert_eq!(issue_value(d("20"), 24000, d("5")).unwrap(), 6000);
-        // Q3/V1 three times: 0, 1 (half away from zero), 0.
-        assert_eq!(issue_value(d("3"), 1, d("1")).unwrap(), 0);
-        assert_eq!(issue_value(d("2"), 1, d("1")).unwrap(), 1);
-        assert_eq!(issue_value(d("1"), 0, d("1")).unwrap(), 0);
-        assert_eq!(issue_value(d("7.5"), 7500, d("7.5")).unwrap(), 7500);
-        assert!(issue_value(d("1"), 100, d("2")).is_err());
-    }
-
-    #[test]
-    fn returns_restore_original_cost_with_an_exact_final_part() {
-        assert_eq!(
-            restore_value((d("5"), 6000), (d("0"), 0), d("2")),
-            Some(2400)
-        );
-        // 3 units for 100: 33, 33, then the rest 34.
-        assert_eq!(restore_value((d("3"), 100), (d("0"), 0), d("1")), Some(33));
-        assert_eq!(restore_value((d("3"), 100), (d("1"), 33), d("1")), Some(34));
-        assert_eq!(restore_value((d("3"), 100), (d("2"), 67), d("1")), Some(33));
-        assert_eq!(
-            restore_value((d("3"), 100), (d("2"), 67), d("2")),
-            None,
-            "cap"
-        );
-    }
 }
