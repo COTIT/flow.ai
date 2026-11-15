@@ -510,6 +510,23 @@ fn push_list_filters<'a>(q: &mut sqlx::QueryBuilder<Postgres>, ws: Uuid, f: &'a 
     crate::modules::product_fields::repo::push_filters(q, f.custom_filters);
 }
 
+/// Whether the product has a live size other than its default (masterplan D05).
+pub async fn has_nondefault_variants(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM product_variants
+                          WHERE workspace_id = $1 AND product_id = $2 AND NOT is_default
+                            AND deleted_at IS NULL) AS "has!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(db)
+    .await
+}
+
 /// Lock the live product `id` before a delete; false when there is none. FOR UPDATE conflicts
 /// with the key-share lock an invoice write holds on it, so the delete waits for that write
 /// and its guard then sees the new rows.

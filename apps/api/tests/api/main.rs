@@ -7,6 +7,7 @@ mod common;
 
 mod accounting;
 mod accounting_schema;
+mod active_products;
 mod afm_catalog;
 mod analytics;
 mod app_keys;

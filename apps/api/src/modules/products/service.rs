@@ -153,10 +153,12 @@ pub(crate) async fn create_in(
     f: Fields,
     actor: Actor,
 ) -> Result<Uuid, AppError> {
+    let active = books_active(conn, workspace_id).await?;
     lock_identity(conn, workspace_id).await?;
     // Lock first, then read the series, so the snapshot is the latest settings.
     repo::lock_numbers(conn, workspace_id).await?;
     let mut row = prepare_create(conn, workspace_id, &f).await?;
+    active_guard(&row.kind, row.has_stock, false, active)?;
     super::approval::check_product(conn, workspace_id, &row).await?;
     let (appendix, start) =
         settings::service::numbering(&mut **conn, workspace_id, "product").await?;
@@ -245,11 +247,16 @@ pub(crate) async fn update_in(
     f: Fields,
     actor: Actor,
 ) -> Result<(), AppError> {
+    let active = books_active(conn, workspace_id).await?;
     lock_identity(conn, workspace_id).await?;
     let before = repo::find_locked(conn, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
     let row = prepare_update(conn, workspace_id, &before, &f).await?;
+    if active {
+        let sizes = repo::has_nondefault_variants(&mut **conn, workspace_id, id).await?;
+        active_guard(&row.kind, row.has_stock, sizes, active)?;
+    }
     super::approval::check_product(conn, workspace_id, &row).await?;
     repo::update(conn, workspace_id, &row).await?;
     if row.price != before.price {
@@ -298,6 +305,8 @@ pub async fn duplicate(
     user_id: Uuid,
 ) -> Result<Uuid, AppError> {
     let mut tx = state.db.begin().await?;
+    // Book gate before identity locks; create_in re-reads it (shared locks nest).
+    books_active(&mut tx, workspace_id).await?;
     lock_identity(&mut tx, workspace_id).await?;
     repo::lock_numbers(&mut tx, workspace_id).await?;
     let src = repo::find_locked(&mut tx, workspace_id, parse(id)?)
@@ -542,18 +551,21 @@ pub(crate) async fn refuse_if_used(
     })
 }
 
+/// Whether the book is active, read under the shared book gate (masterplan §6: gate first,
+/// before identity, product or stock locks), so activation can't slip in before commit.
+pub(crate) async fn books_active(conn: &mut PgConnection, workspace_id: Uuid) -> Result<bool, AppError> {
+    crate::modules::accounting::gate::shared(conn, &[workspace_id]).await?;
+    Ok(crate::modules::accounting::repo::settings(conn, workspace_id, false)
+        .await?
+        .state
+        == "active")
+}
+
 /// Kinds active books can't post yet (masterplan D18): no liability or component adapter.
 const ACTIVE_BLOCKED: [&str; 3] = ["giftcard", "multi_product_set", "multi_product_group"];
 
 /// Active-books product support (masterplan D05, D18); setup/dormant books (`active` false)
 /// keep every kind. A stocked product with a nondefault variant needs a SKU split first.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "wired to accounting_settings after the accounting core merges"
-    )
-)]
 pub fn active_guard(
     kind: &str,
     has_stock: bool,
@@ -570,7 +582,8 @@ pub fn active_guard(
             message: format!("Products of type {kind} aren't supported while books are active."),
         });
     }
-    if has_stock && has_nondefault_variants {
+    // Only physical types track stock; others keep Laravel's `has_stock` default unused.
+    if has_stock && PHYSICAL.contains(&kind) && has_nondefault_variants {
         return Err(AppError::Reason {
             status: StatusCode::UNPROCESSABLE_ENTITY,
             code: "sku_split_required",
@@ -1189,6 +1202,7 @@ mod tests {
             ("physical", false, true),
             ("physical_second_chance", true, false),
             ("service", false, true),
+            ("service", true, true),
             ("digital", false, false),
         ] {
             assert_eq!(
