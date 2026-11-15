@@ -42,6 +42,7 @@ import type {
   ProductsPriceHistoryParams,
   ProductsTopSellersParams,
   ReplaceImagesRequest,
+  UnprocessableBody,
   ValidationErrorBody
 } from '../model';
 
@@ -501,7 +502,7 @@ export const productsUpdate = (
 
 export const getProductsUpdateMutationKey = () => ['productsUpdate'] as const;
 
-export const getProductsUpdateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getProductsUpdateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdate>>, TError,ProductsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof productsUpdate>>, TError,ProductsUpdateMutationVariables, TContext> => {
 
@@ -530,13 +531,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ProductsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof productsUpdate>>>
     export type ProductsUpdateMutationBody = BodyType<ProductRequest>
-    export type ProductsUpdateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type ProductsUpdateMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type ProductsUpdateMutationVariables = {workspace: string;product: string;data: BodyType<ProductRequest>}
 
     /**
  * @summary Update a product (send only changed fields)
  */
-export const useProductsUpdate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useProductsUpdate = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdate>>, TError,ProductsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof productsUpdate>>,

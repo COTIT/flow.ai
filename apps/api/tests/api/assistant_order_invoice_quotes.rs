@@ -92,8 +92,21 @@ async fn order_invoice_default_variant_drift_refuses_and_explicit_no_warehouse_s
         Some(&api.owner),
     )
     .await;
+    // M1 master guard: an ordered product keeps its default variant through the API.
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{created}");
+    assert_eq!(created["code"], "product_master_frozen");
+    let (status, created) = send(
+        &api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/products/{product}/variants", api.ws),
+        Some(json!({"price":"99","is_default":false,"sku":"New conversion default"})),
+        Some(&api.owner),
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED, "{created}");
     let variant = created["data"]["variant_id"].as_str().unwrap();
+    // Drift the default behind the API's back so the stale review still has to refuse.
+    sqlx::query("UPDATE product_variants SET is_default = (id = $3::uuid) WHERE workspace_id=$1::uuid AND product_id=$2::uuid").bind(&api.ws).bind(&product).bind(variant).execute(&pool).await.unwrap();
     let (status, body) = dispatch(&api.app, &path, json!({}), &api.owner, &session, &action).await;
     assert_eq!(status, StatusCode::CONFLICT, "{body}");
     no_invoice(&pool, &api, &order).await;

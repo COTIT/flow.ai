@@ -14,7 +14,7 @@ use crate::{
     error::{UnprocessableBody, ValidationErrorBody},
     http::response::MessageBody,
     modules::{
-        analytics, app_keys, assistant, attention, auth, cash, contacts, currencies,
+        accounting, analytics, app_keys, assistant, attention, auth, cash, contacts, currencies,
         currency_rates, custom_statuses, custom_types, deal_pipelines, deals, discount_groups,
         discounts, email_profiles, email_templates, email_verification, farm_bug_reports,
         farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market, farm_memberships,
@@ -61,7 +61,7 @@ pub fn string_enum<'a>(
 
 /// Registers the `bearer` scheme (user tokens), the `app_key` scheme (`gsk_…` app keys) and
 /// the `till_session` scheme (till tokens), all the same header, that operations list under
-/// `security`.
+/// `security`; plus `till_privileged` (`X-Till-Session`, beside `bearer`).
 struct BearerAuth;
 
 impl Modify for BearerAuth {
@@ -104,6 +104,17 @@ impl Modify for BearerAuth {
                         ))
                         .build(),
                 ),
+            );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                "till_privileged",
+                SecurityScheme::ApiKey(utoipa::openapi::security::ApiKey::Header(
+                    utoipa::openapi::security::ApiKeyValue::with_description(
+                        "X-Till-Session",
+                        "Till session token beside a member bearer on privileged Till routes",
+                    ),
+                )),
             );
     }
 }
@@ -163,6 +174,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(products::routes::private())
         .merge(crate::modules::product_fields::routes::private())
         .merge(crate::modules::product_bulk_runs::routes::private())
+        .merge(crate::modules::purchase_units::routes::private())
         .merge(product_categories::routes::private())
         .merge(product_brands::routes::private())
         .merge(warehouse_bins::routes::private())
@@ -208,6 +220,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(supply_chain::routes::private())
         .merge(orders::routes::private())
         .merge(analytics::routes::private())
+        .merge(accounting::routes::private())
         .merge(orders::routes::storefront())
         .merge(till::routes::private())
         .merge(till_catalog::routes::private())

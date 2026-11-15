@@ -116,6 +116,8 @@ pub async fn create(
     let mut v = prepare_create(p.id, &f, p.price)?;
     crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
     if v.is_default {
+        crate::modules::products::service::refuse_if_used(&mut tx, workspace_id, p.id, "default")
+            .await?;
         // Uuid::nil() is never a real id, so this clears every current default.
         repo::clear_default(&mut tx, workspace_id, p.id, Uuid::nil()).await?;
     }
@@ -156,6 +158,8 @@ pub async fn update(
     crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
     // Clear the old default first: the one-default index checks each statement.
     if v.is_default && !before.is_default {
+        crate::modules::products::service::refuse_if_used(&mut tx, workspace_id, p.id, "default")
+            .await?;
         repo::clear_default(&mut tx, workspace_id, p.id, v.id).await?;
     }
     repo::update(&mut tx, workspace_id, &v).await?;

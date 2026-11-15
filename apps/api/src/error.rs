@@ -75,6 +75,13 @@ pub enum AppError {
     /// 503 with a stable code: new payment admission needs merchant setup, not a retry.
     #[error("Online payments require merchant setup.")]
     PaymentSetupRequired,
+    /// 409/422 with a stable machine `code` beside the message (ERP reasons, masterplan §5).
+    #[error("{message}")]
+    Reason {
+        status: StatusCode,
+        code: &'static str,
+        message: String,
+    },
     /// 404. Same body for "missing" and "exists but not yours", so ids can't be probed.
     #[error("not found")]
     NotFound,
@@ -116,6 +123,7 @@ impl AppError {
             | Self::Unprocessable(_)
             | Self::NotFound
             | Self::PayloadTooLarge => true,
+            Self::Reason { status, .. } => *status == StatusCode::UNPROCESSABLE_ENTITY,
             Self::Database(e) => e
                 .as_database_error()
                 .and_then(|d| d.code())
@@ -254,6 +262,11 @@ impl IntoResponse for AppError {
                 })),
             )
                 .into_response(),
+            Self::Reason {
+                status,
+                code,
+                message,
+            } => (status, Json(json!({ "message": message, "code": code }))).into_response(),
             Self::NotFound => (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "message": "The requested resource could not be found." })),
@@ -340,6 +353,29 @@ mod tests {
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
         assert_eq!(body["code"], "payment_setup_required");
         assert_eq!(body.as_object().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn reason_carries_status_message_and_code() {
+        let err = AppError::Reason {
+            status: StatusCode::CONFLICT,
+            code: "stale_document",
+            message: "Reload.".into(),
+        };
+        assert!(!err.is_permanent(), "409 may succeed after a reload");
+        let (status, body) = render(err).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(
+            body,
+            json!({ "message": "Reload.", "code": "stale_document" })
+        );
+        let closed = AppError::Reason {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            code: "accounting_period_closed",
+            message: "Closed.".into(),
+        };
+        assert!(closed.is_permanent());
+        assert_eq!(render(closed).await.0, StatusCode::UNPROCESSABLE_ENTITY);
     }
 
     #[tokio::test]

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE journal_entries SET accounting_date = $3, currency_id = $4, reason = $5,\n                evidence_ref = $6, version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b83c8465026e3e3b88594c1c7334c66d8d47fcab599f01d76aad6b946bc96cb2"
+}

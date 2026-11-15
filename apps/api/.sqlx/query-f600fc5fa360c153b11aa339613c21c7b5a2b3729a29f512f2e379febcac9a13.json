@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.role, m.account_id, a.active\n         FROM account_mappings m JOIN accounts a ON a.workspace_id = m.workspace_id AND a.id = m.account_id\n         WHERE m.workspace_id = $1 ORDER BY m.role",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "role",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "account_mappings",
+            "name": "role"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "account_mappings",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "active"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f600fc5fa360c153b11aa339613c21c7b5a2b3729a29f512f2e379febcac9a13"
+}

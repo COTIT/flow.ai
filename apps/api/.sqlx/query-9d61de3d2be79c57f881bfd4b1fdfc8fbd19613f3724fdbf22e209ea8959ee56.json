@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id FROM accounting_periods p\n         JOIN accounting_fiscal_years y ON y.workspace_id = p.workspace_id AND y.id = p.fiscal_year_id\n         WHERE p.workspace_id = $1 AND p.start_date <= $2 AND $2 < p.end_date\n           AND p.state = 'open' AND y.state = 'open'\n         FOR SHARE OF p, y",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounting_periods",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9d61de3d2be79c57f881bfd4b1fdfc8fbd19613f3724fdbf22e209ea8959ee56"
+}

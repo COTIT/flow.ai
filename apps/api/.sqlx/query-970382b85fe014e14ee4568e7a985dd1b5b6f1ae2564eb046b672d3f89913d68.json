@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.code, a.name, a.type AS kind, a.parent_id, a.active, a.version,\n                  ARRAY(SELECT m.role FROM account_mappings m\n                        WHERE m.workspace_id = a.workspace_id AND m.account_id = a.id\n                        ORDER BY m.role) AS \"roles!\",\n                  a.created_by, a.created_at, a.updated_at\n           FROM accounts a\n           WHERE a.workspace_id = $1 AND ($2::uuid IS NULL OR a.id = $2)\n           ORDER BY a.code LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "parent_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "parent_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "roles!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "970382b85fe014e14ee4568e7a985dd1b5b6f1ae2564eb046b672d3f89913d68"
+}

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM account_mappings WHERE workspace_id = $1 AND account_id = $2) AS \"m!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "m!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8249b7103de279bfb1a49b182b8e537bbf063abb55969dfa5acfa2f101013211"
+}

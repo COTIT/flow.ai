@@ -145,6 +145,18 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - An exact, case-insensitive match on barcode, EAN, vendor barcode or the product id. The literal `Shift` that some scanners type is stripped.
   - Several matches prefer an active product, then the **oldest**, so a later copy (a duplicate, or a planted cheaper product) never shadows the original at the till. Laravel took `first()` after hard-coding warehouses 7 and 8.
 
+### Master guards (Flow ERP)
+
+A product is **used** once it has a live stock row with level or reserved not 0, a stock reservation, an order line or an invoice line. A used product refuses these changes with 422 `{"message": "...", "code": "product_master_frozen"}`:
+
+- `unit` changed or cleared
+- `type` changed
+- `has_stock` turned off (turning it on stays allowed)
+- `is_serialized` changed
+- another variant becoming the default (variant create with `is_default`, or a variant switched to default)
+
+`unit` is also frozen while the product has [purchase units](purchase-units.md), used or not. Names, texts, images, prices, categories and status stay editable, and sending a frozen field with its current value is fine. The same check runs for the product form, bulk runs and their review, and assistant proposals (all go through one service function). Only a change to a frozen field reads the history: it locks the product, then its stock rows (`FOR SHARE NOWAIT`); a stock write in flight gives 409 `Stock is being changed. Try again after that write finishes.`
+
 ## Images `/products/{product}/images`
 
 | Route | Permission | Answer |

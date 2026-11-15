@@ -1,0 +1,162 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.id, u.product_id, u.code, u.measurement_category, u.base_units_per_input_unit,\n                  u.active, u.version, u.last_client_ref,\n                  u.last_request_hash, p.unit AS base_unit, u.created_at, u.updated_at\n             FROM purchase_units u\n             JOIN products p ON p.workspace_id = u.workspace_id AND p.id = u.product_id\n            WHERE u.workspace_id = $1 AND u.product_id = $2\n            ORDER BY lower(u.code)\n            LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "measurement_category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "measurement_category"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "base_units_per_input_unit",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "base_units_per_input_unit"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "last_client_ref",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "last_client_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "last_request_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "last_request_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "base_unit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "unit"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_units",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "66a03e851e12f79ff047a784f21dfa15a4dab0ae72832dfc8aec4b6f108e5fff"
+}

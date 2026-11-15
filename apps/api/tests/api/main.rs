@@ -5,6 +5,8 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+mod accounting;
+mod accounting_schema;
 mod afm_catalog;
 mod analytics;
 mod app_keys;
@@ -102,8 +104,10 @@ mod product_bulk_runs;
 mod product_category_link;
 mod product_fields;
 mod product_images;
+mod product_master_guards;
 mod product_variants;
 mod products;
+mod purchase_units;
 mod quick_search;
 mod rate_limit;
 mod relations;
@@ -134,6 +138,7 @@ mod till_cash;
 mod till_catalog;
 mod till_login;
 mod till_pairing;
+mod till_privileged;
 mod till_quote;
 mod till_sales;
 mod users;

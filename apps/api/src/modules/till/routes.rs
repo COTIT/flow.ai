@@ -22,4 +22,5 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::login))
         .routes(routes!(handlers::logout))
         .routes(routes!(handlers::me))
+        .routes(routes!(handlers::privileged_session))
 }

@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT state, version, functional_currency_id, timezone, cutover_at, activated_at\n             FROM accounting_settings WHERE workspace_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounting_settings",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "accounting_settings",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "functional_currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounting_settings",
+            "name": "functional_currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "timezone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounting_settings",
+            "name": "timezone"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "cutover_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "accounting_settings",
+            "name": "cutover_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "activated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "accounting_settings",
+            "name": "activated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ff6245cc9fda0d928cb5dc8f963daab2a8b5e05cd155efb2758d2b764b7227f0"
+}

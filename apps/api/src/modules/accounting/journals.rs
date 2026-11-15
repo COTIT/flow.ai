@@ -1,0 +1,809 @@
+//! Journals: manual drafts, server-computed post/reverse reviews, posting and manual-only
+//! reversal. Lock order on post/reverse: command row → shared book gate → entry FOR UPDATE →
+//! period + year FOR SHARE → accounts FOR SHARE by id → effect insert → journal number last.
+
+use std::collections::HashMap;
+
+use chrono::NaiveDate;
+use rust_decimal::Decimal;
+use serde_json::json;
+use sha2::{Digest, Sha256};
+use sqlx::PgConnection;
+use uuid::Uuid;
+
+use crate::{
+    AppState,
+    error::AppError,
+    http::{json::Rules, list::Page, workspace::WorkspaceAccess},
+    idempotency::{self, Answer, Command},
+    modules::{
+        accounting::{
+            dto::{
+                Acted, Action, CONTROL_ROLES, Create, CurrencyRef, JournalInput, JournalPayload,
+                JournalResource, LineResource, PostPayload, ROLES, ReverseInput, ReversePayload,
+                ReviewResource, Totals,
+            },
+            gate,
+            repo::{self, DraftFields, EntryRow, LineRow, NewLine},
+            service::{created, not_configured, ok, period_closed, stale, unsupported},
+        },
+        currency_rates::{convert::convert, repo::in_force},
+    },
+    numbering::{self, Series},
+};
+
+const NOT_MANUAL: &str = "Only manual journals can be changed or reversed here. Correct source entries through their own workflow.";
+
+/// Minor units as an exact decimal string at `dp` places.
+fn amount(minor: i64, dp: i16) -> String {
+    Decimal::new(minor, u32::try_from(dp).unwrap_or(0)).to_string()
+}
+
+fn line_resource(l: &LineRow, dp: i16, fdp: i16) -> LineResource {
+    LineResource {
+        line_no: l.line_no,
+        account_id: l.account_id,
+        account_code: l.account_code.clone(),
+        relation_id: l.relation_id,
+        source_ref: l.source_ref.clone(),
+        debit: amount(l.debit, dp),
+        credit: amount(l.credit, dp),
+        functional_debit: amount(l.functional_debit, fdp),
+        functional_credit: amount(l.functional_credit, fdp),
+        rate: l.rate.normalize().to_string(),
+        rate_inverse: l.rate_inverse,
+        rate_source: l.rate_source.clone(),
+        rate_date: l.rate_date,
+    }
+}
+
+fn totals(lines: &[LineRow], dp: i16, fdp: i16) -> Totals {
+    let sum = |f: fn(&LineRow) -> i64| lines.iter().map(f).sum::<i64>();
+    Totals {
+        debit: amount(sum(|l| l.debit), dp),
+        credit: amount(sum(|l| l.credit), dp),
+        functional_debit: amount(sum(|l| l.functional_debit), fdp),
+        functional_credit: amount(sum(|l| l.functional_credit), fdp),
+    }
+}
+
+/// Entries with their lines (one lines query for the whole page).
+async fn resources(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    rows: Vec<EntryRow>,
+) -> Result<Vec<JournalResource>, AppError> {
+    let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+    let mut by_entry: HashMap<Uuid, Vec<LineRow>> = HashMap::new();
+    for l in repo::lines(&mut *conn, ws, &ids).await? {
+        by_entry.entry(l.entry_id).or_default().push(l);
+    }
+    let functional = functional(conn, ws).await?;
+    let fdp = functional.as_ref().map_or(2, |c| c.decimals);
+    Ok(rows
+        .into_iter()
+        .map(|e| {
+            let lines = by_entry.remove(&e.id).unwrap_or_default();
+            let dp = e.currency_decimals;
+            let allowed_actions = match (e.kind.as_str(), e.state.as_str()) {
+                ("manual", "draft") => vec!["update", "post"],
+                ("manual", "posted") if e.reversed_by.is_none() => vec!["reverse"],
+                _ => vec![],
+            };
+            JournalResource {
+                id: e.id,
+                workspace_id: ws,
+                number: e.number,
+                kind: e.kind,
+                state: e.state,
+                accounting_date: e.accounting_date,
+                currency: CurrencyRef {
+                    id: e.currency_id,
+                    code: e.currency_code,
+                    decimals: dp,
+                },
+                functional_currency: functional.clone(),
+                reason: e.reason,
+                evidence_ref: e.evidence_ref,
+                reversal_of: e.reversal_of,
+                reversed_by: e.reversed_by,
+                period_id: e.period_id,
+                posted_by: e.posted_by,
+                posted_at: e.posted_at,
+                version: e.version,
+                created_by: e.created_by,
+                created_at: e.created_at,
+                updated_at: e.updated_at,
+                totals: totals(&lines, dp, fdp),
+                lines: lines.iter().map(|l| line_resource(l, dp, fdp)).collect(),
+                allowed_actions,
+            }
+        })
+        .collect())
+}
+
+async fn functional(conn: &mut PgConnection, ws: Uuid) -> Result<Option<CurrencyRef>, AppError> {
+    let s = repo::settings(&mut *conn, ws, false).await?;
+    Ok(match s.functional_currency_id {
+        Some(id) => repo::currency(&mut *conn, ws, id).await?,
+        None => None,
+    })
+}
+
+/// One journal; 404 outside the workspace.
+pub async fn get(conn: &mut PgConnection, ws: Uuid, id: Uuid) -> Result<JournalResource, AppError> {
+    let rows = repo::entries(&mut *conn, ws, Some(id), 1, 0).await?;
+    resources(conn, ws, rows)
+        .await?
+        .pop()
+        .ok_or(AppError::NotFound)
+}
+
+/// One page of journals, newest date first; plus the total.
+pub async fn list(
+    state: &AppState,
+    ws: Uuid,
+    page: Page,
+) -> Result<(Vec<JournalResource>, i64), AppError> {
+    let mut conn = state.db.acquire().await?;
+    let rows = repo::entries(&mut *conn, ws, None, page.size, page.offset()).await?;
+    let total = repo::entry_count(&mut *conn, ws).await?;
+    Ok((resources(&mut conn, ws, rows).await?, total))
+}
+
+/// Draft lines checked against the book: live accounts and relations of this workspace, no
+/// control-account role, amounts exact at the currency's decimals.
+async fn draft_lines(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    input: &JournalInput,
+) -> Result<Vec<NewLine>, AppError> {
+    let Some(currency) = repo::currency(&mut *conn, ws, input.currency).await? else {
+        return Err(AppError::field(
+            "payload.currency_id",
+            "The selected currency id is invalid.",
+        ));
+    };
+    let dp = u32::try_from(currency.decimals).unwrap_or(0);
+    let account_ids: Vec<Uuid> = input.lines.iter().map(|l| l.account).collect();
+    let accounts = repo::line_accounts(&mut *conn, ws, &account_ids).await?;
+    let relation_ids: Vec<Uuid> = input.lines.iter().filter_map(|l| l.relation).collect();
+    let relations = repo::relations_found(&mut *conn, ws, &relation_ids).await?;
+    let mut r = Rules::default();
+    let mut out = Vec::with_capacity(input.lines.len());
+    for (i, l) in input.lines.iter().enumerate() {
+        let field = |f: &str| format!("payload.lines.{i}.{f}");
+        account_rule(
+            &mut r,
+            &field("account_id"),
+            accounts.iter().find(|a| a.0 == l.account),
+        );
+        if l.relation.is_some_and(|id| !relations.contains(&id)) {
+            r.add(
+                &field("relation_id"),
+                "The selected relation id is invalid.",
+            );
+        }
+        let minor = |r: &mut Rules, f: &str, v: Decimal| match crate::money::minor(v, dp) {
+            Ok(m) => Some(m),
+            Err(_) => {
+                r.add(
+                    &field(f),
+                    format!("The {f} must have at most {dp} decimal places."),
+                );
+                None
+            }
+        };
+        let (debit, credit) = (
+            minor(&mut r, "debit", l.debit),
+            minor(&mut r, "credit", l.credit),
+        );
+        if let (Some(debit), Some(credit)) = (debit, credit) {
+            out.push(NewLine {
+                line_no: i16::try_from(i + 1).unwrap_or(i16::MAX),
+                account_id: l.account,
+                relation_id: l.relation,
+                source_ref: l.source_ref.clone(),
+                debit,
+                credit,
+                functional_debit: 0,
+                functional_credit: 0,
+                rate: Decimal::ONE,
+                rate_inverse: false,
+                rate_source: "identity",
+                rate_date: None,
+            });
+        }
+    }
+    r.into_result()?;
+    Ok(out)
+}
+
+/// Line account rule: in the book, active, not a control account.
+fn account_rule(r: &mut Rules, field: &str, account: Option<&(Uuid, bool, Vec<String>)>) {
+    match account {
+        None => r.add(field, "The selected account id is invalid."),
+        Some((_, false, _)) => r.add(field, "The selected account is inactive."),
+        Some((_, true, roles)) => {
+            if let Some(role) = roles
+                .iter()
+                .find(|role| CONTROL_ROLES.contains(&role.as_str()))
+            {
+                r.add(
+                    field,
+                    format!("Manual journals can't post to the {role} control account; use its own workflow."),
+                );
+            }
+        }
+    }
+}
+
+/// POST /accounting/journals: a manual draft.
+pub async fn create(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    cmd: Command<Create<JournalPayload>>,
+) -> Result<Answer, AppError> {
+    const OP: &str = "accounting_journals_create";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    let input = &cmd.input.payload;
+    let lines = draft_lines(&mut tx, ws, input).await?;
+    let fields = DraftFields {
+        kind: "manual",
+        date: input.date,
+        currency: input.currency,
+        reason: &input.reason,
+        evidence_ref: input.evidence_ref.as_deref(),
+        reversal_of: None,
+    };
+    let id = repo::insert_entry(&mut tx, ws, &fields, access.user_id).await?;
+    repo::insert_lines(&mut tx, ws, id, &lines).await?;
+    let answer = created(&get(&mut tx, ws, id).await?);
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// PATCH /accounting/journals/{id}: replace a manual draft's fields and lines.
+pub async fn update(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: Uuid,
+    cmd: Command<Action<JournalPayload>>,
+) -> Result<Answer, AppError> {
+    const OP: &str = "accounting_journals_update";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    let (kind, entry_state, version) = repo::lock_entry(&mut tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let Acted {
+        expected_version,
+        payload: input,
+        ..
+    } = &cmd.input;
+    if version != *expected_version {
+        return Err(stale());
+    }
+    if kind != "manual" {
+        return Err(unsupported(NOT_MANUAL));
+    }
+    if entry_state != "draft" {
+        return Err(unsupported(
+            "Posted journals never change. Reverse them instead.",
+        ));
+    }
+    let lines = draft_lines(&mut tx, ws, input).await?;
+    let fields = DraftFields {
+        kind: "manual",
+        date: input.date,
+        currency: input.currency,
+        reason: &input.reason,
+        evidence_ref: input.evidence_ref.as_deref(),
+        reversal_of: None,
+    };
+    repo::update_entry(&mut tx, ws, id, &fields).await?;
+    repo::delete_lines(&mut tx, ws, id).await?;
+    repo::insert_lines(&mut tx, ws, id, &lines).await?;
+    let answer = ok(&get(&mut tx, ws, id).await?);
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// What a post or reverse would write, computed from current facts.
+struct Prepared {
+    entry: EntryRow,
+    period: Uuid,
+    currency: CurrencyRef,
+    functional: CurrencyRef,
+    date: NaiveDate,
+    lines: Vec<NewLine>,
+    fingerprint: [u8; 32],
+}
+
+impl Prepared {
+    fn review(&self, action: &'static str, accounts: &[LineRow]) -> ReviewResource {
+        let rows: Vec<LineRow> = self
+            .lines
+            .iter()
+            .map(|l| LineRow {
+                entry_id: self.entry.id,
+                line_no: l.line_no,
+                account_id: l.account_id,
+                account_code: accounts
+                    .iter()
+                    .find(|a| a.account_id == l.account_id)
+                    .map(|a| a.account_code.clone())
+                    .unwrap_or_default(),
+                relation_id: l.relation_id,
+                source_ref: l.source_ref.clone(),
+                debit: l.debit,
+                credit: l.credit,
+                functional_debit: l.functional_debit,
+                functional_credit: l.functional_credit,
+                rate: l.rate,
+                rate_inverse: l.rate_inverse,
+                rate_source: l.rate_source.to_owned(),
+                rate_date: l.rate_date,
+            })
+            .collect();
+        let (dp, fdp) = (self.currency.decimals, self.functional.decimals);
+        ReviewResource {
+            journal_id: self.entry.id,
+            version: self.entry.version,
+            action,
+            accounting_date: self.date,
+            period_id: self.period,
+            currency: self.currency.clone(),
+            functional_currency: self.functional.clone(),
+            totals: totals(&rows, dp, fdp),
+            lines: rows.iter().map(|l| line_resource(l, dp, fdp)).collect(),
+            review_fingerprint: hex::encode(self.fingerprint),
+        }
+    }
+}
+
+/// The book's functional currency when it is active and fully configured.
+async fn active_book(conn: &mut PgConnection, ws: Uuid) -> Result<CurrencyRef, AppError> {
+    let s = repo::settings(&mut *conn, ws, false).await?;
+    let mappings = repo::mappings(&mut *conn, ws).await?;
+    let mapped = ROLES
+        .iter()
+        .all(|role| mappings.iter().any(|m| m.role == *role && m.active));
+    let currency = match s.functional_currency_id {
+        Some(id) => repo::currency(&mut *conn, ws, id).await?,
+        None => None,
+    };
+    match currency {
+        Some(c) if s.state == "active" && s.timezone.is_some() && mapped => Ok(c),
+        _ => Err(not_configured()),
+    }
+}
+
+fn fingerprint(value: &serde_json::Value) -> [u8; 32] {
+    Sha256::digest(value.to_string().as_bytes()).into()
+}
+
+fn lines_json(lines: &[NewLine]) -> serde_json::Value {
+    lines
+        .iter()
+        .map(|l| {
+            json!([
+                l.line_no,
+                l.account_id,
+                l.relation_id,
+                l.source_ref,
+                l.debit,
+                l.credit,
+                l.functional_debit,
+                l.functional_credit,
+                l.rate.normalize().to_string(),
+                l.rate_inverse,
+                l.rate_source,
+                l.rate_date
+            ])
+        })
+        .collect()
+}
+
+/// Split `total` functional units over `parts` (entry-currency minor units) in line order:
+/// each part converted alone, the last one takes the exact remainder (§5 rounding).
+fn distribute(parts: &[i64], total: i64, conv: &dyn Fn(i64) -> Option<i64>) -> Option<Vec<i64>> {
+    let mut out = Vec::with_capacity(parts.len());
+    let mut used = 0_i64;
+    for (i, p) in parts.iter().enumerate() {
+        let v = if i + 1 == parts.len() {
+            total.checked_sub(used)?
+        } else {
+            conv(*p)?
+        };
+        if v < 0 {
+            return None;
+        }
+        used = used.checked_add(v)?;
+        out.push(v);
+    }
+    Some(out)
+}
+
+/// Post facts for a draft, rechecked under locks (period and accounts FOR SHARE).
+async fn prepare_post(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+) -> Result<(Prepared, Vec<LineRow>), AppError> {
+    let functional = active_book(&mut *conn, ws).await?;
+    let entry = repo::entries(&mut *conn, ws, Some(id), 1, 0)
+        .await?
+        .pop()
+        .ok_or(AppError::NotFound)?;
+    if entry.kind != "manual" {
+        return Err(unsupported(NOT_MANUAL));
+    }
+    if entry.state != "draft" {
+        return Err(stale());
+    }
+    let stored = repo::lines(&mut *conn, ws, &[id]).await?;
+    let (debit, credit) = stored.iter().fold((0_i64, 0_i64), |(d, c), l| {
+        (d.saturating_add(l.debit), c.saturating_add(l.credit))
+    });
+    if stored.len() < 2 || debit != credit {
+        return Err(AppError::field("lines", "Debits and credits must balance."));
+    }
+    let ids: Vec<Uuid> = stored.iter().map(|l| l.account_id).collect();
+    let accounts = repo::line_accounts(&mut *conn, ws, &ids).await?;
+    let mut r = Rules::default();
+    for (i, l) in stored.iter().enumerate() {
+        account_rule(
+            &mut r,
+            &format!("lines.{i}.account_id"),
+            accounts.iter().find(|a| a.0 == l.account_id),
+        );
+    }
+    r.into_result()?;
+    let period = repo::open_period(&mut *conn, ws, entry.accounting_date)
+        .await?
+        .ok_or_else(period_closed)?;
+    let currency = CurrencyRef {
+        id: entry.currency_id,
+        code: entry.currency_code.clone(),
+        decimals: entry.currency_decimals,
+    };
+    let (rate, inverse, source, rate_date) = if currency.id == functional.id {
+        (Decimal::ONE, false, "identity", None)
+    } else if let Some(r) = in_force(
+        &mut *conn,
+        ws,
+        currency.id,
+        functional.id,
+        entry.accounting_date,
+    )
+    .await?
+    {
+        (r.rate, false, "workspace", Some(r.effective_on))
+    } else if let Some(r) = in_force(
+        &mut *conn,
+        ws,
+        functional.id,
+        currency.id,
+        entry.accounting_date,
+    )
+    .await?
+    {
+        (r.rate, true, "workspace", Some(r.effective_on))
+    } else {
+        return Err(AppError::field(
+            "currency_id",
+            format!(
+                "No {} → {} rate is in force on {}.",
+                currency.code, functional.code, entry.accounting_date
+            ),
+        ));
+    };
+    let (from, to) = (
+        u32::try_from(currency.decimals).unwrap_or(0),
+        u32::try_from(functional.decimals).unwrap_or(0),
+    );
+    let conv = |minor: i64| convert(minor, rate, from, to, inverse);
+    let unconvertible = || {
+        AppError::field(
+            "lines",
+            "The lines can't be converted to the functional currency exactly.",
+        )
+    };
+    let total = conv(debit).ok_or_else(unconvertible)?;
+    let debits: Vec<i64> = stored
+        .iter()
+        .filter(|l| l.debit > 0)
+        .map(|l| l.debit)
+        .collect();
+    let credits: Vec<i64> = stored
+        .iter()
+        .filter(|l| l.credit > 0)
+        .map(|l| l.credit)
+        .collect();
+    let mut fd = distribute(&debits, total, &conv)
+        .ok_or_else(unconvertible)?
+        .into_iter();
+    let mut fc = distribute(&credits, total, &conv)
+        .ok_or_else(unconvertible)?
+        .into_iter();
+    let lines: Vec<NewLine> = stored
+        .iter()
+        .map(|l| NewLine {
+            line_no: l.line_no,
+            account_id: l.account_id,
+            relation_id: l.relation_id,
+            source_ref: l.source_ref.clone(),
+            debit: l.debit,
+            credit: l.credit,
+            functional_debit: if l.debit > 0 {
+                fd.next().unwrap_or(0)
+            } else {
+                0
+            },
+            functional_credit: if l.credit > 0 {
+                fc.next().unwrap_or(0)
+            } else {
+                0
+            },
+            rate,
+            rate_inverse: inverse,
+            rate_source: source,
+            rate_date,
+        })
+        .collect();
+    let fingerprint = fingerprint(&json!({
+        "action": "post", "entry": entry.id, "version": entry.version, "period": period,
+        "date": entry.accounting_date, "currency": currency.id, "functional": functional.id,
+        "lines": lines_json(&lines),
+    }));
+    let date = entry.accounting_date;
+    Ok((
+        Prepared {
+            entry,
+            period,
+            currency,
+            functional,
+            date,
+            lines,
+            fingerprint,
+        },
+        stored,
+    ))
+}
+
+/// POST /accounting/journals/{id}/post/review: no writes.
+pub async fn post_review(state: &AppState, ws: Uuid, id: Uuid) -> Result<ReviewResource, AppError> {
+    let mut tx = state.db.begin().await?;
+    let (p, stored) = prepare_post(&mut tx, ws, id).await?;
+    tx.rollback().await?;
+    Ok(p.review("post", &stored))
+}
+
+/// POST /accounting/journals/{id}/post.
+pub async fn post(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: Uuid,
+    cmd: Command<Action<PostPayload>>,
+) -> Result<Answer, AppError> {
+    const OP: &str = "accounting_journals_post";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    gate::shared(&mut tx, &[ws]).await?;
+    let (_, _, version) = repo::lock_entry(&mut tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if version != cmd.input.expected_version {
+        return Err(stale());
+    }
+    let (p, _) = prepare_post(&mut tx, ws, id).await?;
+    if hex::encode(p.fingerprint) != cmd.input.payload {
+        return Err(stale());
+    }
+    for l in &p.lines {
+        repo::set_functional(&mut tx, ws, id, l).await?;
+    }
+    let effect =
+        repo::insert_effect(&mut tx, ws, id, "posted", &p.fingerprint, access.user_id).await?;
+    let number = numbering::next(&mut tx, ws, Series::Journal, 1).await?;
+    repo::mark_posted(&mut tx, ws, id, number, p.period, effect, access.user_id).await?;
+    let answer = ok(&get(&mut tx, ws, id).await?);
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// Reversal facts for a posted manual entry: same lines, sides swapped, same functional
+/// amounts and rate snapshot, dated into an open period.
+async fn prepare_reverse(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+    input: &ReverseInput,
+) -> Result<(Prepared, Vec<LineRow>), AppError> {
+    let functional = active_book(&mut *conn, ws).await?;
+    let entry = repo::entries(&mut *conn, ws, Some(id), 1, 0)
+        .await?
+        .pop()
+        .ok_or(AppError::NotFound)?;
+    if entry.kind != "manual" {
+        return Err(unsupported(NOT_MANUAL));
+    }
+    if entry.state != "posted" {
+        return Err(unsupported("Only posted journals can be reversed."));
+    }
+    if entry.reversed_by.is_some() {
+        return Err(AppError::Conflict("This journal is already reversed."));
+    }
+    if input.date < entry.accounting_date {
+        return Err(AppError::field(
+            "payload.accounting_date",
+            "The reversal date can't be before the journal's date.",
+        ));
+    }
+    let period = repo::open_period(&mut *conn, ws, input.date)
+        .await?
+        .ok_or_else(period_closed)?;
+    let stored = repo::lines(&mut *conn, ws, &[id]).await?;
+    let lines: Vec<NewLine> = stored
+        .iter()
+        .map(|l| NewLine {
+            line_no: l.line_no,
+            account_id: l.account_id,
+            relation_id: l.relation_id,
+            source_ref: l.source_ref.clone(),
+            debit: l.credit,
+            credit: l.debit,
+            functional_debit: l.functional_credit,
+            functional_credit: l.functional_debit,
+            rate: l.rate,
+            rate_inverse: l.rate_inverse,
+            rate_source: if l.rate_source == "workspace" {
+                "workspace"
+            } else {
+                "identity"
+            },
+            rate_date: l.rate_date,
+        })
+        .collect();
+    let currency = CurrencyRef {
+        id: entry.currency_id,
+        code: entry.currency_code.clone(),
+        decimals: entry.currency_decimals,
+    };
+    let fingerprint = fingerprint(&json!({
+        "action": "reverse", "entry": entry.id, "version": entry.version, "period": period,
+        "date": input.date, "reason": input.reason, "lines": lines_json(&lines),
+    }));
+    Ok((
+        Prepared {
+            entry,
+            period,
+            currency,
+            functional,
+            date: input.date,
+            lines,
+            fingerprint,
+        },
+        stored,
+    ))
+}
+
+/// POST /accounting/journals/{id}/reverse/review: no writes.
+pub async fn reverse_review(
+    state: &AppState,
+    ws: Uuid,
+    id: Uuid,
+    input: &ReverseInput,
+) -> Result<ReviewResource, AppError> {
+    let mut tx = state.db.begin().await?;
+    let (p, stored) = prepare_reverse(&mut tx, ws, id, input).await?;
+    tx.rollback().await?;
+    Ok(p.review("reverse", &stored))
+}
+
+/// POST /accounting/journals/{id}/reverse: manual originals only; returns the reversal.
+pub async fn reverse(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: Uuid,
+    cmd: Command<Action<ReversePayload>>,
+) -> Result<Answer, AppError> {
+    const OP: &str = "accounting_journals_reverse";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    gate::shared(&mut tx, &[ws]).await?;
+    let (_, _, version) = repo::lock_entry(&mut tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let (input, review) = &cmd.input.payload;
+    if version != cmd.input.expected_version {
+        return Err(stale());
+    }
+    let (p, _) = prepare_reverse(&mut tx, ws, id, input).await?;
+    if hex::encode(p.fingerprint) != *review {
+        return Err(stale());
+    }
+    let fields = DraftFields {
+        kind: "reversal",
+        date: input.date,
+        currency: p.currency.id,
+        reason: &input.reason,
+        evidence_ref: None,
+        reversal_of: Some(id),
+    };
+    let reversal = repo::insert_entry(&mut tx, ws, &fields, access.user_id).await?;
+    repo::insert_lines(&mut tx, ws, reversal, &p.lines).await?;
+    let effect = repo::insert_effect(&mut tx, ws, id, "reversed", &p.fingerprint, access.user_id)
+        .await
+        .map_err(
+            |e| match e.as_database_error().and_then(|d| d.constraint()) {
+                Some("accounting_effects_identity_key") => {
+                    AppError::Conflict("This journal is already reversed.")
+                }
+                _ => e.into(),
+            },
+        )?;
+    let number = numbering::next(&mut tx, ws, Series::Journal, 1).await?;
+    repo::mark_posted(
+        &mut tx,
+        ws,
+        reversal,
+        number,
+        p.period,
+        effect,
+        access.user_id,
+    )
+    .await?;
+    let answer = ok(&get(&mut tx, ws, reversal).await?);
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id, reversal]).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn last_part_takes_the_exact_remainder() {
+        // 3 × 0.01 EUR at 1.005 → each rounds to 1, total 0.03015 → 3: parts 1, 1, 1.
+        let conv = |m: i64| convert(m, Decimal::new(1005, 3), 2, 2, false);
+        assert_eq!(
+            distribute(&[1, 1, 1], conv(3).unwrap(), &conv),
+            Some(vec![1, 1, 1])
+        );
+        // 1/3 rate: 100 → 33 each, total 300 → 100: last takes 34.
+        let third = |m: i64| convert(m, Decimal::new(3, 0), 2, 2, true);
+        assert_eq!(
+            distribute(&[100, 100, 100], third(300).unwrap(), &third),
+            Some(vec![33, 33, 34])
+        );
+        assert_eq!(
+            distribute(&[5], 7, &third),
+            Some(vec![7]),
+            "single part is the total"
+        );
+        assert_eq!(
+            distribute(&[100, 1], 10, &|_| Some(50)),
+            None,
+            "never negative"
+        );
+    }
+}

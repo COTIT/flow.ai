@@ -1,5 +1,6 @@
 //! Feature modules. Each owns its routes, handlers, service, repo, DTOs.
 
+pub mod accounting;
 pub mod analytics;
 pub mod app_keys;
 pub mod assistant;
@@ -57,6 +58,7 @@ pub mod product_fields;
 pub mod product_images;
 pub mod product_variants;
 pub mod products;
+pub mod purchase_units;
 pub mod relations;
 pub mod sales_groups;
 pub mod scheduled_reports;
