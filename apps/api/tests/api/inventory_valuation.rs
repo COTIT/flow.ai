@@ -1242,3 +1242,62 @@ async fn a_deactivation_in_flight_holds_back_the_stock_posting(pool: PgPool) {
     );
     w.books().await;
 }
+
+// --- rounding characterisation (money math moves to SQL) ------------------------------------
+
+#[sqlx::test]
+async fn a_positive_adjustment_takes_the_average_rounded_half_away(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    seed(w.pool(), &w.api.ws, &w.honey, &w.main, None, "2", 1).await;
+    let (s, res) = w.mutate(&w.honey, &w.main, "1").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    // round(1 × 1 / 2) = 1, a tie away from zero.
+    assert_eq!(pool_qv(w.pool(), &w.honey, &w.main).await, ("3".into(), 2));
+    let (s, res) = w.mutate(&w.honey, &w.main, "1.5").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    // round(2 × 1.5 / 3) = 1.
+    assert_eq!(
+        pool_qv(w.pool(), &w.honey, &w.main).await,
+        ("4.5".into(), 3)
+    );
+    assert_eq!(
+        entries(w.pool(), &w.honey).await,
+        vec![("adjustment".into(), 1), ("adjustment".into(), 1)]
+    );
+    assert_eq!(
+        role_balance(w.pool(), &w.api.ws, "inventory_adjustment").await,
+        -2
+    );
+    w.books().await;
+}
+
+#[sqlx::test]
+async fn returns_of_one_sale_restore_its_cost_with_an_exact_last_part(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    seed(w.pool(), &w.api.ws, &w.honey, &w.main, None, "3", 100).await;
+    let (s, res, order) = w.sell(&w.honey, "3").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    for _ in 0..3 {
+        let (s, res) = w.give_back(&order, "1").await;
+        assert_eq!(s, StatusCode::OK, "{res}");
+    }
+    // round(100 × 1/3) = 33, round(100 × 2/3) − 33 = 34, then the exact rest 33.
+    assert_eq!(
+        entries(w.pool(), &w.honey).await,
+        vec![
+            ("sale_issue".into(), -100),
+            ("customer_return".into(), 33),
+            ("customer_return".into(), 34),
+            ("customer_return".into(), 33),
+        ]
+    );
+    assert_eq!(
+        pool_qv(w.pool(), &w.honey, &w.main).await,
+        ("3".into(), 100)
+    );
+    let (s, res) = w.give_back(&order, "1").await;
+    assert_ne!(s, StatusCode::OK, "nothing left to return: {res}");
+    w.books().await;
+}
