@@ -53,6 +53,9 @@ pub enum Taken {
 pub enum Error {
     #[error(transparent)]
     Db(#[from] sqlx::Error),
+    /// Refused by the stock layer (e.g. valuation in an active book): passed on as is.
+    #[error(transparent)]
+    App(#[from] AppError),
     /// Reserve, release and commit need `cause.related`.
     #[error("stock hold without the record it belongs to")]
     NoRelated,
@@ -78,6 +81,7 @@ impl From<Error> for AppError {
     fn from(e: Error) -> Self {
         match e {
             Error::Db(e) => Self::Database(e),
+            Error::App(e) => e,
             Error::LotRecalled { .. } => Self::Conflict("lot_recalled"),
             Error::LotExpired { .. } => Self::Conflict("lot_expired"),
             Error::LotQuarantined { .. } => Self::Conflict("lot_quarantined"),
@@ -124,7 +128,7 @@ async fn pick(
     workspace_id: Uuid,
     warehouse_id: Uuid,
     product_id: Uuid,
-) -> Result<Vec<StockRow>, sqlx::Error> {
+) -> Result<Vec<StockRow>, Error> {
     let no_lot = repo::locked(conn, workspace_id, slot(warehouse_id, product_id)).await?;
     let lots = repo::lot_rows(conn, workspace_id, product_id, warehouse_id).await?;
     if lots.is_empty() {

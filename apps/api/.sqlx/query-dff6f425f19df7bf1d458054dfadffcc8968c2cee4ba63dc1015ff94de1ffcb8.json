@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inventory_value_entries (workspace_id, pool_id, sequence, movement_id,\n             accounting_date, classification, source_kind, source_id, quantity_before,\n             quantity_delta, quantity_after, value_before, value_delta, value_after,\n             journal_entry_id)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Uuid",
+        "Date",
+        "Text",
+        "Text",
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dff6f425f19df7bf1d458054dfadffcc8968c2cee4ba63dc1015ff94de1ffcb8"
+}

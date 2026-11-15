@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (clock_timestamp() AT TIME ZONE coalesce(timezone, 'UTC'))::date AS \"date!\",\n                  timezone IS NOT NULL AS \"tz!\"\n           FROM accounting_settings WHERE workspace_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "tz!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "649f7eb9cc345f2ce4cbacb8746b31da924d2d8dfa54cfc9e1c75357d22fffa0"
+}

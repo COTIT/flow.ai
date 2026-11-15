@@ -33,13 +33,18 @@ use crate::{
             repo::{self, ATTRIBUTIONS_MAX, BatchLock, CorrectionRow},
         },
         farm_surveys::dto::Money,
-        stock::repo::{self as stock, Cause, Floor, Mutated, Slot},
+        stock::{
+            repo::{self as stock, Cause, Floor, Mutated, Slot},
+            value as stock_value,
+        },
         webhooks::events::{self, SUPPLY_CORRECTED},
     },
 };
 
 const REF_TAKEN: &str = "This client_ref belongs to another supply correction.";
 const OWN_REQUEST: &str = "A correction you filed must be decided by another ops or admin.";
+const FARM_CORRECTION: &str =
+    "Supply corrections aren't supported while the accounting book is active.";
 const DECIDED: &str = "This correction was already approved or rejected.";
 const SOLD_OUT: &str = "The raw lot is sold out: its deliveries can no longer be corrected.";
 const DISPATCHED: &str =
@@ -318,6 +323,8 @@ pub async fn decide(
     let id = parse(id)?;
     let scope = access.staff_scope();
     let mut tx = access.begin(&state.db).await?;
+    // §16: attribution corrections move farmer liability, not natively accounted yet.
+    stock_value::refuse_active(&mut tx, ws, FARM_CORRECTION).await?;
     let c = repo::find(&mut tx, ws, id, &scope, true)
         .await?
         .ok_or(AppError::NotFound)?;
