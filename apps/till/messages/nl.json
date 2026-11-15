@@ -168,7 +168,11 @@
     "waiting": "{count, plural, one {# wacht} other {# wachten}}",
     "needsOffice": "{count, plural, one {# moet naar het kantoor} other {# moeten naar het kantoor}}",
     "items": "{count, plural, one {# artikel} other {# artikelen}}",
-    "estimate": "{method} · ≈ {amount} schatting"
+    "estimate": "{method} · ≈ {amount} schatting",
+    "otherUser": "Aangeslagen door {name}. Wordt verstuurd zodra {name} op deze kassa inlogt.",
+    "otherRegister": "Aangeslagen op kassa {register}. Wordt alleen vanaf die kassa verstuurd.",
+    "unknownOrigin": "Onbekend op welke kassa deze verkoop is aangeslagen, dus hij wordt niet verstuurd.",
+    "retry": "Opnieuw proberen"
   },
   "errors": {
     "crashTitle": "Dit scherm werkt niet meer.",
@@ -189,6 +193,7 @@
   "refusals": {
     "refReused": "Het nummer van deze verkoop is al voor een andere verkoop gebruikt. Laat het aan het kantoor zien.",
     "noShift": "Er is geen dienst open op deze kassa. Open eerst de lade.",
-    "alreadyOpen": "Er is al een dienst open op deze kassa."
+    "alreadyOpen": "Er is al een dienst open op deze kassa.",
+    "insufficientStock": "Niet genoeg voorraad voor een product in deze verkoop. Vraag kantoor de voorraad te corrigeren en probeer het opnieuw."
   }
 }

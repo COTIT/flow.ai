@@ -1,11 +1,24 @@
-// The API refuses with fixed English sentences and no code. shortcut: the till knows these by
-// their text; switch to codes once the API sends them.
+// The API refuses mostly with fixed English sentences: the till knows those by their text, and
+// by `code` where the API sends one.
+/** The API's 409 when a client_ref already holds another sale on this register. */
+export const REUSED =
+  "This client_ref was used for another sale on this register."
+
 const KNOWN: Record<string, string> = {
-  "This client_ref was used for another sale on this register.": "refReused",
+  [REUSED]: "refReused",
   "No shift is open on this register: open the drawer first.": "noShift",
   "No shift is open on this register.": "noShift",
   "A shift is already open on this register.": "alreadyOpen",
 }
+
+const CODES: Record<string, string> = {
+  insufficient_stock: "insufficientStock",
+}
+
+/** The API's machine code for a refused call, if it sent one. */
+export const apiCode = (e: unknown): string | undefined =>
+  (e as { response?: { data?: { code?: unknown } } } | null)?.response?.data
+    ?.code as string | undefined
 
 /** The API's own (English) words for a refused call, if it gave some. */
 export const apiMessage = (e: unknown): string | undefined =>
@@ -24,6 +37,7 @@ export function refusal(
   fallback: string
 ): { title: string; detail?: string } {
   const said = apiMessage(e)
-  const known = said ? KNOWN[said] : undefined
+  const code = apiCode(e)
+  const known = (code && CODES[code]) || (said ? KNOWN[said] : undefined)
   return known ? { title: t(known) } : { title: fallback, detail: said }
 }
