@@ -321,3 +321,232 @@ pub async fn lock_vault(
     .await?;
     Ok(Some((currency_id, balance)))
 }
+
+/// A place's currency, locked for this transaction (register or vault row FOR NO KEY UPDATE).
+pub struct PlaceRow {
+    pub currency_id: Uuid,
+    pub code: String,
+    pub decimals: i16,
+}
+
+/// Lock the drawer's register or the vault; None when not in the workspace.
+pub async fn lock_place(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    register_id: Option<Uuid>,
+    vault_id: Option<Uuid>,
+) -> Result<Option<PlaceRow>, sqlx::Error> {
+    if let Some(id) = register_id {
+        return sqlx::query_as!(
+            PlaceRow,
+            r#"SELECT r.currency_id, upper(c.asset_type) AS "code!", c.decimals
+               FROM till_registers r
+               JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id
+               WHERE r.workspace_id = $1 AND r.id = $2 FOR NO KEY UPDATE OF r"#,
+            workspace_id,
+            id,
+        )
+        .fetch_optional(conn)
+        .await;
+    }
+    sqlx::query_as!(
+        PlaceRow,
+        r#"SELECT v.currency_id, upper(c.asset_type) AS "code!", c.decimals
+           FROM cash_vaults v
+           JOIN currencies c ON c.workspace_id = v.workspace_id AND c.id = v.currency_id
+           WHERE v.workspace_id = $1 AND v.id = $2 FOR NO KEY UPDATE OF v"#,
+        workspace_id,
+        vault_id,
+    )
+    .fetch_optional(conn)
+    .await
+}
+
+/// A count against a place's active book cash, all in SQL. `counted`/`difference`/`amount`
+/// are None when the major-unit text has more decimals than the currency or overflows.
+pub struct CountFacts {
+    pub expected: i64,
+    pub counted: Option<i64>,
+    pub difference: Option<i64>,
+    /// |difference|: the journal amount.
+    pub amount: Option<i64>,
+}
+
+/// Active balance (posted place rows, counts excluded) and the count in minor units: Office
+/// `major` text × 10^decimals when whole, else Till `minor`.
+// shortcut: no opening baseline/cutover filter yet, M8 activation adds both here.
+pub async fn count_facts(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    register_id: Option<Uuid>,
+    vault_id: Option<Uuid>,
+    major: Option<rust_decimal::Decimal>,
+    minor: Option<i64>,
+    decimals: i16,
+) -> Result<CountFacts, sqlx::Error> {
+    sqlx::query_as!(
+        CountFacts,
+        r#"WITH b AS (
+               SELECT coalesce(sum(amount), 0)::bigint AS expected FROM cash_ledger
+               WHERE workspace_id = $1 AND kind NOT IN ('open_count', 'close_count')
+                 AND (register_id = $2 OR vault_id = $3)),
+           m AS (SELECT $4::numeric * 10::numeric ^ $6::int AS v),
+           c AS (
+               SELECT CASE WHEN $4::numeric IS NULL THEN $5::bigint
+                           WHEN m.v = trunc(m.v) AND m.v < 1e18 THEN m.v::bigint END AS counted
+               FROM m)
+           SELECT b.expected AS "expected!", c.counted, c.counted - b.expected AS difference,
+                  abs(c.counted - b.expected) AS amount
+           FROM b, c"#,
+        workspace_id,
+        register_id,
+        vault_id,
+        major,
+        minor,
+        i32::from(decimals),
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// Today in the book's timezone (UTC while unset).
+pub async fn book_today(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+) -> Result<chrono::NaiveDate, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT (now() AT TIME ZONE coalesce(timezone, 'UTC'))::date AS "d!"
+           FROM accounting_settings WHERE workspace_id = $1"#,
+        workspace_id,
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// The effect a posted journal entry carries.
+pub async fn entry_effect(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    entry_id: Uuid,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT effect_id AS "e!" FROM journal_entries WHERE workspace_id = $1 AND id = $2"#,
+        workspace_id,
+        entry_id,
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// A cash adjustment to store with its ledger row.
+pub struct NewAdjustment<'a> {
+    pub id: Uuid,
+    pub register_id: Option<Uuid>,
+    pub vault_id: Option<Uuid>,
+    pub currency_id: Uuid,
+    pub expected: i64,
+    pub counted: i64,
+    pub difference: i64,
+    pub evidence: &'a str,
+    pub reason: &'a str,
+    pub date: chrono::NaiveDate,
+    pub member_user_id: Uuid,
+    pub till_user_id: Option<Uuid>,
+    pub effect_id: Uuid,
+    pub journal_entry_id: Option<Uuid>,
+}
+
+/// Store the adjustment and its place movement (member actor, no shift); its creation time.
+pub async fn insert_adjustment(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    a: &NewAdjustment<'_>,
+) -> Result<DateTime<Utc>, sqlx::Error> {
+    let created_at = sqlx::query_scalar!(
+        "INSERT INTO cash_adjustments (id, workspace_id, register_id, vault_id, currency_id,
+             expected, counted, difference, count_evidence_ref, reason, accounting_date,
+             member_user_id, till_user_id, effect_id, journal_entry_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         RETURNING created_at",
+        a.id,
+        workspace_id,
+        a.register_id,
+        a.vault_id,
+        a.currency_id,
+        a.expected,
+        a.counted,
+        a.difference,
+        a.evidence,
+        a.reason,
+        a.date,
+        a.member_user_id,
+        a.till_user_id,
+        a.effect_id,
+        a.journal_entry_id,
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO cash_ledger (workspace_id, register_id, vault_id, kind, amount, actor_kind,
+             member_user_id, till_user_id, source_kind, source_id, effect_id)
+         VALUES ($1, $2, $3, 'adjustment', $4, 'member', $5, $6, 'cash_adjustment', $7, $8)",
+        workspace_id,
+        a.register_id,
+        a.vault_id,
+        a.difference,
+        a.member_user_id,
+        a.till_user_id,
+        a.id,
+        a.effect_id,
+    )
+    .execute(conn)
+    .await?;
+    Ok(created_at)
+}
+
+/// A drawer or vault with its active balance.
+pub struct PlaceListRow {
+    pub kind: String,
+    pub id: Uuid,
+    pub name: String,
+    pub currency_id: Uuid,
+    pub code: String,
+    pub decimals: i16,
+    pub balance: i64,
+    pub open_shift_id: Option<Uuid>,
+}
+
+/// Every drawer and vault of the workspace (a shop has a handful) with active balances.
+pub async fn list_places(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<PlaceListRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PlaceListRow,
+        r#"SELECT p.kind AS "kind!", p.id AS "id!", p.name AS "name!",
+                  p.currency_id AS "currency_id!", upper(c.asset_type) AS "code!",
+                  c.decimals AS "decimals!", p.balance AS "balance!", p.open_shift_id
+           FROM (
+               SELECT 'drawer' AS kind, r.id, r.name, r.currency_id, r.workspace_id,
+                      (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l
+                       WHERE l.workspace_id = r.workspace_id AND l.register_id = r.id
+                         AND l.kind NOT IN ('open_count', 'close_count')) AS balance,
+                      (SELECT s.id FROM drawer_shifts s
+                       WHERE s.register_id = r.id AND s.closed_at IS NULL) AS open_shift_id
+               FROM till_registers r WHERE r.workspace_id = $1
+               UNION ALL
+               SELECT 'vault', v.id, v.name, v.currency_id, v.workspace_id,
+                      (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l
+                       WHERE l.workspace_id = v.workspace_id AND l.vault_id = v.id
+                         AND l.kind NOT IN ('open_count', 'close_count')),
+                      NULL::uuid
+               FROM cash_vaults v WHERE v.workspace_id = $1
+           ) p
+           JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id
+           ORDER BY p.kind, p.name, p.id
+           LIMIT 2000"#,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
