@@ -165,14 +165,14 @@ pub async fn move_between_bins(
     post, path = "/workspace/{workspace}/products/{product}/transfer-stock", tag = "stock",
     operation_id = "stock_transfer", summary = "Move stock from one warehouse to another",
     description = "Takes the quantity from one warehouse and adds it to another warehouse of the same workspace in one transaction, keeping the lot. The source never goes below what it has free (level minus what orders hold). Both ledger rows share `related_domain` `stock_transfer` and one `related_id`.",
-    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Required in an active accounting book, where the answer is kept for good; otherwise kept for a day."),),
     request_body = TransferDoc,
     responses(
         (status = 200, body = Envelope<Value>, description = "Both warehouses with their level before and after, and the lot"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.move`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
         (status = 409, body = MessageBody, description = "`lot_recalled`, `lot_quarantined` or `lot_expired`: the lot's stock may not move"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse or lot, same warehouse twice, or not enough free stock"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse or lot, same warehouse twice, not enough free stock, a missing or reused Idempotency-Key, or (active book) an ERP reason `code`"),
     ),
     security(("bearer" = []))
 )]
@@ -180,10 +180,9 @@ pub async fn transfer(
     State(state): State<AppState>,
     access: Can<StockMove>,
     Path((_, p)): ProductPath,
-    ValidatedJson(t): ValidatedJson<TransferBody>,
-) -> Result<Json<Value>, AppError> {
-    let data = service::transfer(&state, access.workspace_id, &p, t, access.user_id).await?;
-    Ok(Json(json!({ "data": data })))
+    Keyed { input: t, key }: Keyed<TransferBody>,
+) -> Result<Answer, AppError> {
+    service::transfer(&state, access.workspace_id, &p, t, access.user_id, key).await
 }
 
 /// GET /products/{product}/stock-with-bins -> `{data:[...]}`.

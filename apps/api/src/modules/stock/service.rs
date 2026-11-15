@@ -15,7 +15,7 @@ use crate::{
     AppState,
     error::AppError,
     http::json::human,
-    idempotency::{self, Actor, Answer, Key},
+    idempotency::{Answer, Key},
     modules::{
         assistant::preconditions,
         lots::repo::{self as lots, LotRow},
@@ -26,6 +26,7 @@ use crate::{
             dto::{Entry, Move, Mutate, NO_WAREHOUSE, SetRequirements, Transfer},
             repo::{self, Bin, Cause, Floor, ListFilter, Movement, MovementFilter, Mutated, Slot},
             resource,
+            value::{self, Valued},
         },
         warehouses::{
             repo::{self as warehouses, CompactRow},
@@ -59,15 +60,17 @@ pub async fn mutate(
     let warehouse_id = m.warehouse_id;
     let slot = slot(state, workspace_id, product.id, warehouse_id, m.bin_id).await?;
     let mut tx = state.db.begin().await?;
-    if let Some(a) =
-        idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
-    {
+    let (replay, done) =
+        value::replay(&mut tx, workspace_id, "stock_mutate", user_id, key.as_ref()).await?;
+    if let Some(a) = done {
         return Ok(a);
     }
     let ok = Answer::ok();
     // The column keeps 2 places: a change that rounds to 0 is a no-op, not an empty movement.
     if !tracks_stock(&product) || round(m.mutation_value, 2).is_zero() {
-        idempotency::finish(&mut tx, workspace_id, key.as_ref(), &ok).await?;
+        replay
+            .finish(&mut tx, workspace_id, key.as_ref(), &ok)
+            .await?;
         tx.commit().await?;
         return Ok(ok);
     }
@@ -77,6 +80,7 @@ pub async fn mutate(
         user_id: Some(user_id),
         related: None,
         meta: m.meta.as_ref(),
+        ..Cause::default()
     };
     match repo::mutate(
         &mut tx,
@@ -107,7 +111,9 @@ pub async fn mutate(
                 .to_string()
                 .into_bytes(),
             };
-            idempotency::finish(&mut tx, workspace_id, key.as_ref(), &done).await?;
+            replay
+                .finish(&mut tx, workspace_id, key.as_ref(), &done)
+                .await?;
             tx.commit().await?;
             Ok(done)
         }
@@ -483,6 +489,7 @@ pub async fn move_between_bins(
     let cause = Cause {
         reason: Some(&m.reason),
         user_id: Some(user_id),
+        value: Valued::Relocate,
         ..Cause::default()
     };
     let mut tx = state.db.begin().await?;
@@ -657,15 +664,28 @@ fn today() -> NaiveDate {
 /// POST /products/{id}/transfer-stock: take from one warehouse and add to another of the same
 /// workspace in one transaction, lot kept. The source never goes below what it has free
 /// (level − reserved), whatever the warehouse type. Both movements share one transfer id.
+/// Replays under its Idempotency-Key (required and permanent in an active book).
 pub async fn transfer(
     state: &AppState,
     workspace_id: Uuid,
     product_id: &str,
     t: Transfer,
     user_id: Uuid,
-) -> Result<Value, AppError> {
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
     let product = product(state, workspace_id, product_id).await?;
     let mut tx = state.db.begin().await?;
+    let (replay, done) = value::replay(
+        &mut tx,
+        workspace_id,
+        "stock_transfer",
+        user_id,
+        key.as_ref(),
+    )
+    .await?;
+    if let Some(a) = done {
+        return Ok(a);
+    }
     let plan = transfer_plan(&mut tx, workspace_id, product, &t, true).await?;
     if let Some(code) = plan.lot.as_ref().and_then(|l| lot_unmovable(l, today())) {
         return Err(AppError::Conflict(code));
@@ -677,6 +697,7 @@ pub async fn transfer(
         reason: Some(&t.reason),
         user_id: Some(user_id),
         related: Some(("stock_transfer", Uuid::now_v7())),
+        value: Valued::Transfer,
         ..Cause::default()
     };
     let (from, to) = (plan.slot(plan.from.id), plan.slot(plan.to.id));
@@ -702,7 +723,6 @@ pub async fn transfer(
             Mutated::Done { before, after, .. } => (before, after),
             _ => return Err(AppError::field("quantity", OUT_OF_RANGE)),
         };
-    tx.commit().await?;
     let side = |w: &CompactRow, (before, after): (Decimal, Decimal)| {
         serde_json::json!({
             "warehouse": { "id": w.id, "name": w.name },
@@ -710,11 +730,20 @@ pub async fn transfer(
             "after": resource::qty(after),
         })
     };
-    Ok(serde_json::json!({
+    let data = serde_json::json!({
         "from": side(&plan.from, out),
         "to": side(&plan.to, into),
         "lot": plan.lot.as_ref().map(|l| serde_json::json!({ "id": l.id, "code": l.code })),
-    }))
+    });
+    let answer = Answer {
+        status: 200,
+        body: serde_json::json!({ "data": data }).to_string().into_bytes(),
+    };
+    replay
+        .finish(&mut tx, workspace_id, key.as_ref(), &answer)
+        .await?;
+    tx.commit().await?;
+    Ok(answer)
 }
 
 /// True the first time `slot` is taken out of `created` (rows this request made).

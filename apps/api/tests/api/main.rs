@@ -70,6 +70,7 @@ mod flow_scenes;
 mod health;
 mod healthcheck;
 mod hourly_rates;
+mod inventory_valuation;
 mod invites;
 mod invoice_actions;
 mod invoice_credit;

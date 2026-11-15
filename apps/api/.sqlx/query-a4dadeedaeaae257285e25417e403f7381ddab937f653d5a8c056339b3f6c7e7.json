@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stock_movements (workspace_id, stock_id, product_id, warehouse_id, shelf_id,\n             bin_id, movement_type, quantity_change, quantity_before, quantity_after,\n             minimal_stock_level_before, minimal_stock_level_after, maximum_stock_level_before,\n             maximum_stock_level_after, reason, is_correction, user_id, related_domain,\n             related_id, meta, lot_id)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,\n                 $18, $19, $20, $21)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stock_movements",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Jsonb",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a4dadeedaeaae257285e25417e403f7381ddab937f653d5a8c056339b3f6c7e7"
+}

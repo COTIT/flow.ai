@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inventory_cost_pools (workspace_id, product_id, warehouse_id)\n         VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8300b72ce347df4c8079ce74ced8ef4eff9a5fe9e0ecbfec67ccad4bf18f451d"
+}
