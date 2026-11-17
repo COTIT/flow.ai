@@ -8,6 +8,7 @@ import {
   Archive,
   Calculator,
   CreditCard,
+  ShoppingBasket,
   ChevronRight,
   FileText,
   Globe,
@@ -110,6 +111,13 @@ const items: Item[] = [
     match: "/payments",
     label: "nav.payments",
     icon: CreditCard,
+  },
+  {
+    href: "/purchases",
+    match: "/purchases",
+    label: "nav.purchases",
+    icon: ShoppingBasket,
+    group: "shell.buy",
   },
   {
     href: "/lots",

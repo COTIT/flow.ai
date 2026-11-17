@@ -207,7 +207,6 @@
   "relations_delete",
   "relations_financial_summary",
   "relations_get",
-  "relations_list",
   "relations_update",
   "sales_groups_create",
   "sales_groups_delete",

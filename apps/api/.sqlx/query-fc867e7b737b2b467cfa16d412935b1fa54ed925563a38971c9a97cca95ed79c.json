@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, purchase_order_id, number, effective_receipt_date, note, version,\n                  created_by, recorded_at, count(*) OVER () AS \"total!\"\n           FROM purchase_receipts\n           WHERE workspace_id = $1 AND purchase_order_id = $2 AND ($3::uuid IS NULL OR id = $3)\n           ORDER BY number DESC LIMIT $4 OFFSET $5",
+  "query": "SELECT r.id, r.purchase_order_id, r.number, r.effective_receipt_date, r.note,\n                  r.version, r.created_by, r.recorded_at, count(*) OVER () AS \"total!\",\n                  c.id AS \"fc_id?\", upper(c.asset_type) AS \"fc_code?\",\n                  c.decimals AS \"fc_decimals?\"\n           FROM purchase_receipts r\n           JOIN accounting_settings a ON a.workspace_id = r.workspace_id\n           LEFT JOIN currencies c ON a.state = 'active' AND c.workspace_id = a.workspace_id\n                                 AND c.id = a.functional_currency_id\n           WHERE r.workspace_id = $1 AND r.purchase_order_id = $2\n             AND ($3::uuid IS NULL OR r.id = $3)\n           ORDER BY r.number DESC LIMIT $4 OFFSET $5",
   "describe": {
     "columns": [
       {
@@ -96,6 +96,34 @@
         "name": "total!",
         "type_info": "Int8",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "fc_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "fc_code?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "fc_decimals?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
       }
     ],
     "parameters": {
@@ -116,8 +144,11 @@
       false,
       false,
       false,
-      null
+      null,
+      false,
+      null,
+      false
     ]
   },
-  "hash": "60700a02e3282a422fbe63a8e5aa2ce0364c2bb87003a2031e539f6d6163cb6f"
+  "hash": "fc867e7b737b2b467cfa16d412935b1fa54ed925563a38971c9a97cca95ed79c"
 }

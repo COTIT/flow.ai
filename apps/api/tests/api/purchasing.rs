@@ -452,6 +452,8 @@ async fn order_five_receive_two_then_three_books_once(pool: PgPool) {
         "{b}"
     );
     assert_eq!(first["data"]["lines"][0]["state"], "booked");
+    assert_eq!(first["data"]["functional_currency"]["id"], w.eur.as_str());
+    assert_eq!(first["data"]["functional_currency"]["decimals"], 2);
     assert_eq!(first["data"]["lines"][0]["value"], "20.00");
     assert_eq!(pool_qv(w.pool(), &w.wax, &w.shop).await, ("2".into(), 2000));
 
@@ -986,6 +988,7 @@ async fn setup_book_books_stock_only(pool: PgPool) {
     let b = w.book(&r).await;
     assert_eq!(b["lines"][0]["state"], "booked");
     assert_eq!(b["lines"][0]["value"], Value::Null);
+    assert_eq!(b["functional_currency"], Value::Null, "setup book");
     assert_eq!(w.level(&w.wax, &w.shop).await, "3");
     assert_eq!(w.storefront(&w.wax).await, "3.00");
     assert_eq!(w.count("inventory_cost_pools").await, 0);

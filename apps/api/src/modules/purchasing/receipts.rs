@@ -111,18 +111,15 @@ async fn resources(
     let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
     let lines = repo::receipt_lines(&mut *conn, ws, &ids, None).await?;
     let landed = repo::landed(&mut *conn, ws, &ids).await?;
-    let functional = crate::modules::accounting::repo::settings(&mut *conn, ws, false)
-        .await?
-        .functional_currency_id;
-    let fdp = match functional {
-        Some(id) => crate::modules::accounting::repo::currency(&mut *conn, ws, id)
-            .await?
-            .map_or(2, |c| c.decimals),
-        None => 2,
-    };
     Ok(rows
         .into_iter()
         .map(|r| {
+            // Setup bookings carry no values; 2 only formats nothing.
+            let functional_currency = r
+                .functional
+                .clone()
+                .map(|(id, code, decimals)| CurrencyRef { id, code, decimals });
+            let fdp = functional_currency.as_ref().map_or(2, |c| c.decimals);
             let mine: Vec<&ReceiptLineRow> =
                 lines.iter().filter(|l| l.receipt_id == r.id).collect();
             let pending = mine.iter().any(|l| state_of(l) == "pending");
@@ -136,6 +133,7 @@ async fn resources(
                 note: r.note,
                 recorded_at: r.recorded_at,
                 created_by: r.created_by,
+                functional_currency,
                 booking_status: match booked {
                     0 => "unbooked",
                     n if n == mine.len() => "booked",
