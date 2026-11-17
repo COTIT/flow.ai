@@ -15,4 +15,9 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::transfer))
         .routes(routes!(handlers::list_vaults, handlers::create_vault))
         .routes(routes!(handlers::list_shifts))
+        .routes(routes!(handlers::cash_places))
+        .routes(routes!(handlers::office_adjust_review))
+        .routes(routes!(handlers::office_adjust))
+        .routes(routes!(handlers::till_adjust_review))
+        .routes(routes!(handlers::till_adjust))
 }

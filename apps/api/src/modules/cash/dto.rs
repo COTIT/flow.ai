@@ -1,7 +1,7 @@
 //! Cash request/response bodies: denomination counts, shifts, vaults and transfers. Money is
 //! integer minor units.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -418,4 +418,311 @@ mod tests {
         assert!(r.into_result().is_ok());
         assert!(c.resolve(2).ok().unwrap().total > 0);
     }
+}
+
+/// A cash place in a request: `{kind: drawer|vault, id}`. Drawer id = register id.
+#[derive(Deserialize, ToSchema)]
+pub struct PlaceRequest {
+    #[schema(example = "drawer")]
+    kind: Option<String>,
+    #[schema(value_type = Uuid)]
+    id: Option<String>,
+}
+
+/// A validated cash place.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Place {
+    /// A register's drawer.
+    Drawer(Uuid),
+    Vault(Uuid),
+}
+
+impl Place {
+    /// `drawer` or `vault`.
+    pub fn kind(self) -> &'static str {
+        match self {
+            Self::Drawer(_) => "drawer",
+            Self::Vault(_) => "vault",
+        }
+    }
+
+    /// The register or vault id.
+    pub fn id(self) -> Uuid {
+        match self {
+            Self::Drawer(id) | Self::Vault(id) => id,
+        }
+    }
+}
+
+fn place(r: &mut Rules, field: &str, value: Option<PlaceRequest>) -> Option<Place> {
+    let Some(p) = value else {
+        r.missing(field);
+        return None;
+    };
+    let kind = r.required(&format!("{field}.kind"), p.kind);
+    let id = r
+        .required(&format!("{field}.id"), p.id)
+        .and_then(|v| Uuid::parse_str(&v).ok());
+    r.check(
+        &format!("{field}.id"),
+        id.is_some(),
+        "The place id must be a valid UUID.",
+    );
+    match (kind.as_deref(), id) {
+        (Some("drawer"), Some(id)) => Some(Place::Drawer(id)),
+        (Some("vault"), Some(id)) => Some(Place::Vault(id)),
+        (Some(_), _) => {
+            r.add(
+                &format!("{field}.kind"),
+                "The place kind must be drawer or vault.",
+            );
+            None
+        }
+        _ => None,
+    }
+}
+
+/// A counted amount: Office decimal text in major units (SQL turns it into minor units at the
+/// place's decimals), or Till integer minor units.
+#[derive(Clone)]
+pub enum CountedAmount {
+    Major(Decimal),
+    Minor(i64),
+}
+
+fn major(r: &mut Rules, value: Option<Value>) -> Option<CountedAmount> {
+    let v = r.required_value("counted_amount", value)?;
+    // Range and format only: the conversion to minor units happens in SQL.
+    r.decimal("counted_amount", &v, Decimal::ZERO, money::MAX)
+        .map(CountedAmount::Major)
+}
+
+fn minor(r: &mut Rules, value: Option<Value>) -> Option<CountedAmount> {
+    let v = r.required_value("counted_amount", value)?;
+    r.integer("counted_amount", &v, 0, 1_000_000_000_000_000)
+        .map(CountedAmount::Minor)
+}
+
+fn date(r: &mut Rules, value: Option<String>) -> Option<NaiveDate> {
+    let v = r.required("accounting_date", value)?;
+    let d = NaiveDate::parse_from_str(&v, "%Y-%m-%d").ok();
+    r.check(
+        "accounting_date",
+        d.is_some(),
+        "The accounting date must be a date (YYYY-MM-DD).",
+    );
+    d
+}
+
+/// What a cash adjustment review checks: place, count and (Office) date; None = book today.
+pub struct ReviewInput {
+    pub place: Place,
+    pub counted: CountedAmount,
+    pub date: Option<NaiveDate>,
+}
+
+/// A validated adjustment command payload.
+pub struct AdjustInput {
+    pub review: ReviewInput,
+    pub evidence: String,
+    pub reason: String,
+    /// Hex sha256 from the review.
+    pub fingerprint: String,
+}
+
+/// POST /accounting/cash-adjustments/review body.
+#[derive(Deserialize, ToSchema)]
+pub struct OfficeReviewRequest {
+    cash_place: Option<PlaceRequest>,
+    /// Decimal text in the place's currency, major units (`"50.00"`).
+    #[schema(value_type = String, example = "50.00")]
+    counted_amount: Option<Value>,
+    #[schema(value_type = String, format = Date)]
+    accounting_date: Option<String>,
+}
+
+impl Validate for OfficeReviewRequest {
+    type Valid = ReviewInput;
+
+    fn validate(self, r: &mut Rules) -> Option<ReviewInput> {
+        let place = place(r, "cash_place", self.cash_place);
+        let counted = major(r, self.counted_amount);
+        let date = date(r, self.accounting_date);
+        Some(ReviewInput {
+            place: place?,
+            counted: counted?,
+            date: Some(date?),
+        })
+    }
+}
+
+/// POST /till/cash-adjustments/review body.
+#[derive(Deserialize, ToSchema)]
+pub struct TillReviewRequest {
+    target_cash_place: Option<PlaceRequest>,
+    /// Integer minor units (5000 = €50.00).
+    #[schema(value_type = i64, minimum = 0, example = 5000)]
+    counted_amount: Option<Value>,
+}
+
+impl Validate for TillReviewRequest {
+    type Valid = ReviewInput;
+
+    fn validate(self, r: &mut Rules) -> Option<ReviewInput> {
+        let place = place(r, "target_cash_place", self.target_cash_place);
+        let counted = minor(r, self.counted_amount);
+        Some(ReviewInput {
+            place: place?,
+            counted: counted?,
+            date: None,
+        })
+    }
+}
+
+/// Evidence, reason and review fingerprint of an adjustment post.
+#[derive(Deserialize, ToSchema)]
+pub struct AdjustFields {
+    #[schema(max_length = 255)]
+    count_evidence_ref: Option<String>,
+    #[schema(max_length = 1000)]
+    reason: Option<String>,
+    /// `review_fingerprint` from the review.
+    review_fingerprint: Option<String>,
+}
+
+fn fields(r: &mut Rules, f: AdjustFields, review: Option<ReviewInput>) -> Option<AdjustInput> {
+    let evidence = r.text("count_evidence_ref", f.count_evidence_ref, 255);
+    let reason = r.text("reason", f.reason, 1000);
+    let fingerprint = r.required("review_fingerprint", f.review_fingerprint);
+    Some(AdjustInput {
+        review: review?,
+        evidence,
+        reason,
+        fingerprint: fingerprint?,
+    })
+}
+
+/// POST /accounting/cash-adjustments payload.
+#[derive(Deserialize, ToSchema)]
+pub struct OfficeAdjustPayload {
+    #[serde(flatten)]
+    review: OfficeReviewRequest,
+    #[serde(flatten)]
+    fields: AdjustFields,
+}
+
+impl Validate for OfficeAdjustPayload {
+    type Valid = AdjustInput;
+
+    fn validate(self, r: &mut Rules) -> Option<AdjustInput> {
+        let review = self.review.validate(r);
+        fields(r, self.fields, review)
+    }
+}
+
+/// POST /till/cash-adjustments payload.
+#[derive(Deserialize, ToSchema)]
+pub struct TillAdjustPayload {
+    #[serde(flatten)]
+    review: TillReviewRequest,
+    #[serde(flatten)]
+    fields: AdjustFields,
+}
+
+impl Validate for TillAdjustPayload {
+    type Valid = AdjustInput;
+
+    fn validate(self, r: &mut Rules) -> Option<AdjustInput> {
+        let review = self.review.validate(r);
+        fields(r, self.fields, review)
+    }
+}
+
+/// A place as shown in responses.
+#[derive(Serialize, ToSchema)]
+pub struct PlaceRef {
+    #[schema(example = "drawer")]
+    pub kind: &'static str,
+    pub id: Uuid,
+}
+
+/// A currency beside minor-unit amounts.
+#[derive(Serialize, ToSchema)]
+pub struct PlaceCurrency {
+    pub id: Uuid,
+    #[schema(example = "EUR")]
+    pub code: String,
+    pub decimals: i16,
+}
+
+/// A drawer or vault with its active book cash.
+#[derive(Serialize, ToSchema)]
+pub struct CashPlaceResource {
+    #[schema(example = "vault")]
+    pub kind: String,
+    pub id: Uuid,
+    pub name: String,
+    pub currency: PlaceCurrency,
+    /// Minor units: reviewed adjustments + posted movements; counts excluded.
+    pub balance: i64,
+    /// Drawers: the open shift, if any.
+    pub open_shift_id: Option<Uuid>,
+}
+
+/// Journal a posted adjustment writes in an active book.
+#[derive(Serialize, ToSchema)]
+pub struct JournalPlan {
+    #[schema(example = "cash")]
+    pub debit_role: &'static str,
+    #[schema(example = "cash_over_short")]
+    pub credit_role: &'static str,
+    /// Functional minor units.
+    pub amount: i64,
+}
+
+/// Server facts for a cash adjustment; post with `review_fingerprint`.
+#[derive(Serialize, ToSchema)]
+pub struct AdjustReviewResource {
+    pub cash_place: PlaceRef,
+    pub currency: PlaceCurrency,
+    /// Active book cash before, minor units.
+    pub expected: i64,
+    pub counted: i64,
+    /// counted − expected; the place movement.
+    pub difference: i64,
+    #[schema(value_type = String, format = Date)]
+    pub accounting_date: NaiveDate,
+    /// `setup` (place movement only) or `active` (plus the journal).
+    pub book: String,
+    pub journal: Option<JournalPlan>,
+    pub review_fingerprint: String,
+}
+
+/// Who approved an adjustment.
+#[derive(Serialize, ToSchema)]
+pub struct AdjustActor {
+    #[schema(example = "member")]
+    pub kind: &'static str,
+    pub user_id: Uuid,
+}
+
+/// A posted cash adjustment.
+#[derive(Serialize, ToSchema)]
+pub struct CashAdjustmentResource {
+    pub id: Uuid,
+    pub cash_place: PlaceRef,
+    pub currency: PlaceCurrency,
+    pub expected: i64,
+    pub counted: i64,
+    pub difference: i64,
+    #[schema(value_type = String, format = Date)]
+    pub accounting_date: NaiveDate,
+    pub count_evidence_ref: String,
+    pub reason: String,
+    pub actor: AdjustActor,
+    /// Cashier context of a privileged Till approval.
+    pub till_user_id: Option<Uuid>,
+    /// Active books only.
+    pub journal_entry_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
 }

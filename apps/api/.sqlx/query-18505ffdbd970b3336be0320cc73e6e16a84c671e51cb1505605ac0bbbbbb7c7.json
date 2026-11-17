@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH r AS (\n               SELECT a.id, a.code, a.name, a.type,\n                      CASE a.type WHEN 'income'\n                          THEN sum(jl.functional_credit - jl.functional_debit)\n                          ELSE sum(jl.functional_debit - jl.functional_credit) END AS amount\n               FROM journal_lines jl\n               JOIN journal_entries je ON je.workspace_id = jl.workspace_id AND je.id = jl.entry_id\n               JOIN accounts a ON a.workspace_id = jl.workspace_id AND a.id = jl.account_id\n               WHERE jl.workspace_id = $1 AND je.state = 'posted' AND je.kind <> 'year_end_close'\n                 AND je.accounting_date >= $2 AND je.accounting_date < $3\n                 AND a.type IN ('income', 'expense')\n               GROUP BY a.id),\n           t AS (\n               SELECT id, code, name, type, GROUPING(id) AS total,\n                      coalesce(sum(amount), 0) AS amount,\n                      coalesce(sum(amount) FILTER (WHERE type = 'income'), 0) AS income,\n                      coalesce(sum(amount) FILTER (WHERE type = 'expense'), 0) AS expenses\n               FROM r GROUP BY GROUPING SETS ((id, code, name, type), ()))\n           SELECT id AS \"id?\", code AS \"code?\", name AS \"name?\", type AS \"type?\", total AS \"total!\",\n                  round(amount / 10::numeric ^ $4::int, $4::int)::text AS \"amount!\",\n                  round(income / 10::numeric ^ $4::int, $4::int)::text AS \"income!\",\n                  round(expenses / 10::numeric ^ $4::int, $4::int)::text AS \"expenses!\",\n                  round((income - expenses) / 10::numeric ^ $4::int, $4::int)::text AS \"net!\"\n           FROM t ORDER BY total, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "total!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "income!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "expenses!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "net!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "18505ffdbd970b3336be0320cc73e6e16a84c671e51cb1505605ac0bbbbbb7c7"
+}

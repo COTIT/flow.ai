@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 /// Map inventory/cogs/inventory_adjustment/opening_equity, set the book active in UTC with a
 /// period around today.
-async fn activate(pool: &PgPool, ws: &str) {
+pub(crate) async fn activate(pool: &PgPool, ws: &str) {
     let mut tx = pool.begin().await.unwrap();
     let (user, currency): (Uuid, Uuid) = sqlx::query_as(
         "SELECT w.created_by_user_id, c.id FROM workspaces w
@@ -74,7 +74,7 @@ async fn activate(pool: &PgPool, ws: &str) {
 
 /// Opening stock as activation will seed it: `qty` on the slot, the pool (added to), and a
 /// posted opening journal DR inventory / CR opening_equity for `value` minor units.
-async fn seed(
+pub(crate) async fn seed(
     pool: &PgPool,
     ws: &str,
     product: &str,
@@ -188,7 +188,7 @@ async fn seed_pool(
 }
 
 /// GL inventory balance equals Σ pool value, and every pool's quantity equals its live slots.
-async fn assert_books(pool: &PgPool, ws: &str) {
+pub(crate) async fn assert_books(pool: &PgPool, ws: &str) {
     let (gl, pools): (i64, i64) = sqlx::query_as(
         "SELECT
            (SELECT coalesce(sum(l.functional_debit - l.functional_credit), 0)::bigint
@@ -220,7 +220,7 @@ async fn assert_books(pool: &PgPool, ws: &str) {
 }
 
 /// Everything a refused write must leave alone.
-async fn snapshot(pool: &PgPool, ws: &str) -> Value {
+pub(crate) async fn snapshot(pool: &PgPool, ws: &str) -> Value {
     sqlx::query_scalar(
         "SELECT json_build_object(
            'movements', (SELECT count(*) FROM stock_movements WHERE workspace_id = $1::uuid),
@@ -240,7 +240,7 @@ async fn snapshot(pool: &PgPool, ws: &str) -> Value {
     .unwrap()
 }
 
-async fn pool_qv(pool: &PgPool, product: &str, warehouse: &str) -> (String, i64) {
+pub(crate) async fn pool_qv(pool: &PgPool, product: &str, warehouse: &str) -> (String, i64) {
     sqlx::query_as(
         "SELECT trim_scale(quantity)::text, value FROM inventory_cost_pools
          WHERE product_id = $1::uuid AND warehouse_id = $2::uuid",
@@ -266,7 +266,7 @@ async fn entries(pool: &PgPool, product: &str) -> Vec<(String, i64)> {
 }
 
 /// Balance (debit − credit) of a mapped role's account.
-async fn role_balance(pool: &PgPool, ws: &str, role: &str) -> i64 {
+pub(crate) async fn role_balance(pool: &PgPool, ws: &str, role: &str) -> i64 {
     sqlx::query_scalar(
         "SELECT coalesce(sum(l.functional_debit - l.functional_credit), 0)::bigint
          FROM journal_lines l JOIN account_mappings m
@@ -1240,5 +1240,64 @@ async fn a_deactivation_in_flight_holds_back_the_stock_posting(pool: PgPool) {
         ),
         "posting waited for the deactivation and saw it: {res}"
     );
+    w.books().await;
+}
+
+// --- rounding characterisation (money math moves to SQL) ------------------------------------
+
+#[sqlx::test]
+async fn a_positive_adjustment_takes_the_average_rounded_half_away(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    seed(w.pool(), &w.api.ws, &w.honey, &w.main, None, "2", 1).await;
+    let (s, res) = w.mutate(&w.honey, &w.main, "1").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    // round(1 × 1 / 2) = 1, a tie away from zero.
+    assert_eq!(pool_qv(w.pool(), &w.honey, &w.main).await, ("3".into(), 2));
+    let (s, res) = w.mutate(&w.honey, &w.main, "1.5").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    // round(2 × 1.5 / 3) = 1.
+    assert_eq!(
+        pool_qv(w.pool(), &w.honey, &w.main).await,
+        ("4.5".into(), 3)
+    );
+    assert_eq!(
+        entries(w.pool(), &w.honey).await,
+        vec![("adjustment".into(), 1), ("adjustment".into(), 1)]
+    );
+    assert_eq!(
+        role_balance(w.pool(), &w.api.ws, "inventory_adjustment").await,
+        -2
+    );
+    w.books().await;
+}
+
+#[sqlx::test]
+async fn returns_of_one_sale_restore_its_cost_with_an_exact_last_part(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    seed(w.pool(), &w.api.ws, &w.honey, &w.main, None, "3", 100).await;
+    let (s, res, order) = w.sell(&w.honey, "3").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    for _ in 0..3 {
+        let (s, res) = w.give_back(&order, "1").await;
+        assert_eq!(s, StatusCode::OK, "{res}");
+    }
+    // round(100 × 1/3) = 33, round(100 × 2/3) − 33 = 34, then the exact rest 33.
+    assert_eq!(
+        entries(w.pool(), &w.honey).await,
+        vec![
+            ("sale_issue".into(), -100),
+            ("customer_return".into(), 33),
+            ("customer_return".into(), 34),
+            ("customer_return".into(), 33),
+        ]
+    );
+    assert_eq!(
+        pool_qv(w.pool(), &w.honey, &w.main).await,
+        ("3".into(), 100)
+    );
+    let (s, res) = w.give_back(&order, "1").await;
+    assert_ne!(s, StatusCode::OK, "nothing left to return: {res}");
     w.books().await;
 }

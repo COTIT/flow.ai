@@ -1,6 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer`, `pdftemplate` and `accounting` (49 / 258). Name =
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder` and `import` (52 / 276). Name =
 //! `group.action`.
 //! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
@@ -104,6 +104,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "hourregistration",
         &["create", "delete", "get", "list", "update"],
     ),
+    // import: genesy master-data imports (masterplan §15).
+    (
+        "import",
+        &["apply", "create", "get", "list", "upload", "validate"],
+    ),
     ("invite", &["create", "delete", "get", "list"]),
     (
         "invoice",
@@ -161,6 +166,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "productcategory",
         &["create", "delete", "get", "list", "update"],
     ),
+    // purchaseorder: Flow ERP M3 purchasing (masterplan §15), not Laravel.
+    (
+        "purchaseorder",
+        &[
+            "book", "cancel", "close", "confirm", "create", "get", "list", "receive", "update",
+        ],
+    ),
     (
         "relation",
         &["create", "delete", "get", "history", "list", "update"],
@@ -195,6 +207,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         ],
     ),
     ("tag", &["create", "delete", "list", "update", "view"]),
+    ("taxprofile", &["configure", "read", "verify"]),
     (
         "team",
         &[
@@ -269,8 +282,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 49);
-        assert_eq!(names().count(), 258);
+        assert_eq!(GROUPS.len(), 52);
+        assert_eq!(names().count(), 276);
     }
 
     #[test]

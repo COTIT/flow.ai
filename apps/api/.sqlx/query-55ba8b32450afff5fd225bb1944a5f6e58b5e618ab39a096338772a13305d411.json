@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM tax_profiles p JOIN tax_profiles o\n                 ON o.workspace_id = p.workspace_id AND o.lineage_id <> p.lineage_id\n                AND o.state = 'verified' AND o.superseded_by_id IS NULL\n                AND o.country = p.country AND o.subdivision IS NOT DISTINCT FROM p.subdivision\n                AND o.transaction_types && p.transaction_types\n                AND (cardinality(o.product_category_ids) = 0\n                     OR cardinality(p.product_category_ids) = 0\n                     OR o.product_category_ids && p.product_category_ids)\n                AND daterange(o.effective_from, o.effective_to)\n                    && daterange(p.effective_from, p.effective_to)\n               WHERE p.workspace_id = $1 AND p.id = $2) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "55ba8b32450afff5fd225bb1944a5f6e58b5e618ab39a096338772a13305d411"
+}

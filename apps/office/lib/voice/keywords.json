@@ -1474,5 +1474,10 @@
     "en": ["pause"],
     "nl": ["pauzeren"],
     "sw": ["sitisha"]
+  },
+  "relations_list": {
+    "en": ["supplier", "suppliers", "relation", "relations", "vendors"],
+    "nl": ["leverancier", "leveranciers", "relatie", "relaties"],
+    "sw": ["msambazaji", "wasambazaji", "uhusiano"]
   }
 }

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO purchase_landed_cost_allocations (workspace_id, landed_cost_id,\n             receipt_line_id, functional_amount)\n         SELECT $1, $2, x.line, x.amount FROM unnest($3::uuid[], $4::bigint[]) AS x(line, amount)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dd2ff98d8df8e54b7ff5f6f0fb5205ada0233a96de0feda45ab3112022e2d82c"
+}

@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT at AS \"at!\", kind AS \"kind!\", actor AS \"actor!\", ref_id AS \"ref_id!\", detail\n           FROM (\n             SELECT o.created_at AS at, 'created' AS kind, o.created_by AS actor, o.id AS ref_id,\n                    NULL::text AS detail\n             FROM purchase_orders o WHERE o.workspace_id = $1 AND o.id = $2\n             UNION ALL\n             SELECT o.confirmed_at, 'confirmed', o.confirmed_by, o.id, NULL\n             FROM purchase_orders o\n             WHERE o.workspace_id = $1 AND o.id = $2 AND o.confirmed_at IS NOT NULL\n             UNION ALL\n             SELECT o.cancelled_at, 'cancelled', o.cancelled_by, o.id, o.cancel_reason\n             FROM purchase_orders o\n             WHERE o.workspace_id = $1 AND o.id = $2 AND o.cancelled_at IS NOT NULL\n             UNION ALL\n             SELECT r.recorded_at, 'received', r.created_by, r.id, r.number::text\n             FROM purchase_receipts r WHERE r.workspace_id = $1 AND r.purchase_order_id = $2\n             UNION ALL\n             SELECT max(l.booked_at), 'booked', (array_agg(l.booked_by))[1], r.id, r.number::text\n             FROM purchase_receipts r\n             JOIN purchase_receipt_lines l ON l.receipt_id = r.id AND l.booked_at IS NOT NULL\n             WHERE r.workspace_id = $1 AND r.purchase_order_id = $2\n             GROUP BY r.id, r.number, l.booked_at\n             UNION ALL\n             SELECT c.created_at, 'closed', c.created_by, c.line_id,\n                    trim_scale(c.quantity)::text || ': ' || c.reason\n             FROM purchase_order_closures c WHERE c.workspace_id = $1 AND c.purchase_order_id = $2\n           ) e\n           ORDER BY at DESC, kind LIMIT 500",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "actor!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "ref_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "detail",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "62d723b44477953dd70f389916d10d16594187b1a54ab64ac22e4200f604faa9"
+}
