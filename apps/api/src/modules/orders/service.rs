@@ -1181,7 +1181,10 @@ async fn book_paid(
         settle_twin_id: None,
     };
     invoice_payments::repo::insert(conn, workspace_id, &[row]).await?;
-    invoice_payments::repo::set_balance(conn, workspace_id, invoice_id, net, None).await?;
+    // Active books: paid comes from canonical settlement only (deposits are applied there).
+    let (paid, _) =
+        invoice_payments::service::paid_and_cash(conn, workspace_id, invoice_id).await?;
+    invoice_payments::repo::set_balance(conn, workspace_id, invoice_id, paid, None).await?;
     Ok(())
 }
 

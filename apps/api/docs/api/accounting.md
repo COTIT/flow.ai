@@ -133,6 +133,30 @@ Effects, once (effect identity `cash_adjustment`/id/`posted`):
 Errors: 422 field errors (invalid place, `counted_amount`, nothing to adjust when counted = expected), 422 `unsupported_active_erp_operation` (place currency ≠ functional currency in an active book), 422 `accounting_period_closed`, 409 `stale_document` / reused `client_ref`, 403 missing `cashregister.adjust`, 404 not a member.
 
 The Till variant is `POST /till/cash-adjustments` (`docs/api/till.md`).
+## Bank accounts
+
+`GET /accounting/bank-accounts` (`accounting_bank_accounts_list`, `accounting.read`): `{data: [{id, name, currency_id, account_id, active, version, created_at}]}`, by name, at most 500.
+
+`POST /accounting/bank-accounts` (`accounting_bank_accounts_create`, `accounting.configure`, C envelope, Idempotency-Key): `payload {name (1-255, unique per book), currency_id, account_id}`. The account must be an active asset account of this book (422 `payload.account_id`); unknown currency 422 `payload.currency_id`; taken name 422 `payload.name`. 201 with the bank account.
+
+## Settlement (open items and allocations)
+
+Canonical settlement owns paid amounts in active books (masterplan §8). Tables, no routes yet:
+
+- `accounting_open_items`: what a party owes the book (`debit`: receivable, supplier_credit, supplier_advance, recovery_receivable) or the book owes it (`credit`: payable, customer_credit, customer_deposit, received_not_invoiced). `account_role` names the mapped role posted to (a receivable is `receivables` or `unbilled_receivables`). Relation optional (anonymous retail). One item per source + classification. `residual`/`functional_residual` are projections moved only by allocations.
+- `accounting_allocations`: dated, append-only. `application` relieves two opposite-side items of one party and currency; `reclassification` moves a receivable from one role to another (the target is the new item for exactly that amount); `rounding` relieves one item by an explicit rounding posting. A reversal mirrors its original once. Over-allocation, another party/currency, or a date before an item's issue date is refused.
+- `accounting_carrying_adjustments` (functional carrying deltas, M5) and `accounting_source_links` (how a source reached the book: `posted`, `opening_covered`, `pending_observation`; pending may turn posted once).
+
+Money location (`attribution`), one shape wherever money is received or paid:
+
+```json
+{"kind": "cash_place", "cash_place": {"kind": "drawer" | "vault", "id": "…"}}
+{"kind": "bank_account", "bank_account_id": "…", "reference": "…", "evidence_ref": "…", "confirmation_method": "bank_statement"}
+{"kind": "provider_clearing", "reference": "…", "evidence_ref": "…", "confirmation_method": "provider_dashboard"}
+```
+
+`confirmation_method`: `counted_cash`, `bank_statement`, `provider_dashboard`, `provider_callback`. Reference and evidence 1-255 characters.
+
 ## Reports
 
 Read-only, `accounting.read`, `GET` under `/accounting/reports`. Only posted journals count; drafts never do. Amounts are the stored functional values (the book's functional currency), summed and formatted in SQL as exact strings in major units ("1250.50"). No rate is applied again: a later currency rate never changes a posted figure. Ranges are `from` inclusive, `to` exclusive; `as_of` includes that day. Dates are `YYYY-MM-DD` and required; there's no default to today.

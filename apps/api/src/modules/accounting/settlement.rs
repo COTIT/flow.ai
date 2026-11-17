@@ -2,7 +2,7 @@
 //! links, and `MoneyLocation`, the one attribution of where money sits (cash place, bank
 //! account, provider clearing). Every fn runs in the caller's transaction. Money math lives in
 //! the `accounting_allocation_applied` trigger (residual + functional relief in numeric).
-// shortcut: early commit for sibling C9; callers land next (C10 receipts, C9). Drop the allow then.
+// shortcut: `reverse` and `residual` have no caller until C9/credits land; drop the allow then.
 #![allow(dead_code)]
 
 use chrono::NaiveDate;
@@ -492,6 +492,39 @@ impl MoneyLocation {
             }),
         }
     }
+}
+
+/// Account mapped to `role` in the book; 422 `accounting_not_configured` when unmapped.
+pub async fn role_account(conn: &mut PgConnection, ws: Uuid, role: &str) -> Result<Uuid, AppError> {
+    sqlx::query_scalar(
+        "SELECT account_id FROM account_mappings WHERE workspace_id = $1 AND role = $2",
+    )
+    .bind(ws)
+    .bind(role)
+    .fetch_optional(conn)
+    .await?
+    .ok_or_else(crate::modules::accounting::service::not_configured)
+}
+
+/// Paid projection of an invoice in an active book: what applications and explicit rounding
+/// relieved from its receivable items, net of reversals. Reclassification is not payment.
+pub async fn invoice_paid(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    invoice: Uuid,
+) -> Result<i64, AppError> {
+    Ok(sqlx::query_scalar(
+        "SELECT COALESCE(sum(CASE WHEN a.reversal_of IS NULL THEN a.amount ELSE -a.amount END), 0)::bigint
+         FROM accounting_open_items i
+         JOIN accounting_allocations a ON a.workspace_id = i.workspace_id
+              AND (a.target_item_id = i.id OR a.source_item_id = i.id)
+         WHERE i.workspace_id = $1 AND i.invoice_id = $2 AND i.classification = 'receivable'
+           AND a.kind IN ('application', 'rounding')",
+    )
+    .bind(ws)
+    .bind(invoice)
+    .fetch_one(conn)
+    .await?)
 }
 
 #[cfg(test)]

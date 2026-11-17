@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate, human},
+    modules::accounting::settlement::{MoneyLocation, MoneyLocationRequest},
     modules::pricing::body::{Capped, Scalar},
     money::MAX,
 };
@@ -76,6 +77,16 @@ pub struct CreatePaymentRequest {
     #[schema(value_type = Option<Object>)]
     #[serde(default)]
     meta: Capped,
+    /// Active books only (required there with `payment_method`; ignored in setup books):
+    /// where the money is. `cash` → `cash_place`; `pin`, `manual`, `bank` → `bank_account`;
+    /// `mollie` → `provider_clearing`.
+    #[serde(default)]
+    attribution: Option<MoneyLocationRequest>,
+    /// Active books, `cash_place` only: explicit cash rounding (signed decimal, e.g. `0.05`)
+    /// so that `amount + cash_rounding` settles the invoice's open balance exactly.
+    #[schema(value_type = Option<String>, example = "0.05")]
+    #[serde(default)]
+    cash_rounding: Scalar,
 }
 
 /// How an invoice is paid: money, or a credit note (a settle).
@@ -93,6 +104,10 @@ pub struct PaymentInput {
     pub description: Option<String>,
     pub provider_id: Option<String>,
     pub meta: Option<Value>,
+    /// Where the money is (used by active books only).
+    pub location: Option<MoneyLocation>,
+    /// Explicit signed cash rounding in currency units (active books, cash only).
+    pub cash_rounding: Option<Decimal>,
 }
 
 impl Validate for CreatePaymentRequest {
@@ -138,6 +153,11 @@ impl Validate for CreatePaymentRequest {
         let description = text(r, "description", &self.description, 180);
         let provider_id = text(r, "provider_id", &self.provider_id, 255);
         let meta = meta(r, self.meta);
+        let location = self.attribution.map(|a| a.validate(r, "attribution"));
+        let cash_rounding = match self.cash_rounding.filled() {
+            None => Some(None),
+            Some(v) => r.decimal("cash_rounding", &v, -MAX, MAX).map(Some),
+        };
         Some(PaymentInput {
             date: date?,
             amount: amount?,
@@ -145,6 +165,11 @@ impl Validate for CreatePaymentRequest {
             description,
             provider_id,
             meta: meta?,
+            location: match location {
+                Some(l) => Some(l?),
+                None => None,
+            },
+            cash_rounding: cash_rounding?,
         })
     }
 }
