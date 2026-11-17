@@ -67,6 +67,27 @@
       "sw": ["onyesha faili zilizopakiwa"]
     }
   },
+  "imports_apply": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "imports_create": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "imports_get": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "imports_list": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "imports_rows": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "imports_upload": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "imports_validate": {
+    "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
   "invites_answer": {
     "officeOnlyBecause": "The invite link page is used by the invited person before they can sign in."
   },
