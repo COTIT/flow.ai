@@ -452,3 +452,103 @@ async fn setup_books_keep_the_legacy_cash_tolerance(pool: PgPool) {
     assert_eq!(s, StatusCode::CREATED, "{b}");
     assert_eq!(invoicing::numbered(&f, &invoice).await.1, "paid");
 }
+
+impl Paying {
+    /// A Till register of this workspace; with `open`, Mary opens its shift counting 50.00.
+    async fn drawer(&self, name: &str, open: bool) -> String {
+        use crate::till_login::{PIN, register, till_user, token};
+        let till = self._f.api.with_base("/till");
+        let (reg, key) = register(&till, name).await;
+        if open {
+            let mary = till_user(&till, &format!("Mary {name}"), PIN).await;
+            let session = token(&till, &key, &mary).await;
+            let (s, b) = till
+                .call(
+                    Method::POST,
+                    "/shift/open",
+                    Some(json!({"count": [{"denomination": 1000, "count": 5}]})),
+                    &session,
+                )
+                .await;
+            assert!(s.is_success(), "open shift: {b}");
+        }
+        reg
+    }
+
+    fn drawer_cash(&self, reg: &str, amount: &str) -> serde_json::Value {
+        json!({"date": "2027-01-15", "amount": amount, "payment_method": "cash",
+               "attribution": {"kind": "cash_place", "cash_place": {"kind": "drawer", "id": reg}}})
+    }
+
+    /// Book cash of the drawer: posted place rows, shift counts excluded.
+    async fn drawer_balance(&self, reg: &str) -> i64 {
+        sqlx::query_scalar(
+            "SELECT COALESCE(sum(amount), 0)::bigint FROM cash_ledger
+             WHERE register_id = $1::uuid AND kind NOT IN ('open_count', 'close_count')",
+        )
+        .bind(reg)
+        .fetch_one(&self.w.pool)
+        .await
+        .unwrap()
+    }
+}
+
+#[sqlx::test]
+async fn drawer_receipt_lands_on_the_open_shift_and_the_cash_account(pool: PgPool) {
+    // §19 L: Office cash receipt into a drawer raises place and cash GL by the same 40.00.
+    let p = paying(pool, true).await;
+    let reg = p.drawer("Till 1", true).await;
+    let (s, b) = p.pay(p.drawer_cash(&reg, "40"), &key()).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let payment = b["data"]["invoice_payment_id"].as_str().unwrap().to_owned();
+    let row: (String, i64, String, bool) = sqlx::query_as(
+        "SELECT l.kind, l.amount, l.actor_kind, l.shift_id = s.id
+         FROM cash_ledger l JOIN drawer_shifts s ON s.register_id = l.register_id
+              AND s.closed_at IS NULL
+         WHERE l.register_id = $1::uuid AND l.source_kind = 'invoice_payment'
+           AND l.source_id = $2::uuid",
+    )
+    .bind(&reg)
+    .bind(&payment)
+    .fetch_one(&p.w.pool)
+    .await
+    .unwrap();
+    assert_eq!(row, ("receipt".into(), 4_000, "member".into(), true));
+    assert_eq!(p.drawer_balance(&reg).await, 4_000);
+    assert_eq!(p.gl("cash").await, 4_000);
+    // The receipt journal: Dr cash / Cr customer deposits 40.00, then applied to receivables.
+    let received: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM journal_entries j JOIN accounting_effects e ON e.id = j.effect_id
+         WHERE e.workspace_id = $1::uuid AND e.source_kind = 'invoice_payment'
+           AND e.source_id = $2::uuid AND e.effect_kind = 'received' AND j.state = 'posted'",
+    )
+    .bind(&p.w.ws)
+    .bind(&payment)
+    .fetch_one(&p.w.pool)
+    .await
+    .unwrap();
+    assert_eq!(received, 1);
+    assert_eq!(p.gl("customer_deposits").await, 0);
+    assert_eq!(p.state().await, (4_000, "partially_paid".into(), 6_000));
+}
+
+#[sqlx::test]
+async fn drawer_without_an_open_shift_takes_no_cash(pool: PgPool) {
+    let p = paying(pool, true).await;
+    let reg = p.drawer("Till 2", false).await;
+    let (s, b) = p.pay(p.drawer_cash(&reg, "40"), &key()).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    assert!(b["errors"]["attribution.cash_place"].is_array(), "{b}");
+    assert_eq!(p.drawer_balance(&reg).await, 0);
+    assert_eq!(p.gl("cash").await, 0);
+    let effects: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM accounting_effects WHERE workspace_id = $1::uuid
+         AND source_kind = 'invoice_payment'",
+    )
+    .bind(&p.w.ws)
+    .fetch_one(&p.w.pool)
+    .await
+    .unwrap();
+    assert_eq!(effects, 0);
+    assert_eq!(p.state().await, (0, "pending".into(), 10_000));
+}

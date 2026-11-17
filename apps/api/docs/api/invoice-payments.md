@@ -130,6 +130,8 @@ When the workspace book is active, a money payment is a canonical receipt:
 
 Setup books: unchanged (`attribution` and `cash_rounding` ignored).
 
+Known limits (M5/M8 prerequisites): the payment resource doesn't show `attribution` yet; invoices paid before activation read paid 0 until the M8 opening baseline; a gateway callback takes the shared book gate after the gateway engine's invoice locks (safe today: no exclusive gate holder touches invoices; activation and period/year close must keep it that way or lock invoices after the gate).
+
 ## Idempotency-Key
 
 The SPA sends an `Idempotency-Key` header on every POST and DELETE and reuses it on retry. All three routes honour it:
