@@ -1,6 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder` and `import` (52 / 276). Name =
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `import` and `shipment` (53 / 283). Name =
 //! `group.action`.
 //! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
@@ -181,6 +181,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     // salesgroup, shipmentmethod, vatgroup: added by genesy (Laravel checked them, never catalogued).
     ("salesgroup", &["create", "delete", "get", "list", "update"]),
     ("setting", &["get", "update"]),
+    // shipment: Flow ERP M4 partial shipments (masterplan §15), not Laravel.
+    (
+        "shipment",
+        &[
+            "cancel", "create", "get", "invoice", "list", "post", "update",
+        ],
+    ),
     (
         "shipmentmethod",
         &["create", "delete", "get", "list", "update"],
@@ -282,8 +289,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 52);
-        assert_eq!(names().count(), 276);
+        assert_eq!(GROUPS.len(), 53);
+        assert_eq!(names().count(), 283);
     }
 
     #[test]

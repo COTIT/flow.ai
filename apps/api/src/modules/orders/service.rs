@@ -33,7 +33,7 @@ use crate::{
         },
         pricing::engine,
         product_images::service as product_images,
-        products, settings,
+        products, settings, shipments,
         stock::{
             repo::Cause,
             reserve::{self, Reserved, Want},
@@ -50,6 +50,8 @@ const NOT_DRAFT: &str = "Only a draft order can change this.";
 const NOT_OPEN: &str = "Only an open order can change this.";
 const NOT_PICKED: &str = "Pick every stock line in full before completing.";
 const NOT_CANCELLABLE: &str = "This order can no longer be cancelled.";
+const SHIPPED: &str = "Goods of this order were already shipped.";
+const DRAFT_SHIPMENT: &str = "Post or cancel this order's draft shipments first.";
 const NOT_RETURNABLE: &str = "Only a completed order takes returns.";
 const NOT_INVOICEABLE: &str = "Only an open or completed order can be invoiced.";
 const INVOICED: &str = "This order already has an invoice.";
@@ -435,6 +437,7 @@ pub fn check(
         OrderAction::Cancel => {
             let open = matches!(status, "draft" | "awaiting_payment" | "open");
             need(open, NOT_CANCELLABLE)?;
+            need(lines.iter().all(|l| l.deducted.is_zero()), SHIPPED)?;
             need(o.paid_at.is_none() || paid.net <= 0, REFUND_REQUIRED)
         }
         OrderAction::Return => need(
@@ -920,7 +923,11 @@ pub async fn complete(
         key,
         async |conn, o, lines| {
             check(OrderAction::Complete, &o, &lines, Paid::default())?;
-            let (wants, _) = wants(&lines, |l| l.quantity);
+            if shipments::repo::has_draft(&mut *conn, workspace_id, o.id).await? {
+                return Err(conflict(DRAFT_SHIPMENT));
+            }
+            // What posted shipments didn't take yet (all of it without shipments).
+            let (wants, _) = wants(&lines, |l| l.quantity - l.deducted);
             let reason = format!("order {}", o.number);
             reserve::commit(
                 conn,

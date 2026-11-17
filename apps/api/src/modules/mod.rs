@@ -66,6 +66,7 @@ pub mod sales_groups;
 pub mod scheduled_reports;
 pub mod search;
 pub mod settings;
+pub mod shipments;
 pub mod shipment_methods;
 pub mod special_offers;
 pub mod stock;
