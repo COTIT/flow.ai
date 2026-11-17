@@ -65,7 +65,9 @@
     "scheduledReports": "Geplande rapporten",
     "storefront": "Webwinkel",
     "payments": "Betalingen",
-    "paymentSettings": "Betalingsinstellingen"
+    "paymentSettings": "Betalingsinstellingen",
+    "purchaseApprovals": "Inkoopgoedkeuringen",
+    "integrations": "Koppelingen met systemen"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",

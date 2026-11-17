@@ -65,7 +65,9 @@
     "scheduledReports": "Scheduled reports",
     "storefront": "Storefront",
     "payments": "Payments",
-    "paymentSettings": "Payment settings"
+    "paymentSettings": "Payment settings",
+    "purchaseApprovals": "Purchase approvals",
+    "integrations": "Integrations"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
