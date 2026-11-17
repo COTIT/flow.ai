@@ -468,6 +468,58 @@
       "sw": ["badilisha bei ya asali kuwa shilingi 12000"]
     }
   },
+  "purchase_orders_cancel": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_close_lines": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_confirm": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_confirm_review": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_create": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_events": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_get": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_list": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_orders_update": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_receipts_book": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_receipts_book_review": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_receipts_create": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_receipts_get": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_receipts_list": {
+    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "purchase_units_list": {
+    "officeOnlyBecause": "Picking a purchase unit is part of the Office purchase order form; the assistant keeps purchasing internal until its milestone."
+  },
+  "relations_list": {
+    "ask": {
+      "en": ["list our suppliers"],
+      "nl": ["onze leveranciers tonen"],
+      "sw": ["orodha ya wasambazaji"]
+    }
+  },
   "scheduled_reports_delete": {
     "ask": {
       "en": ["delete my weekly sales report email"],

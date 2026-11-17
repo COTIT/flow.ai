@@ -13,6 +13,7 @@ it("each office route keeps the right its page list needs, readable on the serve
   expect(rightFor("/settings/storefront")).toBe("workspace_admin")
   expect(rightFor("/settings/payments")).toBe("workspace_admin")
   expect(rightFor("/payments")).toBe("payment.read")
+  expect(rightFor("/purchases/abc/receipts/def")).toBe("purchaseorder.list")
   expect(rightFor("/supply/links")).toBe("workspace_admin")
   expect(rightFor("/supply/transfers")).toBeUndefined()
   expect(rightFor("/")).toBeUndefined()
