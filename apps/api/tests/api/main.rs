@@ -11,6 +11,7 @@ mod active_products;
 mod afm_catalog;
 mod analytics;
 mod app_keys;
+mod approvals;
 mod approvals_schema;
 mod assistant;
 mod assistant_batches;
@@ -153,6 +154,7 @@ mod warehouse_locations;
 mod warehouses;
 mod webhook_endpoints;
 mod webhook_events;
+mod workflows;
 mod workspace_defaults;
 mod workspaces;
 

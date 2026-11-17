@@ -1,0 +1,172 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.kind, i.subject_ref, i.status, i.pair_id, i.approval_request_id,\n                  i.execution_id, i.detail, i.note, i.resolved_by, i.created_at,\n                  r.requester_user_id AS \"requester_user_id?\", count(*) OVER () AS \"total!\"\n           FROM workflow_incidents i\n           LEFT JOIN workflow_executions e ON e.id = i.execution_id\n           LEFT JOIN approval_requests r ON r.id = coalesce(i.approval_request_id, e.approval_request_id)\n           WHERE i.workspace_id = $1\n             AND ($2::uuid IS NULL OR i.id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($4::text IS NULL OR i.kind = $4)\n           ORDER BY i.id DESC LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "subject_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "subject_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "pair_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "pair_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "approval_request_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "approval_request_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "execution_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "execution_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "detail",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "detail"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "resolved_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "resolved_by"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "requester_user_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "requester_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "c48a838be842911598fc3bcc8fc92907b6e3ee5a52135c91a4a7654530926f16"
+}

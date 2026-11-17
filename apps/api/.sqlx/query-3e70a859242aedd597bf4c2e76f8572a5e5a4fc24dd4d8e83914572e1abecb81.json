@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT workflow_key, pair_id, subject_ref, fingerprint, amount_minor, currency_ref,\n             currency_decimals, requester_user_id\n         FROM approval_requests WHERE workspace_id = $1 AND id = $2 AND status IN ('blocked', 'pending')\n         FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workflow_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "workflow_key"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pair_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "pair_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "subject_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "subject_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "fingerprint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "amount_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "amount_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "currency_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "currency_decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "requester_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "requester_user_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "3e70a859242aedd597bf4c2e76f8572a5e5a4fc24dd4d8e83914572e1abecb81"
+}

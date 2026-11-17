@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM workflow_incidents\n         WHERE workspace_id = $1 AND kind = $2 AND subject_ref = $3 AND status = 'open'\n           AND execution_id IS NOT DISTINCT FROM $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8562a68d353e3411a6255199456469f6be1c77d927e06ae37b497b926f421485"
+}

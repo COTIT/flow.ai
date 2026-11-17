@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT remote_attempts, manual_retry_grants, phase FROM workflow_executions\n         WHERE workspace_id = $1 AND id = $2 AND owner_token = $3 AND status = 'running'\n         FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "remote_attempts",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "remote_attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "manual_retry_grants",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "manual_retry_grants"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "phase",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "phase"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f7727f798c780249349ff991b8157178f559d9d0b2d33f3d3ebc71466d73513e"
+}

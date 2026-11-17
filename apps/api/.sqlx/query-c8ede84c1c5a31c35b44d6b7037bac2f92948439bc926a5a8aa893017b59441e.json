@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO approval_decisions (workspace_id, request_id, requester_user_id, actor_user_id,\n             decision, comment, fingerprint_seen, permission_used)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c8ede84c1c5a31c35b44d6b7037bac2f92948439bc926a5a8aa893017b59441e"
+}

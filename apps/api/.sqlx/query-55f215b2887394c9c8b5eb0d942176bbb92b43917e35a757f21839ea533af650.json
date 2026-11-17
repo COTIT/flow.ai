@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workflow_executions (workspace_id, approval_request_id, workflow_key,\n             correlation_id, status)\n         VALUES ($1, $2, $3, 'vz-' || replace(gen_random_uuid()::text, '-', ''), 'queued')\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "55f215b2887394c9c8b5eb0d942176bbb92b43917e35a757f21839ea533af650"
+}

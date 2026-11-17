@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE approval_requests\n         SET status = $3, decided_by = $4, decided_at = now(), updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status = 'pending' AND fingerprint = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce6cdc37e165b3296b6cf2863cb8819ad4c514363f34bba140ceb8ccb67a6abd"
+}
