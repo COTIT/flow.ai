@@ -813,6 +813,8 @@ pub struct SourceLine<'a> {
     pub credit: i64,
     /// Customer or supplier of a control-account line.
     pub relation_id: Option<Uuid>,
+    /// A concrete account instead of the role's mapping (a bank account's GL account).
+    pub account: Option<Uuid>,
 }
 
 /// Post `j` as a two-line `source` journal; its id. See [`post_source_lines`].
@@ -836,12 +838,14 @@ pub async fn post_source(
             debit: j.amount,
             credit: 0,
             relation_id: None,
+            account: None,
         },
         SourceLine {
             role: j.credit,
             debit: 0,
             credit: j.amount,
             relation_id: None,
+            account: None,
         },
     ];
     Ok(post_source_lines(conn, ws, &header, &lines).await?.0)
@@ -866,10 +870,13 @@ pub async fn post_source_lines(
     let accounts = lines
         .iter()
         .map(|l| {
-            mappings
-                .iter()
-                .find(|m| m.role == l.role)
-                .map(|m| m.account_id)
+            l.account
+                .or_else(|| {
+                    mappings
+                        .iter()
+                        .find(|m| m.role == l.role)
+                        .map(|m| m.account_id)
+                })
                 .ok_or_else(not_configured)
         })
         .collect::<Result<Vec<Uuid>, AppError>>()?;
@@ -1010,6 +1017,7 @@ mod tests {
             debit,
             credit,
             relation_id,
+            account: None,
         };
         let lines = [
             line("unbilled_receivables", 121, 0, None),

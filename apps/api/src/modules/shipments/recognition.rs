@@ -271,6 +271,7 @@ async fn record(
         debit,
         credit,
         relation_id,
+        account: None,
     })
     .collect();
     let (entry, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;
@@ -437,6 +438,7 @@ pub async fn retail_sale(
         debit,
         credit,
         relation_id: None,
+        account: None,
     })
     .collect();
     let (_, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;

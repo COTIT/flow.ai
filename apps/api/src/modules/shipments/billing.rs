@@ -339,12 +339,14 @@ pub async fn issue(
                         debit: u.residual,
                         credit: 0,
                         relation_id: u.relation_id,
+                        account: None,
                     },
                     SourceLine {
                         role: "unbilled_receivables",
                         debit: 0,
                         credit: u.residual,
                         relation_id: u.relation_id,
+                        account: None,
                     },
                 ]
             })
@@ -450,6 +452,7 @@ async fn recognise_standalone(
         debit,
         credit,
         relation_id,
+        account: None,
     })
     .collect();
     let (entry, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;

@@ -12,6 +12,7 @@ pub mod currencies;
 pub mod currency_rates;
 pub mod custom_statuses;
 pub mod custom_types;
+pub mod customer_deposits;
 pub mod deal_pipelines;
 pub mod deals;
 pub mod discount_groups;

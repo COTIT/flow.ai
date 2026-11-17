@@ -89,6 +89,23 @@ In an active book (date = today in the book timezone, as shipments):
 
 Every recognition opens its receivable open item (`accounting_open_items`, role `unbilled_receivables` for shipments and till sales, `receivables` for standalone invoices) and links its source (`accounting_source_links`, `posted`). A till sale's receipt opens a customer credit for the gross and applies it at once, so the retail item closes to 0.
 
+## Customer deposits
+
+Money a customer pays before the sale (functional currency, active books only; setup → 422 `unsupported_active_erp_operation`). Permission `accounting.post`.
+
+| Operation | Route |
+|---|---|
+| `customer_deposits_receive_review` | `POST /customer-deposits/review` |
+| `customer_deposits_receive` | `POST /customer-deposits` |
+| `customer_deposits_apply_review` | `POST /customer-deposits/{deposit}/apply/review` |
+| `customer_deposits_apply` | `POST /customer-deposits/{deposit}/apply` |
+
+Receive (C envelope): `{relation_id, amount, received_on, location, review_fingerprint}`. `amount` is a decimal string in major units (at most the currency's decimals; converted in SQL). `received_on` must be today in the book timezone. `location` is the shared money location: `{kind: "cash_place", cash_place: {kind: drawer|vault, id}}` (a drawer needs an open shift; a cash ledger `receipt` row is written), `{kind: "bank_account", bank_account_id, reference, evidence_ref, confirmation_method}` or `{kind: "provider_clearing", reference, evidence_ref, confirmation_method}`. Journal DR cash / the bank account's GL account / provider_clearing, CR `customer_deposits` (customer on the line), effect `customer_deposit/<id>/received`; a `customer_deposit` open item holds what is left.
+
+Apply (A envelope, `expected_version` = the deposit's `version`): `{recognition_id, amount, review_fingerprint}`. An `application` allocation from the deposit item to the sale's unbilled receivable (same customer and currency, at most either residual, else 422) and DR `customer_deposits` / CR `unbilled_receivables`, effect `deposit_application/<id>/applied`. A sale settled this way invoices later as a document only.
+
+`DepositResource`: `id`, `relation_id`, `currency_id`, `amount`, `residual`, `received_on`, location columns (`location_kind`, `register_id`, `vault_id`, `bank_account_id`, `reference`, `evidence_ref`, `confirmation_method`), `journal_entry_id`, `version`, `created_at`.
+
 ## Not yet
 
-Customer deposits come in the next step; credits and returns of shipped goods later.
+Credits, refunds of deposits, applying a deposit to a billed invoice, and returns of shipped goods come later.
