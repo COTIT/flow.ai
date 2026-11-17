@@ -119,7 +119,11 @@ pub async fn planned(
 }
 
 /// Whether `order` has a draft shipment.
-pub async fn has_draft(db: impl PgExecutor<'_>, ws: Uuid, order: Uuid) -> Result<bool, sqlx::Error> {
+pub async fn has_draft(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    order: Uuid,
+) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT EXISTS (SELECT 1 FROM shipments
                           WHERE workspace_id = $1 AND order_id = $2 AND state = 'draft') AS "x!""#,

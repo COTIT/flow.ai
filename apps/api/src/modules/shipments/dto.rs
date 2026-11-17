@@ -82,12 +82,12 @@ impl Validate for ShipmentPayload {
 
 /// POST .../post/review body.
 #[derive(Deserialize, ToSchema)]
-pub struct PostReviewBody {
+pub struct ShipmentPostReviewBody {
     /// `YYYY-MM-DD`: date of the sale recognition (active books).
     pub accounting_date: Option<String>,
 }
 
-impl Validate for PostReviewBody {
+impl Validate for ShipmentPostReviewBody {
     type Valid = NaiveDate;
 
     fn validate(self, r: &mut Rules) -> Option<NaiveDate> {
@@ -97,13 +97,13 @@ impl Validate for PostReviewBody {
 
 /// POST .../post payload.
 #[derive(Deserialize, ToSchema)]
-pub struct PostPayload {
+pub struct ShipmentPostPayload {
     pub accounting_date: Option<String>,
     /// From `POST .../post/review`.
     pub review_fingerprint: Option<String>,
 }
 
-impl Validate for PostPayload {
+impl Validate for ShipmentPostPayload {
     type Valid = (NaiveDate, String);
 
     fn validate(self, r: &mut Rules) -> Option<(NaiveDate, String)> {
@@ -162,7 +162,7 @@ pub struct RecognitionPreview {
 
 /// What a post would do, from current facts (no writes).
 #[derive(Serialize, ToSchema)]
-pub struct PostReview {
+pub struct ShipmentPostReview {
     pub shipment_id: Uuid,
     pub version: i64,
     pub accounting_date: NaiveDate,

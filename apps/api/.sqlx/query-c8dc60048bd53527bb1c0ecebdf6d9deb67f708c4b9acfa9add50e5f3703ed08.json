@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT greatest($2::int8 - $1::int8, 0)::int8 AS \"rounding_debit!\",\n                  greatest($1::int8 - $2::int8, 0)::int8 AS \"rounding_credit!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rounding_debit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "rounding_credit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "c8dc60048bd53527bb1c0ecebdf6d9deb67f708c4b9acfa9add50e5f3703ed08"
+}

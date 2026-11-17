@@ -32,9 +32,10 @@ use crate::{
         },
         shipments::{
             dto::{
-                PostPayload, PostReview, ShipmentInput, ShipmentLineResource, ShipmentPayload,
-                ShipmentResource,
+                ShipmentInput, ShipmentLineResource, ShipmentPayload, ShipmentPostPayload,
+                ShipmentPostReview, ShipmentResource,
             },
+            recognition,
             repo::{self, LineRow, ShipmentRow},
         },
         stock::{
@@ -227,7 +228,14 @@ pub async fn create(
         return Ok(a);
     }
     let (o, lines) = lock_order(&mut tx, ws, order).await?;
-    let id = create_locked(&mut tx, ws, (&o, &lines), &cmd.input.payload, access.user_id).await?;
+    let id = create_locked(
+        &mut tx,
+        ws,
+        (&o, &lines),
+        &cmd.input.payload,
+        access.user_id,
+    )
+    .await?;
     let answer = created(&get(&mut tx, ws, order, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
@@ -313,7 +321,7 @@ async fn prepare(
     o: &OrderRow,
     id: Uuid,
     date: NaiveDate,
-) -> Result<PostReview, AppError> {
+) -> Result<ShipmentPostReview, AppError> {
     let s = get(&mut *conn, ws, o.id, id).await?;
     if s.state != "draft" {
         return Err(not_draft());
@@ -321,7 +329,12 @@ async fn prepare(
     if o.status != "open" {
         return Err(AppError::Conflict(NOT_OPEN));
     }
-    let preview: Option<crate::modules::shipments::dto::RecognitionPreview> = None;
+    let lines: Vec<(Uuid, Decimal)> = repo::lines(&mut *conn, ws, &[id])
+        .await?
+        .iter()
+        .map(|l| (l.order_line_id, l.quantity))
+        .collect();
+    let preview = recognition::preview(&mut *conn, ws, o, &lines).await?;
     let fingerprint: [u8; 32] = Sha256::digest(
         json!({
             "action": "post", "shipment": id, "version": s.version, "date": date,
@@ -331,7 +344,7 @@ async fn prepare(
         .to_string(),
     )
     .into();
-    Ok(PostReview {
+    Ok(ShipmentPostReview {
         shipment_id: id,
         version: s.version,
         accounting_date: date,
@@ -347,7 +360,7 @@ pub async fn post_review(
     ws: Uuid,
     (order, id): (Uuid, Uuid),
     date: NaiveDate,
-) -> Result<PostReview, AppError> {
+) -> Result<ShipmentPostReview, AppError> {
     let mut tx = state.db.begin().await?;
     let (o, _) = lock_order(&mut tx, ws, order).await?;
     let review = prepare(&mut tx, ws, &o, id, date).await?;
@@ -366,11 +379,19 @@ pub async fn post_locked(
     (date, by): (NaiveDate, Uuid),
 ) -> Result<(), AppError> {
     let lines = repo::lines(&mut *conn, ws, &[id]).await?;
+    // Refusals (foreign currency) before any stock or GL effect.
+    let active = recognition::check(&mut *conn, ws, o.currency_id).await?;
+    let shipped: Vec<(Uuid, Decimal)> = lines
+        .iter()
+        .map(|l| (l.order_line_id, l.quantity))
+        .collect();
     let mut wants = Vec::new();
     let mut rows = Vec::new();
     for l in &lines {
         let Some(ol) = order_lines.iter().find(|x| x.id == l.order_line_id) else {
-            return Err(AppError::Internal("shipment line without its order line".into()));
+            return Err(AppError::Internal(
+                "shipment line without its order line".into(),
+            ));
         };
         if ol.tracked {
             wants.push(Want {
@@ -389,6 +410,9 @@ pub async fn post_locked(
     };
     reserve::commit(&mut *conn, ws, o.warehouse_id, &wants, &cause).await?;
     orders::set_line_quantities(&mut *conn, ws, &rows).await?;
+    if active {
+        recognition::shipment(&mut *conn, ws, o, (id, &shipped), (date, by)).await?;
+    }
     repo::mark_posted(conn, ws, id, date, by).await?;
     Ok(())
 }
@@ -398,7 +422,7 @@ pub async fn post(
     state: &AppState,
     access: &WorkspaceAccess,
     (order, id): (Uuid, Uuid),
-    cmd: Command<Action<PostPayload>>,
+    cmd: Command<Action<ShipmentPostPayload>>,
 ) -> Result<Answer, AppError> {
     const OP: &str = "shipments_post";
     let ws = access.workspace_id;

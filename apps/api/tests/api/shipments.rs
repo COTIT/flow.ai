@@ -220,7 +220,9 @@ async fn partial_shipments_take_exactly_what_ships(pool: PgPool) {
     // Setup book: stock only.
     for t in ["journal_entries", "sales_recognitions"] {
         let n = s
-            .count(&format!("SELECT count(*) FROM {t} WHERE workspace_id = $1::uuid"))
+            .count(&format!(
+                "SELECT count(*) FROM {t} WHERE workspace_id = $1::uuid"
+            ))
             .await;
         assert_eq!(n, 0, "{t}");
     }
@@ -237,7 +239,10 @@ async fn capacity_counts_drafts_and_cancel_frees_it(pool: PgPool) {
     let (o, line) = s.open_order("10").await;
     let (st, a) = s.draft(&o, &[(&line, "4")]).await;
     assert_eq!(st, StatusCode::CREATED, "{a}");
-    assert_eq!(a["data"]["allowed_actions"], json!(["update", "post", "cancel"]));
+    assert_eq!(
+        a["data"]["allowed_actions"],
+        json!(["update", "post", "cancel"])
+    );
     let (st, b) = s.draft(&o, &[(&line, "7")]).await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
     assert!(b["errors"]["payload.lines.0.quantity"].is_array(), "{b}");
@@ -271,16 +276,22 @@ async fn capacity_counts_drafts_and_cancel_frees_it(pool: PgPool) {
     };
     let key = Uuid::now_v7().to_string();
     let path = format!("/orders/{o}/shipments/{b_id}");
-    let (st, r) = s.req(Method::PATCH, &path, Some(patch("11")), Some(&key)).await;
+    let (st, r) = s
+        .req(Method::PATCH, &path, Some(patch("11")), Some(&key))
+        .await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{r}");
     let key = Uuid::now_v7().to_string();
-    let (st, r) = s.req(Method::PATCH, &path, Some(patch("10")), Some(&key)).await;
+    let (st, r) = s
+        .req(Method::PATCH, &path, Some(patch("10")), Some(&key))
+        .await;
     assert_eq!(st, StatusCode::OK, "{r}");
     assert_eq!(r["data"]["version"], 2);
     assert_eq!(r["data"]["note"], "Van 2");
     // A stale version is refused.
     let key = Uuid::now_v7().to_string();
-    let (st, r) = s.req(Method::PATCH, &path, Some(patch("9")), Some(&key)).await;
+    let (st, r) = s
+        .req(Method::PATCH, &path, Some(patch("9")), Some(&key))
+        .await;
     assert_eq!(st, StatusCode::CONFLICT, "{r}");
 }
 
@@ -290,7 +301,10 @@ async fn a_post_replays_without_a_second_movement(pool: PgPool) {
     let (o, line) = s.open_order("10").await;
     let (_, sh) = s.draft(&o, &[(&line, "4")]).await;
     let body = s.post_body(&o, &sh["data"]).await;
-    let path = format!("/orders/{o}/shipments/{}/post", sh["data"]["id"].as_str().unwrap());
+    let path = format!(
+        "/orders/{o}/shipments/{}/post",
+        sh["data"]["id"].as_str().unwrap()
+    );
     // Idempotency-Key is required.
     let (st, r) = s.req(Method::POST, &path, Some(body.clone()), None).await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{r}");
@@ -315,7 +329,10 @@ async fn a_changed_draft_needs_a_new_review(pool: PgPool) {
     let (_, sh) = s.draft(&o, &[(&line, "4")]).await;
     let mut body = s.post_body(&o, &sh["data"]).await;
     body["payload"]["review_fingerprint"] = json!("0".repeat(64));
-    let path = format!("/orders/{o}/shipments/{}/post", sh["data"]["id"].as_str().unwrap());
+    let path = format!(
+        "/orders/{o}/shipments/{}/post",
+        sh["data"]["id"].as_str().unwrap()
+    );
     let (st, r) = s.post(&path, body).await;
     assert_eq!(st, StatusCode::CONFLICT, "{r}");
     assert_eq!(r["code"], "stale_document", "{r}");
@@ -333,7 +350,10 @@ async fn only_open_orders_ship(pool: PgPool) {
         .await;
     assert_eq!(st, StatusCode::CREATED, "{o}");
     let id = o["data"]["order_id"].as_str().unwrap();
-    let line = o["data"]["lines"][0]["id"].as_str().unwrap_or_default().to_owned();
+    let line = o["data"]["lines"][0]["id"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
     let (st, r) = s.draft(id, &[(&line, "1")]).await;
     assert!(
         [StatusCode::CONFLICT, StatusCode::UNPROCESSABLE_ENTITY].contains(&st),
@@ -343,7 +363,10 @@ async fn only_open_orders_ship(pool: PgPool) {
     let (o2, _) = s.open_order("2").await;
     let (st, r) = s.draft(&o2, &[(&Uuid::now_v7().to_string(), "1")]).await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{r}");
-    assert!(r["errors"]["payload.lines.0.order_line_id"].is_array(), "{r}");
+    assert!(
+        r["errors"]["payload.lines.0.order_line_id"].is_array(),
+        "{r}"
+    );
 }
 
 #[sqlx::test]
@@ -399,7 +422,11 @@ async fn another_workspace_sees_no_shipment(pool: PgPool) {
             Some(json!({ "client_ref": Uuid::now_v7(),
                          "payload": { "lines": [{ "order_line_id": line, "quantity": "1" }] } })),
         ),
-        (Method::POST, format!("/orders/{o}/shipments/{id}/cancel"), Some(action)),
+        (
+            Method::POST,
+            format!("/orders/{o}/shipments/{id}/cancel"),
+            Some(action),
+        ),
         (
             Method::POST,
             format!("/orders/{o}/shipments/{id}/post/review"),

@@ -22,7 +22,10 @@ use crate::{
         accounting::dto::{Action, Create},
         purchasing::dto::{CancelPayload, PageQuery},
         shipments::{
-            dto::{PostPayload, PostReview, PostReviewBody, ShipmentPayload, ShipmentResource},
+            dto::{
+                ShipmentPayload, ShipmentPostPayload, ShipmentPostReview, ShipmentPostReviewBody,
+                ShipmentResource,
+            },
             service,
         },
     },
@@ -145,10 +148,10 @@ pub async fn shipments_update(
     post, path = "/workspace/{workspace}/orders/{order}/shipments/{shipment}/post/review", tag = "shipments",
     operation_id = "shipments_post_review",
     summary = "Preview posting a draft (no writes)",
-    request_body = PostReviewBody,
+    request_body = ShipmentPostReviewBody,
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("shipment" = Uuid, Path, description = "Shipment id")),
     responses(
-        (status = 200, body = Envelope<PostReview>, description = "Success"),
+        (status = 200, body = Envelope<ShipmentPostReview>, description = "Success"),
         (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
         (status = 404, body = MessageBody, description = "Unknown workspace, order or shipment, or not a member"),
         (status = 409, body = MessageBody, description = "Order not open"),
@@ -160,8 +163,8 @@ pub async fn shipments_post_review(
     State(state): State<AppState>,
     access: Can<Post>,
     Path((_, order, shipment)): Path<(String, String, String)>,
-    ValidatedJson(date): ValidatedJson<PostReviewBody>,
-) -> Result<Data<PostReview>, AppError> {
+    ValidatedJson(date): ValidatedJson<ShipmentPostReviewBody>,
+) -> Result<Data<ShipmentPostReview>, AppError> {
     Ok(Data(
         service::post_review(
             &state,
@@ -178,7 +181,7 @@ pub async fn shipments_post_review(
     post, path = "/workspace/{workspace}/orders/{order}/shipments/{shipment}/post", tag = "shipments",
     operation_id = "shipments_post",
     summary = "Post a reviewed draft",
-    request_body = Action<PostPayload>,
+    request_body = Action<ShipmentPostPayload>,
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("shipment" = Uuid, Path, description = "Shipment id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
     responses(
         (status = 200, body = Envelope<ShipmentResource>, description = "Success"),
@@ -193,7 +196,7 @@ pub async fn shipments_post(
     State(state): State<AppState>,
     access: Can<Post>,
     Path((_, order, shipment)): Path<(String, String, String)>,
-    cmd: Command<Action<PostPayload>>,
+    cmd: Command<Action<ShipmentPostPayload>>,
 ) -> Result<Answer, AppError> {
     service::post(&state, &access, (id(&order)?, id(&shipment)?), cmd).await
 }

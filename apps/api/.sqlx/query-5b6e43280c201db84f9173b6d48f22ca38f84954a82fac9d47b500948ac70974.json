@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shipments SET state = 'posted', accounting_date = $3, posted_at = now(),\n                posted_by = $4, version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b6e43280c201db84f9173b6d48f22ca38f84954a82fac9d47b500948ac70974"
+}

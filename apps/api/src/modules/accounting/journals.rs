@@ -1048,7 +1048,11 @@ mod tests {
         assert_eq!(posted, ("posted".into(), effect));
         // Same effect identity again: refused by the database.
         let mut tx = pool.begin().await.unwrap();
-        assert!(post_source_lines(&mut tx, ws, &header, &lines).await.is_err());
+        assert!(
+            post_source_lines(&mut tx, ws, &header, &lines)
+                .await
+                .is_err()
+        );
         tx.rollback().await.unwrap();
         // An unmapped role: accounting_not_configured, nothing written.
         let mut tx = pool.begin().await.unwrap();
@@ -1056,9 +1060,20 @@ mod tests {
             source_id: Uuid::now_v7(),
             ..header
         };
-        let err = post_source_lines(&mut tx, ws, &other, &[line("cash", 5, 0, None), line("revenue", 0, 5, None)])
-            .await
-            .unwrap_err();
-        assert!(matches!(err, AppError::Reason { code: "accounting_not_configured", .. }));
+        let err = post_source_lines(
+            &mut tx,
+            ws,
+            &other,
+            &[line("cash", 5, 0, None), line("revenue", 0, 5, None)],
+        )
+        .await
+        .unwrap_err();
+        assert!(matches!(
+            err,
+            AppError::Reason {
+                code: "accounting_not_configured",
+                ..
+            }
+        ));
     }
 }

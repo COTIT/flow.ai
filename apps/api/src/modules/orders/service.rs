@@ -35,6 +35,7 @@ use crate::{
         product_images::service as product_images,
         products, settings, shipments,
         stock::{
+            self,
             repo::Cause,
             reserve::{self, Reserved, Want},
         },
@@ -907,7 +908,8 @@ pub async fn pick(
     .await
 }
 
-/// open → completed: take every stock line's hold off the shelf.
+/// open → completed: take every stock line's hold off the shelf. In an active book the rest
+/// ships as one posted shipment (stock, delivered quantity and sale recognition).
 pub async fn complete(
     state: &AppState,
     workspace_id: Uuid,
@@ -927,16 +929,42 @@ pub async fn complete(
                 return Err(conflict(DRAFT_SHIPMENT));
             }
             // What posted shipments didn't take yet (all of it without shipments).
-            let (wants, _) = wants(&lines, |l| l.quantity - l.deducted);
-            let reason = format!("order {}", o.number);
-            reserve::commit(
-                conn,
-                workspace_id,
-                o.warehouse_id,
-                &wants,
-                &cause(&o, &reason),
-            )
-            .await?;
+            let rest: Vec<(Uuid, Decimal)> = lines
+                .iter()
+                .filter(|l| l.quantity > l.deducted)
+                .map(|l| (l.id, l.quantity - l.deducted))
+                .collect();
+            if stock::value::active(conn, workspace_id).await? {
+                if !rest.is_empty() {
+                    let input = shipments::dto::ShipmentInput {
+                        lines: rest,
+                        note: None,
+                    };
+                    let both = (&o, lines.as_slice());
+                    let sid = shipments::service::create_locked(
+                        conn,
+                        workspace_id,
+                        both,
+                        &input,
+                        user_id,
+                    )
+                    .await?;
+                    let date = shipments::repo::book_today(&mut *conn, workspace_id).await?;
+                    shipments::service::post_locked(conn, workspace_id, both, sid, (date, user_id))
+                        .await?;
+                }
+            } else {
+                let (wants, _) = wants(&lines, |l| l.quantity - l.deducted);
+                let reason = format!("order {}", o.number);
+                reserve::commit(
+                    conn,
+                    workspace_id,
+                    o.warehouse_id,
+                    &wants,
+                    &cause(&o, &reason),
+                )
+                .await?;
+            }
             let rows: Vec<_> = lines
                 .iter()
                 .map(|l| (l.id, l.picked, l.quantity, l.returned))
