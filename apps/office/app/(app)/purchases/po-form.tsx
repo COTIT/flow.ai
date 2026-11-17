@@ -11,7 +11,7 @@ import { useProductsList } from "@genesy/api-client/endpoints/products"
 import {
   usePurchaseOrdersCreate,
   usePurchaseOrdersUpdate,
-} from "@genesy/api-client/endpoints/purchasing"
+} from "@genesy/api-client/endpoints/purchase-orders"
 import { usePurchaseUnitsList } from "@genesy/api-client/endpoints/purchase-units"
 import { useRelationsList } from "@genesy/api-client/endpoints/relations"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"

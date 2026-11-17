@@ -9,7 +9,7 @@ import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
 import {
   usePurchaseReceiptsBook,
   usePurchaseReceiptsBookReview,
-} from "@genesy/api-client/endpoints/purchasing"
+} from "@genesy/api-client/endpoints/purchase-receipts"
 import type {
   LandedCostPayload,
   PurchaseOrderResource,

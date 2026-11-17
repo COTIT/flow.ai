@@ -5,7 +5,9 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
-import { usePurchaseOrdersGet } from "@genesy/api-client/endpoints/purchasing"
+import {
+  usePurchaseOrdersGet,
+} from "@genesy/api-client/endpoints/purchase-orders"
 import { Notice } from "@genesy/ui/components/notice"
 import { DetailSkeleton } from "@/components/bento"
 import { PageHead } from "@/components/list"

@@ -6,8 +6,10 @@ import { useLocale, useTranslations } from "next-intl"
 import { useSession } from "@genesy/api-client/auth"
 import {
   usePurchaseOrdersGet,
+} from "@genesy/api-client/endpoints/purchase-orders"
+import {
   usePurchaseReceiptsGet,
-} from "@genesy/api-client/endpoints/purchasing"
+} from "@genesy/api-client/endpoints/purchase-receipts"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import type { CurrencyRef } from "@genesy/api-client/model"
 import { Button } from "@genesy/ui/components/button"

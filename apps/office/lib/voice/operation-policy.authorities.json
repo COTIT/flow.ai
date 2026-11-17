@@ -188,7 +188,7 @@
   "apps/api/src/modules/products/service.rs": "34329d7df839e51ca6bcd2db13cdca892ef62e47e971d787facfc11b81adc3be",
   "apps/api/src/modules/purchase_units/handlers.rs": "6b3b5701df240f85c25e1a38a99ccc3a6cf38d2d119555fe4e4ae4327ff693eb",
   "apps/api/src/modules/purchase_units/service.rs": "4d0a16106f20e670334c259073681cadfb584acbde1e93305848602f1d577d09",
-  "apps/api/src/modules/purchasing/handlers.rs": "d35169557f7aba19f44da3b0f5898f399821f73d1795191fe35e0812b9f9fe3e",
+  "apps/api/src/modules/purchasing/handlers.rs": "c1d12cd8a4f9fe614858aeab8af5afff5167b920c7b5fbf2f5f05af207e83270",
   "apps/api/src/modules/purchasing/service.rs": "1a1df9cf439fc0b83301440f34a4693a5cd925a058d8ff994f5d17606b4aa058",
   "apps/api/src/modules/relations/address.rs": "9cd84955de247b0f96024c991e85267c26bd9e80dd31c9ad50811099ba0ee05f",
   "apps/api/src/modules/relations/handlers.rs": "d558836bd5008131ad4e431592ccf1d251cc4fcee72588bd8404e8380ed5cd29",

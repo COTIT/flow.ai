@@ -8,9 +8,11 @@ import {
   getPurchaseOrdersEventsQueryKey,
   getPurchaseOrdersGetQueryKey,
   getPurchaseOrdersListQueryKey,
+} from "@genesy/api-client/endpoints/purchase-orders"
+import {
   getPurchaseReceiptsGetQueryKey,
   getPurchaseReceiptsListQueryKey,
-} from "@genesy/api-client/endpoints/purchasing"
+} from "@genesy/api-client/endpoints/purchase-receipts"
 import type { CurrencyRef } from "@genesy/api-client/model"
 
 import { decimalAmount } from "@/lib/payments"

@@ -112144,7 +112144,7 @@
         ],
         "summary": "List purchase orders",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       },
       "post": {
@@ -112325,7 +112325,7 @@
         ],
         "summary": "Create a draft purchase order",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -112469,7 +112469,7 @@
         ],
         "summary": "Read a purchase order",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       },
       "patch": {
@@ -112660,7 +112660,7 @@
         ],
         "summary": "Replace a draft's fields and lines",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -112853,7 +112853,7 @@
         ],
         "summary": "Cancel an order nothing was received on",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -113046,7 +113046,7 @@
         ],
         "summary": "Close open remainders",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -113239,7 +113239,7 @@
         ],
         "summary": "Confirm a reviewed draft",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -113393,7 +113393,7 @@
         ],
         "summary": "Preview confirming a draft (no writes)",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -113537,7 +113537,7 @@
         ],
         "summary": "An order's history, newest first",
         "tags": [
-          "purchasing"
+          "purchase_orders"
         ]
       }
     },
@@ -113697,7 +113697,7 @@
         ],
         "summary": "List an order's receipts",
         "tags": [
-          "purchasing"
+          "purchase_receipts"
         ]
       },
       "post": {
@@ -113888,7 +113888,7 @@
         ],
         "summary": "Accept goods against open order lines (no stock yet)",
         "tags": [
-          "purchasing"
+          "purchase_receipts"
         ]
       }
     },
@@ -114042,7 +114042,7 @@
         ],
         "summary": "Read a receipt",
         "tags": [
-          "purchasing"
+          "purchase_receipts"
         ]
       }
     },
@@ -114245,7 +114245,7 @@
         ],
         "summary": "Book receipt lines into valued stock",
         "tags": [
-          "purchasing"
+          "purchase_receipts"
         ]
       }
     },
@@ -114439,7 +114439,7 @@
         ],
         "summary": "Preview booking receipt lines (no writes)",
         "tags": [
-          "purchasing"
+          "purchase_receipts"
         ]
       }
     },

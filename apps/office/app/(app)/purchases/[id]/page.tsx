@@ -9,8 +9,10 @@ import { useSession } from "@genesy/api-client/auth"
 import {
   usePurchaseOrdersEvents,
   usePurchaseOrdersGet,
+} from "@genesy/api-client/endpoints/purchase-orders"
+import {
   usePurchaseReceiptsList,
-} from "@genesy/api-client/endpoints/purchasing"
+} from "@genesy/api-client/endpoints/purchase-receipts"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { Card } from "@genesy/ui/components/card"
 import { Notice } from "@genesy/ui/components/notice"

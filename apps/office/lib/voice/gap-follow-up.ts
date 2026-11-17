@@ -66,6 +66,7 @@ export const ROUTE_SEGMENTS = new Set([
   "design",
   "edit",
   "healthz",
+  "imports",
   "invites",
   "invoices",
   "links",

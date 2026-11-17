@@ -166,7 +166,7 @@ test("purchase order: a draft made in Office, part received, the rest closed, th
 
   await next.getByRole("button", { name: "Close remainder" }).click()
   dialog = page.getByRole("dialog")
-  await expect(dialog.getByLabel(/e2e bought jar/)).toHaveValue("2.00")
+  await expect(dialog.getByLabel(/e2e bought jar/)).toHaveValue("2")
   await dialog.getByLabel("Reason").fill("Supplier ran out")
   await dialog.getByRole("button", { name: "Close remainder" }).click()
   await expect(page.getByText("Open quantities closed.")).toBeVisible()

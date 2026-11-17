@@ -9,8 +9,10 @@ import {
   usePurchaseOrdersCloseLines,
   usePurchaseOrdersConfirm,
   usePurchaseOrdersConfirmReview,
+} from "@genesy/api-client/endpoints/purchase-orders"
+import {
   usePurchaseReceiptsCreate,
-} from "@genesy/api-client/endpoints/purchasing"
+} from "@genesy/api-client/endpoints/purchase-receipts"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import type { PurchaseOrderResource } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"

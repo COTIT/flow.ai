@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
-import { usePurchaseOrdersList } from "@genesy/api-client/endpoints/purchasing"
+import {
+  usePurchaseOrdersList,
+} from "@genesy/api-client/endpoints/purchase-orders"
 import { buttonVariants } from "@genesy/ui/components/button"
 import {
   Select,

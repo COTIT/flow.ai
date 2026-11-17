@@ -50,7 +50,7 @@ fn id(raw: &str) -> Result<Uuid, AppError> {
 
 /// purchase_orders_list: List purchase orders.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/purchase-orders", tag = "purchasing",
+    get, path = "/workspace/{workspace}/purchase-orders", tag = "purchase_orders",
     operation_id = "purchase_orders_list",
     summary = "List purchase orders",
     params(("workspace" = Uuid, Path, description = "Workspace id"), OrderListQuery),
@@ -72,7 +72,7 @@ pub async fn orders_list(
 
 /// purchase_orders_create: Create a draft purchase order.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders", tag = "purchase_orders",
     operation_id = "purchase_orders_create",
     summary = "Create a draft purchase order",
     request_body = Create<OrderPayload>,
@@ -96,7 +96,7 @@ pub async fn orders_create(
 
 /// purchase_orders_get: Read a purchase order.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/purchase-orders/{order}", tag = "purchasing",
+    get, path = "/workspace/{workspace}/purchase-orders/{order}", tag = "purchase_orders",
     operation_id = "purchase_orders_get",
     summary = "Read a purchase order",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Purchase order id")),
@@ -120,7 +120,7 @@ pub async fn orders_get(
 
 /// purchase_orders_update: Replace a draft's fields and lines.
 #[utoipa::path(
-    patch, path = "/workspace/{workspace}/purchase-orders/{order}", tag = "purchasing",
+    patch, path = "/workspace/{workspace}/purchase-orders/{order}", tag = "purchase_orders",
     operation_id = "purchase_orders_update",
     summary = "Replace a draft's fields and lines",
     request_body = Action<OrderPayload>,
@@ -145,7 +145,7 @@ pub async fn orders_update(
 
 /// purchase_orders_confirm_review: Preview confirming a draft (no writes).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/confirm/review", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/confirm/review", tag = "purchase_orders",
     operation_id = "purchase_orders_confirm_review",
     summary = "Preview confirming a draft (no writes)",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Purchase order id")),
@@ -169,7 +169,7 @@ pub async fn orders_confirm_review(
 
 /// purchase_orders_confirm: Confirm a reviewed draft.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/confirm", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/confirm", tag = "purchase_orders",
     operation_id = "purchase_orders_confirm",
     summary = "Confirm a reviewed draft",
     request_body = Action<ConfirmPayload>,
@@ -194,7 +194,7 @@ pub async fn orders_confirm(
 
 /// purchase_orders_close_lines: Close open remainders.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/close-lines", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/close-lines", tag = "purchase_orders",
     operation_id = "purchase_orders_close_lines",
     summary = "Close open remainders",
     request_body = Action<CloseLinesPayload>,
@@ -219,7 +219,7 @@ pub async fn orders_close_lines(
 
 /// purchase_orders_cancel: Cancel an order nothing was received on.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/cancel", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/cancel", tag = "purchase_orders",
     operation_id = "purchase_orders_cancel",
     summary = "Cancel an order nothing was received on",
     request_body = Action<CancelPayload>,
@@ -244,7 +244,7 @@ pub async fn orders_cancel(
 
 /// purchase_orders_events: An order's history, newest first.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/purchase-orders/{order}/events", tag = "purchasing",
+    get, path = "/workspace/{workspace}/purchase-orders/{order}/events", tag = "purchase_orders",
     operation_id = "purchase_orders_events",
     summary = "An order's history, newest first",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Purchase order id")),
@@ -267,7 +267,7 @@ pub async fn orders_events(
 
 /// purchase_receipts_list: List an order's receipts.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/purchase-orders/{order}/receipts", tag = "purchasing",
+    get, path = "/workspace/{workspace}/purchase-orders/{order}/receipts", tag = "purchase_receipts",
     operation_id = "purchase_receipts_list",
     summary = "List an order's receipts",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Purchase order id"), PageQuery),
@@ -289,7 +289,7 @@ pub async fn receipts_list(
 
 /// purchase_receipts_create: Accept goods against open order lines (no stock yet).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/receipts", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/receipts", tag = "purchase_receipts",
     operation_id = "purchase_receipts_create",
     summary = "Accept goods against open order lines (no stock yet)",
     request_body = Create<ReceiptPayload>,
@@ -314,7 +314,7 @@ pub async fn receipts_create(
 
 /// purchase_receipts_get: Read a receipt.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}", tag = "purchasing",
+    get, path = "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}", tag = "purchase_receipts",
     operation_id = "purchase_receipts_get",
     summary = "Read a receipt",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Purchase order id"), ("receipt" = Uuid, Path, description = "Receipt id")),
@@ -345,7 +345,7 @@ pub async fn receipts_get(
 
 /// purchase_receipts_book_review: Preview booking receipt lines (no writes).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}/book/review", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}/book/review", tag = "purchase_receipts",
     operation_id = "purchase_receipts_book_review",
     summary = "Preview booking receipt lines (no writes)",
     request_body = BookReviewBody,
@@ -372,7 +372,7 @@ pub async fn receipts_book_review(
 
 /// purchase_receipts_book: Book receipt lines into valued stock.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}/book", tag = "purchasing",
+    post, path = "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}/book", tag = "purchase_receipts",
     operation_id = "purchase_receipts_book",
     summary = "Book receipt lines into valued stock",
     request_body = Action<BookPayload>,
