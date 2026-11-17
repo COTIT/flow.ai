@@ -25793,6 +25793,17 @@
             "format": "date",
             "type": "string"
           },
+          "functional_currency": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CurrencyRef",
+                "description": "Currency of the functional amounts (line values, allocations); null in a setup book."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "type": "string"
