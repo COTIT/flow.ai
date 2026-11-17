@@ -1,4 +1,76 @@
 {
+  "accounting_accounts_create": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_accounts_list": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_accounts_update": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_balance_sheet": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_cash_adjustments_create": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_cash_adjustments_create_review": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_cash_places_list": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_general_ledger": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_create": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_get": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_list": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_post": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_post_review": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_reverse": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_reverse_review": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_journals_update": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_periods_create": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_periods_list": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_profit_and_loss": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_setup_get": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_setup_update": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_trial_balance": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_years_create": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_years_list": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "app_keys_create": {
     "ask": {
       "en": ["create an app key for the web shop"],
@@ -699,6 +771,24 @@
       "nl": ["leveringskoppeling met Kitowo intrekken"],
       "sw": ["sitisha kiungo cha usambazaji na Kitowo"]
     }
+  },
+  "tax_profiles_create": {
+    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "tax_profiles_get": {
+    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "tax_profiles_list": {
+    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "tax_profiles_update": {
+    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "tax_profiles_verify": {
+    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "tax_profiles_verify_review": {
+    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "teams_list": {
     "ask": {
