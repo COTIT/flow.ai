@@ -4,7 +4,7 @@ Provider payments of web orders. Code: `src/payments/` (provider-neutral interfa
 
 ## Configuration
 
-For workspace Globadyme configuration, see [Globadyme](globadyme.md). Missing required settings, unavailable credential storage, disabled new collections or an unverified production origin return `503 {"message":"…","code":"payment_setup_required"}` before a new payment attempt is created. Customers must wait for the merchant to finish setup. Other provider or transport failures can follow an accepted submission; check the saved payment before retrying.
+For workspace Globadyme configuration, see [Globadyme](globadyme.md). Missing required settings, unavailable credential storage or disabled new collections return `503 {"message":"…","code":"payment_setup_required"}` before a new payment attempt is created. Customers must wait for the merchant to finish setup. Other provider or transport failures can follow an accepted submission; check the saved payment before retrying.
 
 `GET /storefront/orders/{order}` adds `online_payment_enabled` for Globadyme. It checks local configuration and sealed credentials without testing the provider login. A live attempt uses its original bound account within the deployment's allowed realm, so switching providers or disabling new collections does not prevent resuming it. Missing or unusable bound credentials return `false`; pending-review status still takes precedence in the customer UI. Legacy provider reads omit this field.
 
@@ -13,6 +13,7 @@ Cross-realm imported operations stay reserved for review. Provider calls, callba
 `PAYMENTS_PROVIDER`: unset = none (payment intents answer 503 `no payment provider configured`); `fake` = the in-process test provider, debug builds only (a release build refuses to boot with it); `stripe` = Stripe Checkout. Unknown names fail at boot.
 
 **The fake's pay page (dev and staging).** With `fake`, a payment's `checkout_url` is `{API_PUBLIC_URL}/v1/payments/fake/{id}`, a page on this API showing the amount with **Pay** and **Cancel** buttons.
+
 - The buttons `POST` a form `outcome=paid|canceled`. That sets the fake payment's status and applies it at once through the same re-fetch a webhook triggers (queued for the inbox drain only when that fails), then answers `303` to the shop's `redirect_url`. So Pay right after Cancel gets a fresh payment, never the cancelled one.
 - The page also links back to the shop's `redirect_url`.
 - A payment that is no longer open changes nothing and still redirects. Any other `outcome` gets `422`.

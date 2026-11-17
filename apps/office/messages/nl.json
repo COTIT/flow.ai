@@ -1171,6 +1171,8 @@
     "outcome": "Geverifieerde uitkomst",
     "notAccepted": "Aanbieder heeft betaling niet geaccepteerd",
     "refundConfirmed": "Terugbetaling bevestigd door aanbieder",
+    "refundReconciled": "Terugbetalingstotalen van provider afgestemd",
+    "refundReconciledHint": "Controleer dat het totale terugbetaalde bedrag bij de provider overeenkomt met alle lokaal bevestigde terugbetalingen, zonder externe of lopende terugbetalingen.",
     "reason": "Reden",
     "evidence": "Bewijs / referentie aanbieder",
     "attest": "Ik heb deze uitkomst gecontroleerd bij de aanbieder en begrijp dat deze actie wordt vastgelegd.",
