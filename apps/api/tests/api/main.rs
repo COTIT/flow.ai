@@ -128,6 +128,7 @@ mod send_message;
 mod set_user_password;
 mod settings;
 mod settings_credentials;
+mod settlement_schema;
 mod shipment_methods;
 mod signup;
 mod special_offers;

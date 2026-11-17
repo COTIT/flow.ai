@@ -10,3 +10,4 @@ pub mod repo;
 pub mod reports;
 pub mod routes;
 pub mod service;
+pub mod settlement;
