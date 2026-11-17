@@ -714,6 +714,8 @@ pub struct PurchaseReceiptResource {
     pub note: Option<String>,
     pub recorded_at: DateTime<Utc>,
     pub created_by: Uuid,
+    /// Currency of the functional amounts (line values, allocations); null in a setup book.
+    pub functional_currency: Option<CurrencyRef>,
     /// unbooked, partial or booked (late lines count as unbooked).
     pub booking_status: &'static str,
     pub lines: Vec<ReceiptLineResource>,

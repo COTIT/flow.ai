@@ -117,7 +117,7 @@ Review answer: `{receipt_id, receipt_version, purchase_order_version, accounting
 
 ### Resource
 
-`{id, purchase_order_id, number, version, effective_receipt_date, note, recorded_at, created_by, booking_status (unbooked|partial|booked), lines[{id, po_line_id, product_id, warehouse_id, bin_id, lot_id, base_quantity, state (pending|late|booked), booked_at, accounting_date, net_value, landed_value, value, rate{rate,inverse,source,date}, journal_entry_id}], landed_costs[{id, client_component_ref, amount, currency, functional_amount, rate, evidence_ref, allocations[{receipt_line_id, functional_amount}]}], allowed_actions}`.
+`{id, purchase_order_id, number, version, effective_receipt_date, note, recorded_at, created_by, functional_currency{id,code,decimals}|null (null in a setup book; labels every functional amount), booking_status (unbooked|partial|booked), lines[{id, po_line_id, product_id, warehouse_id, bin_id, lot_id, base_quantity, state (pending|late|booked), booked_at, accounting_date, net_value, landed_value, value, rate{rate,inverse,source,date}, journal_entry_id}], landed_costs[{id, client_component_ref, amount, currency, functional_amount, rate, evidence_ref, allocations[{receipt_line_id, functional_amount}]}], allowed_actions}`.
 
 ## Pending receipts block the pool
 
