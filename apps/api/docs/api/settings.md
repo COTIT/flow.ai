@@ -14,7 +14,7 @@ One row per workspace in `settings`: `data jsonb`, one key per section, plus `up
 
 Laravel checked `setting.view`, which no team can hold; genesy checks the catalog's `setting.get` (see conventions).
 
-Every settings read returns `{data: ..., meta: {globadyme_environment: "sandbox" | "production" | null, production_origin_verified: false}}`. `meta` comes from trusted deployment configuration and stays outside writable settings `data`. A null realm disables Globadyme setup while legacy provider settings remain available. Field presence does not verify provider credentials.
+Every settings read returns `{data: ..., meta: {globadyme_environment: "sandbox" | "production" | null, production_origin_verified: true}}`. `meta` comes from trusted deployment configuration and stays outside writable settings `data`. The fixed production API origin is approved; merchant credentials and go-live approval still require provider verification. A null realm disables Globadyme setup while legacy provider settings remain available. Field presence does not verify provider credentials.
 
 Globadyme saves can change only the current deployment's credential slot. Other-realm masked values and historical records must remain unchanged. Selecting another payment environment or changing its merchant or credentials returns 422. Staging and production run separate deployments and databases; credential slots do not create environments.
 

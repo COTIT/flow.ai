@@ -1,6 +1,9 @@
 //! Provider registry: selection controls new collections; bound history retains providers.
 
-use super::{GlobadymeEnvironment, Provider, globadyme::Globadyme};
+use super::{
+    GlobadymeEnvironment, Provider,
+    globadyme::{Globadyme, PRODUCTION_API_URL, SANDBOX_API_URL},
+};
 use crate::outbound::Outbound;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -106,9 +109,6 @@ impl Payments {
         if self.globadyme_environment.map(GlobadymeEnvironment::as_str) != Some(environment) {
             return Err("Globadyme account environment does not match this deployment".into());
         }
-        if environment != "sandbox" {
-            return Err("Globadyme production origin has not been verified".into());
-        }
         let key = (
             workspace,
             environment.to_owned(),
@@ -122,7 +122,11 @@ impl Payments {
         let url = self
             .sandbox_url
             .as_deref()
-            .unwrap_or("https://api.sbx.globadyme.com/api");
+            .unwrap_or(if environment == "production" {
+                PRODUCTION_API_URL
+            } else {
+                SANDBOX_API_URL
+            });
         let trusted: Vec<String> = self
             .sandbox_url
             .as_deref()
@@ -204,7 +208,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn production_pin_keeps_unverified_origin_closed() {
+    async fn production_pin_uses_approved_origin_without_crossing_realms() {
         let production =
             Payments::default().with_globadyme_environment(Some(GlobadymeEnvironment::Production));
         assert!(
@@ -213,12 +217,9 @@ mod tests {
                 .unwrap_err()
                 .contains("deployment")
         );
-        assert!(
-            client(&production, "production")
-                .await
-                .unwrap_err()
-                .contains("origin has not been verified")
-        );
-        assert!(production.clients.lock().await.is_empty());
+        client(&production, "production").await.unwrap();
+        assert_eq!(production.clients.lock().await.len(), 1);
+        assert!(client(&production, "sandbox").await.is_err());
+        assert!(client(&production, "unknown").await.is_err());
     }
 }

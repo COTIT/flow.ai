@@ -19,6 +19,7 @@ pub struct Operation {
     pub merchant_id: Option<String>,
     pub account_revision: Option<i64>,
     pub request_id: Uuid,
+    pub provider_id: Option<String>,
     pub status: String,
     pub amount: i64,
     pub currency: String,

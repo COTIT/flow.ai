@@ -69,7 +69,7 @@ pub async fn get(
         data,
         meta: SettingsMeta {
             globadyme_environment: state.payments.globadyme_environment(),
-            production_origin_verified: false,
+            production_origin_verified: true,
         },
     }))
 }

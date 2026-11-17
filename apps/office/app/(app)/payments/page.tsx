@@ -118,6 +118,14 @@ function Payments({
     },
   })
   const current = detail.data?.data ?? selected
+  const reconcileRefund = Boolean(
+    detail.isSuccess &&
+    current?.kind === "payment" &&
+    current.status === "paid" &&
+    current.attention &&
+    current.attention_reason ===
+      "External refund or chargeback observation requires reconciliation."
+  )
   return (
     <>
       <PageHead title={t("payments.title")} description={t("payments.intro")} />
@@ -327,12 +335,15 @@ function Payments({
               {admin &&
               !resolve &&
               (current.status === "unknown" ||
-                (current.kind === "payment" && current.status === "open")) ? (
+                (current.kind === "payment" && current.status === "open") ||
+                reconcileRefund) ? (
                 <Button variant="outline" onClick={() => setResolve(true)}>
                   {t("payments.resolve")}
                 </Button>
               ) : null}
-              {resolve && admin ? (
+              {resolve &&
+              admin &&
+              (current.status !== "paid" || reconcileRefund) ? (
                 <form
                   className="flex flex-col gap-4"
                   onSubmit={(event) => {
@@ -345,12 +356,25 @@ function Payments({
                     })
                   }}
                 >
-                  <Notice variant="warning" title={t("payments.resolveHint")} />
+                  <Notice
+                    variant="warning"
+                    title={t(
+                      reconcileRefund
+                        ? "payments.refundReconciledHint"
+                        : "payments.resolveHint"
+                    )}
+                  />
                   <Field id="resolution-outcome" label={t("payments.outcome")}>
                     <select name="outcome" className={selectClass}>
-                      <option value="not_accepted">
-                        {t("payments.notAccepted")}
-                      </option>
+                      {reconcileRefund ? (
+                        <option value="refund_reconciled">
+                          {t("payments.refundReconciled")}
+                        </option>
+                      ) : (
+                        <option value="not_accepted">
+                          {t("payments.notAccepted")}
+                        </option>
+                      )}
                       {current.kind === "refund" &&
                       current.status === "unknown" ? (
                         <option value="refund_confirmed">

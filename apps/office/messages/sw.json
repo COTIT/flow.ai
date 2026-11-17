@@ -1151,6 +1151,8 @@
     "outcome": "Matokeo yaliyothibitishwa",
     "notAccepted": "Mtoa huduma hakukubali malipo",
     "refundConfirmed": "Marejesho yamethibitishwa na mtoa huduma",
+    "refundReconciled": "Jumla za marejesho za mtoa huduma zimelinganishwa",
+    "refundReconciledHint": "Thibitisha kuwa jumla ya fedha zilizorejeshwa na mtoa huduma inalingana na marejesho yote yaliyothibitishwa hapa, bila marejesho ya nje au yanayosubiri.",
     "reason": "Sababu",
     "evidence": "Ushahidi / rejea ya mtoa huduma",
     "attest": "Nimethibitisha matokeo haya kwenye rekodi za mtoa huduma na ninakubali kuwa hatua hii inarekodiwa.",
