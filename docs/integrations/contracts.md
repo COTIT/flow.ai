@@ -976,3 +976,14 @@ Sample data. Ids are shortened placeholders (`c1…` = uuid). Error bodies follo
 | O-9 | Whether `wf01_tick` should be a system job (no workspace) that enqueues workspace jobs: `NewJob.workspace_id` allows `None` (`src/jobs/repo.rs:23-24`), but no existing system job fans out into workspace jobs. | C4a |
 | O-10 | P1/P2 money checks: per R1 O6 (PLAN P-3). Codes `rate_precision`, `untotalled_lines` frozen; formula not. C4a/C4b may not implement P1/P2 before O6. | R1 → parent |
 | O-11 | Every NetSuite/Odoo field, sublist, error code and limit: "per R1" (`docs/integrations/facts/*`); LIVE gates L1-L6 remain. | R1, LIVE |
+
+## 10. Parent decisions on OPEN items (2026-11-17)
+
+- O-1: use the `integration_secrets` table, sealed with `CredentialKey` and path `integration:<connection_id>:<name>`. Do not touch `PATHS`.
+- O-2: accepted. `required_permission` lives on `approval_requests`. `approve_high` also satisfies `approve`.
+- O-3, O-5, O-10, O-11: wait for R1. C1/C2 keep these fields as opaque text.
+- O-4: accepted.
+- O-8 and O-9: C5 and C4a must each prove their item or report back before choosing a fallback.
+- `wf01_tick` fan-out: accepted.
+- C1's catalog commit goes first and stands alone; the parent cherry-picks it onto C2.
+- Correction to §3.2: after a definite `rejected` attempt, `retry_after_fix` alone cannot start a new attempt, because the attempt cap holds. The UI must lead the user to `allow_retry` (the `integration.reconcile` permission, non-requester, reason required), which grants the extra attempt. C2 enforces this: `retry_after_fix` on an execution whose latest attempt has a non-NULL outcome and no unused grant → 409 `retry_needs_grant`.
