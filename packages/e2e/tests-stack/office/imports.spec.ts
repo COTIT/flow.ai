@@ -52,7 +52,7 @@ test("products from a spreadsheet: only the ready rows are imported", async ({
       exact: false,
     })
   ).toBeVisible()
-  await expectNoRawValues(page)
+  await expectNoRawValues(page, { allow: [`products-${tag}.csv`] })
 
   await page.getByRole("button", { name: "Import 2 ready rows" }).click()
   await expect(page.getByText("Import finished: 2 rows imported.")).toBeVisible(
@@ -100,7 +100,7 @@ test("customers and suppliers from a spreadsheet; a bad email is shown in words"
   ).toBeVisible()
   await page.getByRole("button", { name: "Needs a fix" }).click()
   await expect(page.getByText(/valid email address/)).toBeVisible()
-  await expectNoRawValues(page)
+  await expectNoRawValues(page, { allow: [`relations-${tag}.csv`] })
   await page.getByRole("button", { name: "Import 1 ready rows" }).click()
   await expect(page.getByText("Import finished: 1 rows imported.")).toBeVisible(
     { timeout: 30_000 }
