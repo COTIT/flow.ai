@@ -483,3 +483,59 @@ async fn setup_books_recognise_nothing(pool: PgPool) {
         .await;
     assert_eq!(n, 0);
 }
+
+/// Distinct accounting dates of the workspace's source journals (COGS + recognition).
+async fn source_dates(s: &crate::shipments::S) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT DISTINCT accounting_date::text FROM journal_entries
+         WHERE workspace_id = $1::uuid AND kind = 'source' ORDER BY 1",
+    )
+    .bind(s.ws())
+    .fetch_all(s.pool())
+    .await
+    .unwrap()
+}
+
+#[sqlx::test]
+async fn recognition_and_cogs_share_the_book_date(pool: PgPool) {
+    let s = active(pool).await;
+    let (o, line) = s.open_order("10").await;
+    let sh = s.ship(&o, &[(&line, "4")]).await;
+    assert_eq!(source_dates(&s).await, vec![crate::shipments::today()]);
+    assert_eq!(sh["accounting_date"], crate::shipments::today());
+    // Complete derives the same day for the rest.
+    let (st, r) = s.complete(&o).await;
+    assert_eq!(st, StatusCode::OK, "{r}");
+    assert_eq!(source_dates(&s).await, vec![crate::shipments::today()]);
+}
+
+#[sqlx::test]
+async fn a_post_dated_off_the_book_day_is_refused(pool: PgPool) {
+    let s = active(pool).await;
+    let (o, line) = s.open_order("10").await;
+    let (_, sh) = s.draft(&o, &[(&line, "4")]).await;
+    let id = sh["data"]["id"].as_str().unwrap();
+    let yesterday = (chrono::Utc::now().date_naive() - chrono::Days::new(1)).to_string();
+    let before = crate::inventory_valuation::snapshot(s.pool(), s.ws()).await;
+    let (st, r) = s
+        .post(
+            &format!("/orders/{o}/shipments/{id}/post/review"),
+            json!({ "accounting_date": yesterday }),
+        )
+        .await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{r}");
+    assert!(r["errors"]["accounting_date"].is_array(), "{r}");
+    let (st, r) = s
+        .post(
+            &format!("/orders/{o}/shipments/{id}/post"),
+            json!({ "client_ref": Uuid::now_v7(), "expected_version": 1,
+                    "payload": { "accounting_date": yesterday, "review_fingerprint": "x" } }),
+        )
+        .await;
+    assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{r}");
+    assert!(r["errors"]["payload.accounting_date"].is_array(), "{r}");
+    let after = crate::inventory_valuation::snapshot(s.pool(), s.ws()).await;
+    assert_eq!(before["movements"], after["movements"]);
+    assert_eq!(before["journals"], after["journals"]);
+    assert!(recognised(&s, &o).await.is_empty());
+}

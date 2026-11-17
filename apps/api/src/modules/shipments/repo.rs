@@ -266,10 +266,11 @@ pub async fn mark_posted(
     .map(|_| ())
 }
 
-/// Today in the book's timezone (UTC before setup names one).
+/// Today in the book's timezone (UTC before setup names one), from the clock as the stock
+/// layer dates COGS (`stock::value::on_movement`).
 pub async fn book_today(db: impl PgExecutor<'_>, ws: Uuid) -> Result<NaiveDate, sqlx::Error> {
     sqlx::query_scalar!(
-        r#"SELECT (now() AT TIME ZONE coalesce(timezone, 'UTC'))::date AS "d!"
+        r#"SELECT (clock_timestamp() AT TIME ZONE coalesce(timezone, 'UTC'))::date AS "d!"
            FROM accounting_settings WHERE workspace_id = $1"#,
         ws
     )

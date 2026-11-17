@@ -59,6 +59,24 @@ pub async fn check(conn: &mut PgConnection, ws: Uuid, currency: Uuid) -> Result<
     Ok(true)
 }
 
+/// 422 on `field` unless `date` is the book's business day: recognition and its COGS are
+/// one fulfilment and share one date; nothing is backdated or postdated.
+pub async fn check_date(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    date: NaiveDate,
+    field: &str,
+) -> Result<(), AppError> {
+    let today = crate::modules::shipments::repo::book_today(conn, ws).await?;
+    if date != today {
+        return Err(AppError::field(
+            field,
+            format!("The accounting date must be today in the book's timezone ({today})."),
+        ));
+    }
+    Ok(())
+}
+
 /// Amounts of shipping `lines` (order line, quantity) now: the line's share up to the
 /// already posted shipments plus this quantity, less the share up to the posted ones.
 async fn amounts(

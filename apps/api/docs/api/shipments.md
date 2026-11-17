@@ -39,7 +39,7 @@ Create and update (update replaces the draft's lines and note):
 - Capacity, checked under the order lock: per order line, Σ draft + posted quantity ≤ ordered − returned. More → 422 on `payload.lines.N.quantity`. An unknown line of the order → 422 on `payload.lines.N.order_line_id`.
 - The order must be `open` (else 409).
 
-Post review body `{ "accounting_date": "YYYY-MM-DD" }`; post payload `{ "accounting_date", "review_fingerprint" }`. Cancel payload `{ "reason" }` (1-1000 characters), drafts only.
+Post review body `{ "accounting_date": "YYYY-MM-DD" }`; post payload `{ "accounting_date", "review_fingerprint" }`. In an active book the date must be today in the book's timezone, the day the stock layer dates the COGS: any other date is 422 on `accounting_date` (review) or `payload.accounting_date` (post), nothing written. Setup books only store it. Cancel payload `{ "reason" }` (1-1000 characters), drafts only.
 
 Only drafts change (posted or cancelled → 422). A cancelled draft frees its capacity.
 
@@ -57,7 +57,7 @@ Active book, per post:
 
 - Amounts in SQL per order line: `money_round_div(line_excl × (shipped_before + q), quantity) − money_round_div(line_excl × shipped_before, quantity)`, same for `line_vat`. Shipments of one line add up to its exact `line_excl` / `line_vat`; the one reaching the full quantity takes the rest.
 - One immutable `sales_recognitions` row (source `shipment`) with its lines, and one source journal: DR `unbilled_receivables` (relation = order relation) gross / CR `revenue` net / CR `tax_payable` tax (no zero line). Effect `shipment/<id>/fulfilled`, once.
-- COGS stays with the stock layer (DR `cogs` / CR `inventory`, dated today in the book timezone); the order's cost allocation keeps `related = order`.
+- COGS stays with the stock layer (DR `cogs` / CR `inventory`); the order's cost allocation keeps `related = order`. Recognition and COGS are one fulfilment and share one accounting date: today in the book timezone (clock time, as the stock layer reads it). No backdating.
 - An order in a currency other than the functional one: 422 `unsupported_active_erp_operation` before any effect. Missing mapping or closed period: 422 `accounting_not_configured` / `accounting_period_closed`.
 - Free goods (gross 0) recognise nothing.
 

@@ -320,7 +320,7 @@ async fn prepare(
     ws: Uuid,
     o: &OrderRow,
     id: Uuid,
-    date: NaiveDate,
+    (date, field): (NaiveDate, &str),
 ) -> Result<ShipmentPostReview, AppError> {
     let s = get(&mut *conn, ws, o.id, id).await?;
     if s.state != "draft" {
@@ -335,6 +335,9 @@ async fn prepare(
         .map(|l| (l.order_line_id, l.quantity))
         .collect();
     let preview = recognition::preview(&mut *conn, ws, o, &lines).await?;
+    if preview.is_some() {
+        recognition::check_date(&mut *conn, ws, date, field).await?;
+    }
     let fingerprint: [u8; 32] = Sha256::digest(
         json!({
             "action": "post", "shipment": id, "version": s.version, "date": date,
@@ -363,7 +366,7 @@ pub async fn post_review(
 ) -> Result<ShipmentPostReview, AppError> {
     let mut tx = state.db.begin().await?;
     let (o, _) = lock_order(&mut tx, ws, order).await?;
-    let review = prepare(&mut tx, ws, &o, id, date).await?;
+    let review = prepare(&mut tx, ws, &o, id, (date, "accounting_date")).await?;
     tx.rollback().await?;
     Ok(review)
 }
@@ -381,6 +384,9 @@ pub async fn post_locked(
     let lines = repo::lines(&mut *conn, ws, &[id]).await?;
     // Refusals (foreign currency) before any stock or GL effect.
     let active = recognition::check(&mut *conn, ws, o.currency_id).await?;
+    if active {
+        recognition::check_date(&mut *conn, ws, date, "payload.accounting_date").await?;
+    }
     let shipped: Vec<(Uuid, Decimal)> = lines
         .iter()
         .map(|l| (l.order_line_id, l.quantity))
@@ -435,7 +441,7 @@ pub async fn post(
         return Err(not_draft());
     }
     let (date, fingerprint) = &cmd.input.payload;
-    let review = prepare(&mut tx, ws, &o, id, *date).await?;
+    let review = prepare(&mut tx, ws, &o, id, (*date, "payload.accounting_date")).await?;
     if &review.review_fingerprint != fingerprint {
         return Err(stale());
     }
