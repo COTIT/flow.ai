@@ -23,8 +23,8 @@ use crate::{
         purchasing::dto::{CancelPayload, PageQuery},
         shipments::{
             dto::{
-                ShipmentPayload, ShipmentPostPayload, ShipmentPostReview, ShipmentPostReviewBody,
-                ShipmentResource,
+                ShipmentInvoicePayload, ShipmentInvoiced, ShipmentPayload, ShipmentPostPayload,
+                ShipmentPostReview, ShipmentPostReviewBody, ShipmentResource,
             },
             service,
         },
@@ -38,6 +38,7 @@ permissions! {
     Update => "shipment.update",
     Post => "shipment.post",
     Cancel => "shipment.cancel",
+    Invoice => "shipment.invoice",
 }
 
 /// A path id; malformed reads as missing.
@@ -224,4 +225,29 @@ pub async fn shipments_cancel(
     cmd: Command<Action<CancelPayload>>,
 ) -> Result<Answer, AppError> {
     service::cancel(&state, &access, (id(&order)?, id(&shipment)?), cmd).await
+}
+
+/// shipments_invoice: Draft an invoice billing a posted shipment's recognised sale.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/orders/{order}/shipments/{shipment}/invoice", tag = "shipments",
+    operation_id = "shipments_invoice",
+    summary = "Draft an invoice billing a posted shipment",
+    request_body = Action<ShipmentInvoicePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("shipment" = Uuid, Path, description = "Shipment id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<ShipmentInvoiced>, description = "Draft invoice created and linked"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, order or shipment, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document`, already billed, or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, not posted, nothing recognised, or another customer or currency"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn shipments_invoice(
+    State(state): State<AppState>,
+    access: Can<Invoice>,
+    Path((_, order, shipment)): Path<(String, String, String)>,
+    cmd: Command<Action<ShipmentInvoicePayload>>,
+) -> Result<Answer, AppError> {
+    service::invoice(&state, &access, (id(&order)?, id(&shipment)?), cmd).await
 }

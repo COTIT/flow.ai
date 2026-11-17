@@ -1,0 +1,2 @@
+DROP INDEX accounting_open_items_recognition_idx;
+ALTER TABLE accounting_open_items DROP CONSTRAINT accounting_open_items_recognition_fk;

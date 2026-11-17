@@ -145,6 +145,14 @@ pub async fn update(
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;
     let locked = draft(&mut tx, workspace_id, id).await?;
+    // A draft billing recognised sales keeps their quantity, money, tax, party and currency.
+    let reprices = !input.items.is_empty()
+        || input.relation_id.is_some_and(|r| r != locked.relation_id)
+        || input
+            .currency_id
+            .is_some_and(|c| c != Some(locked.currency_id));
+    crate::modules::shipments::billing::refuse_repricing(&mut tx, workspace_id, id, reprices)
+        .await?;
     let defaults = resolve_update(
         &mut tx,
         workspace_id,
@@ -203,6 +211,7 @@ pub async fn cancel(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
     let mut tx = state.db.begin().await?;
     draft(&mut tx, workspace_id, id).await?;
     repo::set_status(&mut tx, workspace_id, id, "cancelled").await?;
+    crate::modules::shipments::billing::release(&mut tx, workspace_id, id).await?;
     tx.commit().await?;
     Ok(())
 }

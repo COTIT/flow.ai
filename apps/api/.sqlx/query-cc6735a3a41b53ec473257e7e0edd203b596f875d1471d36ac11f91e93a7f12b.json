@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ol.title, rl.quantity, ol.unit_price, c.decimals, rl.vat_rate,\n                  rl.discount_percentage, ol.product_id, ol.product_variant_id\n           FROM sales_recognition_lines rl\n           JOIN order_lines ol ON ol.workspace_id = rl.workspace_id AND ol.id = rl.order_line_id\n           JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id\n           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE rl.workspace_id = $1 AND rl.recognition_id = ANY($2)\n           ORDER BY rl.recognition_id, ol.position, ol.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_lines",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "sales_recognition_lines",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "unit_price",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "order_lines",
+            "name": "unit_price"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "vat_rate",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "sales_recognition_lines",
+            "name": "vat_rate"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "discount_percentage",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "sales_recognition_lines",
+            "name": "discount_percentage"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_lines",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "product_variant_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_lines",
+            "name": "product_variant_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "cc6735a3a41b53ec473257e7e0edd203b596f875d1471d36ac11f91e93a7f12b"
+}

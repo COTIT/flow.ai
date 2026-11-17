@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     http::json::{Rules, Validate},
     modules::{
-        accounting::dto::{MAX_LINES, date, uuid},
+        accounting::dto::{MAX_LINES, date, opt_uuid, uuid},
         stock::repo::LEVEL_MAX,
     },
 };
@@ -170,4 +170,31 @@ pub struct ShipmentPostReview {
     /// None in setup books (stock only).
     pub recognition: Option<RecognitionPreview>,
     pub review_fingerprint: String,
+}
+
+/// POST .../invoice payload.
+#[derive(Deserialize, ToSchema)]
+pub struct ShipmentInvoicePayload {
+    /// The sale's customer.
+    #[schema(value_type = Uuid)]
+    pub relation_id: Option<String>,
+    #[schema(value_type = Option<Uuid>)]
+    pub addressed_contact_id: Option<String>,
+}
+
+impl Validate for ShipmentInvoicePayload {
+    type Valid = (Uuid, Option<Uuid>);
+
+    fn validate(self, r: &mut Rules) -> Option<(Uuid, Option<Uuid>)> {
+        let relation = uuid(r, "relation_id", self.relation_id);
+        let contact = opt_uuid(r, "addressed_contact_id", self.addressed_contact_id);
+        Some((relation?, contact?))
+    }
+}
+
+/// The draft invoice billing a posted shipment.
+#[derive(Serialize, ToSchema)]
+pub struct ShipmentInvoiced {
+    pub shipment_id: Uuid,
+    pub invoice_id: Uuid,
 }

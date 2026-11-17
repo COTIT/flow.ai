@@ -19,6 +19,7 @@ use crate::{
             journals::{SourceHeader, SourceLine, post_source_lines},
             repo as accounting,
             service::unsupported,
+            settlement::{self, NewAllocation, NewOpenItem},
         },
         orders::repo::OrderRow,
         purchasing::service::amount,
@@ -164,19 +165,86 @@ struct Source {
     currency: Uuid,
 }
 
-/// Post the recognition journal and write the recognition; its gross (0 = nothing to
-/// recognise, nothing written).
+/// A written recognition.
+struct Recorded {
+    /// Its unbilled receivable open item.
+    item: Uuid,
+    gross: i64,
+}
+
+/// The account a mapped `role` posts to (422 `accounting_not_configured` unmapped).
+pub async fn role_account(conn: &mut PgConnection, ws: Uuid, role: &str) -> Result<Uuid, AppError> {
+    accounting::mappings(&mut *conn, ws)
+        .await?
+        .into_iter()
+        .find(|m| m.role == role)
+        .map(|m| m.account_id)
+        .ok_or_else(crate::modules::accounting::service::not_configured)
+}
+
+/// A receivable open item to open in the functional currency.
+pub struct Receivable<'a> {
+    /// `receivables` (billed) or `unbilled_receivables`.
+    pub role: &'a str,
+    pub source: (&'a str, Uuid),
+    pub relation: Option<Uuid>,
+    pub order: Option<Uuid>,
+    pub invoice: Option<Uuid>,
+    pub recognition: Option<Uuid>,
+    pub currency: Uuid,
+    pub date: NaiveDate,
+    pub amount: i64,
+    pub effect: Uuid,
+    pub by: Uuid,
+}
+
+/// Open receivable `r` (debit side); its id.
+pub async fn open_receivable(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    r: &Receivable<'_>,
+) -> Result<Uuid, AppError> {
+    let account_id = role_account(&mut *conn, ws, r.role).await?;
+    settlement::open_item(
+        conn,
+        ws,
+        &NewOpenItem {
+            classification: "receivable",
+            side: "debit",
+            account_role: r.role,
+            account_id,
+            source_kind: r.source.0,
+            source_id: r.source.1,
+            relation_id: r.relation,
+            order_id: r.order,
+            invoice_id: r.invoice,
+            recognition_id: r.recognition,
+            currency_id: r.currency,
+            issue_date: r.date,
+            due_date: None,
+            origin: "posted",
+            amount: r.amount,
+            functional_amount: r.amount,
+            effect_id: r.effect,
+            by: r.by,
+        },
+    )
+    .await
+}
+
+/// Post the recognition journal, write the recognition, open its unbilled receivable and
+/// link the source; None when there is nothing to recognise (nothing written).
 async fn record(
     conn: &mut PgConnection,
     ws: Uuid,
     src: &Source,
     a: &[Amount],
     (date, by): (NaiveDate, Uuid),
-) -> Result<i64, AppError> {
-    let Some(t) = a.first() else { return Ok(0) };
+) -> Result<Option<Recorded>, AppError> {
+    let Some(t) = a.first() else { return Ok(None) };
     // shortcut: free goods recognise nothing (a journal needs a non-zero total).
     if t.total_gross == 0 {
-        return Ok(0);
+        return Ok(None);
     }
     let fingerprint: [u8; 32] = Sha256::digest(
         json!({ "source": [src.kind, src.id], "net": t.total_net, "tax": t.total_tax }).to_string(),
@@ -213,18 +281,20 @@ async fn record(
     let tax: Vec<i64> = a.iter().map(|l| l.tax).collect();
     let vat: Vec<Decimal> = a.iter().map(|l| l.vat_rate).collect();
     let discount: Vec<Decimal> = a.iter().map(|l| l.discount).collect();
-    sqlx::query!(
+    let recognition = sqlx::query_scalar!(
         "WITH r AS (
              INSERT INTO sales_recognitions (workspace_id, source_kind, source_id, order_id,
                  shipment_id, relation_id, currency_id, accounting_date, net, tax,
                  functional_net, functional_tax, journal_entry_id, effect_id, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $9, $10, $11, $12, $13)
              RETURNING id)
-         INSERT INTO sales_recognition_lines (workspace_id, recognition_id, order_line_id,
-             product_id, quantity, net, tax, vat_rate, discount_percentage)
-         SELECT $1, r.id, u.l, u.p, u.q, u.n, u.t, u.v, u.d
-         FROM r, UNNEST($14::uuid[], $15::uuid[], $16::numeric[], $17::int8[], $18::int8[],
-                        $19::numeric[], $20::numeric[]) AS u(l, p, q, n, t, v, d)",
+         , l AS (
+             INSERT INTO sales_recognition_lines (workspace_id, recognition_id, order_line_id,
+                 product_id, quantity, net, tax, vat_rate, discount_percentage)
+             SELECT $1, r.id, u.l, u.p, u.q, u.n, u.t, u.v, u.d
+             FROM r, UNNEST($14::uuid[], $15::uuid[], $16::numeric[], $17::int8[], $18::int8[],
+                            $19::numeric[], $20::numeric[]) AS u(l, p, q, n, t, v, d))
+         SELECT id AS \"id!\" FROM r",
         ws,
         src.kind,
         src.id,
@@ -246,9 +316,40 @@ async fn record(
         &vat,
         &discount
     )
-    .execute(&mut *conn)
+    .fetch_one(&mut *conn)
     .await?;
-    Ok(t.total_gross)
+    let item = open_receivable(
+        &mut *conn,
+        ws,
+        &Receivable {
+            role: "unbilled_receivables",
+            source: (src.kind, src.id),
+            relation: src.relation,
+            order: Some(src.order),
+            invoice: None,
+            recognition: Some(recognition),
+            currency: src.currency,
+            date,
+            amount: t.total_gross,
+            effect,
+            by,
+        },
+    )
+    .await?;
+    settlement::link_source(
+        conn,
+        ws,
+        src.kind,
+        src.id,
+        Some(effect),
+        "posted",
+        &fingerprint,
+    )
+    .await?;
+    Ok(Some(Recorded {
+        item,
+        gross: t.total_gross,
+    }))
 }
 
 /// Recognise a posting shipment of `o` (checked by [`check`]); effect
@@ -298,7 +399,8 @@ pub async fn retail_sale(
         relation: None,
         currency,
     };
-    let gross = record(&mut *conn, ws, &src, &a, (date, by)).await?;
+    let recorded = record(&mut *conn, ws, &src, &a, (date, by)).await?;
+    let gross = recorded.as_ref().map_or(0, |r| r.gross);
     if due == 0 && gross == 0 {
         return Ok(());
     }
@@ -337,6 +439,52 @@ pub async fn retail_sale(
         relation_id: None,
     })
     .collect();
-    post_source_lines(conn, ws, &header, &lines).await?;
+    let (_, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;
+    let Some(rec) = recorded else { return Ok(()) };
+    // The receipt settles the retail item: a customer credit for the gross (the open-item
+    // class for money received from a party) applied at once, so both close to 0.
+    // shortcut: customer_credit sits on role receivables while the GL credit hits unbilled;
+    // both residuals are 0 at commit, so per-role subledgers still match the GL.
+    let account_id = role_account(&mut *conn, ws, "receivables").await?;
+    let credit = settlement::open_item(
+        &mut *conn,
+        ws,
+        &NewOpenItem {
+            classification: "customer_credit",
+            side: "credit",
+            account_role: "receivables",
+            account_id,
+            source_kind: "retail_receipt",
+            source_id: order,
+            relation_id: None,
+            order_id: Some(order),
+            invoice_id: None,
+            recognition_id: None,
+            currency_id: currency,
+            issue_date: date,
+            due_date: None,
+            origin: "posted",
+            amount: gross,
+            functional_amount: gross,
+            effect_id: effect,
+            by,
+        },
+    )
+    .await?;
+    settlement::allocate(
+        conn,
+        ws,
+        &NewAllocation {
+            kind: "application",
+            source_item_id: Some(credit),
+            target_item_id: rec.item,
+            date,
+            currency_id: currency,
+            amount: gross,
+            effect_id: effect,
+            by,
+        },
+    )
+    .await?;
     Ok(())
 }

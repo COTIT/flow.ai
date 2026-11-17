@@ -120,6 +120,7 @@ mod rate_limit;
 mod relations;
 mod request_timeouts;
 mod sale_availability;
+mod sales_billing;
 mod sales_groups;
 mod sales_recognition;
 mod scheduled_reports;

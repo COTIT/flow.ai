@@ -13,8 +13,8 @@ use uuid::Uuid;
 
 // --- book fixture (activation by SQL until the M8 activate route) ---------------------------
 
-/// Map inventory/cogs/inventory_adjustment/opening_equity and the sales roles (unbilled
-/// receivables, revenue, tax, cash, provider clearing, rounding), set the book active in UTC
+/// Map inventory/cogs/inventory_adjustment/opening_equity and the sales roles (receivables,
+/// unbilled receivables, customer deposits, revenue, tax, cash, provider clearing, rounding), set the book active in UTC
 /// with a period around today.
 pub(crate) async fn activate(pool: &PgPool, ws: &str) {
     let mut tx = pool.begin().await.unwrap();
@@ -32,7 +32,9 @@ pub(crate) async fn activate(pool: &PgPool, ws: &str) {
         ("5000", "expense", "cogs"),
         ("5900", "expense", "inventory_adjustment"),
         ("3000", "equity", "opening_equity"),
+        ("1200", "asset", "receivables"),
         ("1210", "asset", "unbilled_receivables"),
+        ("2300", "liability", "customer_deposits"),
         ("4000", "income", "revenue"),
         ("2200", "liability", "tax_payable"),
         ("1000", "asset", "cash"),

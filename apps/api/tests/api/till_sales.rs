@@ -1024,6 +1024,14 @@ async fn an_active_book_recognises_an_anonymous_sale_and_its_receipt(pool: PgPoo
             .await
             .unwrap();
     assert_eq!(row, ("retail_sale".into(), None, 2800, 288));
+    // The retail item opened and the receipt's application closed it.
+    let items: (i64, i64) = sqlx::query_as(
+        "SELECT count(*), coalesce(sum(residual), 0)::int8 FROM accounting_open_items",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(items, (2, 0));
     // Replay: one recognition, one receipt, one drawer row; no invoice or customer.
     let (status, _) = post(&w, &w.t1, &body).await;
     assert_eq!(status, StatusCode::OK);

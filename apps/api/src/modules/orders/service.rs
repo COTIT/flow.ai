@@ -1296,9 +1296,26 @@ pub async fn invoice(
             let pending_gateway_refund:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND provider='globadyme' AND kind='refund' AND status IN ('creating','open','unknown'))")
                 .bind(workspace_id).bind(o.id).fetch_one(&mut *conn).await?;
             if pending_gateway_refund{return Err(AppError::Conflict("Resolve pending gateway refunds before creating an invoice."));}
-            let input = invoice_input(&o, &lines)?;
-            let invoice_id =
-                invoices::service::create_in(conn, workspace_id, user_id, input).await?;
+            // Active book: bill every recognised, unbilled sale of the order (none → 422).
+            let invoice_id = if stock::value::active(conn, workspace_id).await? {
+                let relation = o
+                    .relation_id
+                    .ok_or_else(|| AppError::field("relation_id", NO_RELATION))?;
+                let ids = shipments::billing::unbilled(conn, workspace_id, o.id).await?;
+                let reference = o.reference.clone().unwrap_or_else(|| o.number.clone());
+                shipments::billing::draft(
+                    conn,
+                    workspace_id,
+                    user_id,
+                    (o.id, o.currency_id, &reference),
+                    (relation, None),
+                    &ids,
+                )
+                .await?
+            } else {
+                let input = invoice_input(&o, &lines)?;
+                invoices::service::create_in(conn, workspace_id, user_id, input).await?
+            };
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
             book_paid(state, conn, workspace_id, user_id, &o, invoice_id).await?;
             log(conn, workspace_id, o.id, "invoiced", user_id).await

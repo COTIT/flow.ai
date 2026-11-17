@@ -31,9 +31,10 @@ use crate::{
             service::qty,
         },
         shipments::{
+            billing,
             dto::{
-                ShipmentInput, ShipmentLineResource, ShipmentPayload, ShipmentPostPayload,
-                ShipmentPostReview, ShipmentResource,
+                ShipmentInput, ShipmentInvoicePayload, ShipmentInvoiced, ShipmentLineResource,
+                ShipmentPayload, ShipmentPostPayload, ShipmentPostReview, ShipmentResource,
             },
             recognition,
             repo::{self, LineRow, ShipmentRow},
@@ -448,6 +449,49 @@ pub async fn post(
     post_locked(&mut tx, ws, (&o, &lines), id, (*date, access.user_id)).await?;
     let answer = ok(&get(&mut tx, ws, order, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// POST .../invoice: a draft invoice to the customer billing a posted shipment's recognition
+/// (active books), one billing link.
+pub async fn invoice(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    (order, id): (Uuid, Uuid),
+    cmd: Command<Action<ShipmentInvoicePayload>>,
+) -> Result<Answer, AppError> {
+    const OP: &str = "shipments_invoice";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    let (o, _, st) = lock_both(&mut tx, ws, (order, id), cmd.input.expected_version).await?;
+    if st != "posted" {
+        return Err(AppError::Unprocessable(
+            "Only a posted shipment can be invoiced.".into(),
+        ));
+    }
+    let (rows, _) = repo::shipments(&mut tx, ws, order, Some(id), (1, 0)).await?;
+    let recognition = rows.first().and_then(|s| s.recognition_id).ok_or_else(|| {
+        AppError::Unprocessable("This shipment has no recognised sale to invoice.".into())
+    })?;
+    let reference = o.reference.clone().unwrap_or_else(|| o.number.clone());
+    let invoice_id = billing::draft(
+        &mut tx,
+        ws,
+        access.user_id,
+        (order, o.currency_id, &reference),
+        cmd.input.payload,
+        &[recognition],
+    )
+    .await?;
+    let answer = created(&ShipmentInvoiced {
+        shipment_id: id,
+        invoice_id,
+    });
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id, invoice_id]).await?;
     tx.commit().await?;
     Ok(answer)
 }
