@@ -310,7 +310,9 @@
       "pairAdded": "Workflow toegevoegd.",
       "activated": "Workflow actief.",
       "paused": "Workflow gepauzeerd.",
-      "noAccess": "Je hebt het recht voor koppelingen nodig om dit te zien."
+      "noAccess": "Je hebt het recht voor koppelingen nodig om dit te zien.",
+      "production": "Productie",
+      "sandbox": "Sandbox (test)"
     },
     "mappings": {
       "title": "Koppelingen",

@@ -310,7 +310,9 @@
       "pairAdded": "Workflow added.",
       "activated": "Workflow active.",
       "paused": "Workflow paused.",
-      "noAccess": "You need the integrations right to see this."
+      "noAccess": "You need the integrations right to see this.",
+      "production": "Production",
+      "sandbox": "Sandbox (test)"
     },
     "mappings": {
       "title": "Mappings",

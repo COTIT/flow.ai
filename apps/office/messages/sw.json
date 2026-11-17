@@ -65,7 +65,9 @@
     "scheduledReports": "Ripoti zilizopangwa",
     "storefront": "Duka",
     "payments": "Malipo",
-    "paymentSettings": "Mipangilio ya malipo"
+    "paymentSettings": "Mipangilio ya malipo",
+    "purchaseApprovals": "Idhini za ununuzi",
+    "integrations": "Miunganisho ya mifumo"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",

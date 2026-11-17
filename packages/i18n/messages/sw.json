@@ -310,7 +310,9 @@
       "pairAdded": "Mtiririko umeongezwa.",
       "activated": "Mtiririko uko hai.",
       "paused": "Mtiririko umesitishwa.",
-      "noAccess": "Unahitaji haki ya miunganisho kuona hili."
+      "noAccess": "Unahitaji haki ya miunganisho kuona hili.",
+      "production": "Uzalishaji",
+      "sandbox": "Sandbox (majaribio)"
     },
     "mappings": {
       "title": "Ulinganisho",

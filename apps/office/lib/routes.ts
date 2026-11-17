@@ -9,6 +9,7 @@ const routeRights: [prefix: string, right: string][] = [
   ["/till", "cashregister.list"],
   ["/settings/app-keys", "workspace_admin"],
   ["/settings/webhooks", "workspace_admin"],
+  ["/settings/integrations", "integration.view"],
   ["/settings/storefront", "workspace_admin"],
   ["/settings/payments", "workspace_admin"],
   ["/settings/invites", "invite.list"],
