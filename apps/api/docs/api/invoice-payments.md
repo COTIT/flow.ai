@@ -115,6 +115,21 @@ Both invoices are recomputed.
 - **Anything else:** `400 {"message": "Only a pending credit note can be marked as credited."}`. Laravel answered 400 with a raw translation key.
 - **Not ported yet:** Laravel's side effects on orders and tills in `pending_refund` (F12, F15).
 
+## Active books (Flow ERP M4)
+
+When the workspace book is active, a money payment is a canonical receipt:
+
+- `Idempotency-Key` is required and replays for good (same key, other body → 422).
+- `attribution` (see `accounting.md` "Money location") is required: `cash` → `cash_place`; `pin`, `manual`, `bank` → `bank_account`; `mollie` → `provider_clearing`. Another pairing, missing proof, or a place in another currency → 422 before anything is booked. Another workspace's place or bank account → 404. A drawer needs an open shift.
+- The invoice must be in the book's functional currency and have an open receivable item (422 `unsupported_active_erp_operation` otherwise).
+- Booking, one transaction: Dr cash / bank account / provider clearing, Cr customer deposits (cash also adds a `receipt` row to the drawer or vault); the deposit is applied to the receivable (Dr customer deposits, Cr receivables) up to its open balance. Anything paid above it stays an open customer deposit; the invoice never goes negative.
+- `cash_rounding` (cash only, signed decimal): cash due must be a multiple of 0.05, `|cash_rounding|` at most 0.05, and `amount + cash_rounding` must equal the open balance exactly; it posts Dr rounding / Cr receivables (or Dr customer deposits / Cr rounding when negative). Without it there is no tolerance: 100.00 paid 99.98 stays 0.02 open.
+- `paid_total` and status come only from allocations against the invoice's receivable items, exactly (no 0.05 rule). Sending an invoice, an online order's paid booking and gateway callbacks use the same projection.
+- Settle, void and mark-as-credited return 422 `unsupported_active_erp_operation` (credits and source corrections come later).
+- A confirmed gateway collection or refund keeps its payment row as evidence, is flagged for attention ("posting to the book is pending") and doesn't change the paid status until posted.
+
+Setup books: unchanged (`attribution` and `cash_rounding` ignored).
+
 ## Idempotency-Key
 
 The SPA sends an `Idempotency-Key` header on every POST and DELETE and reuses it on retry. All three routes honour it:

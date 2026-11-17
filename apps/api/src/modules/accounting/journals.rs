@@ -17,6 +17,7 @@ use crate::{
     http::{json::Rules, list::Page, workspace::WorkspaceAccess},
     idempotency::{self, Answer, Command},
     modules::{
+        accounting::settlement::Side,
         accounting::{
             dto::{
                 Acted, Action, CONTROL_ROLES, Create, CurrencyRef, JournalInput, JournalPayload,
@@ -208,6 +209,7 @@ async fn draft_lines(
                 line_no: i16::try_from(i + 1).unwrap_or(i16::MAX),
                 account_id: l.account,
                 relation_id: l.relation,
+                bank_account_id: None,
                 source_ref: l.source_ref.clone(),
                 debit,
                 credit,
@@ -517,6 +519,7 @@ async fn prepare_post(
             line_no: l.line_no,
             account_id: l.account_id,
             relation_id: l.relation_id,
+            bank_account_id: None,
             source_ref: l.source_ref.clone(),
             debit: l.debit,
             credit: l.credit,
@@ -646,6 +649,7 @@ async fn prepare_reverse(
             line_no: l.line_no,
             account_id: l.account_id,
             relation_id: l.relation_id,
+            bank_account_id: None,
             source_ref: l.source_ref.clone(),
             debit: l.credit,
             credit: l.debit,
@@ -787,8 +791,12 @@ pub struct SourceJournal<'a> {
     pub effect_kind: &'a str,
     pub date: NaiveDate,
     pub reason: &'a str,
-    pub debit: &'a str,
-    pub credit: &'a str,
+    pub debit: Side,
+    pub credit: Side,
+    /// Party on both lines (receivable/deposit control detail).
+    pub relation_id: Option<Uuid>,
+    /// Bank account on the line that hits its GL account.
+    pub bank_account_id: Option<Uuid>,
     /// Functional minor units, > 0.
     pub amount: i64,
     pub fingerprint: &'a [u8; 32],
@@ -810,12 +818,13 @@ pub async fn post_source(
         .functional_currency_id
         .ok_or_else(not_configured)?;
     let mappings = repo::mappings(&mut *conn, ws).await?;
-    let account = |role: &str| {
-        mappings
+    let account = |side: Side| match side {
+        Side::Account(id) => Ok(id),
+        Side::Role(role) => mappings
             .iter()
             .find(|m| m.role == role)
             .map(|m| m.account_id)
-            .ok_or_else(not_configured)
+            .ok_or_else(not_configured),
     };
     let (debit, credit) = (account(j.debit)?, account(j.credit)?);
     // As manual posting: FOR SHARE in id order, so a deactivation waits for this posting or
@@ -838,10 +847,13 @@ pub async fn post_source(
         reversal_of: None,
     };
     let entry = repo::insert_entry(&mut *conn, ws, &fields, j.by).await?;
-    let line = |line_no, account_id, debit, credit| NewLine {
+    let line = |line_no, account_id, debit, credit, side: Side| NewLine {
         line_no,
         account_id,
-        relation_id: None,
+        relation_id: j.relation_id,
+        bank_account_id: j
+            .bank_account_id
+            .filter(|_| matches!(side, Side::Account(_))),
         source_ref: None,
         debit,
         credit,
@@ -852,7 +864,10 @@ pub async fn post_source(
         rate_source: "identity",
         rate_date: None,
     };
-    let lines = [line(1, debit, j.amount, 0), line(2, credit, 0, j.amount)];
+    let lines = [
+        line(1, debit, j.amount, 0, j.debit),
+        line(2, credit, 0, j.amount, j.credit),
+    ];
     repo::insert_lines(&mut *conn, ws, entry, &lines).await?;
     let effect = repo::insert_effect(
         &mut *conn,

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO journal_lines (workspace_id, entry_id, line_no, account_id, relation_id,\n                source_ref, debit, credit, functional_debit, functional_credit, rate, rate_inverse,\n                rate_source, rate_date, bank_account_id)\n           SELECT $1, $2, * FROM UNNEST($3::smallint[], $4::uuid[], $5::uuid[], $6::text[],\n                $7::bigint[], $8::bigint[], $9::bigint[], $10::bigint[], $11::numeric[],\n                $12::bool[], $13::text[], $14::date[], $15::uuid[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int2Array",
+        "UuidArray",
+        "UuidArray",
+        "TextArray",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "NumericArray",
+        "BoolArray",
+        "TextArray",
+        "DateArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f788621abc874ebdacd802fc3544a31c4d646ffa078132c14758adbf882351a"
+}

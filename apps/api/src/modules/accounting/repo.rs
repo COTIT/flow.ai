@@ -750,6 +750,7 @@ pub struct NewLine {
     pub line_no: i16,
     pub account_id: Uuid,
     pub relation_id: Option<Uuid>,
+    pub bank_account_id: Option<Uuid>,
     pub source_ref: Option<String>,
     pub debit: i64,
     pub credit: i64,
@@ -772,6 +773,7 @@ pub async fn insert_lines(
     let no: Vec<i16> = lines.iter().map(|l| l.line_no).collect();
     let account: Vec<Uuid> = lines.iter().map(|l| l.account_id).collect();
     let relation: Vec<Option<Uuid>> = lines.iter().map(|l| l.relation_id).collect();
+    let bank: Vec<Option<Uuid>> = lines.iter().map(|l| l.bank_account_id).collect();
     let source: Vec<Option<String>> = lines.iter().map(|l| l.source_ref.clone()).collect();
     let rate: Vec<Decimal> = lines.iter().map(|l| l.rate).collect();
     let inverse: Vec<bool> = lines.iter().map(|l| l.rate_inverse).collect();
@@ -780,10 +782,10 @@ pub async fn insert_lines(
     sqlx::query!(
         r#"INSERT INTO journal_lines (workspace_id, entry_id, line_no, account_id, relation_id,
                 source_ref, debit, credit, functional_debit, functional_credit, rate, rate_inverse,
-                rate_source, rate_date)
+                rate_source, rate_date, bank_account_id)
            SELECT $1, $2, * FROM UNNEST($3::smallint[], $4::uuid[], $5::uuid[], $6::text[],
                 $7::bigint[], $8::bigint[], $9::bigint[], $10::bigint[], $11::numeric[],
-                $12::bool[], $13::text[], $14::date[])"#,
+                $12::bool[], $13::text[], $14::date[], $15::uuid[])"#,
         ws,
         entry,
         &no,
@@ -798,6 +800,7 @@ pub async fn insert_lines(
         &inverse,
         &rate_source,
         &rate_date as &[Option<NaiveDate>],
+        &bank as &[Option<Uuid>],
     )
     .execute(conn)
     .await?;
