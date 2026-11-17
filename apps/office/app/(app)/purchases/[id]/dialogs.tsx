@@ -45,7 +45,7 @@ export type Outcome = {
 }
 
 /** One action's dialog: its key per attempt, its open state, its stale handling. */
-function useAction(outcome: Outcome) {
+export function useAction(outcome: Outcome) {
   const [open, setOpen] = React.useState(false)
   const key = useIdempotencyKey()
   const options = {
@@ -65,7 +65,7 @@ function useAction(outcome: Outcome) {
   return { open, setOpen, key, options, clientRef }
 }
 
-function Shell({
+export function Shell({
   open,
   setOpen,
   onOpen,
