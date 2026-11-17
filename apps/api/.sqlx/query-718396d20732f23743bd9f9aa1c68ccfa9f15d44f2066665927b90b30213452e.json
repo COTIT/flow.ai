@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ($1::int8 + $2::int8) AS \"g!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "g!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "718396d20732f23743bd9f9aa1c68ccfa9f15d44f2066665927b90b30213452e"
+}

@@ -65,6 +65,7 @@ function order(over: Record<string, unknown> = {}) {
     cancelled_at: null,
     cancel_reason: null,
     allowed_actions: ["update", "confirm", "cancel"],
+    business_date: "2026-11-15",
     ...over,
   }
 }

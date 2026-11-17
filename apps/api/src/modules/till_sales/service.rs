@@ -338,6 +338,21 @@ pub async fn sell(
         return Err(short(&charged, wants[index].product_id, available));
     }
     farm_supply::sale::on_sale(&mut tx, ws, order_id, &number).await?;
+    // Active book: anonymous retail recognition + GL receipt (drawer money stays the sale row).
+    let role = if shift_id.is_some() {
+        "cash"
+    } else {
+        "provider_clearing"
+    };
+    let sold: Vec<_> = written.iter().map(|l| (l.id, l.quantity)).collect();
+    crate::modules::shipments::recognition::retail_sale(
+        &mut tx,
+        ws,
+        (order_id, currency_id),
+        (due, role),
+        &sold,
+    )
+    .await?;
 
     let server_prices = Value::Array(
         server

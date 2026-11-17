@@ -141,3 +141,7 @@ While an active book holds a pending line for a product in a warehouse:
 | 404 | Other workspace, unknown order/receipt/line, or a line of another order or receipt |
 | 409 | `stale_document` (version, review fingerprint, line already booked); reused `client_ref` with another body |
 | 422 | Field errors; `receipt_booking_required`; `backdated_valuation`; `accounting_not_configured` (functional currency or `inventory`/`grni` mapping missing); `accounting_period_closed`; `unsupported_active_erp_operation` (stock from before activation, landed cost in a setup book) |
+
+### Business date
+
+`PurchaseOrderResource.business_date` is today in the book: the accounting timezone once set, before that the workspace's `general.timezone` (when Postgres knows the zone), else UTC. A receipt's `effective_receipt_date` may not be later than it (422 `payload.effective_receipt_date`). Clients offer it as the default receipt date instead of the device's date.

@@ -252,16 +252,9 @@ pub async fn locked(
         .await?;
     // Book gate before any place/stock lock (masterplan §6).
     let active = value::active(conn, workspace_id).await?;
-    sqlx::query_scalar!(
-        "SELECT id FROM warehouses
-         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
-         FOR SHARE",
-        workspace_id,
-        slot.warehouse_id,
-    )
-    .fetch_optional(&mut *conn)
-    .await?
-    .ok_or(sqlx::Error::RowNotFound)?;
+    if !share_warehouse(conn, workspace_id, slot.warehouse_id).await? {
+        return Err(sqlx::Error::RowNotFound.into());
+    }
     // Pool after its warehouse, before bin and stock rows: slot-key order is pool order.
     if active {
         value::pool(conn, workspace_id, slot.product_id, slot.warehouse_id).await?;
@@ -296,6 +289,24 @@ pub async fn locked(
     .fetch_optional(&mut *conn)
     .await
     .map_err(AppError::from)
+}
+
+/// The live warehouse `FOR SHARE` (ordinary stock writers); false = no such live row.
+pub async fn share_warehouse(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    warehouse_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM warehouses
+         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+         FOR SHARE",
+        workspace_id,
+        warehouse_id,
+    )
+    .fetch_optional(conn)
+    .await
+    .map(|r| r.is_some())
 }
 
 /// The slot's `(level, reserved)` without a lock; zeros when it has no live row yet.
@@ -567,6 +578,10 @@ pub async fn record(
     row: &StockRow,
     m: &Movement<'_>,
 ) -> Result<(), AppError> {
+    // Every level change lands here, its warehouse already FOR SHARE (`locked`).
+    if m.before != m.after && paused(&mut *conn, workspace_id, row.warehouse_id).await? {
+        return Err(paused_error());
+    }
     let (related_domain, related_id) = m.cause.related.unzip();
     let movement_id = sqlx::query_scalar!(
         "INSERT INTO stock_movements (workspace_id, stock_id, product_id, warehouse_id, shelf_id,
@@ -625,6 +640,33 @@ pub async fn record(
     });
     webhooks::events::emit(conn, workspace_id, webhooks::events::STOCK_CHANGED, payload).await?;
     Ok(())
+}
+
+/// Whether a stocktake counts the warehouse now (D10 pause). Read under the warehouse's
+/// `FOR SHARE`; a start holds `FOR UPDATE` while it writes the counting row.
+pub async fn paused(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    warehouse_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM stocktakes
+                          WHERE workspace_id = $1 AND warehouse_id = $2 AND state = 'counting')
+           AS "paused!""#,
+        workspace_id,
+        warehouse_id,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// 409 `warehouse_paused`: the warehouse is being counted.
+pub fn paused_error() -> AppError {
+    AppError::Reason {
+        status: axum::http::StatusCode::CONFLICT,
+        code: "warehouse_paused",
+        message: "This warehouse is being counted. Stock can't move until the count is posted or cancelled.".into(),
+    }
 }
 
 /// The live warehouses of the workspace among `ids`.

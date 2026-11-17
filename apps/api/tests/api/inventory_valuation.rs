@@ -13,8 +13,9 @@ use uuid::Uuid;
 
 // --- book fixture (activation by SQL until the M8 activate route) ---------------------------
 
-/// Map inventory/cogs/inventory_adjustment/opening_equity, set the book active in UTC with a
-/// period around today.
+/// Map inventory/cogs/inventory_adjustment/opening_equity and the sales roles (receivables,
+/// unbilled receivables, customer deposits, revenue, tax, cash, provider clearing, rounding), set the book active in UTC
+/// with a period around today.
 pub(crate) async fn activate(pool: &PgPool, ws: &str) {
     let mut tx = pool.begin().await.unwrap();
     let (user, currency): (Uuid, Uuid) = sqlx::query_as(
@@ -31,6 +32,14 @@ pub(crate) async fn activate(pool: &PgPool, ws: &str) {
         ("5000", "expense", "cogs"),
         ("5900", "expense", "inventory_adjustment"),
         ("3000", "equity", "opening_equity"),
+        ("1200", "asset", "receivables"),
+        ("1210", "asset", "unbilled_receivables"),
+        ("2300", "liability", "customer_deposits"),
+        ("4000", "income", "revenue"),
+        ("2200", "liability", "tax_payable"),
+        ("1000", "asset", "cash"),
+        ("1050", "asset", "provider_clearing"),
+        ("6900", "expense", "rounding"),
     ] {
         sqlx::query(
             "WITH a AS (INSERT INTO accounts (workspace_id, code, name, type, created_by)
@@ -113,6 +122,20 @@ pub(crate) async fn seed(
         .await
         .unwrap();
     }
+    seed_pool(&mut tx, ws, product, warehouse, qty, value).await;
+    tx.commit().await.unwrap();
+}
+
+/// [`seed_pool`] in its own transaction.
+pub(crate) async fn seed_pool_only(
+    pool: &PgPool,
+    ws: &str,
+    product: &str,
+    warehouse: &str,
+    qty: &str,
+    value: i64,
+) {
+    let mut tx = pool.begin().await.unwrap();
     seed_pool(&mut tx, ws, product, warehouse, qty, value).await;
     tx.commit().await.unwrap();
 }
@@ -498,7 +521,7 @@ async fn average_issue_return_and_transfer(pool: PgPool) {
     .fetch_one(w.pool())
     .await
     .unwrap();
-    assert_eq!(journals, 2, "sale + return");
+    assert_eq!(journals, 3, "sale COGS + sale recognition + return");
     w.books().await;
 }
 

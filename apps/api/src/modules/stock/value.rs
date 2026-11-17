@@ -18,6 +18,7 @@ use crate::{
             gate,
             journals::{self, SourceJournal},
             service::unsupported,
+            settlement::Side,
         },
         purchasing,
         stock::repo::{Cause, StockRow},
@@ -42,6 +43,9 @@ pub enum Valued {
         value: i64,
         date: NaiveDate,
     },
+    /// Stocktake difference (M6) dated `date`: out at the current average; in at `value`
+    /// (functional minor units) when the caller found the pool empty, else at the average.
+    Count { value: Option<i64>, date: NaiveDate },
 }
 
 const NO_OPENING: &str =
@@ -55,6 +59,14 @@ fn reason(code: &'static str, message: &str) -> AppError {
         code,
         message: message.into(),
     }
+}
+
+/// 422 `stocktake_value_required`: counted stock into an empty pool needs a reviewed value.
+pub fn value_required() -> AppError {
+    reason(
+        "stocktake_value_required",
+        "This product has no cost here yet. Enter the value of the stock found.",
+    )
 }
 
 /// 422 `insufficient_stock`: an issue larger than the pool.
@@ -304,6 +316,24 @@ async fn plan(
             });
         }
         Valued::Receipt { .. } => return Err(unsupported(UNKNOWN)),
+        Valued::Count { value, .. } => {
+            let value = match value {
+                _ if out => -issue_value(&mut *conn, pool, q).await?,
+                Some(v) => v,
+                None if pool.quantity.is_zero() => return Err(value_required()),
+                None => share(&mut *conn, pool.value, q, pool.quantity).await?,
+            };
+            let roles = if out {
+                ("inventory_adjustment", "inventory")
+            } else {
+                ("inventory", "inventory_adjustment")
+            };
+            return Ok(Plan {
+                class: "adjustment",
+                value,
+                roles: Some(roles),
+            });
+        }
         Valued::Relocate | Valued::Infer => None,
     };
     if let Some((out_class, in_class)) = pair {
@@ -458,6 +488,7 @@ pub async fn on_movement(
         return Err(crate::modules::accounting::service::not_configured());
     }
     let date = match cause.value {
+        Valued::Count { date, .. } => date,
         Valued::Receipt { line, date, .. } => {
             // Earliest eligible receipt first (masterplan §7): no older pending line left.
             if purchasing::repo::pending_before(&mut *conn, ws, line).await? {
@@ -505,8 +536,10 @@ pub async fn on_movement(
                         effect_kind,
                         date,
                         reason: plan.class,
-                        debit,
-                        credit,
+                        debit: Side::Role(debit),
+                        credit: Side::Role(credit),
+                        relation_id: None,
+                        bank_account_id: None,
                         amount: plan.value.abs(),
                         fingerprint: &fingerprint,
                         // shortcut: nil = system actor (till, jobs); actor_kind comes with M4.

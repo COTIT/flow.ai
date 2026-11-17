@@ -29,7 +29,7 @@ use crate::{
         gateway::{accounts, repo as operations, repo::Operation, service as engine},
         invoice_payments::{repo as ledger, service as payments},
         invoices::{self, repo, send},
-        orders, workspaces,
+        orders, stock, workspaces,
     },
     money,
 };
@@ -418,6 +418,9 @@ pub async fn redirect(state: &AppState, ws: Uuid, invoice: Uuid) -> Result<Strin
     Ok(send::payment_link(state, &token))
 }
 
+/// Active books keep the gateway row as evidence until it is posted (`external_financial_fact_pending`).
+const PENDING: &str = "Confirmed by the provider; posting to the book is pending.";
+
 /// Called by the gateway engine after invoice locks, before committing its paid status.
 pub async fn apply_collection(
     state: &AppState,
@@ -442,7 +445,10 @@ pub async fn apply_collection(
         || open.is_none_or(|open| op.amount > open);
     receipt(conn, ws, invoice, op, transaction_id, op.amount).await?;
     payments::rebalance(conn, ws, &target, None).await?;
-    if attention {
+    if stock::value::active(conn, ws).await? {
+        // shortcut: no canonical posting yet; the provider-observation child posts it.
+        mark_attention(conn, ws, op.id, PENDING).await?;
+    } else if attention {
         mark_attention(
             conn,
             ws,
@@ -487,7 +493,9 @@ pub async fn apply_refund(
         .ok_or(AppError::Conflict("Refund amount is out of range."))?;
     receipt(conn, ws, note, op, transaction_id, amount).await?;
     payments::rebalance(conn, ws, &target, None).await?;
-    if !target.is_credit
+    if stock::value::active(conn, ws).await? {
+        mark_attention(conn, ws, op.id, PENDING).await?;
+    } else if !target.is_credit
         || target.status != "pending"
         || target
             .paid_total

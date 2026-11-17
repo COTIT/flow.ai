@@ -25,7 +25,7 @@ use crate::{
             service::{self as messages, Outgoing},
         },
         pdf_templates::{self, repo::TemplateRow},
-        settings,
+        settings, shipments,
         stock::{
             repo::{self as stock, Cause, Floor, Mutated, Slot},
             reserve::{self, Taken, Want},
@@ -228,10 +228,85 @@ async fn number_inner(
     queue: bool,
 ) -> Result<Option<Uuid>, AppError> {
     let mut tx = state.db.begin().await?;
-    let locked = repo::lock(&mut tx, workspace_id, id)
+    let contact = issue_in(
+        &mut tx,
+        state,
+        (workspace_id, user_id, id),
+        Addressee::Send(input),
+        None,
+    )
+    .await?;
+    let delivery = if queue {
+        let mut frozen = input.clone();
+        freeze_recipient(&mut frozen, &contact);
+        Some(enqueue(&mut tx, workspace_id, user_id, id, "send", &frozen).await?)
+    } else {
+        None
+    };
+    tx.commit().await.map_err(|e| taken(e, workspace_id))?;
+    Ok(delivery)
+}
+
+/// Whom an issue addresses: a send's recipient input, or (issue route) an optional contact
+/// over the draft's stored snapshots.
+pub(crate) enum Addressee<'a> {
+    Send(&'a SendInput),
+    Issue(Option<Uuid>),
+}
+
+/// The draft's stored billing address and contact (or `contact`, snapshotted now).
+async fn stored_recipient(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    (id, relation_id): (Uuid, Uuid),
+    contact: Option<Uuid>,
+) -> Result<(Value, Value), AppError> {
+    let (billing, stored): (Option<Value>, Option<Value>) = sqlx::query_as(
+        "SELECT billing_address, addressed_contact FROM invoices WHERE workspace_id = $1 AND id = $2",
+    )
+    .bind(workspace_id)
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await?;
+    let contact = match contact {
+        Some(c) => Some(
+            repo::addressed_contact(&mut *conn, workspace_id, relation_id, c)
+                .await?
+                .ok_or_else(|| AppError::field("payload.addressed_contact_id", NO_CONTACT))?,
+        ),
+        None => stored,
+    };
+    let contact = contact.ok_or_else(|| {
+        AppError::field(
+            "payload.addressed_contact_id",
+            "Choose the contact to address.",
+        )
+    })?;
+    let billing = billing.ok_or_else(|| {
+        AppError::Unprocessable("Set the invoice's billing address before issuing it.".into())
+    })?;
+    Ok((billing, contact))
+}
+
+/// Issue draft `id` in the caller's transaction: number it once, move its stock, and in an
+/// active book post its economics (`shipments::billing::issue`) dated today in the book
+/// timezone (`date`, when sent, must be that day). Everything a send does except the email
+/// intent; resend never comes here. The addressed contact snapshot.
+pub(crate) async fn issue_in(
+    tx: &mut PgConnection,
+    state: &AppState,
+    (workspace_id, user_id, id): (Uuid, Uuid, Uuid),
+    to: Addressee<'_>,
+    date: Option<chrono::NaiveDate>,
+) -> Result<Value, AppError> {
+    let locked = repo::lock(&mut *tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    super::approval::check(&mut tx, workspace_id, id, Some(input.addressed_contact_id)).await?;
+    let contact_id = match &to {
+        Addressee::Send(input) => Some(input.addressed_contact_id),
+        Addressee::Issue(c) => *c,
+    };
+    super::approval::check(&mut *tx, workspace_id, id, contact_id).await?;
     if !actions::allows(InvoiceAction::Send, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(CAN_NOT_SEND.into()));
     }
@@ -240,9 +315,36 @@ async fn number_inner(
             "Previous invoice delivery is unresolved. Verify its send log before another send.",
         ));
     }
-    let (billing, contact) = recipient(&mut tx, workspace_id, locked.relation_id, input).await?;
-    let total = priced(&mut tx, workspace_id, id, &locked).await?;
-    move_stock(&mut tx, workspace_id, user_id, id).await?;
+    let (billing, contact) = match to {
+        Addressee::Send(input) => {
+            recipient(&mut *tx, workspace_id, locked.relation_id, input).await?
+        }
+        Addressee::Issue(c) => {
+            stored_recipient(&mut *tx, workspace_id, (id, locked.relation_id), c).await?
+        }
+    };
+    let total = priced(&mut *tx, workspace_id, id, &locked).await?;
+    move_stock(&mut *tx, workspace_id, user_id, id).await?;
+    if crate::modules::stock::value::active(&mut *tx, workspace_id).await? {
+        let today = crate::modules::shipments::repo::book_today(&mut *tx, workspace_id).await?;
+        if let Some(d) = date {
+            shipments::recognition::check_date(
+                &mut *tx,
+                workspace_id,
+                d,
+                "payload.accounting_date",
+            )
+            .await?;
+        }
+        shipments::billing::issue(
+            &mut *tx,
+            workspace_id,
+            user_id,
+            (id, locked.relation_id, locked.currency_id, locked.is_credit),
+            today,
+        )
+        .await?;
+    }
     let invoice = settings::service::section_or_default(&mut *tx, workspace_id, "invoice").await?;
     let credit;
     let own = if locked.is_credit {
@@ -255,7 +357,7 @@ async fn number_inner(
         Some(_) => None,
         None => Some(
             due_date(
-                &mut tx,
+                &mut *tx,
                 workspace_id,
                 locked.relation_id,
                 locked.is_credit,
@@ -272,8 +374,8 @@ async fn number_inner(
     };
     // Laravel UpdateInvoiceBalanceAfterPayment on a zero total: paid, or credited. Payments
     // booked on the draft (an order paid online) count from the start.
-    let (paid, cash) = invoice_payments::repo::sums(&mut tx, workspace_id, id).await?;
-    let dp = currencies::repo::share_decimals(&mut tx, workspace_id, locked.currency_id)
+    let (paid, cash) = invoice_payments::service::paid_and_cash(&mut *tx, workspace_id, id).await?;
+    let dp = currencies::repo::share_decimals(&mut *tx, workspace_id, locked.currency_id)
         .await?
         .and_then(|d| u32::try_from(d).ok())
         .unwrap_or(2);
@@ -295,14 +397,14 @@ async fn number_inner(
     let appendix = Appendix::from_section(own).to_json();
     // Last: the counter row stays locked from here to commit only.
     let number = numbering::next(
-        &mut tx,
+        &mut *tx,
         workspace_id,
         Series::Invoice,
         numbering::start_number(&invoice),
     )
     .await?;
     repo::mark_sent(
-        &mut tx,
+        &mut *tx,
         workspace_id,
         id,
         &repo::Sent {
@@ -317,15 +419,7 @@ async fn number_inner(
     )
     .await
     .map_err(|e| taken(e, workspace_id))?;
-    let delivery = if queue {
-        let mut frozen = input.clone();
-        freeze_recipient(&mut frozen, &contact);
-        Some(enqueue(&mut tx, workspace_id, user_id, id, "send", &frozen).await?)
-    } else {
-        None
-    };
-    tx.commit().await.map_err(|e| taken(e, workspace_id))?;
-    Ok(delivery)
+    Ok(contact)
 }
 
 /// The total in minor units at the currency's current decimals, share locking the currency so

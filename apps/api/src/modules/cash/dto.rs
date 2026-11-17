@@ -430,7 +430,7 @@ pub struct PlaceRequest {
 }
 
 /// A validated cash place.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Place {
     /// A register's drawer.
     Drawer(Uuid),
@@ -454,7 +454,7 @@ impl Place {
     }
 }
 
-fn place(r: &mut Rules, field: &str, value: Option<PlaceRequest>) -> Option<Place> {
+pub(crate) fn place(r: &mut Rules, field: &str, value: Option<PlaceRequest>) -> Option<Place> {
     let Some(p) = value else {
         r.missing(field);
         return None;

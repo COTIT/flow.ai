@@ -999,6 +999,10 @@ pub async fn stock_lines(
                  JOIN orders o ON o.workspace_id = v.workspace_id
                               AND o.invoice_id IN (v.id, v.previous_invoice_id)
                  WHERE v.workspace_id = $1 AND v.id = $2)
+             -- An invoice billing recognised sales: their shipments moved the stock.
+             AND NOT EXISTS (
+                 SELECT 1 FROM invoice_recognition_links l
+                 WHERE l.workspace_id = $1 AND l.invoice_id = $2)
            ORDER BY i.position, i.id"#,
         workspace_id,
         invoice_id,

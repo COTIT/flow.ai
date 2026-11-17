@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shipments SET state = 'cancelled', cancelled_at = now(), cancelled_by = $4,\n                cancel_reason = $3, version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "83f09e91ce742d6a6b0d9beb148996c9956635a3cd3146358b496cbf53bec1b2"
+}

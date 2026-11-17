@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO invoice_recognition_links (workspace_id, invoice_id, recognition_id)\n         SELECT $1, $2, u FROM UNNEST($3::uuid[]) AS u",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6f1e6adc30c86015c4edb34de567186a9b1006d36c1a1f9f592a0ec8a8d0d25c"
+}
