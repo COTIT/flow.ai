@@ -619,6 +619,8 @@ pub struct ReceiptRow {
     pub version: i64,
     pub created_by: Uuid,
     pub recorded_at: DateTime<Utc>,
+    /// The book's functional currency (id, code, decimals); None unless the book is active.
+    pub functional: Option<(Uuid, String, i16)>,
 }
 
 /// Receipts of an order (newest first), or one when `id` is set; plus the total.
@@ -630,11 +632,17 @@ pub async fn receipts(
     (limit, offset): (i64, i64),
 ) -> Result<(Vec<ReceiptRow>, i64), sqlx::Error> {
     let rows = sqlx::query!(
-        r#"SELECT id, purchase_order_id, number, effective_receipt_date, note, version,
-                  created_by, recorded_at, count(*) OVER () AS "total!"
-           FROM purchase_receipts
-           WHERE workspace_id = $1 AND purchase_order_id = $2 AND ($3::uuid IS NULL OR id = $3)
-           ORDER BY number DESC LIMIT $4 OFFSET $5"#,
+        r#"SELECT r.id, r.purchase_order_id, r.number, r.effective_receipt_date, r.note,
+                  r.version, r.created_by, r.recorded_at, count(*) OVER () AS "total!",
+                  c.id AS "fc_id?", upper(c.asset_type) AS "fc_code?",
+                  c.decimals AS "fc_decimals?"
+           FROM purchase_receipts r
+           JOIN accounting_settings a ON a.workspace_id = r.workspace_id
+           LEFT JOIN currencies c ON a.state = 'active' AND c.workspace_id = a.workspace_id
+                                 AND c.id = a.functional_currency_id
+           WHERE r.workspace_id = $1 AND r.purchase_order_id = $2
+             AND ($3::uuid IS NULL OR r.id = $3)
+           ORDER BY r.number DESC LIMIT $4 OFFSET $5"#,
         ws,
         order,
         id,
@@ -655,6 +663,10 @@ pub async fn receipts(
                 version: r.version,
                 created_by: r.created_by,
                 recorded_at: r.recorded_at,
+                functional: match (r.fc_id, r.fc_code, r.fc_decimals) {
+                    (Some(id), Some(code), Some(dp)) => Some((id, code, dp)),
+                    _ => None,
+                },
             })
             .collect(),
         total,
