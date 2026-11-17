@@ -1,7 +1,11 @@
 import { Notice } from "@genesy/ui/components/notice"
 
 /** The API's error body: `message`, plus `errors` per field on a 422. */
-type ErrorBody = { message?: string; errors?: Record<string, string[]> }
+type ErrorBody = {
+  message?: string
+  code?: string
+  errors?: Record<string, string[]>
+}
 
 function body(error: unknown): ErrorBody | undefined {
   return (error as { response?: { data?: ErrorBody } } | null)?.response?.data
@@ -14,7 +18,8 @@ function fieldErrors(error: unknown): Record<string, string[]> {
 
 /**
  * An error Notice with the API's own words for a failed call; `fallback` when it sent none.
- * `codes` turns a 409's code (`lot_recalled`) into the caller's sentence, so no code is shown.
+ * `codes` turns an error's code (`lot_recalled` as the message, or a `code` field such as
+ * `stale_document`) into the caller's sentence, so no code is shown.
  */
 function ApiError({
   error,
@@ -26,11 +31,16 @@ function ApiError({
   codes?: Record<string, string>
 }) {
   if (!error) return null
-  const message = body(error)?.message
+  const { message, code } = body(error) ?? {}
   return (
     <Notice
       variant="error"
-      title={(message && codes?.[message]) ?? message ?? fallback}
+      title={
+        (code && codes?.[code]) ??
+        (message && codes?.[message]) ??
+        message ??
+        fallback
+      }
     />
   )
 }
