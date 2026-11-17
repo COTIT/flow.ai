@@ -131,7 +131,7 @@ export function PurchaseApprovalCard({
                   <span>{blockedReason(t, b)}</span>
                   {href ? (
                     <a
-                      className="font-medium underline underline-offset-4"
+                      className="inline-flex items-center font-medium underline underline-offset-4 max-md:min-h-11"
                       href={href}
                     >
                       {t("card.fixMapping")}
