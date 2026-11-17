@@ -15,6 +15,8 @@ use super::Error;
 use crate::outbound::Outbound;
 
 pub const SANDBOX_API_URL: &str = "https://api.sbx.globadyme.com/api";
+/// Production host with verified public API route prefix.
+pub const PRODUCTION_API_URL: &str = "https://api.prd.globadyme.com/api";
 const USER_AGENT: &str = "Genesy/0.1 Globadyme";
 const MAX_BODY: usize = 2 * 1024 * 1024;
 
@@ -95,6 +97,8 @@ pub struct Transaction {
 
 pub struct NewRefund<'a> {
     pub transaction_id: &'a str,
+    pub merchant_id: &'a str,
+    pub currency: &'a str,
     pub amount: i64,
     pub decimals: u32,
     pub description: &'a str,
@@ -230,15 +234,30 @@ impl Globadyme {
         Ok((status, bytes, content_type))
     }
 
-    async fn authenticate(&self, refresh: Option<&str>) -> Result<Token, Error> {
+    async fn authenticate(&self, refresh: Option<&Token>) -> Result<Token, Error> {
         let (path, body) = match refresh {
-            Some(token) => ("/api/auth/refresh-token", json!({"refreshToken":token})),
+            Some(token) => (
+                "/api/auth/refresh-token",
+                json!({"refreshToken":token.refresh.as_str()}),
+            ),
             None => (
                 "/api/auth/sign-in",
                 json!({"user":{"username":self.account.username,"password":self.account.password.as_str()}}),
             ),
         };
-        let (status, bytes, _) = self.send(Method::POST, path, Some(&body), None).await?;
+        let (status, bytes, _) = self
+            .send(
+                Method::POST,
+                path,
+                Some(&body),
+                refresh.map(|token| token.access.as_str()),
+            )
+            .await?;
+        if refresh.is_some() && matches!(status.as_u16(), 401 | 403) {
+            return Err(Error::Refused(
+                "Globadyme refresh authentication rejected".into(),
+            ));
+        }
         let value = answer(status, &bytes, false)?;
         if value["tokenType"].as_str() != Some("Bearer") {
             return Err(unexpected());
@@ -263,7 +282,7 @@ impl Globadyme {
             }
         }
         let fresh = if let Some(token) = cached.as_ref() {
-            match self.authenticate(Some(&token.refresh)).await {
+            match self.authenticate(Some(token)).await {
                 Ok(token) => token,
                 Err(Error::Refused(_)) => self.authenticate(None).await?,
                 Err(e) => return Err(e),
@@ -276,8 +295,7 @@ impl Globadyme {
             .as_ref()
             .is_some_and(|t| t.expires_at.is_some_and(|exp| exp <= now + 30))
         {
-            let refresh = cached.as_ref().ok_or_else(unexpected)?.refresh.clone();
-            let fresh = self.authenticate(Some(&refresh)).await?;
+            let fresh = self.authenticate(cached.as_ref()).await?;
             if fresh.expires_at.is_some_and(|exp| exp <= now + 30) {
                 return Err(Error::Unavailable("Globadyme token already expired".into()));
             }
@@ -352,13 +370,13 @@ impl Globadyme {
         }
         let details = &result["details"];
         let request_id = field(details, "requestId")?;
-        if request_id != p.request_id {
+        if !id_ok(&request_id) || request_id.len() > 64 {
             return Err(unexpected());
         }
         let checkout_url = field(details, "redirectUrl")?;
-        let link_id = link_id(&checkout_url)?;
+        let link_id = link_id(&checkout_url, &self.account.api_url)?;
         if let Some(link) = details["linkUrl"].as_str()
-            && link_id != self::link_id(link)?
+            && link_id != self::link_id(link, &self.account.api_url)?
         {
             return Err(unexpected());
         }
@@ -387,7 +405,12 @@ impl Globadyme {
     /// Only an explicit SUCCEEDED response proves refund success; no lookup is invented.
     pub async fn refund(&self, r: &NewRefund<'_>) -> Result<Refunded, Error> {
         check_id(r.transaction_id)?;
-        let exact = amount(r.amount, r.decimals)?
+        check_id(r.merchant_id)?;
+        if r.currency.len() != 3 || !r.currency.bytes().all(|c| c.is_ascii_uppercase()) {
+            return Err(Error::Refused("invalid refund currency".into()));
+        }
+        let expected_amount = amount(r.amount, r.decimals)?;
+        let exact = expected_amount
             .to_string()
             .parse::<serde_json::Number>()
             .map_err(|_| Error::Refused("invalid refund amount".into()))?;
@@ -396,9 +419,22 @@ impl Globadyme {
         let result = self
             .post("/globadymeGateway/refund/initiateRefund", &body)
             .await?;
-        if result["message"].as_str() != Some("refund")
-            || result["details"]["status"].as_str() != Some("SUCCEEDED")
-        {
+        if result["message"].as_str() != Some("refund") {
+            return Err(unexpected());
+        }
+        let status = &result["details"]["status"];
+        let succeeded = match status {
+            Value::String(value) => value == "SUCCEEDED",
+            Value::Object(_) => {
+                status["status"].as_str() == Some("SUCCEEDED")
+                    && status["transactionId"].as_str() == Some(r.transaction_id)
+                    && status["merchantId"].as_str() == Some(r.merchant_id)
+                    && status["currency"].as_str() == Some(r.currency)
+                    && decimal(&status["amount"])? == expected_amount
+            }
+            _ => false,
+        };
+        if !succeeded {
             return Err(unexpected());
         }
         Ok(Refunded { raw: result })
@@ -411,9 +447,18 @@ impl Globadyme {
                 "/globadymeGateway/transaction/qrcode?id={link_id}"
             ))
             .await?;
-        if content_type.split(';').next() != Some("image/png")
-            || !bytes.starts_with(b"\x89PNG\r\n\x1a\n")
-        {
+        if content_type.split(';').next() != Some("image/png") {
+            return Err(unexpected());
+        }
+        let bytes = if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+            bytes
+        } else {
+            // Sandbox returns base64 text despite declaring image/png.
+            base64::engine::general_purpose::STANDARD
+                .decode(bytes)
+                .map_err(|_| unexpected())?
+        };
+        if !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
             return Err(unexpected());
         }
         Ok(bytes)
@@ -582,10 +627,26 @@ fn check_id(id: &str) -> Result<(), Error> {
     }
 }
 
-fn link_id(link: &str) -> Result<String, Error> {
+fn link_id(link: &str, api_url: &str) -> Result<String, Error> {
     let url = reqwest::Url::parse(link).map_err(|_| unexpected())?;
+    let api = reqwest::Url::parse(api_url).map_err(|_| unexpected())?;
+    let sandbox = api.host_str() == Some("api.sbx.globadyme.com")
+        || (cfg!(debug_assertions)
+            && api.host_str().is_some_and(|host| {
+                host.parse::<std::net::IpAddr>()
+                    .is_ok_and(|ip| ip.is_loopback())
+            }));
+    let allowed_host = if sandbox {
+        matches!(
+            url.host_str(),
+            Some("api.sbx.globadyme.com" | "sandbox.globadyme.com")
+        )
+    } else {
+        api.host_str() == Some("api.prd.globadyme.com")
+            && url.host_str() == Some("api.prd.globadyme.com")
+    };
     if url.scheme() != "https"
-        || url.host_str() != Some("api.sbx.globadyme.com")
+        || !allowed_host
         || url.port().is_some()
         || url.path() != "/api/link"
         || !url.username().is_empty()
@@ -664,6 +725,12 @@ mod tests {
         oversized_post: std::sync::atomic::AtomicBool,
         pending_refund: std::sync::atomic::AtomicBool,
         expired_token: std::sync::atomic::AtomicBool,
+        real_sandbox_shape: std::sync::atomic::AtomicBool,
+        base64_qr: std::sync::atomic::AtomicBool,
+        invalid_qr: std::sync::atomic::AtomicBool,
+        require_refresh_bearer: std::sync::atomic::AtomicBool,
+        reject_refresh: std::sync::atomic::AtomicBool,
+        object_refund: std::sync::atomic::AtomicBool,
     }
 
     fn jwt(exp: i64) -> String {
@@ -692,6 +759,24 @@ mod tests {
             value,
         ));
         if path.ends_with("/api/auth/sign-in") || path.ends_with("/api/auth/refresh-token") {
+            if path.ends_with("refresh-token") {
+                if f.reject_refresh.load(SeqCst) {
+                    return (
+                        StatusCode::UNAUTHORIZED,
+                        axum::Json(json!({"httpStatus":401,"message":"Expired authentication"})),
+                    )
+                        .into_response();
+                }
+                if f.require_refresh_bearer.load(SeqCst) && !headers.contains_key("authorization") {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        axum::Json(
+                            json!({"httpStatus":500,"message":"Missing authentication context"}),
+                        ),
+                    )
+                        .into_response();
+                }
+            }
             let exp = if f.expired_token.swap(false, SeqCst) {
                 0
             } else {
@@ -726,7 +811,13 @@ mod tests {
                 return (StatusCode::OK, vec![b' '; MAX_BODY + 1]).into_response();
             }
             let result = if path.ends_with("initiateRefund") {
-                json!({"message":"refund","details":{"status":if f.pending_refund.load(SeqCst) {"PENDING"} else {"SUCCEEDED"}}})
+                if f.object_refund.load(SeqCst) {
+                    json!({"message":"refund","details":{"status":{"id":1,"transactionId":"tx-1","merchantId":"merchant","status":if f.pending_refund.load(SeqCst) {"PENDING"} else {"SUCCEEDED"},"amount":12.50,"currency":"EUR"}}})
+                } else {
+                    json!({"message":"refund","details":{"status":if f.pending_refund.load(SeqCst) {"PENDING"} else {"SUCCEEDED"}}})
+                }
+            } else if f.real_sandbox_shape.load(SeqCst) {
+                json!({"message":"OK","details":{"requestId":"20000000-0000-4000-8000-000000000001","redirectUrl":"https://sandbox.globadyme.com/api/link?id=link_1","linkUrl":"https://sandbox.globadyme.com/api/link?id=link_1"}})
             } else {
                 json!({"message":"OK","details":{"requestId":"req-1","redirectUrl":"https://api.sbx.globadyme.com/api/link?id=link_1","linkUrl":"https://api.sbx.globadyme.com/api/link?id=link_1"}})
             };
@@ -740,6 +831,18 @@ mod tests {
                 .into_response();
         }
         if path.ends_with("qrcode") {
+            if f.base64_qr.load(SeqCst) {
+                let bytes: &[u8] = if f.invalid_qr.load(SeqCst) {
+                    b"not an image"
+                } else {
+                    b"\x89PNG\r\n\x1a\nfixture"
+                };
+                return (
+                    [("content-type", "image/png;charset=UTF-8")],
+                    base64::engine::general_purpose::STANDARD.encode(bytes),
+                )
+                    .into_response();
+            }
             return (
                 [("content-type", "image/png")],
                 b"\x89PNG\r\n\x1a\nfixture".to_vec(),
@@ -825,6 +928,30 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn accepts_server_assigned_request_and_observed_sandbox_checkout_host() {
+        let (client, fake) = world().await;
+        fake.real_sandbox_shape
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        let result = client.request(&request()).await.unwrap();
+        assert_eq!(result.request_id, "20000000-0000-4000-8000-000000000001");
+        assert_eq!(result.link_id, "link_1");
+        assert!(
+            result
+                .checkout_url
+                .starts_with("https://sandbox.globadyme.com/")
+        );
+        assert_eq!(
+            fake.seen
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|r| r.0.ends_with("requestPayment"))
+                .count(),
+            1
+        );
+    }
+
+    #[tokio::test]
     async fn expiry_refreshes_before_post_and_get_may_refresh_once() {
         use std::sync::atomic::Ordering::SeqCst;
         let (client, fake) = world().await;
@@ -854,6 +981,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn refresh_keeps_bearer_context_and_rejected_auth_never_replays_financial_post() {
+        use std::sync::atomic::Ordering::SeqCst;
+        let (client, fake) = world().await;
+        client.fetch("req-1").await.unwrap();
+        fake.require_refresh_bearer.store(true, SeqCst);
+        fake.expire_get.store(true, SeqCst);
+        client.fetch("req-1").await.unwrap();
+        fake.reject_refresh.store(true, SeqCst);
+        client.token.lock().await.as_mut().unwrap().expires_at = Some(0);
+        client.request(&request()).await.unwrap();
+        let seen = fake.seen.lock().unwrap();
+        assert!(
+            seen.iter()
+                .filter(|r| r.0.ends_with("refresh-token"))
+                .all(|r| r.1.starts_with("Bearer "))
+        );
+        assert_eq!(
+            seen.iter()
+                .filter(|r| r.0.ends_with("requestPayment"))
+                .count(),
+            1
+        );
+        assert_eq!(seen.iter().filter(|r| r.0.ends_with("sign-in")).count(), 2);
+    }
+
+    #[tokio::test]
     async fn financial_post_is_never_replayed_on_rejection_timeout_or_bad_body() {
         use std::sync::atomic::Ordering::SeqCst;
         for refund in [false, true] {
@@ -869,6 +1022,8 @@ mod tests {
                     client
                         .refund(&NewRefund {
                             transaction_id: "tx-1",
+                            merchant_id: "merchant",
+                            currency: "EUR",
                             amount: 1250,
                             decimals: 2,
                             description: "Refund",
@@ -906,6 +1061,8 @@ mod tests {
             client
                 .refund(&NewRefund {
                     transaction_id: "tx-1",
+                    merchant_id: "merchant",
+                    currency: "EUR",
                     amount: 1250,
                     decimals: 2,
                     description: "Refund"
@@ -913,6 +1070,54 @@ mod tests {
                 .await,
             Err(Error::Unavailable(_))
         ));
+    }
+
+    #[tokio::test]
+    async fn accepts_observed_refund_result_object() {
+        let (client, fake) = world().await;
+        fake.object_refund
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        client
+            .refund(&NewRefund {
+                transaction_id: "tx-1",
+                merchant_id: "merchant",
+                currency: "EUR",
+                amount: 1250,
+                decimals: 2,
+                description: "Refund",
+            })
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn refund_result_object_must_match_source_money_and_final_status() {
+        let (client, fake) = world().await;
+        fake.object_refund
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        for mismatch in 0..5 {
+            let mut input = NewRefund {
+                transaction_id: "tx-1",
+                merchant_id: "merchant",
+                currency: "EUR",
+                amount: 1250,
+                decimals: 2,
+                description: "Refund",
+            };
+            match mismatch {
+                0 => input.transaction_id = "different-transaction",
+                1 => input.merchant_id = "different-merchant",
+                2 => input.currency = "USD",
+                3 => input.amount = 1251,
+                _ => fake
+                    .pending_refund
+                    .store(true, std::sync::atomic::Ordering::SeqCst),
+            }
+            assert!(matches!(
+                client.refund(&input).await,
+                Err(Error::Unavailable(_))
+            ));
+        }
     }
 
     #[tokio::test]
@@ -967,6 +1172,8 @@ mod tests {
         client
             .refund(&NewRefund {
                 transaction_id: "tx-1",
+                merchant_id: "merchant",
+                currency: "EUR",
                 amount: i64::MAX,
                 decimals: 2,
                 description: "Refund",
@@ -990,6 +1197,23 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn decodes_observed_base64_png_and_rejects_non_png_payloads() {
+        let (client, fake) = world().await;
+        fake.base64_qr
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(
+            client.qr("link_1").await.unwrap(),
+            b"\x89PNG\r\n\x1a\nfixture"
+        );
+        fake.invalid_qr
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        assert!(matches!(
+            client.qr("link_1").await,
+            Err(Error::Unavailable(_))
+        ));
+    }
+
+    #[tokio::test]
     async fn rejects_unsupported_money_and_unsafe_identifiers_before_auth() {
         let (client, fake) = world().await;
         for (amount, decimals) in [(0, 2), (-1, 2), (100, 0), (100, 3)] {
@@ -1004,8 +1228,55 @@ mod tests {
         assert!(client.fetch("../elsewhere").await.is_err());
         assert!(client.qr("https://evil.example").await.is_err());
         assert!(fake.seen.lock().unwrap().is_empty());
-        assert!(link_id("https://evil.example/api/link?id=one").is_err());
-        assert!(link_id("https://api.sbx.globadyme.com/api/link?id=one&id=two").is_err());
+        assert!(link_id("https://evil.example/api/link?id=one", SANDBOX_API_URL).is_err());
+        assert!(
+            link_id(
+                "https://api.sbx.globadyme.com/api/link?id=one&id=two",
+                SANDBOX_API_URL
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn checkout_origins_remain_bound_to_the_api_environment() {
+        assert_eq!(
+            link_id(
+                "https://sandbox.globadyme.com/api/link?id=one",
+                SANDBOX_API_URL
+            )
+            .unwrap(),
+            "one"
+        );
+        assert_eq!(
+            link_id(
+                "https://api.prd.globadyme.com/api/link?id=one",
+                PRODUCTION_API_URL
+            )
+            .unwrap(),
+            "one"
+        );
+        assert!(
+            link_id(
+                "https://sandbox.globadyme.com/api/link?id=one",
+                PRODUCTION_API_URL
+            )
+            .is_err()
+        );
+        assert!(
+            link_id(
+                "https://api.prd.globadyme.com/api/link?id=one",
+                SANDBOX_API_URL
+            )
+            .is_err()
+        );
+        assert!(
+            link_id(
+                "https://api.prd.globadyme.com.evil.example/api/link?id=one",
+                PRODUCTION_API_URL
+            )
+            .is_err()
+        );
     }
 
     #[test]

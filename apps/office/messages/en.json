@@ -1171,6 +1171,8 @@
     "outcome": "Verified outcome",
     "notAccepted": "Provider did not accept payment",
     "refundConfirmed": "Refund confirmed by provider",
+    "refundReconciled": "Provider refund totals reconciled",
+    "refundReconciledHint": "Verify that the provider's total refunded amount matches all locally confirmed refunds, with no external or pending refunds.",
     "reason": "Reason",
     "evidence": "Evidence / provider reference",
     "attest": "I verified this outcome against provider records and accept that this action is audited.",

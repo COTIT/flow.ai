@@ -2,7 +2,7 @@
 
 Globadyme supports shop checkout and payment links for sent invoices. The operator pins the payment environment with `GLOBADYME_ENVIRONMENT=sandbox` or `production`; an unset value disables Globadyme and any other value fails startup. Workspace settings cannot change that deployment realm. Historical operations keep their workspace, environment and merchant binding, and run only on a deployment matching that environment. Existing Stripe/fake operations retain their configured adapter.
 
-Production collection is disabled: the published contract lists only `https://api.sbx.globadyme.com/api`. An official production origin must be confirmed and added to the server's approved origins before production can run. Workspace settings cannot supply an API host. The current currency gate requires two decimal places.
+API origins are fixed server-side: sandbox uses `https://api.sbx.globadyme.com/api`; production uses `https://api.prd.globadyme.com/api`. Globadyme supplied both hosts; HTTPS and the production `/api` route prefix were checked without credentials. Workspace settings cannot supply an API host. The current currency gate requires two decimal places. A reachable API origin does not verify merchant credentials or production approval.
 
 ## Account setup
 
@@ -11,10 +11,18 @@ Incomplete setup keeps new collections disabled. In **Settings → Payments**, c
 `GET /v1/workspace/{workspace}/settings` retains its existing `data` and adds top-level deployment metadata, including for `?type=` reads:
 
 ```json
-{"data":{},"meta":{"globadyme_environment":"sandbox","production_origin_verified":false}}
+{
+  "data": {},
+  "meta": {
+    "globadyme_environment": "sandbox",
+    "production_origin_verified": true
+  }
+}
 ```
 
-The environment is `sandbox`, `production`, or `null` when disabled. These metadata fields are server-owned and are not workspace settings. Staging Compose pins `sandbox`; production Compose pins `production` for API processes, background workers and one-off commands. Production remains unavailable while its official API origin is unverified.
+The environment is `sandbox`, `production`, or `null` when disabled. These metadata fields are server-owned and are not workspace settings. Staging Compose pins `sandbox`; production Compose pins `production` for API processes, background workers and one-off commands. Both environments still require complete workspace credentials before new collections are available.
+
+Globadyme's sandbox onboarding email links the merchant dashboard at `https://sandbox.globadyme.nl/`. The API remains at the separate `.com` API host above.
 
 Configure the server's existing `CREDENTIALS_KEY` before saving credentials. On a sandbox deployment, open **Settings → Payments**, select Globadyme, then enter the merchant ID, login username, password and dashboard callback secret. Configure this HTTPS callback in the merchant dashboard:
 
@@ -60,7 +68,7 @@ GET  /v1/invoices/fetch-from-hashed/{token}/payment
 GET  /v1/invoices/fetch-from-hashed/{token}/payment/qr
 ```
 
-POST snapshots the exact outstanding invoice balance under its lock. One live collection is allowed. The browser cannot choose the amount. GET returns `data: null` before a collection exists. QR returns `image/png` with `Cache-Control: no-store`; the server authenticates to the provider's fixed QR endpoint. Only open collections without reconciliation warnings expose payment links or QR. A remaining invoice balance after capture starts a fresh collection. The invoice page preserves bank-transfer details.
+POST snapshots the exact outstanding invoice balance under its lock. One live collection is allowed. The browser cannot choose the amount. GET returns `data: null` before a collection exists. QR returns `image/png` with `Cache-Control: no-store`; the server authenticates to the provider's fixed QR endpoint and decodes the base64 PNG body observed in sandbox. Raw PNG responses remain supported. Sandbox checkout links accept the observed `sandbox.globadyme.com` host and documented sandbox API host; production links remain restricted to the approved production API host. Cross-environment and unrelated checkout hosts are rejected. Only open collections without reconciliation warnings expose payment links or QR. A remaining invoice balance after capture starts a fresh collection. The invoice page preserves bank-transfer details.
 
 Payment views include `payment_id`, `status`, integer `amount`, exact integer-text `amount_minor`, `currency`, stored `decimals`, `checkout_url` and attention fields. Use `amount_minor` for exact browser display. No credential is returned. Invoice tokens are rebuilt from their sealed copy when a return URL is needed; payment attempts never store the plaintext token.
 
@@ -82,9 +90,9 @@ Manual settle, mark-as-credited and void actions cannot consume money reserved b
 
 ## Recovery and reconciliation
 
-The submission claim commits before a financial POST. Globadyme documents no payment/refund deduplication guarantee, and its refund response has no refund ID or lookup route. A timeout, disconnect or malformed success therefore leaves an unknown operation. Recovery never repeats that POST. Payment recovery uses GET by the stable request UUID; an empty result does not prove nonacceptance.
+The submission claim commits before a financial POST. Globadyme confirmed transaction-ID idempotency, but has not clarified how that applies to repeated `requestPayment` calls using a request ID. The published contract has no refund lookup route. Sandbox success responses include a refund record inside `details.status`; the client checks its source transaction, merchant, currency and exact amount before booking, and keeps the record as evidence. The documented scalar `SUCCEEDED` response remains supported. A timeout, disconnect or malformed success therefore leaves an unknown operation. Recovery never repeats that POST. Successful requests bind the request ID returned by Globadyme; sandbox returns a server-assigned ID even when a client request ID was supplied. Lookups, callbacks and transaction validation use that bound provider ID. If the response is lost before its ID is saved, the original local request UUID remains only a correlation hint: an empty lookup cannot prove nonacceptance, and no financial POST is repeated. Refreshing a refund fetches its original collection through that collection's account and request ID; the refund remains unknown until its exact outcome is confirmed with provider evidence.
 
-`NEW`, `CREATED`, `PENDING` and `AUTHORIZED` do not book money. One exact `PROCESSED` transaction confirms capture. Multiple successes or conflicting request/customer/money data preserve evidence and block unsafe compensation. Accepted receipts stay fixed while settlement, external refund and chargeback observations continue to refresh. Ordinary local confirmed partial refunds remain refundable within the remaining local cap; the provider can reject a request above its own remaining balance.
+`NEW`, `CREATED`, `PENDING` and `AUTHORIZED` do not book money. One exact `PROCESSED` transaction confirms capture. Multiple successes or conflicting request/customer/money data preserve evidence and block unsafe compensation. Accepted receipts stay fixed while settlement, external refund and chargeback observations continue to refresh. `PARTIALLY_REFUNDED` does not report the provider's refunded total: every observation after an active local refund dispatch ends requires review before another refund. Even an unchanged partial status may include an additional dashboard refund, so a later observation can require review again.
 
 Use **Payments** to inspect workspace operations. List access requires the owner's `order.list` or `invoice.list`; transaction details and refresh require the matching `.view` permission. The sweep continues after the collection switch is disabled, including refunds and chargebacks on older paid transactions. Account/page cursors let bounded jobs eventually scan all used accounts and chargeback pages.
 
@@ -97,6 +105,10 @@ POST /v1/workspace/{workspace}/payments/{payment}/resolve
 
 `refund_confirmed` applies only to an unknown refund whose exact source transaction and amount the provider confirmed. Audit, status and credit-note receipt commit together. A conflicting resolution returns 409. Collection capture is always confirmed through authoritative lookup. Record unexpected real money and escalate conflicting evidence instead of changing receipts to hide it.
 
+After confirming unknown refunds individually, an administrator can select **Provider refund totals reconciled** on the paid source payment in **Payments**, or call the same resolution route with `{"outcome":"refund_reconciled","reason":"...","evidence":"provider case/reference confirming every refund and the total"}`. Verify all refunds in the provider dashboard or with provider support against local confirmed refunds first. The action refreshes provider evidence and clears only the refund-observation warning when there are no unresolved refunds, chargebacks or conflicting transaction evidence. It cannot create a refund receipt, alter an amount or clear other warnings. Unknown or externally refunded amounts must stay under review until exact provider evidence exists. Recovery checks at most ten chargeback pages of 50 entries; failed, malformed or incomplete scans keep the warning. The background chargeback sweep retains its rolling cursor.
+
+Globadyme reports five callback retries for retryable responses, followed by an email if delivery still fails. The durable inbox and sweep remain responsible for local recovery; they do not rely on unlimited provider retries.
+
 Gateway financial and administrator actions require the explicit payment interface; autonomous voice execution is refused.
 
 ## Sandbox smoke check
@@ -105,6 +117,6 @@ Use sandbox credentials supplied by the provider. Create a small two-decimal sho
 
 Disconnect a test submission after the provider accepts it. Confirm it remains unknown and recovery makes GET requests without another financial POST. Disable new collections and verify historical reconciliation and refunds still run. Repeat tenant/environment isolation checks before enabling another account.
 
-Loopback tests prove local contract behavior only. Real sandbox and live collection remain unproven without provider credentials. No recurring billing, manual capture, direct card handling, split payouts or till-terminal redesign is included.
+Sandbox validation with provider credentials covered authentication, token refresh, hosted payment, QR, decline followed by success, signed callback replay, a full refund and an invoice partial refund with idempotent replay. The invoice receipt stayed unchanged and the credit note received one refund entry. Timeouts, ambiguous responses and conflicting evidence are covered by deterministic loopback tests. The sandbox chargeback list returned HTTP 500, so complete chargeback checks and clearing refund review could not be verified against the provider. Actual provider callback delivery and production transactions remain unverified. No recurring billing, manual capture, direct card handling, split payouts or till-terminal redesign is included.
 
 Provider references: [OpenAPI 1.44.1.6](https://api-documentation.globadyme.com/openapi/globadyme-gateway-1.44.1.6.yaml), [authentication](https://api-documentation.globadyme.com/getting-started/), [callbacks](https://api-documentation.globadyme.com/integration-documentation/), [payment links and QR](https://api-documentation.globadyme.com/payment-link/).
