@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.stock_id IS NOT NULL AS \"known!\",\n                  CASE WHEN u.v * 10 ^ $5::int = trunc(u.v * 10 ^ $5::int)\n                       THEN (u.v * 10 ^ $5::int)::bigint END AS minor\n           FROM unnest($3::uuid[], $4::numeric[]) WITH ORDINALITY AS u(stock_id, v, i)\n           LEFT JOIN stocktake_lines l\n             ON l.workspace_id = $1 AND l.stocktake_id = $2 AND l.stock_id = u.stock_id\n           ORDER BY u.i",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "known!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "minor",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "NumericArray",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "293492cce8d03fe7019ed99b3af5ffd4f0262455e071de5e0070f8a3be5db33a"
+}

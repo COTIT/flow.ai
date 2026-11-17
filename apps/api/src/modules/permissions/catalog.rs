@@ -1,6 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `import` and `shipment` (53 / 283). Name =
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import` and `shipment` (54 / 290). Name =
 //! `group.action`.
 //! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
@@ -213,6 +213,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
             "set_stock_requirements",
         ],
     ),
+    // stocktake: Flow ERP M6 counts (masterplan §15), not Laravel.
+    (
+        "stocktake",
+        &["cancel", "count", "create", "get", "list", "post", "start"],
+    ),
     ("tag", &["create", "delete", "list", "update", "view"]),
     ("taxprofile", &["configure", "read", "verify"]),
     (
@@ -289,8 +294,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 53);
-        assert_eq!(names().count(), 283);
+        assert_eq!(GROUPS.len(), 54);
+        assert_eq!(names().count(), 290);
     }
 
     #[test]
