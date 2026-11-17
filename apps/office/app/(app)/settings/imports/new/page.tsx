@@ -67,6 +67,7 @@ export default function NewImportPage() {
   const [error, setError] = React.useState<unknown>()
   const profile: Profile = kind === "relations" ? "relations" : "products"
   const fields = FIELDS[profile]
+  const label = (f: string) => t(`imports.fields.${f}`)
 
   const kinds = (
     ["products_create", "products_update", "relations"] as const
@@ -116,7 +117,7 @@ export default function NewImportPage() {
         hash: await fileHash(await picked.arrayBuffer()),
         sheet: body.data,
       })
-      setMapping(autoMapping(body.data.columns, profile))
+      setMapping(autoMapping(body.data.columns, profile, label))
       setKeyColumn(undefined)
     } catch {
       setProblem(t("common.error"))
@@ -217,7 +218,8 @@ export default function NewImportPage() {
                   setMapping(
                     autoMapping(
                       file.sheet.columns,
-                      v === "relations" ? "relations" : "products"
+                      v === "relations" ? "relations" : "products",
+                      label
                     )
                   )
               }}

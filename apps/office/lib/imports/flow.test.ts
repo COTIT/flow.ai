@@ -24,6 +24,16 @@ describe("import flow helpers", () => {
     })
   })
 
+  it("also maps a header that is the field's label in the user's language", () => {
+    const labels: Record<string, string> = {
+      address: "Straat",
+      zipcode: "Postcode",
+    }
+    expect(
+      autoMapping(["Straat", "Postcode"], "relations", (f) => labels[f] ?? f)
+    ).toEqual({ address: 0, zipcode: 1 })
+  })
+
   it("builds rows from mapped columns only, numbering data rows and skipping empty cells", () => {
     const rows = toRows(sheet, { name: 0, price: 1 }, 2)
     expect(rows).toEqual([

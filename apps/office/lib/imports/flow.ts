@@ -45,11 +45,16 @@ const norm = (s: string) =>
     .toLowerCase()
     .replace(/[\s-]+/g, "_")
 
-/** Preselect a column whose header names a field exactly; anything else stays unmapped. */
-export function autoMapping(columns: string[], profile: Profile): Mapping {
+/** Preselect a column whose header is a field's key or its on-screen label; anything else stays unmapped. */
+export function autoMapping(
+  columns: string[],
+  profile: Profile,
+  label: (field: string) => string = (f) => f
+): Mapping {
   const mapping: Mapping = {}
   for (const field of FIELDS[profile]) {
-    const at = columns.findIndex((c) => norm(c) === field)
+    const names = [field, norm(label(field))]
+    const at = columns.findIndex((c) => names.includes(norm(c)))
     if (at >= 0) mapping[field] = at
   }
   return mapping
