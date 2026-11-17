@@ -291,6 +291,11 @@ pub async fn receive(
             .is_empty()
         {
             r.add(&f("warehouse_id"), "The selected warehouse is invalid.");
+        } else if stock::share_warehouse(&mut tx, ws, l.warehouse).await?
+            && stock::paused(&mut *tx, ws, l.warehouse).await?
+        {
+            // A receipt accepted mid-count would block the post (pending guard).
+            return Err(stock::paused_error());
         } else if let Some(b) = l.bin
             && stock::bin(&mut *tx, ws, l.warehouse, b).await?.is_none()
         {

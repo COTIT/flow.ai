@@ -69,6 +69,7 @@ pub mod settings;
 pub mod shipment_methods;
 pub mod special_offers;
 pub mod stock;
+pub mod stocktakes;
 pub mod storage_locations;
 pub mod storefront;
 pub mod storefront_design;
