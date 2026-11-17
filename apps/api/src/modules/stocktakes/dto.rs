@@ -69,11 +69,11 @@ impl Validate for StartPayload {
 
 /// POST /stocktakes/{id}/cancel payload.
 #[derive(Deserialize, ToSchema)]
-pub struct CancelPayload {
+pub struct StocktakeCancelPayload {
     pub reason: Option<String>,
 }
 
-impl Validate for CancelPayload {
+impl Validate for StocktakeCancelPayload {
     type Valid = String;
 
     fn validate(self, r: &mut Rules) -> Option<String> {
@@ -170,14 +170,14 @@ impl Validate for PostReviewBody {
 
 /// POST /stocktakes/{id}/post payload.
 #[derive(Deserialize, ToSchema)]
-pub struct PostPayload {
+pub struct StocktakePostPayload {
     #[schema(value_type = String, format = Date)]
     pub accounting_date: Option<String>,
     /// From `POST /stocktakes/{id}/post/review`.
     pub review_fingerprint: Option<String>,
 }
 
-impl Validate for PostPayload {
+impl Validate for StocktakePostPayload {
     type Valid = (NaiveDate, String);
 
     fn validate(self, r: &mut Rules) -> Option<(NaiveDate, String)> {

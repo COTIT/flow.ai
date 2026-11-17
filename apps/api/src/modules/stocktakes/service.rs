@@ -44,8 +44,8 @@ use crate::{
 
 use super::{
     dto::{
-        CancelPayload, CountPayload, CreatePayload, PageQuery, PostPayload, PostReview,
-        PostReviewLine, StartPayload, StocktakeLine, StocktakeResource,
+        CountPayload, CreatePayload, PageQuery, PostReview, PostReviewLine, StartPayload,
+        StocktakeCancelPayload, StocktakeLine, StocktakePostPayload, StocktakeResource,
     },
     repo::{self, Head, Line},
 };
@@ -437,7 +437,7 @@ pub async fn post(
     state: &AppState,
     access: &WorkspaceAccess,
     id: Uuid,
-    cmd: Command<Action<PostPayload>>,
+    cmd: Command<Action<StocktakePostPayload>>,
 ) -> Result<Answer, AppError> {
     const OP: &str = "stocktakes_post";
     let ws = access.workspace_id;
@@ -466,7 +466,7 @@ pub async fn cancel(
     state: &AppState,
     access: &WorkspaceAccess,
     id: Uuid,
-    cmd: Command<Action<CancelPayload>>,
+    cmd: Command<Action<StocktakeCancelPayload>>,
 ) -> Result<Answer, AppError> {
     const OP: &str = "stocktakes_cancel";
     let ws = access.workspace_id;

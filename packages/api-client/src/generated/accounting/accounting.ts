@@ -39,6 +39,7 @@ import type {
   ActionReversePayload,
   ActionSetupPayload,
   CreateAccountPayload,
+  CreateBankAccountPayload,
   CreateJournalPayload,
   CreateOfficeAdjustPayload,
   CreatePeriodPayload,
@@ -46,6 +47,7 @@ import type {
   EnvelopeAccountResource,
   EnvelopeAdjustReviewResource,
   EnvelopeBalanceSheetResource,
+  EnvelopeBankAccountResource,
   EnvelopeCashAdjustmentResource,
   EnvelopeGeneralLedgerResource,
   EnvelopeJournalResource,
@@ -54,6 +56,7 @@ import type {
   EnvelopeReviewResource,
   EnvelopeSetupResource,
   EnvelopeTrialBalanceResource,
+  EnvelopeVecBankAccountResource,
   EnvelopeVecCashPlaceResource,
   EnvelopeYearResource,
   MessageBody,
@@ -325,6 +328,166 @@ export const useAccountingAccountsUpdate = <TError = ErrorType<MessageBody | Val
         TContext
       > => {
       return useMutation(getAccountingAccountsUpdateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary List bank accounts
+ */
+export const accountingBankAccountsList = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecBankAccountResource>(
+      {url: `/workspace/${workspace}/accounting/bank-accounts`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingBankAccountsListQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/accounting/bank-accounts`
+    ] as const;
+    }
+
+
+export const getAccountingBankAccountsListQueryOptions = <TData = Awaited<ReturnType<typeof accountingBankAccountsList>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingBankAccountsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingBankAccountsListQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingBankAccountsList>>> = ({ signal }) => accountingBankAccountsList(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingBankAccountsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingBankAccountsListQueryResult = NonNullable<Awaited<ReturnType<typeof accountingBankAccountsList>>>
+export type AccountingBankAccountsListQueryError = ErrorType<MessageBody>
+
+
+export function useAccountingBankAccountsList<TData = Awaited<ReturnType<typeof accountingBankAccountsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingBankAccountsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingBankAccountsList>>,
+          TError,
+          Awaited<ReturnType<typeof accountingBankAccountsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingBankAccountsList<TData = Awaited<ReturnType<typeof accountingBankAccountsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingBankAccountsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingBankAccountsList>>,
+          TError,
+          Awaited<ReturnType<typeof accountingBankAccountsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingBankAccountsList<TData = Awaited<ReturnType<typeof accountingBankAccountsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingBankAccountsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List bank accounts
+ */
+
+export function useAccountingBankAccountsList<TData = Awaited<ReturnType<typeof accountingBankAccountsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingBankAccountsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingBankAccountsListQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Add a bank account money can be attributed to
+ */
+export const accountingBankAccountsCreate = (
+    workspace: string,
+    createBankAccountPayload: BodyType<CreateBankAccountPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeBankAccountResource>(
+      {url: `/workspace/${workspace}/accounting/bank-accounts`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createBankAccountPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingBankAccountsCreateMutationKey = () => ['accountingBankAccountsCreate'] as const;
+
+export const getAccountingBankAccountsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingBankAccountsCreate>>, TError,AccountingBankAccountsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingBankAccountsCreate>>, TError,AccountingBankAccountsCreateMutationVariables, TContext> => {
+
+const mutationKey = getAccountingBankAccountsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingBankAccountsCreate>>, AccountingBankAccountsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  accountingBankAccountsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingBankAccountsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof accountingBankAccountsCreate>>>
+    export type AccountingBankAccountsCreateMutationBody = BodyType<CreateBankAccountPayload>
+    export type AccountingBankAccountsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AccountingBankAccountsCreateMutationVariables = {workspace: string;data: BodyType<CreateBankAccountPayload>}
+
+    /**
+ * @summary Add a bank account money can be attributed to
+ */
+export const useAccountingBankAccountsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingBankAccountsCreate>>, TError,AccountingBankAccountsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingBankAccountsCreate>>,
+        TError,
+        AccountingBankAccountsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingBankAccountsCreateMutationOptions(options), queryClient);
     }
     /**
  * Member authority. Moves the place by counted − expected in every book; in an active book also posts cash_over_short/cash once.

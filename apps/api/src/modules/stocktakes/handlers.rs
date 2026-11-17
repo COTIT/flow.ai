@@ -22,8 +22,8 @@ use crate::{
         accounting::dto::{Action, Create},
         stocktakes::{
             dto::{
-                CancelPayload, CountPayload, CreatePayload, PageQuery, PostPayload, PostReview,
-                PostReviewBody, StartPayload, StocktakeResource,
+                CountPayload, CreatePayload, PageQuery, PostReview, PostReviewBody, StartPayload,
+                StocktakeCancelPayload, StocktakePostPayload, StocktakeResource,
             },
             service,
         },
@@ -195,7 +195,7 @@ pub async fn post_review(
     post, path = "/workspace/{workspace}/stocktakes/{stocktake}/post", tag = "stocktakes",
     operation_id = "stocktakes_post",
     summary = "Book the reviewed count and end the pause",
-    request_body = Action<PostPayload>,
+    request_body = Action<StocktakePostPayload>,
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("stocktake" = Uuid, Path, description = "Stocktake id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
     responses(
         (status = 200, body = Envelope<StocktakeResource>, description = "Success"),
@@ -210,7 +210,7 @@ pub async fn post(
     State(state): State<AppState>,
     access: Can<Post>,
     Path((_, raw)): Path<(String, String)>,
-    cmd: Command<Action<PostPayload>>,
+    cmd: Command<Action<StocktakePostPayload>>,
 ) -> Result<Answer, AppError> {
     service::post(&state, &access, id(&raw)?, cmd).await
 }
@@ -220,7 +220,7 @@ pub async fn post(
     post, path = "/workspace/{workspace}/stocktakes/{stocktake}/cancel", tag = "stocktakes",
     operation_id = "stocktakes_cancel",
     summary = "Cancel; keep the count and end the pause",
-    request_body = Action<CancelPayload>,
+    request_body = Action<StocktakeCancelPayload>,
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("stocktake" = Uuid, Path, description = "Stocktake id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
     responses(
         (status = 200, body = Envelope<StocktakeResource>, description = "Success"),
@@ -235,7 +235,7 @@ pub async fn cancel(
     State(state): State<AppState>,
     access: Can<Cancel>,
     Path((_, raw)): Path<(String, String)>,
-    cmd: Command<Action<CancelPayload>>,
+    cmd: Command<Action<StocktakeCancelPayload>>,
 ) -> Result<Answer, AppError> {
     service::cancel(&state, &access, id(&raw)?, cmd).await
 }

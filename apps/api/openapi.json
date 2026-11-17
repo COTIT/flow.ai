@@ -172,6 +172,28 @@
         ],
         "type": "object"
       },
+      "Action_ApplyPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ApplyPayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "Action_BookPayload": {
         "description": "A envelope: action on an existing resource at `expected_version`.",
         "properties": {
@@ -260,6 +282,28 @@
         ],
         "type": "object"
       },
+      "Action_CountPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/CountPayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "Action_ImportApplyPayload": {
         "description": "A envelope: action on an existing resource at `expected_version`.",
         "properties": {
@@ -318,6 +362,28 @@
           },
           "payload": {
             "$ref": "#/components/schemas/ImportValidatePayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_IssuePayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/IssuePayload"
           }
         },
         "required": [
@@ -428,6 +494,139 @@
           },
           "payload": {
             "$ref": "#/components/schemas/SetupPayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_ShipmentInvoicePayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ShipmentInvoicePayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_ShipmentPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ShipmentPayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_ShipmentPostPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ShipmentPostPayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_StartPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "description": "POST /stocktakes/{id}/start payload (empty).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_StocktakeCancelPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/StocktakeCancelPayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_StocktakePostPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/StocktakePostPayload"
           }
         },
         "required": [
@@ -1034,6 +1233,50 @@
           "till:login"
         ],
         "type": "string"
+      },
+      "ApplyPayload": {
+        "description": "POST /customer-deposits/{id}/apply payload.",
+        "properties": {
+          "amount": {
+            "example": "120.00",
+            "type": "string"
+          },
+          "recognition_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "description": "From `POST .../apply/review`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "recognition_id",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "ApplyReviewBody": {
+        "description": "POST /customer-deposits/{id}/apply/review body.",
+        "properties": {
+          "amount": {
+            "example": "120.00",
+            "type": "string"
+          },
+          "recognition_id": {
+            "description": "A recognised, unbilled sale of the deposit's customer.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recognition_id",
+          "amount"
+        ],
+        "type": "object"
       },
       "AttachInput": {
         "additionalProperties": false,
@@ -1697,6 +1940,75 @@
           "data",
           "meta",
           "totals"
+        ],
+        "type": "object"
+      },
+      "BankAccountPayload": {
+        "description": "POST /accounting/bank-accounts payload.",
+        "properties": {
+          "account_id": {
+            "description": "Asset ledger account the money sits in.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "1-255 characters, unique per book.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "BankAccountResource": {
+        "description": "A bank account money can be attributed to.",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "currency_id",
+          "account_id",
+          "active",
+          "version",
+          "created_at"
         ],
         "type": "object"
       },
@@ -4697,6 +5009,33 @@
         ],
         "type": "object"
       },
+      "CountLinePayload": {
+        "description": "One counted stock row.",
+        "properties": {
+          "counted_quantity": {
+            "example": "8",
+            "type": "string"
+          },
+          "positive_adjustment_value": {
+            "description": "Functional-currency value of found stock; read only when an active book has no cost for\nthe product here (ignored in setup books).",
+            "example": "4.50",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stock_identity": {
+            "description": "`stock_identity` of a snapshot line.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stock_identity",
+          "counted_quantity"
+        ],
+        "type": "object"
+      },
       "CountMinor": {
         "description": "A count and its money.",
         "properties": {
@@ -4713,6 +5052,21 @@
           "count",
           "minor"
         ],
+        "type": "object"
+      },
+      "CountPayload": {
+        "description": "PUT /stocktakes/{id}/counts payload: lines not sent keep their count.",
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/CountLinePayload"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "CountQuote": {
@@ -5350,6 +5704,25 @@
         ],
         "type": "object"
       },
+      "CreatePayload": {
+        "description": "POST /stocktakes payload.",
+        "properties": {
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id"
+        ],
+        "type": "object"
+      },
       "CreatePaymentRequest": {
         "description": "A payment on an invoice: money (`payment_method`) or a credit note (`settle_invoice_id`).",
         "properties": {
@@ -5357,6 +5730,25 @@
             "description": "Decimal amount in currency units, greater than 0, within the currency's decimals.",
             "example": "125.50",
             "type": "string"
+          },
+          "attribution": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MoneyLocationRequest",
+                "description": "Active books only (required there with `payment_method`; ignored in setup books):\nwhere the money is. `cash` → `cash_place`; `pin`, `manual`, `bank` → `bank_account`;\n`mollie` → `provider_clearing`."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cash_rounding": {
+            "description": "Active books, `cash_place` only: explicit cash rounding (signed decimal, e.g. `0.05`)\nso that `amount + cash_rounding` settles the invoice's open balance exactly.",
+            "example": "0.05",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "date": {
             "description": "`YYYY-MM-DD` (a datetime is accepted too).",
@@ -6024,6 +6416,54 @@
         ],
         "type": "object"
       },
+      "Create_BankAccountPayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/BankAccountPayload"
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
+      "Create_CreatePayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/CreatePayload"
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
+      "Create_DepositPayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/DepositPayload"
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
       "Create_ImportCreatePayload": {
         "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
         "properties": {
@@ -6121,6 +6561,22 @@
           },
           "payload": {
             "$ref": "#/components/schemas/ReceiptPayload"
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
+      "Create_ShipmentPayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ShipmentPayload"
           }
         },
         "required": [
@@ -7307,6 +7763,224 @@
         ],
         "type": "object"
       },
+      "DepositPayload": {
+        "description": "POST /customer-deposits payload.",
+        "properties": {
+          "amount": {
+            "example": "120.00",
+            "type": "string"
+          },
+          "location": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MoneyLocationRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "received_on": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "description": "From `POST /customer-deposits/review`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "relation_id",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "DepositResource": {
+        "description": "A received deposit and what is left to apply.",
+        "properties": {
+          "amount": {
+            "example": "120.00",
+            "type": "string"
+          },
+          "bank_account_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmation_method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "evidence_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "journal_entry_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "location_kind": {
+            "description": "cash_place, bank_account or provider_clearing.",
+            "type": "string"
+          },
+          "received_on": {
+            "format": "date",
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "register_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "residual": {
+            "description": "Not applied yet.",
+            "example": "20.00",
+            "type": "string"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "description": "The deposit open item's version: `expected_version` of an apply.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "relation_id",
+          "currency_id",
+          "amount",
+          "residual",
+          "received_on",
+          "location_kind",
+          "journal_entry_id",
+          "version",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "DepositReview": {
+        "description": "What a receive or apply would book (no writes).",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "amount": {
+            "description": "Functional minor units as a decimal string.",
+            "example": "120.00",
+            "type": "string"
+          },
+          "credit": {
+            "type": "string"
+          },
+          "debit": {
+            "description": "Journal roles: debit then credit.",
+            "type": "string"
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "relation_id",
+          "amount",
+          "accounting_date",
+          "debit",
+          "credit",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "DepositReviewBody": {
+        "description": "POST /customer-deposits/review body.",
+        "properties": {
+          "amount": {
+            "description": "Functional currency, major units.",
+            "example": "120.00",
+            "type": "string"
+          },
+          "location": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MoneyLocationRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "received_on": {
+            "description": "`YYYY-MM-DD`: today in the book timezone.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "relation_id",
+          "amount"
+        ],
+        "type": "object"
+      },
       "Direction": {
         "description": "How the rate was applied.",
         "enum": [
@@ -8145,6 +8819,18 @@
         ],
         "type": "object"
       },
+      "Envelope_BankAccountResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BankAccountResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_BatchResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -8613,6 +9299,30 @@
         ],
         "type": "object"
       },
+      "Envelope_DepositResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DepositResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_DepositReview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DepositReview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_DiscountCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -8943,6 +9653,30 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/InvoiceResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_IssueReview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IssueReview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Issued": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Issued"
           }
         },
         "required": [
@@ -9478,6 +10212,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/PlotResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_PostReview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PostReview"
           }
         },
         "required": [
@@ -10031,6 +10777,18 @@
         ],
         "type": "object"
       },
+      "Envelope_ShipmentInvoiced": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ShipmentInvoiced"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_ShipmentMethodCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -10055,6 +10813,30 @@
         ],
         "type": "object"
       },
+      "Envelope_ShipmentPostReview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ShipmentPostReview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_ShipmentResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ShipmentResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_SpecialOfferResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -10072,6 +10854,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/StatusCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_StocktakeResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StocktakeResource"
           }
         },
         "required": [
@@ -10516,6 +11310,21 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/VaultResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_BankAccountResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BankAccountResource"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -14750,6 +15559,149 @@
         ],
         "type": "object"
       },
+      "IssuePayload": {
+        "description": "POST .../issue payload.",
+        "properties": {
+          "accounting_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "addressed_contact_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_fingerprint": {
+            "description": "From `POST .../issue/review`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "IssueReclass": {
+        "description": "A linked recognition and what its issue reclassifies (0 = settled, document only).",
+        "properties": {
+          "amount": {
+            "example": "48.40",
+            "type": "string"
+          },
+          "recognition_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recognition_id",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "IssueRecognition": {
+        "description": "A standalone invoice's recognition.",
+        "properties": {
+          "net": {
+            "type": "string"
+          },
+          "tax": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "net",
+          "tax"
+        ],
+        "type": "object"
+      },
+      "IssueReview": {
+        "description": "What issuing does now (no writes). Book effects are empty in a setup book.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reclassify": {
+            "items": {
+              "$ref": "#/components/schemas/IssueReclass"
+            },
+            "type": "array"
+          },
+          "recognition": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IssueRecognition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "accounting_date",
+          "reclassify",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "IssueReviewBody": {
+        "description": "POST .../issue/review body.",
+        "properties": {
+          "accounting_date": {
+            "description": "`YYYY-MM-DD`; in an active book today in its timezone.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "addressed_contact_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "Issued": {
+        "description": "The issued invoice.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "invoice_number": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object"
+      },
       "IssuedLogin": {
         "description": "Read the phone and temporary password to the farmer now: the password is never shown again. They must choose their own at first sign-in.",
         "properties": {
@@ -17089,6 +18041,60 @@
           "decimals",
           "currency_id"
         ],
+        "type": "object"
+      },
+      "MoneyLocationRequest": {
+        "description": "`{kind: cash_place|bank_account|provider_clearing, ...}` as requests send it.",
+        "properties": {
+          "bank_account_id": {
+            "description": "With `bank_account`.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cash_place": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlaceRequest",
+                "description": "With `cash_place`: `{kind: drawer|vault, id}`."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confirmation_method": {
+            "description": "`counted_cash`, `bank_statement`, `provider_dashboard` or `provider_callback` (noncash only).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_ref": {
+            "description": "Where the proof is kept, 1–255 (noncash only).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "description": "`cash_place`, `bank_account` or `provider_clearing`.",
+            "example": "cash_place",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reference": {
+            "description": "Bank/provider reference, 1–255 (noncash only).",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "MoveDealRequest": {
@@ -19793,6 +20799,25 @@
         ],
         "type": "object"
       },
+      "Paginated_ShipmentResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_SpecialOfferResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -19837,6 +20862,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/StockResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_StocktakeResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/StocktakeResource"
             },
             "type": "array"
           },
@@ -21766,6 +22810,69 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "PostReview": {
+        "description": "POST /stocktakes/{id}/post/review answer.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Changed lines only.",
+            "items": {
+              "$ref": "#/components/schemas/PostReviewLine"
+            },
+            "type": "array"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accounting_date",
+          "lines",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "PostReviewBody": {
+        "description": "POST /stocktakes/{id}/post/review body.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accounting_date"
+        ],
+        "type": "object"
+      },
+      "PostReviewLine": {
+        "description": "One difference the post would book.",
+        "properties": {
+          "delta": {
+            "description": "counted − expected.",
+            "type": "string"
+          },
+          "stock_identity": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "value": {
+            "description": "Inventory value change in the functional currency; null in setup books.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "stock_identity",
+          "delta"
+        ],
         "type": "object"
       },
       "PriceCorrectionRequest": {
@@ -26836,6 +27943,29 @@
         ],
         "type": "object"
       },
+      "RecognitionPreview": {
+        "description": "Recognition a post would write (active books only).",
+        "properties": {
+          "gross": {
+            "example": "48.40",
+            "type": "string"
+          },
+          "net": {
+            "example": "40.00",
+            "type": "string"
+          },
+          "tax": {
+            "example": "8.40",
+            "type": "string"
+          }
+        },
+        "required": [
+          "net",
+          "tax",
+          "gross"
+        ],
+        "type": "object"
+      },
       "RedeemRequest": {
         "description": "POST /farm/vouchers/redeem.",
         "properties": {
@@ -29812,6 +30942,96 @@
         ],
         "type": "object"
       },
+      "ShipmentInvoicePayload": {
+        "description": "POST .../invoice payload.",
+        "properties": {
+          "addressed_contact_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relation_id": {
+            "description": "The sale's customer.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "relation_id"
+        ],
+        "type": "object"
+      },
+      "ShipmentInvoiced": {
+        "description": "The draft invoice billing a posted shipment.",
+        "properties": {
+          "invoice_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shipment_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shipment_id",
+          "invoice_id"
+        ],
+        "type": "object"
+      },
+      "ShipmentLinePayload": {
+        "description": "One order line to ship.",
+        "properties": {
+          "order_line_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "Order-line units, ≤2 places; Σ draft + posted ≤ ordered − returned.",
+            "example": "4",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_line_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "ShipmentLineResource": {
+        "description": "A shipped order line.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "order_line_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "example": "4",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "order_line_id",
+          "product_id",
+          "title",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "ShipmentMethodCreated": {
         "description": "Create response: the new row's id.",
         "properties": {
@@ -29917,6 +31137,215 @@
           "created_at",
           "last_updated_at",
           "meta"
+        ],
+        "type": "object"
+      },
+      "ShipmentPayload": {
+        "description": "Create/update payload: replaces the draft's lines and note.",
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentLinePayload"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ShipmentPostPayload": {
+        "description": "POST .../post payload.",
+        "properties": {
+          "accounting_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_fingerprint": {
+            "description": "From `POST .../post/review`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ShipmentPostReview": {
+        "description": "What a post would do, from current facts (no writes).",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentLineResource"
+            },
+            "type": "array"
+          },
+          "recognition": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RecognitionPreview",
+                "description": "None in setup books (stock only)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_fingerprint": {
+            "type": "string"
+          },
+          "shipment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "shipment_id",
+          "version",
+          "accounting_date",
+          "lines",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "ShipmentPostReviewBody": {
+        "description": "POST .../post/review body.",
+        "properties": {
+          "accounting_date": {
+            "description": "`YYYY-MM-DD`: date of the sale recognition (active books).",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ShipmentResource": {
+        "description": "A shipment of a sales order.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "allowed_actions": {
+            "description": "Subset of update, post, cancel.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cancel_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cancelled_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentLineResource"
+            },
+            "type": "array"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "posted_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "posted_by": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recognition_id": {
+            "description": "The sale recognition a post wrote (active books).",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "description": "draft, posted or cancelled.",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "order_id",
+          "state",
+          "version",
+          "lines",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "allowed_actions"
         ],
         "type": "object"
       },
@@ -30414,6 +31843,10 @@
         ],
         "type": "object"
       },
+      "StartPayload": {
+        "description": "POST /stocktakes/{id}/start payload (empty).",
+        "type": "object"
+      },
       "StatusCreated": {
         "description": "Status create response.",
         "properties": {
@@ -30901,6 +32334,168 @@
           "shelf",
           "bin",
           "lot"
+        ],
+        "type": "object"
+      },
+      "StocktakeCancelPayload": {
+        "description": "POST /stocktakes/{id}/cancel payload.",
+        "properties": {
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "StocktakeLine": {
+        "description": "One frozen stock row of a stocktake.",
+        "properties": {
+          "bin_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "counted_quantity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expected_quantity": {
+            "description": "Level when counting started.",
+            "type": "string"
+          },
+          "lot_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "positive_adjustment_value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "stock_identity": {
+            "description": "The stock row (product, bin, lot) this line counts.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stock_identity",
+          "product_id",
+          "expected_quantity"
+        ],
+        "type": "object"
+      },
+      "StocktakePostPayload": {
+        "description": "POST /stocktakes/{id}/post payload.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "description": "From `POST /stocktakes/{id}/post/review`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "accounting_date"
+        ],
+        "type": "object"
+      },
+      "StocktakeResource": {
+        "description": "A stocktake; `lines` only on single reads and writes.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cancel_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cancelled_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/StocktakeLine"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "posted_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "description": "draft, counting (warehouse paused), posted or cancelled.",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "warehouse_id",
+          "state",
+          "version",
+          "reason",
+          "created_at"
         ],
         "type": "object"
       },
@@ -44588,6 +46183,321 @@
         ]
       }
     },
+    "/workspace/{workspace}/accounting/bank-accounts": {
+      "get": {
+        "operationId": "accounting_bank_accounts_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_BankAccountResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List bank accounts",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "post": {
+        "operationId": "accounting_bank_accounts_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_BankAccountPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BankAccountResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a bank account money can be attributed to",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/workspace/{workspace}/accounting/cash-adjustments": {
       "post": {
         "description": "Member authority. Moves the place by counted − expected in every book; in an active book also posts cash_over_short/cash once.",
@@ -57716,6 +59626,740 @@
         "summary": "Update a custom type",
         "tags": [
           "custom_types"
+        ]
+      }
+    },
+    "/workspace/{workspace}/customer-deposits": {
+      "post": {
+        "operationId": "customer_deposits_receive",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_DepositPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DepositResource"
+                }
+              }
+            },
+            "description": "Received"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or money place, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` (review changed) or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, date other than the book's day, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Receive a customer deposit",
+        "tags": [
+          "customer_deposits"
+        ]
+      }
+    },
+    "/workspace/{workspace}/customer-deposits/review": {
+      "post": {
+        "operationId": "customer_deposits_receive_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepositReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DepositReview"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or money place, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, date other than the book's day, or `accounting_not_configured` / `unsupported_active_erp_operation` (setup book, foreign currency)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview receiving a customer deposit",
+        "tags": [
+          "customer_deposits"
+        ]
+      }
+    },
+    "/workspace/{workspace}/customer-deposits/{deposit}/apply": {
+      "post": {
+        "operationId": "customer_deposits_apply",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Deposit id",
+            "in": "path",
+            "name": "deposit",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_ApplyPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DepositResource"
+                }
+              }
+            },
+            "description": "Applied"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or deposit, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` (version or review changed) or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, another customer, more than either residual, or `accounting_period_closed` / `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apply a deposit to a recognised sale",
+        "tags": [
+          "customer_deposits"
+        ]
+      }
+    },
+    "/workspace/{workspace}/customer-deposits/{deposit}/apply/review": {
+      "post": {
+        "operationId": "customer_deposits_apply_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Deposit id",
+            "in": "path",
+            "name": "deposit",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DepositReview"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or deposit, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input or unknown recognised sale, or `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview applying a deposit",
+        "tags": [
+          "customer_deposits"
         ]
       }
     },
@@ -92061,6 +94705,383 @@
         ]
       }
     },
+    "/workspace/{workspace}/invoices/{invoice}/issue": {
+      "post": {
+        "operationId": "invoices_issue",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Invoice id",
+            "in": "path",
+            "name": "invoice",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_IssuePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Issued"
+                }
+              }
+            },
+            "description": "Issued"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `invoice.send`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or invoice, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` (review changed), unresolved delivery, or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, not a draft, no contact or billing address, date other than the book's day, `insufficient_stock`, `accounting_not_configured`, `accounting_period_closed` or `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue a reviewed draft invoice",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/workspace/{workspace}/invoices/{invoice}/issue/review": {
+      "post": {
+        "operationId": "invoices_issue_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Invoice id",
+            "in": "path",
+            "name": "invoice",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_IssueReview"
+                }
+              }
+            },
+            "description": "What issue would number and book"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `invoice.send`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or invoice, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, not a draft, date other than the book's day, or `unsupported_active_erp_operation` (credit note or foreign currency in an active book)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview issuing a draft invoice",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
     "/workspace/{workspace}/invoices/{invoice}/mark-as-credited": {
       "post": {
         "operationId": "invoice_payments_mark_as_credited",
@@ -98165,6 +101186,1515 @@
         "summary": "Take back returned quantities",
         "tags": [
           "orders"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/shipments": {
+      "get": {
+        "operationId": "shipments_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_ShipmentResource"
+                }
+              }
+            },
+            "description": "Success, newest first"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or order, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an order's shipments",
+        "tags": [
+          "shipments"
+        ]
+      },
+      "post": {
+        "operationId": "shipments_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_ShipmentPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or order, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Order not open, or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input or more than is left to ship"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Plan a draft shipment (no stock moves)",
+        "tags": [
+          "shipments"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/shipments/{shipment}": {
+      "get": {
+        "operationId": "shipments_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Shipment id",
+            "in": "path",
+            "name": "shipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, order or shipment, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a shipment",
+        "tags": [
+          "shipments"
+        ]
+      },
+      "patch": {
+        "operationId": "shipments_update",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Shipment id",
+            "in": "path",
+            "name": "shipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_ShipmentPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, order or shipment, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document`, order not open, or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, more than is left to ship, or not a draft"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a draft's lines and note",
+        "tags": [
+          "shipments"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/shipments/{shipment}/cancel": {
+      "post": {
+        "operationId": "shipments_cancel",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Shipment id",
+            "in": "path",
+            "name": "shipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_CancelPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, order or shipment, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or not a draft"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a draft",
+        "tags": [
+          "shipments"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/shipments/{shipment}/invoice": {
+      "post": {
+        "operationId": "shipments_invoice",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Shipment id",
+            "in": "path",
+            "name": "shipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_ShipmentInvoicePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentInvoiced"
+                }
+              }
+            },
+            "description": "Draft invoice created and linked"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, order or shipment, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document`, already billed, or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, not posted, nothing recognised, or another customer or currency"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Draft an invoice billing a posted shipment",
+        "tags": [
+          "shipments"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/shipments/{shipment}/post": {
+      "post": {
+        "operationId": "shipments_post",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Shipment id",
+            "in": "path",
+            "name": "shipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_ShipmentPostPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, order or shipment, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` (version or review changed), order not open, lot refused, or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, not a draft, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Post a reviewed draft",
+        "tags": [
+          "shipments"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/shipments/{shipment}/post/review": {
+      "post": {
+        "operationId": "shipments_post_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Shipment id",
+            "in": "path",
+            "name": "shipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShipmentPostReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ShipmentPostReview"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, order or shipment, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Order not open"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, not a draft, or `unsupported_active_erp_operation` (foreign-currency order in an active book)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview posting a draft (no writes)",
+        "tags": [
+          "shipments"
         ]
       }
     },
@@ -122612,6 +127142,1437 @@
         "summary": "Update a shipment method",
         "tags": [
           "shipment_methods"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes": {
+      "get": {
+        "operationId": "stocktakes_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_StocktakeResource"
+                }
+              }
+            },
+            "description": "Success, newest first; no lines"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List stocktakes",
+        "tags": [
+          "stocktakes"
+        ]
+      },
+      "post": {
+        "operationId": "stocktakes_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_CreatePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StocktakeResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Reused client_ref with another request"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input or warehouse"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a draft stocktake for a warehouse",
+        "tags": [
+          "stocktakes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes/{stocktake}": {
+      "get": {
+        "operationId": "stocktakes_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stocktake id",
+            "in": "path",
+            "name": "stocktake",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StocktakeResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a stocktake with its lines",
+        "tags": [
+          "stocktakes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes/{stocktake}/cancel": {
+      "post": {
+        "operationId": "stocktakes_cancel",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stocktake id",
+            "in": "path",
+            "name": "stocktake",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_StocktakeCancelPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StocktakeResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or already posted or cancelled"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel; keep the count and end the pause",
+        "tags": [
+          "stocktakes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes/{stocktake}/counts": {
+      "put": {
+        "operationId": "stocktakes_count",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stocktake id",
+            "in": "path",
+            "name": "stocktake",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_CountPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StocktakeResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown line, or not counting"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Store counted quantities",
+        "tags": [
+          "stocktakes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes/{stocktake}/post": {
+      "post": {
+        "operationId": "stocktakes_post",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stocktake id",
+            "in": "path",
+            "name": "stocktake",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_StocktakePostPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StocktakeResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` (version or review) or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "As the review"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Book the reviewed count and end the pause",
+        "tags": [
+          "stocktakes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes/{stocktake}/post/review": {
+      "post": {
+        "operationId": "stocktakes_post_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stocktake id",
+            "in": "path",
+            "name": "stocktake",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PostReview"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Not counting, count incomplete or below holds, or `stocktake_value_required` / `stocktake_value_not_allowed` / `backdated_valuation` / `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview posting the count (no writes)",
+        "tags": [
+          "stocktakes"
+        ]
+      }
+    },
+    "/workspace/{workspace}/stocktakes/{stocktake}/start": {
+      "post": {
+        "operationId": "stocktakes_start",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Stocktake id",
+            "in": "path",
+            "name": "stocktake",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_StartPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StocktakeResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document`, `warehouse_paused` (another count runs) or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Not a draft, or `receipt_booking_required`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pause the warehouse and freeze its stock",
+        "tags": [
+          "stocktakes"
         ]
       }
     },
