@@ -65,7 +65,8 @@
     "scheduledReports": "Ripoti zilizopangwa",
     "storefront": "Duka",
     "payments": "Malipo",
-    "paymentSettings": "Mipangilio ya malipo"
+    "paymentSettings": "Mipangilio ya malipo",
+    "imports": "Uingizaji"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -1209,5 +1210,100 @@
     "setupUnavailable": "Mipangilio ya malipo haipatikani",
     "setupUnavailableHint": "Seva haijatoa mazingira ya malipo yanayoruhusiwa. Mwombe msimamizi akague usanidi huu kabla ya kuhifadhi mipangilio.",
     "environmentUnavailable": "Hayapatikani"
+  },
+  "imports": {
+    "title": "Uingizaji",
+    "intro": "Leta bidhaa, wateja na wasambazaji kutoka lahajedwali. Kila mstari unakaguliwa kabla ya kuhifadhi chochote.",
+    "new": "Uingizaji mpya",
+    "empty": "Bado hakuna uingizaji.",
+    "emptyHint": "Anza na faili la .csv au .xlsx lenye mistari isiyozidi 500.",
+    "file": "Faili",
+    "kind": "Unaingiza nini",
+    "created": "Ilianza",
+    "state": "Hali",
+    "result": "Mistari",
+    "counts": "{valid} tayari · {invalid} zinahitaji marekebisho · {applied} zimeingizwa",
+    "choose": "Lahajedwali (.csv au .xlsx, hadi MB 2 na mistari 500)",
+    "reading": "Inasoma faili…",
+    "matchKey": "Tafuta bidhaa kwa",
+    "keyColumn": "Safu yenye thamani hiyo",
+    "mapTitle": "Linganisha safu",
+    "mapHint": "Chagua safu inayojaza kila sehemu. Safu usizochagua haziingizwi.",
+    "notMapped": "Haiingizwi",
+    "preview": "Mistari {count} imepatikana katika {file}.",
+    "check": "Kagua mistari",
+    "checking": "Inakagua mistari…",
+    "needMapping": "Linganisha angalau safu moja kwanza.",
+    "needKey": "Chagua safu yenye {key} ya bidhaa.",
+    "rowsTitle": "Mistari",
+    "row": "Mstari",
+    "values": "Thamani",
+    "issue": "Cha kurekebisha",
+    "apply": "Ingiza mistari {count} iliyo tayari",
+    "applying": "Inaingiza… ukurasa huu unajisasisha wenyewe.",
+    "completed": "Uingizaji umekamilika: mistari {count} imeingizwa.",
+    "invalidNote": "Mistari {count} inahitaji marekebisho na haitaingizwa. Rekebisha faili na uanze uingizaji mpya kwa ajili yake.",
+    "noValid": "Hakuna mstari ulio tayari kuingizwa. Rekebisha faili na uanze uingizaji mpya.",
+    "failed": "Uingizaji huu ulisimama kabla ya kuhifadhi chochote kipya. Aliyeuanzisha huenda hana ruhusa tena.",
+    "rowsFailed": "Mistari {count} haikuweza kuhifadhiwa; angalia cha kurekebisha hapa chini.",
+    "incomplete": "Uingizaji huu haukukaguliwa kikamilifu. Anza uingizaji mpya na faili hilo hilo.",
+    "stale": "Uingizaji huu umebadilika tangu ulipoufungua. Tumepakia toleo jipya; likague na ujaribu tena.",
+    "emptyRows": "Hakuna mistari yenye hali hii.",
+    "back": "Uingizaji",
+    "profiles": {
+      "products_create": "Bidhaa mpya",
+      "products_update": "Sasisha bidhaa zilizopo",
+      "relations": "Wateja na wasambazaji wapya"
+    },
+    "profileShort": {
+      "products": "Bidhaa",
+      "relations": "Wateja na wasambazaji"
+    },
+    "matchKeys": {
+      "product_nr_formatted": "Namba ya bidhaa",
+      "barcode": "Msimbopau",
+      "ean13": "EAN-13",
+      "reference": "Marejeleo"
+    },
+    "states": {
+      "uploading": "Inakaguliwa",
+      "validated": "Tayari kuingizwa",
+      "applying": "Inaingizwa",
+      "completed": "Imekamilika",
+      "failed": "Imesimama"
+    },
+    "rowStates": {
+      "all": "Zote",
+      "staged": "Imepokelewa",
+      "valid": "Tayari",
+      "invalid": "Inahitaji marekebisho",
+      "applied": "Imeingizwa",
+      "failed": "Haikuhifadhiwa"
+    },
+    "fields": {
+      "name": "Jina",
+      "price": "Bei",
+      "barcode": "Msimbopau",
+      "ean13": "EAN-13",
+      "reference": "Marejeleo",
+      "description": "Maelezo",
+      "unit": "Kipimo",
+      "type": "Aina (biashara au mtu)",
+      "company_name": "Jina la kampuni",
+      "alias": "Jina lingine",
+      "coc_number": "Namba ya usajili wa biashara",
+      "vat_number": "Namba ya VAT",
+      "email": "Barua pepe",
+      "website": "Tovuti",
+      "phone_number": "Simu",
+      "default_language": "Lugha",
+      "address": "Mtaa",
+      "address2": "Anwani mstari wa 2",
+      "house_number": "Namba ya nyumba",
+      "zipcode": "Msimbo wa posta",
+      "city": "Mji",
+      "state": "Mkoa",
+      "country": "Nchi"
+    }
   }
 }

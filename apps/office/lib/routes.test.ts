@@ -11,6 +11,7 @@ it("each office route keeps the right its page list needs, readable on the serve
   expect(rightFor("/till/sales")).toBe("cashregister.list")
   expect(rightFor("/settings/webhooks")).toBe("workspace_admin")
   expect(rightFor("/settings/storefront")).toBe("workspace_admin")
+  expect(rightFor("/settings/imports/abc")).toBe("import.list")
   expect(rightFor("/settings/payments")).toBe("workspace_admin")
   expect(rightFor("/payments")).toBe("payment.read")
   expect(rightFor("/supply/links")).toBe("workspace_admin")

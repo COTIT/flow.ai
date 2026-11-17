@@ -13,6 +13,7 @@ const routeRights: [prefix: string, right: string][] = [
   ["/settings/payments", "workspace_admin"],
   ["/settings/invites", "invite.list"],
   ["/settings/members", "workspace_admin"],
+  ["/settings/imports", "import.list"],
   ["/search", "workspace.global-search"],
 ]
 

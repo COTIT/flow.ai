@@ -65,7 +65,8 @@
     "scheduledReports": "Scheduled reports",
     "storefront": "Storefront",
     "payments": "Payments",
-    "paymentSettings": "Payment settings"
+    "paymentSettings": "Payment settings",
+    "imports": "Imports"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -1209,5 +1210,100 @@
     "setupUnavailable": "Payment setup is unavailable",
     "setupUnavailableHint": "The server has not supplied an allowed payment environment. Ask an administrator to check this deployment before saving settings.",
     "environmentUnavailable": "Unavailable"
+  },
+  "imports": {
+    "title": "Imports",
+    "intro": "Bring products, customers and suppliers in from a spreadsheet. Every row is checked before anything is saved.",
+    "new": "New import",
+    "empty": "No imports yet.",
+    "emptyHint": "Start with a .csv or .xlsx file of at most 500 rows.",
+    "file": "File",
+    "kind": "What to import",
+    "created": "Started",
+    "state": "Status",
+    "result": "Rows",
+    "counts": "{valid} ready · {invalid} need a fix · {applied} imported",
+    "choose": "Spreadsheet (.csv or .xlsx, at most 2 MB and 500 rows)",
+    "reading": "Reading the file…",
+    "matchKey": "Find products by",
+    "keyColumn": "Column with that value",
+    "mapTitle": "Match the columns",
+    "mapHint": "Pick which column fills each field. Columns you leave out are not imported.",
+    "notMapped": "Not imported",
+    "preview": "{count} rows found in {file}.",
+    "check": "Check rows",
+    "checking": "Checking rows…",
+    "needMapping": "Match at least one column first.",
+    "needKey": "Choose the column that holds the product's {key}.",
+    "rowsTitle": "Rows",
+    "row": "Row",
+    "values": "Values",
+    "issue": "What to fix",
+    "apply": "Import {count} ready rows",
+    "applying": "Importing… this page updates by itself.",
+    "completed": "Import finished: {count} rows imported.",
+    "invalidNote": "{count} rows need a fix and will not be imported. Correct the file and start a new import for them.",
+    "noValid": "No row is ready to import. Correct the file and start a new import.",
+    "failed": "This import stopped before saving anything new. The person who started it may no longer have permission.",
+    "rowsFailed": "{count} rows could not be saved; see what to fix below.",
+    "incomplete": "This import was not fully checked. Start a new import with the same file.",
+    "stale": "This import changed since you opened it. We loaded the latest version; check it and try again.",
+    "emptyRows": "No rows with this status.",
+    "back": "Imports",
+    "profiles": {
+      "products_create": "New products",
+      "products_update": "Update existing products",
+      "relations": "New customers and suppliers"
+    },
+    "profileShort": {
+      "products": "Products",
+      "relations": "Customers and suppliers"
+    },
+    "matchKeys": {
+      "product_nr_formatted": "Product number",
+      "barcode": "Barcode",
+      "ean13": "EAN-13",
+      "reference": "Reference"
+    },
+    "states": {
+      "uploading": "Checking",
+      "validated": "Ready to import",
+      "applying": "Importing",
+      "completed": "Finished",
+      "failed": "Stopped"
+    },
+    "rowStates": {
+      "all": "All",
+      "staged": "Received",
+      "valid": "Ready",
+      "invalid": "Needs a fix",
+      "applied": "Imported",
+      "failed": "Not saved"
+    },
+    "fields": {
+      "name": "Name",
+      "price": "Price",
+      "barcode": "Barcode",
+      "ean13": "EAN-13",
+      "reference": "Reference",
+      "description": "Description",
+      "unit": "Unit",
+      "type": "Type (business or person)",
+      "company_name": "Company name",
+      "alias": "Alias",
+      "coc_number": "Chamber of commerce number",
+      "vat_number": "VAT number",
+      "email": "Email",
+      "website": "Website",
+      "phone_number": "Phone",
+      "default_language": "Language",
+      "address": "Street",
+      "address2": "Address line 2",
+      "house_number": "House number",
+      "zipcode": "Postcode",
+      "city": "City",
+      "state": "Region",
+      "country": "Country"
+    }
   }
 }

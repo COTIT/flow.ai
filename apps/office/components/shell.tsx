@@ -13,6 +13,7 @@ import {
   Globe,
   LayoutGrid,
   CalendarClock,
+  FileUp,
   KeyRound,
   Layers,
   LogOut,
@@ -137,6 +138,12 @@ const items: Item[] = [
     label: "nav.scheduledReports",
     icon: CalendarClock,
     group: "shell.settings",
+  },
+  {
+    href: "/settings/imports",
+    match: "/settings/imports",
+    label: "nav.imports",
+    icon: FileUp,
   },
   {
     href: "/settings/storefront",
