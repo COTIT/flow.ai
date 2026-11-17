@@ -11,6 +11,7 @@ mod active_products;
 mod afm_catalog;
 mod analytics;
 mod app_keys;
+mod approvals_schema;
 mod assistant;
 mod assistant_batches;
 mod assistant_capability_auth;
