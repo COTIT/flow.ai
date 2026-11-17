@@ -16462,7 +16462,7 @@
       "allOf": ["workspace_admin"],
       "anyOf": [],
       "predicates": [
-        "Unknown gateway submissions or open collections with affirmative closed/no-charge evidence only; audited reason and provider evidence required; cannot mark a collection paid."
+        "Unknown gateway submissions or open collections with affirmative closed/no-charge evidence, or a paid captured source with a refund-observation warning and verified refund reconciliation; audited reason and provider evidence required; cannot mark a collection paid or clear other warnings."
       ],
       "authority": [
         "apps/api/src/modules/gateway/handlers.rs#resolve",
