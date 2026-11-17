@@ -134,6 +134,7 @@ mod special_offers;
 mod stock;
 mod stock_seed;
 mod stock_transfer;
+mod stocktakes;
 mod storage_locations;
 mod storefront;
 mod storefront_connections;

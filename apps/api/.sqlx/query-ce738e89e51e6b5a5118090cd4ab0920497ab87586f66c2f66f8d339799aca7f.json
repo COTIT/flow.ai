@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT DISTINCT s.warehouse_id FROM stock_reservations r\n         JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n         WHERE r.workspace_id = $1 AND s.lot_id = $2\n         ORDER BY 1",
+  "query": "SELECT DISTINCT s.warehouse_id FROM stock_reservations r\n         JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n         WHERE r.workspace_id = $1 AND s.lot_id = $2\n           AND ($3::uuid IS NULL OR s.warehouse_id = $3)\n         ORDER BY 1",
   "describe": {
     "columns": [
       {
@@ -18,6 +18,7 @@
     "parameters": {
       "Left": [
         "Uuid",
+        "Uuid",
         "Uuid"
       ]
     },
@@ -25,5 +26,5 @@
       false
     ]
   },
-  "hash": "3e8adc443f63701b66a9b83ec3720e4ba7ad61aef697ff8e66eb7c6264e4971a"
+  "hash": "ce738e89e51e6b5a5118090cd4ab0920497ab87586f66c2f66f8d339799aca7f"
 }
