@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(sum(debit), 0) = coalesce(sum(credit), 0) AS \"b!\"\n           FROM journal_lines WHERE workspace_id = $1 AND entry_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "b!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cdab480c8cabb28db82fb98a26be0509f0bfda36ba04e8065c536a7f10dc982f"
+}

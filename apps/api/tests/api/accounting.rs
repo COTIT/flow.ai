@@ -901,3 +901,155 @@ async fn each_route_needs_its_accounting_permission(pool: PgPool) {
         assert_eq!(s, expect, "{m} {path} with accounting.read only");
     }
 }
+
+impl World {
+    /// USD id, plus a workspace rate `from` → `to` (USD or EUR) in force from 2026.
+    async fn usd_rate(&self, usd_to_eur: bool, rate: &str) -> String {
+        let usd: String = sqlx::query_scalar(
+            "SELECT id::text FROM currencies WHERE workspace_id = $1::uuid AND asset_type = 'usd'",
+        )
+        .bind(&self.ws)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
+        let (from, to) = if usd_to_eur {
+            (usd.clone(), self.eur.clone())
+        } else {
+            (self.eur.clone(), usd.clone())
+        };
+        let (s, b) = send(
+            &self.app,
+            Method::POST,
+            &format!("/v1/workspace/{}/currency-rates", self.ws),
+            Some(
+                json!({"from_currency_id": from, "to_currency_id": to, "rate": rate,
+                        "effective_on": "2026-01-01"}),
+            ),
+            Some(&self.owner),
+        )
+        .await;
+        assert_eq!(s, StatusCode::CREATED, "{b}");
+        usd
+    }
+
+    async fn usd_draft(&self, usd: &str, lines: Value) -> Value {
+        let mut body = self.journal_body("2027-01-15", lines);
+        body["payload"]["currency_id"] = json!(usd);
+        let (s, j) = self
+            .call(Method::POST, "/journals", Some(body), &self.owner)
+            .await;
+        assert_eq!(s, StatusCode::CREATED, "{j}");
+        j["data"].clone()
+    }
+}
+
+#[sqlx::test]
+async fn inverse_rate_journal_gives_the_last_line_the_remainder(pool: PgPool) {
+    let mut w = world(pool).await;
+    w.ready().await;
+    w.activate().await;
+    // Stored EUR → USD 3: USD lines divide by 3.
+    let usd = w.usd_rate(false, "3").await;
+    let j = w
+        .usd_draft(
+            &usd,
+            json!([
+            {"account_id": w.expense, "debit": "1.00"}, {"account_id": w.expense, "debit": "1.00"},
+            {"account_id": w.expense, "debit": "1.00"}, {"account_id": w.income, "credit": "3.00"}]),
+        )
+        .await;
+    let (s, review) = w.post_review(&j["id"]).await;
+    assert_eq!(s, StatusCode::OK, "{review}");
+    let fd: Vec<&Value> = (0..4)
+        .map(|i| &review["data"]["lines"][i]["functional_debit"])
+        .collect();
+    assert_eq!(
+        fd,
+        [
+            &json!("0.33"),
+            &json!("0.33"),
+            &json!("0.34"),
+            &json!("0.00")
+        ]
+    );
+    assert_eq!(review["data"]["lines"][3]["functional_credit"], "1.00");
+    assert_eq!(review["data"]["lines"][0]["rate_inverse"], true);
+    assert_eq!(
+        review["data"]["totals"],
+        json!({"debit": "3.00", "credit": "3.00", "functional_debit": "1.00", "functional_credit": "1.00"})
+    );
+    let (s, posted) = w.post(&j).await;
+    assert_eq!(s, StatusCode::OK, "{posted}");
+    assert_eq!(posted["data"]["totals"], review["data"]["totals"]);
+    assert_eq!(posted["data"]["lines"][2]["functional_debit"], "0.34");
+
+    let id = posted["data"]["id"].as_str().unwrap();
+    let (s, rr) = w
+        .call(
+            Method::POST,
+            &format!("/journals/{id}/reverse/review"),
+            Some(json!({"accounting_date": "2027-01-20", "reason": "Booked twice"})),
+            &w.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{rr}");
+    assert_eq!(rr["data"]["lines"][2]["functional_credit"], "0.34");
+    assert_eq!(
+        rr["data"]["totals"], review["data"]["totals"],
+        "balanced swap"
+    );
+    let (s, rev) = w.reverse(&posted["data"], "2027-01-20").await;
+    assert_eq!(s, StatusCode::OK, "{rev}");
+    let (_, list) = w.call(Method::GET, "/journals", None, &w.owner).await;
+    for e in list["data"].as_array().unwrap() {
+        assert_eq!(e["totals"], review["data"]["totals"], "{e}");
+    }
+}
+
+#[sqlx::test]
+async fn unconvertible_journals_are_refused(pool: PgPool) {
+    let mut w = world(pool).await;
+    w.ready().await;
+    w.activate().await;
+    let usd = w.usd_rate(true, "0.5").await;
+    // 0.01 × 0.5 → 0.01 each; total 0.04 → 0.02 leaves the last line −0.01.
+    let cent = json!({"account_id": w.expense, "debit": "0.01"});
+    let j = w
+        .usd_draft(
+            &usd,
+            json!([cent, cent, cent, cent, {"account_id": w.income, "credit": "0.04"}]),
+        )
+        .await;
+    let (s, b) = w.post_review(&j["id"]).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    assert_eq!(
+        b["errors"]["lines"][0],
+        "The lines can't be converted to the functional currency exactly."
+    );
+    // Past i64 functional minor units: a later rate of 10^8.
+    let (s, b) = send(
+        &w.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/currency-rates", w.ws),
+        Some(
+            json!({"from_currency_id": usd, "to_currency_id": w.eur, "rate": "100000000",
+                    "effective_on": "2026-11-01"}),
+        ),
+        Some(&w.owner),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let big = w
+        .usd_draft(
+            &usd,
+            json!([{"account_id": w.expense, "debit": "999999999999.99"},
+                   {"account_id": w.income, "credit": "999999999999.99"}]),
+        )
+        .await;
+    let (s, b) = w.post_review(&big["id"]).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    assert_eq!(
+        b["errors"]["lines"][0],
+        "The lines can't be converted to the functional currency exactly."
+    );
+}

@@ -41,6 +41,7 @@ pub mod flow_conversations;
 pub mod flow_scenes;
 pub mod gateway;
 pub mod hourly_rates;
+pub mod imports;
 pub mod invites;
 pub mod invoice_payments;
 pub mod invoices;
