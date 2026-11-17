@@ -180,3 +180,5 @@ mod gateway_accounts;
 mod invoice_gateway;
 
 mod gateway_recovery;
+
+mod integrations_schema;
