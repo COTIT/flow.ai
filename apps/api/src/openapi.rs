@@ -237,6 +237,7 @@ pub(crate) fn documents() -> OpenApiRouter<AppState> {
         .merge(files::routes::private())
         .merge(farm_documents::routes::private())
         .merge(farm_bug_reports::routes::private())
+        .merge(crate::integrations::routes())
 }
 
 /// Storefront preview-token resolve: app key, own rate limit in `build_app`.

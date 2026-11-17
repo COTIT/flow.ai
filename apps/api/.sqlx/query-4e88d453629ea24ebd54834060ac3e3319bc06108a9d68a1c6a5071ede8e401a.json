@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM integration_secrets WHERE workspace_id = $1 AND connection_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4e88d453629ea24ebd54834060ac3e3319bc06108a9d68a1c6a5071ede8e401a"
+}

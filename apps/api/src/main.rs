@@ -5,7 +5,7 @@ use std::{net::SocketAddr, time::Duration};
 use genesy_360_api::{
     AppState, RateLimit, Slots, WorkspaceSlots, build_app,
     config::Config,
-    db, healthcheck, jobs,
+    db, healthcheck, integrations, jobs,
     mail::{self, Mailer},
     outbound, payments, pdf, storage, warm_up,
 };
@@ -122,6 +122,15 @@ async fn serve() {
     if payments.is_none() {
         tracing::warn!("PAYMENTS_PROVIDER not set: web payments answer 503");
     }
+    // Checked by Config: fake is refused in a release build.
+    let integrations = integrations::Runtime::new(
+        integrations::providers::select(
+            config.integrations_providers.as_deref(),
+            !cfg!(debug_assertions),
+        )
+        .expect("integrations providers"),
+    )
+    .expect("outbound http client");
     let job_credentials = credentials.clone();
     if files.is_none() || pdf.is_none() {
         tracing::warn!(
@@ -187,6 +196,7 @@ async fn serve() {
         payments: payments.clone(),
         checkout_hold_max: config.checkout_hold_max,
         signup_enabled: config.signup_enabled,
+        integrations,
     };
     // `genesy-360-api seed-farm-demo`: the RUAHA demo workspace, then exit. CLI only: no route
     // ever seeds. Runs before the listener binds, so it can run beside a live server.

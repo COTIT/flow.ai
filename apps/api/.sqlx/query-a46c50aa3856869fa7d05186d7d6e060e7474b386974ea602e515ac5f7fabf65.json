@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE integration_pairs\n         SET status = $3, paused_reason = $4, updated_at = now(),\n             activated_at = CASE WHEN $3 = 'active' THEN coalesce(activated_at, now()) ELSE activated_at END\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a46c50aa3856869fa7d05186d7d6e060e7474b386974ea602e515ac5f7fabf65"
+}
