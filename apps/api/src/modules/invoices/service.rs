@@ -29,6 +29,7 @@ use crate::{
             self,
             address::{self, Address},
         },
+        shipments::billing,
         warehouses::{self, dto::WarehouseCompacted},
     },
 };
@@ -284,7 +285,7 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
         Some(dp) => dp,
         None => dp(repo::currency_decimals(&state.db, workspace_id, row.currency_id).await?)?,
     };
-    let (summary, margin) = price(&lines, dp)?;
+    let (summary, margin) = summary_of(&state.db, workspace_id, id, &lines, dp).await?;
     let line_cents =
         repo::line_cents(&state.db, workspace_id, id, i32::try_from(dp).unwrap_or(2)).await?;
     let mut e = embeds(state, workspace_id, std::slice::from_ref(&row)).await?;
@@ -293,6 +294,14 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
         .into_iter()
         .map(|c| (c.id, (c.unit_price_minor, c.subtotal_minor, c.total_minor)))
         .collect();
+    // Linked lines show the recognised net and gross.
+    if let Some(l) = billing::linked_summary(&state.db, workspace_id, id, dp).await? {
+        for (item, net, gross) in l.lines {
+            if let Some(c) = e.line_cents.get_mut(&item) {
+                (c.1, c.2) = (net, gross);
+            }
+        }
+    }
     e.payments = invoice_payments::repo::list(&state.db, workspace_id, id)
         .await?
         .iter()
@@ -964,7 +973,7 @@ fn price_values(
 /// Recompute the totals from the stored lines and write them (C1: same transaction); the
 /// total in minor units. The margin is computed too, so a line the detail can't price is
 /// refused here.
-pub(super) async fn store_totals(
+pub(crate) async fn store_totals(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     invoice_id: Uuid,
@@ -978,6 +987,12 @@ pub(super) async fn store_totals(
         ));
     }
     let dp = dp(repo::currency_decimals(&mut *conn, workspace_id, currency_id).await?)?;
+    // An invoice billing recognitions copies their money (§12): never re-priced.
+    if let Some(l) = billing::linked_summary(&mut *conn, workspace_id, invoice_id, dp).await? {
+        let summary = resource::stored_summary(&l.summary, 0, dp);
+        repo::set_totals(conn, workspace_id, invoice_id, l.net, l.gross, &summary).await?;
+        return Ok(l.gross);
+    }
     let (s, _) = price(&lines, dp)?;
     let discounted = s
         .lines
@@ -1005,6 +1020,25 @@ pub(super) async fn store_totals(
     )
     .await?;
     Ok(total)
+}
+
+/// The document money of `lines`: the linked recognitions' copy, else the pricing engine.
+pub(super) async fn summary_of(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+    lines: &[repo::ItemRow],
+    dp: u32,
+) -> Result<(engine::Summary, engine::Margin), AppError> {
+    match billing::linked_summary(db, workspace_id, invoice_id, dp).await? {
+        Some(l) => {
+            let engine_lines: Vec<engine::Line> = lines.iter().map(engine_line).collect();
+            let margin =
+                engine::margin(&engine_lines, &l.summary.lines, dp).map_err(|_| out_of_range())?;
+            Ok((l.summary, margin))
+        }
+        None => price(lines, dp),
+    }
 }
 
 fn engine_line(l: &repo::ItemRow) -> engine::Line {
@@ -1082,7 +1116,7 @@ pub async fn public(state: &AppState, token: &str) -> Result<Value, AppError> {
         Some(dp) => dp,
         None => dp(repo::currency_decimals(&state.db, workspace_id, row.currency_id).await?)?,
     };
-    let (summary, _) = price(&lines, dp)?;
+    let (summary, _) = summary_of(&state.db, workspace_id, id, &lines, dp).await?;
     // Laravel ShortCurrencyResource.
     let currency = currencies::repo::find_many(&state.db, workspace_id, &[row.currency_id])
         .await?

@@ -577,3 +577,50 @@ async fn deposits_stay_in_their_workspace(pool: PgPool) {
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{r}");
     assert!(r["errors"]["relation_id"].is_array(), "{r}");
 }
+
+#[sqlx::test]
+async fn a_linked_invoice_copies_the_recognised_money_to_the_cent(pool: PgPool) {
+    let f = active(pool).await;
+    let (o, line) = order(&f, "3").await;
+    // Line money the engine wouldn't reproduce from quantity × price: thirds of 1.00 + 0.21.
+    sqlx::query("UPDATE order_lines SET line_excl = 100, line_vat = 21 WHERE id = $1::uuid")
+        .bind(&line)
+        .execute(&f.api.pool)
+        .await
+        .unwrap();
+    let sh = ship(&f, &o, &line, "1").await;
+    let (net, tax, g): (i64, i64, i64) = sqlx::query_as(
+        "SELECT net, tax, gross FROM sales_recognitions WHERE shipment_id = $1::uuid",
+    )
+    .bind(sh["id"].as_str().unwrap())
+    .fetch_one(&f.api.pool)
+    .await
+    .unwrap();
+    assert_eq!((net, tax), (33, 7));
+    let (_, b) = bill(&f, &o, &sh).await;
+    let invoice = b["data"]["invoice_id"].as_str().unwrap().to_owned();
+    let stored = || async {
+        sqlx::query_as::<_, (i64, i64)>("SELECT subtotal, total FROM invoices WHERE id = $1::uuid")
+            .bind(&invoice)
+            .fetch_one(&f.api.pool)
+            .await
+            .unwrap()
+    };
+    assert_eq!(stored().await, (net, g), "draft totals = recognition");
+    let (s, r) = issue(&f, &invoice).await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    assert_eq!(stored().await, (net, g), "issued totals = recognition");
+    assert_eq!(
+        balance(&f, "receivables").await,
+        g,
+        "reclassified = invoice total"
+    );
+    // The document shows the same money.
+    let (s, d) = req(&f, Method::GET, &format!("/invoices/{invoice}"), None).await;
+    assert_eq!(s, StatusCode::OK, "{d}");
+    let summary = d["data"]["summary"].to_string();
+    assert!(
+        summary.contains("0.4") && summary.contains("0.07"),
+        "{summary}"
+    );
+}

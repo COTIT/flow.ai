@@ -24,6 +24,7 @@ use crate::{
             self,
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
         },
+        pricing::engine::{Amounts, RateTotal, Summary},
         shipments::recognition::{self, Receivable, open_receivable},
     },
 };
@@ -177,6 +178,8 @@ pub async fn draft(
         Some(c) if c == "23505" => AppError::Conflict(BILLED),
         _ => e.into(),
     })?;
+    // Totals now come from the linked recognitions, not the pricing engine.
+    invoices::service::store_totals(conn, ws, invoice, currency).await?;
     Ok(invoice)
 }
 
@@ -504,4 +507,113 @@ async fn recognise_standalone(
     )
     .await?;
     Ok(())
+}
+
+/// One item of a linked invoice with the recognised money it copies (SQL), and the
+/// document totals over all items (window sums; same on every row).
+struct LinkedRow {
+    item: Uuid,
+    net_minor: i64,
+    gross_minor: i64,
+    total_net_minor: i64,
+    total_gross_minor: i64,
+    vat_rate: Decimal,
+    net: Decimal,
+    tax: Decimal,
+    rate_base: Decimal,
+    rate_vat: Decimal,
+    excl: Decimal,
+    vat: Decimal,
+    total: Decimal,
+}
+
+/// A linked invoice's copied money: document summary, per-item (item, net, gross) minor, and
+/// the stored subtotal/total minor.
+pub struct Linked {
+    pub summary: Summary,
+    pub lines: Vec<(Uuid, i64, i64)>,
+    pub net: i64,
+    pub gross: i64,
+}
+
+/// The document money of an invoice billing recognitions, from the recognition lines (item
+/// n = recognition line n in draft order), in major units at `dp`; None for any other
+/// invoice (the pricing engine's). §12: copied money is never re-priced.
+pub async fn linked_summary(
+    db: impl sqlx::PgExecutor<'_>,
+    ws: Uuid,
+    invoice: Uuid,
+    dp: u32,
+) -> Result<Option<Linked>, AppError> {
+    let rows = sqlx::query_as!(
+        LinkedRow,
+        r#"WITH i AS (
+               SELECT id AS item, row_number() OVER (ORDER BY position, id) AS n
+               FROM items WHERE workspace_id = $1 AND invoice_id = $2
+           ), r AS (
+               SELECT rl.net, rl.tax, rl.vat_rate,
+                      row_number() OVER (ORDER BY rl.recognition_id, ol.position, ol.id) AS n
+               FROM invoice_recognition_links k
+               JOIN sales_recognition_lines rl ON rl.workspace_id = k.workspace_id
+                    AND rl.recognition_id = k.recognition_id
+               JOIN order_lines ol ON ol.workspace_id = rl.workspace_id AND ol.id = rl.order_line_id
+               WHERE k.workspace_id = $1 AND k.invoice_id = $2
+           ), x AS (SELECT i.n, i.item, r.vat_rate, r.net, r.tax FROM i JOIN r USING (n))
+           SELECT item AS "item!", net AS "net_minor!", (net + tax) AS "gross_minor!",
+                  (sum(net) OVER ())::bigint AS "total_net_minor!",
+                  (sum(net + tax) OVER ())::bigint AS "total_gross_minor!",
+                  vat_rate AS "vat_rate!",
+                  trim_scale(net / 10::numeric ^ $3) AS "net!",
+                  trim_scale(tax / 10::numeric ^ $3) AS "tax!",
+                  trim_scale(sum(net) OVER (PARTITION BY vat_rate) / 10::numeric ^ $3) AS "rate_base!",
+                  trim_scale(sum(tax) OVER (PARTITION BY vat_rate) / 10::numeric ^ $3) AS "rate_vat!",
+                  trim_scale(sum(net) OVER () / 10::numeric ^ $3) AS "excl!",
+                  trim_scale(sum(tax) OVER () / 10::numeric ^ $3) AS "vat!",
+                  trim_scale(sum(net + tax) OVER () / 10::numeric ^ $3) AS "total!"
+           FROM x ORDER BY n"#,
+        ws,
+        invoice,
+        Decimal::from(dp)
+    )
+    .fetch_all(db)
+    .await?;
+    let Some(first) = rows.first() else {
+        return Ok(None);
+    };
+    let mut vats: Vec<RateTotal> = Vec::new();
+    for r in &rows {
+        if !vats.iter().any(|v| v.rate == r.vat_rate) {
+            vats.push(RateTotal {
+                rate: r.vat_rate,
+                base: r.rate_base,
+                vat: r.rate_vat,
+            });
+        }
+    }
+    let summary = Summary {
+        gross: first.excl,
+        discount: Decimal::ZERO,
+        excl: first.excl,
+        vat: first.vat,
+        total: first.total,
+        vats,
+        lines: rows
+            .iter()
+            .map(|r| Amounts {
+                gross: r.net,
+                discount: Decimal::ZERO,
+                excl: r.net,
+                line_vat: r.tax,
+            })
+            .collect(),
+    };
+    Ok(Some(Linked {
+        summary,
+        lines: rows
+            .iter()
+            .map(|r| (r.item, r.net_minor, r.gross_minor))
+            .collect(),
+        net: first.total_net_minor,
+        gross: first.total_gross_minor,
+    }))
 }
