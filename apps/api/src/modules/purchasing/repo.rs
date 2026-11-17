@@ -75,11 +75,17 @@ pub async fn pending_before_outside(
     .await
 }
 
-/// The book's local business date (accounting timezone, UTC until one is set).
+/// The book's local business date: accounting timezone; before one is set, the workspace's
+/// `general.timezone` (when Postgres knows it); else UTC.
 pub async fn today(db: impl PgExecutor<'_>, ws: Uuid) -> Result<NaiveDate, sqlx::Error> {
     sqlx::query_scalar!(
-        r#"SELECT (now() AT TIME ZONE coalesce(timezone, 'UTC'))::date AS "d!"
-           FROM accounting_settings WHERE workspace_id = $1"#,
+        r#"SELECT (now() AT TIME ZONE coalesce(
+                      a.timezone,
+                      (SELECT z.name FROM pg_timezone_names z
+                       WHERE z.name = (SELECT s.data -> 'general' ->> 'timezone'
+                                       FROM settings s WHERE s.workspace_id = a.workspace_id)),
+                      'UTC'))::date AS "d!"
+           FROM accounting_settings a WHERE a.workspace_id = $1"#,
         ws
     )
     .fetch_one(db)

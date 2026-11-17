@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -80,7 +81,12 @@ fn open_of(l: &LineRow) -> Decimal {
     l.base_quantity - l.received_quantity - l.closed_quantity
 }
 
-fn resource(o: OrderRow, lines: Vec<LineRow>, ws: Uuid) -> PurchaseOrderResource {
+fn resource(
+    o: OrderRow,
+    lines: Vec<LineRow>,
+    ws: Uuid,
+    business_date: NaiveDate,
+) -> PurchaseOrderResource {
     let dp = o.currency_decimals;
     let any_open = lines.iter().any(|l| open_of(l) > Decimal::ZERO);
     let any_received = lines.iter().any(|l| l.received_quantity > Decimal::ZERO);
@@ -164,6 +170,7 @@ fn resource(o: OrderRow, lines: Vec<LineRow>, ws: Uuid) -> PurchaseOrderResource
         cancelled_at: o.cancelled_at,
         cancel_reason: o.cancel_reason,
         allowed_actions,
+        business_date,
     }
 }
 
@@ -175,8 +182,9 @@ pub async fn get(
 ) -> Result<PurchaseOrderResource, AppError> {
     let (mut rows, _) = repo::orders(&mut *conn, ws, Some(id), None, None, (1, 0)).await?;
     let o = rows.pop().ok_or(AppError::NotFound)?;
-    let lines = repo::lines(conn, ws, &[id], false).await?;
-    Ok(resource(o, lines, ws))
+    let lines = repo::lines(&mut *conn, ws, &[id], false).await?;
+    let today = repo::today(&mut *conn, ws).await?;
+    Ok(resource(o, lines, ws, today))
 }
 
 /// GET /purchase-orders: newest first; lines in one query for the page.
@@ -210,11 +218,12 @@ pub async fn list(
     for l in repo::lines(&mut conn, ws, &ids, false).await? {
         by_order.entry(l.purchase_order_id).or_default().push(l);
     }
+    let today = repo::today(&mut *conn, ws).await?;
     let data = rows
         .into_iter()
         .map(|o| {
             let lines = by_order.remove(&o.id).unwrap_or_default();
-            resource(o, lines, ws)
+            resource(o, lines, ws, today)
         })
         .collect();
     Ok(Paginated::new(data, total, page))

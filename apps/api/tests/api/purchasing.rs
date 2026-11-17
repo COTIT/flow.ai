@@ -1128,3 +1128,36 @@ async fn sql_money_functions_round_and_split_exactly(pool: PgPool) {
     .unwrap();
     assert_eq!(conv, (11000, 10000, 2, -1));
 }
+
+// --- business date ---------------------------------------------------------------------------
+
+/// A setup book has no accounting timezone yet: the business date follows the workspace's own
+/// timezone (`settings.general.timezone`), so a receipt "today" there is never "in the future".
+#[sqlx::test]
+async fn setup_book_business_date_follows_the_workspace_timezone(pool: PgPool) {
+    let w = world(pool).await;
+    // UTC+14 and UTC-12 are 26 h apart: their dates always differ.
+    sqlx::query(
+        "INSERT INTO settings (workspace_id, data) VALUES ($1::uuid, '{\"general\":{\"timezone\":\"Pacific/Kiritimati\"}}')
+         ON CONFLICT (workspace_id) DO UPDATE SET data = jsonb_set(settings.data, '{general}',
+           coalesce(settings.data -> 'general', '{}') || '{\"timezone\":\"Pacific/Kiritimati\"}')",
+    )
+    .bind(&w.api.ws)
+    .execute(w.pool())
+    .await
+    .unwrap();
+    let (local, west): (String, String) = sqlx::query_as(
+        "SELECT (now() AT TIME ZONE 'Pacific/Kiritimati')::date::text,
+                (now() AT TIME ZONE 'Etc/GMT+12')::date::text",
+    )
+    .fetch_one(w.pool())
+    .await
+    .unwrap();
+    assert_ne!(local, west);
+    let po = w.order(&[(&w.wax, "2", "1.00")]).await;
+    assert_eq!(po["business_date"], local, "{po}");
+    let (s, b) = w
+        .receive_on(&po, &local, &[(0, "1", w.shop.as_str())])
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+}

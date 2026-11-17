@@ -17,6 +17,11 @@ import type { SupplierRef } from './supplierRef';
 export interface PurchaseOrderResource {
   /** Subset of update, confirm, receive, close, cancel. */
   allowed_actions: string[];
+  /**
+     * Today in the book (accounting timezone, else the workspace timezone, else UTC): the
+     * latest receipt date the API accepts, and the date a client should offer by default.
+     */
+  business_date: string;
   /** @nullable */
   cancel_reason?: string | null;
   /** @nullable */

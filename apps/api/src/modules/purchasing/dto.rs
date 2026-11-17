@@ -369,6 +369,9 @@ pub struct PurchaseOrderResource {
     pub cancel_reason: Option<String>,
     /// Subset of update, confirm, receive, close, cancel.
     pub allowed_actions: Vec<&'static str>,
+    /// Today in the book (accounting timezone, else the workspace timezone, else UTC): the
+    /// latest receipt date the API accepts, and the date a client should offer by default.
+    pub business_date: NaiveDate,
 }
 
 /// One confirm-review line.

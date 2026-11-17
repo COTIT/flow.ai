@@ -35,7 +35,7 @@ import { formatQty } from "@genesy/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { isStale, showMoney, today, useReasons } from "../shared"
+import { isStale, showMoney, useReasons } from "../shared"
 
 export type Outcome = {
   /** A success sentence for the page's Done notice; the dialog has closed. */
@@ -291,7 +291,7 @@ export function ReceiveDialog({
           label={t("purchases.effectiveDate")}
           errors={errors["payload.effective_receipt_date"]}
         >
-          <Input type="date" name="effective_receipt_date" required defaultValue={today()} max={today()} />
+          <Input type="date" name="effective_receipt_date" required defaultValue={order.business_date} max={order.business_date} />
         </Field>
         {open.map((l) => (
           <fieldset key={l.id} className="grid gap-2 sm:grid-cols-2">

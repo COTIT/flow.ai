@@ -26721,6 +26721,11 @@
             },
             "type": "array"
           },
+          "business_date": {
+            "description": "Today in the book (accounting timezone, else the workspace timezone, else UTC): the\nlatest receipt date the API accepts, and the date a client should offer by default.",
+            "format": "date",
+            "type": "string"
+          },
           "cancel_reason": {
             "type": [
               "string",
@@ -26852,7 +26857,8 @@
           "created_by",
           "created_at",
           "updated_at",
-          "allowed_actions"
+          "allowed_actions",
+          "business_date"
         ],
         "type": "object"
       },
