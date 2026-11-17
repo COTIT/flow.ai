@@ -10,6 +10,10 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::setup_get, handlers::setup_update))
         .routes(routes!(handlers::accounts_list, handlers::accounts_create))
         .routes(routes!(handlers::accounts_update))
+        .routes(routes!(
+            handlers::bank_accounts_list,
+            handlers::bank_accounts_create
+        ))
         .routes(routes!(handlers::years_list, handlers::years_create))
         .routes(routes!(handlers::periods_list, handlers::periods_create))
         .routes(routes!(handlers::journals_list, handlers::journals_create))

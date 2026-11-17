@@ -17,6 +17,7 @@ use crate::{
     http::{json::Rules, list::Page, workspace::WorkspaceAccess},
     idempotency::{self, Answer, Command},
     modules::{
+        accounting::settlement::Side,
         accounting::{
             dto::{
                 Acted, Action, CONTROL_ROLES, Create, CurrencyRef, JournalInput, JournalPayload,
@@ -208,6 +209,7 @@ async fn draft_lines(
                 line_no: i16::try_from(i + 1).unwrap_or(i16::MAX),
                 account_id: l.account,
                 relation_id: l.relation,
+                bank_account_id: None,
                 source_ref: l.source_ref.clone(),
                 debit,
                 credit,
@@ -517,6 +519,7 @@ async fn prepare_post(
             line_no: l.line_no,
             account_id: l.account_id,
             relation_id: l.relation_id,
+            bank_account_id: None,
             source_ref: l.source_ref.clone(),
             debit: l.debit,
             credit: l.credit,
@@ -646,6 +649,7 @@ async fn prepare_reverse(
             line_no: l.line_no,
             account_id: l.account_id,
             relation_id: l.relation_id,
+            bank_account_id: None,
             source_ref: l.source_ref.clone(),
             debit: l.credit,
             credit: l.debit,
@@ -780,15 +784,19 @@ pub async fn reverse(
     Ok(answer)
 }
 
-/// A source posting in the functional currency: one debit and one credit line on mapped roles.
+/// A two-line source posting in the functional currency: one debit and one credit side.
 pub struct SourceJournal<'a> {
     pub source_kind: &'a str,
     pub source_id: Uuid,
     pub effect_kind: &'a str,
     pub date: NaiveDate,
     pub reason: &'a str,
-    pub debit: &'a str,
-    pub credit: &'a str,
+    pub debit: Side,
+    pub credit: Side,
+    /// Party on both lines (receivable/deposit control detail).
+    pub relation_id: Option<Uuid>,
+    /// Bank account on the line that hits its GL account.
+    pub bank_account_id: Option<Uuid>,
     /// Functional minor units, > 0.
     pub amount: i64,
     pub fingerprint: &'a [u8; 32],
@@ -806,15 +814,16 @@ pub struct SourceHeader<'a> {
     pub by: Uuid,
 }
 
-/// One line of a source posting on a mapped role, functional minor units (one side > 0).
-pub struct SourceLine<'a> {
-    pub role: &'a str,
+/// One line of a source posting, functional minor units (one side > 0): a mapped role or a
+/// concrete account (a bank account's GL account).
+pub struct SourceLine {
+    pub side: Side,
     pub debit: i64,
     pub credit: i64,
     /// Customer or supplier of a control-account line.
     pub relation_id: Option<Uuid>,
-    /// A concrete account instead of the role's mapping (a bank account's GL account).
-    pub account: Option<Uuid>,
+    /// Bank account of a `Side::Account` line (ignored on role lines).
+    pub bank_account_id: Option<Uuid>,
 }
 
 /// Post `j` as a two-line `source` journal; its id. See [`post_source_lines`].
@@ -834,18 +843,18 @@ pub async fn post_source(
     };
     let lines = [
         SourceLine {
-            role: j.debit,
+            side: j.debit,
             debit: j.amount,
             credit: 0,
-            relation_id: None,
-            account: None,
+            relation_id: j.relation_id,
+            bank_account_id: j.bank_account_id,
         },
         SourceLine {
-            role: j.credit,
+            side: j.credit,
             debit: 0,
             credit: j.amount,
-            relation_id: None,
-            account: None,
+            relation_id: j.relation_id,
+            bank_account_id: j.bank_account_id,
         },
     ];
     Ok(post_source_lines(conn, ws, &header, &lines).await?.0)
@@ -860,7 +869,7 @@ pub async fn post_source_lines(
     conn: &mut PgConnection,
     ws: Uuid,
     j: &SourceHeader<'_>,
-    lines: &[SourceLine<'_>],
+    lines: &[SourceLine],
 ) -> Result<(Uuid, Uuid), AppError> {
     let currency = repo::settings(&mut *conn, ws, false)
         .await?
@@ -869,15 +878,13 @@ pub async fn post_source_lines(
     let mappings = repo::mappings(&mut *conn, ws).await?;
     let accounts = lines
         .iter()
-        .map(|l| {
-            l.account
-                .or_else(|| {
-                    mappings
-                        .iter()
-                        .find(|m| m.role == l.role)
-                        .map(|m| m.account_id)
-                })
-                .ok_or_else(not_configured)
+        .map(|l| match l.side {
+            Side::Account(id) => Ok(id),
+            Side::Role(role) => mappings
+                .iter()
+                .find(|m| m.role == role)
+                .map(|m| m.account_id)
+                .ok_or_else(not_configured),
         })
         .collect::<Result<Vec<Uuid>, AppError>>()?;
     // As manual posting: FOR SHARE in id order, so a deactivation waits for this posting or
@@ -909,6 +916,10 @@ pub async fn post_source_lines(
             line_no,
             account_id: *account_id,
             relation_id: l.relation_id,
+            // Only a line on a concrete (bank GL) account names its bank account.
+            bank_account_id: l
+                .bank_account_id
+                .filter(|_| matches!(l.side, Side::Account(_))),
             source_ref: None,
             debit: l.debit,
             credit: l.credit,
@@ -1013,11 +1024,11 @@ mod tests {
             by: user,
         };
         let line = |role, debit, credit, relation_id| SourceLine {
-            role,
+            side: Side::Role(role),
             debit,
             credit,
             relation_id,
-            account: None,
+            bank_account_id: None,
         };
         let lines = [
             line("unbilled_receivables", 121, 0, None),

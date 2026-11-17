@@ -244,28 +244,24 @@ pub async fn receive(
         fingerprint: &digest,
         by,
     };
-    let (role, account) = match r.located.side {
-        Side::Role(role) => (role, None),
-        Side::Account(a) => ("bank", Some(a)),
-    };
+    let cols = i.location.columns();
     let lines = [
         SourceLine {
-            role,
+            side: r.located.side,
             debit: r.minor,
             credit: 0,
             relation_id: None,
-            account,
+            bank_account_id: cols.bank_account_id,
         },
         SourceLine {
-            role: "customer_deposits",
+            side: Side::Role("customer_deposits"),
             debit: 0,
             credit: r.minor,
             relation_id: Some(i.relation),
-            account: None,
+            bank_account_id: None,
         },
     ];
     let (entry, effect) = post_source_lines(&mut tx, ws, &header, &lines).await?;
-    let cols = i.location.columns();
     if cols.location_kind == "cash_place" {
         // The money is in the drawer or vault: its place balance moves too.
         sqlx::query(
@@ -471,18 +467,18 @@ pub async fn apply(
     };
     let lines = [
         SourceLine {
-            role: "customer_deposits",
+            side: Side::Role("customer_deposits"),
             debit: a.minor,
             credit: 0,
             relation_id: a.relation,
-            account: None,
+            bank_account_id: None,
         },
         SourceLine {
-            role: "unbilled_receivables",
+            side: Side::Role("unbilled_receivables"),
             debit: 0,
             credit: a.minor,
             relation_id: a.relation,
-            account: None,
+            bank_account_id: None,
         },
     ];
     let (_, effect) = post_source_lines(&mut tx, ws, &header, &lines).await?;

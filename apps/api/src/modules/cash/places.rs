@@ -20,6 +20,7 @@ use crate::{
             journals::{SourceJournal, post_source},
             repo as books,
             service::{created, stale, unsupported},
+            settlement::Side,
         },
         cash::{
             dto::{
@@ -182,8 +183,10 @@ where
                     effect_kind: "posted",
                     date: r.accounting_date,
                     reason: &input.reason,
-                    debit: j.debit_role,
-                    credit: j.credit_role,
+                    debit: Side::Role(j.debit_role),
+                    credit: Side::Role(j.credit_role),
+                    relation_id: None,
+                    bank_account_id: None,
                     amount: j.amount,
                     fingerprint: &f.fingerprint,
                     by: by.member,

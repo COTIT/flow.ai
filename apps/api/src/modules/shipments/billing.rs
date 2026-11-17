@@ -18,7 +18,7 @@ use crate::{
         accounting::{
             journals::{SourceHeader, SourceLine, post_source_lines},
             service::unsupported,
-            settlement::{self, NewAllocation},
+            settlement::{self, NewAllocation, Side},
         },
         invoices::{
             self,
@@ -338,18 +338,18 @@ pub async fn issue(
             .flat_map(|u| {
                 [
                     SourceLine {
-                        role: "receivables",
+                        side: Side::Role("receivables"),
                         debit: u.residual,
                         credit: 0,
                         relation_id: u.relation_id,
-                        account: None,
+                        bank_account_id: None,
                     },
                     SourceLine {
-                        role: "unbilled_receivables",
+                        side: Side::Role("unbilled_receivables"),
                         debit: 0,
                         credit: u.residual,
                         relation_id: u.relation_id,
-                        account: None,
+                        bank_account_id: None,
                     },
                 ]
             })
@@ -451,11 +451,11 @@ async fn recognise_standalone(
     .into_iter()
     .filter(|l| l.1 > 0 || l.2 > 0)
     .map(|(role, debit, credit, relation_id)| SourceLine {
-        role,
+        side: Side::Role(role),
         debit,
         credit,
         relation_id,
-        account: None,
+        bank_account_id: None,
     })
     .collect();
     let (entry, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;

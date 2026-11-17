@@ -1008,3 +1008,57 @@ pub struct BalanceSheetResource {
     /// Liabilities + equity + current earnings.
     pub total_liabilities_and_equity: String,
 }
+
+/// POST /accounting/bank-accounts payload.
+#[derive(Deserialize, ToSchema)]
+pub struct BankAccountPayload {
+    /// 1-255 characters, unique per book.
+    pub name: Option<String>,
+    #[schema(value_type = Option<Uuid>)]
+    pub currency_id: Option<String>,
+    /// Asset ledger account the money sits in.
+    #[schema(value_type = Option<Uuid>)]
+    pub account_id: Option<String>,
+}
+
+/// Validated new bank account.
+pub struct NewBankAccount {
+    pub name: String,
+    pub currency_id: Uuid,
+    pub account_id: Uuid,
+}
+
+impl Validate for BankAccountPayload {
+    type Valid = NewBankAccount;
+
+    fn validate(self, r: &mut Rules) -> Option<NewBankAccount> {
+        let name = r.required("name", self.name);
+        if let Some(n) = &name {
+            r.max_chars("name", n, REF_MAX);
+        }
+        let mut uuid = |field: &str, v: Option<String>| {
+            let id = Uuid::parse_str(&r.required(field, v)?).ok();
+            r.check(field, id.is_some(), "The selected id is invalid.");
+            id
+        };
+        let currency_id = uuid("currency_id", self.currency_id);
+        let account_id = uuid("account_id", self.account_id);
+        Some(NewBankAccount {
+            name: name.filter(|n| n.chars().count() <= REF_MAX)?,
+            currency_id: currency_id?,
+            account_id: account_id?,
+        })
+    }
+}
+
+/// A bank account money can be attributed to.
+#[derive(Serialize, ToSchema, sqlx::FromRow)]
+pub struct BankAccountResource {
+    pub id: Uuid,
+    pub name: String,
+    pub currency_id: Uuid,
+    pub account_id: Uuid,
+    pub active: bool,
+    pub version: i64,
+    pub created_at: DateTime<Utc>,
+}

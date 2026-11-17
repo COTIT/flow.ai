@@ -29,6 +29,8 @@ import {
   Users,
   Zap,
   type LucideIcon,
+  BookOpen,
+  Percent,
 } from "lucide-react"
 
 import { useLogout, useSession } from "@genesy/api-client/auth"
@@ -141,6 +143,13 @@ const items: Item[] = [
     group: "shell.store",
   },
   {
+    href: "/accounting/journals",
+    match: "/accounting",
+    label: "nav.accounting",
+    icon: BookOpen,
+    group: "shell.accounting",
+  },
+  {
     href: "/settings/scheduled-reports",
     match: "/settings/scheduled-reports",
     label: "nav.scheduledReports",
@@ -152,6 +161,12 @@ const items: Item[] = [
     match: "/settings/imports",
     label: "nav.imports",
     icon: FileUp,
+  },
+  {
+    href: "/settings/taxes",
+    match: "/settings/taxes",
+    label: "nav.taxes",
+    icon: Percent,
   },
   {
     href: "/settings/storefront",

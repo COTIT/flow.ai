@@ -21,10 +21,10 @@ use crate::{
     modules::accounting::{
         dto::{
             AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
-            Create, GeneralLedgerResource, JournalPayload, JournalResource, LedgerQuery, ListQuery,
-            PeriodPayload, PeriodResource, PostPayload, ProfitAndLossResource, RangeQuery,
-            ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload, SetupResource,
-            TrialBalanceResource, YearPayload, YearResource,
+            BankAccountPayload, BankAccountResource, Create, GeneralLedgerResource, JournalPayload,
+            JournalResource, LedgerQuery, ListQuery, PeriodPayload, PeriodResource, PostPayload,
+            ProfitAndLossResource, RangeQuery, ReversePayload, ReverseReviewBody, ReviewResource,
+            SetupPayload, SetupResource, TrialBalanceResource, YearPayload, YearResource,
         },
         journals, reports, service,
     },
@@ -563,4 +563,50 @@ pub async fn balance_sheet(
     Ok(Data(
         reports::balance_sheet(&mut conn, access.workspace_id, as_of).await?,
     ))
+}
+
+/// accounting_bank_accounts_list: List bank accounts.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-accounts", tag = "accounting",
+    operation_id = "accounting_bank_accounts_list",
+    summary = "List bank accounts",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<Vec<BankAccountResource>>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_accounts_list(
+    State(state): State<AppState>,
+    access: Can<Read>,
+) -> Result<Data<Vec<BankAccountResource>>, AppError> {
+    Ok(Data(
+        service::bank_accounts(&state, access.workspace_id).await?,
+    ))
+}
+
+/// accounting_bank_accounts_create: Add a bank account money can be attributed to.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/bank-accounts", tag = "accounting",
+    operation_id = "accounting_bank_accounts_create",
+    summary = "Add a bank account money can be attributed to",
+    request_body = Create<BankAccountPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<BankAccountResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 409, body = MessageBody, description = "Reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_accounts_create(
+    State(state): State<AppState>,
+    access: Can<Configure>,
+    cmd: Command<Create<BankAccountPayload>>,
+) -> Result<Answer, AppError> {
+    service::create_bank_account(&state, &access, cmd).await
 }

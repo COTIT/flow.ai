@@ -13,9 +13,10 @@ use crate::{
     idempotency::{self, Answer, Command},
     modules::accounting::{
         dto::{
-            AccountChange, AccountPatch, AccountPayload, AccountResource, Acted, Action, Create,
-            Created, NewAccount, NewPeriod, PeriodPayload, PeriodResource, ROLES, Range,
-            SetupInput, SetupPayload, SetupResource, YearPayload, YearResource,
+            AccountChange, AccountPatch, AccountPayload, AccountResource, Acted, Action,
+            BankAccountPayload, BankAccountResource, Create, Created, NewAccount, NewBankAccount,
+            NewPeriod, PeriodPayload, PeriodResource, ROLES, Range, SetupInput, SetupPayload,
+            SetupResource, YearPayload, YearResource,
         },
         gate,
         repo::{self, AccountRow, RangeRow},
@@ -447,6 +448,79 @@ pub async fn create_period(
         .ok_or(AppError::NotFound)?;
     let answer = created(&period_resource(row, ws));
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// Bank accounts of the book (a handful; capped).
+pub async fn bank_accounts(
+    state: &AppState,
+    ws: Uuid,
+) -> Result<Vec<BankAccountResource>, AppError> {
+    Ok(sqlx::query_as(
+        "SELECT id, name, currency_id, account_id, active, version, created_at
+         FROM bank_accounts WHERE workspace_id = $1 ORDER BY name, id LIMIT 500",
+    )
+    .bind(ws)
+    .fetch_all(&state.db)
+    .await?)
+}
+
+/// POST /accounting/bank-accounts: a bank account on an active asset account of the book.
+pub async fn create_bank_account(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    cmd: Command<Create<BankAccountPayload>>,
+) -> Result<Answer, AppError> {
+    const OP: &str = "accounting_bank_accounts_create";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    let NewBankAccount {
+        name,
+        currency_id,
+        account_id,
+    } = &cmd.input.payload;
+    let asset = matches!(
+        repo::account_lock(&mut tx, ws, *account_id, false).await?,
+        Some((t, active, _)) if t == "asset" && active
+    );
+    if !asset {
+        return Err(AppError::field(
+            "payload.account_id",
+            "The account must be an active asset account.",
+        ));
+    }
+    if repo::currency(&mut *tx, ws, *currency_id).await?.is_none() {
+        return Err(AppError::field(
+            "payload.currency_id",
+            "The selected currency is invalid.",
+        ));
+    }
+    let row: BankAccountResource = sqlx::query_as(
+        "INSERT INTO bank_accounts (workspace_id, name, currency_id, account_id, created_by)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, name, currency_id, account_id, active, version, created_at",
+    )
+    .bind(ws)
+    .bind(name)
+    .bind(currency_id)
+    .bind(account_id)
+    .bind(access.user_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(|e| {
+        AppError::unique(
+            e,
+            "bank_accounts_name_key",
+            "payload.name",
+            "The name has already been taken.",
+        )
+    })?;
+    let answer = created(&row);
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[row.id]).await?;
     tx.commit().await?;
     Ok(answer)
 }

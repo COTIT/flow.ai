@@ -19,7 +19,7 @@ use crate::{
             journals::{SourceHeader, SourceLine, post_source_lines},
             repo as accounting,
             service::unsupported,
-            settlement::{self, NewAllocation, NewOpenItem},
+            settlement::{self, NewAllocation, NewOpenItem, Side},
         },
         orders::repo::OrderRow,
         purchasing::service::amount,
@@ -267,11 +267,11 @@ async fn record(
     .into_iter()
     .filter(|l| l.1 > 0 || l.2 > 0)
     .map(|(role, debit, credit, relation_id)| SourceLine {
-        role,
+        side: Side::Role(role),
         debit,
         credit,
         relation_id,
-        account: None,
+        bank_account_id: None,
     })
     .collect();
     let (entry, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;
@@ -434,11 +434,11 @@ pub async fn retail_sale(
     .into_iter()
     .filter(|l| l.1 > 0 || l.2 > 0)
     .map(|(role, debit, credit)| SourceLine {
-        role,
+        side: Side::Role(role),
         debit,
         credit,
         relation_id: None,
-        account: None,
+        bank_account_id: None,
     })
     .collect();
     let (_, effect) = post_source_lines(&mut *conn, ws, &header, &lines).await?;
