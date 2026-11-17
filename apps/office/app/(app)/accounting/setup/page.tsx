@@ -35,6 +35,8 @@ export default function SetupPage() {
   const setup = useAccountingSetupGet(workspaceId, {
     query: { enabled: Boolean(workspaceId) },
   })
+  // Kept here: the form remounts on each saved version, its outcome must survive that.
+  const done = useDone()
   return (
     <>
       <PageHead
@@ -48,13 +50,23 @@ export default function SetupPage() {
         <LoadError error={setup.error} onRetry={() => void setup.refetch()} />
       ) : (
         // Remount on a new version so the form starts from the saved values.
-        <SetupForm key={setup.data.data.version} setup={setup.data.data} />
+        <SetupForm
+          key={setup.data.data.version}
+          setup={setup.data.data}
+          done={done}
+        />
       )}
     </>
   )
 }
 
-function SetupForm({ setup }: { setup: SetupResource }) {
+function SetupForm({
+  setup,
+  done,
+}: {
+  setup: SetupResource
+  done: ReturnType<typeof useDone>
+}) {
   const t = useTranslations()
   const locale = useLocale()
   const word = useWord()
@@ -72,7 +84,6 @@ function SetupForm({ setup }: { setup: SetupResource }) {
     enabled
   )
   const key = useIdempotencyKey()
-  const done = useDone()
   const refresh = () =>
     void queryClient.invalidateQueries({
       queryKey: getAccountingSetupGetQueryKey(workspaceId),

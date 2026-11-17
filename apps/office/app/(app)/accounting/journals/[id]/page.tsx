@@ -295,7 +295,7 @@ export default function JournalPage({
           <p className="text-[13px] break-words">{j.reason}</p>
           {j.reversal_of ? (
             <Link
-              className="text-[13px] font-medium underline-offset-4 hover:underline"
+              className="inline-flex items-center text-[13px] font-medium underline-offset-4 hover:underline max-md:min-h-11"
               href={`/accounting/journals/${j.reversal_of}`}
             >
               {t("accounting.journals.reversalOf")}
@@ -303,7 +303,7 @@ export default function JournalPage({
           ) : null}
           {j.reversed_by ? (
             <Link
-              className="text-[13px] font-medium underline-offset-4 hover:underline"
+              className="inline-flex items-center text-[13px] font-medium underline-offset-4 hover:underline max-md:min-h-11"
               href={`/accounting/journals/${j.reversed_by}`}
             >
               {t("accounting.journals.reversedBy")}

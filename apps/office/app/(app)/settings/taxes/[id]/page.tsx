@@ -230,7 +230,7 @@ export default function TaxProfilePage({
           ) : null}
           {p.corrects_id ? (
             <Link
-              className="text-[13px] font-medium underline-offset-4 hover:underline"
+              className="inline-flex items-center text-[13px] font-medium underline-offset-4 hover:underline max-md:min-h-11"
               href={`/settings/taxes/${p.corrects_id}`}
             >
               {t("taxes.correctsLink")}
@@ -238,7 +238,7 @@ export default function TaxProfilePage({
           ) : null}
           {p.superseded_by_id ? (
             <Link
-              className="text-[13px] font-medium underline-offset-4 hover:underline"
+              className="inline-flex items-center text-[13px] font-medium underline-offset-4 hover:underline max-md:min-h-11"
               href={`/settings/taxes/${p.superseded_by_id}`}
             >
               {t("taxes.supersededLink")}

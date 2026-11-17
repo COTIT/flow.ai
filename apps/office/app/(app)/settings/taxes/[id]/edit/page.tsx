@@ -50,7 +50,7 @@ export default function EditTaxPage({
           title={t("taxes.onlyDrafts")}
           action={
             <Link
-              className="text-sm font-medium underline-offset-4 hover:underline"
+              className="inline-flex items-center text-sm font-medium underline-offset-4 hover:underline max-md:min-h-11"
               href={`/settings/taxes/${p.id}`}
             >
               {t("taxes.backToProfile")}

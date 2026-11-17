@@ -75,11 +75,12 @@ export default function ReportsPage({
   const to = q.to ?? month.to
   const asOf = q.as_of ?? to
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
+  const [kind, setKind] = React.useState<Report>(report)
   // shortcut: the first 100 accounts in the ledger's picker; page these when a book holds more.
   const accounts = useAccountingAccountsList(
     workspaceId,
     { page_size: "100" },
-    { query: { enabled: Boolean(workspaceId) && report === "general-ledger" } }
+    { query: { enabled: Boolean(workspaceId) && kind === "general-ledger" } }
   )
   const go = (next: Query) => {
     const params = new URLSearchParams()
@@ -87,7 +88,6 @@ export default function ReportsPage({
       if (v) params.set(k, v)
     router.push(`?${params}`)
   }
-  const [kind, setKind] = React.useState<Report>(report)
 
   return (
     <>
@@ -236,7 +236,7 @@ function TrialBalance({ from, to }: { from: string; to: string }) {
   const tb = useAccountingTrialBalance(
     workspaceId,
     { from, to },
-    { query: { enabled: Boolean(workspaceId) } }
+    { query: { enabled: Boolean(workspaceId), retry: false } }
   )
   const money = useMoney(tb.data?.data.functional_currency)
   const cols = [
@@ -351,7 +351,7 @@ function Ledger({
   const gl = useAccountingGeneralLedger(
     workspaceId,
     { account_id: account, from, to, page },
-    { query: { enabled: Boolean(workspaceId) } }
+    { query: { enabled: Boolean(workspaceId), retry: false } }
   )
   const money = useMoney(gl.data?.data.functional_currency)
   const cols = [
@@ -499,7 +499,7 @@ function ProfitAndLoss({ from, to }: { from: string; to: string }) {
   const pl = useAccountingProfitAndLoss(
     workspaceId,
     { from, to },
-    { query: { enabled: Boolean(workspaceId) } }
+    { query: { enabled: Boolean(workspaceId), retry: false } }
   )
   const money = useMoney(pl.data?.data.functional_currency)
   const cols = [
@@ -558,7 +558,7 @@ function BalanceSheet({ asOf }: { asOf: string }) {
   const bs = useAccountingBalanceSheet(
     workspaceId,
     { as_of: asOf },
-    { query: { enabled: Boolean(workspaceId) } }
+    { query: { enabled: Boolean(workspaceId), retry: false } }
   )
   const money = useMoney(bs.data?.data.functional_currency)
   const cols = [

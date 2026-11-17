@@ -53,7 +53,7 @@ export default function EditJournalPage({
           title={t("accounting.journals.onlyDrafts")}
           action={
             <Link
-              className="text-sm font-medium underline-offset-4 hover:underline"
+              className="inline-flex items-center text-sm font-medium underline-offset-4 hover:underline max-md:min-h-11"
               href={`/accounting/journals/${j.id}`}
             >
               {t("accounting.journals.backToJournal")}
