@@ -160,6 +160,7 @@ mod till_login;
 mod till_pairing;
 mod till_privileged;
 mod till_quote;
+mod till_refunds;
 mod till_sales;
 mod users;
 mod vat_groups;

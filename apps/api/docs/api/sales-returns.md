@@ -34,7 +34,7 @@ Create `{recognition_id, accounting_date, reason, lines: [{recognition_line_id, 
 - Capacity, shared by every route (this one, order returns, credit notes): per recognition line, Σ draft + posted credits ≤ recognised quantity, under the recognition row lock. A draft reserves capacity only; cancel or reversal frees it.
 - Post (review first; the accounting date must be the book's day): per line the cumulative proportional share of the recognised net and tax (`money_round_div`); the credit reaching the recognised quantity takes the exact rest. A Till receipt's cash rounding R (due − gross, from its `received` journal) is shared the same way by gross, so a full return gives back exactly the cash taken. Credit = net + tax + rounding.
 - Journal `sales_return/<id>/posted`: DR `sales_returns` net, DR `tax_payable` tax, ± `rounding`, CR the sale's receivable role (billed `receivables` or `unbilled_receivables`) for the part applied at once to what the customer still owes, CR `receivables` for the rest.
-- One open item, classification `customer_credit`, role `receivables`, source `sales_return/<id>`, `invoice_id` = the aliased credit note (else null), applied at once to the sale's open receivable. Its residual is the refundable money (later Till / provider refund children allocate against it).
+- One open item, classification `customer_credit`, role `receivables`, source `sales_return/<id>`, `invoice_id` = the aliased credit note (else null), applied at once to the sale's open receivable. Its residual minus pending refund holds (`credit_refund_reservations`) is the refundable money; Till refunds allocate against it (`docs/api/till.md` "Till returns and refunds").
 
 ## Restock
 
@@ -44,7 +44,7 @@ Known limits: the destination must be the warehouse the sale left (other → 422
 
 ## Corrections
 
-- Financial reverse: posted only, the book's day; refused 422 `dependent_effects_exist` while any allocation other than the post's own application uses the credit (refund, other application). Reverses that application, posts the exact inverse journal (`sales_return/<id>/reversed`) and closes the credit item against a `sales_return_reversal` receivable item. State `reversed`; restocks stay.
+- Financial reverse: posted only, the book's day; refused 422 `dependent_effects_exist` while any allocation other than the post's own application uses the credit (refund, other application) or a pending refund hold sits on it. Reverses that application, posts the exact inverse journal (`sales_return/<id>/reversed`) and closes the credit item against a `sales_return_reversal` receivable item. State `reversed`; restocks stay.
 - Restock reverse: exact inverse (`customer_return_reversal`, DR `cogs` or `inventory_adjustment` / CR `inventory`) only when no valued movement came after the restock in its pools and the goods are available and unreserved in their lots (else 422 `dependent_effects_exist` / `insufficient_stock`). The credit stays.
 - The generic journal reverse stays manual-only.
 
@@ -63,4 +63,4 @@ Setup books unchanged.
 
 ## Not yet
 
-Till returns/refunds (`/till/sales/{order}/returns|refunds`), provider refunds and refund reservations (later children allocate against the credit item), restock into another warehouse or bin, SKU mapping, goodwill/price-only credits, foreign-currency sales.
+Office refunds, pending provider-refund holds, restock into another warehouse or bin, SKU mapping, goodwill/price-only credits, foreign-currency sales.

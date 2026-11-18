@@ -47,14 +47,14 @@ type Take = (Uuid, Decimal, bool);
 /// order `o` through one posted canonical return per recognition (oldest first), each
 /// restocked into the order's warehouse at the original booked cost when `restock`. False
 /// when the order has no recognition (sold before activation): the caller returns it
-/// physically only.
+/// physically only. The posted credits' ids (empty = no recognition).
 pub async fn order_returns(
     conn: &mut PgConnection,
     ws: Uuid,
     o: &OrderRow,
-    (lines, restock): (&[(Uuid, Decimal, bool)], bool),
+    (lines, restock, reason): (&[(Uuid, Decimal, bool)], bool, &str),
     by: Uuid,
-) -> Result<bool, AppError> {
+) -> Result<Vec<Uuid>, AppError> {
     let open: Vec<Open> = sqlx::query_as(
         "SELECT l.recognition_id, l.id, l.order_line_id,
                 l.quantity - coalesce((SELECT sum(x.quantity) FROM sales_return_lines x
@@ -72,7 +72,7 @@ pub async fn order_returns(
     .fetch_all(&mut *conn)
     .await?;
     if open.is_empty() {
-        return Ok(false);
+        return Ok(Vec::new());
     }
     // Spread each line over its recognitions, oldest first.
     let mut per: Vec<(Uuid, Vec<Take>)> = Vec::new();
@@ -102,11 +102,12 @@ pub async fn order_returns(
     }
     r.into_result()?;
     let date = shipments::repo::book_today(&mut *conn, ws).await?;
+    let mut credits = Vec::new();
     for (rec, take) in per {
         let sale = super::service::lock_sale(&mut *conn, ws, rec).await?;
         let input = ReturnInput {
             accounting_date: date,
-            reason: format!("return order {}", o.number),
+            reason: reason.to_owned(),
             lines: take.iter().map(|t| (t.0, t.1)).collect(),
         };
         let id = create_locked(
@@ -119,6 +120,7 @@ pub async fn order_returns(
         )
         .await?;
         post_locked(&mut *conn, ws, &sale, id, (date, by)).await?;
+        credits.push(id);
         if !restock {
             continue;
         }
@@ -148,7 +150,7 @@ pub async fn order_returns(
         )
         .await?;
     }
-    Ok(true)
+    Ok(credits)
 }
 
 /// The oldest reviewed legacy cost of order line `line` with room for `q`, if any.
