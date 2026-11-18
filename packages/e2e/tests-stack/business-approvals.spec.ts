@@ -185,18 +185,19 @@ test("approve end to end: decision recorded, NetSuite order queued apart from th
     card.getByTestId("execution-status").getByText("Queued")
   ).toBeVisible()
   await expectNoRawValues(page)
-  // The API recorded one decision and one queued execution; nothing runs it until C4a/C4b.
+  // The API recorded one decision and one execution. The stack's worker may already have run
+  // `wf01_execute` against the fake providers, which create no NetSuite order: never succeeded.
   expect(sql(`SELECT status FROM approval_requests WHERE id = '${r.id}'`)).toBe(
     "approved"
   )
   expect(
     sql(`SELECT count(*) FROM approval_decisions WHERE request_id = '${r.id}'`)
   ).toBe("1")
-  expect(
+  expect(["queued", "running", "blocked"]).toContain(
     sql(
       `SELECT status FROM workflow_executions WHERE approval_request_id = '${r.id}'`
     )
-  ).toBe("queued")
+  )
 })
 
 test("a request that changed after opening answers 409, said in words; Reload approves the new one", async ({
