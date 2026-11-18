@@ -300,6 +300,14 @@ async fn bad_checkouts_are_refused(pool: PgPool) {
 
 #[sqlx::test]
 async fn invalid_customer_data_creates_no_checkout_side_effects(pool: PgPool) {
+    async fn counts(w: &W) -> (i64, i64, i64, i64, i64, i64) {
+        sqlx::query_as("SELECT (SELECT count(*) FROM orders WHERE workspace_id=$1::uuid), (SELECT count(*) FROM stock_reservations WHERE workspace_id=$1::uuid), (SELECT count(*) FROM order_events WHERE workspace_id=$1::uuid), (SELECT count(*) FROM webhook_events WHERE workspace_id=$1::uuid), (SELECT count(*) FROM order_payments WHERE workspace_id=$1::uuid), (SELECT count(*) FROM jobs WHERE workspace_id=$1::uuid)")
+            .bind(&w.api.ws)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap()
+    }
+
     let w = world(pool).await;
     let (status, reply) = w.api.with_base("/webhook-endpoints").call(
         Method::POST,
@@ -308,24 +316,7 @@ async fn invalid_customer_data_creates_no_checkout_side_effects(pool: PgPool) {
         &w.api.owner,
     ).await;
     assert_eq!(status, StatusCode::CREATED, "{reply}");
-    let mut before = Vec::new();
-    for table in [
-        "orders",
-        "stock_reservations",
-        "order_events",
-        "webhook_events",
-        "order_payments",
-        "jobs",
-    ] {
-        let count: i64 = sqlx::query_scalar(&format!(
-            "SELECT count(*) FROM {table} WHERE workspace_id=$1::uuid"
-        ))
-        .bind(&w.api.ws)
-        .fetch_one(&w.api.pool)
-        .await
-        .unwrap();
-        before.push((table, count));
-    }
+    let before = counts(&w).await;
     let country = "customer.shipping_address.country";
     let cases = [
         ("/shipping_address/country", Value::Null, country),
@@ -374,19 +365,9 @@ async fn invalid_customer_data_creates_no_checkout_side_effects(pool: PgPool) {
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{field}: {reply}");
         assert!(reply["errors"][field].is_array(), "{field}: {reply}");
     }
-    for (table, count) in before {
-        let after: i64 = sqlx::query_scalar(&format!(
-            "SELECT count(*) FROM {table} WHERE workspace_id=$1::uuid"
-        ))
-        .bind(&w.api.ws)
-        .fetch_one(&w.api.pool)
-        .await
-        .unwrap();
-        assert_eq!(after, count, "invalid checkout changed {table}");
-        if matches!(table, "orders" | "order_events" | "order_payments") {
-            assert_eq!(after, 0, "invalid checkout created {table}");
-        }
-    }
+    let after = counts(&w).await;
+    assert_eq!(after, before, "invalid checkout changed persisted state");
+    assert_eq!((after.0, after.2, after.4), (0, 0, 0));
     assert!(w.fake.intents().is_empty());
     assert_eq!(available(&w).await, "5.00");
 }
