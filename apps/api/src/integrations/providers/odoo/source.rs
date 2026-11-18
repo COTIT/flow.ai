@@ -1,5 +1,6 @@
 //! `PurchaseRequestSource` for Odoo: RFQ cursor poll (facts O1), full-scan ids, batch read into
-//! neutral DTOs with exact decimals (O2, O6 display lines dropped) and the O5 approval controls.
+//! neutral DTOs with exact decimals (O2, O6 display lines dropped; C6-O1 down-payment lines kept and
+//! flagged) and the O5 approval controls.
 //! `picking_type_id` (O4) is never requested; WF-01 takes the location from the pair config.
 //! No money checks here (O6 → C4a/C4b).
 
@@ -38,6 +39,7 @@ pub(super) const ORDER_FIELDS: &[&str] = &[
 pub(super) const LINE_FIELDS: &[&str] = &[
     "order_id",
     "display_type",
+    "is_downpayment",
     "product_id",
     "product_qty",
     "product_uom_id",
@@ -136,15 +138,25 @@ fn line(row: &Value, labels: &mut BTreeMap<String, String>) -> Result<RequestLin
             .ok_or_else(|| unreadable("tax_ids"))?,
         _ => return Err(unreadable("tax_ids")),
     };
+    // Down-payment lines may have no product or uom (purchase_order_line.py#L105-L107); kept, never skipped.
+    let downpayment = row.get("is_downpayment").and_then(Value::as_bool) == Some(true);
+    let mut m2o_line = |field: &str, kind: &str| {
+        if downpayment && m2o(row, field).is_none() {
+            Ok(String::new())
+        } else {
+            m2o_req(row, field, kind, labels)
+        }
+    };
     Ok(RequestLine {
         id: id_of(row)?.to_string(),
-        product_id: m2o_req(row, "product_id", "product", labels)?,
-        uom_id: m2o_req(row, "product_uom_id", "uom", labels)?,
+        product_id: m2o_line("product_id", "product")?,
+        uom_id: m2o_line("product_uom_id", "uom")?,
         quantity: dec(row, "product_qty")?,
         price_unit: dec(row, "price_unit")?,
         subtotal: dec(row, "price_subtotal")?,
         tax_ids,
         date_planned: text(row, "date_planned"),
+        downpayment,
     })
 }
 

@@ -332,6 +332,7 @@ Required permission (D4):
 - `amount_not_exact`
 - `rate_precision`
 - `untotalled_lines` (P2)
+- `downpayment_line` (C6-O1: the request has an Odoo down-payment line, which WF-01 does not support; once per request)
 - P1/P2 computation is **per R1 O6** (PLAN P-3). Only the codes are frozen; no rounding formula is.
 - `connection_inactive:<connection_id>`
 
@@ -365,7 +366,7 @@ Revisions (R3-§4): a new row gets `revision = max(revision for subject) + 1`.
 Terminal: `cancelled`, `succeeded`, `resolved_manual`, `failed`. `succeeded_with_variance` is open until reviewed. A `reject_variance` keeps the status and leaves the incident open.
 
 `reason` codes:
-- blocked: `connection_unauthorized`, `connection_expired`, `connection_inactive`, `permission_denied`, `validation_rejected`, `mapping_stale`, `mapping_changed`, `approver_revoked`, `rate_precision`, `untotalled_lines`, `pair_paused`
+- blocked: `connection_unauthorized`, `connection_expired`, `connection_inactive`, `permission_denied`, `validation_rejected`, `mapping_stale`, `mapping_changed`, `approver_revoked`, `rate_precision`, `untotalled_lines`, `downpayment_line`, `pair_paused`
 - cancelled: `source_changed`
 - failed: `attempts_exhausted`
 - resolved_manual: copy of `resolution`
@@ -504,6 +505,7 @@ pub enum SourceState { Draft, Sent, ToApprove, Confirmed, Cancelled, Other(Strin
 pub struct RequestLine {
     pub id: String, pub product_id: String, pub uom_id: String, pub quantity: Decimal, pub price_unit: Decimal,
     pub subtotal: Decimal, pub tax_ids: Vec<String>, pub date_planned: Option<String>,
+    pub downpayment: bool, // C6-O1: Odoo `is_downpayment`; product_id/uom_id are "" when the line has none
 }
 pub struct SourceControls { pub company_id: String, pub two_step: bool, pub threshold_zero: bool } // R3-§2
 

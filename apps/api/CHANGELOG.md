@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WF-01 Odoo down-payment lines (C6-O1). The Odoo read asks for `is_downpayment`; a down-payment line with no product no longer fails the whole batch. It is kept (money never dropped), flagged on `RequestLine.downpayment`, and blocks only its RFQ with `downpayment_line` (intake) or the execution with `downpayment_line` (pre-check, before write intent). UI text in en/sw/nl. No migration.
 - WF-01 execute and reconcile, Verzo C4b (`docs/api/integrations.md` "WF-01 execute and reconcile"; no migration).
   - **`wf01_execute`:**
     - claims or takes over the run (the job lease is the owner token);

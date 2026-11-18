@@ -120,7 +120,8 @@ pub async fn evaluate(
         ("vendor", &req.vendor_id),
         ("currency", &req.currency_id),
     ];
-    for l in &req.lines {
+    // Down-payment lines block the request anyway; their product/uom lookups would only add noise.
+    for l in req.lines.iter().filter(|l| !l.downpayment) {
         wanted.push(("product", &l.product_id));
         wanted.push(("uom", &l.uom_id));
     }
@@ -178,11 +179,16 @@ pub async fn evaluate(
     let checked = money::check(req);
     let mut lines = Vec::with_capacity(req.lines.len());
     for (l, subtotal_minor) in req.lines.iter().zip(&checked.subtotals_minor) {
+        let (product_t, uom_t) = if l.downpayment {
+            (None, None)
+        } else {
+            (target("product", &l.product_id), target("uom", &l.uom_id))
+        };
         lines.push(json!({
             "source_line_id": l.id,
-            "product": {"source_id": l.product_id, "target_id": target("product", &l.product_id),
+            "product": {"source_id": l.product_id, "target_id": product_t,
                         "label": label("product", &l.product_id)},
-            "uom": {"source_id": l.uom_id, "target_id": target("uom", &l.uom_id),
+            "uom": {"source_id": l.uom_id, "target_id": uom_t,
                     "label": label("uom", &l.uom_id)},
             "quantity": format!("{:.8}", l.quantity),
             "price_unit": format!("{:.8}", l.price_unit),
@@ -195,6 +201,9 @@ pub async fn evaluate(
         Some(b) => target("user", b).and_then(|t| Uuid::parse_str(&t).ok()),
         None => None,
     };
+    if req.lines.iter().any(|l| l.downpayment) {
+        reasons.push("downpayment_line".into());
+    }
     reasons.extend(checked.reasons.iter().cloned());
     if !pair.target_active {
         reasons.push(format!("connection_inactive:{}", pair.target));

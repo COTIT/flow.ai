@@ -723,6 +723,22 @@ async fn prechecks_block_before_write_intent(pool: PgPool) {
     assert!(x.kinds(e).await.contains(&"precheck_failed".to_string()));
 }
 
+// C6-O1: a line flips only `is_downpayment` after approval (same fingerprint) → blocked, 0 POSTs.
+#[sqlx::test]
+async fn o1_downpayment_flip_after_approval_blocks_before_write(pool: PgPool) {
+    let x = x(pool).await;
+    let e = x.w.approve(17, "queued", "prechecking").await;
+    x.w.edit(17, |o| o.lines[0].downpayment = true);
+    assert_eq!(x.exec(e).await, Step::Done);
+    let r = x.row(e).await;
+    assert_eq!(
+        (r.status.as_str(), r.reason.as_deref()),
+        ("blocked", Some("downpayment_line"))
+    );
+    assert_eq!(r.remote_attempts, 0);
+    assert_eq!(x.posts(), 0);
+}
+
 // NetSuite answers: 400 → blocked(validation_rejected); 429 → awaiting, transient, rejected.
 #[sqlx::test]
 async fn rejected_answers_settle_the_attempt(pool: PgPool) {

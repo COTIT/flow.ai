@@ -84,6 +84,7 @@
       "amount_not_exact": "Kiasi hakiwezi kunakiliwa sawasawa",
       "rate_precision": "Bei ina desimali zaidi ya NetSuite inavyokubali",
       "untotalled_lines": "Baadhi ya mistari haina jumla",
+      "downpayment_line": "Ombi hili la bei lina mstari wa malipo ya awali, ambao WF-01 haiutumii",
       "connection_inactive": "Muunganisho mmoja hauko hai",
       "unknown": "Imezuiliwa kwa sababu nyingine"
     },
@@ -105,6 +106,7 @@
       "approver_revoked": "Mwidhinishaji amepoteza haki ya kuidhinisha",
       "rate_precision": "Bei ina desimali zaidi ya NetSuite inavyokubali",
       "untotalled_lines": "Baadhi ya mistari haina jumla",
+      "downpayment_line": "Ombi hili la bei lina mstari wa malipo ya awali, ambao WF-01 haiutumii",
       "pair_paused": "Mtiririko umesitishwa",
       "source_changed": "Oda ya Odoo imebadilika",
       "attempts_exhausted": "Imeacha baada ya majaribio kadhaa",

@@ -141,6 +141,7 @@ SHA-256 hex over canonical JSON with sorted keys and decimals as normalized stri
 - **P1 `rate_precision`.** For each line, `price_unit × product_qty` must be exact in minor units.
 - **P1 `untotalled_lines`.** Each line's `price_subtotal` must equal that product.
 - **P2 `untotalled_lines`.** `amount_untaxed` must equal Odoo's untaxed total. When every line base is exact, `round_per_line` (Σ round(line)) and `round_globally` (round(Σ line)) agree, so the company's rounding method is not needed.
+- **`downpayment_line`.** An Odoo down-payment line (`is_downpayment`, may have no product) is kept in the snapshot and its subtotal counts, but WF-01 does not support it: the request is blocked with this code once, and its product and unit mapping checks are skipped. Only that RFQ blocks; the rest of the batch carries on.
 - **What blocks for now.** Discounts, price-included taxes, currencies with a rounding step that is not a power of ten (for example 0.05), and sub-cent unit prices × quantity block as `rate_precision` or `untotalled_lines`. They stay blocked until the adapter reads the discount, the rounding method and the tax facts, verified on a sandbox.
 - **For C4b.** `money::odoo_untaxed(lines, PerLine | Globally, decimals)` gives Odoo's verified total. For example, Odoo's own docstring case, 2 × (12.12 × 12.12), gives 293.78 per line and 293.79 globally.
 

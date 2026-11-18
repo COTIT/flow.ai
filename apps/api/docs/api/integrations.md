@@ -266,6 +266,7 @@ Verified against the documented contract with an in-process fake Odoo and fake N
    - each connection must be usable, with its expiry applied (`connection_unauthorized`, `connection_expired`, `connection_inactive`);
    - the RFQ is read again. If it is gone, no longer draft/sent, or its fingerprint changed, the run goes to `cancelled` (`source_changed`), the approval to `invalidated`, and the next revision is created in the same transaction;
    - the C4a money check runs again (`rate_precision`, `untotalled_lines`);
+   - no line may be an Odoo down-payment line (`downpayment_line`); the fingerprint leaves the flag out, so this check catches a line that turned into one after approval;
    - the snapshot quantity and price must equal the exact source values (`rate_precision`);
    - snapshot mappings and the default location must be unchanged (`mapping_changed`);
    - the approver must still be an active member with the permission (`approver_revoked`).

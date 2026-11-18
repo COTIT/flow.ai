@@ -357,6 +357,93 @@ async fn read_normalises_and_reports_absent_ids_as_gone() {
     assert_eq!(seen[2].body["context"], json!({"active_test": false}));
 }
 
+/// O1: Odoo 19 lets a down-payment line have no product (purchase_order_line.py#L105-L107).
+/// The line is kept (its money counts), flagged, and the rest of the batch still reads.
+#[tokio::test]
+async fn downpayment_line_without_product_is_kept_flagged_and_batch_reads() {
+    let (base, f) = fake(
+        |model, _| match model {
+            "purchase.order/search_read" => ok(json!([
+                {"id": 31, "state": "draft", "company_id": 1, "partner_id": 2, "currency_id": 3,
+                 "user_id": false, "date_order": false,
+                 "amount_untaxed": 150, "amount_tax": 0, "amount_total": 150},
+                {"id": 32, "state": "draft", "company_id": 1, "partner_id": 2, "currency_id": 3,
+                 "user_id": false, "date_order": false,
+                 "amount_untaxed": 10, "amount_tax": 0, "amount_total": 10}
+            ])),
+            "purchase.order.line/search_read" => ok(json!([
+                {"id": 301, "order_id": [31, "P00031"], "display_type": false,
+                 "is_downpayment": false, "product_id": [55, "Oak"], "product_qty": 1,
+                 "product_uom_id": [1, "Units"], "price_unit": 100, "price_subtotal": 100,
+                 "tax_ids": [], "date_planned": false},
+                {"id": 302, "order_id": [31, "P00031"], "display_type": false,
+                 "is_downpayment": true, "product_id": false, "product_qty": 1,
+                 "product_uom_id": false, "price_unit": 50, "price_subtotal": 50,
+                 "tax_ids": [], "date_planned": false},
+                {"id": 303, "order_id": [32, "P00032"], "display_type": false,
+                 "is_downpayment": false, "product_id": [55, "Oak"], "product_qty": 1,
+                 "product_uom_id": [1, "Units"], "price_unit": 10, "price_subtotal": 10,
+                 "tax_ids": [], "date_planned": false}
+            ])),
+            "res.currency/search_read" => {
+                ok(json!([{"id": 3, "name": "EUR", "decimal_places": 2}]))
+            }
+            other => panic!("unexpected {other}"),
+        },
+        None,
+    )
+    .await;
+    let c = client(&base, None);
+    let (found, gone) = c.read(&["31".into(), "32".into()]).await.unwrap();
+    assert!(gone.is_empty());
+    assert_eq!(found.len(), 2, "one odd RFQ does not fail the batch");
+    let r31 = found.iter().find(|r| r.id == "31").unwrap();
+    assert_eq!(r31.lines.len(), 2, "down-payment line never skipped");
+    let dp = r31.lines.iter().find(|l| l.id == "302").unwrap();
+    assert!(dp.downpayment);
+    assert_eq!((dp.product_id.as_str(), dp.uom_id.as_str()), ("", ""));
+    assert_eq!(dp.subtotal, dec("50"));
+    assert!(
+        !r31.lines
+            .iter()
+            .find(|l| l.id == "301")
+            .unwrap()
+            .downpayment
+    );
+    let r32 = found.iter().find(|r| r.id == "32").unwrap();
+    assert!(!r32.lines[0].downpayment);
+    let seen = f.seen.lock().unwrap().clone();
+    let fields = seen[1].body["fields"].as_array().unwrap();
+    assert!(fields.contains(&json!("is_downpayment")));
+}
+
+/// A normal (not down-payment) line with no product is still unreadable.
+#[tokio::test]
+async fn line_without_product_and_not_downpayment_stays_unreadable() {
+    let (base, _) = fake(
+        |model, _| match model {
+            "purchase.order/search_read" => ok(json!([
+                {"id": 31, "state": "draft", "company_id": 1, "partner_id": 2, "currency_id": 3,
+                 "user_id": false, "date_order": false,
+                 "amount_untaxed": 50, "amount_tax": 0, "amount_total": 50}
+            ])),
+            "purchase.order.line/search_read" => ok(json!([
+                {"id": 302, "order_id": [31, "P00031"], "display_type": false,
+                 "is_downpayment": false, "product_id": false, "product_qty": 1,
+                 "product_uom_id": false, "price_unit": 50, "price_subtotal": 50,
+                 "tax_ids": [], "date_planned": false}
+            ])),
+            "res.currency/search_read" => {
+                ok(json!([{"id": 3, "name": "EUR", "decimal_places": 2}]))
+            }
+            other => panic!("unexpected {other}"),
+        },
+        None,
+    )
+    .await;
+    assert!(client(&base, None).read(&["31".into()]).await.is_err());
+}
+
 #[tokio::test]
 async fn read_of_only_absent_ids_makes_one_call() {
     let (base, f) = fake(|_, _| ok(json!([])), None).await;
