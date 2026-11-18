@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inventory_value_entries (workspace_id, pool_id, sequence, movement_id,\n             accounting_date, classification, source_kind, source_id, quantity_before,\n             quantity_delta, quantity_after, value_before, value_delta, value_after)\n         VALUES ($1, $2, $3, NULL, $4, 'cost_adjustment', $5, $6, $7, 0, $7, $8, $9, $10)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "inventory_value_entries",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Date",
+        "Text",
+        "Uuid",
+        "Numeric",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f4832280c1efe9c69b66e43786604c2f568c8227a4daf43ec1723694998066f6"
+}

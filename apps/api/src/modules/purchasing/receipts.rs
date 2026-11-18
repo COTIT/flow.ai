@@ -61,7 +61,7 @@ fn backdated() -> AppError {
     )
 }
 
-fn snapshot(r: &Rate) -> RateSnapshot {
+pub(crate) fn snapshot(r: &Rate) -> RateSnapshot {
     RateSnapshot {
         rate: r.0.normalize().to_string(),
         inverse: r.1,
@@ -71,7 +71,7 @@ fn snapshot(r: &Rate) -> RateSnapshot {
 }
 
 /// `from` → `to` rate in force on `on`: identity, direct, else inverse; never a guess.
-async fn rate(
+pub(crate) async fn rate(
     conn: &mut PgConnection,
     ws: Uuid,
     from: &CurrencyRef,
