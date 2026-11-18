@@ -43,7 +43,7 @@ test("payment reconciliation refreshes without creating a payment", async ({
   await expect(
     page.getByRole("heading", { name: "Payments", exact: true })
   ).toBeVisible()
-  await expect(page.getByText("€12.50", { exact: true })).toBeVisible()
+  await expect(page.getByText("€12.50 EUR", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: "Refresh status" }).click()
   await expect
     .poll(
@@ -75,7 +75,7 @@ test("payment details preserve keyboard focus without writing to the API", async
   await expect(dialog).toBeVisible()
   await expect(
     dialog.getByText(payment.payment_id, { exact: true })
-  ).toBeVisible()
+  ).not.toBeVisible()
   for (const key of ["Tab", "Tab", "Shift+Tab", "Tab", "Tab"]) {
     await page.keyboard.press(key)
     await expect
@@ -440,7 +440,7 @@ test("payment detail and refresh require view permission for that payment's owne
   await page.goto("/payments")
   const invoiceCard = page
     .getByRole("region")
-    .filter({ hasText: "invoice-payment" })
+    .filter({ has: page.locator("#payment-invoice-payment") })
   await expect(
     invoiceCard.getByRole("button", { name: "Payment details" })
   ).toBeDisabled()
@@ -449,7 +449,7 @@ test("payment detail and refresh require view permission for that payment's owne
   ).toBeDisabled()
   const orderCard = page
     .getByRole("region")
-    .filter({ hasText: "order-payment" })
+    .filter({ has: page.locator("#payment-order-payment") })
   await orderCard.getByRole("button", { name: "Payment details" }).click()
   await expect(
     page.getByRole("dialog", { name: "Payment details" })
@@ -1162,4 +1162,101 @@ test("blocked Globadyme setup can recover to legacy without changing stored slot
       payment: { ...integrations.payment, active_provider: null },
     },
   })
+})
+
+test("payment evidence separates capture from pending records and settlement", async ({
+  page,
+  api,
+}) => {
+  const paid = {
+    ...payment,
+    payment_id: "internal-payment-reference",
+    status: "paid",
+    amount: 1604,
+    currency: "USD",
+    kind: "payment",
+    environment: "sandbox",
+    captured_transaction_id: "captured-provider-reference",
+    attention: true,
+    attention_reason: "Settlement requires review.",
+  }
+  api.on("GET", "/workspace/:ws/payments", () => paged([paid]))
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: {
+      ...paid,
+      transactions: [
+        {
+          id: "pending-provider-reference",
+          amount: "16.04000000",
+          currency: "USD",
+          status: "PENDING",
+          settled: false,
+          created: "2026-11-18T07:52:57.163795",
+        },
+        {
+          id: "captured-provider-reference",
+          amount: "16.04000000",
+          currency: "USD",
+          status: "PROCESSED",
+          settled: false,
+          created: "2026-11-18T07:52:57.840935",
+        },
+      ],
+      chargebacks: [],
+    },
+  }))
+  await page.goto("/payments")
+  await expect(page.getByText(paid.payment_id, { exact: true })).toHaveCount(0)
+  await expect(page.getByText("Paid", { exact: true })).toBeVisible()
+  await expect(page.getByText("Pending review", { exact: true })).toBeVisible()
+  await page
+    .getByRole("button", { name: "Payment details", exact: true })
+    .click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await expect(dialog.getByText("Paid", { exact: true })).toBeVisible()
+  const transactions = dialog.getByRole("region", {
+    name: "Transactions and settlements",
+  })
+  await expect(transactions.getByRole("listitem")).toHaveCount(2)
+  await expect(
+    transactions
+      .getByRole("listitem")
+      .first()
+      .getByText("Confirmed charge", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Confirmed charge", { exact: true })
+  ).toHaveCount(1)
+  await expect(transactions.getByText("Pending", { exact: true })).toBeVisible()
+  await expect(
+    transactions.getByText("Processed", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Not settled", { exact: true })
+  ).toHaveCount(2)
+  await expect(
+    transactions.getByText("$16.04 USD", { exact: true })
+  ).toHaveCount(2)
+  await expect(
+    dialog.getByText("No chargebacks recorded.", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Provider time · timezone not supplied", {
+      exact: true,
+    })
+  ).toHaveCount(2)
+  for (const reference of [
+    paid.payment_id,
+    "pending-provider-reference",
+    "captured-provider-reference",
+  ])
+    await expect(dialog.getByText(reference, { exact: true })).not.toBeVisible()
+  await expect(
+    dialog.getByText("2026-11-18T07:52:57.163795", { exact: true })
+  ).toHaveCount(0)
+  await expectFits(page)
+  const refs = dialog.locator("details").last()
+  await refs.locator("summary").click()
+  await expect(refs.getByText(paid.payment_id, { exact: true })).toBeVisible()
+  expect(api.calls.filter((call) => call.method !== "GET")).toHaveLength(0)
 })
