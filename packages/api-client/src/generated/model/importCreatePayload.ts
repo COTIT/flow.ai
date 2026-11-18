@@ -23,10 +23,13 @@ export interface ImportCreatePayload {
   file_hash?: string | null;
   /** @nullable */
   filename?: string | null;
-  /** products: `{operation: create|update, match_key}`; relations: `{}`. */
+  /**
+     * products: `{operation: create|update, match_key}`; relations: `{}`; bank_statement:
+     * `{bank_account_id, reference, start_date, end_date, opening_balance, closing_balance}`.
+     */
   mapping: ImportCreatePayloadMapping;
   /**
-     * `products` or `relations`.
+     * `products`, `relations` or `bank_statement`.
      * @nullable
      */
   profile?: string | null;

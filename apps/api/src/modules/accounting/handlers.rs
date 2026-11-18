@@ -778,7 +778,7 @@ pub async fn bank_accounts_create(
 
 /// bank_statements_list: List bank statements, newest first.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/accounting/bank-statements", tag = "accounting",
+    get, path = "/workspace/{workspace}/accounting/bank-statements", tag = "bank_statements",
     operation_id = "bank_statements_list",
     summary = "List bank statements, newest first",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
@@ -802,7 +802,7 @@ pub async fn bank_statements_list(
 
 /// bank_statements_get: One bank statement.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}", tag = "accounting",
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}", tag = "bank_statements",
     operation_id = "bank_statements_get",
     summary = "One bank statement",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id")),
@@ -825,8 +825,8 @@ pub async fn bank_statements_get(
 
 /// bank_statement_lines: Lines of a bank statement with their live match and residual.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}/lines", tag = "accounting",
-    operation_id = "bank_statement_lines",
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}/lines", tag = "bank_statements",
+    operation_id = "bank_statements_lines",
     summary = "Lines of a bank statement with their live match and residual",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id"), ListQuery),
     responses(
@@ -850,7 +850,7 @@ pub async fn bank_statement_lines(
 
 /// bank_reconciliations_create: Match a statement line to posted bank journal lines.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/accounting/bank-reconciliations", tag = "accounting",
+    post, path = "/workspace/{workspace}/accounting/bank-reconciliations", tag = "bank_reconciliations",
     operation_id = "bank_reconciliations_create",
     summary = "Match a statement line to posted bank journal lines",
     request_body = Create<ReconcilePayload>,
@@ -874,7 +874,7 @@ pub async fn bank_reconciliations_create(
 
 /// bank_reconciliations_reverse: Reverse a match; the statement line and capacity are free again.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/accounting/bank-reconciliations/{reconciliation}/reverse", tag = "accounting",
+    post, path = "/workspace/{workspace}/accounting/bank-reconciliations/{reconciliation}/reverse", tag = "bank_reconciliations",
     operation_id = "bank_reconciliations_reverse",
     summary = "Reverse a match; the statement line and capacity are free again",
     request_body = Action<UnmatchPayload>,

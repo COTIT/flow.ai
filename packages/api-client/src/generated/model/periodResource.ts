@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { RevaluationRef } from './revaluationRef';
 
 /**
  * A posting period `[start_date, end_date)` inside a fiscal year.
@@ -16,6 +17,7 @@ export interface PeriodResource {
   end_date: string;
   fiscal_year_id: string;
   id: string;
+  last_revaluation?: RevaluationRef | null;
   start_date: string;
   state: string;
   updated_at: string;

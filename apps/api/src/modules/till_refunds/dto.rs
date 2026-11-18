@@ -91,6 +91,7 @@ impl Validate for ReturnReviewRequest {
 
 /// POST /till/sales/{order}/returns payload.
 #[derive(Deserialize, ToSchema)]
+#[schema(as = TillReturnPayload)]
 pub struct ReturnPayload {
     #[serde(flatten)]
     review: ReturnReviewRequest,

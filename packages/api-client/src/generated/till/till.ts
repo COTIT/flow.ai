@@ -26,8 +26,10 @@ import type {
 
 import type {
   CountRequest,
+  CreateRefundPayload,
   CreateRegisterRequest,
   CreateTillAdjustPayload,
+  CreateTillReturnPayload,
   CreateTillUserRequest,
   CreateVaultRequest,
   EnvelopeAdjustReviewResource,
@@ -39,14 +41,18 @@ import type {
   EnvelopePairingCode,
   EnvelopePrivilegedSessionResource,
   EnvelopeQuoteResource,
+  EnvelopeRefundReview,
   EnvelopeRegisterKeyed,
+  EnvelopeReturnReview,
   EnvelopeSaleResource,
   EnvelopeSessionResource,
   EnvelopeShiftResource,
   EnvelopeTillLoginResource,
+  EnvelopeTillRefundResource,
   EnvelopeTillUserResource,
   EnvelopeTransferResource,
   EnvelopeVaultResource,
+  EnvelopeVecSalesReturnResource,
   EnvelopeVecTillUserBrief,
   EnvelopeVecTillUserResource,
   EnvelopeVecVaultResource,
@@ -54,12 +60,16 @@ import type {
   PaginatedRegisterResource,
   PaginatedSaleResource,
   PaginatedShiftResource,
+  PaginatedTillRefundResource,
   PairRequest,
   QuoteRequest,
+  RefundReviewRequest,
+  ReturnReviewRequest,
   SaleRequest,
   TillCatalogPage,
   TillCatalogParams,
   TillLoginRequest,
+  TillRefundsListParams,
   TillRegistersListParams,
   TillReviewRequest,
   TillSalesListParams,
@@ -1451,6 +1461,499 @@ export function useTillSalesGet<TData = Awaited<ReturnType<typeof tillSalesGet>>
 
 
 /**
+ * @summary List a till sale's refunds
+ */
+export const tillRefundsList = (
+    workspace: string,
+    order: string,
+    params?: TillRefundsListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedTillRefundResource>(
+      {url: `/workspace/${workspace}/till/sales/${order}/refunds`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillRefundsListQueryKey = (workspace: string,
+    order: string,
+    params?: TillRefundsListParams,) => {
+    return [
+    `/workspace/${workspace}/till/sales/${order}/refunds`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getTillRefundsListQueryOptions = <TData = Awaited<ReturnType<typeof tillRefundsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    order: string,
+    params?: TillRefundsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillRefundsListQueryKey(workspace,order,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillRefundsList>>> = ({ signal }) => tillRefundsList(workspace,order,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && order !== null && order !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillRefundsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillRefundsListQueryResult = NonNullable<Awaited<ReturnType<typeof tillRefundsList>>>
+export type TillRefundsListQueryError = ErrorType<MessageBody>
+
+
+export function useTillRefundsList<TData = Awaited<ReturnType<typeof tillRefundsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params: undefined |  TillRefundsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillRefundsList>>,
+          TError,
+          Awaited<ReturnType<typeof tillRefundsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillRefundsList<TData = Awaited<ReturnType<typeof tillRefundsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params?: TillRefundsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillRefundsList>>,
+          TError,
+          Awaited<ReturnType<typeof tillRefundsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillRefundsList<TData = Awaited<ReturnType<typeof tillRefundsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params?: TillRefundsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List a till sale's refunds
+ */
+
+export function useTillRefundsList<TData = Awaited<ReturnType<typeof tillRefundsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params?: TillRefundsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillRefundsListQueryOptions(workspace,order,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Member bearer + `X-Till-Session` (D14). Journal DR receivables / CR cash (drawer refund row) or provider_clearing (card_recorded: no drawer movement, no gateway call). Amount in integer minor units.
+ * @summary Refund a customer credit at the till
+ */
+export const tillRefundsCreate = (
+    workspace: string,
+    order: string,
+    createRefundPayload: BodyType<CreateRefundPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeTillRefundResource>(
+      {url: `/workspace/${workspace}/till/sales/${order}/refunds`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createRefundPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillRefundsCreateMutationKey = () => ['tillRefundsCreate'] as const;
+
+export const getTillRefundsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillRefundsCreate>>, TError,TillRefundsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillRefundsCreate>>, TError,TillRefundsCreateMutationVariables, TContext> => {
+
+const mutationKey = getTillRefundsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillRefundsCreate>>, TillRefundsCreateMutationVariables> = (props) => {
+          const {workspace,order,data} = props ?? {};
+
+          return  tillRefundsCreate(workspace,order,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillRefundsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillRefundsCreate>>>
+    export type TillRefundsCreateMutationBody = BodyType<CreateRefundPayload>
+    export type TillRefundsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillRefundsCreateMutationVariables = {workspace: string;order: string;data: BodyType<CreateRefundPayload>}
+
+    /**
+ * @summary Refund a customer credit at the till
+ */
+export const useTillRefundsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillRefundsCreate>>, TError,TillRefundsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillRefundsCreate>>,
+        TError,
+        TillRefundsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillRefundsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * Member bearer + `X-Till-Session`. Cash: the sale's own register, open shift, enough drawer, a multiple of the cash step. card_recorded: any register, the terminal's refund reference, confirmed.
+ * @summary Preview a till refund (no writes)
+ */
+export const tillRefundsCreateReview = (
+    workspace: string,
+    order: string,
+    refundReviewRequest: BodyType<RefundReviewRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeRefundReview>(
+      {url: `/workspace/${workspace}/till/sales/${order}/refunds/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: refundReviewRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillRefundsCreateReviewMutationKey = () => ['tillRefundsCreateReview'] as const;
+
+export const getTillRefundsCreateReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillRefundsCreateReview>>, TError,TillRefundsCreateReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillRefundsCreateReview>>, TError,TillRefundsCreateReviewMutationVariables, TContext> => {
+
+const mutationKey = getTillRefundsCreateReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillRefundsCreateReview>>, TillRefundsCreateReviewMutationVariables> = (props) => {
+          const {workspace,order,data} = props ?? {};
+
+          return  tillRefundsCreateReview(workspace,order,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillRefundsCreateReviewMutationResult = NonNullable<Awaited<ReturnType<typeof tillRefundsCreateReview>>>
+    export type TillRefundsCreateReviewMutationBody = BodyType<RefundReviewRequest>
+    export type TillRefundsCreateReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillRefundsCreateReviewMutationVariables = {workspace: string;order: string;data: BodyType<RefundReviewRequest>}
+
+    /**
+ * @summary Preview a till refund (no writes)
+ */
+export const useTillRefundsCreateReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillRefundsCreateReview>>, TError,TillRefundsCreateReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillRefundsCreateReview>>,
+        TError,
+        TillRefundsCreateReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillRefundsCreateReviewMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Get a till refund
+ */
+export const tillRefundsGet = (
+    workspace: string,
+    order: string,
+    refund: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeTillRefundResource>(
+      {url: `/workspace/${workspace}/till/sales/${order}/refunds/${refund}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillRefundsGetQueryKey = (workspace: string,
+    order: string,
+    refund: string,) => {
+    return [
+    `/workspace/${workspace}/till/sales/${order}/refunds/${refund}`
+    ] as const;
+    }
+
+
+export const getTillRefundsGetQueryOptions = <TData = Awaited<ReturnType<typeof tillRefundsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    order: string,
+    refund: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillRefundsGetQueryKey(workspace,order,refund);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillRefundsGet>>> = ({ signal }) => tillRefundsGet(workspace,order,refund, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && order !== null && order !== undefined && refund !== null && refund !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillRefundsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillRefundsGetQueryResult = NonNullable<Awaited<ReturnType<typeof tillRefundsGet>>>
+export type TillRefundsGetQueryError = ErrorType<MessageBody>
+
+
+export function useTillRefundsGet<TData = Awaited<ReturnType<typeof tillRefundsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    refund: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillRefundsGet>>,
+          TError,
+          Awaited<ReturnType<typeof tillRefundsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillRefundsGet<TData = Awaited<ReturnType<typeof tillRefundsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    refund: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillRefundsGet>>,
+          TError,
+          Awaited<ReturnType<typeof tillRefundsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillRefundsGet<TData = Awaited<ReturnType<typeof tillRefundsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    refund: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a till refund
+ */
+
+export function useTillRefundsGet<TData = Awaited<ReturnType<typeof tillRefundsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    refund: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillRefundsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillRefundsGetQueryOptions(workspace,order,refund,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Member bearer + `X-Till-Session` (D14). One posted receipt credit per recognised sale (and restock when asked), exactly as the review showed.
+ * @summary Return till sale lines as a customer credit
+ */
+export const tillSalesReturn = (
+    workspace: string,
+    order: string,
+    createTillReturnPayload: BodyType<CreateTillReturnPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecSalesReturnResource>(
+      {url: `/workspace/${workspace}/till/sales/${order}/returns`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createTillReturnPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesReturnMutationKey = () => ['tillSalesReturn'] as const;
+
+export const getTillSalesReturnMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesReturn>>, TError,TillSalesReturnMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillSalesReturn>>, TError,TillSalesReturnMutationVariables, TContext> => {
+
+const mutationKey = getTillSalesReturnMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillSalesReturn>>, TillSalesReturnMutationVariables> = (props) => {
+          const {workspace,order,data} = props ?? {};
+
+          return  tillSalesReturn(workspace,order,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillSalesReturnMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesReturn>>>
+    export type TillSalesReturnMutationBody = BodyType<CreateTillReturnPayload>
+    export type TillSalesReturnMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesReturnMutationVariables = {workspace: string;order: string;data: BodyType<CreateTillReturnPayload>}
+
+    /**
+ * @summary Return till sale lines as a customer credit
+ */
+export const useTillSalesReturn = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesReturn>>, TError,TillSalesReturnMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillSalesReturn>>,
+        TError,
+        TillSalesReturnMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillSalesReturnMutationOptions(options), queryClient);
+    }
+    /**
+ * Member bearer + `X-Till-Session`. Credits sold lines of a till sale at their original money (receipt credit, no customer needed), optional restock.
+ * @summary Preview a till return (no writes)
+ */
+export const tillSalesReturnReview = (
+    workspace: string,
+    order: string,
+    returnReviewRequest: BodyType<ReturnReviewRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeReturnReview>(
+      {url: `/workspace/${workspace}/till/sales/${order}/returns/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: returnReviewRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesReturnReviewMutationKey = () => ['tillSalesReturnReview'] as const;
+
+export const getTillSalesReturnReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesReturnReview>>, TError,TillSalesReturnReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillSalesReturnReview>>, TError,TillSalesReturnReviewMutationVariables, TContext> => {
+
+const mutationKey = getTillSalesReturnReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillSalesReturnReview>>, TillSalesReturnReviewMutationVariables> = (props) => {
+          const {workspace,order,data} = props ?? {};
+
+          return  tillSalesReturnReview(workspace,order,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillSalesReturnReviewMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesReturnReview>>>
+    export type TillSalesReturnReviewMutationBody = BodyType<ReturnReviewRequest>
+    export type TillSalesReturnReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesReturnReviewMutationVariables = {workspace: string;order: string;data: BodyType<ReturnReviewRequest>}
+
+    /**
+ * @summary Preview a till return (no writes)
+ */
+export const useTillSalesReturnReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesReturnReview>>, TError,TillSalesReturnReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillSalesReturnReview>>,
+        TError,
+        TillSalesReturnReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillSalesReturnReviewMutationOptions(options), queryClient);
+    }
+    /**
  * @summary The register's open shift
  */
 export const tillShiftCurrent = (
