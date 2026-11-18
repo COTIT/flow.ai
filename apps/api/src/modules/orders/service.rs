@@ -33,11 +33,12 @@ use crate::{
         },
         pricing::engine,
         product_images::service as product_images,
-        products, settings, shipments,
+        products, sales_returns, settings, shipments,
         stock::{
             self,
             repo::Cause,
             reserve::{self, Reserved, Want},
+            value::Valued,
         },
         webhooks::events,
     },
@@ -1060,6 +1061,13 @@ pub async fn returns(
     input: LinesQuantity,
     key: Option<Key>,
 ) -> Result<Answer, AppError> {
+    {
+        let oid = parse(id)?;
+        let mut tx = state.db.begin().await?;
+        if stock::value::active(&mut tx, workspace_id).await? {
+            return active_returns(state, tx, (workspace_id, user_id), oid, input, key).await;
+        }
+    }
     transition(
         state,
         workspace_id,
@@ -1135,6 +1143,127 @@ pub async fn returns(
         },
     )
     .await
+}
+
+/// Returns in an active book (masterplan §12 "Existing order-return"): permanent replay, then
+/// the same checks and projections as before, with each return a posted canonical credit (and
+/// restock at the original booked cost). An order sold before activation (no recognition)
+/// comes back physically only, valued at its reviewed legacy return cost.
+async fn active_returns(
+    state: &AppState,
+    mut tx: sqlx::Transaction<'static, sqlx::Postgres>,
+    (workspace_id, user_id): (Uuid, Uuid),
+    id: Uuid,
+    input: LinesQuantity,
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
+    let (replay, done) = stock::value::replay(
+        &mut tx,
+        workspace_id,
+        "orders_returns",
+        user_id,
+        key.as_ref(),
+    )
+    .await?;
+    if let Some(a) = done {
+        return Ok(a);
+    }
+    let o = repo::lock(&mut tx, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let mut lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
+    if preconditions::expects("order") {
+        let facts = review_locked(&mut tx, workspace_id, &o, &lines).await?;
+        preconditions::check_locked(workspace_id, "order", &facts)?;
+    }
+    check(OrderAction::Return, &o, &lines, Paid::default())?;
+    let returned = |lines: &[LineRow]| {
+        let mut m = std::collections::BTreeMap::new();
+        for l in lines.iter().filter(|l| l.tracked && !l.returned.is_zero()) {
+            *m.entry(l.product_id).or_insert(Decimal::ZERO) += l.returned;
+        }
+        m
+    };
+    let before = returned(&lines);
+    let mut wanted = Vec::new();
+    for (n, (line_id, q)) in input.lines.iter().enumerate() {
+        let Some(l) = lines.iter_mut().find(|l| l.id == *line_id) else {
+            return Err(field(
+                format!("lines.{n}.line_id"),
+                "The selected line is invalid.",
+            ));
+        };
+        if q.is_zero() || l.returned + *q > l.deducted {
+            return Err(field(
+                format!("lines.{n}.quantity"),
+                format!(
+                    "Return more than 0 and at most {} of this line.",
+                    (l.deducted - l.returned).normalize()
+                ),
+            ));
+        }
+        l.returned += *q;
+        wanted.push((l.id, *q, l.tracked));
+    }
+    let recognised = sales_returns::legacy::order_returns(
+        &mut tx,
+        workspace_id,
+        &o,
+        (&wanted, input.restock),
+        user_id,
+    )
+    .await?;
+    if !recognised && input.restock {
+        let reason = format!("return order {}", o.number);
+        let after = returned(&lines);
+        let plan =
+            farm_supply::sale::restock_plan(&mut tx, workspace_id, o.id, &before, &after).await?;
+        for back in plan {
+            // shortcut: a product on two lines takes the first line's reviewed cost.
+            let line = wanted
+                .iter()
+                .find(|w| {
+                    lines
+                        .iter()
+                        .any(|l| l.id == w.0 && l.product_id == back.product_id)
+                })
+                .map(|w| w.0);
+            let legacy = match line {
+                Some(l) => {
+                    sales_returns::legacy::legacy_cost_for(&mut tx, workspace_id, l, back.quantity)
+                        .await?
+                }
+                None => None,
+            };
+            let cause = Cause {
+                value: legacy.map_or(Valued::Infer, |l| Valued::SaleReturn {
+                    sale: ("order", o.id),
+                    legacy: Some(l),
+                }),
+                ..cause(&o, &reason)
+            };
+            reserve::restock_lots(&mut tx, workspace_id, o.warehouse_id, &[back], &cause).await?;
+        }
+    }
+    let rows: Vec<_> = lines
+        .iter()
+        .map(|l| (l.id, l.picked, l.deducted, l.returned))
+        .collect();
+    repo::set_line_quantities(&mut tx, workspace_id, &rows).await?;
+    farm_supply::sale::on_return(&mut tx, workspace_id, o.id, &o.number, &returned(&lines)).await?;
+    let status = if lines.iter().all(|l| l.returned == l.quantity) {
+        "returned"
+    } else {
+        "partially_returned"
+    };
+    repo::set_status(&mut tx, workspace_id, o.id, status).await?;
+    log(&mut tx, workspace_id, o.id, "returned", user_id).await?;
+    let answer = ok_json(&data(state, &mut tx, workspace_id, id).await?);
+    replay
+        .finish(&mut tx, workspace_id, key.as_ref(), &answer)
+        .await?;
+    tx.commit().await?;
+    Ok(answer)
 }
 
 /// Book what the customer paid online (paid − refunded) on the order's new invoice, so its

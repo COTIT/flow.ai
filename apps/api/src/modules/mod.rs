@@ -65,6 +65,7 @@ pub mod purchase_units;
 pub mod purchasing;
 pub mod relations;
 pub mod sales_groups;
+pub mod sales_returns;
 pub mod scheduled_reports;
 pub mod search;
 pub mod settings;
