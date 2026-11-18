@@ -12,8 +12,8 @@
   "apps/api/src/integrations/mappings/handlers.rs": "d6959d09d04a83185fd6ecac07187d902bd49df1384f9fd5eec3cc6d7f7b1fb5",
   "apps/api/src/integrations/mappings/service.rs": "28f7c051b561608efd2f2a809eeb66452276edcd943e54223d392166524a8b60",
   "apps/api/src/integrations/pairs/handlers.rs": "8b9094d5c3d13c420657d271b31e2ceaac6393c069d5eb7237455838f809affe",
-  "apps/api/src/integrations/pairs/service.rs": "002cd6fe23ba0f534a133b97887e04f9cd6b385985acb25bb261f7dae68da32b",
-  "apps/api/src/jobs/kinds.rs": "4b94e855340eb7811c4b5474d6563b4d99c322e6afae1a3ca11d7cf925473e99",
+  "apps/api/src/integrations/pairs/service.rs": "c4b2009af004a34a011c5e18a88507d86c411ea381baa9a59ee2baa0ebd3737d",
+  "apps/api/src/jobs/kinds.rs": "15536e2c68b45471f2ec4ec8ab86f1bf26f2c87032856293e036db185537b05e",
   "apps/api/src/lib.rs": "1d0a486e914c506c8099072d28bb886a5a7d6b98966f4e2f196cbe02a465987c",
   "apps/api/src/main.rs": "85e4e1e02d046bf39f2e2b2eed336f6d6c9e43de93437e13437c290abf600222",
   "apps/api/src/modules/accounting/handlers.rs": "5c82b37e8631a4e3c76318a3fe269c74f1ab61784e8a19694dd812ee511b2dee",
@@ -24,7 +24,7 @@
   "apps/api/src/modules/app_keys/repo.rs": "2dc8ad1cb7bdde4294a192cb83aac11fac89dd7910cc707aafb0b24afbffe318",
   "apps/api/src/modules/app_keys/service.rs": "54088120188887b5d0d186757ff6fd14b39ca47fd7c483a762acd1d87760e792",
   "apps/api/src/modules/approvals/handlers.rs": "13beb3ce0c6505cd10f6dc2cb490bf5cb8fed3744664a451ebe2481bcdbc4ab5",
-  "apps/api/src/modules/approvals/service.rs": "943e1a5d3908051b54b1e4d25f956526e53435aca5862c963a2b3fe21d504b42",
+  "apps/api/src/modules/approvals/service.rs": "e2c82566905e8dcc5d600bd86d52b4b09a9b96953348ae22aab5df81b33b82ba",
   "apps/api/src/modules/assistant/batch_dto.rs": "cc1e89d3a9f0258d17f53f4e19c90ee31435a4d52506a0b9eff6082cc8991261",
   "apps/api/src/modules/assistant/batch_handlers.rs": "48f37c0453a7c3b6686ee31b68b10021c3781b8357e1a6f6b3a1f28ec3f12bbb",
   "apps/api/src/modules/assistant/batch_repo.rs": "757524a6b2408264cb709bb9fcd5321ada79b93233dde416a571517476b88033",
@@ -271,6 +271,6 @@
   "apps/api/src/modules/workspaces/service.rs": "6b8b6c901d71387f37a1c0eadbf237fd4d97b17953e48a512bbf36aaf74909f6",
   "apps/api/src/money.rs": "ec8929ded1c344ea115e88323e3d348017948219920c361d066deb656d5c3b1f",
   "apps/api/src/openapi.rs": "d0de89494418328712553abed97a02200dae8351bdada9ab5c4a567e001a6c51",
-  "apps/api/src/workflows/handlers.rs": "cd6508e3636435a01912d7eb60f5066211ff80e3a10d8198d89e4eee4d354ef5",
-  "apps/api/src/workflows/service.rs": "66a0214edc92594dc75bad75d44a3680fde41bf777b394b56b585c1d8055f010"
+  "apps/api/src/workflows/handlers.rs": "20fd6cb58433651ea53570812a3eed39449d21e1984cb16f0a8e9f08e5ea535e",
+  "apps/api/src/workflows/service.rs": "b81a1a310aa29ecb8046e25ff6f9d266f908cc0f65cc79acff19717e90758911"
 }
