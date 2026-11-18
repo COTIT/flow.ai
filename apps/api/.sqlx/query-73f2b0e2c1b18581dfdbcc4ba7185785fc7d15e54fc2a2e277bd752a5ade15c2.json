@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, workspace_id,\n             (last_polled_at IS NULL OR last_polled_at + make_interval(\n                 mins => coalesce((config->>'poll_minutes')::int, 5)) <= now()) AS \"poll!\",\n             (last_swept_at IS NULL OR last_swept_at + make_interval(\n                 mins => coalesce((config->>'poll_minutes')::int, 5)) <= now()) AS \"sweep!\",\n             (last_full_scan_at IS NULL OR last_full_scan_at + make_interval(\n                 mins => coalesce((config->>'full_scan_minutes')::int, 60)) <= now()) AS \"scan!\"\n           FROM integration_pairs\n           WHERE status = 'active' AND workflow_key = 'wf01_purchase'\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_pairs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_pairs",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "poll!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "sweep!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "scan!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "73f2b0e2c1b18581dfdbcc4ba7185785fc7d15e54fc2a2e277bd752a5ade15c2"
+}

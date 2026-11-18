@@ -10,6 +10,7 @@ pub mod incidents;
 mod repo;
 pub mod routes;
 mod service;
+pub mod wf01_purchase;
 
 #[cfg(test)]
 pub(crate) mod testkit;
