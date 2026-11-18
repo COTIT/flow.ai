@@ -20,6 +20,7 @@ test.describe("P9-2: forced colours (Windows High Contrast)", () => {
   test.use({ forcedColors: "active" })
   test("focus is drawn as an outline on buttons and fields", async ({ page, api }) => {
     void api
+    await fakeAgent(page) // "Type instead" connects: never to the real ElevenLabs
     await page.goto("/")
     for (const [name, control] of Object.entries(controls(page))) {
       // Orb-first home has no message box: the field is checked in the conversation.

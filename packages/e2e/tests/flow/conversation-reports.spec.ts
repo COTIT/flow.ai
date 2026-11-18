@@ -155,6 +155,8 @@ test("latest preview pins chart while newer results arrive; report tool opens pi
   const { agent } = await setup(page)
   await send(page, "Show product ranking")
   await expect.poll(agent.results).toBe(1)
+  // The agent's reply (600 ms later) scrolls to the newest line: let it land before the snapshot.
+  await expect(page.getByRole("log").first()).toContainText("Here are the requested sales results.")
   const launcher = page.getByRole("button", { name: "Latest chart", exact: true })
   const scroller = page.locator("[data-flow-scroll]")
   const scrollBefore = await scroller.evaluate((el) => el.scrollTop)

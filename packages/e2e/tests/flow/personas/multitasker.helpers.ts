@@ -203,8 +203,9 @@ export async function say(page: Page, text: string, enter = true) {
   const t = L[await localeOf(page)]
   await openComposer(page)
   const box = page.getByLabel(t.message)
-  if (!(await box.isEditable().catch(() => false))) return false
-  await box.fill(text)
+  // isEditable ignores visibility: a hidden composer would make fill wait for the whole test.
+  if (!(await box.isVisible().catch(() => false)) || !(await box.isEditable().catch(() => false))) return false
+  if (!(await box.fill(text, { timeout: 2_000 }).then(() => true, () => false))) return false
   if (enter) await box.press("Enter")
   else await clickIf(page, t.send)
   return true
