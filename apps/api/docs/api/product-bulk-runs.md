@@ -129,10 +129,10 @@ Unapproved drafts expire seven days after creation, including during extraction.
 
 ## Validation
 
-Run focused correctness tests with `cargo test --test api product_bulk_runs`. The source-generation race also has a module SQLx test. The ignored Linux load gate runs 50,000 native mixed changes with typed fields, variant/stock fanout, concurrent foreground reads and a replaced worker lease:
+Run focused correctness tests with `cargo test --test api_catalog product_bulk_runs`. The source-generation race also has a module SQLx test. The ignored Linux load gate runs 50,000 native mixed changes with typed fields, variant/stock fanout, concurrent foreground reads and a replaced worker lease:
 
 ```sh
-cargo test --test api bulk_50000_native_mixed_load -- --ignored --nocapture
+cargo test --test api_catalog bulk_50000_native_mixed_load -- --ignored --nocapture
 ```
 
 The load test prints measured staging, preparation and execution duration, chunk latency percentiles, foreground latency and pool size. A benchmark result is valid only with its machine and database configuration recorded.
