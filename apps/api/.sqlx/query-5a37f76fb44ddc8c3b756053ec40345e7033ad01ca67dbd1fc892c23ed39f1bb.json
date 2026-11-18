@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workflow_executions SET owner_token = $3, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status IN ('queued', 'running')\n           AND NOT EXISTS (SELECT 1 FROM jobs j WHERE j.workspace_id = $1\n                           AND j.locked_by = workflow_executions.owner_token\n                           AND j.status = 'running' AND j.locked_until > now())",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a37f76fb44ddc8c3b756053ec40345e7033ad01ca67dbd1fc892c23ed39f1bb"
+}

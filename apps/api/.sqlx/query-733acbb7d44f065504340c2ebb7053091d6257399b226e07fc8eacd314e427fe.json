@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id\n             WHERE m.workspace_id = $1 AND m.active AND w.deleted_at IS NULL\n               AND m.user_id IS DISTINCT FROM $3\n               AND (w.created_by_user_id = m.user_id OR EXISTS (\n                    SELECT 1 FROM team_members tm\n                    JOIN teams t ON t.id = tm.team_id AND t.workspace_id = $1 AND t.deleted_at IS NULL\n                    JOIN team_permissions p ON p.team_id = t.id\n                    WHERE tm.user_id = m.user_id\n                      AND (p.permission IN ('workspace_admin', $2)\n                           OR ($2 = 'integration.approve' AND p.permission = 'integration.approve_high'))))\n           ) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "733acbb7d44f065504340c2ebb7053091d6257399b226e07fc8eacd314e427fe"
+}

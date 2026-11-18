@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE approval_requests SET status = $3, blocked_reasons = $4, required_permission = $5,\n             updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0db6530e644865c053b205a3d9014659dfa0a4926e6efc6cc332e5e0105319aa"
+}

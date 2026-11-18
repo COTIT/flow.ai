@@ -1,0 +1,407 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.workflow_key, r.pair_id, r.subject_ref, r.revision, r.fingerprint,\n                  r.status, r.blocked_reasons, r.invalidated_reason, r.amount_minor,\n                  r.currency_ref, r.currency_decimals, r.required_permission, r.requester_user_id,\n                  ru.first_name || ' ' || ru.last_name AS \"requester_name?\",\n                  d.decision AS \"decision?\", d.actor_user_id AS \"decided_by?\",\n                  du.first_name || ' ' || du.last_name AS \"decided_by_name?\",\n                  d.comment AS \"decision_comment?\", d.created_at AS \"decision_at?\",\n                  e.id AS \"execution_id?\", e.status AS \"execution_status?\",\n                  e.phase AS \"execution_phase?\", e.reason AS \"execution_reason?\",\n                  e.resolution AS \"execution_resolution?\",\n                  e.error_class AS \"execution_error_class?\",\n                  e.error_detail AS \"execution_error_detail?\",\n                  e.target_ref AS \"execution_target_ref?\",\n                  e.updated_at AS \"execution_updated_at?\",\n                  coalesce((SELECT jsonb_agg(jsonb_build_object('id', i.id, 'kind', i.kind) ORDER BY i.id)\n                            FROM workflow_incidents i\n                            WHERE i.approval_request_id = r.id AND i.status = 'open'), '[]') AS \"open_incidents!\",\n                  CASE WHEN $2::uuid IS NOT NULL THEN r.snapshot END AS \"snapshot?\",\n                  r.created_at, r.updated_at, count(*) OVER () AS \"total!\"\n           FROM approval_requests r\n           LEFT JOIN users ru ON ru.id = r.requester_user_id\n           LEFT JOIN approval_decisions d ON d.request_id = r.id\n           LEFT JOIN users du ON du.id = d.actor_user_id\n           LEFT JOIN workflow_executions e ON e.approval_request_id = r.id\n           WHERE r.workspace_id = $1\n             AND ($2::uuid IS NULL OR r.id = $2)\n             AND ($3::text IS NULL OR r.workflow_key = $3)\n             AND ($4::text IS NULL OR r.status = $4)\n             AND ($5::uuid IS NULL OR r.requester_user_id = $5)\n             AND ($6::text[] IS NULL OR (r.status = 'pending'\n                  AND r.requester_user_id IS DISTINCT FROM $7\n                  AND r.required_permission = ANY($6)))\n           ORDER BY r.id DESC\n           LIMIT $8 OFFSET $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workflow_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "workflow_key"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "pair_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "pair_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "subject_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "subject_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "revision",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "revision"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "fingerprint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "blocked_reasons",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "blocked_reasons"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "invalidated_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "invalidated_reason"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "amount_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "amount_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "currency_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "currency_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "currency_decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "required_permission",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "required_permission"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "requester_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "requester_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "requester_name?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "decision?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_decisions",
+            "name": "decision"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "decided_by?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_decisions",
+            "name": "actor_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "decided_by_name?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 18,
+        "name": "decision_comment?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_decisions",
+            "name": "comment"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "decision_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "approval_decisions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "execution_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "execution_status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "execution_phase?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "phase"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "execution_reason?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "execution_resolution?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "resolution"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "execution_error_class?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "error_class"
+          }
+        }
+      },
+      {
+        "ordinal": 26,
+        "name": "execution_error_detail?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "error_detail"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "execution_target_ref?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "target_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 28,
+        "name": "execution_updated_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 29,
+        "name": "open_incidents!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 30,
+        "name": "snapshot?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 31,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 32,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 33,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "TextArray",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      false,
+      false,
+      null,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      null,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "568e18835fd8ca0deb213cf3c30a150ae47d76e29e86274c22bd6abd0db943f0"
+}

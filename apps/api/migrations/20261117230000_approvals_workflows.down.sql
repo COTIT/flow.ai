@@ -1,0 +1,10 @@
+DROP TABLE workflow_resolutions;
+DROP TABLE workflow_incidents;
+DROP TABLE workflow_events;
+DROP TABLE workflow_execution_attempts;
+DROP FUNCTION workflow_execution_attempts_set_once();
+DROP TABLE workflow_executions;
+DROP TABLE approval_decisions;
+DROP TABLE approval_requests;
+DROP TABLE approval_policies;
+DROP FUNCTION workflow_append_only();

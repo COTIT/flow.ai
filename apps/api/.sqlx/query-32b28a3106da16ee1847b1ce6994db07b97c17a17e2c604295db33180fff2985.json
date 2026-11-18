@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workflow_executions SET status = 'running', owner_token = $3, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status = 'queued'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "32b28a3106da16ee1847b1ce6994db07b97c17a17e2c604295db33180fff2985"
+}

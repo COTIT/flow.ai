@@ -26,6 +26,7 @@ pub mod payments;
 pub mod pdf;
 mod php;
 pub mod storage;
+mod workflows;
 
 use axum::{
     Router,

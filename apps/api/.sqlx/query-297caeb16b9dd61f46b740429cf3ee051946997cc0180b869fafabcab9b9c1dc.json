@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO approval_policies (workspace_id, workflow_key, currency_ref, threshold_minor,\n             created_by)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (workspace_id, workflow_key, currency_ref) WHERE active DO NOTHING\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_policies",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "297caeb16b9dd61f46b740429cf3ee051946997cc0180b869fafabcab9b9c1dc"
+}

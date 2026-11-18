@@ -1,0 +1,234 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.approval_request_id, e.workflow_key, e.correlation_id, e.status, e.phase,\n                  e.reason, e.resolution, e.error_class, e.error_detail, e.target_ref,\n                  e.remote_attempts, e.manual_retry_grants,\n                  (SELECT a.outcome FROM workflow_execution_attempts a WHERE a.execution_id = e.id\n                   ORDER BY a.attempt_no DESC LIMIT 1) AS \"latest_outcome?\",\n                  EXISTS (SELECT 1 FROM workflow_execution_attempts a WHERE a.execution_id = e.id) AS \"has_attempt!\",\n                  r.requester_user_id, e.created_at, e.updated_at, count(*) OVER () AS \"total!\"\n           FROM workflow_executions e\n           JOIN approval_requests r ON r.workspace_id = e.workspace_id AND r.id = e.approval_request_id\n           WHERE e.workspace_id = $1\n             AND ($2::uuid IS NULL OR e.id = $2)\n             AND ($3::text IS NULL OR e.workflow_key = $3)\n             AND ($4::text IS NULL OR e.status = $4)\n           ORDER BY e.id DESC LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "approval_request_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "approval_request_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "workflow_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "workflow_key"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "correlation_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "correlation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "phase",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "phase"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "resolution",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "resolution"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "error_class",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "error_class"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "error_detail",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "error_detail"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "target_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "target_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "remote_attempts",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "remote_attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "manual_retry_grants",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "manual_retry_grants"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "latest_outcome?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "has_attempt!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "requester_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "requester_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null,
+      null,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "77f1b08887e49cff8c2da73e5a17c5b48d5926374759c3031849fdf80fc3feda"
+}
