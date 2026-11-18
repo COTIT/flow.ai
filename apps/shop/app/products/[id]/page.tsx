@@ -56,7 +56,7 @@ const gold =
 /**
  * Product page (bento): breadcrumb, photo, buy tile, "Where it came from" (the batch
  * passport: place, villages and their farmer groups) and About with the labels as chips. The passport card reads the published batch the product links;
- * without one (or when that read fails) the card is left out and the photo spans one row.
+ * scoped product links keep a passport target when the batch cannot be shown.
  */
 export default async function ProductPage({ params }: Props) {
   const base = await getShopBase()
@@ -68,11 +68,12 @@ export default async function ProductPage({ params }: Props) {
     getLocale(),
     getProduct(id),
   ])
-  // The card is extra: an unpublished code (404) or a failing read only hides it.
+  // An unpublished code (404) or failing read leaves the scoped fallback available.
   const lot = product.passport
     ? await getLot(product.passport.public_code).catch(() => null)
     : null
   const groups = lot?.farmers ?? []
+  const showPassport = Boolean(lot || base)
 
   return (
     <>
@@ -106,7 +107,7 @@ export default async function ProductPage({ params }: Props) {
           className={cn(
             card,
             "col-span-12 p-3 md:col-span-7 md:p-3",
-            lot && "md:row-span-2"
+            showPassport && "md:row-span-2"
           )}
         >
           <ProductGallery images={product.images ?? []} alt={product.name} />
@@ -201,6 +202,25 @@ export default async function ProductPage({ params }: Props) {
               className={cn(buttonVariants(), gold)}
             >
               {t("product.openPassport")}
+            </Link>
+          </section>
+        ) : showPassport ? (
+          <section
+            aria-labelledby="jar-passport"
+            className={cn(card, "col-span-12 md:col-span-5")}
+          >
+            <h2 id="jar-passport" className={cardTitle}>
+              {t("product.passport")}
+            </h2>
+            <p className="text-[13px] text-muted-foreground">
+              {t("product.passportUnavailable")}
+            </p>
+            <Link
+              href="/b"
+              data-slot="button"
+              className={cn(buttonVariants({ variant: "outline" }), "w-fit")}
+            >
+              {t("product.enterBatchCode")}
             </Link>
           </section>
         ) : null}

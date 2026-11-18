@@ -327,7 +327,8 @@ async fn variants(
         .map_err(|_| AppError::Internal("seed-afm-catalog: product id".into()))?;
     let rows = sqlx::query!(
         r#"SELECT v.id, round(v.price * 100)::bigint AS "cents!",
-                  array_agg(ov.display_value ORDER BY pot.sort_order) AS "values!"
+                  array_agg(coalesce(vov.display_value, ov.display_value)
+                            ORDER BY pot.sort_order, coalesce(vov.sort_order, ov.sort_order), ov.id) AS "values!"
            FROM product_variants v
            JOIN variant_option_values vov ON vov.product_variant_id = v.id
            JOIN option_values ov ON ov.id = vov.option_value_id

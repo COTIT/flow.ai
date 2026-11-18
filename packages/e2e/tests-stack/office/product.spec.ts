@@ -38,6 +38,11 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await size.getByRole("button", { name: "Save" }).click()
   await expect(page.getByRole("status").filter({ hasText: "Size added." })).toBeVisible()
   await expect(sizes.getByText("250 g")).toBeVisible()
+  await sizes.getByRole("button", { name: "Edit size 250 g" }).click()
+  const editSize = page.getByRole("dialog", { name: "Edit size" })
+  await editSize.getByLabel("Size", { exact: true }).fill("250 G")
+  await editSize.getByRole("button", { name: "Save" }).click()
+  await expect(sizes.getByText("250 G", { exact: true })).toBeVisible()
   await expectNoRawValues(page)
 
   // The office list finds it by name.
@@ -57,14 +62,14 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   // Shop: the product page shows the size (once a product has sizes, the shop sells only those).
   await page.goto(`${urls.shop}/products/${id}`)
   await expect(page.getByRole("heading", { name })).toBeVisible()
-  await expect(page.getByRole("main").getByRole("button", { name: "250 g" })).toBeVisible()
+  await expect(page.getByRole("main").getByRole("button", { name: "250 G", exact: true })).toBeVisible()
   await expectNoRawValues(page)
 
   // Till: a tile on the sale screen.
   await page.goto(`${urls.till}/sale`)
   await page.getByLabel("Scan a barcode or type a name").fill(name)
   await expect(
-    page.getByRole("list", { name: "Products" }).getByRole("button", { name: new RegExp(name) }).first()
+    page.getByRole("list", { name: "Products" }).getByText(`${name} · 250 G`, { exact: true })
   ).toBeVisible()
 })
 

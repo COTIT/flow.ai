@@ -67,6 +67,8 @@
     "lot": "Partij {code}",
     "villages": "{count, plural, one {# dorp} other {# dorpen}}",
     "openPassport": "Open het paspoort",
+    "passportUnavailable": "Er is momenteel geen partijpaspoort beschikbaar voor dit product. Staat er een partijcode op de verpakking? Zoek die hieronder op.",
+    "enterBatchCode": "Voer een partijcode in",
     "breadcrumb": "Kruimelpad",
     "grownBy": "Geteeld en geoogst door",
     "people": "Ontmoet de mensen erachter",

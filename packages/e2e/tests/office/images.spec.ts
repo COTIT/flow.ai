@@ -138,7 +138,10 @@ test.describe(() => {
     imagesApi(api, [])
     await page.goto("/products/p1")
     await page.getByRole("button", { name: "Add image" }).click()
-    await page.getByRole("dialog").getByLabel("Image file").selectOption("f-label")
+    await page
+      .getByRole("dialog")
+      .getByLabel("Image file")
+      .selectOption("f-label")
     await page
       .getByRole("dialog")
       .getByRole("button", { name: "Add image" })
@@ -149,4 +152,48 @@ test.describe(() => {
       page.getByRole("status").filter({ hasText: "Images saved." })
     ).toHaveCount(0)
   })
+})
+
+test("preview follows draft order and restores focus to the image that opened it", async ({
+  page,
+  api,
+}) => {
+  imagesApi(api, [
+    { file_id: "f-jar", product_variant_id: null },
+    { file_id: "f-label", product_variant_id: "v-1kg" },
+  ])
+  await page.goto("/products/p1")
+  await page.getByRole("button", { name: "Move up" }).nth(1).click()
+  const trigger = page.getByRole("button", {
+    name: "Preview image 2: jar-front.jpg",
+  })
+  await trigger.focus()
+  await trigger.press("Enter")
+
+  const preview = page.getByRole("dialog", { name: "Product images" })
+  const close = preview.getByRole("button", { name: "Close image preview" })
+  await expect(close).toBeFocused()
+  await expect(preview.getByRole("status")).toHaveText(
+    "Image 2 of 2 · jar-front.jpg"
+  )
+  await expect(preview.getByRole("img", { name: "jar-front.jpg" })).toHaveCSS(
+    "object-fit",
+    "contain"
+  )
+
+  await close.press("ArrowRight")
+  await expect(preview.getByRole("status")).toHaveText(
+    "Image 1 of 2 · label.jpg"
+  )
+  await preview.getByRole("button", { name: "Previous image" }).click()
+  await expect(preview.getByRole("status")).toHaveText(
+    "Image 2 of 2 · jar-front.jpg"
+  )
+  await page.keyboard.press("Escape")
+  await expect(preview).toBeHidden()
+  await expect(trigger).toBeFocused()
+  await expect(page.getByRole("button", { name: "Save images" })).toBeVisible()
+  expect(api.callsTo("PUT", "/workspace/:ws/products/:id/images")).toHaveLength(
+    0
+  )
 })

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 
 import type { PaginatedStockResource } from "@genesy/api-client/model"
 import { Badge } from "@genesy/ui/components/badge"
+import { buttonVariants } from "@genesy/ui/components/button"
 import {
   Table,
   TableBody,
@@ -24,6 +25,7 @@ import {
 } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
 import { BatchLink, BelowZeroWhy, inlineLink, lotOf } from "@/components/stock"
+import { useCan } from "@/lib/can"
 
 /** Stock rows from `stock_list` or `stock_negative`, with the "all / below zero" switch. */
 export function StockTable({
@@ -42,6 +44,7 @@ export function StockTable({
 }) {
   const t = useTranslations()
   const locale = useLocale()
+  const canListWarehouses = useCan("warehouse.list")
   const qty = (v: string) => formatQty(v, locale)
   const columns = [
     { label: t("products.name") },
@@ -52,7 +55,20 @@ export function StockTable({
   ]
   return (
     <>
-      <PageHead eyebrow={t("shell.sell")} title={t("stock.title")} />
+      <PageHead
+        eyebrow={t("shell.sell")}
+        title={t("stock.title")}
+        actions={
+          canListWarehouses ? (
+            <Link
+              href="/stock/warehouses"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("warehouses.manage")}
+            </Link>
+          ) : null
+        }
+      />
       <ListCard
         filters={
           <PillLinks

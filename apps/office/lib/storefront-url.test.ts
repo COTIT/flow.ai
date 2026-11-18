@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { storefrontUrl } from "./storefront-url"
+import { storefrontProductPassportUrl, storefrontUrl } from "./storefront-url"
 
 const id = "01950000-0000-7000-8000-000000000001"
 const connection = { id, active: true }
@@ -39,5 +39,28 @@ describe("workspace storefront URLs", () => {
       "https://shop.example/#other",
     ])
       expect(storefrontUrl(base, connection)).toBeNull()
+  })
+})
+
+describe("workspace product passport URLs", () => {
+  const product = "01950000-0000-7000-8000-000000000002"
+
+  it("uses the scoped product ID and passport fragment", () => {
+    expect(
+      storefrontProductPassportUrl("https://shop.example/", connection, product)
+    ).toBe(`https://shop.example/s/${id}/products/${product}#jar-passport`)
+  })
+
+  it("rejects inactive connections and malformed product IDs", () => {
+    expect(
+      storefrontProductPassportUrl(
+        "https://shop.example/",
+        { id, active: false },
+        product
+      )
+    ).toBeNull()
+    expect(
+      storefrontProductPassportUrl("https://shop.example/", connection, "x#b")
+    ).toBeNull()
   })
 })

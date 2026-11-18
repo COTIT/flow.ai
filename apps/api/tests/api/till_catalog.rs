@@ -229,6 +229,74 @@ async fn the_till_sees_store_only_products_priced_like_its_sales(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn shop_and_till_show_edited_sizes_and_drop_deleted_sizes(pool: PgPool) {
+    let w = world(pool).await;
+    let variants = w.api.with_base("/products");
+    let path = format!("/{}/variants", w.honey);
+    let (status, generated) = variants
+        .call(
+            Method::POST,
+            &format!("{path}/generate"),
+            Some(json!({
+                "option_types": [{"name":"Size","values":[{"value":"500 g"}]}],
+                "combinations": [{"option_value_ids":["500 g"],"price":"12.50"}]
+            })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{generated}");
+    let id = generated["data"][0]["id"].as_str().unwrap();
+    let variant_path = format!("{path}/{id}");
+    let (status, saved) = variants
+        .call(
+            Method::PUT,
+            &variant_path,
+            Some(json!({"size_labels":["500 G"]})),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+
+    let shop_path = format!("/v1/storefront/products/{}", w.honey);
+    let shop_product = async || {
+        let (status, answer) =
+            send(&w.api.app, Method::GET, &shop_path, None, Some(&w.shop_key)).await;
+        assert_eq!(status, StatusCode::OK, "{answer}");
+        answer["data"].clone()
+    };
+    let edited_options = json!([{"type":"Size","value":"500 G"}]);
+    let shop = shop_product().await;
+    let till = catalog(&w, "").await;
+    for product in [&shop, row(&till, &w.honey)] {
+        assert!(
+            product["variants"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v["id"] == id && v["options"] == edited_options),
+            "{product}"
+        );
+    }
+
+    let (status, _) = variants
+        .call(Method::DELETE, &variant_path, None, &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let shop = shop_product().await;
+    let till = catalog(&w, "").await;
+    for product in [&shop, row(&till, &w.honey)] {
+        assert!(
+            product["variants"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|v| v["id"] != id),
+            "{product}"
+        );
+    }
+}
+
+#[sqlx::test]
 async fn a_scanned_code_finds_its_product(pool: PgPool) {
     let w = world(pool).await;
     let variant = w

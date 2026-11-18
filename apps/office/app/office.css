@@ -134,3 +134,49 @@
     max-width: min(672px, calc(100% - 2rem));
   }
 }
+
+.product-passport-print {
+  display: none;
+}
+
+@media print {
+  body:has(> .product-passport-print) {
+    background: white;
+    overflow: visible !important;
+    color: black;
+  }
+
+  body:has(> .product-passport-print) > :not(.product-passport-print) {
+    display: none !important;
+  }
+
+  .product-passport-print {
+    display: grid;
+    justify-items: center;
+    gap: 12pt;
+    padding: 12pt;
+    text-align: center;
+    overflow-wrap: anywhere;
+    break-inside: avoid;
+  }
+
+  .product-passport-print svg {
+    width: 45mm;
+    height: 45mm;
+  }
+}
+
+.theme-glass [data-product-image-preview][data-slot="dialog-content"] {
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  translate: none;
+  border-radius: 0;
+  background: var(--background);
+  animation: none;
+}

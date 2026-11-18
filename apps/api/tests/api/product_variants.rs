@@ -185,6 +185,112 @@ async fn generate_from_option_types(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn edit_size_labels_keeps_shared_values_and_other_options(pool: PgPool) {
+    let (api, product) = world(pool).await;
+    let default = rows(&api.list("").await)[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let (status, generated) = api
+        .call(
+            Method::POST,
+            "/generate",
+            Some(json!({
+                "option_types":[
+                    {"name":"Size","values":[{"value":"Small"},{"value":"Medium"},{"value":"Large"}]},
+                    {"name":"Color","values":[{"value":"Red"}]}
+                ],
+                "combinations":[
+                    {"option_value_ids":["Small","Medium","Red"],"price":"12","sku":"old"},
+                    {"option_value_ids":["Small","Large"],"price":"15"}
+                ]
+            })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{generated}");
+    let id = generated["data"][0]["id"].as_str().unwrap();
+    let peer_id = generated["data"][1]["id"].as_str().unwrap();
+
+    let path = format!("/{id}");
+    for labels in [
+        json!(["Only one"]),
+        json!(["same", "Same"]),
+        json!(["", "Medium"]),
+    ] {
+        let (status, error) = api
+            .call(
+                Method::PUT,
+                &path,
+                Some(json!({"size_labels":labels,"price":"19"})),
+                &api.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{error}");
+    }
+    assert_eq!(api.get(id).await["price"], "12");
+
+    let (status, saved) = api
+        .call(
+            Method::PUT,
+            &path,
+            Some(json!({"size_labels":["sMaLL","LARGE"],"price":"17.50","sku":null})),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+    assert_eq!(saved["data"]["price"], "17.5");
+    assert!(saved["data"]["sku"].is_null());
+    let options_of = |row: &Value, name: &str| {
+        row["relationships"]["option_values"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|value| value["relationships"]["option_type"]["name"] == name)
+            .map(|value| value["display_value"].clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(options_of(&saved["data"], "size"), ["sMaLL", "LARGE"]);
+    assert_eq!(options_of(&api.get(id).await, "color"), ["Red"]);
+    assert_eq!(
+        options_of(&api.get(peer_id).await, "size"),
+        ["Small", "Large"]
+    );
+
+    let default_path = format!("/{default}");
+    let (status, saved) = api
+        .call(
+            Method::PUT,
+            &default_path,
+            Some(json!({"size_labels":["Standard pack"]})),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+    assert_eq!(saved["data"]["is_default"], true);
+    assert_eq!(options_of(&saved["data"], "size"), ["Standard pack"]);
+    let (status, _) = api
+        .call(Method::DELETE, &default_path, None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+
+    let (status, _) = api.call(Method::DELETE, &path, None, &api.owner).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert!(rows(&api.list("").await).iter().all(|row| row["id"] != id));
+    let history = api
+        .with_base("/products")
+        .list(&format!("/{product}/price-history"))
+        .await;
+    assert!(
+        rows(&history).iter().any(|row| row["variant"]["id"] == id
+            && row["field"] == "price"
+            && row["old_value"] == "12"
+            && row["new_value"] == "17.5"),
+        "{history}"
+    );
+}
+
+#[sqlx::test]
 async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
     let (api, product) = world(pool.clone()).await;
     let variant = rows(&api.list("").await)[0]["id"]

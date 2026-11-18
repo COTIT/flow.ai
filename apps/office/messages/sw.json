@@ -16,6 +16,11 @@
     "shortDescription": "Maelezo mafupi",
     "description": "Maelezo",
     "storeOnly": "Inauzwa kaunta tu (si kwenye duka la mtandaoni)",
+    "passportQr": {
+      "title": "Msimbo wa QR wa pasipoti",
+      "image": "Msimbo wa QR wa {name}",
+      "print": "Chapisha msimbo wa QR"
+    },
     "statuses": {
       "active": "Inatumika",
       "disabled": "Imezimwa",
@@ -44,7 +49,15 @@
     "noCategory": "Hakuna kundi",
     "allCategories": "Makundi yote",
     "categoriesFailed": "Makundi hayakuweza kupakiwa, kwa hiyo kundi linabaki lilivyo.",
-    "categoriesNone": "Bado hakuna makundi. Yaongeze chini ya Makundi."
+    "categoriesNone": "Bado hakuna makundi. Yaongeze chini ya Makundi.",
+    "editSize": "Hariri saizi",
+    "editSizeNamed": "Hariri saizi {label}",
+    "numberedSize": "Lebo ya saizi {number}",
+    "searchSizes": "Tafuta kwa saizi au SKU",
+    "noMatchingSizes": "Hakuna saizi zinazolingana na utafutaji wako.",
+    "removeSize": "Ondoa saizi",
+    "removeSizeTitle": "Ungependa kuondoa {label}?",
+    "removeSizeDescription": "Saizi hii haitaonekana dukani au kwenye kasha. Historia yake itahifadhiwa."
   },
   "nav": {
     "label": "Menyu kuu",
@@ -735,6 +748,8 @@
     "imagesSaved": "Picha zimehifadhiwa.",
     "productCreated": "Bidhaa imeundwa.",
     "sizeAdded": "Saizi imeongezwa.",
+    "sizeSaved": "Saizi imehifadhiwa.",
+    "sizeRemoved": "Saizi imeondolewa.",
     "inviteSent": "Mwaliko umetumwa kwa {email}",
     "inviteWithdrawn": "Mwaliko umeondolewa.",
     "memberRemoved": "{name} hana tena ruhusa ya kuingia.",
@@ -789,6 +804,12 @@
     "pick": "Faili ya picha",
     "add": "Ongeza picha",
     "removeOne": "Ondoa picha {position}",
+    "previewOne": "Tazama picha {position}: {name}",
+    "previewTitle": "Picha za bidhaa",
+    "previewClose": "Funga onyesho la picha",
+    "previewPrevious": "Picha iliyotangulia",
+    "previewNext": "Picha inayofuata",
+    "previewPosition": "Picha {position} kati ya {total} · {name}",
     "save": "Hifadhi picha",
     "discard": "Acha mabadiliko",
     "hint": "Picha ya kwanza ni jalada la duka. Tumia mishale kupanga upya."
@@ -1861,5 +1882,30 @@
       "tax_profile_correction_exists": "Wasifu huu tayari una marekebisho.",
       "tax_profile_overlap": "Wasifu mwingine uliothibitishwa tayari unahusu nchi, mkoa, aina, kundi na tarehe hizo hizo."
     }
+  },
+  "warehouses": {
+    "title": "Maghala",
+    "manage": "Simamia maghala",
+    "name": "Jina",
+    "description": "Maelezo",
+    "default": "Chaguo-msingi",
+    "actions": "Vitendo vya ghala",
+    "new": "Ghala jipya",
+    "edit": "Hariri",
+    "editTitle": "Hariri {name}",
+    "remove": "Futa",
+    "removeTitle": "Ufute {name}?",
+    "removeText": "Ghala hili halitatumika tena kuhifadhi bidhaa. Ghala lenye bidhaa au bidhaa zilizotengewa haliwezi kufutwa.",
+    "empty": "Hakuna maghala bado.",
+    "createGeneral": "Unda General stock",
+    "generalReady": "General stock iko tayari.",
+    "created": "Ghala limeundwa.",
+    "saved": "Ghala limehifadhiwa.",
+    "removed": "Ghala limefutwa.",
+    "holdsStock": "Ghala hili bado lina bidhaa au bidhaa zilizotengewa. Ziondoe kabla ya kufuta ghala.",
+    "loading": "Inapakia maghala…",
+    "select": "Chagua ghala",
+    "selectionUnavailable": "Ghala hili halipatikani. Chagua ghala lingine ili kuendelea.",
+    "listDenied": "Unahitaji ruhusa ya kuona maghala kabla ya kubadilisha kiasi cha bidhaa."
   }
 }

@@ -106,6 +106,7 @@ export const ROUTE_SEGMENTS = new Set([
   "users",
   "vaults",
   "voice",
+  "warehouses",
   "webhooks",
   "members",
   "offline",

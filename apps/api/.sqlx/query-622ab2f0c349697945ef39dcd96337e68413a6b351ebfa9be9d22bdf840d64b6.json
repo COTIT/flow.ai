@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.product_variant_id AS variant_id, v.id, v.option_type_id, v.value,\n                v.display_value, v.sort_order, v.created_at, v.updated_at,\n                t.name AS type_name, t.display_name AS type_display_name\n         FROM variant_option_values l\n         JOIN option_values v ON v.id = l.option_value_id AND v.deleted_at IS NULL\n         JOIN option_types t ON t.id = v.option_type_id AND t.deleted_at IS NULL\n         WHERE l.workspace_id = $1 AND l.product_variant_id = ANY($2)\n         ORDER BY l.product_variant_id, v.sort_order NULLS LAST, v.id",
+  "query": "SELECT l.product_variant_id AS variant_id, v.id, v.option_type_id, v.value,\n                COALESCE(l.display_value, v.display_value) AS \"display_value!\",\n                COALESCE(l.sort_order, v.sort_order) AS sort_order, v.created_at, v.updated_at,\n                t.name AS type_name, t.display_name AS type_display_name\n         FROM variant_option_values l\n         JOIN option_values v ON v.id = l.option_value_id AND v.deleted_at IS NULL\n         JOIN option_types t ON t.id = v.option_type_id AND t.deleted_at IS NULL\n         WHERE l.workspace_id = $1 AND l.product_variant_id = ANY($2)\n         ORDER BY l.product_variant_id, COALESCE(l.sort_order, v.sort_order) NULLS LAST, v.id",
   "describe": {
     "columns": [
       {
@@ -49,25 +49,15 @@
       },
       {
         "ordinal": 4,
-        "name": "display_value",
+        "name": "display_value!",
         "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "option_values",
-            "name": "display_value"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 5,
         "name": "sort_order",
         "type_info": "Int4",
-        "origin": {
-          "Table": {
-            "table": "option_values",
-            "name": "sort_order"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 6,
@@ -125,13 +115,13 @@
       false,
       false,
       false,
-      false,
-      true,
+      null,
+      null,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "2168f6df92fcc4b62b12744625acbac534a1118adbe255de3e1be3ff33d42159"
+  "hash": "622ab2f0c349697945ef39dcd96337e68413a6b351ebfa9be9d22bdf840d64b6"
 }

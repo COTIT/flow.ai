@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 
 import { expectNoRawValues } from "../../src/test"
-import { expect, expectFits, type FakeApi, paged, test } from "./fake-api"
+import { expect, expectFits, type FakeApi, me, paged, test, WS } from "./fake-api"
 
 // Stock is kept per place and per batch. These pages must say WHERE a number is and WHICH
 // batch it is, and why a place is below zero (a till sold what wasn't recorded there).
@@ -211,6 +211,270 @@ test.describe(() => {
     await expect(dialog.getByText("Now at AFM store: 6")).toBeVisible()
     await expect(page.getByRole("status").filter({ hasText: "Took" })).toHaveCount(0)
   })
+})
+
+const generalStock = {
+  id: "wh-general",
+  name: "General stock",
+  slug: "general-stock",
+}
+const warehousePath = "/workspace/:ws/warehouses"
+
+test("empty Change stock creates General stock and saves stock there", async ({
+  page,
+  api,
+}) => {
+  placesApi(api)
+  const warehouseRows: (typeof generalStock)[] = []
+  api
+    .on("GET", warehousePath, () => paged(warehouseRows))
+    .on("POST", warehousePath, () => {
+      warehouseRows.push(generalStock)
+      return { status: 201, body: { data: { warehouse_id: generalStock.id } } }
+    })
+    .on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => ({
+      data: [],
+    }))
+    .on("POST", "/workspace/:ws/products/:id/stocks", () => ({
+      message: "ok",
+      before: "0",
+      after: "8",
+      warehouse: generalStock,
+    }))
+
+  await page.goto("/products/prod-wf?change=")
+  const dialog = page.getByRole("dialog")
+  await expect(
+    dialog.getByRole("link", { name: "Manage warehouses" })
+  ).toHaveAttribute("href", "/stock/warehouses")
+  await expect(
+    dialog.getByRole("button", { name: "Save", exact: true })
+  ).toBeDisabled()
+  await dialog.getByRole("button", { name: "Create General stock" }).click()
+  await expect(dialog.getByLabel("Warehouse", { exact: true })).toHaveValue(
+    generalStock.id
+  )
+  await expect(
+    dialog.getByRole("button", { name: "Create General stock" })
+  ).toHaveCount(0)
+  await dialog.getByLabel("Change (e.g. 10 or -3)").fill("8")
+  await dialog.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText("Added 8", { exact: false })).toContainText(
+    generalStock.name
+  )
+  expect(api.callsTo("POST", warehousePath).map((call) => call.body)).toEqual([
+    { name: "General stock" },
+  ])
+  expect(
+    api
+      .callsTo("POST", "/workspace/:ws/products/:id/stocks")
+      .map((call) => call.body)
+  ).toEqual([
+    { warehouse_id: generalStock.id, mutation_value: "8", reason: null },
+  ])
+})
+
+test("Change stock resolves other warehouse pages and requires a replacement for a stale selection", async ({
+  page,
+  api,
+}) => {
+  placesApi(api)
+  api.on("GET", warehousePath, ({ query }) =>
+    paged(
+      [store, depot],
+      Number(query.get("page") ?? 1),
+      query.get("roots_only") === "false" ? 1 : 50
+    )
+  )
+
+  await page.goto("/products/prod-wf?change=wh-depot")
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByLabel("Warehouse", { exact: true })).toHaveValue(
+    depot.id
+  )
+  await expect(
+    dialog.getByRole("button", { name: "Create General stock" })
+  ).toHaveCount(0)
+
+  await page.goto("/products/prod-wf?change=wh-missing")
+  await expect(
+    dialog.getByText("This warehouse is unavailable.", { exact: false })
+  ).toBeVisible()
+  await expect(
+    dialog.getByRole("button", { name: "Save", exact: true })
+  ).toBeDisabled()
+  await dialog.getByLabel("Warehouse", { exact: true }).selectOption(store.id)
+  await expect(
+    dialog.getByRole("button", { name: "Save", exact: true })
+  ).toBeEnabled()
+  expect(api.callsTo("POST", warehousePath)).toEqual([])
+})
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/v1/workspace/w1/warehouses", status: 422 },
+        { url: "/v1/workspace/w1/warehouses/wh-depot", status: 409 },
+      ],
+    },
+  })
+
+  test("General stock recovers an existing slug after simultaneous setup", async ({
+    page,
+    api,
+  }) => {
+    placesApi(api)
+    const warehouseRows: (typeof generalStock)[] = []
+    api
+      .on("GET", warehousePath, () => paged(warehouseRows))
+      .on("POST", warehousePath, () => {
+        warehouseRows.push(generalStock)
+        return {
+          status: 422,
+          body: { errors: { slug: ["That slug already exists."] } },
+        }
+      })
+
+    await page.goto("/products/prod-wf?change=")
+    const dialog = page.getByRole("dialog")
+    await dialog.getByRole("button", { name: "Create General stock" }).click()
+    await expect(dialog.getByLabel("Warehouse", { exact: true })).toHaveValue(
+      generalStock.id
+    )
+    await expect(dialog.getByText("That slug already exists.")).toHaveCount(0)
+    expect(api.callsTo("POST", warehousePath)).toHaveLength(1)
+  })
+
+  test("Office Stock links to warehouse create, edit and protected delete", async ({
+    page,
+    api,
+  }) => {
+    let warehouse = { ...depot, description: "", default_warehouse: true }
+    let deleted = false
+    let holdsStock = true
+    api
+      .on("GET", "/workspace/:ws/products/stocks", () => paged([]))
+      .on("GET", warehousePath, ({ query }) =>
+        paged(
+          query.get("roots_only") === "false" && !deleted ? [warehouse] : []
+        )
+      )
+      .on("POST", warehousePath, ({ body }) =>
+        (body as { name: string }).name === depot.name
+          ? {
+              status: 422,
+              body: { errors: { slug: ["That slug already exists."] } },
+            }
+          : { status: 201, body: { data: { warehouse_id: "wh-new" } } }
+      )
+      .on("POST", warehousePath + "/:warehouse", ({ body }) => {
+        warehouse = {
+          ...warehouse,
+          ...(body as { name: string; description: string }),
+        }
+        return { message: "ok" }
+      })
+      .on("DELETE", warehousePath + "/:warehouse", () => {
+        if (holdsStock)
+          return { status: 409, body: { message: "warehouse_holds_stock" } }
+        deleted = true
+        return { message: "ok" }
+      })
+
+    await page.goto("/stock")
+    await page.getByRole("link", { name: "Manage warehouses" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Warehouses" })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Create General stock" })
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("row").filter({ hasText: depot.name })
+    ).toContainText("Default")
+    await page.getByRole("button", { name: "New warehouse" }).click()
+    const form = page.getByRole("dialog")
+    await form.getByLabel("Name", { exact: true }).fill(depot.name)
+    await form.getByRole("button", { name: "Save", exact: true }).click()
+    await expect(
+      form.getByLabel("Name", { exact: true })
+    ).toHaveAccessibleDescription("That slug already exists.")
+    await form.getByLabel("Name", { exact: true }).fill("Cold store")
+    await form.getByLabel("Description", { exact: true }).fill("For cold stock")
+    await form.getByRole("button", { name: "Save", exact: true }).click()
+    await expect(form).toBeHidden()
+    await expect(page.getByText("Warehouse created.")).toBeVisible()
+    expect(api.callsTo("POST", warehousePath).at(-1)?.body).toEqual({
+      name: "Cold store",
+      description: "For cold stock",
+    })
+
+    await page.getByRole("button", { name: "Edit", exact: true }).click()
+    await form.getByLabel("Name", { exact: true }).fill("Depot")
+    await form.getByRole("button", { name: "Save", exact: true }).click()
+    const depotRow = page.getByRole("row").filter({ hasText: "Depot" })
+    await expect(depotRow).toBeVisible()
+    const confirmation = page.getByRole("alertdialog")
+    const deleteDepot = depotRow.getByRole("button", {
+      name: "Delete",
+      exact: true,
+    })
+    await deleteDepot.click()
+    await confirmation
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click()
+    expect(api.callsTo("DELETE", warehousePath + "/:warehouse")).toHaveLength(0)
+    await expect(confirmation).toBeHidden()
+    await deleteDepot.click()
+    await confirmation
+      .getByRole("button", { name: "Delete", exact: true })
+      .click()
+    await expect(
+      page.getByText("This warehouse still has stock or reservations.", {
+        exact: false,
+      })
+    ).toBeVisible()
+    await expect(depotRow).toBeVisible()
+
+    holdsStock = false
+    await expect(confirmation).toBeHidden()
+    await deleteDepot.click()
+    await confirmation
+      .getByRole("button", { name: "Delete", exact: true })
+      .click()
+    await expect(page.getByText("Warehouse deleted.")).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Create General stock" })
+    ).toBeVisible()
+  })
+})
+
+test("Warehouse listing rights do not grant warehouse writes", async ({
+  page,
+  api,
+}) => {
+  api
+    .on("GET", "/me", () => ({
+      data: {
+        user: {
+          ...me,
+          permissions: [{ workspace: WS, permissions: ["warehouse.list"] }],
+        },
+      },
+    }))
+    .on("GET", warehousePath, () => paged([depot]))
+  await page.goto("/stock/warehouses")
+  await expect(
+    page.getByRole("row").filter({ hasText: depot.name })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: /New warehouse|Edit|Delete/ })
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole("link", { name: "Stock", exact: true })
+  ).toHaveCount(0)
 })
 
 test("/stock: batch rows name their batch, numbers read whole, below zero says why and links to the fix", async ({

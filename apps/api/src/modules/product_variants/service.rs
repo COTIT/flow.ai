@@ -15,7 +15,7 @@ use crate::{
         product_variants::{
             dto::{
                 Combination, Fields, Generate, GeneratedVariants, GenerationReceipt,
-                GenerationReceiptStatus, render,
+                GenerationReceiptStatus, UpdateFields, render,
             },
             repo::{self, VariantRow},
         },
@@ -118,7 +118,7 @@ pub async fn create(
     if !v.is_default {
         crate::modules::products::service::active_guard(&p.kind, p.has_stock, true, active)?;
     }
-    crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
+    crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v, None).await?;
     if v.is_default {
         crate::modules::products::service::refuse_if_used(&mut tx, workspace_id, p.id, "default")
             .await?;
@@ -148,7 +148,7 @@ pub async fn update(
     workspace_id: Uuid,
     product_id: &str,
     id: &str,
-    f: Fields,
+    f: UpdateFields,
     actor: Actor,
 ) -> Result<Value, AppError> {
     let (p, pv) = product(state, workspace_id, product_id).await?;
@@ -158,8 +158,24 @@ pub async fn update(
     let before = repo::find_locked(&mut tx, workspace_id, p.id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    let v = prepare_update(&before, &f, p.price)?;
-    crate::modules::products::approval::check_variant(&mut tx, workspace_id, &p, &v).await?;
+    let v = prepare_update(&before, &f.variant, p.price)?;
+    let size_labels = if let Some(labels) = f.size_labels.as_deref() {
+        repo::lock_options(&mut tx, workspace_id).await?;
+        let current = prepare_size_labels(&mut tx, workspace_id, id, labels).await?;
+        Some((current, labels))
+    } else {
+        None
+    };
+    crate::modules::products::approval::check_variant(
+        &mut tx,
+        workspace_id,
+        &p,
+        &v,
+        size_labels
+            .as_ref()
+            .map(|(current, labels)| (current.as_slice(), *labels)),
+    )
+    .await?;
     // Clear the old default first: the one-default index checks each statement.
     if v.is_default && !before.is_default {
         crate::modules::products::service::refuse_if_used(&mut tx, workspace_id, p.id, "default")
@@ -167,6 +183,11 @@ pub async fn update(
         repo::clear_default(&mut tx, workspace_id, p.id, v.id).await?;
     }
     repo::update(&mut tx, workspace_id, &v).await?;
+    if let Some((current, labels)) = size_labels
+        && !current.iter().map(|o| &o.display_value).eq(labels)
+    {
+        update_size_labels(&mut tx, workspace_id, &v, &current, labels).await?;
+    }
     let changes = changed_prices(&before, &v);
     products::insert_history(
         &mut tx,
@@ -188,6 +209,56 @@ pub async fn update(
         .await?
         .pop()
         .ok_or(AppError::NotFound)
+}
+
+/// The current Size links in display order. Check replacements before any write or review.
+pub(crate) async fn prepare_size_labels(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    variant_id: Uuid,
+    labels: &[String],
+) -> Result<Vec<repo::OptionValueRow>, AppError> {
+    let mut current = repo::option_values(&mut *conn, workspace_id, &[variant_id]).await?;
+    current.retain(|value| value.type_name == "size");
+    if labels.len() != current.len().max(1) {
+        return Err(AppError::field(
+            "size_labels",
+            "Send one label per existing Size value, or one label when there are no Size values.",
+        ));
+    }
+    if !repo::distinct_labels(conn, labels).await? {
+        return Err(AppError::field(
+            "size_labels",
+            "Size labels must be distinct ignoring case.",
+        ));
+    }
+    Ok(current)
+}
+
+async fn update_size_labels(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    variant: &VariantRow,
+    current: &[repo::OptionValueRow],
+    labels: &[String],
+) -> Result<(), AppError> {
+    let option_type_id = match current.first() {
+        Some(value) => value.option_type_id,
+        None => {
+            let id = repo::option_type(conn, workspace_id, "Size").await?;
+            repo::attach_type(conn, workspace_id, variant.product_id, id, None).await?;
+            id
+        }
+    };
+    let mut value_ids = Vec::with_capacity(labels.len());
+    for (position, label) in labels.iter().enumerate() {
+        let sort_order = i32::try_from(position).unwrap_or_default();
+        let id = repo::option_value(conn, workspace_id, option_type_id, label, sort_order).await?;
+        value_ids.push(id);
+    }
+    let old_ids: Vec<_> = current.iter().map(|value| value.id).collect();
+    repo::replace_size_links(conn, workspace_id, variant.id, &old_ids, &value_ids, labels).await?;
+    Ok(())
 }
 
 /// Soft delete. The default variant stays: orders and the POS resolve it (Laravel 500'd).
@@ -238,7 +309,7 @@ pub async fn generate(
         let sort = t
             .sort_order
             .unwrap_or(i32::try_from(ot).unwrap_or_default());
-        repo::attach_type(&mut tx, workspace_id, p.id, type_id, sort).await?;
+        repo::attach_type(&mut tx, workspace_id, p.id, type_id, Some(sort)).await?;
         let mut ids = Vec::new();
         for (vi, (value, sort)) in t.values.iter().enumerate() {
             let sort = sort.unwrap_or(i32::try_from(vi).unwrap_or_default());
