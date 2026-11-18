@@ -27,6 +27,11 @@ vi.mock("@/lib/storefront-design", () => ({ getPublishedDesign: mocks.design }))
 vi.mock("@/components/legacy-home", () => ({
   default: () => <div>Exact legacy body</div>,
 }))
+vi.mock("@/components/shop-json-ld", () => ({
+  ShopJsonLd: ({ data }: { data: object }) => (
+    <script type="application/ld+json">{JSON.stringify(data)}</script>
+  ),
+}))
 vi.mock("@/components/trace-form", () => ({
   TraceForm: () => <form aria-label="Native batch lookup" />,
 }))
@@ -53,7 +58,9 @@ describe("home design selection", () => {
     const html = renderToStaticMarkup(
       await HomePage({ searchParams: Promise.resolve({}) })
     )
-    expect(html).toBe("<div>Exact legacy body</div>")
+    expect(html).toContain("<div>Exact legacy body</div>")
+    expect(html).toContain('"@type":"WebSite"')
+    expect(html).toContain('"@type":"Organization"')
   })
 
   it("renders published sections and keeps native batch lookup outside the document", async () => {

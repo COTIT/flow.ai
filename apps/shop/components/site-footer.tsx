@@ -28,9 +28,11 @@ export async function SiteFooter({ shopName }: { shopName?: string }) {
     )
   const email = t("content.email")
   return (
-    <footer className="grid gap-8 rounded-[24px] bg-primary p-7 text-primary-foreground md:grid-cols-[1.4fr_1fr_1.4fr] md:p-10 dark:border dark:border-(--hair) dark:bg-white/4 dark:text-foreground">
+    <footer className="afm-footer grid gap-8 rounded-[24px] bg-primary p-7 text-primary-foreground md:grid-cols-[1.4fr_1fr_1.4fr] md:p-10 dark:border dark:border-(--hair) dark:bg-white/4 dark:text-foreground">
       <div className="flex flex-col gap-4">
-        <p className="text-[20px] font-semibold">{t("app.title")}</p>
+        <p className="afm-wordmark text-[20px] font-semibold">
+          {t("app.title")}
+        </p>
         <p className="text-[18px] leading-snug font-medium">
           {t("footer.title")}
         </p>
@@ -60,7 +62,7 @@ export async function SiteFooter({ shopName }: { shopName?: string }) {
         <p className="text-[13px] opacity-80">{t("footer.newsletterBody")}</p>
         <a
           href={mailto(email, t("footer.newsletterSubject"))}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-(image:--gold-gradient) px-4 text-[14px] font-semibold text-gold-foreground"
+          className="afm-newsletter inline-flex min-h-11 items-center gap-2 rounded-full bg-(image:--gold-gradient) px-4 text-[14px] font-semibold text-gold-foreground"
         >
           <MailIcon aria-hidden className="size-4" />
           {t("footer.newsletterCta")}

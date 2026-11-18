@@ -8,11 +8,13 @@ import { Notice } from "@genesy/ui/components/notice"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
+import { pageMetadata } from "@/lib/seo"
 import { card, goldChip, h2 } from "@/lib/look"
 import { mailto } from "@/lib/nav"
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("contact"))("tag") }
+  const t = await getTranslations("contact")
+  return pageMetadata("/contact", { title: t("tag"), description: t("lead") })
 }
 
 const chip = cn(goldChip, "size-12 rounded-[14px]")

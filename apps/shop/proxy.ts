@@ -46,7 +46,10 @@ export function proxy(request: NextRequest) {
   }
   const needsCatalog =
     ["/", "/shop", "/checkout"].includes(path) ||
-    ["/products/", "/orders/", "/b/"].some((prefix) => path.startsWith(prefix))
+    (["/products/", "/orders/", "/b/"].some((prefix) =>
+      path.startsWith(prefix)
+    ) &&
+      !/^\/products\/[^/]+\/image$/.test(path))
   if (!process.env.STOREFRONT_APP_KEY?.trim() && needsCatalog) {
     const locale = pickLocale(request.cookies.get(LOCALE_COOKIE)?.value, "en")
     const text = messages[locale]

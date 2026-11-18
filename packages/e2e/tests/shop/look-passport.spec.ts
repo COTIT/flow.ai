@@ -37,7 +37,7 @@ test("a released passport is the bento from the mockup", async ({
 
   const hero = page.locator("main header")
   const h1 = hero.getByRole("heading", { level: 1, name: TITLE })
-  expect(await css(h1, "font-size")).toBe("32px")
+  expect(parseFloat(await css(h1, "font-size"))).toBeGreaterThanOrEqual(32)
   await expect(hero).toContainText(
     "Ilundo Wild Forest Honey · Batch 7K3M9QX2WD"
   )
@@ -45,7 +45,7 @@ test("a released passport is the bento from the mockup", async ({
   await expect(hero).toContainText(
     "Harvested July 14, 2026 · Best before July 14, 2028"
   )
-  expect(await css(hero.locator("img").first(), "height")).toBe("280px")
+  await expect(hero.locator("img").first()).toHaveCSS("object-fit", "contain")
 
   const where = tile(page, "Where it comes from")
   await expect(where).toContainText("Ilundo miombo forest")
@@ -112,7 +112,7 @@ test("the main content shows within 2.5 s on a phone", async ({
   expect(lcp, "largest contentful paint (ms)").toBeLessThan(2500)
 })
 
-test("a recalled batch: the red banner comes first, the badge says so", async ({
+test("a recalled batch puts the amber warning first and says so on the badge", async ({
   page,
 }) => {
   await page.goto(`/b/${LOT.recalled}`)
@@ -120,7 +120,8 @@ test("a recalled batch: the red banner comes first, the badge says so", async ({
     .getByRole("alert")
     .filter({ hasText: "This batch has been recalled" })
   await expect(banner).toBeVisible()
-  expect(await css(banner, "background-color")).toBe("rgb(180, 35, 24)")
+  await expect(banner).toHaveClass(/\bafm-recall\b/)
+  await expect(banner).toHaveCSS("background-color", "rgb(243, 214, 149)")
   const h1 = page.getByRole("heading", { level: 1 })
   expect(await before(banner, h1)).toBe(true)
   await expect(

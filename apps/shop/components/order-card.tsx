@@ -8,7 +8,7 @@ export function OrderCard({ children }: { children: React.ReactNode }) {
     <section
       className={cn(
         card,
-        "mx-auto w-full max-w-[920px] gap-[18px] md:gap-[18px]"
+        "afm-order mx-auto w-full max-w-[920px] gap-[18px] md:gap-[18px]"
       )}
     >
       {children}

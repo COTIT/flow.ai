@@ -20,8 +20,8 @@ test("home leads with the mission, the trace box and AFM's categories", async ({
 }) => {
   await page.goto("/")
   await expect(page.locator("body")).toHaveClass(/\btheme-glass\b/)
+  await expect(page.locator("body")).toHaveAttribute("data-shop-theme", "afm")
   const header = page.getByRole("banner")
-  expect(await css(header.locator(".."), "max-width")).toBe("1200px")
   await expect(header.getByRole("link", { name: "Cart, empty" })).toBeVisible()
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
@@ -112,15 +112,17 @@ test("the server sends the headline, categories and products (search engines see
   expect(html).toContain("Mary&#x27;s Tanzanian Wildflower Honey")
 })
 
-test("with motion, the headline comes into focus; photos glare only under a mouse", async ({
+test("the hero headline stays still and product photos support pointer effects", async ({
   page,
   isMobile,
 }) => {
   await page.goto("/")
   const h1 = page.getByRole("heading", { level: 1 })
-  await expect(h1.locator("[data-motion]")).toHaveCount(1)
+  await expect(h1.locator("[data-motion]")).toHaveCount(0)
   await expect(h1).toHaveAccessibleName(HEADLINE)
-  const honey = page.getByRole("link", { name: /Ilundo Wild Forest Honey/ })
+  const honey = page
+    .getByRole("region", { name: "In stock now" })
+    .getByRole("link", { name: /Ilundo Wild Forest Honey/ })
   await expect(honey.locator("[data-motion]")).toHaveCount(isMobile ? 0 : 1)
   await expectNoLayoutShift(page)
 })

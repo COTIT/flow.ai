@@ -107,7 +107,7 @@ export type CategorisedProduct = StorefrontProduct & {
  * (404) means none: the shop opens without category tiles rather than as not-found.
  */
 export const listCategories = cache(
-  async () =>
+  async (requireEndpoint = false) =>
     (
       await call(
         "/storefront/categories",
@@ -116,18 +116,22 @@ export const listCategories = cache(
             { url: "/storefront/categories", method: "GET" },
             o
           ),
-        () => ({ data: [] })
+        requireEndpoint ? undefined : () => ({ data: [] })
       )
     ).data
 )
 
-export const listProducts = async (page: number, category?: string) => {
+export const listProducts = async (
+  page: number,
+  category?: string,
+  pageSize = PAGE_SIZE
+) => {
   // The category id goes into the query: only a UUID may.
   if (category && !isUuid(category)) category = undefined
   const list = await call("/storefront/products", (o) =>
     storefrontProductsList(
       // shortcut: `category` is cast in until the generated params know it.
-      { page, page_size: PAGE_SIZE, ...(category && { category }) } as {
+      { page, page_size: pageSize, ...(category && { category }) } as {
         page: number
       },
       o

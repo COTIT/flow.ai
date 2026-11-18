@@ -66,6 +66,7 @@ describe("categories", () => {
   it("read as none while the API has no categories endpoint (404), so the shop still opens", async () => {
     mutator.apiRequest.mockRejectedValue(httpError(404))
     await expect(listCategories()).resolves.toEqual([])
+    await expect(listCategories(true)).rejects.toThrow("NEXT_NOT_FOUND")
   })
 
   it("hide other failures behind StorefrontUnavailable", async () => {

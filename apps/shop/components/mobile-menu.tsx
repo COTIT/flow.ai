@@ -29,12 +29,18 @@ export function MobileMenu({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        render={<Button variant="outline" size="icon" className="md:hidden" />}
+        render={
+          <Button
+            variant="outline"
+            size="icon"
+            className="afm-menu-trigger md:hidden"
+          />
+        }
       >
         <MenuIcon aria-hidden />
         <span className="sr-only">{openLabel}</span>
       </SheetTrigger>
-      <SheetContent side="right" className="gap-2 p-5 pt-14">
+      <SheetContent side="right" className="afm-menu gap-2 p-5 pt-14">
         <SheetTitle className="sr-only">{title}</SheetTitle>
         <nav aria-label={title} className="flex flex-col gap-1 text-[16px]">
           <NavLinks labels={labels} onNavigate={() => setOpen(false)} />

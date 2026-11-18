@@ -14,7 +14,7 @@ test("AFM's content photos stay small: WebP only, under 1.5 MB together", () => 
 })
 
 for (const [path, count] of [
-  ["/", 4],
+  ["/", 3],
   ["/stories", 4],
   ["/about", 1],
 ] as const)
@@ -32,6 +32,7 @@ for (const [path, count] of [
       expect(alt).not.toMatch(/\.(webp|png|jpe?g)$/i)
       await expect(img).toHaveAttribute("width", /^\d+$/)
       await expect(img).toHaveAttribute("height", /^\d+$/)
+      await expect(img).toHaveCSS("object-fit", "contain")
       await img.scrollIntoViewIfNeeded()
       await expect
         .poll(() =>
@@ -52,4 +53,19 @@ test("the stories page keeps initials for someone without a photo", async ({
     .filter({ has: page.getByRole("heading", { name: "Rachel Bosire" }) })
   await expect(rachel.locator("img")).toHaveCount(0)
   await expect(rachel.getByText("RB", { exact: true })).toBeAttached()
+})
+
+test("a story photo that fails to decode falls back to initials", async ({
+  page,
+}) => {
+  await page.route("**/afm/benard-omondi.webp", (route) =>
+    route.fulfill({ contentType: "image/webp", body: "Invalid image" })
+  )
+  await page.goto("/stories")
+  const benard = page.getByRole("listitem").filter({
+    has: page.getByRole("heading", { name: /Benard Omondi/ }),
+  })
+  await benard.scrollIntoViewIfNeeded()
+  await expect(benard.getByText("BO", { exact: true })).toBeVisible()
+  await expect(benard.locator("img")).toHaveCount(0)
 })

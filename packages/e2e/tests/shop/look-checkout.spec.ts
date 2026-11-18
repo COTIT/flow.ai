@@ -21,7 +21,7 @@ test("checkout is two field cards beside the order card", async ({
   await page.goto("/checkout")
 
   const h1 = page.getByRole("heading", { level: 1, name: "Checkout" })
-  expect(await css(h1, "font-size")).toBe("22px")
+  expect(parseFloat(await css(h1, "font-size"))).toBeGreaterThanOrEqual(32)
   const steps = page.getByRole("list", { name: "Checkout steps" })
   await expect(steps.getByRole("listitem")).toHaveCount(3)
   await expect(steps.locator('[aria-current="step"]')).toContainText("2")

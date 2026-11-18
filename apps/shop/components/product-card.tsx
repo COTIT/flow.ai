@@ -26,26 +26,28 @@ export function ProductCard({
       href={`/products/${product.id}`}
       className={cn(
         card,
-        "group w-full gap-0 overflow-hidden p-0 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:gap-0 md:p-0"
+        "afm-product-card group w-full gap-0 overflow-hidden p-0 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:gap-0 md:p-0"
       )}
     >
-      <Glare radius="0">
-        {/* The card's link names the product: the photo is decorative here. */}
-        <ProductImage
-          image={product.images?.[0]}
-          alt=""
-          label={labels.imageSoon}
-          className="aspect-[4/3] w-full"
-        />
-      </Glare>
-      <span className="flex flex-col gap-1.5 p-3 md:px-[18px] md:pt-4 md:pb-[18px]">
+      <div className="afm-card-image-frame contents">
+        <Glare radius="0">
+          {/* The card's link names the product: the photo is decorative here. */}
+          <ProductImage
+            image={product.images?.[0]}
+            alt=""
+            label={labels.imageSoon}
+            className="afm-product-image aspect-[4/3] w-full"
+          />
+        </Glare>
+      </div>
+      <span className="afm-product-card-body flex flex-col gap-1.5 p-3 md:px-[18px] md:pt-4 md:pb-[18px]">
         {/* The category says more than a brand that is the shop's own name. */}
         {(product.category?.name ?? product.brand) ? (
           <span className={cn(tag, "text-muted-foreground")}>
             {product.category?.name ?? product.brand}
           </span>
         ) : null}
-        <span className="text-base font-semibold group-hover:underline">
+        <span className="afm-product-name text-base font-semibold group-hover:underline">
           {product.name}
         </span>
         {product.short_description ? (
@@ -53,7 +55,7 @@ export function ProductCard({
             {product.short_description}
           </span>
         ) : null}
-        <span className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
+        <span className="afm-product-price mt-1.5 flex flex-wrap items-center justify-between gap-3">
           <span className="text-base font-semibold text-gold-ink tabular-nums md:text-lg">
             {formatMoney(
               shownPrice(product),

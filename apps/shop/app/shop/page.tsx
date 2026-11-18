@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { cache } from "react"
 import Link from "@/components/shop-link"
 import { getLocale, getTranslations } from "next-intl/server"
 
@@ -10,20 +11,60 @@ import { CategoryChips } from "@/components/category-chips"
 import { ProductCard } from "@/components/product-card"
 import { card, h2, prose, warm } from "@/lib/look"
 import { listCategories, listProducts } from "@/lib/storefront"
-import { getShop } from "@/lib/shop-scope"
+import { cataloguePath, pageMetadata } from "@/lib/seo"
+import { getShop, getShopBase } from "@/lib/shop-scope"
+import { shopNoindex } from "@/lib/site-origin"
 
+type QueryValue = string | string[]
 type Props = {
-  searchParams: Promise<{ page?: string; category?: string }>
+  searchParams: Promise<{ page?: QueryValue; category?: QueryValue }>
 }
+
+const readCatalogue = cache(async (page: number, category?: QueryValue) => {
+  const categories = await listCategories()
+  const chosen = category
+    ? categories.find((c) => c.id === category)
+    : undefined
+  const unknown = Boolean(category) && !chosen
+  const products = unknown ? null : await listProducts(page, chosen?.id)
+  return { categories, chosen, unknown, products }
+})
+
+const pageNumber = (page?: QueryValue) =>
+  Math.max(1, Number.parseInt(page?.toString() ?? "", 10) || 1)
 
 export async function generateMetadata({
   searchParams,
 }: Props): Promise<Metadata> {
-  const { category } = await searchParams
-  const chosen = category
-    ? (await listCategories()).find((c) => c.id === category)
-    : undefined
-  return { title: chosen?.name ?? (await getTranslations("catalog"))("title") }
+  const { category, page } = await searchParams
+  const t = await getTranslations()
+  if (await getShopBase()) {
+    const chosen = category
+      ? (await listCategories()).find((c) => c.id === category)
+      : undefined
+    return { title: chosen?.name ?? t("catalog.title") }
+  }
+
+  const { chosen, products } = await readCatalogue(pageNumber(page), category)
+  const title = chosen?.name ?? t("catalog.title")
+  const validPage =
+    page === undefined ||
+    (typeof page === "string" &&
+      /^\d+$/.test(page) &&
+      Number.isSafeInteger(Number(page)) &&
+      Number(page) > 0)
+
+  if (
+    !validPage ||
+    !products?.data.length ||
+    products.meta.current_page > products.meta.last_page
+  )
+    return { title, robots: { index: false, follow: !shopNoindex() } }
+
+  return pageMetadata(cataloguePath(products.meta.current_page, chosen?.id), {
+    title,
+    description: chosen?.description ?? t("app.tagline"),
+  })
 }
 
 const href = (page: number, category?: string) =>
@@ -32,17 +73,12 @@ const href = (page: number, category?: string) =>
 /** The catalogue: one category or all, its chips, the product grid and its pager. */
 export default async function ShopPage({ searchParams }: Props) {
   const params = await searchParams
-  const page = Math.max(1, Number.parseInt(params.page ?? "", 10) || 1)
-  const [t, locale, categories] = await Promise.all([
-    getTranslations(),
-    getLocale(),
-    listCategories(),
-  ])
-  const chosen = params.category
-    ? categories.find((c) => c.id === params.category)
-    : undefined
-  const unknown = Boolean(params.category) && !chosen
-  const products = unknown ? null : await listProducts(page, chosen?.id)
+  const [t, locale, { categories, chosen, unknown, products }] =
+    await Promise.all([
+      getTranslations(),
+      getLocale(),
+      readCatalogue(pageNumber(params.page), params.category),
+    ])
   const shop = await getShop()
   const labels = {
     inStock: t("product.inStock"),
@@ -58,7 +94,13 @@ export default async function ShopPage({ searchParams }: Props) {
 
   return (
     <>
-      <section className={cn(card, warm, "gap-4 md:gap-5 md:p-8")}>
+      <section
+        className={cn(
+          card,
+          warm,
+          "afm-intro afm-catalog-intro gap-4 md:gap-5 md:p-8"
+        )}
+      >
         <h1 className="text-[28px] leading-[1.15] font-medium md:text-[36px]">
           {chosen?.name ?? t("catalog.title")}
         </h1>
@@ -131,7 +173,7 @@ export default async function ShopPage({ searchParams }: Props) {
           ) : (
             <ul
               aria-labelledby="products"
-              className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
+              className="afm-product-grid grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
             >
               {products.data.map((p) => (
                 <li key={p.id} className="flex min-w-0">
@@ -182,7 +224,7 @@ function Pager({
     )
   return (
     <nav
-      className="flex items-center justify-between gap-3"
+      className="afm-pager flex items-center justify-between gap-3"
       aria-label={t("catalog.pages")}
     >
       {step(page - 1, t("catalog.previous"))}
