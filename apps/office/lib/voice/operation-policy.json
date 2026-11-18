@@ -23888,5 +23888,145 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "accounting_close_checks": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/close-checks",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#close_checks",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_periods_close": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/periods/{period}/close",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#periods_close",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_year_close": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/fiscal-years/{year}/close",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#years_close",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_year_close_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/fiscal-years/{year}/close/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#years_close_review",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }

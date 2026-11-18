@@ -334,6 +334,28 @@
         ],
         "type": "object"
       },
+      "Action_ClosePayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ClosePayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "Action_ConfirmPayload": {
         "description": "A envelope: action on an existing resource at `expected_version`.",
         "properties": {
@@ -4964,6 +4986,79 @@
         ],
         "type": "object"
       },
+      "CloseCheck": {
+        "description": "One close check (masterplan §13 \"PERIOD CLOSE\").",
+        "properties": {
+          "code": {
+            "description": "missing_effects, unbalanced_journals, inventory_difference,\nopen_item_control_difference, unbooked_receipts, pending_cost_variance, fx_revaluation\nor pending_exceptions.",
+            "type": "string"
+          },
+          "count": {
+            "description": "Offending rows (accounts, journals, receipt lines, observations); 1 for a balance check.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "passed",
+          "count"
+        ],
+        "type": "object"
+      },
+      "CloseChecksResource": {
+        "description": "Close checks of a period, as rechecked under lock by the close.",
+        "properties": {
+          "accounting_date": {
+            "description": "Period's last day: the checks' cutoff.",
+            "format": "date",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CloseCheck"
+            },
+            "type": "array"
+          },
+          "checks_fingerprint": {
+            "type": "string"
+          },
+          "final_period": {
+            "description": "Ends on its fiscal year's end: closes only through the year-end close.",
+            "type": "boolean"
+          },
+          "fiscal_year_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "period_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "period_version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ready": {
+            "description": "Every check passed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "period_id",
+          "period_version",
+          "fiscal_year_id",
+          "accounting_date",
+          "final_period",
+          "checks",
+          "ready",
+          "checks_fingerprint"
+        ],
+        "type": "object"
+      },
       "CloseLinePayload": {
         "description": "One remainder to close.",
         "properties": {
@@ -4996,6 +5091,19 @@
             ]
           },
           "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ClosePayload": {
+        "description": "POST /periods/{id}/close payload.",
+        "properties": {
+          "checks_fingerprint": {
+            "description": "From `GET /accounting/reports/close-checks`.",
             "type": [
               "string",
               "null"
@@ -10533,6 +10641,18 @@
         ],
         "type": "object"
       },
+      "Envelope_CloseChecksResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CloseChecksResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_ConfirmReview": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -13576,6 +13696,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/WorkspaceRecordResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_YearCloseResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/YearCloseResource"
           }
         },
         "required": [
@@ -44818,6 +44950,102 @@
         ],
         "type": "object"
       },
+      "YearCloseLine": {
+        "description": "One line of the year-end closing journal (functional major units).",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "credit": {
+            "type": "string"
+          },
+          "debit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "debit",
+          "credit"
+        ],
+        "type": "object"
+      },
+      "YearCloseResource": {
+        "description": "A year-end close, as reviewed or as posted.",
+        "properties": {
+          "accounting_date": {
+            "description": "Final period's last day: the closing journal's date.",
+            "format": "date",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CloseCheck"
+            },
+            "type": "array"
+          },
+          "effect_id": {
+            "description": "The close's effect; null in a review.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "final_period_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fiscal_year_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fiscal_year_version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "functional_currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "journal_id": {
+            "description": "The `year_end_close` journal; null in a review or when nothing moved.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lines": {
+            "description": "Income and expense balances reversed, the net to `retained_earnings` last.",
+            "items": {
+              "$ref": "#/components/schemas/YearCloseLine"
+            },
+            "type": "array"
+          },
+          "net_income": {
+            "description": "Income − expense of the year.",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fiscal_year_id",
+          "fiscal_year_version",
+          "final_period_id",
+          "accounting_date",
+          "functional_currency",
+          "checks",
+          "lines",
+          "net_income",
+          "review_fingerprint",
+          "journal_id",
+          "effect_id"
+        ],
+        "type": "object"
+      },
       "YearPayload": {
         "description": "POST /accounting/fiscal-years payload: `[start_date, end_date)`.",
         "properties": {
@@ -54056,6 +54284,353 @@
         ]
       }
     },
+    "/workspace/{workspace}/accounting/fiscal-years/{year}/close": {
+      "post": {
+        "operationId": "accounting_year_close",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fiscal year id",
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_PostPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_YearCloseResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or fiscal year, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "A failing check, calendar gap or earlier period open, or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Post the year-end close, then close the final period and the year",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/fiscal-years/{year}/close/review": {
+      "post": {
+        "operationId": "accounting_year_close_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fiscal year id",
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_YearCloseResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or fiscal year, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Calendar gap or earlier period open (`unsupported_active_erp_operation`), or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a fiscal year's year-end close (no writes)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/workspace/{workspace}/accounting/journals": {
       "get": {
         "operationId": "accounting_journals_list",
@@ -55777,6 +56352,199 @@
         ]
       }
     },
+    "/workspace/{workspace}/accounting/periods/{period}/close": {
+      "post": {
+        "operationId": "accounting_periods_close",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period id",
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_ClosePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PeriodResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or period, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "A failing check (`receipt_booking_required` / `external_financial_fact_pending` / `unsupported_active_erp_operation`), the final period, or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close an ordinary period whose close checks pass",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/workspace/{workspace}/accounting/periods/{period}/revalue": {
       "post": {
         "operationId": "accounting_periods_revalue",
@@ -56303,6 +57071,160 @@
           }
         ],
         "summary": "Balance sheet on as_of",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/reports/close-checks": {
+      "get": {
+        "operationId": "accounting_close_checks",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period to check.",
+            "in": "query",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CloseChecksResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or period, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close checks of a period",
         "tags": [
           "accounting"
         ]

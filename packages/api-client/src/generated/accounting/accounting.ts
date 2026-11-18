@@ -27,6 +27,7 @@ import type {
 import type {
   AccountingAccountsListParams,
   AccountingBalanceSheetParams,
+  AccountingCloseChecksParams,
   AccountingExceptionsListParams,
   AccountingGeneralLedgerParams,
   AccountingInventoryValuationParams,
@@ -39,6 +40,7 @@ import type {
   AccountingTrialBalanceParams,
   AccountingYearsListParams,
   ActionAccountPatch,
+  ActionClosePayload,
   ActionJournalPayload,
   ActionPostPayload,
   ActionResolvePayload,
@@ -58,6 +60,7 @@ import type {
   EnvelopeBalanceSheetResource,
   EnvelopeBankAccountResource,
   EnvelopeCashAdjustmentResource,
+  EnvelopeCloseChecksResource,
   EnvelopeExceptionResource,
   EnvelopeGeneralLedgerResource,
   EnvelopeInventoryValuationResource,
@@ -73,6 +76,7 @@ import type {
   EnvelopeVecBankAccountResource,
   EnvelopeVecCashPlaceResource,
   EnvelopeVecExceptionResource,
+  EnvelopeYearCloseResource,
   EnvelopeYearResource,
   MessageBody,
   OfficeReviewRequest,
@@ -1312,6 +1316,141 @@ export const useAccountingYearsCreate = <TError = ErrorType<MessageBody | Valida
       return useMutation(getAccountingYearsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Post the year-end close, then close the final period and the year
+ */
+export const accountingYearClose = (
+    workspace: string,
+    year: string,
+    actionPostPayload: BodyType<ActionPostPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeYearCloseResource>(
+      {url: `/workspace/${workspace}/accounting/fiscal-years/${year}/close`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionPostPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingYearCloseMutationKey = () => ['accountingYearClose'] as const;
+
+export const getAccountingYearCloseMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearClose>>, TError,AccountingYearCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingYearClose>>, TError,AccountingYearCloseMutationVariables, TContext> => {
+
+const mutationKey = getAccountingYearCloseMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingYearClose>>, AccountingYearCloseMutationVariables> = (props) => {
+          const {workspace,year,data} = props ?? {};
+
+          return  accountingYearClose(workspace,year,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingYearCloseMutationResult = NonNullable<Awaited<ReturnType<typeof accountingYearClose>>>
+    export type AccountingYearCloseMutationBody = BodyType<ActionPostPayload>
+    export type AccountingYearCloseMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingYearCloseMutationVariables = {workspace: string;year: string;data: BodyType<ActionPostPayload>}
+
+    /**
+ * @summary Post the year-end close, then close the final period and the year
+ */
+export const useAccountingYearClose = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearClose>>, TError,AccountingYearCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingYearClose>>,
+        TError,
+        AccountingYearCloseMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingYearCloseMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Preview a fiscal year's year-end close (no writes)
+ */
+export const accountingYearCloseReview = (
+    workspace: string,
+    year: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeYearCloseResource>(
+      {url: `/workspace/${workspace}/accounting/fiscal-years/${year}/close/review`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingYearCloseReviewMutationKey = () => ['accountingYearCloseReview'] as const;
+
+export const getAccountingYearCloseReviewMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearCloseReview>>, TError,AccountingYearCloseReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingYearCloseReview>>, TError,AccountingYearCloseReviewMutationVariables, TContext> => {
+
+const mutationKey = getAccountingYearCloseReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingYearCloseReview>>, AccountingYearCloseReviewMutationVariables> = (props) => {
+          const {workspace,year} = props ?? {};
+
+          return  accountingYearCloseReview(workspace,year,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingYearCloseReviewMutationResult = NonNullable<Awaited<ReturnType<typeof accountingYearCloseReview>>>
+
+    export type AccountingYearCloseReviewMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingYearCloseReviewMutationVariables = {workspace: string;year: string}
+
+    /**
+ * @summary Preview a fiscal year's year-end close (no writes)
+ */
+export const useAccountingYearCloseReview = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearCloseReview>>, TError,AccountingYearCloseReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingYearCloseReview>>,
+        TError,
+        AccountingYearCloseReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingYearCloseReviewMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List journals, newest date first
  */
 export const accountingJournalsList = (
@@ -2089,6 +2228,75 @@ export const useAccountingPeriodsCreate = <TError = ErrorType<MessageBody | Vali
       return useMutation(getAccountingPeriodsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Close an ordinary period whose close checks pass
+ */
+export const accountingPeriodsClose = (
+    workspace: string,
+    period: string,
+    actionClosePayload: BodyType<ActionClosePayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePeriodResource>(
+      {url: `/workspace/${workspace}/accounting/periods/${period}/close`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionClosePayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingPeriodsCloseMutationKey = () => ['accountingPeriodsClose'] as const;
+
+export const getAccountingPeriodsCloseMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsClose>>, TError,AccountingPeriodsCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsClose>>, TError,AccountingPeriodsCloseMutationVariables, TContext> => {
+
+const mutationKey = getAccountingPeriodsCloseMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingPeriodsClose>>, AccountingPeriodsCloseMutationVariables> = (props) => {
+          const {workspace,period,data} = props ?? {};
+
+          return  accountingPeriodsClose(workspace,period,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingPeriodsCloseMutationResult = NonNullable<Awaited<ReturnType<typeof accountingPeriodsClose>>>
+    export type AccountingPeriodsCloseMutationBody = BodyType<ActionClosePayload>
+    export type AccountingPeriodsCloseMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingPeriodsCloseMutationVariables = {workspace: string;period: string;data: BodyType<ActionClosePayload>}
+
+    /**
+ * @summary Close an ordinary period whose close checks pass
+ */
+export const useAccountingPeriodsClose = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsClose>>, TError,AccountingPeriodsCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingPeriodsClose>>,
+        TError,
+        AccountingPeriodsCloseMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingPeriodsCloseMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Post a reviewed FX revaluation of a period
  */
 export const accountingPeriodsRevalue = (
@@ -2315,6 +2523,106 @@ export function useAccountingBalanceSheet<TData = Awaited<ReturnType<typeof acco
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAccountingBalanceSheetQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Close checks of a period
+ */
+export const accountingCloseChecks = (
+    workspace: string,
+    params: AccountingCloseChecksParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeCloseChecksResource>(
+      {url: `/workspace/${workspace}/accounting/reports/close-checks`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingCloseChecksQueryKey = (workspace: string,
+    params?: AccountingCloseChecksParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/reports/close-checks`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingCloseChecksQueryOptions = <TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingCloseChecksQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingCloseChecks>>> = ({ signal }) => accountingCloseChecks(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingCloseChecksQueryResult = NonNullable<Awaited<ReturnType<typeof accountingCloseChecks>>>
+export type AccountingCloseChecksQueryError = ErrorType<MessageBody | UnprocessableBody>
+
+
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingCloseChecks>>,
+          TError,
+          Awaited<ReturnType<typeof accountingCloseChecks>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingCloseChecks>>,
+          TError,
+          Awaited<ReturnType<typeof accountingCloseChecks>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Close checks of a period
+ */
+
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingCloseChecksQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

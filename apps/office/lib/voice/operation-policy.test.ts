@@ -483,14 +483,14 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(709)
+    expect(operationManifest).toHaveLength(713)
     expect(tools).toHaveLength(415)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(224)
+    ).toHaveLength(228)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
@@ -526,7 +526,7 @@ describe("reviewed operation coverage", () => {
         ].some((prefix) => op.id.startsWith(prefix)) ||
         op.id === "till_privileged_session"
     )
-    expect(erp).toHaveLength(148)
+    expect(erp).toHaveLength(152)
     for (const op of erp) {
       expect(op.disposition, op.id).toBe("internal")
       expect(tools.some((tool) => tool.id === op.id), op.id).toBe(false)
