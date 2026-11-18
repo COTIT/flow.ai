@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Odoo 19 JSON-2 source adapter, Verzo C3a (`docs/api/integrations.md` "Odoo adapter"; no migration). Live `odoo` connections now get a real client: RFQ cursor poll (`write_date`, id tie-break), full-scan ids, batch read into exact-decimal purchase requests (section and note lines dropped, absent ids reported gone), `res.company` two-step approval controls, and a three-check probe. Errors map to `auth`, `permission`, `not_found`, `conflict`, `validation`, `transient` or `unknown`. Tested against an in-process fake built from `docs/integrations/facts/odoo-19.md`, not against a live Odoo.
 - Integration glue for WF-01, Verzo C1 (`docs/api/integrations.md`; migration `integrations`).
   - Permission group `integration` (`approve`, `approve_high`, `manage`, `reconcile`, `view`); catalog is now 50 groups / 263 names.
   - Tables `integration_connections`, `integration_secrets`, `integration_pairs`, `integration_mappings`, `integration_poll_cursors`, `external_links`, with composite workspace FKs.

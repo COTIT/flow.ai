@@ -139,3 +139,42 @@ Mapping JSON: `id, pair_id, entity, source_id, target_id, source_label, target_l
 - `cursors::get` and `cursors::advance` (inside the page's transaction)
 - `links::upsert`
 - `probe::run`, `probe::status`, `probe::expiry`
+
+## Odoo adapter: verified against documented contract, not live
+
+`src/integrations/providers/odoo/` (C3a). Built only from `docs/integrations/facts/odoo-19.md`. Tests run against an in-process fake whose replies cite that file. No Odoo 19 instance has been called; live gate L1 is still open.
+
+A live `odoo` connection row gets `SourceClient::Odoo`. The client reads `base_url` and `database` from the config and opens the `api_key` secret on its first call. In fake mode (`INTEGRATIONS_PROVIDERS=fake`) the in-process fake still answers.
+
+**Transport.** Every call is `POST {base_url}/json/2/<model>/<method>` with `Authorization: bearer <key>`, `Content-Type: application/json; charset=utf-8`, `User-Agent: verzo`, and `X-Odoo-Database` when `database` is set. The body is always a JSON object of named arguments, because Odoo drops an array body without an error (facts §0a). Each call has a 30 s limit. Amounts are parsed from the JSON number text into exact decimals and never pass through a float.
+
+| Operation | Call |
+|---|---|
+| `list_changed(companies, cursor, limit)` | `purchase.order/search_read`. Domain: company in the list, `state` in `draft`/`sent`, then `write_date > ts` or (`write_date = ts` and `id > last_id`). Order `write_date asc, id asc`. `ts` is sent as `YYYY-MM-DD HH:MM:SS` UTC. A full page returns `next` = the last row's `(write_date, id)`; a short page returns `next = None`. The 120 s overlap belongs to the caller (PLAN §6a). |
+| `list_eligible_ids(company, after_id, limit)` | `purchase.order/search` with company, eligible state and `id > after_id`, order `id asc` |
+| `read(ids)` | `purchase.order/search_read` with `id in ids`. Ids that don't come back (deleted, or hidden by record rules) are returned as gone. Then one `purchase.order.line/search_read` and one `res.currency/search_read` (`active_test: false`), so a batch costs 3 calls. Lines with a `display_type` (sections, notes) are dropped. `currency_ref` = currency `name`, `currency_decimals` = `decimal_places` (O2). |
+| `read_controls(companies)` | `res.company/search_read` for `po_double_validation` and `po_double_validation_amount` (O5): `two_step`, plus `threshold_zero` when the amount is 0. Companies that don't come back are left out. |
+| probe | Runs each read above once with `limit 1` and the real field lists. Checks: `purchase_request.list`, `purchase_request.read` (order, line and currency fields), `source_controls.read`. |
+
+**Error classes** (facts L28, L33-39, L84-87). Every C3a call is a read and safe to retry.
+
+| Reply | Class |
+|---|---|
+| Not sent or not answered (connect, DNS, address guard, timeout) | `transient` |
+| 401 (`Invalid apikey`) | `auth` |
+| 403 (`AccessError`, `AccessDenied`) | `permission` |
+| 404 (unknown model or method) | `not_found` |
+| 409 (`LockError`) | `conflict` |
+| 400 (bad JSON), 422 (`UserError`, bad argument, bad `order`) | `validation` |
+| 500 with `name: builtins.ValueError` (unknown field or malformed domain, L86-87) | `validation` |
+| 429, other 5xx | `transient` |
+| 2xx that is not the documented shape | `unknown` |
+| Other status | `unknown` |
+
+`code` holds Odoo's error `name` and `http_status` the status. The detail holds a readable sentence plus up to 200 characters of Odoo's `message`. The `debug` traceback and the key are never copied.
+
+**Not done here.**
+- Money checks P1/P2 (O6) belong to C4a/C4b.
+- `picking_type_id` (O4) is never requested, so `location_id` is always empty and WF-01 takes the location from the pair's default-location config. Later improvement: detect `purchase_stock` (for example with `fields_get`, whose JSON-2 signature is UNVERIFIED) and read the field when it exists.
+- Field names `product_uom_id` and `tax_ids` follow PLAN §1b. The facts pack does not list them, so the probe is the first check against a real instance.
+- UNVERIFIED items the parser guards against: many2one comes back as `[id, name]` or as a bare id, and both are accepted (item 4). Sub-second `write_date` only re-delivers rows, it loses none (item 3).
