@@ -22,13 +22,13 @@ use crate::{
     modules::{
         accounting::{
             dto::{
-                Action, NotRevalued, RevaluationItem, RevaluationRate,
-                RevaluationRef, RevaluationResource, RevaluePayload,
+                Action, CurrencyRef, NotRevalued, RevaluationItem, RevaluationRate, RevaluationRef,
+                RevaluationResource, RevaluePayload,
             },
             gate,
-            journals::{SourceLine, active_book, post_lines},
+            journals::{SourceLine, post_lines},
             repo,
-            service::{ok, period_closed, stale, unsupported},
+            service::{not_configured, ok, period_closed, stale, unsupported},
             settlement::Side,
         },
         purchasing::receipts::rate,
@@ -88,6 +88,18 @@ struct Prepared {
 /// Minor units as an exact decimal string at `dp` places (display only).
 fn amount(minor: i64, dp: i16) -> String {
     Decimal::new(minor, u32::try_from(dp).unwrap_or(0)).to_string()
+}
+
+/// The functional currency of an active book; 422 `accounting_not_configured` otherwise.
+async fn active_book(conn: &mut PgConnection, ws: Uuid) -> Result<CurrencyRef, AppError> {
+    let s = repo::settings(&mut *conn, ws, false).await?;
+    let id = s
+        .functional_currency_id
+        .filter(|_| s.state == "active")
+        .ok_or_else(not_configured)?;
+    repo::currency(&mut *conn, ws, id)
+        .await?
+        .ok_or_else(not_configured)
 }
 
 /// The period (404 outside the workspace), optionally locked FOR UPDATE.
@@ -177,8 +189,8 @@ async fn prepare(
     rate_date: NaiveDate,
     lock: bool,
 ) -> Result<Prepared, AppError> {
-    let functional = active_book(&mut *conn, ws).await?;
     let p = period(&mut *conn, ws, period_id, lock).await?;
+    let functional = active_book(&mut *conn, ws).await?;
     if !p.open {
         return Err(period_closed());
     }
@@ -350,7 +362,8 @@ pub async fn post(
     let run: Uuid = sqlx::query_scalar("SELECT uuidv7()")
         .fetch_one(&mut *tx)
         .await?;
-    let effect = repo::insert_effect(&mut tx, ws, SOURCE, run, "posted", &p.fingerprint, by).await?;
+    let effect =
+        repo::insert_effect(&mut tx, ws, SOURCE, run, "posted", &p.fingerprint, by).await?;
     let date = p.resource.accounting_date;
     sqlx::query(
         "INSERT INTO accounting_revaluations (id, workspace_id, period_id, rate_date,
@@ -428,17 +441,22 @@ pub(crate) async fn latest(
     ws: Uuid,
     periods: &[Uuid],
 ) -> Result<Vec<(Uuid, RevaluationRef)>, AppError> {
-    let rows: Vec<(Uuid, Uuid, NaiveDate, NaiveDate, chrono::DateTime<chrono::Utc>)> =
-        sqlx::query_as(
-            "SELECT DISTINCT ON (period_id) period_id, id, rate_date, accounting_date, created_at
+    let rows: Vec<(
+        Uuid,
+        Uuid,
+        NaiveDate,
+        NaiveDate,
+        chrono::DateTime<chrono::Utc>,
+    )> = sqlx::query_as(
+        "SELECT DISTINCT ON (period_id) period_id, id, rate_date, accounting_date, created_at
              FROM accounting_revaluations
              WHERE workspace_id = $1 AND period_id = ANY($2)
              ORDER BY period_id, created_at DESC, id DESC",
-        )
-        .bind(ws)
-        .bind(periods)
-        .fetch_all(conn)
-        .await?;
+    )
+    .bind(ws)
+    .bind(periods)
+    .fetch_all(conn)
+    .await?;
     Ok(rows
         .into_iter()
         .map(|(p, id, rate_date, accounting_date, created_at)| {
@@ -458,6 +476,7 @@ pub(crate) async fn latest(
 /// "Revaluation done for period" (for period close): true when no open foreign monetary item
 /// needs it (none, or all left out), or when the latest run, recomputed at its rate date, has
 /// nothing left to post. A missing rate or closed period surfaces as its 422.
+#[expect(dead_code, reason = "caller is period close (later M5)")]
 pub(crate) async fn current(
     conn: &mut PgConnection,
     ws: Uuid,

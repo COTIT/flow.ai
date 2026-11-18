@@ -6,7 +6,7 @@
 
 use crate::{
     common,
-    payables::{bank_location, book},
+    payables::bank_location,
     purchasing::{W, code, uuid, world},
 };
 
@@ -14,6 +14,23 @@ use axum::http::{Method, StatusCode};
 use common::{member_with, send};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+
+/// Payables book (M5-A fixture) plus a mapped `unrealized_fx` account; the expense account.
+async fn book(w: &W) -> String {
+    let expense = crate::payables::book(w).await;
+    sqlx::query(
+        "WITH a AS (INSERT INTO accounts (workspace_id, code, name, type, created_by)
+                    SELECT $1::uuid, '7910', 'Unrealized FX', 'expense', created_by_user_id
+                    FROM workspaces WHERE id = $1::uuid RETURNING id)
+         INSERT INTO account_mappings (workspace_id, role, account_id)
+         SELECT $1::uuid, 'unrealized_fx', id FROM a",
+    )
+    .bind(&w.api.ws)
+    .execute(w.pool())
+    .await
+    .unwrap();
+    expense
+}
 
 /// The fixture's single period: (id, version).
 async fn period(w: &W) -> (String, Value) {
@@ -95,17 +112,25 @@ async fn assert_control(w: &W) {
     .fetch_one(w.pool())
     .await
     .unwrap();
-    assert_eq!(-role(w, "payables").await, items, "payables GL = open items");
+    assert_eq!(
+        -role(w, "payables").await,
+        items,
+        "payables GL = open items"
+    );
 }
 
 async fn count(w: &W, table: &str) -> i64 {
-    sqlx::query_scalar(&format!(
-        "SELECT count(*) FROM {table} WHERE workspace_id = $1::uuid"
-    ))
-    .bind(&w.api.ws)
-    .fetch_one(w.pool())
-    .await
-    .unwrap()
+    let sql = match table {
+        "accounting_revaluations" => {
+            "SELECT count(*) FROM accounting_revaluations WHERE workspace_id = $1::uuid"
+        }
+        _ => "SELECT count(*) FROM accounting_carrying_adjustments WHERE workspace_id = $1::uuid",
+    };
+    sqlx::query_scalar(sql)
+        .bind(&w.api.ws)
+        .fetch_one(w.pool())
+        .await
+        .unwrap()
 }
 
 async fn pay_and_allocate(w: &W, bank: &str, usd: &str, target: &Value, amount: &str) -> Value {
@@ -189,7 +214,10 @@ async fn reruns_post_only_the_difference_and_debit_items_move_the_other_way(pool
     let bank = w.bank(&usd, "1110").await;
     // Unapplied payment: a supplier_credit (debit) item USD 100.00 carried at 120.00.
     let pay = w
-        .paid(w.money(&usd, "payment", "100.00", bank_location(&bank)).await)
+        .paid(
+            w.money(&usd, "payment", "100.00", bank_location(&bank))
+                .await,
+        )
         .await;
     let item = pay["open_item_id"].clone();
     w.rate(&usd, "1.10", 0).await;
@@ -286,14 +314,39 @@ async fn missing_rate_closed_period_and_bad_rate_date_are_refused(pool: PgPool) 
 #[sqlx::test]
 async fn revaluation_checks_permission_isolation_replay_staleness_and_setup(pool: PgPool) {
     let w = world(pool).await;
-    // Setup book: refused before anything else.
-    let (s, r) = review(&w, &uuid(), &w.today(0).await).await;
+    // Setup book (a calendar, never activated): refused.
+    sqlx::query(
+        "WITH y AS (INSERT INTO accounting_fiscal_years (workspace_id, start_date, end_date, created_by)
+                    SELECT $1::uuid, current_date - 10, current_date + 10, created_by_user_id
+                    FROM workspaces WHERE id = $1::uuid RETURNING id, created_by)
+         INSERT INTO accounting_periods (workspace_id, fiscal_year_id, start_date, end_date, created_by)
+         SELECT $1::uuid, id, current_date - 10, current_date + 10, created_by FROM y",
+    )
+    .bind(&w.api.ws)
+    .execute(w.pool())
+    .await
+    .unwrap();
+    let (setup, _) = period(&w).await;
+    let (s, r) = review(&w, &setup, &w.today(0).await).await;
     assert_eq!(
         (s, code(&r)),
-        (StatusCode::UNPROCESSABLE_ENTITY, "accounting_not_configured"),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "accounting_not_configured"
+        ),
         "{r}"
     );
 
+    sqlx::query("DELETE FROM accounting_periods WHERE workspace_id = $1::uuid")
+        .bind(&w.api.ws)
+        .execute(w.pool())
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM accounting_fiscal_years WHERE workspace_id = $1::uuid")
+        .bind(&w.api.ws)
+        .execute(w.pool())
+        .await
+        .unwrap();
     let expense = book(&w).await;
     let usd = w.usd().await;
     w.rate(&usd, "1.20", -2).await;
@@ -315,7 +368,12 @@ async fn revaluation_checks_permission_isolation_replay_staleness_and_setup(pool
         format!("/accounting/periods/{id}/revalue"),
     ] {
         let (s, b) = w
-            .req_as(&bob, Method::POST, &path, Some(json!({ "rate_date": today })))
+            .req_as(
+                &bob,
+                Method::POST,
+                &path,
+                Some(json!({ "rate_date": today })),
+            )
             .await;
         assert_eq!(s, StatusCode::FORBIDDEN, "{path}: {b}");
     }
@@ -323,7 +381,10 @@ async fn revaluation_checks_permission_isolation_replay_staleness_and_setup(pool
     let (s, _) = send(
         &w.api.app,
         Method::POST,
-        &format!("/v1/workspace/{}/accounting/periods/{id}/revalue/review", eve.ws),
+        &format!(
+            "/v1/workspace/{}/accounting/periods/{id}/revalue/review",
+            eve.ws
+        ),
         Some(json!({ "rate_date": today })),
         Some(&eve.owner),
     )
@@ -334,11 +395,19 @@ async fn revaluation_checks_permission_isolation_replay_staleness_and_setup(pool
     let fp = r["data"]["review_fingerprint"].clone();
     let path = format!("/accounting/periods/{id}/revalue");
     let (s, res) = w
-        .act(&path, &version, json!({ "rate_date": today, "review_fingerprint": "00" }))
+        .act(
+            &path,
+            &version,
+            json!({ "rate_date": today, "review_fingerprint": "00" }),
+        )
         .await;
     assert_eq!(s, StatusCode::CONFLICT, "{res}");
     let (s, res) = w
-        .act(&path, &json!(99), json!({ "rate_date": today, "review_fingerprint": fp }))
+        .act(
+            &path,
+            &json!(99),
+            json!({ "rate_date": today, "review_fingerprint": fp }),
+        )
         .await;
     assert_eq!(s, StatusCode::CONFLICT, "{res}");
     assert_eq!(count(&w, "accounting_revaluations").await, 0);

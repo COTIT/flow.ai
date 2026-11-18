@@ -15,8 +15,8 @@ use crate::{
         dto::{
             AccountChange, AccountPatch, AccountPayload, AccountResource, Acted, Action,
             BankAccountPayload, BankAccountResource, Create, Created, NewAccount, NewBankAccount,
-            NewPeriod, PeriodPayload, PeriodResource, ROLES, RevaluationRef, Range, SetupInput, SetupPayload,
-            SetupResource, YearPayload, YearResource,
+            NewPeriod, PeriodPayload, PeriodResource, ROLES, Range, RevaluationRef, SetupInput,
+            SetupPayload, SetupResource, YearPayload, YearResource,
         },
         gate,
         repo::{self, AccountRow, RangeRow},

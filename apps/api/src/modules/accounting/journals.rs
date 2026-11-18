@@ -380,7 +380,7 @@ impl Prepared {
 }
 
 /// The book's functional currency when it is active and fully configured.
-pub(crate) async fn active_book(conn: &mut PgConnection, ws: Uuid) -> Result<CurrencyRef, AppError> {
+async fn active_book(conn: &mut PgConnection, ws: Uuid) -> Result<CurrencyRef, AppError> {
     let s = repo::settings(&mut *conn, ws, false).await?;
     let mappings = repo::mappings(&mut *conn, ws).await?;
     let mapped = ROLES

@@ -123,7 +123,12 @@ impl W {
         b["data"].clone()
     }
 
-    pub(crate) async fn act(&self, path: &str, version: &Value, payload: Value) -> (StatusCode, Value) {
+    pub(crate) async fn act(
+        &self,
+        path: &str,
+        version: &Value,
+        payload: Value,
+    ) -> (StatusCode, Value) {
         self.req(
             Method::POST,
             path,
@@ -656,7 +661,13 @@ impl W {
         .unwrap()
     }
 
-    pub(crate) async fn money(&self, currency: &str, direction: &str, amount: &str, location: Value) -> Value {
+    pub(crate) async fn money(
+        &self,
+        currency: &str,
+        direction: &str,
+        amount: &str,
+        location: Value,
+    ) -> Value {
         json!({ "supplier_id": self.supplier, "currency_id": currency, "direction": direction,
                 "amount": amount, "date": self.today(0).await, "location": location,
                 "evidence_ref": "Statement 11/7" })
@@ -689,7 +700,12 @@ impl W {
         b["data"].clone()
     }
 
-    pub(crate) async fn allocate(&self, payment: &Value, target: &Value, amount: &str) -> (StatusCode, Value) {
+    pub(crate) async fn allocate(
+        &self,
+        payment: &Value,
+        target: &Value,
+        amount: &str,
+    ) -> (StatusCode, Value) {
         let id = payment["id"].as_str().unwrap();
         let body = json!({ "target_open_item_id": target, "amount": amount });
         let (s, review) = self

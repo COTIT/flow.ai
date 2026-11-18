@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::{Rules, Validate, ValidatedJson},
         list::{Page, Paginated},
@@ -23,9 +23,9 @@ use crate::{
             AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
             BankAccountPayload, BankAccountResource, Create, GeneralLedgerResource, JournalPayload,
             JournalResource, LedgerQuery, ListQuery, PeriodPayload, PeriodResource, PostPayload,
-            ProfitAndLossResource, RangeQuery, ReversePayload, ReverseReviewBody, ReviewResource, RevaluationResource, RevaluePayload,
-            RevalueReviewBody,
-            SetupPayload, SetupResource, TrialBalanceResource, YearPayload, YearResource,
+            ProfitAndLossResource, RangeQuery, RevaluationResource, RevaluePayload,
+            RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload,
+            SetupResource, TrialBalanceResource, YearPayload, YearResource,
         },
         journals, reports, revaluation, service,
     },
@@ -243,7 +243,7 @@ pub async fn periods_list(
         (status = 200, body = Envelope<RevaluationResource>, description = "Success"),
         (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
         (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
     ),
     security(("bearer" = []))
 )]
@@ -270,7 +270,7 @@ pub async fn periods_revalue_review(
         (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
         (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
         (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
     ),
     security(("bearer" = []))
 )]
