@@ -20,14 +20,16 @@ use crate::{
     idempotency::{Answer, Command},
     modules::accounting::{
         banking::{self, ReconcilePayload, UnmatchPayload},
+        close,
         dto::{
             AccountPatch, AccountPayload, AccountResource, Action, AgingQuery, AgingResource,
-            AsOfQuery, BalanceSheetResource, BankAccountPayload, BankAccountResource, Create,
-            GeneralLedgerResource, InventoryValuationResource, JournalPayload, JournalResource,
-            LedgerQuery, ListQuery, PartyLedgerQuery, PartyLedgerResource, PeriodPayload,
-            PeriodResource, PostPayload, ProfitAndLossResource, RangeQuery, RevaluationResource,
-            RevaluePayload, RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource,
-            SetupPayload, SetupResource, TrialBalanceResource, ValuationQuery, YearPayload,
+            AsOfQuery, BalanceSheetResource, BankAccountPayload, BankAccountResource,
+            CloseChecksQuery, CloseChecksResource, ClosePayload, Create, GeneralLedgerResource,
+            InventoryValuationResource, JournalPayload, JournalResource, LedgerQuery, ListQuery,
+            PartyLedgerQuery, PartyLedgerResource, PeriodPayload, PeriodResource, PostPayload,
+            ProfitAndLossResource, RangeQuery, RevaluationResource, RevaluePayload,
+            RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload,
+            SetupResource, TrialBalanceResource, ValuationQuery, YearCloseResource, YearPayload,
             YearResource,
         },
         journals, reports, revaluation, service,
@@ -43,6 +45,7 @@ permissions! {
     Reverse => "accounting.reverse",
     Revalue => "accounting.revalue",
     Reconcile => "accounting.reconcile",
+    Close => "accounting.close",
 }
 
 /// A path id; malformed reads as missing.
@@ -286,6 +289,105 @@ pub async fn periods_revalue(
     cmd: Command<Action<RevaluePayload>>,
 ) -> Result<Answer, AppError> {
     revaluation::post(&state, &access, id(&raw)?, cmd).await
+}
+
+/// accounting_close_checks: The §13 close checks of a period (no writes).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/close-checks", tag = "accounting",
+    operation_id = "accounting_close_checks",
+    summary = "Close checks of a period",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), CloseChecksQuery),
+    responses(
+        (status = 200, body = Envelope<CloseChecksResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or period, or not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn close_checks(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<CloseChecksQuery>,
+) -> Result<Data<CloseChecksResource>, AppError> {
+    let period = valid(q)?;
+    Ok(Data(
+        close::close_checks(&state, access.workspace_id, period).await?,
+    ))
+}
+
+/// accounting_periods_close: Close an ordinary period whose close checks pass.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/periods/{period}/close", tag = "accounting",
+    operation_id = "accounting_periods_close",
+    summary = "Close an ordinary period whose close checks pass",
+    request_body = Action<ClosePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("period" = Uuid, Path, description = "Period id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<PeriodResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or period, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = UnprocessableBody, description = "A failing check (`receipt_booking_required` / `external_financial_fact_pending` / `unsupported_active_erp_operation`), the final period, or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn periods_close(
+    State(state): State<AppState>,
+    access: Can<Close>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<ClosePayload>>,
+) -> Result<Answer, AppError> {
+    close::close_period(&state, &access, id(&raw)?, cmd).await
+}
+
+/// accounting_year_close_review: Preview a fiscal year's year-end close (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/fiscal-years/{year}/close/review", tag = "accounting",
+    operation_id = "accounting_year_close_review",
+    summary = "Preview a fiscal year's year-end close (no writes)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("year" = Uuid, Path, description = "Fiscal year id")),
+    responses(
+        (status = 200, body = Envelope<YearCloseResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or fiscal year, or not a member"),
+        (status = 422, body = UnprocessableBody, description = "Calendar gap or earlier period open (`unsupported_active_erp_operation`), or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn years_close_review(
+    State(state): State<AppState>,
+    access: Can<Close>,
+    Path((_, raw)): Path<(String, String)>,
+) -> Result<Data<YearCloseResource>, AppError> {
+    Ok(Data(
+        close::year_review(&state, access.workspace_id, id(&raw)?).await?,
+    ))
+}
+
+/// accounting_year_close: Post the year-end close, then close the final period and the year.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/fiscal-years/{year}/close", tag = "accounting",
+    operation_id = "accounting_year_close",
+    summary = "Post the year-end close, then close the final period and the year",
+    request_body = Action<PostPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("year" = Uuid, Path, description = "Fiscal year id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<YearCloseResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or fiscal year, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = UnprocessableBody, description = "A failing check, calendar gap or earlier period open, or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn years_close(
+    State(state): State<AppState>,
+    access: Can<Close>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<PostPayload>>,
+) -> Result<Answer, AppError> {
+    close::close_year(&state, &access, id(&raw)?, cmd).await
 }
 
 /// accounting_periods_create: Create a posting period inside a fiscal year.

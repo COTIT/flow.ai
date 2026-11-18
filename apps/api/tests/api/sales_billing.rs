@@ -63,7 +63,7 @@ pub(crate) async fn post(f: &F, path: &str, body: Value) -> (StatusCode, Value) 
 }
 
 /// An open order of `q` chairs to the relation; (order, line).
-async fn order(f: &F, q: &str) -> (String, String) {
+pub(crate) async fn order(f: &F, q: &str) -> (String, String) {
     let (s, o) = post(
         f,
         "/orders",
@@ -78,7 +78,7 @@ async fn order(f: &F, q: &str) -> (String, String) {
 }
 
 /// Draft, review and post a shipment of `q`; the shipment.
-async fn ship(f: &F, o: &str, line: &str, q: &str) -> Value {
+pub(crate) async fn ship(f: &F, o: &str, line: &str, q: &str) -> Value {
     let (s, sh) = post(
         f,
         &format!("/orders/{o}/shipments"),

@@ -1360,3 +1360,94 @@ pub struct InventoryValuationResource {
     #[schema(required = true)]
     pub difference: Option<String>,
 }
+
+/// `?period_id=` on the close-checks report.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct CloseChecksQuery {
+    /// Period to check.
+    #[param(value_type = Uuid)]
+    pub period_id: Option<String>,
+}
+
+impl Validate for CloseChecksQuery {
+    type Valid = Uuid;
+
+    fn validate(self, r: &mut Rules) -> Option<Uuid> {
+        uuid(r, "period_id", self.period_id)
+    }
+}
+
+/// POST /periods/{id}/close payload.
+#[derive(Deserialize, ToSchema)]
+pub struct ClosePayload {
+    /// From `GET /accounting/reports/close-checks`.
+    pub checks_fingerprint: Option<String>,
+}
+
+impl Validate for ClosePayload {
+    type Valid = String;
+
+    fn validate(self, r: &mut Rules) -> Option<String> {
+        r.required("checks_fingerprint", self.checks_fingerprint)
+    }
+}
+
+/// One close check (masterplan §13 "PERIOD CLOSE").
+#[derive(Serialize, ToSchema, Clone)]
+pub struct CloseCheck {
+    /// missing_effects, unbalanced_journals, inventory_difference,
+    /// open_item_control_difference, unbooked_receipts, pending_cost_variance, fx_revaluation
+    /// or pending_exceptions.
+    pub code: &'static str,
+    pub passed: bool,
+    /// Offending rows (accounts, journals, receipt lines, observations); 1 for a balance check.
+    pub count: i64,
+}
+
+/// Close checks of a period, as rechecked under lock by the close.
+#[derive(Serialize, ToSchema)]
+pub struct CloseChecksResource {
+    pub period_id: Uuid,
+    pub period_version: i64,
+    pub fiscal_year_id: Uuid,
+    /// Period's last day: the checks' cutoff.
+    pub accounting_date: NaiveDate,
+    /// Ends on its fiscal year's end: closes only through the year-end close.
+    pub final_period: bool,
+    pub checks: Vec<CloseCheck>,
+    /// Every check passed.
+    pub ready: bool,
+    pub checks_fingerprint: String,
+}
+
+/// One line of the year-end closing journal (functional major units).
+#[derive(Serialize, ToSchema)]
+pub struct YearCloseLine {
+    pub account_id: Uuid,
+    pub debit: String,
+    pub credit: String,
+}
+
+/// A year-end close, as reviewed or as posted.
+#[derive(Serialize, ToSchema)]
+pub struct YearCloseResource {
+    pub fiscal_year_id: Uuid,
+    pub fiscal_year_version: i64,
+    pub final_period_id: Uuid,
+    /// Final period's last day: the closing journal's date.
+    pub accounting_date: NaiveDate,
+    pub functional_currency: CurrencyRef,
+    pub checks: Vec<CloseCheck>,
+    /// Income and expense balances reversed, the net to `retained_earnings` last.
+    pub lines: Vec<YearCloseLine>,
+    /// Income − expense of the year.
+    pub net_income: String,
+    pub review_fingerprint: String,
+    /// The `year_end_close` journal; null in a review or when nothing moved.
+    #[schema(required = true)]
+    pub journal_id: Option<Uuid>,
+    /// The close's effect; null in a review.
+    #[schema(required = true)]
+    pub effect_id: Option<Uuid>,
+}
