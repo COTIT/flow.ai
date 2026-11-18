@@ -147,7 +147,7 @@
   "apps/api/src/modules/messages/handlers.rs": "38afd6b72b3d2c8a654794634188ea0e920ff359d7826541167b0c4d994cce5e",
   "apps/api/src/modules/messages/repo.rs": "3071e230e9f4924831d00cc1503058472d42c299594439dded294eb49cc339a2",
   "apps/api/src/modules/messages/service.rs": "8badfd170e30e179434e3281b39f8c633d374159047f3e1a005c9983e9f489a8",
-  "apps/api/src/modules/orders/dto.rs": "3336aaeab8b773a544395019a7b0d5c3bcd0e6154a2c61f32759bca7cae10b57",
+  "apps/api/src/modules/orders/dto.rs": "1254b6724e5d3f6fa342dc98a834b423d748580122c64d6096df00772790a2da",
   "apps/api/src/modules/orders/fake_pay.rs": "a7b7847aefda4a6e55644c3e679aab177e6397dc67d8840b8152867eba044f34",
   "apps/api/src/modules/orders/handlers.rs": "3715660cfcadcb44fbc3e1526e364097b03ac62b22c82669dfd7b4a97c966ac5",
   "apps/api/src/modules/orders/payments.rs": "3fbf481566fbe18ed0900dfba15b243b1885a786751991d93f7a0b263a368178",
