@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, fiscal_year_id AS \"fiscal_year_id?\", start_date, end_date, state, version,\n                  created_by, created_at, updated_at\n           FROM accounting_periods\n           WHERE workspace_id = $1 AND ($2::uuid IS NULL OR id = $2)\n           ORDER BY start_date LIMIT $3 OFFSET $4",
+  "query": "SELECT p.id, p.fiscal_year_id AS \"fiscal_year_id?\", p.start_date, p.end_date, p.state,\n                  p.version, p.created_by, p.created_at, p.updated_at,\n                  EXISTS (SELECT 1 FROM accounting_fiscal_years y\n                          WHERE y.workspace_id = p.workspace_id AND y.id = p.fiscal_year_id\n                            AND y.end_date = p.end_date) AS \"final_period!\"\n           FROM accounting_periods p\n           WHERE p.workspace_id = $1 AND ($2::uuid IS NULL OR p.id = $2)\n           ORDER BY p.start_date LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,12 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 9,
+        "name": "final_period!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -120,8 +126,9 @@
       false,
       false,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "94a969439fbe339ec17821cc58889c12f1d370c18dbcf41a6b3de011615793c3"
+  "hash": "e734f62a701050b5be314ca9a0a3ff6364eba2fa50f963c34daa206c464c72c2"
 }

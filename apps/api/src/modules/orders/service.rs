@@ -1171,12 +1171,34 @@ async fn active_returns(
     let o = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    let mut lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
     if preconditions::expects("order") {
+        let lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
         let facts = review_locked(&mut tx, workspace_id, &o, &lines).await?;
         preconditions::check_locked(workspace_id, "order", &facts)?;
     }
-    check(OrderAction::Return, &o, &lines, Paid::default())?;
+    let reason = format!("return order {}", o.number);
+    return_locked(&mut tx, (workspace_id, user_id), &o, &input, &reason).await?;
+    let answer = ok_json(&data(state, &mut tx, workspace_id, id).await?);
+    replay
+        .finish(&mut tx, workspace_id, key.as_ref(), &answer)
+        .await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// Return `input` of the locked order `o` in an active book: line checks, one posted
+/// canonical credit (and restock) per recognition, order projections. The credits' ids;
+/// empty when the order was sold before activation (returned physically only).
+pub(crate) async fn return_locked(
+    tx: &mut PgConnection,
+    (workspace_id, user_id): (Uuid, Uuid),
+    o: &OrderRow,
+    input: &LinesQuantity,
+    reason: &str,
+) -> Result<Vec<Uuid>, AppError> {
+    let id = o.id;
+    let mut lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
+    check(OrderAction::Return, o, &lines, Paid::default())?;
     let returned = |lines: &[LineRow]| {
         let mut m = std::collections::BTreeMap::new();
         for l in lines.iter().filter(|l| l.tracked && !l.returned.is_zero()) {
@@ -1205,19 +1227,18 @@ async fn active_returns(
         l.returned += *q;
         wanted.push((l.id, *q, l.tracked));
     }
-    let recognised = sales_returns::legacy::order_returns(
-        &mut tx,
+    let credits = sales_returns::legacy::order_returns(
+        &mut *tx,
         workspace_id,
-        &o,
-        (&wanted, input.restock),
+        o,
+        (&wanted, input.restock, reason),
         user_id,
     )
     .await?;
-    if !recognised && input.restock {
-        let reason = format!("return order {}", o.number);
+    if credits.is_empty() && input.restock {
         let after = returned(&lines);
         let plan =
-            farm_supply::sale::restock_plan(&mut tx, workspace_id, o.id, &before, &after).await?;
+            farm_supply::sale::restock_plan(&mut *tx, workspace_id, o.id, &before, &after).await?;
         for back in plan {
             // shortcut: a product on two lines takes the first line's reviewed cost.
             let line = wanted
@@ -1230,7 +1251,7 @@ async fn active_returns(
                 .map(|w| w.0);
             let legacy = match line {
                 Some(l) => {
-                    sales_returns::legacy::legacy_cost_for(&mut tx, workspace_id, l, back.quantity)
+                    sales_returns::legacy::legacy_cost_for(&mut *tx, workspace_id, l, back.quantity)
                         .await?
                 }
                 None => None,
@@ -1240,30 +1261,26 @@ async fn active_returns(
                     sale: ("order", o.id),
                     legacy: Some(l),
                 }),
-                ..cause(&o, &reason)
+                ..cause(o, reason)
             };
-            reserve::restock_lots(&mut tx, workspace_id, o.warehouse_id, &[back], &cause).await?;
+            reserve::restock_lots(&mut *tx, workspace_id, o.warehouse_id, &[back], &cause).await?;
         }
     }
     let rows: Vec<_> = lines
         .iter()
         .map(|l| (l.id, l.picked, l.deducted, l.returned))
         .collect();
-    repo::set_line_quantities(&mut tx, workspace_id, &rows).await?;
-    farm_supply::sale::on_return(&mut tx, workspace_id, o.id, &o.number, &returned(&lines)).await?;
+    repo::set_line_quantities(&mut *tx, workspace_id, &rows).await?;
+    farm_supply::sale::on_return(&mut *tx, workspace_id, o.id, &o.number, &returned(&lines))
+        .await?;
     let status = if lines.iter().all(|l| l.returned == l.quantity) {
         "returned"
     } else {
         "partially_returned"
     };
-    repo::set_status(&mut tx, workspace_id, o.id, status).await?;
-    log(&mut tx, workspace_id, o.id, "returned", user_id).await?;
-    let answer = ok_json(&data(state, &mut tx, workspace_id, id).await?);
-    replay
-        .finish(&mut tx, workspace_id, key.as_ref(), &answer)
-        .await?;
-    tx.commit().await?;
-    Ok(answer)
+    repo::set_status(&mut *tx, workspace_id, o.id, status).await?;
+    log(&mut *tx, workspace_id, o.id, "returned", user_id).await?;
+    Ok(credits)
 }
 
 /// Book what the customer paid online (paid − refunded) on the order's new invoice, so its

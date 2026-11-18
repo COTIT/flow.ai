@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::{Rules, Validate, ValidatedJson},
         list::{Page, Paginated},
@@ -19,16 +19,23 @@ use crate::{
     },
     idempotency::{Answer, Command},
     modules::accounting::{
+        banking::{self, ReconcilePayload, UnmatchPayload},
+        close,
         dto::{
-            AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
-            BankAccountPayload, BankAccountResource, Create, GeneralLedgerResource, JournalPayload,
-            JournalResource, LedgerQuery, ListQuery, PeriodPayload, PeriodResource, PostPayload,
-            ProfitAndLossResource, RangeQuery, ReversePayload, ReverseReviewBody, ReviewResource,
-            SetupPayload, SetupResource, TrialBalanceResource, YearPayload, YearResource,
+            AccountPatch, AccountPayload, AccountResource, Action, AgingQuery, AgingResource,
+            AsOfQuery, BalanceSheetResource, BankAccountPayload, BankAccountResource,
+            CloseChecksQuery, CloseChecksResource, ClosePayload, Create, GeneralLedgerResource,
+            InventoryValuationResource, JournalPayload, JournalResource, LedgerQuery, ListQuery,
+            PartyLedgerQuery, PartyLedgerResource, PeriodPayload, PeriodResource, PostPayload,
+            ProfitAndLossResource, RangeQuery, RevaluationResource, RevaluePayload,
+            RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload,
+            SetupResource, TrialBalanceResource, ValuationQuery, YearCloseResource, YearPayload,
+            YearResource,
         },
-        journals, reports, service,
+        journals, reports, revaluation, service,
     },
 };
+use serde_json::Value;
 
 permissions! {
     Read => "accounting.read",
@@ -36,6 +43,9 @@ permissions! {
     JournalCreate => "accounting.journal_create",
     Post => "accounting.post",
     Reverse => "accounting.reverse",
+    Revalue => "accounting.revalue",
+    Reconcile => "accounting.reconcile",
+    Close => "accounting.close",
 }
 
 /// A path id; malformed reads as missing.
@@ -228,6 +238,156 @@ pub async fn periods_list(
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
     let (rows, total) = service::periods(&state, access.workspace_id, page).await?;
     Ok(Json(Paginated::new(rows, total, page)))
+}
+
+/// accounting_periods_revalue_review: Preview a period's FX revaluation (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/periods/{period}/revalue/review", tag = "accounting",
+    operation_id = "accounting_periods_revalue_review",
+    summary = "Preview a period's FX revaluation (no writes)",
+    request_body = RevalueReviewBody,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("period" = Uuid, Path, description = "Period id")),
+    responses(
+        (status = 200, body = Envelope<RevaluationResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn periods_revalue_review(
+    State(state): State<AppState>,
+    access: Can<Revalue>,
+    Path((_, raw)): Path<(String, String)>,
+    ValidatedJson(rate_date): ValidatedJson<RevalueReviewBody>,
+) -> Result<Data<RevaluationResource>, AppError> {
+    Ok(Data(
+        revaluation::review(&state, access.workspace_id, id(&raw)?, rate_date).await?,
+    ))
+}
+
+/// accounting_periods_revalue: Post a reviewed FX revaluation of a period.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/periods/{period}/revalue", tag = "accounting",
+    operation_id = "accounting_periods_revalue",
+    summary = "Post a reviewed FX revaluation of a period",
+    request_body = Action<RevaluePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("period" = Uuid, Path, description = "Period id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<RevaluationResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn periods_revalue(
+    State(state): State<AppState>,
+    access: Can<Revalue>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<RevaluePayload>>,
+) -> Result<Answer, AppError> {
+    revaluation::post(&state, &access, id(&raw)?, cmd).await
+}
+
+/// accounting_close_checks: The §13 close checks of a period (no writes).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/close-checks", tag = "accounting",
+    operation_id = "accounting_close_checks",
+    summary = "Close checks of a period",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), CloseChecksQuery),
+    responses(
+        (status = 200, body = Envelope<CloseChecksResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or period, or not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn close_checks(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<CloseChecksQuery>,
+) -> Result<Data<CloseChecksResource>, AppError> {
+    let period = valid(q)?;
+    Ok(Data(
+        close::close_checks(&state, access.workspace_id, period).await?,
+    ))
+}
+
+/// accounting_periods_close: Close an ordinary period whose close checks pass.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/periods/{period}/close", tag = "accounting",
+    operation_id = "accounting_periods_close",
+    summary = "Close an ordinary period whose close checks pass",
+    request_body = Action<ClosePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("period" = Uuid, Path, description = "Period id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<PeriodResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or period, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = UnprocessableBody, description = "A failing check (`receipt_booking_required` / `external_financial_fact_pending` / `unsupported_active_erp_operation`), the final period, or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn periods_close(
+    State(state): State<AppState>,
+    access: Can<Close>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<ClosePayload>>,
+) -> Result<Answer, AppError> {
+    close::close_period(&state, &access, id(&raw)?, cmd).await
+}
+
+/// accounting_year_close_review: Preview a fiscal year's year-end close (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/fiscal-years/{year}/close/review", tag = "accounting",
+    operation_id = "accounting_year_close_review",
+    summary = "Preview a fiscal year's year-end close (no writes)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("year" = Uuid, Path, description = "Fiscal year id")),
+    responses(
+        (status = 200, body = Envelope<YearCloseResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or fiscal year, or not a member"),
+        (status = 422, body = UnprocessableBody, description = "Calendar gap or earlier period open (`unsupported_active_erp_operation`), or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn years_close_review(
+    State(state): State<AppState>,
+    access: Can<Close>,
+    Path((_, raw)): Path<(String, String)>,
+) -> Result<Data<YearCloseResource>, AppError> {
+    Ok(Data(
+        close::year_review(&state, access.workspace_id, id(&raw)?).await?,
+    ))
+}
+
+/// accounting_year_close: Post the year-end close, then close the final period and the year.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/fiscal-years/{year}/close", tag = "accounting",
+    operation_id = "accounting_year_close",
+    summary = "Post the year-end close, then close the final period and the year",
+    request_body = Action<PostPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("year" = Uuid, Path, description = "Fiscal year id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<YearCloseResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or fiscal year, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = UnprocessableBody, description = "A failing check, calendar gap or earlier period open, or `accounting_not_configured` / `accounting_period_closed`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn years_close(
+    State(state): State<AppState>,
+    access: Can<Close>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<PostPayload>>,
+) -> Result<Answer, AppError> {
+    close::close_year(&state, &access, id(&raw)?, cmd).await
 }
 
 /// accounting_periods_create: Create a posting period inside a fiscal year.
@@ -565,6 +725,113 @@ pub async fn balance_sheet(
     ))
 }
 
+/// accounting_receivables_aging: Receivables aging on as_of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/receivables-aging", tag = "accounting",
+    operation_id = "accounting_receivables_aging",
+    summary = "Receivables aging on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), AgingQuery),
+    responses(
+        (status = 200, body = Envelope<AgingResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or relation, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn receivables_aging(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<AgingQuery>,
+) -> Result<Data<AgingResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (as_of, relation) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::aging(&mut conn, access.workspace_id, as_of, relation, false, page).await?,
+    ))
+}
+
+/// accounting_payables_aging: Payables aging on as_of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/payables-aging", tag = "accounting",
+    operation_id = "accounting_payables_aging",
+    summary = "Payables aging on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), AgingQuery),
+    responses(
+        (status = 200, body = Envelope<AgingResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or relation, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn payables_aging(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<AgingQuery>,
+) -> Result<Data<AgingResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (as_of, relation) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::aging(&mut conn, access.workspace_id, as_of, relation, true, page).await?,
+    ))
+}
+
+/// accounting_party_ledger: Party ledger of one relation for [from, to).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/party-ledger", tag = "accounting",
+    operation_id = "accounting_party_ledger",
+    summary = "Party ledger of one relation for [from, to)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), PartyLedgerQuery),
+    responses(
+        (status = 200, body = Envelope<PartyLedgerResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or relation, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn party_ledger(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<PartyLedgerQuery>,
+) -> Result<Data<PartyLedgerResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (relation, range) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::party_ledger(&mut conn, access.workspace_id, relation, range, page).await?,
+    ))
+}
+
+/// accounting_inventory_valuation: Inventory valuation on as_of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/inventory-valuation", tag = "accounting",
+    operation_id = "accounting_inventory_valuation",
+    summary = "Inventory valuation on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ValuationQuery),
+    responses(
+        (status = 200, body = Envelope<InventoryValuationResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn inventory_valuation(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<ValuationQuery>,
+) -> Result<Data<InventoryValuationResource>, AppError> {
+    let (as_of, warehouse) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::inventory_valuation(&mut conn, access.workspace_id, as_of, warehouse).await?,
+    ))
+}
+
 /// accounting_bank_accounts_list: List bank accounts.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/accounting/bank-accounts", tag = "accounting",
@@ -609,4 +876,125 @@ pub async fn bank_accounts_create(
     cmd: Command<Create<BankAccountPayload>>,
 ) -> Result<Answer, AppError> {
     service::create_bank_account(&state, &access, cmd).await
+}
+
+/// bank_statements_list: List bank statements, newest first.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements", tag = "bank_statements",
+    operation_id = "bank_statements_list",
+    summary = "List bank statements, newest first",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<Value>, description = "Statements with reconciliation totals"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statements_list(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    Ok(Json(
+        banking::statements(&state.db, access.workspace_id, page).await?,
+    ))
+}
+
+/// bank_statements_get: One bank statement.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}", tag = "bank_statements",
+    operation_id = "bank_statements_get",
+    summary = "One bank statement",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id")),
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Statement with reconciliation totals"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statements_get(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Path((_, raw)): Path<(String, String)>,
+) -> Result<Data<Value>, AppError> {
+    Ok(Data(
+        banking::statement(&state.db, access.workspace_id, id(&raw)?).await?,
+    ))
+}
+
+/// bank_statement_lines: Lines of a bank statement with their live match and residual.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}/lines", tag = "bank_statements",
+    operation_id = "bank_statements_lines",
+    summary = "Lines of a bank statement with their live match and residual",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<Value>, description = "Lines in file order"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statement_lines(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Path((_, raw)): Path<(String, String)>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    Ok(Json(
+        banking::lines(&state.db, access.workspace_id, id(&raw)?, page).await?,
+    ))
+}
+
+/// bank_reconciliations_create: Match a statement line to posted bank journal lines.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/bank-reconciliations", tag = "bank_reconciliations",
+    operation_id = "bank_reconciliations_create",
+    summary = "Match a statement line to posted bank journal lines",
+    request_body = Create<ReconcilePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<Value>, description = "Reconciliation"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, statement line or journal line"),
+        (status = 409, body = MessageBody, description = "`already_reconciled` or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `amount_mismatch` / `capacity_exceeded` / `journal_line_reversed` / `not_this_bank_account` / `currency_mismatch` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_reconciliations_create(
+    State(state): State<AppState>,
+    access: Can<Reconcile>,
+    cmd: Command<Create<ReconcilePayload>>,
+) -> Result<Answer, AppError> {
+    banking::reconcile(&state.db, &access, cmd).await
+}
+
+/// bank_reconciliations_reverse: Reverse a match; the statement line and capacity are free again.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/bank-reconciliations/{reconciliation}/reverse", tag = "bank_reconciliations",
+    operation_id = "bank_reconciliations_reverse",
+    summary = "Reverse a match; the statement line and capacity are free again",
+    request_body = Action<UnmatchPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("reconciliation" = Uuid, Path, description = "Reconciliation id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Reversed reconciliation"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, `already_reversed` or `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_reconciliations_reverse(
+    State(state): State<AppState>,
+    access: Can<Reconcile>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<UnmatchPayload>>,
+) -> Result<Answer, AppError> {
+    banking::unmatch(&state.db, &access, id(&raw)?, cmd).await
 }

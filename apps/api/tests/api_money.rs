@@ -9,6 +9,8 @@ mod common;
 
 #[path = "api/accounting.rs"]
 mod accounting;
+#[path = "api/accounting_aging.rs"]
+mod accounting_aging;
 #[path = "api/accounting_reports.rs"]
 mod accounting_reports;
 #[path = "api/accounting_schema.rs"]
@@ -33,8 +35,12 @@ mod assistant_storefront_design;
 mod attention;
 #[path = "api/attention_priorities.rs"]
 mod attention_priorities;
+#[path = "api/bank_reconciliation.rs"]
+mod bank_reconciliation;
 #[path = "api/cash_places.rs"]
 mod cash_places;
+#[path = "api/fx_revaluation.rs"]
+mod fx_revaluation;
 #[path = "api/gateway_accounts.rs"]
 mod gateway_accounts;
 #[path = "api/gateway_recovery.rs"]
@@ -67,6 +73,8 @@ mod payables;
 mod payments;
 #[path = "api/payments_stripe.rs"]
 mod payments_stripe;
+#[path = "api/period_close.rs"]
+mod period_close;
 #[path = "api/provider_observations.rs"]
 mod provider_observations;
 #[path = "api/purchasing.rs"]
@@ -109,6 +117,8 @@ mod till_pairing;
 mod till_privileged;
 #[path = "api/till_quote.rs"]
 mod till_quote;
+#[path = "api/till_refunds.rs"]
+mod till_refunds;
 #[path = "api/till_sales.rs"]
 mod till_sales;
 #[path = "api/vat_groups.rs"]

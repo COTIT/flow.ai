@@ -334,6 +334,28 @@
         ],
         "type": "object"
       },
+      "Action_ClosePayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ClosePayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "Action_ConfirmPayload": {
         "description": "A envelope: action on an existing resource at `expected_version`.",
         "properties": {
@@ -731,6 +753,28 @@
         ],
         "type": "object"
       },
+      "Action_RevaluePayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/RevaluePayload"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "Action_ReversePayload": {
         "description": "A envelope: action on an existing resource at `expected_version`.",
         "properties": {
@@ -988,6 +1032,28 @@
           },
           "payload": {
             "$ref": "#/components/schemas/TaxProfileVerify"
+          }
+        },
+        "required": [
+          "client_ref",
+          "expected_version"
+        ],
+        "type": "object"
+      },
+      "Action_UnmatchPayload": {
+        "description": "A envelope: action on an existing resource at `expected_version`.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/UnmatchPayload"
           }
         },
         "required": [
@@ -1375,6 +1441,178 @@
         ],
         "type": "object"
       },
+      "AgingColumns": {
+        "description": "Aging columns; functional major-unit strings. Buckets count days past due (no due date:\ndays since issue). Credits, deposits and unbilled are not aged.",
+        "properties": {
+          "1_30": {
+            "type": "string"
+          },
+          "31_60": {
+            "type": "string"
+          },
+          "61_90": {
+            "type": "string"
+          },
+          "credits": {
+            "type": "string"
+          },
+          "deposits": {
+            "description": "Customer deposits (AR) or supplier advances (AP).",
+            "type": "string"
+          },
+          "not_due": {
+            "type": "string"
+          },
+          "over_90": {
+            "type": "string"
+          },
+          "total": {
+            "description": "Sum of the five buckets.",
+            "type": "string"
+          },
+          "unbilled": {
+            "description": "Unbilled receivables (AR) or received-not-invoiced (AP).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "not_due",
+          "1_30",
+          "31_60",
+          "61_90",
+          "over_90",
+          "total",
+          "credits",
+          "deposits",
+          "unbilled"
+        ],
+        "type": "object"
+      },
+      "AgingItem": {
+        "description": "One open item outstanding on `as_of`.",
+        "properties": {
+          "amount": {
+            "description": "Item currency.",
+            "type": "string"
+          },
+          "bucket": {
+            "description": "not_due, 1_30, 31_60, 61_90, over_90, credits, deposits or unbilled.",
+            "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "days_overdue": {
+            "description": "as_of − (due date, else issue date).",
+            "format": "int32",
+            "type": "integer"
+          },
+          "due_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "functional_residual": {
+            "description": "Functional, on as_of.",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "invoice_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issue_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "residual": {
+            "description": "Item currency, on as_of.",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source_kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "classification",
+          "source_kind",
+          "source_id",
+          "issue_date",
+          "days_overdue",
+          "bucket",
+          "currency",
+          "amount",
+          "residual",
+          "functional_residual"
+        ],
+        "type": "object"
+      },
+      "AgingResource": {
+        "description": "Receivables or payables aging on `as_of`, rebuilt from dated allocations.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "type": "string"
+          },
+          "cutover_date": {
+            "description": "Cutover day in the book timezone; opening items count from it. Null before activation.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "functional_currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "items": {
+            "description": "Open items of `relation_id`; empty without it.",
+            "items": {
+              "$ref": "#/components/schemas/AgingItem"
+            },
+            "type": "array"
+          },
+          "parties": {
+            "$ref": "#/components/schemas/Paginated_AgingParty"
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AgingColumns"
+          }
+        },
+        "required": [
+          "functional_currency",
+          "as_of",
+          "cutover_date",
+          "relation_id",
+          "totals",
+          "parties",
+          "items"
+        ],
+        "type": "object"
+      },
       "AllocatePayload": {
         "description": "POST /supplier-payments/{id}/allocate (and review) payload.",
         "properties": {
@@ -1458,6 +1696,24 @@
           "target_open_item_id",
           "amount",
           "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "AllocationPayload": {
+        "description": "One allocation of a match request.",
+        "properties": {
+          "amount": {
+            "description": "Exact decimal string in the bank currency, signed like the statement line.",
+            "type": "string"
+          },
+          "journal_line_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "journal_line_id",
+          "amount"
         ],
         "type": "object"
       },
@@ -4730,6 +4986,79 @@
         ],
         "type": "object"
       },
+      "CloseCheck": {
+        "description": "One close check (masterplan §13 \"PERIOD CLOSE\").",
+        "properties": {
+          "code": {
+            "description": "missing_effects, unbalanced_journals, inventory_difference,\nopen_item_control_difference, unbooked_receipts, pending_cost_variance, fx_revaluation\nor pending_exceptions.",
+            "type": "string"
+          },
+          "count": {
+            "description": "Offending rows (accounts, journals, receipt lines, observations); 1 for a balance check.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "passed",
+          "count"
+        ],
+        "type": "object"
+      },
+      "CloseChecksResource": {
+        "description": "Close checks of a period, as rechecked under lock by the close.",
+        "properties": {
+          "accounting_date": {
+            "description": "Period's last day: the checks' cutoff.",
+            "format": "date",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CloseCheck"
+            },
+            "type": "array"
+          },
+          "checks_fingerprint": {
+            "type": "string"
+          },
+          "final_period": {
+            "description": "Ends on its fiscal year's end: closes only through the year-end close.",
+            "type": "boolean"
+          },
+          "fiscal_year_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "period_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "period_version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ready": {
+            "description": "Every check passed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "period_id",
+          "period_version",
+          "fiscal_year_id",
+          "accounting_date",
+          "final_period",
+          "checks",
+          "ready",
+          "checks_fingerprint"
+        ],
+        "type": "object"
+      },
       "CloseLinePayload": {
         "description": "One remainder to close.",
         "properties": {
@@ -4762,6 +5091,19 @@
             ]
           },
           "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ClosePayload": {
+        "description": "POST /periods/{id}/close payload.",
+        "properties": {
+          "checks_fingerprint": {
+            "description": "From `GET /accounting/reports/close-checks`.",
             "type": [
               "string",
               "null"
@@ -7675,6 +8017,62 @@
         ],
         "type": "object"
       },
+      "Create_ReconcilePayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ReconcilePayload"
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
+      "Create_RefundPayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RefundReviewRequest"
+              },
+              {
+                "properties": {
+                  "reason": {
+                    "maxLength": 1000,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "review_fingerprint": {
+                    "description": "`review_fingerprint` from the review.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            ],
+            "description": "POST /till/sales/{order}/refunds payload."
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
       "Create_ReturnCreatePayload": {
         "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
         "properties": {
@@ -7756,6 +8154,39 @@
               }
             ],
             "description": "POST /till/cash-adjustments payload."
+          }
+        },
+        "required": [
+          "client_ref"
+        ],
+        "type": "object"
+      },
+      "Create_TillReturnPayload": {
+        "description": "C envelope: create with a caller-chosen `client_ref` (replay identity).",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payload": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReturnReviewRequest"
+              },
+              {
+                "properties": {
+                  "review_fingerprint": {
+                    "description": "`review_fingerprint` from the review.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            ],
+            "description": "POST /till/sales/{order}/returns payload."
           }
         },
         "required": [
@@ -9922,6 +10353,18 @@
         ],
         "type": "object"
       },
+      "Envelope_AgingResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AgingResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_AllocateReview": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -10191,6 +10634,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CategoryResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_CloseChecksResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CloseChecksResource"
           }
         },
         "required": [
@@ -10811,6 +11266,18 @@
         ],
         "type": "object"
       },
+      "Envelope_InventoryValuationResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InventoryValuationResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_InviteCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -11245,6 +11712,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/PairingCode"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_PartyLedgerResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PartyLedgerResource"
           }
         },
         "required": [
@@ -11742,6 +12221,18 @@
         ],
         "type": "object"
       },
+      "Envelope_RefundReview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RefundReview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_RegisterKeyed": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -11825,6 +12316,30 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ReturnPostReview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_ReturnReview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReturnReview"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_RevaluationResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RevaluationResource"
           }
         },
         "required": [
@@ -12493,6 +13008,18 @@
         ],
         "type": "object"
       },
+      "Envelope_TillRefundResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TillRefundResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_TillUserResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -12888,6 +13415,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_SalesReturnResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SalesReturnResource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ScheduledReport": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -13154,6 +13696,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/WorkspaceRecordResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_YearCloseResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/YearCloseResource"
           }
         },
         "required": [
@@ -15551,11 +16105,11 @@
             ]
           },
           "mapping": {
-            "description": "products: `{operation: create|update, match_key}`; relations: `{}`.",
+            "description": "products: `{operation: create|update, match_key}`; relations: `{}`; bank_statement:\n`{bank_account_id, reference, start_date, end_date, opening_balance, closing_balance}`.",
             "type": "object"
           },
           "profile": {
-            "description": "`products` or `relations`.",
+            "description": "`products`, `relations` or `bank_statement`.",
             "type": [
               "string",
               "null"
@@ -15610,6 +16164,64 @@
           "provider_conversation_id",
           "agent_id",
           "turns"
+        ],
+        "type": "object"
+      },
+      "InventoryValuationResource": {
+        "description": "Inventory value on `as_of` from pool value entries; without `warehouse_id` also the GL\ninventory balance and value − GL.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "type": "string"
+          },
+          "cutover_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "difference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "functional_currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "gl_balance": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ValuationRow"
+            },
+            "type": "array"
+          },
+          "total_value": {
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "functional_currency",
+          "as_of",
+          "cutover_date",
+          "warehouse_id",
+          "rows",
+          "total_value",
+          "gl_balance",
+          "difference"
         ],
         "type": "object"
       },
@@ -17762,6 +18374,69 @@
           "max_items_per_lane",
           "max_days_in_lane",
           "auto_archive_in_days"
+        ],
+        "type": "object"
+      },
+      "LedgerLine": {
+        "description": "One posted line on the general ledger; functional amounts.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "balance": {
+            "description": "Running balance after this line, debit-positive.",
+            "type": "string"
+          },
+          "credit": {
+            "type": "string"
+          },
+          "debit": {
+            "type": "string"
+          },
+          "entry_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "manual, source, opening, reversal, fx_revaluation or year_end_close.",
+            "type": "string"
+          },
+          "line_no": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "entry_id",
+          "number",
+          "kind",
+          "accounting_date",
+          "reason",
+          "line_no",
+          "debit",
+          "credit",
+          "balance"
         ],
         "type": "object"
       },
@@ -20003,6 +20678,41 @@
         ],
         "type": "object"
       },
+      "NamedRef": {
+        "description": "A named thing on a report (relation, product, warehouse).",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "NotRevalued": {
+        "description": "An open foreign item left out of the run, and why.",
+        "properties": {
+          "open_item_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "description": "`settled_after_rate_date` (an allocation dated after the rate date already realized\nits FX) or `revalued_after_accounting_date` (a later run already moved it).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "open_item_id",
+          "reason"
+        ],
+        "type": "object"
+      },
       "NumberSummary": {
         "description": "Number answers of one question.",
         "properties": {
@@ -21171,6 +21881,48 @@
         ],
         "type": "object"
       },
+      "Paginated_AgingParty": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/AgingColumns"
+                },
+                {
+                  "properties": {
+                    "relation": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/NamedRef"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "relation"
+                  ],
+                  "type": "object"
+                }
+              ],
+              "description": "One party on an aging report; `relation` null = anonymous retail."
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_AppKeyResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -21746,67 +22498,7 @@
         "properties": {
           "data": {
             "items": {
-              "description": "One posted line on the general ledger; functional amounts.",
-              "properties": {
-                "accounting_date": {
-                  "format": "date",
-                  "type": "string"
-                },
-                "balance": {
-                  "description": "Running balance after this line, debit-positive.",
-                  "type": "string"
-                },
-                "credit": {
-                  "type": "string"
-                },
-                "debit": {
-                  "type": "string"
-                },
-                "entry_id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "kind": {
-                  "description": "manual, source, opening, reversal, fx_revaluation or year_end_close.",
-                  "type": "string"
-                },
-                "line_no": {
-                  "format": "int32",
-                  "type": "integer"
-                },
-                "number": {
-                  "format": "int64",
-                  "type": "integer"
-                },
-                "reason": {
-                  "type": "string"
-                },
-                "relation_id": {
-                  "format": "uuid",
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "source_ref": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "entry_id",
-                "number",
-                "kind",
-                "accounting_date",
-                "reason",
-                "line_no",
-                "debit",
-                "credit",
-                "balance"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/LedgerLine"
             },
             "type": "array"
           },
@@ -22016,6 +22708,41 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/OrderResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_PartyLedgerLine": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/LedgerLine"
+                },
+                {
+                  "properties": {
+                    "account": {
+                      "$ref": "#/components/schemas/ReportAccount"
+                    }
+                  },
+                  "required": [
+                    "account"
+                  ],
+                  "type": "object"
+                }
+              ],
+              "description": "One posted line on the party ledger."
             },
             "type": "array"
           },
@@ -22847,6 +23574,25 @@
         ],
         "type": "object"
       },
+      "Paginated_TillRefundResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TillRefundResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_Value": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -23082,6 +23828,52 @@
           "id",
           "name",
           "display_name"
+        ],
+        "type": "object"
+      },
+      "PartyLedgerResource": {
+        "description": "Party ledger of one relation across accounts: balances (debit-positive) plus one page.",
+        "properties": {
+          "closing_balance": {
+            "type": "string"
+          },
+          "credit": {
+            "type": "string"
+          },
+          "debit": {
+            "type": "string"
+          },
+          "from": {
+            "format": "date",
+            "type": "string"
+          },
+          "functional_currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "lines": {
+            "$ref": "#/components/schemas/Paginated_PartyLedgerLine"
+          },
+          "opening_balance": {
+            "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/NamedRef"
+          },
+          "to": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "functional_currency",
+          "relation",
+          "from",
+          "to",
+          "opening_balance",
+          "debit",
+          "credit",
+          "closing_balance",
+          "lines"
         ],
         "type": "object"
       },
@@ -24011,6 +24803,17 @@
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "last_revaluation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RevaluationRef",
+                "description": "Latest posted FX revaluation run of this period; null before the first."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "start_date": {
             "format": "date",
@@ -30091,6 +30894,28 @@
         ],
         "type": "object"
       },
+      "ReconcilePayload": {
+        "description": "POST /accounting/bank-reconciliations payload.",
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationPayload"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "statement_line_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "statement_line_id"
+        ],
+        "type": "object"
+      },
       "RedeemRequest": {
         "description": "POST /farm/vouchers/redeem.",
         "properties": {
@@ -30264,6 +31089,56 @@
         ],
         "type": "object"
       },
+      "RefundJournal": {
+        "description": "The journal a refund posts.",
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "credit_role": {
+            "example": "cash",
+            "type": "string"
+          },
+          "debit_role": {
+            "example": "receivables",
+            "type": "string"
+          }
+        },
+        "required": [
+          "debit_role",
+          "credit_role",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "RefundPayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RefundReviewRequest"
+          },
+          {
+            "properties": {
+              "reason": {
+                "maxLength": 1000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "review_fingerprint": {
+                "description": "`review_fingerprint` from the review.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "POST /till/sales/{order}/refunds payload."
+      },
       "RefundRequest": {
         "description": "Refund part of what was paid online.",
         "properties": {
@@ -30274,6 +31149,124 @@
           }
         },
         "required": [
+          "amount"
+        ],
+        "type": "object"
+      },
+      "RefundReview": {
+        "description": "What a refund will post (no writes).",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "amount": {
+            "description": "Minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "credit_open_item_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "drawer_expected": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "journal": {
+            "$ref": "#/components/schemas/RefundJournal"
+          },
+          "method": {
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "refundable": {
+            "description": "Residual minus pending refund holds of other routes.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "register_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "residual": {
+            "description": "The credit's open residual (minor units).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          },
+          "shift_id": {
+            "description": "Cash: the open drawer shift and the cash it holds.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "order_id",
+          "credit_open_item_id",
+          "method",
+          "amount",
+          "residual",
+          "refundable",
+          "register_id",
+          "accounting_date",
+          "journal",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "RefundReviewRequest": {
+        "description": "POST /till/sales/{order}/refunds/review body.",
+        "properties": {
+          "actual_refund_confirmed": {
+            "description": "card_recorded: must be true (the terminal confirmed the refund).",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "amount": {
+            "description": "Integer minor units of the sale's currency (1090 = €10.90).",
+            "example": 1090,
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "credit_open_item_id": {
+            "description": "The customer credit open item of a posted return of this sale.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "external_reference": {
+            "description": "card_recorded: the terminal's refund reference.",
+            "maxLength": 255,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "method": {
+            "description": "`cash` (out of this register's drawer) or `card_recorded` (refund already made on the\ncard terminal).",
+            "example": "cash",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "credit_open_item_id",
           "amount"
         ],
         "type": "object"
@@ -31837,6 +32830,24 @@
         ],
         "type": "object"
       },
+      "ReturnLineRequest": {
+        "description": "One sold line to take back.",
+        "properties": {
+          "original_line_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "example": "1",
+            "type": "string"
+          }
+        },
+        "required": [
+          "original_line_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "ReturnLineResource": {
         "description": "One return line; functional facts posted only, with `accounting.read`.",
         "properties": {
@@ -32079,6 +33090,25 @@
         ],
         "type": "object"
       },
+      "ReturnReview": {
+        "description": "What a till return will post: the credits (one per recognised sale) and the fingerprint.",
+        "properties": {
+          "returns": {
+            "items": {
+              "$ref": "#/components/schemas/SalesReturnResource"
+            },
+            "type": "array"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "returns",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
       "ReturnReviewLine": {
         "description": "One line of a return review (functional unless *_nominal).",
         "properties": {
@@ -32159,6 +33189,43 @@
         ],
         "type": "object"
       },
+      "ReturnReviewRequest": {
+        "description": "POST /till/sales/{order}/returns/review body.",
+        "properties": {
+          "destination_warehouse_id": {
+            "description": "Must be the sale's warehouse when given.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ReturnLineRequest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "reason": {
+            "maxLength": 1000,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "restock": {
+            "description": "Put the goods back on stock at the sale's warehouse (default false).",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "ReturnUpdatePayload": {
         "description": "Update payload: replaces the draft's date, reason and lines.",
         "properties": {
@@ -32184,6 +33251,220 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "RevaluationItem": {
+        "description": "One open item revalued: carrying before and after, decimal strings in functional units.",
+        "properties": {
+          "carrying": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "delta": {
+            "description": "revalued − carrying.",
+            "type": "string"
+          },
+          "journal_id": {
+            "description": "The posted `fx_revaluation` journal; null on a review.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "open_item_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "relation_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "residual": {
+            "description": "Open amount in the item currency.",
+            "type": "string"
+          },
+          "revalued": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "open_item_id",
+          "classification",
+          "currency",
+          "residual",
+          "carrying",
+          "revalued",
+          "delta"
+        ],
+        "type": "object"
+      },
+      "RevaluationRate": {
+        "description": "Closing rate used for one currency.",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "effective_on": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inverse": {
+            "description": "true: stored functional → currency, applied inversely.",
+            "type": "boolean"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "rate",
+          "inverse",
+          "source"
+        ],
+        "type": "object"
+      },
+      "RevaluationRef": {
+        "description": "A posted revaluation run as named on its period.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rate_date": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "rate_date",
+          "accounting_date",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "RevaluationResource": {
+        "description": "A revaluation review (`id` null, fingerprint set) or a posted run (`id` set).",
+        "properties": {
+          "accounting_date": {
+            "description": "Period's last day: date of every journal and carrying adjustment.",
+            "format": "date",
+            "type": "string"
+          },
+          "functional_currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "items": {
+            "description": "Items with a non-zero delta.",
+            "items": {
+              "$ref": "#/components/schemas/RevaluationItem"
+            },
+            "type": "array"
+          },
+          "not_revalued": {
+            "items": {
+              "$ref": "#/components/schemas/NotRevalued"
+            },
+            "type": "array"
+          },
+          "period_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "period_version": {
+            "description": "Period version the review was computed from.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "rate_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "rates": {
+            "items": {
+              "$ref": "#/components/schemas/RevaluationRate"
+            },
+            "type": "array"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_id",
+          "period_version",
+          "rate_date",
+          "accounting_date",
+          "functional_currency",
+          "rates",
+          "items",
+          "not_revalued",
+          "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "RevaluePayload": {
+        "description": "POST /accounting/periods/{id}/revalue payload.",
+        "properties": {
+          "rate_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "rate_date"
+        ],
+        "type": "object"
+      },
+      "RevalueReviewBody": {
+        "description": "POST /accounting/periods/{id}/revalue/review body.",
+        "properties": {
+          "rate_date": {
+            "description": "Closing rates: each currency's rate in force on this day (on or before the period's\nlast day).",
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rate_date"
+        ],
         "type": "object"
       },
       "ReverseBody": {
@@ -39373,6 +40654,124 @@
         ],
         "type": "object"
       },
+      "TillRefundResource": {
+        "description": "A posted Till refund.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "actual_refund_confirmed": {
+            "type": "boolean"
+          },
+          "amount": {
+            "description": "Minor units.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "credit_open_item_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "external_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "journal_entry_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "member_user_id": {
+            "description": "The approving member.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "method": {
+            "example": "cash",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "refund_open_item_id": {
+            "description": "The receivable item opened for the money paid out (applied to the credit).",
+            "format": "uuid",
+            "type": "string"
+          },
+          "register_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shift_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "till_user_id": {
+            "description": "Cashier context.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "order_id",
+          "credit_open_item_id",
+          "refund_open_item_id",
+          "method",
+          "amount",
+          "currency_id",
+          "register_id",
+          "till_user_id",
+          "member_user_id",
+          "actual_refund_confirmed",
+          "reason",
+          "accounting_date",
+          "journal_entry_id",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "TillReturnPayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ReturnReviewRequest"
+          },
+          {
+            "properties": {
+              "review_fingerprint": {
+                "description": "`review_fingerprint` from the review.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "POST /till/sales/{order}/returns payload."
+      },
       "TillReviewRequest": {
         "description": "POST /till/cash-adjustments/review body.",
         "properties": {
@@ -39895,6 +41294,18 @@
           "code",
           "ratio"
         ],
+        "type": "object"
+      },
+      "UnmatchPayload": {
+        "description": "POST /accounting/bank-reconciliations/{id}/reverse payload.",
+        "properties": {
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "UnprocessableBody": {
@@ -41202,6 +42613,31 @@
         "required": [
           "message",
           "errors"
+        ],
+        "type": "object"
+      },
+      "ValuationRow": {
+        "description": "One product × warehouse pool on `as_of`.",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/NamedRef"
+          },
+          "quantity": {
+            "description": "Decimal string.",
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/NamedRef"
+          }
+        },
+        "required": [
+          "product",
+          "warehouse",
+          "quantity",
+          "value"
         ],
         "type": "object"
       },
@@ -43511,6 +44947,102 @@
           "created_at",
           "last_updated_at",
           "relationships"
+        ],
+        "type": "object"
+      },
+      "YearCloseLine": {
+        "description": "One line of the year-end closing journal (functional major units).",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "credit": {
+            "type": "string"
+          },
+          "debit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "debit",
+          "credit"
+        ],
+        "type": "object"
+      },
+      "YearCloseResource": {
+        "description": "A year-end close, as reviewed or as posted.",
+        "properties": {
+          "accounting_date": {
+            "description": "Final period's last day: the closing journal's date.",
+            "format": "date",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CloseCheck"
+            },
+            "type": "array"
+          },
+          "effect_id": {
+            "description": "The close's effect; null in a review.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "final_period_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fiscal_year_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fiscal_year_version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "functional_currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "journal_id": {
+            "description": "The `year_end_close` journal; null in a review or when nothing moved.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lines": {
+            "description": "Income and expense balances reversed, the net to `retained_earnings` last.",
+            "items": {
+              "$ref": "#/components/schemas/YearCloseLine"
+            },
+            "type": "array"
+          },
+          "net_income": {
+            "description": "Income − expense of the year.",
+            "type": "string"
+          },
+          "review_fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fiscal_year_id",
+          "fiscal_year_version",
+          "final_period_id",
+          "accounting_date",
+          "functional_currency",
+          "checks",
+          "lines",
+          "net_income",
+          "review_fingerprint",
+          "journal_id",
+          "effect_id"
         ],
         "type": "object"
       },
@@ -50221,6 +51753,836 @@
         ]
       }
     },
+    "/workspace/{workspace}/accounting/bank-reconciliations": {
+      "post": {
+        "operationId": "bank_reconciliations_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_ReconcilePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Reconciliation"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, statement line or journal line"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`already_reconciled` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `amount_mismatch` / `capacity_exceeded` / `journal_line_reversed` / `not_this_bank_account` / `currency_mismatch` / `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Match a statement line to posted bank journal lines",
+        "tags": [
+          "bank_reconciliations"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/bank-reconciliations/{reconciliation}/reverse": {
+      "post": {
+        "operationId": "bank_reconciliations_reverse",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reconciliation id",
+            "in": "path",
+            "name": "reconciliation",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_UnmatchPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Reversed reconciliation"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, `already_reversed` or `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reverse a match; the statement line and capacity are free again",
+        "tags": [
+          "bank_reconciliations"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/bank-statements": {
+      "get": {
+        "operationId": "bank_statements_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_Value"
+                }
+              }
+            },
+            "description": "Statements with reconciliation totals"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List bank statements, newest first",
+        "tags": [
+          "bank_statements"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/bank-statements/{statement}": {
+      "get": {
+        "operationId": "bank_statements_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Statement id",
+            "in": "path",
+            "name": "statement",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Value"
+                }
+              }
+            },
+            "description": "Statement with reconciliation totals"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One bank statement",
+        "tags": [
+          "bank_statements"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/bank-statements/{statement}/lines": {
+      "get": {
+        "operationId": "bank_statements_lines",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Statement id",
+            "in": "path",
+            "name": "statement",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_Value"
+                }
+              }
+            },
+            "description": "Lines in file order"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lines of a bank statement with their live match and residual",
+        "tags": [
+          "bank_statements"
+        ]
+      }
+    },
     "/workspace/{workspace}/accounting/cash-adjustments": {
       "post": {
         "description": "Member authority. Moves the place by counted − expected in every book; in an active book also posts cash_over_short/cash once.",
@@ -51917,6 +54279,353 @@
           }
         ],
         "summary": "Create a fiscal year",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/fiscal-years/{year}/close": {
+      "post": {
+        "operationId": "accounting_year_close",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fiscal year id",
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_PostPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_YearCloseResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or fiscal year, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "A failing check, calendar gap or earlier period open, or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Post the year-end close, then close the final period and the year",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/fiscal-years/{year}/close/review": {
+      "post": {
+        "operationId": "accounting_year_close_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fiscal year id",
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_YearCloseResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or fiscal year, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Calendar gap or earlier period open (`unsupported_active_erp_operation`), or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a fiscal year's year-end close (no writes)",
         "tags": [
           "accounting"
         ]
@@ -53643,6 +56352,576 @@
         ]
       }
     },
+    "/workspace/{workspace}/accounting/periods/{period}/close": {
+      "post": {
+        "operationId": "accounting_periods_close",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period id",
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_ClosePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PeriodResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or period, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "A failing check (`receipt_booking_required` / `external_financial_fact_pending` / `unsupported_active_erp_operation`), the final period, or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close an ordinary period whose close checks pass",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/periods/{period}/revalue": {
+      "post": {
+        "operationId": "accounting_periods_revalue",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period id",
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Action_RevaluePayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RevaluationResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Post a reviewed FX revaluation of a period",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/periods/{period}/revalue/review": {
+      "post": {
+        "operationId": "accounting_periods_revalue_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period id",
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevalueReviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RevaluationResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or record, or not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a period's FX revaluation (no writes)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/workspace/{workspace}/accounting/reports/balance-sheet": {
       "get": {
         "operationId": "accounting_balance_sheet",
@@ -53792,6 +57071,160 @@
           }
         ],
         "summary": "Balance sheet on as_of",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/reports/close-checks": {
+      "get": {
+        "operationId": "accounting_close_checks",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Period to check.",
+            "in": "query",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CloseChecksResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or period, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `accounting_not_configured` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close checks of a period",
         "tags": [
           "accounting"
         ]
@@ -53986,6 +57419,538 @@
         ]
       }
     },
+    "/workspace/{workspace}/accounting/reports/inventory-valuation": {
+      "get": {
+        "operationId": "accounting_inventory_valuation",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day included (`YYYY-MM-DD`).",
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "warehouse_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_InventoryValuationResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or warehouse, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `accounting_not_configured`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inventory valuation on as_of",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/reports/party-ledger": {
+      "get": {
+        "operationId": "accounting_party_ledger",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "relation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "First day, inclusive (`YYYY-MM-DD`).",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Day after the last, exclusive (`YYYY-MM-DD`).",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PartyLedgerResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or relation, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `accounting_not_configured`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Party ledger of one relation for [from, to)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/reports/payables-aging": {
+      "get": {
+        "operationId": "accounting_payables_aging",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day included (`YYYY-MM-DD`).",
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "One party: adds its open items to the report.",
+            "in": "query",
+            "name": "relation_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AgingResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or relation, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `accounting_not_configured`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Payables aging on as_of",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/workspace/{workspace}/accounting/reports/profit-and-loss": {
       "get": {
         "operationId": "accounting_profit_and_loss",
@@ -54145,6 +58110,186 @@
           }
         ],
         "summary": "Profit and loss for [from, to)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/reports/receivables-aging": {
+      "get": {
+        "operationId": "accounting_receivables_aging",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day included (`YYYY-MM-DD`).",
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "One party: adds its open items to the report.",
+            "in": "query",
+            "name": "relation_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AgingResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or relation, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or `accounting_not_configured`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Receivables aging on as_of",
         "tags": [
           "accounting"
         ]
@@ -147758,6 +151903,1082 @@
           }
         ],
         "summary": "A sale of this register by client_ref",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/{order}/refunds": {
+      "get": {
+        "operationId": "till_refunds_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Till sale (order) id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_TillRefundResource"
+                }
+              }
+            },
+            "description": "Oldest first"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live member login or till session"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `cashregister.refund`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a member, other workspace, or not a till sale"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [],
+            "till_privileged": []
+          }
+        ],
+        "summary": "List a till sale's refunds",
+        "tags": [
+          "till"
+        ]
+      },
+      "post": {
+        "description": "Member bearer + `X-Till-Session` (D14). Journal DR receivables / CR cash (drawer refund row) or provider_clearing (card_recorded: no drawer movement, no gateway call). Amount in integer minor units.",
+        "operationId": "till_refunds_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Till sale (order) id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_RefundPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TillRefundResource"
+                }
+              }
+            },
+            "description": "Refunded"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live member login or till session"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `cashregister.refund`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a member, other workspace, not a till sale, or cash on another register"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document`, reused client_ref, or no open drawer shift"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, over the refundable amount, or `unsupported_active_erp_operation` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [],
+            "till_privileged": []
+          }
+        ],
+        "summary": "Refund a customer credit at the till",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/{order}/refunds/review": {
+      "post": {
+        "description": "Member bearer + `X-Till-Session`. Cash: the sale's own register, open shift, enough drawer, a multiple of the cash step. card_recorded: any register, the terminal's refund reference, confirmed.",
+        "operationId": "till_refunds_create_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Till sale (order) id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RefundReview"
+                }
+              }
+            },
+            "description": "Refundable, journal plan and fingerprint"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live member login or till session"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `cashregister.refund`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a member, other workspace, not a till sale, or cash on another register"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Cash refund without an open drawer shift"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Not this sale's credit, over the refundable amount, off the cash step, not enough drawer, missing terminal reference, or `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [],
+            "till_privileged": []
+          }
+        ],
+        "summary": "Preview a till refund (no writes)",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/{order}/refunds/{refund}": {
+      "get": {
+        "operationId": "till_refunds_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Till sale (order) id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Refund id",
+            "in": "path",
+            "name": "refund",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TillRefundResource"
+                }
+              }
+            },
+            "description": "The refund"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live member login or till session"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `cashregister.refund`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a member, other workspace, or unknown"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [],
+            "till_privileged": []
+          }
+        ],
+        "summary": "Get a till refund",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/{order}/returns": {
+      "post": {
+        "description": "Member bearer + `X-Till-Session` (D14). One posted receipt credit per recognised sale (and restock when asked), exactly as the review showed.",
+        "operationId": "till_sales_return",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Till sale (order) id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required; client retry identity",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create_TillReturnPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_SalesReturnResource"
+                }
+              }
+            },
+            "description": "Posted credits"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live member login or till session"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `cashregister.refund`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a member, other workspace, or not a till sale"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`stale_document` or reused client_ref"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid lines, over what is left, or `unsupported_active_erp_operation` / `accounting_period_closed`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [],
+            "till_privileged": []
+          }
+        ],
+        "summary": "Return till sale lines as a customer credit",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/{order}/returns/review": {
+      "post": {
+        "description": "Member bearer + `X-Till-Session`. Credits sold lines of a till sale at their original money (receipt credit, no customer needed), optional restock.",
+        "operationId": "till_sales_return_review",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Till sale (order) id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ReturnReview"
+                }
+              }
+            },
+            "description": "The credits it posts and the review fingerprint"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live member login or till session"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `cashregister.refund`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a member, other workspace, or not a till sale"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid lines, over what is left, another warehouse, or `unsupported_active_erp_operation`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [],
+            "till_privileged": []
+          }
+        ],
+        "summary": "Preview a till return (no writes)",
         "tags": [
           "till"
         ]

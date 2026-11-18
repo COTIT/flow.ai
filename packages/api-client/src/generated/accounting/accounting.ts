@@ -27,18 +27,25 @@ import type {
 import type {
   AccountingAccountsListParams,
   AccountingBalanceSheetParams,
+  AccountingCloseChecksParams,
   AccountingExceptionsListParams,
   AccountingGeneralLedgerParams,
+  AccountingInventoryValuationParams,
   AccountingJournalsListParams,
+  AccountingPartyLedgerParams,
+  AccountingPayablesAgingParams,
   AccountingPeriodsListParams,
   AccountingProfitAndLossParams,
+  AccountingReceivablesAgingParams,
   AccountingTrialBalanceParams,
   AccountingYearsListParams,
   ActionAccountPatch,
+  ActionClosePayload,
   ActionJournalPayload,
   ActionPostPayload,
   ActionResolvePayload,
   ActionRetryPayload,
+  ActionRevaluePayload,
   ActionReversePayload,
   ActionSetupPayload,
   CreateAccountPayload,
@@ -49,21 +56,27 @@ import type {
   CreateYearPayload,
   EnvelopeAccountResource,
   EnvelopeAdjustReviewResource,
+  EnvelopeAgingResource,
   EnvelopeBalanceSheetResource,
   EnvelopeBankAccountResource,
   EnvelopeCashAdjustmentResource,
+  EnvelopeCloseChecksResource,
   EnvelopeExceptionResource,
   EnvelopeGeneralLedgerResource,
+  EnvelopeInventoryValuationResource,
   EnvelopeJournalResource,
+  EnvelopePartyLedgerResource,
   EnvelopePeriodResource,
   EnvelopeProfitAndLossResource,
   EnvelopeResolveReview,
+  EnvelopeRevaluationResource,
   EnvelopeReviewResource,
   EnvelopeSetupResource,
   EnvelopeTrialBalanceResource,
   EnvelopeVecBankAccountResource,
   EnvelopeVecCashPlaceResource,
   EnvelopeVecExceptionResource,
+  EnvelopeYearCloseResource,
   EnvelopeYearResource,
   MessageBody,
   OfficeReviewRequest,
@@ -72,7 +85,9 @@ import type {
   PaginatedPeriodResource,
   PaginatedYearResource,
   ResolveReviewBody,
+  RevalueReviewBody,
   ReverseReviewBody,
+  UnprocessableBody,
   ValidationErrorBody
 } from '../model';
 
@@ -1301,6 +1316,141 @@ export const useAccountingYearsCreate = <TError = ErrorType<MessageBody | Valida
       return useMutation(getAccountingYearsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Post the year-end close, then close the final period and the year
+ */
+export const accountingYearClose = (
+    workspace: string,
+    year: string,
+    actionPostPayload: BodyType<ActionPostPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeYearCloseResource>(
+      {url: `/workspace/${workspace}/accounting/fiscal-years/${year}/close`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionPostPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingYearCloseMutationKey = () => ['accountingYearClose'] as const;
+
+export const getAccountingYearCloseMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearClose>>, TError,AccountingYearCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingYearClose>>, TError,AccountingYearCloseMutationVariables, TContext> => {
+
+const mutationKey = getAccountingYearCloseMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingYearClose>>, AccountingYearCloseMutationVariables> = (props) => {
+          const {workspace,year,data} = props ?? {};
+
+          return  accountingYearClose(workspace,year,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingYearCloseMutationResult = NonNullable<Awaited<ReturnType<typeof accountingYearClose>>>
+    export type AccountingYearCloseMutationBody = BodyType<ActionPostPayload>
+    export type AccountingYearCloseMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingYearCloseMutationVariables = {workspace: string;year: string;data: BodyType<ActionPostPayload>}
+
+    /**
+ * @summary Post the year-end close, then close the final period and the year
+ */
+export const useAccountingYearClose = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearClose>>, TError,AccountingYearCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingYearClose>>,
+        TError,
+        AccountingYearCloseMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingYearCloseMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Preview a fiscal year's year-end close (no writes)
+ */
+export const accountingYearCloseReview = (
+    workspace: string,
+    year: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeYearCloseResource>(
+      {url: `/workspace/${workspace}/accounting/fiscal-years/${year}/close/review`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingYearCloseReviewMutationKey = () => ['accountingYearCloseReview'] as const;
+
+export const getAccountingYearCloseReviewMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearCloseReview>>, TError,AccountingYearCloseReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingYearCloseReview>>, TError,AccountingYearCloseReviewMutationVariables, TContext> => {
+
+const mutationKey = getAccountingYearCloseReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingYearCloseReview>>, AccountingYearCloseReviewMutationVariables> = (props) => {
+          const {workspace,year} = props ?? {};
+
+          return  accountingYearCloseReview(workspace,year,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingYearCloseReviewMutationResult = NonNullable<Awaited<ReturnType<typeof accountingYearCloseReview>>>
+
+    export type AccountingYearCloseReviewMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingYearCloseReviewMutationVariables = {workspace: string;year: string}
+
+    /**
+ * @summary Preview a fiscal year's year-end close (no writes)
+ */
+export const useAccountingYearCloseReview = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingYearCloseReview>>, TError,AccountingYearCloseReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingYearCloseReview>>,
+        TError,
+        AccountingYearCloseReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingYearCloseReviewMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List journals, newest date first
  */
 export const accountingJournalsList = (
@@ -2078,6 +2228,213 @@ export const useAccountingPeriodsCreate = <TError = ErrorType<MessageBody | Vali
       return useMutation(getAccountingPeriodsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Close an ordinary period whose close checks pass
+ */
+export const accountingPeriodsClose = (
+    workspace: string,
+    period: string,
+    actionClosePayload: BodyType<ActionClosePayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePeriodResource>(
+      {url: `/workspace/${workspace}/accounting/periods/${period}/close`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionClosePayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingPeriodsCloseMutationKey = () => ['accountingPeriodsClose'] as const;
+
+export const getAccountingPeriodsCloseMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsClose>>, TError,AccountingPeriodsCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsClose>>, TError,AccountingPeriodsCloseMutationVariables, TContext> => {
+
+const mutationKey = getAccountingPeriodsCloseMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingPeriodsClose>>, AccountingPeriodsCloseMutationVariables> = (props) => {
+          const {workspace,period,data} = props ?? {};
+
+          return  accountingPeriodsClose(workspace,period,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingPeriodsCloseMutationResult = NonNullable<Awaited<ReturnType<typeof accountingPeriodsClose>>>
+    export type AccountingPeriodsCloseMutationBody = BodyType<ActionClosePayload>
+    export type AccountingPeriodsCloseMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingPeriodsCloseMutationVariables = {workspace: string;period: string;data: BodyType<ActionClosePayload>}
+
+    /**
+ * @summary Close an ordinary period whose close checks pass
+ */
+export const useAccountingPeriodsClose = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsClose>>, TError,AccountingPeriodsCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingPeriodsClose>>,
+        TError,
+        AccountingPeriodsCloseMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingPeriodsCloseMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Post a reviewed FX revaluation of a period
+ */
+export const accountingPeriodsRevalue = (
+    workspace: string,
+    period: string,
+    actionRevaluePayload: BodyType<ActionRevaluePayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeRevaluationResource>(
+      {url: `/workspace/${workspace}/accounting/periods/${period}/revalue`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionRevaluePayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingPeriodsRevalueMutationKey = () => ['accountingPeriodsRevalue'] as const;
+
+export const getAccountingPeriodsRevalueMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsRevalue>>, TError,AccountingPeriodsRevalueMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsRevalue>>, TError,AccountingPeriodsRevalueMutationVariables, TContext> => {
+
+const mutationKey = getAccountingPeriodsRevalueMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingPeriodsRevalue>>, AccountingPeriodsRevalueMutationVariables> = (props) => {
+          const {workspace,period,data} = props ?? {};
+
+          return  accountingPeriodsRevalue(workspace,period,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingPeriodsRevalueMutationResult = NonNullable<Awaited<ReturnType<typeof accountingPeriodsRevalue>>>
+    export type AccountingPeriodsRevalueMutationBody = BodyType<ActionRevaluePayload>
+    export type AccountingPeriodsRevalueMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingPeriodsRevalueMutationVariables = {workspace: string;period: string;data: BodyType<ActionRevaluePayload>}
+
+    /**
+ * @summary Post a reviewed FX revaluation of a period
+ */
+export const useAccountingPeriodsRevalue = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsRevalue>>, TError,AccountingPeriodsRevalueMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingPeriodsRevalue>>,
+        TError,
+        AccountingPeriodsRevalueMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingPeriodsRevalueMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Preview a period's FX revaluation (no writes)
+ */
+export const accountingPeriodsRevalueReview = (
+    workspace: string,
+    period: string,
+    revalueReviewBody: BodyType<RevalueReviewBody>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeRevaluationResource>(
+      {url: `/workspace/${workspace}/accounting/periods/${period}/revalue/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: revalueReviewBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingPeriodsRevalueReviewMutationKey = () => ['accountingPeriodsRevalueReview'] as const;
+
+export const getAccountingPeriodsRevalueReviewMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsRevalueReview>>, TError,AccountingPeriodsRevalueReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsRevalueReview>>, TError,AccountingPeriodsRevalueReviewMutationVariables, TContext> => {
+
+const mutationKey = getAccountingPeriodsRevalueReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingPeriodsRevalueReview>>, AccountingPeriodsRevalueReviewMutationVariables> = (props) => {
+          const {workspace,period,data} = props ?? {};
+
+          return  accountingPeriodsRevalueReview(workspace,period,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingPeriodsRevalueReviewMutationResult = NonNullable<Awaited<ReturnType<typeof accountingPeriodsRevalueReview>>>
+    export type AccountingPeriodsRevalueReviewMutationBody = BodyType<RevalueReviewBody>
+    export type AccountingPeriodsRevalueReviewMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingPeriodsRevalueReviewMutationVariables = {workspace: string;period: string;data: BodyType<RevalueReviewBody>}
+
+    /**
+ * @summary Preview a period's FX revaluation (no writes)
+ */
+export const useAccountingPeriodsRevalueReview = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingPeriodsRevalueReview>>, TError,AccountingPeriodsRevalueReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingPeriodsRevalueReview>>,
+        TError,
+        AccountingPeriodsRevalueReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingPeriodsRevalueReviewMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Balance sheet on as_of
  */
 export const accountingBalanceSheet = (
@@ -2166,6 +2523,106 @@ export function useAccountingBalanceSheet<TData = Awaited<ReturnType<typeof acco
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAccountingBalanceSheetQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Close checks of a period
+ */
+export const accountingCloseChecks = (
+    workspace: string,
+    params: AccountingCloseChecksParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeCloseChecksResource>(
+      {url: `/workspace/${workspace}/accounting/reports/close-checks`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingCloseChecksQueryKey = (workspace: string,
+    params?: AccountingCloseChecksParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/reports/close-checks`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingCloseChecksQueryOptions = <TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingCloseChecksQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingCloseChecks>>> = ({ signal }) => accountingCloseChecks(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingCloseChecksQueryResult = NonNullable<Awaited<ReturnType<typeof accountingCloseChecks>>>
+export type AccountingCloseChecksQueryError = ErrorType<MessageBody | UnprocessableBody>
+
+
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingCloseChecks>>,
+          TError,
+          Awaited<ReturnType<typeof accountingCloseChecks>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingCloseChecks>>,
+          TError,
+          Awaited<ReturnType<typeof accountingCloseChecks>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Close checks of a period
+ */
+
+export function useAccountingCloseChecks<TData = Awaited<ReturnType<typeof accountingCloseChecks>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+ workspace: string,
+    params: AccountingCloseChecksParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingCloseChecks>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingCloseChecksQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -2278,6 +2735,306 @@ export function useAccountingGeneralLedger<TData = Awaited<ReturnType<typeof acc
 
 
 /**
+ * @summary Inventory valuation on as_of
+ */
+export const accountingInventoryValuation = (
+    workspace: string,
+    params: AccountingInventoryValuationParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeInventoryValuationResource>(
+      {url: `/workspace/${workspace}/accounting/reports/inventory-valuation`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingInventoryValuationQueryKey = (workspace: string,
+    params?: AccountingInventoryValuationParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/reports/inventory-valuation`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingInventoryValuationQueryOptions = <TData = Awaited<ReturnType<typeof accountingInventoryValuation>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: AccountingInventoryValuationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingInventoryValuation>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingInventoryValuationQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingInventoryValuation>>> = ({ signal }) => accountingInventoryValuation(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingInventoryValuation>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingInventoryValuationQueryResult = NonNullable<Awaited<ReturnType<typeof accountingInventoryValuation>>>
+export type AccountingInventoryValuationQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useAccountingInventoryValuation<TData = Awaited<ReturnType<typeof accountingInventoryValuation>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingInventoryValuationParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingInventoryValuation>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingInventoryValuation>>,
+          TError,
+          Awaited<ReturnType<typeof accountingInventoryValuation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingInventoryValuation<TData = Awaited<ReturnType<typeof accountingInventoryValuation>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingInventoryValuationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingInventoryValuation>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingInventoryValuation>>,
+          TError,
+          Awaited<ReturnType<typeof accountingInventoryValuation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingInventoryValuation<TData = Awaited<ReturnType<typeof accountingInventoryValuation>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingInventoryValuationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingInventoryValuation>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Inventory valuation on as_of
+ */
+
+export function useAccountingInventoryValuation<TData = Awaited<ReturnType<typeof accountingInventoryValuation>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingInventoryValuationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingInventoryValuation>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingInventoryValuationQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Party ledger of one relation for [from, to)
+ */
+export const accountingPartyLedger = (
+    workspace: string,
+    params: AccountingPartyLedgerParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePartyLedgerResource>(
+      {url: `/workspace/${workspace}/accounting/reports/party-ledger`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingPartyLedgerQueryKey = (workspace: string,
+    params?: AccountingPartyLedgerParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/reports/party-ledger`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingPartyLedgerQueryOptions = <TData = Awaited<ReturnType<typeof accountingPartyLedger>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: AccountingPartyLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPartyLedger>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingPartyLedgerQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingPartyLedger>>> = ({ signal }) => accountingPartyLedger(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingPartyLedger>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingPartyLedgerQueryResult = NonNullable<Awaited<ReturnType<typeof accountingPartyLedger>>>
+export type AccountingPartyLedgerQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useAccountingPartyLedger<TData = Awaited<ReturnType<typeof accountingPartyLedger>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPartyLedgerParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPartyLedger>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingPartyLedger>>,
+          TError,
+          Awaited<ReturnType<typeof accountingPartyLedger>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingPartyLedger<TData = Awaited<ReturnType<typeof accountingPartyLedger>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPartyLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPartyLedger>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingPartyLedger>>,
+          TError,
+          Awaited<ReturnType<typeof accountingPartyLedger>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingPartyLedger<TData = Awaited<ReturnType<typeof accountingPartyLedger>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPartyLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPartyLedger>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Party ledger of one relation for [from, to)
+ */
+
+export function useAccountingPartyLedger<TData = Awaited<ReturnType<typeof accountingPartyLedger>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPartyLedgerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPartyLedger>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingPartyLedgerQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Payables aging on as_of
+ */
+export const accountingPayablesAging = (
+    workspace: string,
+    params: AccountingPayablesAgingParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeAgingResource>(
+      {url: `/workspace/${workspace}/accounting/reports/payables-aging`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingPayablesAgingQueryKey = (workspace: string,
+    params?: AccountingPayablesAgingParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/reports/payables-aging`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingPayablesAgingQueryOptions = <TData = Awaited<ReturnType<typeof accountingPayablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: AccountingPayablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPayablesAging>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingPayablesAgingQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingPayablesAging>>> = ({ signal }) => accountingPayablesAging(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingPayablesAging>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingPayablesAgingQueryResult = NonNullable<Awaited<ReturnType<typeof accountingPayablesAging>>>
+export type AccountingPayablesAgingQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useAccountingPayablesAging<TData = Awaited<ReturnType<typeof accountingPayablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPayablesAgingParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPayablesAging>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingPayablesAging>>,
+          TError,
+          Awaited<ReturnType<typeof accountingPayablesAging>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingPayablesAging<TData = Awaited<ReturnType<typeof accountingPayablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPayablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPayablesAging>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingPayablesAging>>,
+          TError,
+          Awaited<ReturnType<typeof accountingPayablesAging>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingPayablesAging<TData = Awaited<ReturnType<typeof accountingPayablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPayablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPayablesAging>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Payables aging on as_of
+ */
+
+export function useAccountingPayablesAging<TData = Awaited<ReturnType<typeof accountingPayablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingPayablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingPayablesAging>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingPayablesAgingQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Profit and loss for [from, to)
  */
 export const accountingProfitAndLoss = (
@@ -2366,6 +3123,106 @@ export function useAccountingProfitAndLoss<TData = Awaited<ReturnType<typeof acc
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAccountingProfitAndLossQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Receivables aging on as_of
+ */
+export const accountingReceivablesAging = (
+    workspace: string,
+    params: AccountingReceivablesAgingParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeAgingResource>(
+      {url: `/workspace/${workspace}/accounting/reports/receivables-aging`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingReceivablesAgingQueryKey = (workspace: string,
+    params?: AccountingReceivablesAgingParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/reports/receivables-aging`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingReceivablesAgingQueryOptions = <TData = Awaited<ReturnType<typeof accountingReceivablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: AccountingReceivablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingReceivablesAging>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingReceivablesAgingQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingReceivablesAging>>> = ({ signal }) => accountingReceivablesAging(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingReceivablesAging>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingReceivablesAgingQueryResult = NonNullable<Awaited<ReturnType<typeof accountingReceivablesAging>>>
+export type AccountingReceivablesAgingQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useAccountingReceivablesAging<TData = Awaited<ReturnType<typeof accountingReceivablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingReceivablesAgingParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingReceivablesAging>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingReceivablesAging>>,
+          TError,
+          Awaited<ReturnType<typeof accountingReceivablesAging>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingReceivablesAging<TData = Awaited<ReturnType<typeof accountingReceivablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingReceivablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingReceivablesAging>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingReceivablesAging>>,
+          TError,
+          Awaited<ReturnType<typeof accountingReceivablesAging>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingReceivablesAging<TData = Awaited<ReturnType<typeof accountingReceivablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingReceivablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingReceivablesAging>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Receivables aging on as_of
+ */
+
+export function useAccountingReceivablesAging<TData = Awaited<ReturnType<typeof accountingReceivablesAging>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: AccountingReceivablesAgingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingReceivablesAging>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingReceivablesAgingQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

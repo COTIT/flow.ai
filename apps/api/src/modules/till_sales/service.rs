@@ -46,7 +46,7 @@ const OFF_SALE: &str = "This product is not for sale.";
 const TOTAL_MAX: i64 = 1_000_000_000_000;
 
 /// The cash step of `currency` (ISO code, any case) in `cash_register.cash_rounding`; 1 when absent.
-async fn cash_step(
+pub(crate) async fn cash_step(
     conn: &mut sqlx::PgConnection,
     workspace_id: Uuid,
     currency: &str,

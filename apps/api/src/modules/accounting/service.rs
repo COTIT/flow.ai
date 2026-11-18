@@ -15,8 +15,8 @@ use crate::{
         dto::{
             AccountChange, AccountPatch, AccountPayload, AccountResource, Acted, Action,
             BankAccountPayload, BankAccountResource, Create, Created, NewAccount, NewBankAccount,
-            NewPeriod, PeriodPayload, PeriodResource, ROLES, Range, SetupInput, SetupPayload,
-            SetupResource, YearPayload, YearResource,
+            NewPeriod, PeriodPayload, PeriodResource, ROLES, Range, RevaluationRef, SetupInput,
+            SetupPayload, SetupResource, YearPayload, YearResource,
         },
         gate,
         repo::{self, AccountRow, RangeRow},
@@ -303,6 +303,11 @@ pub async fn update_account(
 }
 
 fn year_resource(r: RangeRow, ws: Uuid) -> YearResource {
+    let actions = if r.state == "open" {
+        vec!["close"]
+    } else {
+        vec![]
+    };
     YearResource {
         id: r.id,
         workspace_id: ws,
@@ -313,12 +318,22 @@ fn year_resource(r: RangeRow, ws: Uuid) -> YearResource {
         created_by: r.created_by,
         created_at: r.created_at,
         updated_at: r.updated_at,
-        // shortcut: year close arrives in M5; no actions until then.
-        allowed_actions: vec![],
+        allowed_actions: actions,
     }
 }
 
-fn period_resource(r: RangeRow, ws: Uuid) -> PeriodResource {
+pub(crate) fn period_resource(
+    r: RangeRow,
+    ws: Uuid,
+    last: Option<RevaluationRef>,
+) -> PeriodResource {
+    let open = r.state == "open";
+    // The final period closes only through the year-end close.
+    let actions = match (open, r.final_period) {
+        (true, false) => vec!["revalue", "close"],
+        (true, true) => vec!["revalue"],
+        _ => vec![],
+    };
     PeriodResource {
         id: r.id,
         workspace_id: ws,
@@ -330,8 +345,8 @@ fn period_resource(r: RangeRow, ws: Uuid) -> PeriodResource {
         created_by: r.created_by,
         created_at: r.created_at,
         updated_at: r.updated_at,
-        // shortcut: period close/revalue arrive in M5; no actions until then.
-        allowed_actions: vec![],
+        last_revaluation: last,
+        allowed_actions: actions,
     }
 }
 
@@ -357,8 +372,19 @@ pub async fn periods(
 ) -> Result<(Vec<PeriodResource>, i64), AppError> {
     let rows = repo::periods(&state.db, ws, None, page.size, page.offset()).await?;
     let total = repo::range_count(&state.db, ws, true).await?;
+    let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+    let mut conn = state.db.acquire().await?;
+    let mut last = super::revaluation::latest(&mut conn, ws, &ids).await?;
     Ok((
-        rows.into_iter().map(|r| period_resource(r, ws)).collect(),
+        rows.into_iter()
+            .map(|r| {
+                let run = last
+                    .iter()
+                    .position(|(p, _)| *p == r.id)
+                    .map(|i| last.swap_remove(i).1);
+                period_resource(r, ws, run)
+            })
+            .collect(),
         total,
     ))
 }
@@ -446,7 +472,7 @@ pub async fn create_period(
         .await?
         .pop()
         .ok_or(AppError::NotFound)?;
-    let answer = created(&period_resource(row, ws));
+    let answer = created(&period_resource(row, ws, None));
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)

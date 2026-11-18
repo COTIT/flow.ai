@@ -22,6 +22,7 @@ use crate::{
     idempotency::{self, Answer, Command},
     jobs::{self, kinds, repo::NewJob},
     modules::accounting::{
+        banking,
         dto::{Action, Create},
         service::{created, ok, stale},
     },
@@ -105,6 +106,9 @@ pub async fn create(
         expected_rows,
         mapping,
     } = &cmd.input.payload;
+    if profile == banking::PROFILE {
+        banking::header(&mut tx, ws, mapping).await?;
+    }
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO import_batches (workspace_id, created_by, client_ref, profile, filename, file_hash, expected_rows, mapping)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
@@ -330,7 +334,20 @@ pub async fn validate(
         .await?;
     let (mut ids, mut statuses, mut issues, mut targets) = (vec![], vec![], vec![], vec![]);
     let mut keys: HashMap<String, Vec<usize>> = HashMap::new();
-    for row in &staged {
+    if profile == banking::PROFILE {
+        // One statement: rows are checked together (bank ids, reference, balance).
+        let header = banking::header(&mut tx, ws, &mapping).await?;
+        let rows: Vec<(Value, Option<String>)> =
+            staged.iter().map(|r| (r.get(1), r.get(2))).collect();
+        let (found, _) = banking::check_rows(&mut tx, ws, &header, &rows).await?;
+        for (row, issue) in staged.iter().zip(found) {
+            ids.push(row.get::<Uuid, _>(0));
+            statuses.push(if issue.is_some() { "invalid" } else { "valid" });
+            issues.push(json!(issue.into_iter().collect::<Vec<_>>()));
+            targets.push(None);
+        }
+    }
+    for row in staged.iter().filter(|_| profile != banking::PROFILE) {
         let (row_id, fields, key): (Uuid, Value, Option<String>) =
             (row.get(0), row.get(1), row.get(2));
         let outcome =
@@ -395,6 +412,7 @@ pub async fn validate(
 pub fn native_permission(profile: &str, mapping: &Value) -> &'static str {
     match (profile, mapping["operation"].as_str()) {
         ("relations", _) => "relation.create",
+        (banking::PROFILE, _) => banking::PERMISSION,
         (_, Some("update")) => "product.update",
         _ => "product.create",
     }
@@ -429,6 +447,11 @@ pub async fn apply(
         return Err(stale());
     }
     let current = batch(&mut tx, ws, id).await?;
+    if profile == banking::PROFILE && current["counts"]["invalid"].as_i64().unwrap_or(0) > 0 {
+        return Err(AppError::Unprocessable(
+            "Every statement row must be valid. Correct the file and start a new import.".into(),
+        ));
+    }
     if current["counts"]["valid"].as_i64().unwrap_or(0) == 0 {
         return Err(AppError::Unprocessable(
             "No valid rows to apply. Correct the file and start a new import.".into(),
