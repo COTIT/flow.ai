@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) FILTER (WHERE je.accounting_date >= $3) AS \"n!\",\n                  round(coalesce(sum(jl.functional_debit - jl.functional_credit)\n                        FILTER (WHERE je.accounting_date < $3), 0) / 10::numeric ^ $5::int, $5::int)::text AS \"opening!\",\n                  round(coalesce(sum(jl.functional_debit) FILTER (WHERE je.accounting_date >= $3), 0)\n                        / 10::numeric ^ $5::int, $5::int)::text AS \"debit!\",\n                  round(coalesce(sum(jl.functional_credit) FILTER (WHERE je.accounting_date >= $3), 0)\n                        / 10::numeric ^ $5::int, $5::int)::text AS \"credit!\",\n                  round(coalesce(sum(jl.functional_debit - jl.functional_credit), 0)\n                        / 10::numeric ^ $5::int, $5::int)::text AS \"closing!\"\n           FROM journal_lines jl\n           JOIN journal_entries je ON je.workspace_id = jl.workspace_id AND je.id = jl.entry_id\n           WHERE jl.workspace_id = $1 AND jl.relation_id = $2 AND je.state = 'posted'\n             AND je.accounting_date < $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "opening!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "debit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "credit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "closing!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "124e5e30fd8719cbb44cf4197efd9ac0f3cbcff2fbfc3d57bf7bb9d568b491e9"
+}

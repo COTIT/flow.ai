@@ -418,7 +418,12 @@ pub async fn aging(
         relation(conn, ws, id).await?;
     }
     let classes: &[&str] = if payables {
-        &["payable", "supplier_credit", "supplier_advance", "received_not_invoiced"]
+        &[
+            "payable",
+            "supplier_credit",
+            "supplier_advance",
+            "received_not_invoiced",
+        ]
     } else {
         // recovery_receivable is a controlled suspense item, not customer AR (§8).
         &["receivable", "customer_credit", "customer_deposit"]
@@ -488,14 +493,16 @@ pub async fn aging(
                                    g.relation_id) END AS rn
                FROM g LEFT JOIN relations rel
                  ON rel.workspace_id = $1 AND rel.id = g.relation_id)
-           SELECT p.gr AS "gr!", p.gi AS "gi!", p.relation_id, p.name AS "name!", p.id,
-                  p.classification, p.source_kind, p.source_id, p.invoice_id, p.issue_date,
-                  p.due_date, p.days, p.bucket,
-                  cur.id AS "currency_id?", cur.code AS "currency_code?",
+           SELECT p.gr AS "gr!", p.gi AS "gi!", p.relation_id AS "relation_id?", p.name AS "name!",
+                  p.id AS "id?", p.classification AS "classification?",
+                  p.source_kind AS "source_kind?", p.source_id AS "source_id?",
+                  p.invoice_id AS "invoice_id?", p.issue_date AS "issue_date?",
+                  p.due_date AS "due_date?", p.days AS "days?", p.bucket AS "bucket?",
+                  cur.id AS "currency_id?", upper(cur.asset_type) AS "currency_code?",
                   cur.decimals AS "currency_decimals?",
-                  round(p.amount / 10::numeric ^ cur.decimals, cur.decimals)::text AS amount,
-                  round(p.residual / 10::numeric ^ cur.decimals, cur.decimals)::text AS residual,
-                  round(p.fres / 10::numeric ^ $5::int, $5::int)::text AS fres,
+                  round(p.amount / 10::numeric ^ cur.decimals, cur.decimals)::text AS "amount?",
+                  round(p.residual / 10::numeric ^ cur.decimals, cur.decimals)::text AS "residual?",
+                  round(p.fres / 10::numeric ^ $5::int, $5::int)::text AS "fres?",
                   (SELECT count(*) FROM g WHERE g.gr = 0 AND g.gi = 1) AS "parties!",
                   round(p.nd / 10::numeric ^ $5::int, $5::int)::text AS "nd!",
                   round(p.b1 / 10::numeric ^ $5::int, $5::int)::text AS "b1!",
@@ -747,8 +754,9 @@ pub async fn inventory_valuation(
                JOIN account_mappings m ON m.workspace_id = jl.workspace_id
                                       AND m.account_id = jl.account_id AND m.role = 'inventory'
                WHERE jl.workspace_id = $1 AND je.state = 'posted' AND je.accounting_date <= $2)
-           SELECT g.gr AS "gr!", g.product_id, g.product, g.warehouse_id, g.warehouse,
-                  trim_scale(g.qty)::text AS quantity,
+           SELECT g.gr AS "gr!", g.product_id AS "product_id?", g.product AS "product?",
+                  g.warehouse_id AS "warehouse_id?", g.warehouse AS "warehouse?",
+                  trim_scale(g.qty)::text AS "quantity?",
                   round(g.value / 10::numeric ^ $4::int, $4::int)::text AS "value!",
                   round(gl.balance / 10::numeric ^ $4::int, $4::int)::text AS "gl!",
                   round((g.value - gl.balance) / 10::numeric ^ $4::int, $4::int)::text AS "diff!"
