@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE purchase_order_lines SET booked_quantity = booked_quantity + $3,\n             booked_value = booked_value + $4\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3cd1b5c7080090ba8646565dc8761ad96a2c8a32ebd29ce8c81ecefc947e1472"
+}

@@ -177,6 +177,20 @@ async fn office_may_set_price_discount_and_title(pool: PgPool) {
     assert_eq!(o["data"]["total"], 981);
 }
 
+/// Catalog price at half a cent rounds half away from zero (`money.rs`), never to even.
+#[sqlx::test]
+async fn catalog_price_at_half_a_cent_rounds_away_from_zero(pool: PgPool) {
+    let w = world(pool).await;
+    let jam = w
+        .api
+        .with_base("/products")
+        .create(json!({ "name": "Jam", "price": "1.005" }), "product_id")
+        .await;
+    let id = draft(&w, json!([line(&jam, "1")])).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(o["data"]["lines"][0]["unit_price"], 101, "{o}");
+}
+
 #[sqlx::test]
 async fn bad_lines_are_refused(pool: PgPool) {
     let w = world(pool).await;

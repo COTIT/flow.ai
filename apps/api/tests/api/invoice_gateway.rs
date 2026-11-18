@@ -805,7 +805,9 @@ async fn shop_invoice_rejects_foreign_refund_totals_and_invalid_parent_bindings(
 
 #[sqlx::test]
 async fn paid_shop_invoice_credits_refund_the_original_order_owned_capture(pool: PgPool) {
-    use super::gateway_recovery::{capture, collection, posts, refresh, world};
+    use super::gateway_recovery::{
+        ambiguous_refund, capture, collection, posts, refresh, refund_observation, resolve, world,
+    };
     let w = world(pool).await;
     let (order, payment) = collection(&w).await;
     capture(&w, payment);
@@ -998,6 +1000,7 @@ async fn paid_shop_invoice_credits_refund_the_original_order_owned_capture(pool:
         (500, -500, "pending", "converted-partial"),
         (total - 500, -total, "credited", "converted-rest"),
     ] {
+        ambiguous_refund(&w, key == "converted-partial");
         let url = format!("/v1/workspace/{}/invoices/{note}/refunds", w.api.ws);
         let body =
             json!({"payment_id":payment,"amount":rust_decimal::Decimal::new(amount,2).to_string()});
@@ -1022,6 +1025,21 @@ async fn paid_shop_invoice_credits_refund_the_original_order_owned_capture(pool:
             .unwrap()
             .parse::<Uuid>()
             .unwrap();
+        if key == "converted-partial" {
+            refund_observation(&w, payment, "PARTIALLY_REFUNDED");
+            assert_eq!(refresh(&w, refund).await["status"], "unknown");
+            let (status, body) = resolve(&w, refund, "refund_confirmed").await;
+            assert_eq!(status, StatusCode::OK, "{body}");
+            assert_eq!(
+                resolve(&w, refund, "refund_confirmed").await.0,
+                StatusCode::CONFLICT
+            );
+            let (status, body) = resolve(&w, payment, "refund_reconciled").await;
+            assert_eq!(status, StatusCode::OK, "{body}");
+            let count: i64 = sqlx::query_scalar("SELECT count(*) FROM invoice_payments WHERE workspace_id=$1::uuid AND id=$2 AND invoice_id=$3::uuid")
+                .bind(&w.api.ws).bind(refund).bind(note).fetch_one(&w.api.pool).await.unwrap();
+            assert_eq!(count, 1);
+        }
         type RefundAccountBinding = (
             Option<Uuid>,
             Option<Uuid>,

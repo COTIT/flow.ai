@@ -191,7 +191,7 @@ async fn current(
         .and_then(|v| u32::try_from(v).ok())
         .ok_or_else(|| AppError::Internal("invoice currency decimals".into()))?;
     let lines = repo::lines(&mut *conn, workspace, id).await?;
-    let (summary, _) = service::price(&lines, decimals)?;
+    let (summary, _) = service::summary_of(&mut *conn, workspace, id, &lines, decimals).await?;
     facts["total_minor"] = json!(crate::money::minor(summary.total, decimals)?);
     facts["subtotal_minor"] = json!(crate::money::minor(summary.excl, decimals)?);
     Ok(bounded_review(facts))

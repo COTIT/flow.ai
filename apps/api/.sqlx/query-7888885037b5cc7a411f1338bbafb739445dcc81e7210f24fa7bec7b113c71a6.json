@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH r AS (\n             INSERT INTO sales_recognitions (workspace_id, source_kind, source_id, order_id,\n                 shipment_id, relation_id, currency_id, accounting_date, net, tax,\n                 functional_net, functional_tax, journal_entry_id, effect_id, created_by)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $9, $10, $11, $12, $13)\n             RETURNING id)\n         , l AS (\n             INSERT INTO sales_recognition_lines (workspace_id, recognition_id, order_line_id,\n                 product_id, quantity, net, tax, vat_rate, discount_percentage)\n             SELECT $1, r.id, u.l, u.p, u.q, u.n, u.t, u.v, u.d\n             FROM r, UNNEST($14::uuid[], $15::uuid[], $16::numeric[], $17::int8[], $18::int8[],\n                            $19::numeric[], $20::numeric[]) AS u(l, p, q, n, t, v, d))\n         SELECT id AS \"id!\" FROM r",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "sales_recognitions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Int8",
+        "Int8",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "NumericArray",
+        "Int8Array",
+        "Int8Array",
+        "NumericArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7888885037b5cc7a411f1338bbafb739445dcc81e7210f24fa7bec7b113c71a6"
+}

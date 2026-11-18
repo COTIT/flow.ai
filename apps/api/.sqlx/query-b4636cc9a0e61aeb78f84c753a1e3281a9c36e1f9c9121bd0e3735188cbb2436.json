@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE purchase_receipt_lines l\n         SET booked_at = now(), booked_by = $3, accounting_date = $4,\n             movement_id = m.id, journal_entry_id = e.journal_entry_id,\n             net_value = $5, landed_value = $6, rate = $7, rate_inverse = $8,\n             rate_source = $9, rate_date = $10\n         FROM stock_movements m\n         LEFT JOIN inventory_value_entries e ON e.movement_id = m.id\n         WHERE l.workspace_id = $1 AND l.id = $2\n           AND m.workspace_id = $1 AND m.related_domain = 'purchase_receipt_line'\n           AND m.related_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Int8",
+        "Int8",
+        "Numeric",
+        "Bool",
+        "Text",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b4636cc9a0e61aeb78f84c753a1e3281a9c36e1f9c9121bd0e3735188cbb2436"
+}

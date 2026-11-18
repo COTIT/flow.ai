@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tax_profiles SET country = $3, subdivision = $4, effective_from = $5,\n                effective_to = $6, transaction_types = $7, product_category_ids = $8,\n                tax_point = $9, evidence_ref = $10, version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "TextArray",
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "845e5a336999173fbbf55139baee471cb83f8bf7ceaad7368121f866c149ac24"
+}

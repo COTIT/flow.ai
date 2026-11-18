@@ -18,7 +18,9 @@ use crate::{
         response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, Permission, permissions},
     },
+    idempotency::{Answer, Command},
     modules::{
+        accounting::dto::Action,
         files::dto::FileResource,
         invoices::{
             credit,
@@ -26,6 +28,7 @@ use crate::{
                 CreateInvoiceRequest, CreditInvoiceRequest, InvoiceCreated, InvoiceListPage,
                 InvoiceResource, ListQuery, PublicInvoice, UpdateInvoiceRequest,
             },
+            issue,
             repo::ListFilter,
             send,
             service::{self, ListArgs},
@@ -41,6 +44,7 @@ permissions! {
     InvoiceCreate => "invoice.create",
     InvoiceUpdate => "invoice.update",
     InvoiceDelete => "invoice.delete",
+    InvoiceIssue => "invoice.send",
 }
 
 /// `invoice.send` plus `workspace.send-message` (Laravel's policy + SendMessageRequest).
@@ -457,4 +461,55 @@ pub async fn credit(
     let invoice_id =
         credit::credit(&state, access.workspace_id, access.user_id, &id, &input).await?;
     Ok((StatusCode::CREATED, Data(InvoiceCreated { invoice_id })))
+}
+
+/// invoices_issue_review: Preview issuing a draft (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}/issue/review", tag = "invoices",
+    operation_id = "invoices_issue_review", summary = "Preview issuing a draft invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    request_body = issue::IssueReviewBody,
+    responses(
+        (status = 200, body = Envelope<issue::IssueReview>, description = "What issue would number and book"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, not a draft, date other than the book's day, or `unsupported_active_erp_operation` (credit note or foreign currency in an active book)"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn issue_review(
+    State(state): State<AppState>,
+    access: Can<InvoiceIssue>,
+    Path((_, id)): Path<(String, String)>,
+    ValidatedJson((date, _)): ValidatedJson<issue::IssueReviewBody>,
+) -> Result<Data<issue::IssueReview>, AppError> {
+    let id = Uuid::parse_str(&id).map_err(|_| AppError::NotFound)?;
+    Ok(Data(
+        issue::review(&state, access.workspace_id, id, date).await?,
+    ))
+}
+
+/// invoices_issue: Number and book a reviewed draft without email.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}/issue", tag = "invoices",
+    operation_id = "invoices_issue", summary = "Issue a reviewed draft invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    request_body = Action<issue::IssuePayload>,
+    responses(
+        (status = 200, body = Envelope<issue::Issued>, description = "Issued"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` (review changed), unresolved delivery, or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, not a draft, no contact or billing address, date other than the book's day, `insufficient_stock`, `accounting_not_configured`, `accounting_period_closed` or `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn issue(
+    State(state): State<AppState>,
+    access: Can<InvoiceIssue>,
+    Path((_, id)): Path<(String, String)>,
+    cmd: Command<Action<issue::IssuePayload>>,
+) -> Result<Answer, AppError> {
+    let id = Uuid::parse_str(&id).map_err(|_| AppError::NotFound)?;
+    issue::issue(&state, &access, id, cmd).await
 }

@@ -219,6 +219,14 @@ pub async fn reserve(
     cause: &Cause<'_>,
 ) -> Result<Reserved, Error> {
     let (domain, id) = related(cause)?;
+    // Gate, then the warehouse FOR SHARE (re-entrant), before any pool or stock lock.
+    crate::modules::stock::value::active(conn, workspace_id).await?;
+    if !repo::share_warehouse(conn, workspace_id, warehouse_id).await? {
+        return Err(sqlx::Error::RowNotFound.into());
+    }
+    if repo::paused(&mut *conn, workspace_id, warehouse_id).await? {
+        return Err(repo::paused_error().into());
+    }
     let mut picked = Vec::new();
     for (index, w) in totals(wants) {
         let rows = pick(conn, workspace_id, warehouse_id, w.product_id).await?;
@@ -396,25 +404,34 @@ type Held = Vec<(Uuid, Decimal)>;
 /// record (an order), oldest hold first, all or nothing over every row it holds of the lot
 /// there: a record the other rows can't cover keeps all its holds (callers release the full
 /// line, so a short hold would break them).
+/// A paused warehouse (stocktake) is skipped: its holds stay until post/cancel reruns this
+/// for `only` that warehouse.
 pub async fn move_off_lot(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     lot_id: Uuid,
     product_id: Uuid,
+    only: Option<Uuid>,
 ) -> Result<(), Error> {
     let warehouses = sqlx::query_scalar!(
         "SELECT DISTINCT s.warehouse_id FROM stock_reservations r
          JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id
          WHERE r.workspace_id = $1 AND s.lot_id = $2
+           AND ($3::uuid IS NULL OR s.warehouse_id = $3)
          ORDER BY 1",
         workspace_id,
         lot_id,
+        only,
     )
     .fetch_all(&mut *conn)
     .await?;
     for warehouse_id in warehouses {
         // Locks every row of the product here in key order, the lot's own included.
         let mut rows = pick(conn, workspace_id, warehouse_id, product_id).await?;
+        // Deferred, not dropped: the invalid hold waits for the count to end.
+        if repo::paused(&mut *conn, workspace_id, warehouse_id).await? {
+            continue;
+        }
         // Per stock row and record; grouped per record below (oldest hold first).
         let held = sqlx::query!(
             r#"SELECT r.stock_id, r.related_domain, r.related_id, sum(r.quantity) AS "quantity!",

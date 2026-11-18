@@ -38,17 +38,29 @@ pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
     user_id: Uuid,
-    mut input: NewRelation,
+    input: NewRelation,
 ) -> Result<Uuid, AppError> {
     let mut tx = state.db.begin().await?;
+    let id = create_in(&mut tx, workspace_id, user_id, input).await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+/// `create` inside the caller's transaction (imports apply one row per transaction).
+pub(crate) async fn create_in(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    mut input: NewRelation,
+) -> Result<Uuid, AppError> {
     let relation_type_id = match input.relation_type_id {
         Some(id) => {
-            if !custom_types::repo::is_live(&mut *tx, workspace_id, id, Some("relation")).await? {
+            if !custom_types::repo::is_live(&mut **tx, workspace_id, id, Some("relation")).await? {
                 return Err(AppError::field("relation_type_id", TYPE_NOT_VALID));
             }
             id
         }
-        None => custom_types::repo::first_of_domain(&mut *tx, workspace_id, "relation")
+        None => custom_types::repo::first_of_domain(&mut **tx, workspace_id, "relation")
             .await?
             .ok_or_else(|| {
                 AppError::field(
@@ -58,7 +70,7 @@ pub async fn create(
             })?,
     };
     if let Some(id) = input.source_type_id
-        && !custom_types::repo::is_live(&mut *tx, workspace_id, id, Some("lead_source")).await?
+        && !custom_types::repo::is_live(&mut **tx, workspace_id, id, Some("lead_source")).await?
     {
         return Err(AppError::field(
             "source_type_id",
@@ -73,13 +85,13 @@ pub async fn create(
         phone::normalize_phones(&mut c.phones, country);
     }
     // Lock first, then read the series, so the snapshot is the latest settings.
-    repo::lock_numbers(&mut tx, workspace_id).await?;
+    repo::lock_numbers(tx, workspace_id).await?;
     let (appendix, start) =
-        settings::service::numbering(&mut *tx, workspace_id, "relation").await?;
-    let number = repo::next_number(&mut tx, workspace_id, start).await?;
+        settings::service::numbering(&mut **tx, workspace_id, "relation").await?;
+    let number = repo::next_number(tx, workspace_id, start).await?;
     let appendix = appendix.to_json();
     let id = repo::insert(
-        &mut *tx,
+        &mut **tx,
         workspace_id,
         user_id,
         relation_type_id,
@@ -89,9 +101,8 @@ pub async fn create(
     )
     .await?;
     if let Some(c) = &input.contact {
-        contacts::repo::insert(&mut *tx, workspace_id, id, c).await?;
+        contacts::repo::insert(&mut **tx, workspace_id, id, c).await?;
     }
-    tx.commit().await?;
     Ok(id)
 }
 
@@ -214,12 +225,21 @@ async fn list(
     }
     let ids: Vec<Uuid> = rows.iter().map(|(r, _, _)| r.id).collect();
     let mut contacts = contacts::repo::for_relations(&state.db, workspace_id, &ids).await?;
+    let open = if flags.suppliers {
+        crate::modules::purchasing::repo::supplier_open(&state.db, workspace_id, &ids).await?
+    } else {
+        Vec::new()
+    };
     let data = rows
         .into_iter()
         .map(|row| {
             let id = row.0.id;
             let mine = contacts.extract_if(.., |c| c.relation_id == id).collect();
-            RelationIndexResource::new(row, mine, flags)
+            let mut r = RelationIndexResource::new(row, mine, flags);
+            if let Some((_, count, value)) = open.iter().find(|o| o.0 == id) {
+                r.set_open_orders(*count, *value);
+            }
+            r
         })
         .collect();
     Ok((data, total))

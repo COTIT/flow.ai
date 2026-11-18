@@ -264,6 +264,10 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
     if !repo::lock_for_delete(&mut tx, workspace_id, id).await? {
         return Err(AppError::NotFound);
     }
+    // A counting stocktake ends by post or cancel, never by losing its warehouse.
+    if stock::paused(&mut *tx, workspace_id, id).await? {
+        return Err(stock::paused_error());
+    }
     if !repo::soft_delete(&mut *tx, workspace_id, id).await? {
         return Err(AppError::Conflict("warehouse_holds_stock"));
     }

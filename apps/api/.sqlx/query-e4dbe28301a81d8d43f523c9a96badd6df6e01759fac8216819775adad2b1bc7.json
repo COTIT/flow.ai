@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO tax_exemptions (workspace_id, profile_id, relation_id, product_category_id,\n                                     reason, evidence_ref)\n         SELECT $1, $2, rel, cat, reason, evidence\n         FROM unnest($3::uuid[], $4::uuid[], $5::text[], $6::text[])\n              WITH ORDINALITY AS t(rel, cat, reason, evidence, n)\n         ORDER BY n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4dbe28301a81d8d43f523c9a96badd6df6e01759fac8216819775adad2b1bc7"
+}

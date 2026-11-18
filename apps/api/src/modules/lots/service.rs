@@ -385,7 +385,7 @@ async fn status_moved(
     if tighter {
         // Every lot is locked and saved: now the stock rows.
         for (lot, _, _) in &changed {
-            reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id).await?;
+            reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id, None).await?;
         }
     }
     Ok(())

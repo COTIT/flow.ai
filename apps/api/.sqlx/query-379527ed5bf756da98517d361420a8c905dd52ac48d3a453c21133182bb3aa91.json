@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT version, effective_receipt_date FROM purchase_receipts\n         WHERE workspace_id = $1 AND purchase_order_id = $2 AND id = $3 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "effective_receipt_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "effective_receipt_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "379527ed5bf756da98517d361420a8c905dd52ac48d3a453c21133182bb3aa91"
+}

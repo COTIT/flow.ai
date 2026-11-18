@@ -1,0 +1,154 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.purchase_order_id, r.number, r.effective_receipt_date, r.note,\n                  r.version, r.created_by, r.recorded_at, count(*) OVER () AS \"total!\",\n                  c.id AS \"fc_id?\", upper(c.asset_type) AS \"fc_code?\",\n                  c.decimals AS \"fc_decimals?\"\n           FROM purchase_receipts r\n           JOIN accounting_settings a ON a.workspace_id = r.workspace_id\n           LEFT JOIN currencies c ON a.state = 'active' AND c.workspace_id = a.workspace_id\n                                 AND c.id = a.functional_currency_id\n           WHERE r.workspace_id = $1 AND r.purchase_order_id = $2\n             AND ($3::uuid IS NULL OR r.id = $3)\n           ORDER BY r.number DESC LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purchase_order_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "purchase_order_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "number"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "effective_receipt_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "effective_receipt_date"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "recorded_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipts",
+            "name": "recorded_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "fc_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "fc_code?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "fc_decimals?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "fc867e7b737b2b467cfa16d412935b1fa54ed925563a38971c9a97cca95ed79c"
+}

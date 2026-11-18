@@ -70,6 +70,7 @@ pub async fn sellable(
              AND s.bin_id IS NULL AND s.deleted_at IS NULL
              AND (s.lot_id IS NULL OR (l.status = 'released'
                   AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
+             AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id, s.product_id)
            GROUP BY s.product_id"#,
         workspace_id,
         warehouse_id,

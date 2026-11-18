@@ -223,7 +223,9 @@ pub async fn sold_out(
                                       ORDER BY w.id LIMIT 1)
                                   AND (s.lot_id IS NULL OR (l.status = 'released'
                                        AND (l.expires_on IS NULL
-                                            OR l.expires_on >= current_date)))),
+                                            OR l.expires_on >= current_date)))
+                                  AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id,
+                                                                   s.product_id)),
                                0) AS available
                FROM products p
                WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock)
@@ -420,7 +422,9 @@ pub async fn below_minimum(
                                       ORDER BY w.id LIMIT 1)
                                   AND (s.lot_id IS NULL OR (l.status = 'released'
                                        AND (l.expires_on IS NULL
-                                            OR l.expires_on >= current_date)))),
+                                            OR l.expires_on >= current_date)))
+                                  AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id,
+                                                                   s.product_id)),
                                0) AS available,
                       -- Minimums of the warehouse the availability counts.
                       coalesce((SELECT sum(s.minimal_stock_level) FROM stocks s

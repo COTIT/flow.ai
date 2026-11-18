@@ -5,8 +5,11 @@ const routeRights: [prefix: string, right: string][] = [
   ["/orders", "order.list"],
   ["/invoices", "invoice.list"],
   ["/payments", "payment.read"],
+  ["/purchases", "purchaseorder.list"],
   ["/supply/links", "workspace_admin"],
   ["/till", "cashregister.list"],
+  ["/accounting", "accounting.read"],
+  ["/settings/taxes", "taxprofile.read"],
   ["/settings/app-keys", "workspace_admin"],
   ["/settings/webhooks", "workspace_admin"],
   ["/settings/integrations", "integration.view"],
@@ -14,6 +17,7 @@ const routeRights: [prefix: string, right: string][] = [
   ["/settings/payments", "workspace_admin"],
   ["/settings/invites", "invite.list"],
   ["/settings/members", "workspace_admin"],
+  ["/settings/imports", "import.list"],
   ["/search", "workspace.global-search"],
 ]
 

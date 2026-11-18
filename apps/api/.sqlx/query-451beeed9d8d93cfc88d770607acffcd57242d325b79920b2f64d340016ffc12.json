@@ -1,0 +1,175 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.receipt_id, c.client_component_ref, c.amount, c.currency_id,\n                  upper(cu.asset_type) AS \"currency_code!\", cu.decimals AS currency_decimals,\n                  c.functional_amount, c.rate, c.rate_inverse, c.rate_source, c.rate_date,\n                  c.evidence_ref,\n                  (SELECT coalesce(json_agg(json_build_object('receipt_line_id', a.receipt_line_id,\n                                                              'functional_amount', a.functional_amount)\n                                            ORDER BY a.receipt_line_id), '[]')\n                   FROM purchase_landed_cost_allocations a\n                   WHERE a.landed_cost_id = c.id) AS \"allocations!\"\n           FROM purchase_landed_costs c\n           JOIN currencies cu ON cu.workspace_id = c.workspace_id AND cu.id = c.currency_id\n           WHERE c.workspace_id = $1 AND c.receipt_id = ANY($2)\n           ORDER BY c.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "receipt_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "receipt_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "client_component_ref",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "client_component_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "functional_amount",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "functional_amount"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "rate",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "rate"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "rate_inverse",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "rate_inverse"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "rate_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "rate_source"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "rate_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "rate_date"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "evidence_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "evidence_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "allocations!",
+        "type_info": "Json",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "451beeed9d8d93cfc88d770607acffcd57242d325b79920b2f64d340016ffc12"
+}

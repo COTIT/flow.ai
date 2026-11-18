@@ -155,6 +155,24 @@ pub async fn resolve(
     }
     let op = scoped(&state, &access, &id).await?;
     accounts::require_environment(&state, op.environment.as_deref())?;
+    let action = input.outcome.as_deref().unwrap_or("");
+    if action == "refund_reconciled" {
+        service::reconcile_refund_source(
+            &state,
+            access.workspace_id,
+            access.user_id,
+            op.id,
+            &input.reason,
+            &input.evidence,
+        )
+        .await?;
+        return Ok(Data(service::view(
+            &state,
+            &repo::find(&state.db, access.workspace_id, op.id)
+                .await?
+                .ok_or(AppError::NotFound)?,
+        )));
+    }
     if op.provider != "globadyme"
         || !matches!(op.status.as_str(), "unknown" | "open")
         || (op.kind == "payment" && op.captured_transaction_id.is_some())
@@ -163,7 +181,6 @@ pub async fn resolve(
             "Only an unresolved gateway submission can be resolved with provider evidence.",
         ));
     }
-    let action = input.outcome.as_deref().unwrap_or("");
     if !matches!(action, "not_accepted" | "refund_confirmed")
         || (action == "refund_confirmed" && op.kind != "refund")
     {

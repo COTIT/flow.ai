@@ -957,7 +957,7 @@ pub(super) async fn reject_duplicates(
 }
 
 /// Called under the workspace identity lock before taking a chunk's product locks.
-pub(super) async fn resolve_unlocked(
+pub(crate) async fn resolve_unlocked(
     conn: &mut PgConnection,
     workspace: Uuid,
     key_name: &str,
@@ -996,7 +996,7 @@ pub(super) async fn resolve_unlocked(
     Ok(sqlx::query_scalar("SELECT id FROM products WHERE workspace_id=$1 AND deleted_at IS NULL AND ($2::uuid IS NULL OR id=$2) AND ($3::text IS NULL OR CASE $4 WHEN 'id' THEN id::text WHEN 'barcode' THEN barcode WHEN 'ean13' THEN ean13 WHEN 'reference' THEN reference WHEN 'name' THEN name ELSE product_nr_formatted END=$3) ORDER BY id LIMIT 3").bind(workspace).bind(direct).bind(key).bind(key_name).fetch_all(conn).await?)
 }
 
-pub(super) async fn lock_products(
+pub(crate) async fn lock_products(
     conn: &mut PgConnection,
     workspace: Uuid,
     ids: &[Uuid],
