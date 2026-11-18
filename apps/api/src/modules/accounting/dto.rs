@@ -1163,3 +1163,200 @@ pub struct BankAccountResource {
     pub version: i64,
     pub created_at: DateTime<Utc>,
 }
+
+/// `?as_of=&relation_id=&page=&page_size=` on receivables/payables aging.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct AgingQuery {
+    /// Last day included (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub as_of: Option<String>,
+    /// One party: adds its open items to the report.
+    #[param(value_type = Option<Uuid>)]
+    pub relation_id: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}
+
+impl Validate for AgingQuery {
+    type Valid = (NaiveDate, Option<Uuid>);
+
+    fn validate(self, r: &mut Rules) -> Option<(NaiveDate, Option<Uuid>)> {
+        let as_of = date(r, "as_of", self.as_of);
+        let relation = opt_uuid(r, "relation_id", self.relation_id);
+        Some((as_of?, relation?))
+    }
+}
+
+/// `?relation_id=&from=&to=&page=&page_size=` on the party ledger.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct PartyLedgerQuery {
+    #[param(value_type = Uuid)]
+    pub relation_id: Option<String>,
+    /// First day, inclusive (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub from: Option<String>,
+    /// Day after the last, exclusive (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub to: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}
+
+impl Validate for PartyLedgerQuery {
+    type Valid = (Uuid, Range);
+
+    fn validate(self, r: &mut Rules) -> Option<(Uuid, Range)> {
+        let relation = uuid(r, "relation_id", self.relation_id);
+        let range = report_range(r, self.from, self.to);
+        Some((relation?, range?))
+    }
+}
+
+/// `?as_of=&warehouse_id=` on inventory valuation.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct ValuationQuery {
+    /// Last day included (`YYYY-MM-DD`).
+    #[param(value_type = String, format = Date)]
+    pub as_of: Option<String>,
+    #[param(value_type = Option<Uuid>)]
+    pub warehouse_id: Option<String>,
+}
+
+impl Validate for ValuationQuery {
+    type Valid = (NaiveDate, Option<Uuid>);
+
+    fn validate(self, r: &mut Rules) -> Option<(NaiveDate, Option<Uuid>)> {
+        let as_of = date(r, "as_of", self.as_of);
+        let warehouse = opt_uuid(r, "warehouse_id", self.warehouse_id);
+        Some((as_of?, warehouse?))
+    }
+}
+
+/// A named thing on a report (relation, product, warehouse).
+#[derive(Serialize, ToSchema)]
+pub struct NamedRef {
+    pub id: Uuid,
+    pub name: String,
+}
+
+/// Aging columns; functional major-unit strings. Buckets count days past due (no due date:
+/// days since issue). Credits, deposits and unbilled are not aged.
+#[derive(Serialize, ToSchema)]
+pub struct AgingColumns {
+    pub not_due: String,
+    #[serde(rename = "1_30")]
+    pub d1_30: String,
+    #[serde(rename = "31_60")]
+    pub d31_60: String,
+    #[serde(rename = "61_90")]
+    pub d61_90: String,
+    pub over_90: String,
+    /// Sum of the five buckets.
+    pub total: String,
+    pub credits: String,
+    /// Customer deposits (AR) or supplier advances (AP).
+    pub deposits: String,
+    /// Unbilled receivables (AR) or received-not-invoiced (AP).
+    pub unbilled: String,
+}
+
+/// One party on an aging report; `relation` null = anonymous retail.
+#[derive(Serialize, ToSchema)]
+pub struct AgingParty {
+    #[schema(required = true)]
+    pub relation: Option<NamedRef>,
+    #[serde(flatten)]
+    pub columns: AgingColumns,
+}
+
+/// One open item outstanding on `as_of`.
+#[derive(Serialize, ToSchema)]
+pub struct AgingItem {
+    pub id: Uuid,
+    pub classification: String,
+    pub source_kind: String,
+    pub source_id: Uuid,
+    pub invoice_id: Option<Uuid>,
+    pub issue_date: NaiveDate,
+    pub due_date: Option<NaiveDate>,
+    /// as_of − (due date, else issue date).
+    pub days_overdue: i32,
+    /// not_due, 1_30, 31_60, 61_90, over_90, credits, deposits or unbilled.
+    pub bucket: String,
+    pub currency: CurrencyRef,
+    /// Item currency.
+    pub amount: String,
+    /// Item currency, on as_of.
+    pub residual: String,
+    /// Functional, on as_of.
+    pub functional_residual: String,
+}
+
+/// Receivables or payables aging on `as_of`, rebuilt from dated allocations.
+#[derive(Serialize, ToSchema)]
+pub struct AgingResource {
+    pub functional_currency: CurrencyRef,
+    pub as_of: NaiveDate,
+    /// Cutover day in the book timezone; opening items count from it. Null before activation.
+    #[schema(required = true)]
+    pub cutover_date: Option<NaiveDate>,
+    #[schema(required = true)]
+    pub relation_id: Option<Uuid>,
+    pub totals: AgingColumns,
+    pub parties: Paginated<AgingParty>,
+    /// Open items of `relation_id`; empty without it.
+    pub items: Vec<AgingItem>,
+}
+
+/// One posted line on the party ledger.
+#[derive(Serialize, ToSchema)]
+pub struct PartyLedgerLine {
+    pub account: ReportAccount,
+    #[serde(flatten)]
+    pub line: LedgerLine,
+}
+
+/// Party ledger of one relation across accounts: balances (debit-positive) plus one page.
+#[derive(Serialize, ToSchema)]
+pub struct PartyLedgerResource {
+    pub functional_currency: CurrencyRef,
+    pub relation: NamedRef,
+    pub from: NaiveDate,
+    pub to: NaiveDate,
+    pub opening_balance: String,
+    pub debit: String,
+    pub credit: String,
+    pub closing_balance: String,
+    pub lines: Paginated<PartyLedgerLine>,
+}
+
+/// One product × warehouse pool on `as_of`.
+#[derive(Serialize, ToSchema)]
+pub struct ValuationRow {
+    pub product: NamedRef,
+    pub warehouse: NamedRef,
+    /// Decimal string.
+    pub quantity: String,
+    pub value: String,
+}
+
+/// Inventory value on `as_of` from pool value entries; without `warehouse_id` also the GL
+/// inventory balance and value − GL.
+#[derive(Serialize, ToSchema)]
+pub struct InventoryValuationResource {
+    pub functional_currency: CurrencyRef,
+    pub as_of: NaiveDate,
+    #[schema(required = true)]
+    pub cutover_date: Option<NaiveDate>,
+    #[schema(required = true)]
+    pub warehouse_id: Option<Uuid>,
+    pub rows: Vec<ValuationRow>,
+    pub total_value: String,
+    #[schema(required = true)]
+    pub gl_balance: Option<String>,
+    #[schema(required = true)]
+    pub difference: Option<String>,
+}

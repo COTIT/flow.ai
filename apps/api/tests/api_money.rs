@@ -9,6 +9,8 @@ mod common;
 
 #[path = "api/accounting.rs"]
 mod accounting;
+#[path = "api/accounting_aging.rs"]
+mod accounting_aging;
 #[path = "api/accounting_reports.rs"]
 mod accounting_reports;
 #[path = "api/accounting_schema.rs"]

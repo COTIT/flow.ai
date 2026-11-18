@@ -21,12 +21,14 @@ use crate::{
     modules::accounting::{
         banking::{self, ReconcilePayload, UnmatchPayload},
         dto::{
-            AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
-            BankAccountPayload, BankAccountResource, Create, GeneralLedgerResource, JournalPayload,
-            JournalResource, LedgerQuery, ListQuery, PeriodPayload, PeriodResource, PostPayload,
-            ProfitAndLossResource, RangeQuery, RevaluationResource, RevaluePayload,
-            RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload,
-            SetupResource, TrialBalanceResource, YearPayload, YearResource,
+            AccountPatch, AccountPayload, AccountResource, Action, AgingQuery, AgingResource,
+            AsOfQuery, BalanceSheetResource, BankAccountPayload, BankAccountResource, Create,
+            GeneralLedgerResource, InventoryValuationResource, JournalPayload, JournalResource,
+            LedgerQuery, ListQuery, PartyLedgerQuery, PartyLedgerResource, PeriodPayload,
+            PeriodResource, PostPayload, ProfitAndLossResource, RangeQuery, RevaluationResource,
+            RevaluePayload, RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource,
+            SetupPayload, SetupResource, TrialBalanceResource, ValuationQuery, YearPayload,
+            YearResource,
         },
         journals, reports, revaluation, service,
     },
@@ -618,6 +620,113 @@ pub async fn balance_sheet(
     let mut conn = state.db.acquire().await?;
     Ok(Data(
         reports::balance_sheet(&mut conn, access.workspace_id, as_of).await?,
+    ))
+}
+
+/// accounting_receivables_aging: Receivables aging on as_of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/receivables-aging", tag = "accounting",
+    operation_id = "accounting_receivables_aging",
+    summary = "Receivables aging on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), AgingQuery),
+    responses(
+        (status = 200, body = Envelope<AgingResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or relation, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn receivables_aging(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<AgingQuery>,
+) -> Result<Data<AgingResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (as_of, relation) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::aging(&mut conn, access.workspace_id, as_of, relation, false, page).await?,
+    ))
+}
+
+/// accounting_payables_aging: Payables aging on as_of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/payables-aging", tag = "accounting",
+    operation_id = "accounting_payables_aging",
+    summary = "Payables aging on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), AgingQuery),
+    responses(
+        (status = 200, body = Envelope<AgingResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or relation, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn payables_aging(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<AgingQuery>,
+) -> Result<Data<AgingResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (as_of, relation) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::aging(&mut conn, access.workspace_id, as_of, relation, true, page).await?,
+    ))
+}
+
+/// accounting_party_ledger: Party ledger of one relation for [from, to).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/party-ledger", tag = "accounting",
+    operation_id = "accounting_party_ledger",
+    summary = "Party ledger of one relation for [from, to)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), PartyLedgerQuery),
+    responses(
+        (status = 200, body = Envelope<PartyLedgerResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or relation, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn party_ledger(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<PartyLedgerQuery>,
+) -> Result<Data<PartyLedgerResource>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (relation, range) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::party_ledger(&mut conn, access.workspace_id, relation, range, page).await?,
+    ))
+}
+
+/// accounting_inventory_valuation: Inventory valuation on as_of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/reports/inventory-valuation", tag = "accounting",
+    operation_id = "accounting_inventory_valuation",
+    summary = "Inventory valuation on as_of",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ValuationQuery),
+    responses(
+        (status = 200, body = Envelope<InventoryValuationResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `accounting_not_configured`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn inventory_valuation(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<ValuationQuery>,
+) -> Result<Data<InventoryValuationResource>, AppError> {
+    let (as_of, warehouse) = valid(q)?;
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        reports::inventory_valuation(&mut conn, access.workspace_id, as_of, warehouse).await?,
     ))
 }
 

@@ -222,6 +222,10 @@ Read-only, `accounting.read`, `GET` under `/accounting/reports`. Only posted jou
 | `/reports/general-ledger` | `accounting_general_ledger` | `account_id`, `from`, `to`, `page`, `page_size` (default 50, max 100) |
 | `/reports/profit-and-loss` | `accounting_profit_and_loss` | `from`, `to` |
 | `/reports/balance-sheet` | `accounting_balance_sheet` | `as_of` |
+| `/reports/party-ledger` | `accounting_party_ledger` | `relation_id`, `from`, `to`, `page`, `page_size` |
+| `/reports/receivables-aging` | `accounting_receivables_aging` | `as_of`, `relation_id?`, `page`, `page_size` |
+| `/reports/payables-aging` | `accounting_payables_aging` | `as_of`, `relation_id?`, `page`, `page_size` |
+| `/reports/inventory-valuation` | `accounting_inventory_valuation` | `as_of`, `warehouse_id?` |
 
 Each answers `{data: …}` with `functional_currency` and its dates.
 
@@ -230,9 +234,17 @@ Each answers `{data: …}` with `functional_currency` and its dates.
 - **Profit and loss**: `income` (credit-positive) and `expenses` (debit-positive) per account, `total_income`, `total_expenses`, `net_profit`. Year-end close transfers (`kind = year_end_close`) are left out.
 - **Balance sheet**: `assets` (debit-positive), `liabilities` and `equity` (credit-positive) per account, their totals, `current_earnings` and `total_liabilities_and_equity` (= liabilities + equity + current earnings = `total_assets`). `current_earnings` is income − expense through `as_of` not yet moved to equity by a year-end close, across every year not yet closed; there's no split between this year and earlier years until year-end close exists. A close moves it into retained earnings, so it's counted once.
 
-422 field errors: missing or malformed date, `to` not after `from`, missing or malformed `account_id`. A book without a functional currency gets 422 `accounting_not_configured`.
+- **Party ledger**: the general ledger for one relation across every account. `relation` = `{id, name}`; each line also carries its `account`. Only lines tagged with the relation count. A relation of another workspace, or none, gets 404.
+- **Receivables / payables aging**: open items on `as_of`, rebuilt from dated rows, never from today's residual. Residual on `as_of` = amount − allocations dated on or before `as_of` (a reversal adds its amount back on its own date; a reclassification relieves only its source). Functional residual also adds carrying adjustments dated on or before `as_of`. So a January invoice paid in February still shows in January, and a March reversal changes March only. Items issued after `as_of` are left out. Opening items count from `cutover_date`, the cutover day in the book timezone (null before activation); no history before it is invented.
+  - Columns, functional: `not_due`, `1_30`, `31_60`, `61_90`, `over_90` (days past the due date, or past the issue date when there is none; the due day itself is not due), `total` (the five buckets), and the unaged `credits`, `deposits`, `unbilled`.
+  - Receivables: aged = receivables (billed); `credits` = customer credits, `deposits` = customer deposits, `unbilled` = unbilled receivables. Recovery items are left out until assigned to a customer.
+  - Payables: aged = payables; `credits` = supplier credits, `deposits` = supplier advances, `unbilled` = received not invoiced.
+  - `totals` covers everything; `parties` = one page `{data, meta}` per relation (`relation` `{id, name}`, null for anonymous retail, listed last) ordered by name. With `relation_id`, only that party, and `items` lists its outstanding items: `id`, `classification`, `source_kind`, `source_id`, `invoice_id`, `issue_date`, `due_date`, `days_overdue`, `bucket`, `currency`, `amount` and `residual` (item currency), `functional_residual`. Without it `items` is `[]`. An unknown or foreign relation gets 404.
+- **Inventory valuation**: one row per product and warehouse pool on `as_of` (`product`, `warehouse` = `{id, name}`, `quantity`, `value`), rows at zero left out, plus `total_value`. A pool's state is its last value entry dated on or before `as_of`, else its opening state at cutover. Nothing shows before `cutover_date`. Without `warehouse_id`, `gl_balance` is the posted balance of the `inventory` role account on `as_of`, and `difference` = `total_value` − `gl_balance`. With `warehouse_id` both are null (the GL has no warehouse split). An unknown or foreign warehouse gets 404.
 
-Not yet: party ledger, receivables and payables aging (they need open items and allocations, M4/M5), inventory valuation and close checks.
+422 field errors: missing or malformed date, `to` not after `from`, missing or malformed `account_id` / `relation_id` / `warehouse_id`. A book without a functional currency gets 422 `accounting_not_configured`; a book still in setup answers empty reports.
+
+Not yet: close checks (`accounting_close_checks`), with period close (M5-E).
 
 ## Period FX revaluation (M5-B)
 

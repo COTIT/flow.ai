@@ -1,0 +1,2 @@
+DROP INDEX journal_lines_relation_idx;
+DROP INDEX accounting_open_items_issue_idx;
