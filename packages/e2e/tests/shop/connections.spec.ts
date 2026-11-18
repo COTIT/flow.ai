@@ -25,7 +25,7 @@ test("workspace catalog, carts and checkout keep their connection across two tab
   await page.getByLabel("Address", { exact: true }).fill("1 Main St")
   await page.getByLabel("Postal code").fill("10001")
   await page.getByLabel("City").fill("New York")
-  await page.getByLabel("Country").fill("US")
+  await page.getByLabel("Country").selectOption("US")
   await page.getByRole("button", { name: "Place order", exact: true }).click()
   await page.waitForURL(
     new RegExp(`/s/${SHOP_CONNECTIONS[0]}/orders/[0-9a-f-]{36}$`)

@@ -112,6 +112,8 @@
     "place": "Place order",
     "required": "Please fill this in.",
     "invalid": "This doesn't look right.",
+    "selectCountry": "Select a country",
+    "invalidCountry": "Select a valid country from the list.",
     "field": {
       "email": "Email",
       "name": "Full name",

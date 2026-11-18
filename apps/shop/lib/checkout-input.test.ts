@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { parseCheckout } from "./checkout-input"
+import { COUNTRY_CODES } from "./countries"
 
 const P = "11111111-1111-4111-8111-111111111111"
 const V = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
@@ -52,6 +53,46 @@ describe("parseCheckout", () => {
     expect(r).toEqual({ ok: false, missing: ["email", "name", "city"] })
   })
 
+  it("normalizes a valid country code before checkout", () => {
+    const parsed = parseCheckout(form({ country: " us " }))
+    expect(parsed.ok && parsed.body.customer?.shipping_address).toMatchObject({
+      country: "US",
+    })
+  })
+
+  it.each(["test", "ZZ", "USA", "United States"])(
+    "rejects invalid country %s with a field error",
+    (country) => {
+      expect(parseCheckout(form({ country }))).toEqual({
+        ok: false,
+        missing: [],
+        errors: {
+          "customer.shipping_address.country": ["Select a valid country."],
+        },
+      })
+    }
+  )
+
+  it("uses the complete ISO country list without duplicate options", () => {
+    expect(COUNTRY_CODES).toHaveLength(249)
+    expect(new Set(COUNTRY_CODES).size).toBe(249)
+    expect(COUNTRY_CODES).toContain("US")
+    expect(COUNTRY_CODES).toContain("NL")
+    expect(COUNTRY_CODES).not.toContain("ZZ")
+  })
+
+  it.each([
+    ["name", "customer.name", 255],
+    ["phone", "customer.phone", 50],
+    ["line1", "customer.shipping_address.line1", 255],
+  ] as const)("names an overlong %s field", (field, path, max) => {
+    expect(parseCheckout(form({ [field]: "x".repeat(max + 1) }))).toEqual({
+      ok: false,
+      missing: [],
+      errors: { [path]: [`Use ${max} characters or fewer.`] },
+    })
+  })
+
   it.each([
     ["a bad key", { key: "x" }],
     ["lines that aren't JSON", { lines: "{" }],
@@ -68,7 +109,6 @@ describe("parseCheckout", () => {
       "a quantity over 1000",
       { lines: JSON.stringify([{ productId: P, quantity: 1001 }]) },
     ],
-    ["an over-long name", { name: "x".repeat(256) }],
   ])("refuses %s", (_, over) => {
     expect(parseCheckout(form(over))).toEqual({ ok: false, missing: [] })
   })
