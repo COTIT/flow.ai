@@ -3,20 +3,21 @@
 
 /** `.card`: glass, 24 px padding and 16 px gap (16/12 on phones), 20 px corners (18 on phones). */
 export const card =
-  "glass flex min-w-0 flex-col gap-3 rounded-[18px] p-4 md:gap-4 md:rounded-[20px] md:p-6"
+  "afm-card glass flex min-w-0 flex-col gap-3 rounded-[18px] p-4 md:gap-4 md:rounded-[20px] md:p-6"
 
 /** `.tile`: a tinted block inside a card, never blurred. */
 export const tile =
-  "min-w-0 rounded-[16px] border border-(--hair) bg-(--glass-subtle) p-4"
+  "afm-tile min-w-0 rounded-[16px] border border-(--hair) bg-(--glass-subtle) p-4"
 
 /** `.tag`: small capitals over a title. */
 export const tag = "text-[11px] font-extrabold tracking-[0.08em] uppercase"
 
 /** `.h2`: section and page titles. */
-export const h2 = "text-[22px] leading-[1.3] font-medium"
+export const h2 = "afm-heading text-[22px] leading-[1.3] font-medium"
 
 /** `.card-title`. */
-export const cardTitle = "text-[15px] font-semibold tracking-[0.01em]"
+export const cardTitle =
+  "afm-card-title text-[15px] font-semibold tracking-[0.01em]"
 
 /** `.chip-ic.gold`: an icon on a gold tint (gold text only on its own tint). */
 export const goldChip =

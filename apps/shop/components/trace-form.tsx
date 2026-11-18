@@ -24,7 +24,7 @@ export async function TraceForm({
     <form
       action={shopPath(await getShopBase(), "/b")}
       method="get"
-      className={cn(tile, "flex flex-col gap-3 p-5", className)}
+      className={cn(tile, "afm-trace flex flex-col gap-3 p-5", className)}
     >
       <div className="flex items-center gap-3">
         <span className={cn(goldChip, "size-11 rounded-[14px]")}>

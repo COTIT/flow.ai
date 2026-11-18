@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server"
 import { headers } from "next/headers"
 
 import "@genesy/ui/globals.css"
+import "./afm.css"
 import { QueryProvider } from "@genesy/api-client/query-provider"
 import { fontSans } from "@genesy/ui/lib/fonts"
 import { cn } from "@genesy/ui/lib/utils"
@@ -42,15 +43,17 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans antialiased", fontSans.variable)}
     >
-      <body className="theme-glass has-[[data-sticky-buy]]:max-md:pb-24">
+      <body
+        data-shop-theme={base ? undefined : "afm"}
+        className="theme-glass has-[[data-sticky-buy]]:max-md:pb-24"
+      >
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>
               <ShopProvider key={base} base={base} name={shop?.name ?? ""}>
-                {/* Mock `ShopCatalogue` .wrap-shop: header, page and footer in one 1200 px column. */}
-                <div className="mx-auto flex min-h-svh w-full max-w-[1200px] flex-col gap-5 px-3 pt-3 pb-8 text-[14px] leading-normal md:gap-7 md:px-6 md:pt-5 md:pb-12">
+                <div className="afm-shell mx-auto flex min-h-svh w-full max-w-[1200px] flex-col gap-5 px-3 pt-3 pb-8 text-[14px] leading-normal md:gap-7 md:px-6 md:pt-5 md:pb-12">
                   <SiteHeader shopName={shop?.name} />
-                  <main className="flex flex-1 flex-col gap-5 md:gap-7">
+                  <main className="afm-main flex flex-1 flex-col gap-5 md:gap-7">
                     {children}
                   </main>
                   <SiteFooter shopName={shop?.name} />

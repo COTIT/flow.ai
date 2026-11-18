@@ -7,11 +7,15 @@ import { Notice } from "@genesy/ui/components/notice"
 import { PageIntro } from "@/components/page-intro"
 import { TraceForm } from "@/components/trace-form"
 import { isPublicCode, normalizeCode } from "@/lib/passport"
+import { pageMetadata } from "@/lib/seo"
 import { getShopBase } from "@/lib/shop-scope"
 import { shopPath } from "@/lib/shop-path"
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("trace"))("title") }
+  const t = await getTranslations()
+  const title = t("trace.title")
+  if (await getShopBase()) return { title }
+  return pageMetadata("/b", { title, description: t("about.traceBody") })
 }
 
 /** The trace form's target: a well-formed code goes to its passport, anything else asks again. */

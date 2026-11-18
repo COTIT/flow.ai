@@ -6,7 +6,6 @@ import { island } from "@genesy/ui/components/island"
 
 // Animated pieces (React Bits copies, our tile fade), each in its own chunk; nothing on the
 // server or under reduced motion.
-const BlurText = island(() => import("./rb/BlurText"))
 const GlareHover = island(() => import("./rb/GlareHover"))
 const FadeTile = island(() => import("./fade-tile"))
 
@@ -22,19 +21,6 @@ function useFinePointer() {
     },
     () => matchMedia(FINE).matches,
     () => false
-  )
-}
-
-/** The headline comes into focus word by word; screen readers get the plain sentence. */
-export function Headline({ text }: { text: string }) {
-  return (
-    <BlurText
-      plain={text}
-      text={text}
-      animateBy="words"
-      direction="top"
-      delay={90}
-    />
   )
 }
 
@@ -69,15 +55,22 @@ export function Glare({
 export function FadeIn({
   as = "section",
   children,
+  duration,
   ...props
 }: {
   as?: "section" | "div"
   className?: string
   "aria-labelledby"?: string
   children: ReactNode
+  duration?: number
 }) {
   return (
-    <FadeTile plain={createElement(as, props, children)} as={as} {...props}>
+    <FadeTile
+      plain={createElement(as, props, children)}
+      as={as}
+      duration={duration}
+      {...props}
+    >
       {children}
     </FadeTile>
   )

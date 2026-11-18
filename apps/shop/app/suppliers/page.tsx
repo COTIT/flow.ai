@@ -6,11 +6,13 @@ import { buttonVariants } from "@genesy/ui/components/button"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
+import { pageMetadata } from "@/lib/seo"
 import { card, h2, prose, tile } from "@/lib/look"
 import { mailto } from "@/lib/nav"
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("suppliers"))("tag") }
+  const t = await getTranslations("suppliers")
+  return pageMetadata("/suppliers", { title: t("tag"), description: t("lead") })
 }
 
 export default async function SuppliersPage() {

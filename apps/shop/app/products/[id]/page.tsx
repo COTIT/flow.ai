@@ -21,8 +21,12 @@ import {
   MapArea,
 } from "@/components/passport"
 import { ProductGallery } from "@/components/product-gallery"
+import { ShopJsonLd } from "@/components/shop-json-ld"
 import { isSoldOut } from "@/components/stock-badge"
 import { card, cardTitle, h2, tag } from "@/lib/look"
+import { publicProductImage } from "@/lib/product-image"
+import { productSchema } from "@/lib/product-schema"
+import { pageMetadata } from "@/lib/seo"
 import { getLot, getProduct } from "@/lib/storefront"
 import { getShopBase } from "@/lib/shop-scope"
 import { shopPath } from "@/lib/shop-path"
@@ -32,9 +36,16 @@ type Props = { params: Promise<{ id: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const product = await getProduct(id)
-  const url = shopPath(await getShopBase(), `/products/${product.id}`)
+  const base = await getShopBase()
+  const url = shopPath(base, `/products/${product.id}`)
   const description =
     product.short_description ?? product.description?.slice(0, 160) ?? undefined
+  if (!base)
+    return pageMetadata(url, {
+      title: product.name,
+      description,
+      image: publicProductImage(product),
+    })
   return {
     title: product.name,
     description,
@@ -77,6 +88,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
+      {!base && <ShopJsonLd data={productSchema(product, t("nav.shop"))} />}
       <nav aria-label={t("product.breadcrumb")}>
         <ol className="flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground">
           <li>
@@ -115,7 +127,7 @@ export default async function ProductPage({ params }: Props) {
         <div
           className={cn(
             card,
-            "col-span-12 gap-[18px] md:col-span-5 md:gap-[18px]"
+            "afm-buy-panel col-span-12 gap-[18px] md:col-span-5 md:gap-[18px]"
           )}
         >
           <div>
@@ -138,7 +150,7 @@ export default async function ProductPage({ params }: Props) {
         {lot ? (
           <section
             aria-labelledby="jar-passport"
-            className={cn(card, "col-span-12 md:col-span-5")}
+            className={cn(card, "afm-origin-panel col-span-12 md:col-span-5")}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="jar-passport" className={cardTitle}>
@@ -207,7 +219,7 @@ export default async function ProductPage({ params }: Props) {
         ) : showPassport ? (
           <section
             aria-labelledby="jar-passport"
-            className={cn(card, "col-span-12 md:col-span-5")}
+            className={cn(card, "afm-origin-panel col-span-12 md:col-span-5")}
           >
             <h2 id="jar-passport" className={cardTitle}>
               {t("product.passport")}
