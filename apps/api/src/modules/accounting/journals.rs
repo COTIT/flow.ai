@@ -380,7 +380,7 @@ impl Prepared {
 }
 
 /// The book's functional currency when it is active and fully configured.
-async fn active_book(conn: &mut PgConnection, ws: Uuid) -> Result<CurrencyRef, AppError> {
+pub(crate) async fn active_book(conn: &mut PgConnection, ws: Uuid) -> Result<CurrencyRef, AppError> {
     let s = repo::settings(&mut *conn, ws, false).await?;
     let mappings = repo::mappings(&mut *conn, ws).await?;
     let mapped = ROLES
@@ -871,6 +871,32 @@ pub async fn post_source_lines(
     j: &SourceHeader<'_>,
     lines: &[SourceLine],
 ) -> Result<(Uuid, Uuid), AppError> {
+    let effect = repo::insert_effect(
+        &mut *conn,
+        ws,
+        j.source_kind,
+        j.source_id,
+        j.effect_kind,
+        j.fingerprint,
+        j.by,
+    )
+    .await?;
+    let entry = post_lines(conn, ws, "source", (j.date, j.reason, j.by), lines, effect).await?;
+    Ok((entry, effect))
+}
+
+/// Post `lines` as a journal of `kind` (functional currency) dated `when.0` with reason
+/// `when.1` by `when.2`, under an existing `effect`; the entry id. Same refusals as
+/// [`post_source_lines`]. Several journals may share one effect (a revaluation run).
+pub async fn post_lines(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    kind: &str,
+    when: (NaiveDate, &str, Uuid),
+    lines: &[SourceLine],
+    effect: Uuid,
+) -> Result<Uuid, AppError> {
+    let (date, reason, by) = when;
     let currency = repo::settings(&mut *conn, ws, false)
         .await?
         .functional_currency_id
@@ -896,18 +922,18 @@ pub async fn post_source_lines(
     {
         return Err(not_configured());
     }
-    let period = repo::open_period(&mut *conn, ws, j.date)
+    let period = repo::open_period(&mut *conn, ws, date)
         .await?
         .ok_or_else(period_closed)?;
     let fields = DraftFields {
-        kind: "source",
-        date: j.date,
+        kind,
+        date,
         currency,
-        reason: j.reason,
+        reason,
         evidence_ref: None,
         reversal_of: None,
     };
-    let entry = repo::insert_entry(&mut *conn, ws, &fields, j.by).await?;
+    let entry = repo::insert_entry(&mut *conn, ws, &fields, by).await?;
     let rows: Vec<NewLine> = lines
         .iter()
         .zip(&accounts)
@@ -932,19 +958,9 @@ pub async fn post_source_lines(
         })
         .collect();
     repo::insert_lines(&mut *conn, ws, entry, &rows).await?;
-    let effect = repo::insert_effect(
-        &mut *conn,
-        ws,
-        j.source_kind,
-        j.source_id,
-        j.effect_kind,
-        j.fingerprint,
-        j.by,
-    )
-    .await?;
     let number = numbering::next(&mut *conn, ws, Series::Journal, 1).await?;
-    repo::mark_posted(&mut *conn, ws, entry, number, period, effect, j.by).await?;
-    Ok((entry, effect))
+    repo::mark_posted(&mut *conn, ws, entry, number, period, effect, by).await?;
+    Ok(entry)
 }
 
 #[cfg(test)]

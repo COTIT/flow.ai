@@ -8,6 +8,7 @@ pub mod handlers;
 pub mod journals;
 pub mod repo;
 pub mod reports;
+pub mod revaluation;
 pub mod routes;
 pub mod service;
 pub mod settlement;

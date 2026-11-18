@@ -70,6 +70,7 @@ mod farm_vouchers;
 mod files;
 mod flow_conversations;
 mod flow_scenes;
+mod fx_revaluation;
 mod health;
 mod healthcheck;
 mod hourly_rates;

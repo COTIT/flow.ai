@@ -664,7 +664,18 @@ pub struct PeriodResource {
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Latest posted FX revaluation run of this period; null before the first.
+    pub last_revaluation: Option<RevaluationRef>,
     pub allowed_actions: Vec<&'static str>,
+}
+
+/// A posted revaluation run as named on its period.
+#[derive(Serialize, ToSchema, Clone)]
+pub struct RevaluationRef {
+    pub id: Uuid,
+    pub rate_date: NaiveDate,
+    pub accounting_date: NaiveDate,
+    pub created_at: DateTime<Utc>,
 }
 
 /// One journal line; amounts are exact decimal strings in major units.
@@ -743,6 +754,96 @@ pub struct ReviewResource {
     pub lines: Vec<LineResource>,
     pub totals: Totals,
     /// Send back on the action; a changed fact makes it stale (409 `stale_document`).
+    pub review_fingerprint: String,
+}
+
+/// POST /accounting/periods/{id}/revalue/review body.
+#[derive(Deserialize, ToSchema)]
+pub struct RevalueReviewBody {
+    /// Closing rates: each currency's rate in force on this day (on or before the period's
+    /// last day).
+    #[schema(value_type = NaiveDate)]
+    pub rate_date: Option<String>,
+}
+
+impl Validate for RevalueReviewBody {
+    type Valid = NaiveDate;
+
+    fn validate(self, r: &mut Rules) -> Option<NaiveDate> {
+        date(r, "rate_date", self.rate_date)
+    }
+}
+
+/// POST /accounting/periods/{id}/revalue payload.
+#[derive(Deserialize, ToSchema)]
+pub struct RevaluePayload {
+    #[schema(value_type = NaiveDate)]
+    pub rate_date: Option<String>,
+    pub review_fingerprint: Option<String>,
+}
+
+impl Validate for RevaluePayload {
+    type Valid = (NaiveDate, String);
+
+    fn validate(self, r: &mut Rules) -> Option<(NaiveDate, String)> {
+        let d = date(r, "rate_date", self.rate_date);
+        let fp = r.required("review_fingerprint", self.review_fingerprint);
+        Some((d?, fp?))
+    }
+}
+
+/// Closing rate used for one currency.
+#[derive(Serialize, ToSchema, Clone)]
+pub struct RevaluationRate {
+    pub currency: CurrencyRef,
+    pub rate: String,
+    /// true: stored functional → currency, applied inversely.
+    pub inverse: bool,
+    pub source: String,
+    pub effective_on: Option<NaiveDate>,
+}
+
+/// One open item revalued: carrying before and after, decimal strings in functional units.
+#[derive(Serialize, ToSchema, Clone)]
+pub struct RevaluationItem {
+    pub open_item_id: Uuid,
+    pub classification: String,
+    pub relation_id: Option<Uuid>,
+    pub currency: CurrencyRef,
+    /// Open amount in the item currency.
+    pub residual: String,
+    pub carrying: String,
+    pub revalued: String,
+    /// revalued − carrying.
+    pub delta: String,
+    /// The posted `fx_revaluation` journal; null on a review.
+    pub journal_id: Option<Uuid>,
+}
+
+/// An open foreign item left out of the run, and why.
+#[derive(Serialize, ToSchema, Clone)]
+pub struct NotRevalued {
+    pub open_item_id: Uuid,
+    /// `settled_after_rate_date` (an allocation dated after the rate date already realized
+    /// its FX) or `revalued_after_accounting_date` (a later run already moved it).
+    pub reason: &'static str,
+}
+
+/// A revaluation review (`id` null, fingerprint set) or a posted run (`id` set).
+#[derive(Serialize, ToSchema)]
+pub struct RevaluationResource {
+    pub id: Option<Uuid>,
+    pub period_id: Uuid,
+    /// Period version the review was computed from.
+    pub period_version: i64,
+    pub rate_date: NaiveDate,
+    /// Period's last day: date of every journal and carrying adjustment.
+    pub accounting_date: NaiveDate,
+    pub functional_currency: CurrencyRef,
+    pub rates: Vec<RevaluationRate>,
+    /// Items with a non-zero delta.
+    pub items: Vec<RevaluationItem>,
+    pub not_revalued: Vec<NotRevalued>,
     pub review_fingerprint: String,
 }
 
