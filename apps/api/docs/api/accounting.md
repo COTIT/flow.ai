@@ -139,6 +139,61 @@ The Till variant is `POST /till/cash-adjustments` (`docs/api/till.md`).
 
 `POST /accounting/bank-accounts` (`accounting_bank_accounts_create`, `accounting.configure`, C envelope, Idempotency-Key): `payload {name (1-255, unique per book), currency_id, account_id}`. The account must be an active asset account of this book (422 `payload.account_id`); unknown currency 422 `payload.currency_id`; taken name 422 `payload.name`. 201 with the bank account.
 
+## Bank statements and reconciliation
+
+Flow ERP M5-C (masterplan §13 BANKING). Active books only: in a setup book every write here is 422 `unsupported_active_erp_operation`. No automated bank feeds (D22). Amounts are exact decimal strings in the bank account's currency ("-40.00"); positive is money in. Sums, residuals and states are computed in SQL.
+
+### Statements arrive through imports
+
+`POST /imports` with `profile: "bank_statement"` (`docs/api/imports.md`), native permission `accounting.reconcile` (checked at apply and again in the apply job).
+
+- `mapping`: `{bank_account_id, reference (1-255), start_date, end_date (YYYY-MM-DD, inclusive, start ≤ end), opening_balance, closing_balance}`.
+- Row `fields`: `booking_date` (inside the statement dates), `amount` (nonzero, at most the currency's decimals), `description` (optional). `external_key` carries the bank's own transaction id, when the file has one.
+- Create refuses an unknown bank account (422 `payload.mapping.bank_account_id`) and a bank account outside the book's functional currency (422 `currency_mismatch`, see limits).
+- Validation marks rows invalid with: a field error; `duplicate_key` (a transaction id twice in the file or already stored for the account); `duplicate_statement` (the account already has this `reference`, every row); `statement_unbalanced` (opening + Σ amounts ≠ closing, every row). Equal date, description and amount is never treated as a duplicate.
+- Apply needs every row valid. The job writes the statement and all its lines in one transaction (never part of a statement), rechecking the book, the rows and the bank ids. The statement keeps `import_batch_id` and `file_hash`; each line keeps its `row_number` and import row.
+- The database refuses a statement whose opening + lines ≠ closing, and refuses any change or delete of statements, lines and allocations.
+
+### Reads (`accounting.read`)
+
+`GET /accounting/bank-statements` (`bank_statements_list`, paginated, newest `end_date` first) and `GET /accounting/bank-statements/{id}` (`bank_statements_get`):
+`{id, bank_account_id, currency_id, reference, start_date, end_date, opening_balance, closing_balance, line_count, reconciled_lines, unreconciled_lines, unreconciled_amount, state: open|reconciled, import_batch_id, file_hash, created_by, created_at}`.
+
+`GET /accounting/bank-statements/{id}/lines` (`bank_statement_lines`, paginated, file order):
+`{id, statement_id, row_number, transaction_id, booking_date, description, amount, matched_amount, residual, state: unreconciled|reconciled, reconciliation_id, reconciliation_version, allocations: [{journal_line_id, journal_entry_id, entry_number, accounting_date, amount, journal_reversed}]}`. Only the live match shows. `journal_reversed` is true when the matched entry was reversed after matching (or is a reversal).
+
+Another workspace's statement: 404.
+
+### POST /accounting/bank-reconciliations (`bank_reconciliations_create`, `accounting.reconcile`)
+
+C envelope + Idempotency-Key, permanent `client_ref` replay (same body → same answer; other body → 409). `payload {statement_line_id, allocations: [{journal_line_id, amount}] (1-50, each line once)}`. Matching posts nothing (no cash, no journal).
+
+Under the shared book gate, the statement line is locked, then the journal lines in id order. Refusals:
+
+| Status | code | When |
+|---|---|---|
+| 404 | | statement line or a journal line not in this workspace |
+| 409 | `already_reconciled` | the statement line has a live match |
+| 422 | `not_this_bank_account` | a journal line is not posted, or not on the statement's bank account |
+| 422 | `currency_mismatch` | the journal entry's currency differs from the bank account's |
+| 422 | `journal_line_reversed` | the journal entry is a reversal or was reversed (manual `reversal_of` or a source `reversed` effect) |
+| 422 | `amount_mismatch` | Σ allocations ≠ the statement line amount (partial or over) |
+| 422 | `capacity_exceeded` | an allocation has another sign than, or is larger than, the journal line's remaining `(debit − credit) − Σ live allocations` |
+
+201 with `{id, statement_line_id, statement_id, version, created_by, created_at, reversed_at, reversed_by, reverse_reason, allocations: [{journal_line_id, amount}]}`. One journal line may be split over several statement lines up to its amount.
+
+### POST /accounting/bank-reconciliations/{id}/reverse (`bank_reconciliations_reverse`, `accounting.reconcile`)
+
+A envelope `{client_ref, expected_version, payload: {reason (1-1000)}}`. Stamps `reversed_at`, `reversed_by`, `reverse_reason` once and bumps `version`; nothing is deleted. The statement line and the journal lines' capacity are free again. Already reversed: 422 `already_reversed`; stale version: 409 `stale_document`; other workspace: 404. 200 with the reconciliation.
+
+### Known limits
+
+- Only bank accounts in the functional currency reconcile: source journals hold functional amounts only, so a foreign statement line has no exact bank-currency amount to match.
+- Provider payouts and fees: §13 wants an explicit clearing→bank transfer plus fee before matching, but no route posts one yet and manual journals refuse bank lines. Such statement lines stay unmatched (masterplan gap: provider payout/fee transfer route missing).
+- Reversing a journal after matching doesn't unmatch it; reads flag `journal_reversed` and the match is reversed by hand.
+- A source with a `reversed` effect counts as reversed for all of its bank lines.
+- Period close does not check reconciliation yet.
+
 ## Settlement (open items and allocations)
 
 Canonical settlement owns paid amounts in active books (masterplan §8). Tables, no routes yet:

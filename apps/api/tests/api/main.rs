@@ -29,6 +29,7 @@ mod assistant_review_safety;
 mod assistant_storefront_design;
 mod attention;
 mod attention_priorities;
+mod bank_reconciliation;
 mod body_limits;
 mod bootstrap;
 mod cash_places;
