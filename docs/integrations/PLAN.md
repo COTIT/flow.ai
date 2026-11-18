@@ -357,7 +357,7 @@ Output: `docs/integrations/facts/odoo-19.md` and `netsuite-rest.md`. Each operat
 
 **Wording rule:** tests and docs say "verified against documented contract", never "integrated with Odoo/NetSuite".
 
-**LIVE gates (blocked until sandboxes, tracked in `docs/integrations/README.md`):**
+**LIVE gates (blocked until sandboxes, tracked in [`docs/integrations/README.md`](README.md); runbook [`SANDBOX.md`](SANDBOX.md)):**
 - L1 Odoo end-to-end read on a real Custom-plan v19 instance.
 - L2 NetSuite create/duplicate externalId behaviour.
 - L3 required purchaseOrder fields (location/subsidiary) under a real account's features.

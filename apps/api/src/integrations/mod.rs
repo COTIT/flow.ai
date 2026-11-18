@@ -10,6 +10,8 @@ pub mod capability;
 pub mod connections;
 pub mod cursors;
 pub mod links;
+#[cfg(test)]
+mod live;
 pub mod mappings;
 pub mod pairs;
 pub mod probe;
