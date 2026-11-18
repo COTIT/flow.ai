@@ -200,7 +200,7 @@ export function AddToCart({
         </Notice>
       ) : null}
 
-      <div ref={addRow} className="flex items-center gap-3">
+      <div ref={addRow} className="afm-buy-actions flex items-center gap-3">
         <Stepper
           value={quantity}
           onChange={setQuantity}

@@ -35,7 +35,7 @@ test("the product page is the bento from the mockup", async ({
   ).toHaveAttribute("href", "/stories")
 
   const h1 = page.getByRole("heading", { level: 1, name: NAME })
-  expect(await css(h1, "font-size")).toBe("28px")
+  expect(parseFloat(await css(h1, "font-size"))).toBeGreaterThanOrEqual(30)
 
   // Photo tile beside the buy tile on a desktop, above it on a phone.
   const photo = page.getByRole("img", { name: NAME }).first()

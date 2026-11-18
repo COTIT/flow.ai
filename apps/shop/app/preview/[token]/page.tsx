@@ -69,21 +69,23 @@ export default async function PreviewPage({
           {t("preview.expires", { time: expires })}
         </time>
       </Notice>
-      <StorefrontPage
-        document={design.document}
-        collections={design.collections}
-        locale={locale}
-        preview
-        headings="page"
-        labels={{
-          inStock: t("product.inStock"),
-          low: t("product.low"),
-          soldOut: t("product.soldOut"),
-          imageSoon: t("product.imageSoon"),
-          emptyProducts: t("catalog.empty"),
-          shopCta: t("content.shopCta"),
-        }}
-      />
+      <div data-shop-document>
+        <StorefrontPage
+          document={design.document}
+          collections={design.collections}
+          locale={locale}
+          preview
+          headings="page"
+          labels={{
+            inStock: t("product.inStock"),
+            low: t("product.low"),
+            soldOut: t("product.soldOut"),
+            imageSoon: t("product.imageSoon"),
+            emptyProducts: t("catalog.empty"),
+            shopCta: t("content.shopCta"),
+          }}
+        />
+      </div>
     </>
   )
 }

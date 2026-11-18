@@ -17,7 +17,7 @@ export async function SiteHeader({ shopName }: { shopName?: string }) {
     NAV.map(({ key }) => [key, t(`nav.${key}`)])
   ) as React.ComponentProps<typeof NavLinks>["labels"]
   return (
-    <header className="relative flex items-center gap-2 rounded-[22px] glass-strong py-2 pr-2 pl-3.5 md:gap-4 md:py-3 md:pr-4 md:pl-[22px]">
+    <header className="afm-header relative flex items-center gap-2 rounded-[22px] glass-strong py-2 pr-2 pl-3.5 md:gap-4 md:py-3 md:pr-4 md:pl-[22px]">
       <Link
         href="/"
         aria-label={t("nav.home")}
@@ -26,15 +26,15 @@ export async function SiteHeader({ shopName }: { shopName?: string }) {
         {/* The shop is AFM's; Genesy is credited in the footer. */}
         <span
           aria-hidden
-          className="max-w-[9.5rem] text-[15px] leading-[1.15] font-semibold tracking-[0.01em] md:max-w-none md:text-[17px]"
+          className="afm-wordmark max-w-[9.5rem] text-[15px] leading-[1.15] font-semibold tracking-[0.01em] md:max-w-none md:text-[17px]"
         >
           {shopName ?? t("app.title")}
         </span>
       </Link>
-      <nav aria-label={t("nav.main")} className="hidden gap-1 md:flex">
+      <nav aria-label={t("nav.main")} className="afm-nav hidden gap-1 md:flex">
         <NavLinks labels={labels} />
       </nav>
-      <span className="flex-1" />
+      <span className="afm-nav-spacer flex-1" />
       <LocaleSwitcher className="hidden h-10 border-transparent bg-transparent lg:block" />
       <ThemeToggle label={t("common.theme")} />
       <CartLink />

@@ -7,12 +7,14 @@ import { buttonVariants } from "@genesy/ui/components/button"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
+import { pageMetadata } from "@/lib/seo"
 import { StoryCard } from "@/components/story-card"
 import { photo, type PhotoKey } from "@/lib/photos"
 import { card, goldChip, h2, warm } from "@/lib/look"
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("stories"))("tag") }
+  const t = await getTranslations("stories")
+  return pageMetadata("/stories", { title: t("tag"), description: t("lead") })
 }
 
 const PEOPLE = ["illundo", "mary", "benard", "nafasi", "rachel"] as const

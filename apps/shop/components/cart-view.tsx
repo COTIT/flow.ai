@@ -121,7 +121,7 @@ export function CartView() {
 
       <section
         aria-labelledby="cart-summary"
-        className={cn(card, "col-span-12 md:col-span-4")}
+        className={cn(card, "afm-summary col-span-12 md:col-span-4")}
       >
         <h2 id="cart-summary" className={cardTitle}>
           {t("summary")}

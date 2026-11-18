@@ -11,12 +11,14 @@ import { animate, inView } from "motion"
 export default function FadeTile({
   as: Tag,
   children,
+  duration = 0.5,
   ...props
 }: {
   as: "section" | "div"
   className?: string
   "aria-labelledby"?: string
   children: ReactNode
+  duration?: number
 }) {
   // Div-typed so JSX accepts it on either tag; only HTMLElement members are used.
   const ref = useRef<HTMLDivElement>(null)
@@ -27,7 +29,7 @@ export default function FadeTile({
     const stop = inView(
       el,
       () => {
-        animate(el, { opacity: 1 }, { duration: 0.5, ease: "easeOut" })
+        animate(el, { opacity: 1 }, { duration, ease: "easeOut" })
       },
       { amount: 0.15 }
     )
@@ -35,7 +37,7 @@ export default function FadeTile({
       stop()
       el.style.opacity = ""
     }
-  }, [])
+  }, [duration])
   return (
     <Tag ref={ref} {...props}>
       {children}

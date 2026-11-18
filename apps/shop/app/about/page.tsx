@@ -13,12 +13,14 @@ import { Notice } from "@genesy/ui/components/notice"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
+import { pageMetadata } from "@/lib/seo"
 import { upcoming } from "@/lib/events"
 import { PHOTOS } from "@/lib/photos"
 import { card, goldChip, h2, prose, tile } from "@/lib/look"
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations("about"))("tag") }
+  const t = await getTranslations("about")
+  return pageMetadata("/about", { title: t("tag"), description: t("lead") })
 }
 
 const day = (iso: string, locale: string) =>
@@ -55,7 +57,7 @@ export default async function AboutPage() {
             height={PHOTOS.farmers.height}
             loading="lazy"
             decoding="async"
-            className="aspect-[3/2] w-full rounded-[16px] object-cover"
+            className="afm-editorial-image aspect-[3/2] w-full rounded-[16px] object-cover"
           />
           <span className={cn(goldChip, "size-12 rounded-[14px]")}>
             <SproutIcon aria-hidden className="size-6" />

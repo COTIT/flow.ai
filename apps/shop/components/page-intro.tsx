@@ -15,7 +15,7 @@ export function PageIntro({
   children?: React.ReactNode
 }) {
   return (
-    <section className={cn(card, warm, "gap-4 p-6 md:gap-5 md:p-10")}>
+    <section className={cn(card, warm, "afm-intro gap-4 p-6 md:gap-5 md:p-10")}>
       <p className={cn(tag, "text-(--tone-warning)")}>{label}</p>
       <h1 className="max-w-[760px] text-[28px] leading-[1.15] font-medium md:text-[40px]">
         {title}

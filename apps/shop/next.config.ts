@@ -32,8 +32,13 @@ const nextConfig: NextConfig = {
       ],
     },
   ],
-  // The browser calls same-origin /v1 and Next forwards it: the backend sends no CORS headers.
   rewrites: async () => [
+    // Sitemap children are advertised at the root so they can list URLs anywhere in the shop.
+    {
+      source: "/sitemap-products-:page(\\d+).xml",
+      destination: "/sitemap-products/:page",
+    },
+    // The browser calls same-origin /v1 and Next forwards it: the backend sends no CORS headers.
     { source: "/v1/:path*", destination: `${apiUrl}/:path*` },
   ],
 }

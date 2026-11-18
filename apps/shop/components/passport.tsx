@@ -43,14 +43,14 @@ export function lotPlace(
   return [origin.place, origin.region, country].filter(Boolean).join(", ")
 }
 
-/** A recalled batch: the red banner; on hold: a warning; released: nothing. Goes first. */
+/** Recall and hold warnings go before the rest of the passport. */
 export function LotWarning({ status, t, tp }: { status: string; t: T; tp: T }) {
   return (
     <>
       {status === "recalled" ? (
         <div
           role="alert"
-          className="flex items-start gap-3.5 rounded-[20px] bg-[#b42318] px-5 py-[18px] text-white dark:bg-[#7a1a12]"
+          className="afm-recall flex items-start gap-3.5 rounded-[20px] bg-[#b42318] px-5 py-[18px] text-white dark:bg-[#7a1a12]"
         >
           <TriangleAlertIcon aria-hidden className="size-7 shrink-0" />
           <div>
@@ -131,7 +131,7 @@ export function Passport({
         <header
           className={cn(
             card,
-            "col-span-12 gap-0 overflow-hidden p-0 md:gap-0 md:p-0"
+            "afm-passport-hero col-span-12 gap-0 overflow-hidden p-0 md:gap-0 md:p-0"
           )}
         >
           {passport.banner ? (
@@ -139,7 +139,7 @@ export function Passport({
               src={passport.banner.url}
               alt=""
               referrerPolicy="no-referrer"
-              className="block h-[280px] w-full object-cover"
+              className="afm-passport-image block h-[280px] w-full object-cover"
             />
           ) : null}
           <div className="flex flex-wrap items-start justify-between gap-4 px-7 py-6">
@@ -398,7 +398,7 @@ function StoryBlock({ block }: { block: PublicBlock }) {
           alt={block.caption ?? ""}
           loading="lazy"
           referrerPolicy="no-referrer"
-          className="h-40 w-full rounded-[16px] object-cover"
+          className="afm-editorial-image h-40 w-full rounded-[16px] object-cover"
         />
         {block.caption ? (
           <figcaption className="text-xs text-muted-foreground">

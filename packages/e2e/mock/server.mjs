@@ -47,6 +47,14 @@ const link = (name) => ({
   expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
 })
 
+const honeyPhoto = {
+  ...link("honey-1"),
+  url: `${FILES_ORIGIN}/files/honey-1.webp?response-content-type=image%2Fwebp&X-Amz-Expires=600&X-Amz-Signature=e2e`,
+}
+const honeyPhotoBytes = readFileSync(
+  new URL("../../../apps/shop/public/afm/illundo-beekeepers.webp", import.meta.url)
+)
+
 const categories = [
   [
     CATEGORY.honey,
@@ -101,7 +109,7 @@ const products = [
     category: ref(CATEGORY.honey),
     labels: ["Raw", "Unheated", "500 g glass jar"],
     passport: { public_code: LOT.farmed },
-    images: [link("honey-1"), link("honey-2")],
+    images: [honeyPhoto, link("honey-2")],
     variants: [
       variant(VARIANT.honey250, "ILU-250", 1499, "250 g", true),
       variant(VARIANT.honey500, "ILU-500", 2499, "500 g", false),
@@ -650,6 +658,8 @@ const handler = async (req, res) => {
     res.writeHead(302, { location: paying.redirect })
     return res.end()
   }
+  if (path === "/files/honey-1.webp")
+    return send(res, 200, honeyPhotoBytes, "image/webp")
   if (path.startsWith("/files/"))
     return send(res, 200, image(path.slice(7)), "image/svg+xml")
   if (!path.startsWith("/v1/storefront/"))
@@ -780,7 +790,25 @@ const handler = async (req, res) => {
       })),
     })
   if (path === "/v1/storefront/products") {
-    const category = new URL(req.url, MOCK_ORIGIN).searchParams.get("category")
+    const params = new URL(req.url, MOCK_ORIGIN).searchParams
+    const category = params.get("category")
+    const page = Number(params.get("page") ?? 1)
+    if (page === FAILING_PAGE) return send(res, 503, failing)
+    if (params.get("page_size") === "100") {
+      const offset = (page - 1) * 100
+      const data = allProducts.slice(offset, offset + 100)
+      return send(res, 200, {
+        data,
+        meta: {
+          current_page: page,
+          from: data.length ? offset + 1 : null,
+          to: data.length ? offset + data.length : null,
+          last_page: Math.max(1, Math.ceil(allProducts.length / 100)),
+          per_page: 100,
+          total: allProducts.length,
+        },
+      })
+    }
     if (category) {
       // One page per category here; the API pages it like the full list.
       const data = allProducts.filter((p) => p.category?.id === category)
@@ -797,10 +825,6 @@ const handler = async (req, res) => {
       })
     }
     // Two pages of products; a later page is empty, as the API answers past the end.
-    const page = Number(
-      new URL(req.url, MOCK_ORIGIN).searchParams.get("page") ?? 1
-    )
-    if (page === FAILING_PAGE) return send(res, 503, failing)
     const data = catalogue[page - 1] ?? []
     const before = catalogue.slice(0, page - 1).flat().length
     return send(res, 200, {

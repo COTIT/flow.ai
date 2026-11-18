@@ -14,12 +14,14 @@ export function ProductImage({
   alt,
   label,
   className,
+  fetchPriority,
 }: {
   image: Link | undefined
   alt: string
   /** Read out for the placeholder when the image isn't decorative. */
   label: string
   className?: string
+  fetchPriority?: "high"
 }) {
   if (image)
     return (
@@ -27,6 +29,7 @@ export function ProductImage({
         src={image.url}
         alt={alt}
         referrerPolicy="no-referrer"
+        fetchPriority={fetchPriority}
         className={cn("block w-full object-cover", className)}
       />
     )
