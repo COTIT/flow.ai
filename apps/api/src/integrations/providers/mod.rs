@@ -1,6 +1,6 @@
 //! Provider dispatch (K20 style): one enum variant per adapter, chosen per connection row.
-//! C3a adds `SourceClient::Odoo`, C3b `SinkClient::NetSuite`; until then live mode has no
-//! adapter and every capability check fails with a readable detail.
+//! C3a adds `SourceClient::Odoo`; C3b added `SinkClient::NetSuite`. A provider without an adapter
+//! fails every capability check with a readable detail.
 
 use std::sync::Arc;
 
@@ -9,13 +9,17 @@ use sqlx::PgPool;
 use crate::{
     crypto::CredentialKey,
     integrations::{
-        capability::{CapabilityCheck, ConnectionProbe, ErrorClass, ProviderError},
+        capability::{
+            CapabilityCheck, ConnectionProbe, CreateOutcome, ErrorClass, NewPo, ProviderError,
+            PurchaseOrderSink, TargetPo,
+        },
         connections::repo::ConnectionRow,
     },
     outbound::Outbound,
 };
 
 pub mod fake;
+pub mod netsuite;
 
 /// `INTEGRATIONS_PROVIDERS`: unset = live adapters; `fake` only in debug builds.
 #[derive(Clone, Debug)]
@@ -52,6 +56,7 @@ pub enum SourceClient {
 /// Target-side clients (NetSuite).
 pub enum SinkClient {
     Fake(fake::Client),
+    NetSuite(netsuite::Client),
 }
 
 fn not_built() -> ProviderError {
@@ -84,7 +89,61 @@ impl SourceClient {
 impl SinkClient {
     /// Client for a target connection row.
     pub fn for_connection(ctx: &ConnCtx, row: &ConnectionRow) -> Result<Self, ProviderError> {
-        fake_client(ctx, row).map(Self::Fake).ok_or_else(not_built)
+        if let Some(c) = fake_client(ctx, row) {
+            return Ok(Self::Fake(c));
+        }
+        if row.provider != "netsuite" {
+            return Err(not_built());
+        }
+        let key = ctx.credentials.clone().ok_or_else(|| ProviderError {
+            class: ErrorClass::Unknown,
+            detail: "CREDENTIALS_KEY is not set, so the private key can't be opened.".into(),
+            code: None,
+            http_status: None,
+        })?;
+        netsuite::Client::for_connection(
+            ctx.outbound.clone(),
+            &row.config,
+            netsuite::KeySource::Sealed {
+                db: ctx.db.clone(),
+                key,
+                ws: row.workspace_id,
+                connection_id: row.id,
+            },
+        )
+        .map(Self::NetSuite)
+    }
+}
+
+fn fake_has_no_orders() -> ProviderError {
+    ProviderError {
+        class: ErrorClass::Unknown,
+        detail: "The fake provider has no purchase orders.".into(),
+        code: None,
+        http_status: None,
+    }
+}
+
+impl PurchaseOrderSink for SinkClient {
+    async fn find_by_external_id(&self, eid: &str) -> Result<Option<TargetPo>, ProviderError> {
+        match self {
+            Self::Fake(_) => Err(fake_has_no_orders()),
+            Self::NetSuite(c) => c.find_by_external_id(eid).await,
+        }
+    }
+
+    async fn create(&self, po: &NewPo) -> CreateOutcome {
+        match self {
+            Self::Fake(_) => CreateOutcome::Rejected(fake_has_no_orders()),
+            Self::NetSuite(c) => c.create(po).await,
+        }
+    }
+
+    async fn read(&self, id: &str) -> Result<TargetPo, ProviderError> {
+        match self {
+            Self::Fake(_) => Err(fake_has_no_orders()),
+            Self::NetSuite(c) => c.read(id).await,
+        }
     }
 }
 
@@ -100,6 +159,7 @@ impl ConnectionProbe for SinkClient {
     async fn test(&self) -> Vec<CapabilityCheck> {
         match self {
             Self::Fake(c) => c.fake.test(&c.connection_id, &c.provider),
+            Self::NetSuite(c) => c.test().await,
         }
     }
 }

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- NetSuite adapter for WF-01, Verzo C3b (`docs/api/integrations.md` "NetSuite adapter"; no migration). `SinkClient::NetSuite` for live `netsuite` connections: OAuth 2.0 M2M with an ES256 client assertion signed by `ring` (now a direct dependency, same version rustls already compiled), token cached in memory until expiry − 60 s; `PurchaseOrderSink` (externalId lookup by `q=`, one POST create with `externalId` in the body and `X-NetSuite-PropertyNameValidation: error`, read-back normalised to exact decimals) and a read-only probe. Create outcomes tell a failed connect (`Rejected`, Transient) from a failure after send (`Ambiguous`); create never retries. `Outbound::execute` keeps the reqwest error (`send` unchanged). Verified against the documented contract with a fake NetSuite only; LIVE gates L2–L6 stay open.
 - Integration glue for WF-01, Verzo C1 (`docs/api/integrations.md`; migration `integrations`).
   - Permission group `integration` (`approve`, `approve_high`, `manage`, `reconcile`, `view`); catalog is now 50 groups / 263 names.
   - Tables `integration_connections`, `integration_secrets`, `integration_pairs`, `integration_mappings`, `integration_poll_cursors`, `external_links`, with composite workspace FKs.
