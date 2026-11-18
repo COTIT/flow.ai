@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- NetSuite adapter audit fixes C6-N2, C6-N3, C6-F1 (`docs/integrations/AUDIT-C6.md`): a 401 on create now drops the cached token (no POST retry); a read with no `item.items` list is `Unknown` instead of zero lines (an empty list stays zero lines); the test fake's GET returns the documented read shape (`{id, refName}` references, `item` with `count`/`hasMore`/`offset`/`totalResults`/`links`, `subtotal`, `taxTotal`) instead of echoing the POST body.
 - WF-01 execute and reconcile, Verzo C4b (`docs/api/integrations.md` "WF-01 execute and reconcile"; no migration).
   - **`wf01_execute`:**
     - claims or takes over the run (the job lease is the owner token);
