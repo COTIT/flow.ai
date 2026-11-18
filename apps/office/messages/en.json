@@ -670,6 +670,9 @@
     "receiveFrom": "Receive batch {code}",
     "receiveText": "{quantity} were sent. Receiving makes a new batch here and can be done only once; if less arrived, enter what arrived and the shortfall stays on record.",
     "newLotCode": "New batch code",
+    "chooseProduct": "Choose a product",
+    "noReceivingProducts": "No stock-tracked products in this list.",
+    "noReceivingWarehouses": "No warehouses available for receiving.",
     "linksCount": "{total, plural, one {# link} other {# links}}",
     "transfersCount": "{total, plural, one {# transfer} other {# transfers}}"
   },

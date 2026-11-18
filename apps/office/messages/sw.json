@@ -670,6 +670,9 @@
     "receiveFrom": "Pokea fungu {code}",
     "receiveText": "Kiasi cha {quantity} kilitumwa. Kupokea kunaunda fungu jipya hapa na kunafanyika mara moja tu; kama kimefika kidogo, weka kilichofika na upungufu utabaki kwenye kumbukumbu.",
     "newLotCode": "Namba ya fungu jipya",
+    "chooseProduct": "Chagua bidhaa",
+    "noReceivingProducts": "Hakuna bidhaa zenye ufuatiliaji wa akiba kwenye orodha hii.",
+    "noReceivingWarehouses": "Hakuna maghala yanayopatikana kwa ajili ya kupokea.",
     "linksCount": "{total, plural, one {kiungo #} other {viungo #}}",
     "transfersCount": "{total, plural, one {uhamisho #} other {uhamisho #}}"
   },

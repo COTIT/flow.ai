@@ -670,6 +670,9 @@
     "receiveFrom": "Batch {code} ontvangen",
     "receiveText": "Er is {quantity} verstuurd. Ontvangen maakt hier een nieuwe batch en kan maar één keer; is er minder aangekomen, vul dan in wat aankwam en het tekort blijft geregistreerd.",
     "newLotCode": "Nieuwe batchcode",
+    "chooseProduct": "Kies een product",
+    "noReceivingProducts": "Geen producten met voorraadbeheer in deze lijst.",
+    "noReceivingWarehouses": "Geen magazijnen beschikbaar voor ontvangst.",
     "linksCount": "{total, plural, one {# koppeling} other {# koppelingen}}",
     "transfersCount": "{total, plural, one {# overdracht} other {# overdrachten}}"
   },
