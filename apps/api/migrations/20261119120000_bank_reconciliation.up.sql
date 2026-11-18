@@ -62,7 +62,8 @@ CREATE UNIQUE INDEX bank_statement_lines_transaction_key
 -- Opening + Σ lines = closing, checked at commit (lines insert after their statement).
 CREATE FUNCTION bank_statement_balanced() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
-    sid uuid := CASE WHEN TG_TABLE_NAME = 'bank_statements' THEN NEW.id ELSE NEW.statement_id END;
+    -- Lines carry statement_id; a statement row is its own id.
+    sid uuid := coalesce((to_jsonb(NEW) ->> 'statement_id')::uuid, NEW.id);
 BEGIN
     IF EXISTS (
         SELECT 1 FROM bank_statements s

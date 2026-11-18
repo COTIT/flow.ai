@@ -7,6 +7,7 @@ use crate::{
     error::AppError,
     http::json::{Rules, Validate},
     modules::{
+        accounting::banking,
         product_bulk_runs::service::{lock_products, resolve_unlocked},
         products::{self, service::Actor},
         relations::{
@@ -53,6 +54,7 @@ pub fn allows(profile: &str, name: &str) -> bool {
     match profile {
         "products" => PRODUCT_FIELDS.contains(&name),
         "relations" => RELATION_FIELDS.contains(&name) || ADDRESS_FIELDS.contains(&name),
+        banking::PROFILE => banking::ROW_FIELDS.contains(&name),
         _ => false,
     }
 }

@@ -147,8 +147,16 @@ pub async fn header(conn: &mut PgConnection, ws: Uuid, m: &Value) -> Result<Head
         reference: m["reference"].as_str().unwrap_or_default().to_owned(),
         start: parse(m, "start_date")?,
         end: parse(m, "end_date")?,
-        opening: minor(parse(m, "opening_balance")?, dp, "payload.mapping.opening_balance")?,
-        closing: minor(parse(m, "closing_balance")?, dp, "payload.mapping.closing_balance")?,
+        opening: minor(
+            parse(m, "opening_balance")?,
+            dp,
+            "payload.mapping.opening_balance",
+        )?,
+        closing: minor(
+            parse(m, "closing_balance")?,
+            dp,
+            "payload.mapping.closing_balance",
+        )?,
         dp,
     })
 }
@@ -163,7 +171,11 @@ struct Parsed {
 
 fn parse_row(h: &Header, fields: &Value, key: Option<&str>) -> Result<Parsed, AppError> {
     let mut r = Rules::default();
-    let d = date(&mut r, "booking_date", fields["booking_date"].as_str().map(str::to_owned));
+    let d = date(
+        &mut r,
+        "booking_date",
+        fields["booking_date"].as_str().map(str::to_owned),
+    );
     if let Some(d) = d {
         r.check(
             "booking_date",
@@ -191,7 +203,10 @@ fn parse_row(h: &Header, fields: &Value, key: Option<&str>) -> Result<Parsed, Ap
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .map(str::to_owned),
-        transaction: key.map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned),
+        transaction: key
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned),
     })
 }
 
@@ -318,8 +333,7 @@ pub async fn apply(
             "Every statement row must be valid. Correct the file and start a new import.".into(),
         ));
     }
-    let rows: Vec<(Value, Option<String>)> =
-        staged.iter().map(|r| (r.get(2), r.get(3))).collect();
+    let rows: Vec<(Value, Option<String>)> = staged.iter().map(|r| (r.get(2), r.get(3))).collect();
     // Recheck under the gate: another statement may have taken a bank id since validation.
     let (issues, parsed) = check_rows(&mut *conn, ws, &h, &rows).await?;
     if let Some(i) = issues.into_iter().flatten().next() {
@@ -363,9 +377,19 @@ pub async fn apply(
     .bind(h.bank)
     .bind(&row_ids)
     .bind(&numbers)
-    .bind(parsed.iter().map(|p| p.transaction.clone()).collect::<Vec<_>>())
+    .bind(
+        parsed
+            .iter()
+            .map(|p| p.transaction.clone())
+            .collect::<Vec<_>>(),
+    )
     .bind(parsed.iter().map(|p| p.date).collect::<Vec<_>>())
-    .bind(parsed.iter().map(|p| p.description.clone()).collect::<Vec<_>>())
+    .bind(
+        parsed
+            .iter()
+            .map(|p| p.description.clone())
+            .collect::<Vec<_>>(),
+    )
     .bind(parsed.iter().map(|p| p.amount).collect::<Vec<_>>())
     .execute(&mut *conn)
     .await
@@ -419,7 +443,11 @@ impl Validate for ReconcilePayload {
         );
         let mut out = Vec::with_capacity(items.len());
         for (i, a) in items.into_iter().enumerate() {
-            let id = uuid(r, &format!("allocations.{i}.journal_line_id"), a.journal_line_id);
+            let id = uuid(
+                r,
+                &format!("allocations.{i}.journal_line_id"),
+                a.journal_line_id,
+            );
             let f = format!("allocations.{i}.amount");
             let amount = match a.amount {
                 Some(v) => signed(r, &f, &v),
@@ -484,8 +512,9 @@ async fn resource(conn: &mut PgConnection, ws: Uuid, id: Uuid) -> Result<Value, 
 }
 
 /// POST /accounting/bank-reconciliations: match one statement line to posted bank journal
-/// lines. Σ allocations = line amount exactly; each within the journal line's remaining
-/// capacity; same bank account and currency; never a reversed or reversal entry. Posts no cash.
+/// lines (on the bank's GL account and tagged with the bank account). Σ allocations = line
+/// amount exactly; each within the journal line's remaining capacity; same currency; never a
+/// reversed or reversal entry. Posts no cash.
 pub async fn reconcile(
     db: &PgPool,
     access: &WorkspaceAccess,
@@ -528,7 +557,11 @@ pub async fn reconcile(
     let mut amounts = Vec::with_capacity(allocations.len());
     for (i, (id, amount)) in allocations.iter().enumerate() {
         ids.push(*id);
-        amounts.push(minor(*amount, dp, &format!("payload.allocations.{i}.amount"))?);
+        amounts.push(minor(
+            *amount,
+            dp,
+            &format!("payload.allocations.{i}.amount"),
+        )?);
     }
     let mut sorted = ids.clone();
     sorted.sort_unstable();
@@ -544,7 +577,8 @@ pub async fn reconcile(
         return Err(AppError::NotFound);
     }
     let checks = sqlx::query(
-        "SELECT e.state = 'posted' AND j.bank_account_id IS NOT DISTINCT FROM $3,
+        "SELECT e.state = 'posted' AND j.bank_account_id IS NOT DISTINCT FROM $3
+                    AND j.account_id = b.account_id,
                 e.currency_id = b.currency_id,
                 bank_journal_reversed($1, e.id),
                 sign(u.amount) = sign(rem.left) AND abs(u.amount::numeric) <= abs(rem.left),

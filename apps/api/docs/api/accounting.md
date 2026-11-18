@@ -174,7 +174,7 @@ Under the shared book gate, the statement line is locked, then the journal lines
 |---|---|---|
 | 404 | | statement line or a journal line not in this workspace |
 | 409 | `already_reconciled` | the statement line has a live match |
-| 422 | `not_this_bank_account` | a journal line is not posted, or not on the statement's bank account |
+| 422 | `not_this_bank_account` | a journal line is not posted, not tagged with the statement's bank account, or not on that bank account's GL account |
 | 422 | `currency_mismatch` | the journal entry's currency differs from the bank account's |
 | 422 | `journal_line_reversed` | the journal entry is a reversal or was reversed (manual `reversal_of` or a source `reversed` effect) |
 | 422 | `amount_mismatch` | Σ allocations ≠ the statement line amount (partial or over) |

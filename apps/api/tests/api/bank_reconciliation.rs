@@ -18,7 +18,10 @@ use sqlx::PgPool;
 impl W {
     /// Run queued import apply jobs to the end.
     async fn drain_imports(&self) {
-        let state = common::state(self.pool().clone(), genesy_360_api::mail::Mailer::capture().0);
+        let state = common::state(
+            self.pool().clone(),
+            genesy_360_api::mail::Mailer::capture().0,
+        );
         let ctx = Ctx {
             invoice_state: Some(state.clone()),
             assistant_api_key: None,
@@ -70,8 +73,10 @@ impl W {
                 .req(
                     Method::PUT,
                     &format!("/imports/{id}/chunks/{i}"),
-                    Some(json!({ "client_ref": uuid(), "expected_version": batch["version"],
-                                 "payload": { "rows": chunk } })),
+                    Some(
+                        json!({ "client_ref": uuid(), "expected_version": batch["version"],
+                                 "payload": { "rows": chunk } }),
+                    ),
                 )
                 .await;
             assert_eq!(s, StatusCode::OK, "{b}");
@@ -81,8 +86,10 @@ impl W {
             .req(
                 Method::POST,
                 &format!("/imports/{id}/validate"),
-                Some(json!({ "client_ref": uuid(), "expected_version": batch["version"],
-                             "payload": { "expected_chunks": rows.len().div_ceil(20) } })),
+                Some(
+                    json!({ "client_ref": uuid(), "expected_version": batch["version"],
+                             "payload": { "expected_chunks": rows.len().div_ceil(20) } }),
+                ),
             )
             .await;
         assert_eq!(s, StatusCode::OK, "{b}");
@@ -102,31 +109,53 @@ impl W {
     }
 
     /// Import a balanced statement for `bank`; the stored statement.
-    async fn statement(&self, bank: &str, reference: &str, opening: &str, closing: &str, rows: &[Value]) -> Value {
+    async fn statement(
+        &self,
+        bank: &str,
+        reference: &str,
+        opening: &str,
+        closing: &str,
+        rows: &[Value],
+    ) -> Value {
         let (s, batch) = self
-            .staged_statement(mapping(bank, reference, &self.today(-5).await, &self.today(0).await, opening, closing), rows)
+            .staged_statement(
+                mapping(
+                    bank,
+                    reference,
+                    &self.today(-5).await,
+                    &self.today(0).await,
+                    opening,
+                    closing,
+                ),
+                rows,
+            )
             .await;
         assert_eq!(s, StatusCode::OK, "{batch}");
         assert_eq!(batch["counts"]["invalid"], 0, "{batch}");
         let (s, b) = self.apply_import(&self.api.owner.clone(), &batch).await;
         assert_eq!(s, StatusCode::ACCEPTED, "{b}");
         self.drain_imports().await;
-        let (s, list) = self.req(Method::GET, "/accounting/bank-statements", None).await;
+        let (s, list) = self
+            .req(Method::GET, "/accounting/bank-statements", None)
+            .await;
         assert_eq!(s, StatusCode::OK, "{list}");
-        let found = list["data"]
+        list["data"]
             .as_array()
             .unwrap()
             .iter()
             .find(|st| st["reference"] == reference)
             .unwrap_or_else(|| panic!("statement {reference} not stored: {list}"))
-            .clone();
-        found
+            .clone()
     }
 
     async fn lines(&self, statement: &Value) -> Vec<Value> {
         let id = statement["id"].as_str().unwrap();
         let (s, b) = self
-            .req(Method::GET, &format!("/accounting/bank-statements/{id}/lines"), None)
+            .req(
+                Method::GET,
+                &format!("/accounting/bank-statements/{id}/lines"),
+                None,
+            )
             .await;
         assert_eq!(s, StatusCode::OK, "{b}");
         b["data"].as_array().unwrap().clone()
@@ -138,8 +167,9 @@ impl W {
             "SELECT l.id::text FROM journal_lines l
              JOIN journal_entries e ON e.id = l.entry_id
              JOIN accounting_effects f ON f.id = e.effect_id
+             JOIN bank_accounts b ON b.id = l.bank_account_id AND b.account_id = l.account_id
              WHERE f.workspace_id = $1::uuid AND f.source_id = $2::uuid
-               AND f.effect_kind <> 'reversed' AND l.bank_account_id IS NOT NULL",
+               AND f.effect_kind <> 'reversed'",
         )
         .bind(&self.api.ws)
         .bind(payment["id"].as_str().unwrap())
@@ -150,8 +180,11 @@ impl W {
 
     /// Supplier money through `bank` (functional currency); the payment.
     async fn bank_money(&self, bank: &str, direction: &str, amount: &str) -> Value {
-        self.paid(self.money(&self.eur.clone(), direction, amount, bank_location(bank)).await)
-            .await
+        self.paid(
+            self.money(&self.eur.clone(), direction, amount, bank_location(bank))
+                .await,
+        )
+        .await
     }
 
     async fn reconcile(&self, line: &Value, allocations: &[(&str, &str)]) -> (StatusCode, Value) {
@@ -180,14 +213,23 @@ impl W {
         self.req(
             Method::POST,
             &format!("/accounting/bank-reconciliations/{id}/reverse"),
-            Some(json!({ "client_ref": uuid(), "expected_version": rec["version"],
-                         "payload": { "reason": "Matched the wrong payment" } })),
+            Some(
+                json!({ "client_ref": uuid(), "expected_version": rec["version"],
+                         "payload": { "reason": "Matched the wrong payment" } }),
+            ),
         )
         .await
     }
 }
 
-fn mapping(bank: &str, reference: &str, start: &str, end: &str, opening: &str, closing: &str) -> Value {
+fn mapping(
+    bank: &str,
+    reference: &str,
+    start: &str,
+    end: &str,
+    opening: &str,
+    closing: &str,
+) -> Value {
     json!({ "bank_account_id": bank, "reference": reference, "start_date": start,
             "end_date": end, "opening_balance": opening, "closing_balance": closing })
 }
@@ -219,12 +261,18 @@ async fn statement_import_stores_lines_and_keeps_equal_rows(pool: PgPool) {
     let d = w.today(-1).await;
     // Two equal rows without a bank id are two real movements (§13: not duplicate proof).
     let st = w
-        .statement(&bank, "ST-1", "100.00", "45.00", &[
-            row(1, &d, "-40.00", Some("T1")),
-            row(2, &d, "-25.00", None),
-            row(3, &d, "-25.00", None),
-            row(4, &d, "35.00", Some("T4")),
-        ])
+        .statement(
+            &bank,
+            "ST-1",
+            "100.00",
+            "45.00",
+            &[
+                row(1, &d, "-40.00", Some("T1")),
+                row(2, &d, "-25.00", None),
+                row(3, &d, "-25.00", None),
+                row(4, &d, "35.00", Some("T4")),
+            ],
+        )
         .await;
     assert_eq!(st["bank_account_id"], bank.as_str());
     assert_eq!(st["opening_balance"], "100.00");
@@ -246,10 +294,11 @@ async fn statement_import_stores_lines_and_keeps_equal_rows(pool: PgPool) {
     assert_eq!(lines[0]["state"], "unreconciled");
     assert_eq!(lines[2]["amount"], "-25.00");
     // Statements and lines are fixed once stored.
-    let err = sqlx::query("UPDATE bank_statement_lines SET amount = 1 WHERE statement_id = $1::uuid")
-        .bind(id)
-        .execute(w.pool())
-        .await;
+    let err =
+        sqlx::query("UPDATE bank_statement_lines SET amount = 1 WHERE statement_id = $1::uuid")
+            .bind(id)
+            .execute(w.pool())
+            .await;
     assert!(err.is_err());
 }
 
@@ -258,26 +307,33 @@ async fn opening_plus_lines_must_equal_closing(pool: PgPool) {
     let (w, bank) = banked(pool).await;
     let (start, end) = (w.today(-5).await, w.today(0).await);
     let (s, batch) = w
-        .staged_statement(mapping(&bank, "ST-U", &start, &end, "100.00", "61.00"), &[
-            row(1, &end, "-40.00", None),
-        ])
+        .staged_statement(
+            mapping(&bank, "ST-U", &start, &end, "100.00", "61.00"),
+            &[row(1, &end, "-40.00", None)],
+        )
         .await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(batch["counts"]["invalid"], 1, "{batch}");
     let id = batch["id"].as_str().unwrap();
     let rows = w.get(&format!("/imports/{id}/rows")).await;
-    assert_eq!(rows[0]["issues"][0]["code"], "statement_unbalanced", "{rows}");
+    assert_eq!(
+        rows[0]["issues"][0]["code"], "statement_unbalanced",
+        "{rows}"
+    );
     let (s, b) = w.apply_import(&w.api.owner.clone(), &batch).await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
     assert_eq!(w.count("bank_statements").await, 0);
 
     // Row rules: date outside the statement, too many decimals, zero.
     let (_, batch) = w
-        .staged_statement(mapping(&bank, "ST-R", &start, &end, "0", "0"), &[
-            row(1, &w.today(-9).await, "1.00", None),
-            row(2, &end, "1.001", None),
-            row(3, &end, "0", None),
-        ])
+        .staged_statement(
+            mapping(&bank, "ST-R", &start, &end, "0", "0"),
+            &[
+                row(1, &w.today(-9).await, "1.00", None),
+                row(2, &end, "1.001", None),
+                row(3, &end, "0", None),
+            ],
+        )
         .await;
     assert_eq!(batch["counts"]["invalid"], 3, "{batch}");
 
@@ -300,14 +356,21 @@ async fn opening_plus_lines_must_equal_closing(pool: PgPool) {
 async fn a_bank_transaction_id_or_statement_is_never_stored_twice(pool: PgPool) {
     let (w, bank) = banked(pool).await;
     let d = w.today(-1).await;
-    w.statement(&bank, "ST-1", "0", "-40.00", &[row(1, &d, "-40.00", Some("T1"))])
-        .await;
+    w.statement(
+        &bank,
+        "ST-1",
+        "0",
+        "-40.00",
+        &[row(1, &d, "-40.00", Some("T1"))],
+    )
+    .await;
     let (start, end) = (w.today(-5).await, w.today(0).await);
     // Same bank transaction id in a later statement.
     let (_, batch) = w
-        .staged_statement(mapping(&bank, "ST-2", &start, &end, "-40.00", "-80.00"), &[
-            row(1, &d, "-40.00", Some("T1")),
-        ])
+        .staged_statement(
+            mapping(&bank, "ST-2", &start, &end, "-40.00", "-80.00"),
+            &[row(1, &d, "-40.00", Some("T1"))],
+        )
         .await;
     assert_eq!(batch["counts"]["invalid"], 1, "{batch}");
     let id = batch["id"].as_str().unwrap();
@@ -315,22 +378,29 @@ async fn a_bank_transaction_id_or_statement_is_never_stored_twice(pool: PgPool) 
     assert_eq!(rows[0]["issues"][0]["code"], "duplicate_key", "{rows}");
     // Same id twice in one file.
     let (_, batch) = w
-        .staged_statement(mapping(&bank, "ST-3", &start, &end, "0", "-2.00"), &[
-            row(1, &d, "-1.00", Some("T9")),
-            row(2, &d, "-1.00", Some("T9")),
-        ])
+        .staged_statement(
+            mapping(&bank, "ST-3", &start, &end, "0", "-2.00"),
+            &[
+                row(1, &d, "-1.00", Some("T9")),
+                row(2, &d, "-1.00", Some("T9")),
+            ],
+        )
         .await;
     assert_eq!(batch["counts"]["invalid"], 2, "{batch}");
     // Same statement reference for the account.
     let (_, batch) = w
-        .staged_statement(mapping(&bank, "ST-1", &start, &end, "0", "-1.00"), &[
-            row(1, &d, "-1.00", None),
-        ])
+        .staged_statement(
+            mapping(&bank, "ST-1", &start, &end, "0", "-1.00"),
+            &[row(1, &d, "-1.00", None)],
+        )
         .await;
     assert_eq!(batch["counts"]["invalid"], 1, "{batch}");
     let id = batch["id"].as_str().unwrap();
     let rows = w.get(&format!("/imports/{id}/rows")).await;
-    assert_eq!(rows[0]["issues"][0]["code"], "duplicate_statement", "{rows}");
+    assert_eq!(
+        rows[0]["issues"][0]["code"], "duplicate_statement",
+        "{rows}"
+    );
     assert_eq!(w.count("bank_statements").await, 1);
     assert_eq!(w.count("bank_statement_lines").await, 1);
 }
@@ -343,22 +413,36 @@ async fn exact_match_reconciles_and_refuses_partial_over_and_twice(pool: PgPool)
     let (j40, j25) = (w.bank_line(&p40).await, w.bank_line(&p25).await);
     let d = w.today(0).await;
     let st = w
-        .statement(&bank, "ST-1", "100.00", "-5.00", &[
-            row(1, &d, "-40.00", None),
-            row(2, &d, "-25.00", None),
-            row(3, &d, "-40.00", None),
-        ])
+        .statement(
+            &bank,
+            "ST-1",
+            "100.00",
+            "-5.00",
+            &[
+                row(1, &d, "-40.00", None),
+                row(2, &d, "-25.00", None),
+                row(3, &d, "-40.00", None),
+            ],
+        )
         .await;
     let lines = w.lines(&st).await;
 
     // Partial and over the statement line: Σ allocations must equal it exactly.
     for amount in ["-30.00", "-50.00", "40.00"] {
         let (s, b) = w.reconcile(&lines[0], &[(&j40, amount)]).await;
-        assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "amount_mismatch"), "{b}");
+        assert_eq!(
+            (s, code(&b)),
+            (StatusCode::UNPROCESSABLE_ENTITY, "amount_mismatch"),
+            "{b}"
+        );
     }
     // Over the journal line's remaining capacity.
     let (s, b) = w.reconcile(&lines[0], &[(&j25, "-40.00")]).await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "capacity_exceeded"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::UNPROCESSABLE_ENTITY, "capacity_exceeded"),
+        "{b}"
+    );
     // Too many decimals.
     let (s, b) = w.reconcile(&lines[0], &[(&j40, "-40.001")]).await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
@@ -373,10 +457,18 @@ async fn exact_match_reconciles_and_refuses_partial_over_and_twice(pool: PgPool)
 
     // The journal line is used up: another statement line can't take it.
     let (s, b) = w.reconcile(&lines[2], &[(&j40, "-40.00")]).await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "capacity_exceeded"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::UNPROCESSABLE_ENTITY, "capacity_exceeded"),
+        "{b}"
+    );
     // The statement line has a live match.
     let (s, b) = w.reconcile(&lines[0], &[(&j40, "-40.00")]).await;
-    assert_eq!((s, code(&b)), (StatusCode::CONFLICT, "already_reconciled"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::CONFLICT, "already_reconciled"),
+        "{b}"
+    );
     // Same journal line twice in one request.
     let (s, b) = w
         .reconcile(&lines[1], &[(&j25, "-12.50"), (&j25, "-12.50")])
@@ -391,7 +483,12 @@ async fn exact_match_reconciles_and_refuses_partial_over_and_twice(pool: PgPool)
     assert_eq!(lines[0]["residual"], "0.00");
     assert_eq!(lines[0]["allocations"][0]["journal_reversed"], false);
     assert_eq!(lines[2]["state"], "unreconciled");
-    let st = w.get(&format!("/accounting/bank-statements/{}", st["id"].as_str().unwrap())).await;
+    let st = w
+        .get(&format!(
+            "/accounting/bank-statements/{}",
+            st["id"].as_str().unwrap()
+        ))
+        .await;
     assert_eq!(st["reconciled_lines"], 2);
     assert_eq!(st["unreconciled_lines"], 1);
     assert_eq!(st["unreconciled_amount"], "-40.00");
@@ -406,10 +503,13 @@ async fn split_journal_line_and_full_statement(pool: PgPool) {
     let d = w.today(0).await;
     // The bank cleared one payment in two movements.
     let st = w
-        .statement(&bank, "ST-1", "0", "-40.00", &[
-            row(1, &d, "-15.00", None),
-            row(2, &d, "-25.00", None),
-        ])
+        .statement(
+            &bank,
+            "ST-1",
+            "0",
+            "-40.00",
+            &[row(1, &d, "-15.00", None), row(2, &d, "-25.00", None)],
+        )
         .await;
     let lines = w.lines(&st).await;
     let (s, b) = w.reconcile(&lines[0], &[(&j, "-15.00")]).await;
@@ -418,7 +518,12 @@ async fn split_journal_line_and_full_statement(pool: PgPool) {
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
     let (s, b) = w.reconcile(&lines[1], &[(&j, "-25.00")]).await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
-    let st = w.get(&format!("/accounting/bank-statements/{}", st["id"].as_str().unwrap())).await;
+    let st = w
+        .get(&format!(
+            "/accounting/bank-statements/{}",
+            st["id"].as_str().unwrap()
+        ))
+        .await;
     assert_eq!(st["state"], "reconciled");
     assert_eq!(st["unreconciled_amount"], "0.00");
 }
@@ -430,10 +535,13 @@ async fn unmatch_restores_line_and_capacity_without_deleting(pool: PgPool) {
     let j = w.bank_line(&p).await;
     let d = w.today(0).await;
     let st = w
-        .statement(&bank, "ST-1", "0", "30.00", &[
-            row(1, &d, "15.00", None),
-            row(2, &d, "15.00", None),
-        ])
+        .statement(
+            &bank,
+            "ST-1",
+            "0",
+            "30.00",
+            &[row(1, &d, "15.00", None), row(2, &d, "15.00", None)],
+        )
         .await;
     let lines = w.lines(&st).await;
     let (s, rec) = w.reconcile(&lines[0], &[(&j, "15.00")]).await;
@@ -452,7 +560,10 @@ async fn unmatch_restores_line_and_capacity_without_deleting(pool: PgPool) {
     let (s, b) = w.unmatch(&rev["data"]).await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
     let (s, b) = w.unmatch(&rec["data"]).await;
-    assert!(matches!(s, StatusCode::CONFLICT | StatusCode::UNPROCESSABLE_ENTITY), "{b}");
+    assert!(
+        matches!(s, StatusCode::CONFLICT | StatusCode::UNPROCESSABLE_ENTITY),
+        "{b}"
+    );
     assert_eq!(w.count("bank_reconciliations").await, 2);
     let err = sqlx::query("DELETE FROM bank_reconciliations WHERE workspace_id = $1::uuid")
         .bind(&w.api.ws)
@@ -468,10 +579,13 @@ async fn concurrent_matches_never_exceed_journal_line_capacity(pool: PgPool) {
     let j = w.bank_line(&p).await;
     let d = w.today(0).await;
     let st = w
-        .statement(&bank, "ST-1", "0", "-80.00", &[
-            row(1, &d, "-40.00", None),
-            row(2, &d, "-40.00", None),
-        ])
+        .statement(
+            &bank,
+            "ST-1",
+            "0",
+            "-80.00",
+            &[row(1, &d, "-40.00", None), row(2, &d, "-40.00", None)],
+        )
         .await;
     let lines = w.lines(&st).await;
     let alloc = [(j.as_str(), "-40.00")];
@@ -479,7 +593,10 @@ async fn concurrent_matches_never_exceed_journal_line_capacity(pool: PgPool) {
         w.reconcile(&lines[0], &alloc),
         w.reconcile(&lines[1], &alloc)
     );
-    let created = [a.0, b.0].iter().filter(|s| **s == StatusCode::CREATED).count();
+    let created = [a.0, b.0]
+        .iter()
+        .filter(|s| **s == StatusCode::CREATED)
+        .count();
     assert_eq!(created, 1, "{} / {}", a.1, b.1);
     let used: i64 = sqlx::query_scalar(
         "SELECT coalesce(sum(a.amount), 0)::bigint FROM bank_reconciliation_allocations a
@@ -503,19 +620,31 @@ async fn reversed_journal_lines_are_refused_and_flagged(pool: PgPool) {
     assert_eq!(s, StatusCode::OK, "{b}");
     let d = w.today(0).await;
     let st = w
-        .statement(&bank, "ST-1", "0", "-65.00", &[
-            row(1, &d, "-25.00", None),
-            row(2, &d, "-40.00", None),
-        ])
+        .statement(
+            &bank,
+            "ST-1",
+            "0",
+            "-65.00",
+            &[row(1, &d, "-25.00", None), row(2, &d, "-40.00", None)],
+        )
         .await;
     let lines = w.lines(&st).await;
     let (s, b) = w.reconcile(&lines[0], &[(&jg, "-25.00")]).await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "journal_line_reversed"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::UNPROCESSABLE_ENTITY, "journal_line_reversed"),
+        "{b}"
+    );
 
     // Matched first, reversed later: the match stays and reads flag it.
     let (s, b) = w.reconcile(&lines[1], &[(&jk, "-40.00")]).await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
-    let kept = w.get(&format!("/supplier-payments/{}", kept["id"].as_str().unwrap())).await;
+    let kept = w
+        .get(&format!(
+            "/supplier-payments/{}",
+            kept["id"].as_str().unwrap()
+        ))
+        .await;
     let (s, b) = w.reverse_payment(&kept).await;
     assert_eq!(s, StatusCode::OK, "{b}");
     let lines = w.lines(&st).await;
@@ -530,22 +659,37 @@ async fn foreign_currency_bank_account_and_other_bank_lines_are_refused(pool: Pg
     let usd_bank = w.bank(&usd, "1110").await;
     let (start, end) = (w.today(-5).await, w.today(0).await);
     let (s, b) = w
-        .staged_statement(mapping(&usd_bank, "ST-USD", &start, &end, "0", "1.00"), &[
-            row(1, &end, "1.00", None),
-        ])
+        .staged_statement(
+            mapping(&usd_bank, "ST-USD", &start, &end, "0", "1.00"),
+            &[row(1, &end, "1.00", None)],
+        )
         .await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "currency_mismatch"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::UNPROCESSABLE_ENTITY, "currency_mismatch"),
+        "{b}"
+    );
 
     // A journal line on another bank account doesn't match this statement.
     let other = w.bank(&w.eur.clone(), "1120").await;
     let p = w.bank_money(&other, "payment", "40.00").await;
     let j = w.bank_line(&p).await;
     let st = w
-        .statement(&bank, "ST-1", "0", "-40.00", &[row(1, &end, "-40.00", None)])
+        .statement(
+            &bank,
+            "ST-1",
+            "0",
+            "-40.00",
+            &[row(1, &end, "-40.00", None)],
+        )
         .await;
     let lines = w.lines(&st).await;
     let (s, b) = w.reconcile(&lines[0], &[(&j, "-40.00")]).await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "not_this_bank_account"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (StatusCode::UNPROCESSABLE_ENTITY, "not_this_bank_account"),
+        "{b}"
+    );
 }
 
 #[sqlx::test]
@@ -560,17 +704,40 @@ async fn permissions_isolation_and_replay(pool: PgPool) {
     let lines = w.lines(&st).await;
 
     // Read-only member: reads yes, reconcile / reverse / statement import apply no.
-    let reader = member_with(&w.api.app, w.pool(), &w.api.ws, "reader@example.com",
-        &["accounting.read", "import.create", "import.upload", "import.validate", "import.apply", "import.get"]).await;
+    let reader = member_with(
+        &w.api.app,
+        w.pool(),
+        &w.api.ws,
+        "reader@example.com",
+        &[
+            "accounting.read",
+            "import.create",
+            "import.upload",
+            "import.validate",
+            "import.apply",
+            "import.get",
+        ],
+    )
+    .await;
     let sid = st["id"].as_str().unwrap();
-    let (s, _) = w.req_as(&reader, Method::GET, &format!("/accounting/bank-statements/{sid}/lines"), None).await;
+    let (s, _) = w
+        .req_as(
+            &reader,
+            Method::GET,
+            &format!("/accounting/bank-statements/{sid}/lines"),
+            None,
+        )
+        .await;
     assert_eq!(s, StatusCode::OK);
-    let (s, b) = w.reconcile_as(&reader, &uuid(), &lines[0], &[(&j, "-40.00")]).await;
+    let (s, b) = w
+        .reconcile_as(&reader, &uuid(), &lines[0], &[(&j, "-40.00")])
+        .await;
     assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
     let (_, batch) = w
-        .staged_statement(mapping(&bank, "ST-2", &w.today(-5).await, &d, "-40.00", "-41.00"), &[
-            row(1, &d, "-1.00", None),
-        ])
+        .staged_statement(
+            mapping(&bank, "ST-2", &w.today(-5).await, &d, "-40.00", "-41.00"),
+            &[row(1, &d, "-1.00", None)],
+        )
         .await;
     let (s, b) = w.apply_import(&reader, &batch).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
@@ -578,18 +745,32 @@ async fn permissions_isolation_and_replay(pool: PgPool) {
     // Replay: same client_ref and body → same answer; other body → 409.
     let cref = uuid();
     let owner = w.api.owner.clone();
-    let (s, first) = w.reconcile_as(&owner, &cref, &lines[0], &[(&j, "-40.00")]).await;
+    let (s, first) = w
+        .reconcile_as(&owner, &cref, &lines[0], &[(&j, "-40.00")])
+        .await;
     assert_eq!(s, StatusCode::CREATED, "{first}");
-    let (s, again) = w.reconcile_as(&owner, &cref, &lines[0], &[(&j, "-40.00")]).await;
+    let (s, again) = w
+        .reconcile_as(&owner, &cref, &lines[0], &[(&j, "-40.00")])
+        .await;
     assert_eq!((s, &again), (StatusCode::CREATED, &first));
-    let (s, b) = w.reconcile_as(&owner, &cref, &lines[0], &[(&j, "-4.00")]).await;
+    let (s, b) = w
+        .reconcile_as(&owner, &cref, &lines[0], &[(&j, "-4.00")])
+        .await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
     let rec = first["data"].clone();
     let (s, b) = w
-        .req_as(&reader, Method::POST,
-            &format!("/accounting/bank-reconciliations/{}/reverse", rec["id"].as_str().unwrap()),
-            Some(json!({ "client_ref": uuid(), "expected_version": rec["version"],
-                         "payload": { "reason": "no" } })))
+        .req_as(
+            &reader,
+            Method::POST,
+            &format!(
+                "/accounting/bank-reconciliations/{}/reverse",
+                rec["id"].as_str().unwrap()
+            ),
+            Some(
+                json!({ "client_ref": uuid(), "expected_version": rec["version"],
+                         "payload": { "reason": "no" } }),
+            ),
+        )
         .await;
     assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
 
@@ -599,25 +780,68 @@ async fn permissions_isolation_and_replay(pool: PgPool) {
     let call = |method: Method, tail: String, body: Option<Value>| {
         let (app, other, ows) = (w.api.app.clone(), other.clone(), ows.clone());
         async move {
-            let (s, _) = send_raw(&app, method, &format!("/v1/workspace/{ows}{tail}"), body,
-                Some(&other), &[("idempotency-key", uuid().as_str())]).await;
+            let (s, _) = send_raw(
+                &app,
+                method,
+                &format!("/v1/workspace/{ows}{tail}"),
+                body,
+                Some(&other),
+                &[("idempotency-key", uuid().as_str())],
+            )
+            .await;
             s
         }
     };
-    assert_eq!(call(Method::GET, format!("/accounting/bank-statements/{sid}"), None).await, StatusCode::NOT_FOUND);
-    assert_eq!(call(Method::GET, format!("/accounting/bank-statements/{sid}/lines"), None).await, StatusCode::NOT_FOUND);
     assert_eq!(
-        call(Method::POST, "/accounting/bank-reconciliations".into(),
-             Some(reconcile_body(&uuid(), &lines[0], &[(&j, "-40.00")]))).await,
+        call(
+            Method::GET,
+            format!("/accounting/bank-statements/{sid}"),
+            None
+        )
+        .await,
         StatusCode::NOT_FOUND
     );
     assert_eq!(
-        call(Method::POST, format!("/accounting/bank-reconciliations/{}/reverse", rec["id"].as_str().unwrap()),
-             Some(json!({ "client_ref": uuid(), "expected_version": 1, "payload": { "reason": "x" } }))).await,
+        call(
+            Method::GET,
+            format!("/accounting/bank-statements/{sid}/lines"),
+            None
+        )
+        .await,
         StatusCode::NOT_FOUND
     );
-    let (s, list) = send_raw(&w.api.app, Method::GET, &format!("/v1/workspace/{ows}/accounting/bank-statements"),
-        None, Some(&other), &[]).await;
+    assert_eq!(
+        call(
+            Method::POST,
+            "/accounting/bank-reconciliations".into(),
+            Some(reconcile_body(&uuid(), &lines[0], &[(&j, "-40.00")]))
+        )
+        .await,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            Method::POST,
+            format!(
+                "/accounting/bank-reconciliations/{}/reverse",
+                rec["id"].as_str().unwrap()
+            ),
+            Some(
+                json!({ "client_ref": uuid(), "expected_version": 1, "payload": { "reason": "x" } })
+            )
+        )
+        .await,
+        StatusCode::NOT_FOUND
+    );
+    let (s, list) = send_raw(
+        &w.api.app,
+        Method::GET,
+        &format!("/v1/workspace/{ows}/accounting/bank-statements"),
+        None,
+        Some(&other),
+        &[],
+    )
+    .await;
     assert_eq!(s, StatusCode::OK);
     let list: Value = serde_json::from_slice(&list).unwrap();
     assert_eq!(list["data"], json!([]));
@@ -644,12 +868,36 @@ async fn setup_books_refuse_statements_and_matching(pool: PgPool) {
     let bank = w.bank(&w.eur.clone(), "1100").await;
     let d = w.today(0).await;
     let (s, b) = w
-        .staged_statement(mapping(&bank, "ST-1", &d, &d, "0", "1.00"), &[row(1, &d, "1.00", None)])
+        .staged_statement(
+            mapping(&bank, "ST-1", &d, &d, "0", "1.00"),
+            &[row(1, &d, "1.00", None)],
+        )
         .await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "unsupported_active_erp_operation"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unsupported_active_erp_operation"
+        ),
+        "{b}"
+    );
     let (s, b) = w
-        .req(Method::POST, "/accounting/bank-reconciliations",
-            Some(reconcile_body(&uuid(), &json!({ "id": uuid() }), &[(&uuid(), "1.00")])))
+        .req(
+            Method::POST,
+            "/accounting/bank-reconciliations",
+            Some(reconcile_body(
+                &uuid(),
+                &json!({ "id": uuid() }),
+                &[(&uuid(), "1.00")],
+            )),
+        )
         .await;
-    assert_eq!((s, code(&b)), (StatusCode::UNPROCESSABLE_ENTITY, "unsupported_active_erp_operation"), "{b}");
+    assert_eq!(
+        (s, code(&b)),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "unsupported_active_erp_operation"
+        ),
+        "{b}"
+    );
 }

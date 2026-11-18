@@ -656,7 +656,13 @@ impl W {
         .unwrap()
     }
 
-    pub(crate) async fn money(&self, currency: &str, direction: &str, amount: &str, location: Value) -> Value {
+    pub(crate) async fn money(
+        &self,
+        currency: &str,
+        direction: &str,
+        amount: &str,
+        location: Value,
+    ) -> Value {
         json!({ "supplier_id": self.supplier, "currency_id": currency, "direction": direction,
                 "amount": amount, "date": self.today(0).await, "location": location,
                 "evidence_ref": "Statement 11/7" })
