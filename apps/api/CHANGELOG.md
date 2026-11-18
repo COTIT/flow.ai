@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- WF-01 execute review fixes (`docs/api/integrations.md`, `docs/api/workflows.md`; no migration):
+  - a granted retry whose Odoo source changed goes to `awaiting_reconciliation` with a `source_changed_during_write` incident instead of a cancel the I2 CHECK refused (the job looped);
+  - `allow_retry` while a grant is unused → 409 `retry_already_granted` (UI text en/sw/nl); attempt n carries grant n-1, so one grant never covers two attempts;
+  - the 15-minute retry window runs from the previous attempt's `sent_at` (write intent when never sent);
+  - the attempts join, open-attempt check, window query and `dispatch::enqueue_execution` (new `ws` argument) filter by `workspace_id`;
+  - a read-back that cannot move the run records `stale_worker_result`.
 - NetSuite adapter audit fixes C6-N2, C6-N3, C6-F1 (`docs/integrations/AUDIT-C6.md`): a 401 on create now drops the cached token (no POST retry); a read with no `item.items` list is `Unknown` instead of zero lines (an empty list stays zero lines); the test fake's GET returns the documented read shape (`{id, refName}` references, `item` with `count`/`hasMore`/`offset`/`totalResults`/`links`, `subtotal`, `taxTotal`) instead of echoing the POST body.
 - WF-01 Odoo down-payment lines (C6-O1). The Odoo read asks for `is_downpayment`; a down-payment line with no product no longer fails the whole batch. It is kept (money never dropped), flagged on `RequestLine.downpayment`, and blocks only its RFQ with `downpayment_line` (intake) or the execution with `downpayment_line` (pre-check, before write intent). UI text in en/sw/nl. No migration.
 - WF-01 execute and reconcile, Verzo C4b (`docs/api/integrations.md` "WF-01 execute and reconcile"; no migration).

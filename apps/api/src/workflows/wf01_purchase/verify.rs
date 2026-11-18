@@ -181,11 +181,15 @@ pub(super) async fn settle(
 ) -> Result<Step, AppError> {
     let mut tx = db.begin().await?;
     match compare(&mut tx, j.ws, e, &po).await? {
-        Verdict::Match => {
-            succeed(&mut tx, j.ws, j.token, e, &po.id, false).await?;
-        }
-        Verdict::Variance => {
-            succeed(&mut tx, j.ws, j.token, e, &po.id, true).await?;
+        v @ (Verdict::Match | Verdict::Variance) => {
+            let variance = matches!(v, Verdict::Variance);
+            if !succeed(&mut tx, j.ws, j.token, e, &po.id, variance).await? {
+                // Row moved or another owner holds it: keep the read-back as evidence only.
+                drop(tx);
+                let ev = json!({"target_id": po.id, "variance": variance});
+                events::record(db, j.ws, e.at(), "stale_worker_result", ev, Actor::System).await?;
+                return Ok(Step::Done);
+            }
         }
         Verdict::Mismatch(fields) => {
             if e.status == "running" || e.status == "queued" {

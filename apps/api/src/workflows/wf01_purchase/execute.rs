@@ -41,6 +41,7 @@ const AMBIGUOUS: &str =
 const BUSY: &str =
     "NetSuite was busy and blocked the request; a reconciler can allow one more attempt.";
 const NOT_SENT: &str = "The order was not sent: NetSuite could not be reached. A reconciler can allow one more attempt.";
+const CHANGED_AFTER_SEND: &str = "The Odoo order changed after an order was sent to NetSuite. Flow is checking NetSuite before anything else happens.";
 const WINDOW: &str =
     "Waiting until the earlier request can no longer land in NetSuite before trying again.";
 
@@ -148,7 +149,7 @@ pub(super) async fn load(
            JOIN approval_requests r ON r.workspace_id = e.workspace_id AND r.id = e.approval_request_id
            JOIN integration_pairs p ON p.workspace_id = r.workspace_id AND p.id = r.pair_id
            LEFT JOIN LATERAL (SELECT x.attempt_no, x.outcome FROM workflow_execution_attempts x
-                              WHERE x.execution_id = e.id ORDER BY x.attempt_no DESC LIMIT 1) a ON true
+                              WHERE x.workspace_id = e.workspace_id AND x.execution_id = e.id ORDER BY x.attempt_no DESC LIMIT 1) a ON true
            WHERE e.workspace_id = $1 AND e.id = $2"#,
         ws,
         id,
@@ -257,6 +258,11 @@ pub async fn execute(
             Some(r) => evaluate::Seen::Found(r),
             None => evaluate::Seen::Gone,
         };
+        // I2: once a POST may have left (remote_attempts > 0), never cancel; reconcile decides.
+        if e.remote_attempts > 0 {
+            let kind = Some("source_changed_during_write");
+            return awaiting(db, j, &e, "conflict", CHANGED_AFTER_SEND, kind).await;
+        }
         let reason = changed.unwrap_or("source_changed");
         return cancel(db, j, &e, &pair_ctx, &src_id, seen, reason).await;
     };
@@ -297,14 +303,14 @@ pub async fn execute(
         Ok(Some(po)) => return verify::settle(db, j, &e, po).await,
         Ok(None) => {}
         Err(err) if err.class == ErrorClass::Conflict => {
-            return awaiting(db, j, &e, "conflict", &err.detail, true).await;
+            return awaiting(db, j, &e, "conflict", &err.detail, Some("target_conflict")).await;
         }
         Err(err) => return provider_fail(db, j, &e, e.target_connection_id, err).await,
     }
 
     // Granted attempt: wait out NetSuite's 15-minute request cap (facts N5 l.244).
     if e.remote_attempts > 0
-        && let Some(earliest) = window_closed(db, e.id).await?
+        && let Some(earliest) = window_closed(db, j.ws, e.id).await?
     {
         return wait_window(db, j, &e, earliest).await;
     }
@@ -313,7 +319,7 @@ pub async fn execute(
     let attempt = {
         let mut tx = db.begin().await?;
         let grant = if e.remote_attempts > 0 {
-            executions::latest_grant(&mut *tx, j.ws, e.id).await?
+            executions::grant_for(&mut *tx, j.ws, e.id, e.remote_attempts + 1).await?
         } else {
             None
         };
@@ -726,16 +732,20 @@ async fn approver_holds(db: &PgPool, ws: Uuid, e: &Loaded) -> Result<bool, AppEr
     .await?)
 }
 
-/// Earliest time a granted attempt may write, while the newest write intent is younger than
-/// NetSuite's 15-minute request cap; None once it is older.
+/// Earliest time a granted attempt may write: the newest attempt's send time (write intent if
+/// never marked sent) + NetSuite's 15-minute request cap (facts N5 l.244); None once past.
 async fn window_closed(
     db: &PgPool,
+    ws: Uuid,
     id: Uuid,
 ) -> Result<Option<chrono::DateTime<chrono::Utc>>, AppError> {
     Ok(sqlx::query_scalar!(
-        r#"SELECT max(write_intent_at) + interval '15 minutes' AS "t?"
-           FROM workflow_execution_attempts WHERE execution_id = $1
-           HAVING max(write_intent_at) + interval '15 minutes' > now()"#,
+        r#"SELECT t AS "t?" FROM (
+               SELECT coalesce(sent_at, write_intent_at) + interval '15 minutes' AS t
+               FROM workflow_execution_attempts WHERE workspace_id = $1 AND execution_id = $2
+               ORDER BY attempt_no DESC LIMIT 1) x
+           WHERE t > now()"#,
+        ws,
         id,
     )
     .fetch_optional(db)
@@ -814,14 +824,14 @@ pub(super) fn new_po(e: &Loaded) -> Option<NewPo> {
     })
 }
 
-/// Fenced `running → awaiting_reconciliation` + reconcile job (+ `target_conflict` incident).
+/// Fenced `running → awaiting_reconciliation` + reconcile job (+ incident of `incident` kind).
 pub(super) async fn awaiting(
     db: &PgPool,
     j: &Job,
     e: &Loaded,
     class: &str,
     text: &str,
-    conflict: bool,
+    incident: Option<&str>,
 ) -> Result<Step, AppError> {
     let mut tx = db.begin().await?;
     let patch = Patch {
@@ -834,23 +844,15 @@ pub(super) async fn awaiting(
     {
         return Ok(Step::Done);
     }
-    if conflict {
+    if let Some(kind) = incident {
         let d = json!({"detail": detail(text)});
-        incidents::open(
-            &mut tx,
-            j.ws,
-            "target_conflict",
-            &e.subject_ref,
-            e.refs(),
-            d,
-        )
-        .await?;
+        incidents::open(&mut tx, j.ws, kind, &e.subject_ref, e.refs(), d).await?;
         events::record(
             &mut *tx,
             j.ws,
             e.at(),
             "incident_opened",
-            json!({"kind": "target_conflict"}),
+            json!({"kind": kind}),
             Actor::System,
         )
         .await?;
@@ -1009,7 +1011,7 @@ async fn after_create(
             tx.commit().await?;
             return match sink.read(&id).await {
                 Ok(po) => verify::settle(db, j, e, po).await,
-                Err(err) => awaiting(db, j, e, class_str(err.class), &err.detail, false).await,
+                Err(err) => awaiting(db, j, e, class_str(err.class), &err.detail, None).await,
             };
         }
         CreateOutcome::Ambiguous(err) => {

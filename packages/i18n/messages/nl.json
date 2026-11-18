@@ -134,6 +134,7 @@
       "approval_not_resubmittable": "Alleen het laatste afgewezen of teruggestuurde verzoek kan opnieuw worden ingediend.",
       "execution_state_changed": "Deze order is van status veranderd. Laad opnieuw en probeer het nog eens.",
       "retry_needs_grant": "Opnieuw proberen kan pas als er eerst nog één poging is toegestaan.",
+      "retry_already_granted": "Een nieuwe poging is al toegestaan en nog niet gebruikt. Start die met Opnieuw proberen.",
       "incident_already_resolved": "Dit probleem is al opgelost.",
       "connection_not_active": "Beide verbindingen moeten eerst actief zijn.",
       "source_controls_unmet": "De inkoopgoedkeuring in Odoo voldoet nog niet aan de eis.",

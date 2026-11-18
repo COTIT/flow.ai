@@ -71,11 +71,29 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
 }
 
-fn grantable(e: &ExecutionRow) -> bool {
+/// Settled retryable attempt in a state a reconciler can act on.
+fn settled_retryable(e: &ExecutionRow) -> bool {
     matches!(e.status.as_str(), "awaiting_reconciliation" | "blocked")
         && e.latest_outcome
             .as_deref()
             .is_some_and(|o| RETRYABLE.contains(&o))
+}
+
+/// A grant not yet spent by an attempt (cap: remote_attempts <= 1 + grants).
+fn unused_grant(e: &ExecutionRow) -> bool {
+    e.remote_attempts <= e.manual_retry_grants
+}
+
+fn grantable(e: &ExecutionRow) -> bool {
+    settled_retryable(e) && !unused_grant(e)
+}
+
+fn already_granted() -> AppError {
+    reason(
+        StatusCode::CONFLICT,
+        "retry_already_granted",
+        "A retry is already allowed and not used yet. Run it with Retry.",
+    )
 }
 
 /// Human actions open on a row (UI shows only these).
@@ -340,7 +358,7 @@ pub async fn retry(
         grant: false,
     };
     repo::move_execution(&mut *tx, ws, id, &m).await?;
-    dispatch::enqueue_execution(&mut tx, &e.workflow_key, id).await?;
+    dispatch::enqueue_execution(&mut tx, ws, &e.workflow_key, id).await?;
     finish(
         tx,
         access,
@@ -377,6 +395,9 @@ pub async fn resolve(
     }
     let action = input.action.as_str();
     let (m, outcome) = match action {
+        "allow_retry" if settled_retryable(&e) && unused_grant(&e) => {
+            return Err(already_granted());
+        }
         "allow_retry" if grantable(&e) => (
             Some(HumanMove {
                 to: "queued",
@@ -421,7 +442,7 @@ pub async fn resolve(
         repo::move_execution(&mut *tx, ws, id, m).await?;
     }
     if action == "allow_retry" {
-        dispatch::enqueue_execution(&mut tx, &e.workflow_key, id).await?;
+        dispatch::enqueue_execution(&mut tx, ws, &e.workflow_key, id).await?;
     }
     let mut closed = vec![];
     if action == "accept_variance" {

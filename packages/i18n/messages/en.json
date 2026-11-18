@@ -134,6 +134,7 @@
       "approval_not_resubmittable": "Only the latest rejected or sent-back request can be sent again.",
       "execution_state_changed": "This order changed state. Reload and try again.",
       "retry_needs_grant": "Trying again needs one more try allowed first.",
+      "retry_already_granted": "A retry is already allowed and not used yet. Run it with Retry.",
       "incident_already_resolved": "This issue is already resolved.",
       "connection_not_active": "Both connections must be active first.",
       "source_controls_unmet": "Odoo's purchase approval settings do not meet the requirement yet.",

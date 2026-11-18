@@ -22,7 +22,7 @@ Routes are under `/v1/workspace/{workspace}/workflows`. A malformed, unknown or 
 `allowed_actions` lists the human actions open now:
 - `awaiting_reconciliation`: `link_existing`, `allow_retry` (only when the latest attempt's outcome is `ambiguous`, `not_sent` or `rejected`), `close_no_po`;
 - `succeeded_with_variance`: `accept_variance`, `reject_variance`;
-- `blocked`: `allow_retry` (same outcome rule), `retry`.
+- `blocked`: `allow_retry` (same outcome rule, and only when no grant is unused), `retry`.
 
 The detail route also returns:
 - `attempts`: `[{attempt_no, granted_by, grant_reason, write_intent_at, sent_at, outcome}]`;
@@ -54,7 +54,7 @@ A run that already sent an attempt with a known outcome (for example a definite 
 
 | action | from | to |
 |---|---|---|
-| `allow_retry` | `awaiting_reconciliation` or `blocked`, latest attempt outcome `ambiguous`/`not_sent`/`rejected` | `queued`, phase `prechecking`, `manual_retry_grants + 1`. The next attempt row records who granted it and why. |
+| `allow_retry` | `awaiting_reconciliation` or `blocked`, latest attempt outcome `ambiguous`/`not_sent`/`rejected`, no unused grant (`remote_attempts > manual_retry_grants`) | `queued`, phase `prechecking`, `manual_retry_grants + 1`. Attempt n records grant n-1 (who and why), never a newer one. With an unused grant (a pre-check blocked the granted run before it sent) → 409 `retry_already_granted` (`A retry is already allowed and not used yet. Run it with Retry.`); `retry` spends that grant. |
 | `close_no_po` | `awaiting_reconciliation` | `resolved_manual` (`closed_no_po`) |
 | `accept_variance` | `succeeded_with_variance` | `resolved_manual` (`variance_accepted`); the open `tax_variance` incidents of the run are resolved with the same reason |
 | `reject_variance` | `succeeded_with_variance` | unchanged; the incident stays open |

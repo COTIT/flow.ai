@@ -349,7 +349,7 @@ pub async fn decide(
     };
     if matches!(decision, Decision::Approve) {
         let execution = repo::insert_execution(&mut *tx, ws, id, &facts.workflow_key).await?;
-        dispatch::enqueue_execution(&mut tx, &facts.workflow_key, execution).await?;
+        dispatch::enqueue_execution(&mut tx, ws, &facts.workflow_key, execution).await?;
         at.execution_id = Some(execution);
     }
     let payload = json!({ "decision": decision.as_str(), "permission_used": permission_used });

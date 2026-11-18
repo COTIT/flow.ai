@@ -75,6 +75,7 @@ export const CODES = {
     "approval_not_resubmittable",
     "execution_state_changed",
     "retry_needs_grant",
+    "retry_already_granted",
     "incident_already_resolved",
     "connection_not_active",
     "source_controls_unmet",

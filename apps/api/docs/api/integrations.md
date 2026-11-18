@@ -264,7 +264,7 @@ Verified against the documented contract with an in-process fake Odoo and fake N
 3. **Pre-checks.** Any failure moves the run to `blocked`, with no write intent:
    - the pair must be active (`pair_paused`);
    - each connection must be usable, with its expiry applied (`connection_unauthorized`, `connection_expired`, `connection_inactive`);
-   - the RFQ is read again. If it is gone, no longer draft/sent, or its fingerprint changed, the run goes to `cancelled` (`source_changed`), the approval to `invalidated`, and the next revision is created in the same transaction;
+   - the RFQ is read again. If it is gone, no longer draft/sent, or its fingerprint changed, the run goes to `cancelled` (`source_changed`), the approval to `invalidated`, and the next revision is created in the same transaction. Once an earlier attempt exists (`remote_attempts > 0`, a granted retry) the run is never cancelled (I2): it goes to `awaiting_reconciliation` with a `source_changed_during_write` incident, the approval stays `approved`, and reconciliation decides;
    - the C4a money check runs again (`rate_precision`, `untotalled_lines`);
    - no line may be an Odoo down-payment line (`downpayment_line`); the fingerprint leaves the flag out, so this check catches a line that turned into one after approval;
    - the snapshot quantity and price must equal the exact source values (`rate_precision`);
@@ -272,7 +272,7 @@ Verified against the documented contract with an in-process fake Odoo and fake N
    - the approver must still be an active member with the permission (`approver_revoked`).
    An Auth or Permission error from a provider also marks the connection (`unauthorized` / `degraded`). Any other provider error queues the run again with job backoff. On the last job attempt the run becomes `failed` (`attempts_exhausted`).
 4. **Existence guard.** The run looks up the externalId (the execution's `correlation_id`). If a PO is found, it is verified (step 7) and nothing is POSTed. The guard is cheap; correctness does not depend on it.
-5. **15-minute window.** An attempt after the first (granted by `allow_retry`) waits until the previous write intent is 15 minutes old, because NetSuite requests can run that long (facts l.244). Until then each run is a no-op: the run goes back to `queued` with no write intent and no POST, and the tick backstop runs it again within a minute. The wait is logged once per attempt as a `retry_window_wait {earliest}` event.
+5. **15-minute window.** An attempt after the first (granted by `allow_retry`) waits until 15 minutes after the previous attempt's `sent_at` (its write intent when it was never marked sent), because NetSuite requests can run that long (facts N5 l.244). Until then each run is a no-op: the run goes back to `queued` with no write intent and no POST, and the tick backstop runs it again within a minute. The wait is logged once per attempt as a `retry_window_wait {earliest}` event.
 6. **Write intent, then one POST.** The attempt row and the `write_intent` event commit first. Then phase `write_sent` and `sent_at` are set, and exactly one POST is sent. The fenced outcome follows. If ownership was lost, the worker only appends `stale_worker_result` (attempt number, HTTP status, NetSuite id, Location).
 
 | Create result | Attempt outcome | Run |

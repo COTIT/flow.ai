@@ -134,6 +134,7 @@
       "approval_not_resubmittable": "Ni ombi la mwisho lililokataliwa au kurudishwa tu linaloweza kutumwa tena.",
       "execution_state_changed": "Oda hii imebadilika hali. Pakia upya ujaribu tena.",
       "retry_needs_grant": "Kujaribu tena kunahitaji jaribio moja zaidi liruhusiwe kwanza.",
+      "retry_already_granted": "Kujaribu tena kumesharuhusiwa na bado hakujatumika. Kiendeshe kwa Jaribu tena.",
       "incident_already_resolved": "Tatizo hili limeshatatuliwa.",
       "connection_not_active": "Miunganisho yote miwili lazima iwe hai kwanza.",
       "source_controls_unmet": "Mipangilio ya idhini ya ununuzi ya Odoo bado haikidhi sharti.",
