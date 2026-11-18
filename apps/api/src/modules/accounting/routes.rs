@@ -26,4 +26,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::general_ledger))
         .routes(routes!(handlers::profit_and_loss))
         .routes(routes!(handlers::balance_sheet))
+        .routes(routes!(handlers::receivables_aging))
+        .routes(routes!(handlers::payables_aging))
+        .routes(routes!(handlers::party_ledger))
+        .routes(routes!(handlers::inventory_valuation))
 }
