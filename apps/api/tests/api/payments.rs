@@ -1212,3 +1212,37 @@ async fn assistant_refund_settlement_before_http_finish_cannot_be_downgraded(poo
     assert!(finished);
     assert_eq!(w.fake.creates(refund), 1);
 }
+
+/// Active book (C12): the fake provider's confirmed payment, through webhook + drain, is one
+/// provider observation and one order deposit; a second delivery stays at one.
+#[sqlx::test]
+async fn active_book_records_a_confirmed_shop_payment_once(pool: PgPool) {
+    let w = world(pool).await;
+    // Ordered before activation: active books refuse selling stock without an opening value.
+    let (id, pid) = awaiting(&w, 2).await;
+    crate::provider_observations::active_today(&w.api).await;
+    w.fake.set_status(&pid, Status::Paid);
+    for _ in 0..2 {
+        notify(&w, &pid).await;
+        drain(&w).await;
+    }
+    assert_eq!(
+        count(
+            &w,
+            "SELECT count(*) FROM provider_observations WHERE economic_kind = 'collection'"
+        )
+        .await,
+        1
+    );
+    let deposit: (i64, String) = sqlx::query_as(
+        "SELECT residual, order_id::text FROM accounting_open_items WHERE classification = 'customer_deposit'",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(deposit, (2_500, id));
+    assert_eq!(
+        count(&w, "SELECT count(*) FROM accounting_exceptions").await,
+        0
+    );
+}

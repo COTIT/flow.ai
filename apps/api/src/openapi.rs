@@ -179,6 +179,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(crate::modules::purchasing::routes::private())
         .merge(crate::modules::shipments::routes::private())
         .merge(crate::modules::customer_deposits::routes::private())
+        .merge(crate::modules::provider_observations::routes::private())
         .merge(crate::modules::stocktakes::routes::private())
         .merge(product_categories::routes::private())
         .merge(product_brands::routes::private())

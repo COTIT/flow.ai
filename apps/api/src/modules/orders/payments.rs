@@ -20,12 +20,14 @@ use crate::{
         runner::Step,
     },
     modules::{
+        accounting::gate,
         assistant::{preconditions, repo as assistant},
         orders::{
             checkout,
             dto::{OrderAction, RefundCreated, RefundReceipt},
             repo as orders, service, trail,
         },
+        provider_observations::service as observations,
     },
     money,
     payments::{self, NewRefund, Provider, Status},
@@ -339,6 +341,7 @@ async fn apply(
     status: Status,
 ) -> Result<(), AppError> {
     let mut tx = db.begin().await?;
+    gate::shared(&mut tx, &[workspace_id]).await?;
     let Some(o) = orders::lock(&mut tx, workspace_id, row.order_id).await? else {
         return Ok(());
     };
@@ -364,6 +367,9 @@ async fn apply(
     .await?;
     if row.kind == "payment" && status == Status::Paid {
         paid(&mut tx, workspace_id, &o, row).await?;
+    }
+    if matches!(to, "paid" | "refunded") {
+        observe(&mut tx, workspace_id, row.id).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -441,7 +447,41 @@ pub(crate) async fn apply_gateway(
         amount: operation.amount,
         currency: operation.currency.clone(),
     };
-    paid(conn, workspace_id, &order, &row).await
+    paid(conn, workspace_id, &order, &row).await?;
+    if observations::active(conn, workspace_id).await? {
+        let external = operation
+            .captured_transaction_id
+            .clone()
+            .unwrap_or_else(|| operation.id.to_string());
+        observations::ingest(
+            conn,
+            workspace_id,
+            operation,
+            "collection",
+            &external,
+            operation.amount,
+        )
+        .await?;
+    }
+    Ok(())
+}
+
+/// Active books: the confirmed shop payment/refund `id` as a provider observation (identity:
+/// provider id, else our row id). Caller holds gate → order → row.
+async fn observe(conn: &mut PgConnection, workspace_id: Uuid, id: Uuid) -> Result<(), AppError> {
+    if !observations::active(conn, workspace_id).await? {
+        return Ok(());
+    }
+    let op = crate::modules::gateway::repo::find(&mut *conn, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let kind = if op.kind == "payment" {
+        "collection"
+    } else {
+        "refund"
+    };
+    let external = op.provider_id.clone().unwrap_or_else(|| op.id.to_string());
+    observations::ingest(conn, workspace_id, &op, kind, &external, op.amount).await
 }
 
 /// A full refund of `row` the system owes (late payment, no stock); once per payment.
@@ -533,14 +573,32 @@ async fn refund_at_provider(
             idempotency_key: &key,
         })
         .await;
-    let mut conn = db.acquire().await?;
+    // Gate → order → row, as every confirming write (masterplan §6).
+    let mut conn = db.begin().await?;
+    gate::shared(&mut conn, &[workspace_id]).await?;
+    let order: Option<Uuid> = sqlx::query_scalar(
+        "SELECT order_id FROM order_payments WHERE workspace_id = $1 AND id = $2",
+    )
+    .bind(workspace_id)
+    .bind(refund_id)
+    .fetch_optional(&mut *conn)
+    .await?
+    .flatten();
+    if let Some(order) = order {
+        orders::lock(&mut conn, workspace_id, order).await?;
+    }
+    sqlx::query("SELECT 1 FROM order_payments WHERE workspace_id = $1 AND id = $2 FOR UPDATE")
+        .bind(workspace_id)
+        .bind(refund_id)
+        .execute(&mut *conn)
+        .await?;
     match created {
         Ok(i) => {
             let status = match i.status {
                 Status::Refunded | Status::Failed | Status::Canceled => i.status.as_str(),
                 _ => "open",
             };
-            sqlx::query!(
+            let moved = sqlx::query!(
                 "UPDATE order_payments SET provider_id = $3, status = $4, attempts = attempts + 1,
                         last_error = NULL, updated_at = now()
                  WHERE workspace_id = $1 AND id = $2 AND status = 'creating'",
@@ -551,6 +609,9 @@ async fn refund_at_provider(
             )
             .execute(&mut *conn)
             .await?;
+            if moved.rows_affected() == 1 && status == "refunded" {
+                observe(&mut conn, workspace_id, refund_id).await?;
+            }
         }
         Err(e) => {
             let refused = !matches!(e, payments::Error::Unavailable(_));
@@ -568,6 +629,7 @@ async fn refund_at_provider(
             .await?;
         }
     }
+    conn.commit().await?;
     Ok(())
 }
 
@@ -760,6 +822,7 @@ pub async fn refund(
         tx.commit().await?;
         return Ok(a);
     }
+    gate::shared(&mut tx, &[workspace_id]).await?;
     let o = orders::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
