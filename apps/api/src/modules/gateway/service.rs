@@ -10,6 +10,7 @@ use crate::{
             repo::{self, Operation},
         },
         invoice_payments, invoices, orders,
+        provider_observations::service as observations,
     },
     money,
     payments::{
@@ -232,12 +233,14 @@ async fn record_failure(
     Ok(())
 }
 
-/// Lock owner invoices in UUID order (or order), then source operation before child.
+/// Book gate (shared), then owner order, invoices in UUID order, source operation, child
+/// (masterplan §6: gate before any resource lock).
 pub(crate) async fn lock_owner(
     conn: &mut PgConnection,
     ws: Uuid,
     op: &Operation,
 ) -> Result<(), AppError> {
+    crate::modules::accounting::gate::shared(&mut *conn, &[ws]).await?;
     let linked_invoice = if let Some(order) = op.order_id {
         orders::repo::lock(conn, ws, order)
             .await?
@@ -320,6 +323,8 @@ pub(crate) async fn confirm_refund_in(
             op.captured_transaction_id.as_deref().unwrap_or(""),
         )
         .await?;
+    } else if op.status != "refunded" && observations::active(conn, ws).await? {
+        observations::ingest(conn, ws, &op, "refund", &op.id.to_string(), op.amount).await?;
     }
     if matches!(op.status.as_str(), "failed" | "canceled") {
         repo::attention(
@@ -411,6 +416,11 @@ async fn refresh_collection(
             && money::minor(t.amount, op.decimals as u32).ok() == Some(op.amount);
         conflict |= !valid;
         chargeback_observed |= t.status == "CHARGEBACKED";
+        if valid && t.status == "CHARGEBACKED" && observations::active(&mut tx, ws).await? {
+            // Only a CHARGEBACKED transaction is confirmed outflow; chargeback list rows stay
+            // attention-only (no fact about other provider statuses).
+            observations::ingest(&mut tx, ws, op, "chargeback", &t.id, op.amount).await?;
+        }
         external |= match t.status.as_str() {
             "CHARGEBACKED" => false,
             "REFUNDED" => confirmed_refunds != op.amount,
@@ -614,6 +624,7 @@ pub async fn order_intent(
     let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
     let selection = accounts::select(state, ws).await;
     let mut tx = state.db.begin().await?;
+    crate::modules::accounting::gate::shared(&mut tx, &[ws]).await?;
     let order = orders::repo::lock(&mut tx, ws, id)
         .await?
         .filter(|o| o.source == "storefront")
@@ -719,6 +730,7 @@ pub async fn order_refund(
     }
     let mut tx = state.db.begin().await?;
     let replay = idempotency::replay(&mut tx, ws, Actor::User(user), key).await?;
+    crate::modules::accounting::gate::shared(&mut tx, &[ws]).await?;
     let locked = orders::repo::lock(&mut tx, ws, order)
         .await?
         .ok_or(AppError::NotFound)?;

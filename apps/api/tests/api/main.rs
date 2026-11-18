@@ -113,6 +113,7 @@ mod product_images;
 mod product_master_guards;
 mod product_variants;
 mod products;
+mod provider_observations;
 mod purchase_units;
 mod purchasing;
 mod quick_search;

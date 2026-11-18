@@ -60,6 +60,7 @@ pub mod product_fields;
 pub mod product_images;
 pub mod product_variants;
 pub mod products;
+pub mod provider_observations;
 pub mod purchase_units;
 pub mod purchasing;
 pub mod relations;

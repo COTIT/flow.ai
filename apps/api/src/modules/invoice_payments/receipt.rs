@@ -60,7 +60,10 @@ fn fits(method: Method, location: &MoneyLocation) -> bool {
         ("cash", MoneyLocation::CashPlace(_)) => true,
         ("pin" | "manual", MoneyLocation::BankAccount { .. }) => true,
         ("provider", MoneyLocation::BankAccount { .. }) => method.provider == Some("afas"),
-        ("provider", MoneyLocation::ProviderClearing(_)) => method.provider == Some("mollie"),
+        // globadyme: provider observations (C12) book confirmed gateway collections here.
+        ("provider", MoneyLocation::ProviderClearing(_)) => {
+            matches!(method.provider, Some("mollie" | "globadyme"))
+        }
         _ => false,
     }
 }
