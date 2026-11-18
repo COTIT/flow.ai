@@ -701,7 +701,7 @@ test("paid source reconciliation stays hidden without the exact warning or admin
   for (const source of sources) {
     await page
       .getByRole("region")
-      .filter({ hasText: source.payment_id })
+      .filter({ has: page.locator(`#payment-${source.payment_id}`) })
       .getByRole("button", { name: "Payment details", exact: true })
       .click()
     const dialog = page.getByRole("dialog", { name: "Payment details" })
