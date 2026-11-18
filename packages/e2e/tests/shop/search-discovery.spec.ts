@@ -14,7 +14,7 @@ test("public catalog pages expose canonical search URLs", async ({
       `/shop?category=${CATEGORY.honey}&page=1`,
       `/shop?category=${CATEGORY.honey}`,
     ],
-  ]) {
+  ] as const) {
     await page.goto(path)
     await expect(page.locator('link[rel="canonical"]')).toHaveJSProperty(
       "href",
