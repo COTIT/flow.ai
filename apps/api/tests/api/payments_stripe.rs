@@ -339,7 +339,7 @@ async fn world(pool: PgPool) -> W {
 /// A web order of `q` honey with its Checkout Session: (order id, session id).
 async fn awaiting(w: &W, q: u32) -> (String, String) {
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": q }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (s, o) = send(
         &w.api.app,
         Method::POST,
@@ -808,7 +808,7 @@ async fn stripe_errors_map_to_refused_unavailable_and_not_found(pool: PgPool) {
     // A down Stripe at checkout: 503 for the shop, the row kept for the sweep.
     w.fake.s().fail_next = Some(500);
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": 1 }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (_, o) = send(
         &w.api.app,
         Method::POST,
