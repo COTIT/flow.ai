@@ -115,7 +115,7 @@ Unknown keys are refused.
 | `POST /pairs` | manage | `{source_connection_id, target_connection_id, workflow_key?, config?}` | 201 `{"data":{"pair_id"}}` | 422 when the source isn't an Odoo connection of the workspace (`The selected source connection id is invalid.`), the target isn't a NetSuite one, or the pair already exists |
 | `GET /pairs/{pair}` | view | — | `{"data":Pair}` | 404 |
 | `POST /pairs/{pair}` | manage | `{config}` (merged); connections cannot change | `{"message":"ok"}` | 404, 422 |
-| `POST /pairs/{pair}/activate` | manage | — | `{"data":Pair}`; `activated_at` is set on the first activation | 422 `{"message","code":"connection_not_active"}` unless both connections are `active` |
+| `POST /pairs/{pair}/activate` | manage | — | `{"data":Pair}`; `activated_at` is set on the first activation | 422 `{"message","code":"connection_not_active"}` unless both connections are `active`; 422 `{"message","code":"source_controls_unmet"}` when no company is mapped or a mapped Odoo company is not two-step with amount 0 (`workflows.md` "WF-01 intake") |
 | `POST /pairs/{pair}/pause` | manage | — | `{"data":Pair}`, `paused_reason` `manual` | 404 |
 
 The WF-01 activation check (`source_controls_unmet`) is added by the workflow module.
