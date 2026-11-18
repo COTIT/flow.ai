@@ -184,10 +184,10 @@ jobs:
       - name: Add swap
         working-directory: /
         run: |
-          free -m && df -h /__w
+          grep -E "MemTotal|MemAvailable|SwapTotal" /proc/meminfo && df -h /__w
           fallocate -l 6G /__w/swapfile && chmod 600 /__w/swapfile
           mkswap /__w/swapfile > /dev/null && swapon /__w/swapfile
-          free -m && df -h /__w
+          grep -E "MemTotal|MemAvailable|SwapTotal" /proc/meminfo && df -h /__w
       # Dependencies only (the crate itself is cleaned out before saving), so the entry changes only
       # with Cargo.lock/Cargo.toml and stays ~1 GB of the repo's 10 GB.
       - id: deps
