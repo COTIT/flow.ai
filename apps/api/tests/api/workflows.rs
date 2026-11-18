@@ -229,6 +229,50 @@ async fn allow_retry_grants_one_attempt_by_a_non_requester(pool: PgPool) {
     );
 }
 
+// Fix #2: a grant blocked by a pre-check before use is not granted again; attempt 3 needs a
+// fresh human grant.
+#[sqlx::test]
+async fn allow_retry_refused_while_a_grant_is_unused(pool: PgPool) {
+    let w = world(pool).await;
+    w.after_attempt("awaiting_reconciliation", "ambiguous")
+        .await;
+    let body = json!({"action": "allow_retry", "reason": "Checked NetSuite: no order"});
+    let (s, b) = w.resolve(&w.rex, body.clone()).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    // Pre-check blocks the granted run before its write intent (remote_attempts still 1).
+    w.sql("UPDATE workflow_executions SET status = 'blocked', reason = 'pair_paused' WHERE id = $1::uuid").await;
+    let detail = w.uri(&format!("executions/{}", w.exec));
+    let (_, b) = send(&w.app, Method::GET, &detail, None, Some(&w.vi)).await;
+    assert_eq!(b["data"]["allowed_actions"], json!(["retry"]), "{b}");
+    let (s, b) = w.resolve(&w.rex, body.clone()).await;
+    assert_eq!(
+        (s, b["code"].clone()),
+        (StatusCode::CONFLICT, json!("retry_already_granted"))
+    );
+    assert!(!b["message"].as_str().unwrap().contains('_'), "readable");
+    assert_eq!(w.status().await, ("blocked".into(), 1, 1, None));
+    // The unused grant is spent by a plain retry; attempt 2 then settles.
+    let retry = format!("executions/{}/retry", w.exec);
+    let (s, b) = w
+        .post(&w.mo, &retry, json!({"reason": "Pair resumed"}))
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    w.sql(
+        "INSERT INTO workflow_execution_attempts (workspace_id, execution_id, attempt_no, sent_at,
+             outcome, granted_by, grant_reason)
+         SELECT workspace_id, execution_id, 2, now(), 'rejected', actor_user_id, reason
+         FROM workflow_resolutions WHERE execution_id = $1::uuid AND action = 'allow_retry'",
+    )
+    .await;
+    w.sql("UPDATE workflow_executions SET status = 'blocked', reason = 'validation_rejected', remote_attempts = 2 WHERE id = $1::uuid").await;
+    let (s, b) = w.post(&w.mo, &retry, json!({"reason": "again"})).await;
+    assert_eq!(
+        (s, b["code"].clone()),
+        (StatusCode::CONFLICT, json!("retry_needs_grant")),
+        "attempt 3 needs its own grant"
+    );
+}
+
 #[sqlx::test]
 async fn allow_retry_needs_a_settled_attempt(pool: PgPool) {
     let w = world(pool).await;

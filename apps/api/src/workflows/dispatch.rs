@@ -6,16 +6,18 @@ use uuid::Uuid;
 use crate::{error::AppError, jobs::repo as jobs, workflows::wf01_purchase::execute};
 
 /// Called in the approve / retry / allow_retry transaction. A live job for the execution is
-/// reused (dedupe on the execution id), never stacked.
+/// reused (dedupe on the execution id), never stacked. An id outside `ws` is an error.
 pub async fn enqueue_execution(
     tx: &mut PgConnection,
+    ws: Uuid,
     workflow_key: &str,
     execution_id: Uuid,
 ) -> Result<(), AppError> {
     match workflow_key {
         "wf01_purchase" => {
-            let ws = sqlx::query_scalar!(
-                "SELECT workspace_id FROM workflow_executions WHERE id = $1",
+            sqlx::query_scalar!(
+                "SELECT id FROM workflow_executions WHERE workspace_id = $1 AND id = $2",
+                ws,
                 execution_id
             )
             .fetch_one(&mut *tx)

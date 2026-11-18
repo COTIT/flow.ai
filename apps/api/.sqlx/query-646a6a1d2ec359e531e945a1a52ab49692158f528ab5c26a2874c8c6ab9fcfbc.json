@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT actor_user_id, reason FROM workflow_resolutions\n         WHERE workspace_id = $1 AND execution_id = $2 AND action = 'allow_retry'\n         ORDER BY id DESC LIMIT 1",
+  "query": "SELECT actor_user_id, reason FROM workflow_resolutions\n         WHERE workspace_id = $1 AND execution_id = $2 AND action = 'allow_retry'\n         ORDER BY created_at, id OFFSET $3 LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -29,7 +29,8 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Int8"
       ]
     },
     "nullable": [
@@ -37,5 +38,5 @@
       false
     ]
   },
-  "hash": "3754c6fd7e57683a190551a304af70587c6c04268edd7a603ad2cb4c6cc7cc5a"
+  "hash": "646a6a1d2ec359e531e945a1a52ab49692158f528ab5c26a2874c8c6ab9fcfbc"
 }

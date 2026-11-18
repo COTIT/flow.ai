@@ -113,7 +113,7 @@ pub async fn retry(
         (status = 200, body = Envelope<ExecutionResource>, description = "Resolved"),
         (status = 403, body = MessageBody, description = "`four_eyes_required`, or missing `integration.reconcile`"),
         (status = 404, body = MessageBody, description = "Unknown or foreign run"),
-        (status = 409, body = MessageBody, description = "`execution_state_changed`"),
+        (status = 409, body = MessageBody, description = "`execution_state_changed`, or `retry_already_granted` (`allow_retry` while a grant is unused)"),
         (status = 422, body = ValidationErrorBody, description = "Unknown action, reason missing, `target_id` missing for link"),
     ),
     security(("bearer" = []))

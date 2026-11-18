@@ -721,6 +721,7 @@ JSON:
 | 409 | `execution_state_changed` | retry, resolve |
 | 409 | `incident_already_resolved` | incident resolve |
 | 409 | `retry_needs_grant` | retry (`retry_after_fix`) when the latest attempt has an outcome and no unused grant (§10) |
+| 409 | `retry_already_granted` | resolve `allow_retry` while a grant is unused (`remote_attempts <= manual_retry_grants`); attempt n uses grant n-1 |
 | 422 | `connection_not_active` | pair activate |
 | 422 | `source_controls_unmet` | pair activate |
 | 503 | `link_unavailable` | resolve `link_existing` before C4b merges |

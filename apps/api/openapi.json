@@ -150676,7 +150676,7 @@
                 }
               }
             },
-            "description": "`execution_state_changed`"
+            "description": "`execution_state_changed`, or `retry_already_granted` (`allow_retry` while a grant is unused)"
           },
           "413": {
             "content": {

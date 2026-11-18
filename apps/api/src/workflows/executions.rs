@@ -146,7 +146,7 @@ pub async fn transition(
 /// `prechecking`, check the attempt cap and that every earlier attempt has an outcome, insert
 /// the attempt row and set `remote_attempts` + phase `write_intent`. `Some(attempt_no)` means
 /// commit, then POST once; `None` means never POST. Attempts after the first need `granted`
-/// (see `latest_grant`).
+/// (see `grant_for`).
 pub async fn begin_attempt(
     tx: &mut PgConnection,
     ws: Uuid,
@@ -173,7 +173,9 @@ pub async fn begin_attempt(
     }
     let unresolved = sqlx::query_scalar!(
         r#"SELECT EXISTS (SELECT 1 FROM workflow_execution_attempts
-                          WHERE execution_id = $1 AND outcome IS NULL) AS "x!""#,
+                          WHERE workspace_id = $1 AND execution_id = $2
+                            AND outcome IS NULL) AS "x!""#,
+        ws,
         id,
     )
     .fetch_one(&mut *tx)
@@ -211,18 +213,23 @@ pub async fn begin_attempt(
     Ok(Some(attempt_no))
 }
 
-/// The newest `allow_retry` grant (actor, reason): what `begin_attempt` needs for attempt > 1.
-pub async fn latest_grant(
+/// Grant n-1 for attempt n (actor, reason): the (n-1)-th `allow_retry`, never a newer one.
+pub async fn grant_for(
     db: impl PgExecutor<'_>,
     ws: Uuid,
     id: Uuid,
+    attempt_no: i16,
 ) -> Result<Option<(Uuid, String)>, AppError> {
+    if attempt_no < 2 {
+        return Ok(None);
+    }
     let row = sqlx::query!(
         "SELECT actor_user_id, reason FROM workflow_resolutions
          WHERE workspace_id = $1 AND execution_id = $2 AND action = 'allow_retry'
-         ORDER BY id DESC LIMIT 1",
+         ORDER BY created_at, id OFFSET $3 LIMIT 1",
         ws,
         id,
+        i64::from(attempt_no) - 2,
     )
     .fetch_optional(db)
     .await?;

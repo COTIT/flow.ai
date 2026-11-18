@@ -184,6 +184,10 @@ impl X {
 
     /// The C2 `allow_retry` move (resolve route body), as a non-requester reconciler.
     async fn grant(&self, e: Uuid) {
+        self.grant_why(e, "Checked NetSuite: no order").await;
+    }
+
+    async fn grant_why(&self, e: Uuid, why: &str) {
         let mut tx = self.w.pool.begin().await.unwrap();
         let m = HumanMove {
             to: "queued",
@@ -200,7 +204,7 @@ impl X {
             incident_id: None,
             action: "allow_retry",
             actor: self.w.k.approver,
-            reason: "Checked NetSuite: no order",
+            reason: why,
             target_id: None,
             outcome: "queued",
         };
@@ -402,7 +406,7 @@ async fn t25_duplicate_enqueues_one_job_one_post(pool: PgPool) {
     let e = x.w.approve(17, "queued", "prechecking").await;
     for _ in 0..3 {
         let mut tx = x.w.pool.begin().await.unwrap();
-        dispatch::enqueue_execution(&mut tx, "wf01_purchase", e)
+        dispatch::enqueue_execution(&mut tx, x.w.k.ws, "wf01_purchase", e)
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -458,7 +462,9 @@ async fn backdate_intent(x: &X, e: Uuid, minutes: i32) {
         .unwrap();
     sqlx::query(
         "UPDATE workflow_execution_attempts
-         SET write_intent_at = write_intent_at - make_interval(mins => $2) WHERE execution_id = $1",
+         SET write_intent_at = write_intent_at - make_interval(mins => $2),
+             sent_at = sent_at - make_interval(mins => $2)
+         WHERE execution_id = $1",
     )
     .bind(e)
     .bind(minutes)
@@ -643,6 +649,137 @@ async fn t29_source_change_by_phase(pool: PgPool) {
     assert_eq!(x.posts(), 0);
     // CHECK I2 refusing a cancel with remote_attempts > 0: executions.rs
     // `cancel_after_remote_attempt_is_refused_by_i2`.
+}
+
+/// Attempt 1 settles ambiguous (500), then a reconciler grants one more attempt.
+async fn ambiguous_then_granted(x: &X) -> Uuid {
+    let e = x.w.approve(17, "queued", "prechecking").await;
+    let err = fake_netsuite::ns_error(500, "UNEXPECTED_ERROR", "boom");
+    x.ns.lock().unwrap().posts.push_back(Post::Reply(500, err));
+    assert_eq!(x.exec(e).await, Step::Done);
+    assert_eq!(x.outcomes(e).await, vec![Some("ambiguous".into())]);
+    x.grant(e).await;
+    e
+}
+
+// Fix #1: a granted retry whose source changed is never cancelled (I2): awaiting + incident,
+// approval stays approved, no error loop, no extra POST.
+#[sqlx::test]
+async fn granted_retry_source_changed_goes_to_reconciliation(pool: PgPool) {
+    let x = x(pool).await;
+    let e = ambiguous_then_granted(&x).await;
+    x.w.edit(17, |o| o.lines[0].price = "151.0");
+    let j = x.job(e, Uuid::now_v7());
+    let r = execute::execute(&x.w.pool, &j, Ok(&x.w.client), Ok(&*x.sink)).await;
+    assert_eq!(r.unwrap(), Step::Done, "no job error loop");
+    let row = x.row(e).await;
+    assert_eq!(
+        (row.status.as_str(), row.remote_attempts),
+        ("awaiting_reconciliation", 1)
+    );
+    assert_eq!(x.incidents().await, vec!["source_changed_during_write"]);
+    assert_eq!(x.w.history(17).await[0].1, "approved");
+    assert_eq!(x.posts(), 1);
+    assert!(x.kinds(e).await.contains(&"incident_opened".to_string()));
+}
+
+// Fix #2: attempt n carries grant n-1, never a newer one (two grants stored, as before the
+// C2 refusal existed).
+#[sqlx::test]
+async fn each_attempt_carries_its_own_grant(pool: PgPool) {
+    let x = x(pool).await;
+    let e = ambiguous_then_granted(&x).await;
+    x.grant_why(e, "second grant, not for attempt 2").await;
+    backdate_intent(&x, e, 16).await;
+    assert_eq!(x.exec(e).await, Step::Done);
+    assert_eq!(x.posts(), 2);
+    let why: Option<String> = sqlx::query_scalar(
+        "SELECT grant_reason FROM workflow_execution_attempts WHERE execution_id = $1 AND attempt_no = 2",
+    )
+    .bind(e)
+    .fetch_one(&x.w.pool)
+    .await
+    .unwrap();
+    assert_eq!(why.as_deref(), Some("Checked NetSuite: no order"));
+}
+
+/// Set attempt 1's timestamps to `now() - minutes` (test-only trigger bypass, as `backdate_intent`).
+async fn set_times(x: &X, e: Uuid, intent_mins: i32, sent_mins: i32) {
+    let mut tx = x.w.pool.begin().await.unwrap();
+    sqlx::query("SET LOCAL session_replication_role = replica")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    sqlx::query(
+        "UPDATE workflow_execution_attempts
+         SET write_intent_at = now() - make_interval(mins => $2),
+             sent_at = now() - make_interval(mins => $3)
+         WHERE execution_id = $1 AND attempt_no = 1",
+    )
+    .bind(e)
+    .bind(intent_mins)
+    .bind(sent_mins)
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+}
+
+// Fix #5: the 15-minute window runs from the previous attempt's sent_at (facts N5 l.244).
+#[sqlx::test]
+async fn retry_window_counts_from_sent_at(pool: PgPool) {
+    let x = x(pool).await;
+    let e = ambiguous_then_granted(&x).await;
+    set_times(&x, e, 20, 5).await;
+    assert_eq!(x.exec(e).await, Step::Done);
+    assert_eq!(x.posts(), 1, "sent 5 min ago: may still land");
+    assert_eq!(x.row(e).await.status, "queued");
+    set_times(&x, e, 20, 16).await;
+    assert_eq!(x.exec(e).await, Step::Done);
+    assert_eq!(x.posts(), 2);
+}
+
+// Fix #3: dispatch only enqueues for an execution in the given workspace.
+#[sqlx::test]
+async fn dispatch_refuses_other_workspace(pool: PgPool) {
+    let x = x(pool).await;
+    let e = x.w.approve(17, "queued", "prechecking").await;
+    let mut tx = x.w.pool.begin().await.unwrap();
+    let r = dispatch::enqueue_execution(&mut tx, Uuid::now_v7(), "wf01_purchase", e).await;
+    assert!(r.is_err());
+    drop(tx);
+    assert_eq!(x.jobs_of(WF01_EXECUTE).await, 0);
+}
+
+// Fix #4b: settle whose fenced succeed moves nothing leaves `stale_worker_result` evidence.
+#[sqlx::test]
+async fn settle_that_moves_nothing_records_evidence(pool: PgPool) {
+    use crate::integrations::capability::PurchaseOrderSink;
+    let x = x(pool).await;
+    let e = x.w.approve(17, "queued", "prechecking").await;
+    assert_eq!(x.exec(e).await, Step::Done);
+    assert_eq!(x.row(e).await.status, "succeeded");
+    let loaded = execute::load(&x.w.pool, x.w.k.ws, e)
+        .await
+        .unwrap()
+        .unwrap();
+    let po = x.sink.read("100").await.unwrap();
+    let j = x.job(e, Uuid::now_v7());
+    assert_eq!(
+        super::verify::settle(&x.w.pool, &j, &loaded, po)
+            .await
+            .unwrap(),
+        Step::Done
+    );
+    let stale: Value = sqlx::query_scalar(
+        "SELECT payload FROM workflow_events WHERE execution_id = $1 AND kind = 'stale_worker_result'",
+    )
+    .bind(e)
+    .fetch_one(&x.w.pool)
+    .await
+    .unwrap();
+    assert_eq!(stale["target_id"], "100");
+    assert_eq!(x.row(e).await.status, "succeeded");
 }
 
 // T31: NetSuite tax 1 minor unit off at tolerance 0 → variance, never plain succeeded.
