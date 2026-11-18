@@ -163,6 +163,19 @@ The till calls this to confirm an approval login before it shows the approval fo
 
 `POST /till/cash-adjustments/review` `{target_cash_place: {kind: "drawer", id: <session register>}, counted_amount}` and `POST /till/cash-adjustments` (C envelope, `Idempotency-Key`, payload adds `count_evidence_ref`, `reason`, `review_fingerprint`). Both need the two logins above and the member's live `cashregister.adjust` (403 otherwise, including a manager who only reset a PIN). `counted_amount` is integer minor units. Only the session's own drawer: another register → 404, a vault → 422 (vaults are Office-only). The accounting date is today in the book timezone. The ledger row records the member as actor and the till user as cashier context. Effects and errors as `POST /accounting/cash-adjustments` (`docs/api/accounting.md` "Cash places").
 
+### Till returns and refunds (`cashregister.refund`, active books only)
+
+Flow ERP M4-C13 (masterplan §12 TILL REFUND / CASH ROUNDING, §15). Same two logins; the member needs a live `cashregister.refund` (403 otherwise). `{order}` is a till sale of the workspace (else 404). Setup books: 422 `unsupported_active_erp_operation`, nothing written. Writes use the C envelope, a required `Idempotency-Key` and replay by `client_ref` (reused ref with another body 409); a post whose facts moved since its review is 409 `stale_document`.
+
+- `POST /till/sales/{order}/returns/review` and `POST /till/sales/{order}/returns` (`till_sales_return`): `{lines: [{original_line_id, quantity}], restock?: bool, reason, destination_warehouse_id?}` (+ `review_fingerprint` on the post). Runs the active order return: one posted receipt credit per recognised sale (no customer, no invoice), credit = net + tax + its cash-rounding share, and a restock into the sale's warehouse at the original booked cost when `restock`. Another `destination_warehouse_id` → 422. Over what is left to return → 422. The review runs the same writes and rolls them back. 201 `{data: [SalesReturnResource]}`.
+- `POST /till/sales/{order}/refunds/review` and `POST /till/sales/{order}/refunds` (`till_refunds_create`): `{credit_open_item_id, amount, method, external_reference?, actual_refund_confirmed?}` (+ `reason`, `review_fingerprint` on the post). `amount` is integer minor units. `credit_open_item_id` must be the `customer_credit` item of a posted return of this sale (422 otherwise).
+  - Refundable = credit residual − pending refund holds (`credit_refund_reservations`) of other routes, read under the credit item lock. Over it → 422 on `amount`. Two refunds racing for the same credit queue on that lock; the second sees the reduced residual.
+  - `cash`: only the sale's own register (another → 404), its open shift (none → 409), a multiple of the currency's cash step (else 422; no rounding tolerance, the rest can go by card) and no more than the drawer holds (422). Writes a drawer `refund` row (−amount, member actor, cashier context, source `till_refund/<id>`).
+  - `card_recorded`: any register of the workspace (recorded on the refund). Needs `external_reference` and `actual_refund_confirmed: true` (422). No drawer row, no gateway call.
+  - Effects in one transaction: a hold `till_refund/<id>` written pending then consumed; journal `till_refund/<id>/posted` DR `receivables` (the credit's customer, none for anonymous) / CR `cash` or `provider_clearing`; a `receivable` open item `till_refund/<id>` for the money paid out, applied to the credit item; source link. 201 `{data: TillRefundResource}`.
+- `GET /till/sales/{order}/refunds` (paginated, oldest first) and `GET /till/sales/{order}/refunds/{refund}`.
+- A credit with a refund or a pending hold can't be financially reversed (`dependent_effects_exist`). There is no refund reversal route (§15 lists none).
+
 ## Catalog (till token)
 
 ### `GET /till/catalog?page&page_size&updated_since&code`

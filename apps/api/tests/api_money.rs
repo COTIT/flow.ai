@@ -109,6 +109,8 @@ mod till_pairing;
 mod till_privileged;
 #[path = "api/till_quote.rs"]
 mod till_quote;
+#[path = "api/till_refunds.rs"]
+mod till_refunds;
 #[path = "api/till_sales.rs"]
 mod till_sales;
 #[path = "api/vat_groups.rs"]
