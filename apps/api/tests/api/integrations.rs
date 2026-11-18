@@ -445,7 +445,7 @@ async fn test_probe_sets_status(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn live_mode_without_adapter_reports_failed_checks(pool: PgPool) {
+async fn live_netsuite_probe_with_unusable_key_is_unauthorized(pool: PgPool) {
     let (app, _) = app_with_mail(pool);
     let (owner, ws) = signup(&app, "ada@example.com", "acme").await;
     let base = format!("/v1/workspace/{ws}/integrations/connections");
@@ -462,9 +462,14 @@ async fn live_mode_without_adapter_reports_failed_checks(pool: PgPool) {
     assert_eq!(s, StatusCode::OK, "{b}");
     let checks = b["data"]["last_probe"].as_array().unwrap();
     assert_eq!(checks.len(), 4);
-    assert!(checks.iter().all(|c| c["ok"] == false));
-    assert_eq!(b["data"]["status"], "degraded");
-    assert_eq!(b["data"]["status_reason"], "probe_failed:auth.token");
+    // The C3b adapter refuses the truncated test PEM before any request leaves.
+    assert!(
+        checks
+            .iter()
+            .all(|c| c["ok"] == false && c["error_class"] == "auth")
+    );
+    assert_eq!(b["data"]["status"], "unauthorized");
+    assert_eq!(b["data"]["status_reason"], "auth_failed");
 }
 
 /// Fake Odoo 19: every JSON-2 call answers `[]` for the stored key, else the documented 401
