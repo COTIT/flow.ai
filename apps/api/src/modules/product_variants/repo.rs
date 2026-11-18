@@ -238,14 +238,15 @@ pub async fn option_values(
 ) -> Result<Vec<OptionValueRow>, sqlx::Error> {
     sqlx::query_as!(
         OptionValueRow,
-        "SELECT l.product_variant_id AS variant_id, v.id, v.option_type_id, v.value,
-                v.display_value, v.sort_order, v.created_at, v.updated_at,
+        r#"SELECT l.product_variant_id AS variant_id, v.id, v.option_type_id, v.value,
+                COALESCE(l.display_value, v.display_value) AS "display_value!",
+                COALESCE(l.sort_order, v.sort_order) AS sort_order, v.created_at, v.updated_at,
                 t.name AS type_name, t.display_name AS type_display_name
          FROM variant_option_values l
          JOIN option_values v ON v.id = l.option_value_id AND v.deleted_at IS NULL
          JOIN option_types t ON t.id = v.option_type_id AND t.deleted_at IS NULL
          WHERE l.workspace_id = $1 AND l.product_variant_id = ANY($2)
-         ORDER BY l.product_variant_id, v.sort_order NULLS LAST, v.id",
+         ORDER BY l.product_variant_id, COALESCE(l.sort_order, v.sort_order) NULLS LAST, v.id"#,
         workspace_id,
         variant_ids,
     )
@@ -287,18 +288,19 @@ pub async fn option_type(
     .await
 }
 
-/// Attach a type to a product, or update its sort order (Laravel syncWithoutDetaching).
+/// Attach a type to a product. An explicit sort order also updates an existing attachment.
 pub async fn attach_type(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     product_id: Uuid,
     option_type_id: Uuid,
-    sort_order: i32,
+    sort_order: Option<i32>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO product_option_types (workspace_id, product_id, option_type_id, sort_order)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (product_id, option_type_id) DO UPDATE SET sort_order = EXCLUDED.sort_order",
+         VALUES ($1, $2, $3, COALESCE($4, 0))
+         ON CONFLICT (product_id, option_type_id) DO UPDATE SET sort_order = EXCLUDED.sort_order
+         WHERE $4 IS NOT NULL",
         workspace_id,
         product_id,
         option_type_id,
@@ -349,6 +351,53 @@ pub async fn link_values(
         value_ids,
     )
     .execute(&mut *conn)
+    .await
+    .map(|_| ())
+}
+
+/// Use the same case folding as the canonical option value's unique index.
+pub async fn distinct_labels(
+    conn: &mut PgConnection,
+    labels: &[String],
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(DISTINCT lower(label)) = count(*) AS "distinct!"
+           FROM unnest($1::text[]) AS t(label)"#,
+        labels,
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// Replace only the supplied Size links. Display text and ordering belong to this variant.
+pub async fn replace_size_links(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    variant_id: Uuid,
+    old_ids: &[Uuid],
+    value_ids: &[Uuid],
+    labels: &[String],
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM variant_option_values
+         WHERE workspace_id = $1 AND product_variant_id = $2 AND option_value_id = ANY($3)",
+        workspace_id,
+        variant_id,
+        old_ids,
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO variant_option_values
+             (workspace_id, product_variant_id, option_value_id, display_value, sort_order)
+         SELECT $1, $2, id, label, (position - 1)::int
+         FROM unnest($3::uuid[], $4::text[]) WITH ORDINALITY AS t(id, label, position)",
+        workspace_id,
+        variant_id,
+        value_ids,
+        labels,
+    )
+    .execute(conn)
     .await
     .map(|_| ())
 }

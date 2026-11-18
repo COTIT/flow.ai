@@ -197,7 +197,8 @@ The book state is read under the shared book gate (`erp.book|<workspace>`), take
 - **Body:**
   - `price` (≥ 0) or `impact_on_price` is required: "The price field is required when impact on price is not present."
   - Optional: the other prices, `weight`, `sku`, `barcode`, `ean13`, `reference_vendor{,2,3}` (≤255), `is_default`, `meta`.
-  - Update is a patch with the same rules.
+  - Update is a patch. Requests that include `sku` or `size_labels` can omit both price fields.
+  - Update can replace Size labels with `size_labels`. Send one nonempty, case-insensitively distinct label per existing Size value, or one label when the variant has no Size. Labels are trimmed, limited to 255 characters, and keep their casing for this variant. Other options and variants keep their labels.
 - **Prices:**
   - The markup is normalised against the **product's price** as gross, as in Laravel.
   - `is_default: true` makes the variant the product's only default. The current default can't be unset with `false` (422); make another variant the default instead.

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO variant_option_values\n             (workspace_id, product_variant_id, option_value_id, display_value, sort_order)\n         SELECT $1, $2, id, label, (position - 1)::int\n         FROM unnest($3::uuid[], $4::text[]) WITH ORDINALITY AS t(id, label, position)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3aecbaa0870adf8b41f671c5cd8e59b94f88d503eabfa8cd8b231917ecb82d5f"
+}

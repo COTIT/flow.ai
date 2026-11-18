@@ -505,6 +505,13 @@
       "sw": ["badilisha jina la kundi la bidhaa viungo"]
     }
   },
+  "product_variants_delete": {
+    "ask": {
+      "en": ["delete the 250 g product size"],
+      "nl": ["verwijder de productmaat 250 g"],
+      "sw": ["futa saizi ya bidhaa ya gramu 250"]
+    }
+  },
   "product_variants_generate": {
     "ask": {
       "en": ["add sizes 250 g and 500 g to honey"],
@@ -517,6 +524,13 @@
       "en": ["what sizes does the honey come in"],
       "nl": ["welke maten heeft de honing"],
       "sw": ["saizi zilizopo za asali"]
+    }
+  },
+  "product_variants_update": {
+    "ask": {
+      "en": ["correct the 250 g product size"],
+      "nl": ["corrigeer de productmaat 250 g"],
+      "sw": ["sahihisha saizi ya bidhaa ya gramu 250"]
     }
   },
   "products_create": {
@@ -901,11 +915,32 @@
       "sw": ["viwango vya VAT tulivyonavyo"]
     }
   },
+  "warehouses_create": {
+    "ask": {
+      "en": ["create a warehouse called North Depot"],
+      "nl": ["maak een nieuw magazijn aan"],
+      "sw": ["unda ghala jipya"]
+    }
+  },
+  "warehouses_delete": {
+    "ask": {
+      "en": ["delete the warehouse North Depot"],
+      "nl": ["verwijder het magazijn Noord"],
+      "sw": ["futa ghala la Kaskazini"]
+    }
+  },
   "warehouses_list": {
     "ask": {
       "en": ["which warehouses do we have"],
       "nl": ["welke magazijnen hebben we"],
       "sw": ["onyesha maghala yote"]
+    }
+  },
+  "warehouses_update": {
+    "ask": {
+      "en": ["rename the warehouse North Depot"],
+      "nl": ["hernoem het magazijn Noord"],
+      "sw": ["badilisha jina la ghala la Kaskazini"]
     }
   },
   "webhooks_create": {

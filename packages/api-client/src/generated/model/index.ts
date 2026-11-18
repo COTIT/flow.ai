@@ -1585,6 +1585,7 @@ export * from './updateOrderRequest';
 export * from './updatePdfTemplateRequest';
 export * from './updatePipelineRequest';
 export * from './updatePipelineRequestMeta';
+export * from './updateProductVariantRequest';
 export * from './updatePurchaseUnitPayload';
 export * from './updatePurchaseUnitRequest';
 export * from './updateSalesGroupRequest';

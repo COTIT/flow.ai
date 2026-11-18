@@ -20,7 +20,15 @@ type Variant = {
   sku: string | null
   price: string
   relationships: {
-    option_values: { value: string; display_value: string | null }[]
+    option_values: ReturnType<typeof sizeOption>[]
+  }
+}
+
+function sizeOption(value: string) {
+  return {
+    value: value.toLowerCase(),
+    display_value: value,
+    relationships: { option_type: { name: "size" } },
   }
 }
 
@@ -116,9 +124,7 @@ function catalogApi(api: FakeApi, groups: unknown[] = vatGroups) {
           sku: combo.sku ?? null,
           price: combo.price,
           relationships: {
-            option_values: [
-              { value: value.toLowerCase(), display_value: value },
-            ],
+            option_values: [sizeOption(value)],
           },
         }
         variants[params[1]!]!.push(made)
@@ -230,6 +236,94 @@ test("add a size on the product page", async ({ page, api }) => {
     option_types: [{ name: "Size", values: [{ value: "250 g" }] }],
     combinations: [{ option_value_ids: ["250 g"], price: "4.20" }],
   })
+  await expectFits(page)
+})
+
+test("search and manage sizes five at a time", async ({ page, api }) => {
+  catalogApi(api)
+  const rows: Variant[] = Array.from({ length: 6 }, (_, index) => ({
+    id: `v${index}`,
+    is_default: index === 0,
+    sku: index ? `SKU-${index}` : null,
+    price: "4.20",
+    relationships: {
+      option_values: index ? [sizeOption(`${index * 100} g`)] : [],
+    },
+  }))
+  const variantPath = "/workspace/:ws/products/:id/variants/:variant"
+  api
+    .on("GET", "/workspace/:ws/products/:id/variants", () => ({ data: rows }))
+    .on("PUT", variantPath, ({ params, body }) => {
+      const variant = rows.find((row) => row.id === params[2])!
+      const edit = body as {
+        size_labels: string[]
+        price: string
+        sku: string | null
+      }
+      variant.relationships.option_values = edit.size_labels.map(sizeOption)
+      variant.price = edit.price
+      variant.sku = edit.sku
+      return { data: variant }
+    })
+    .on("DELETE", variantPath, ({ params }) => {
+      rows.splice(
+        rows.findIndex((row) => row.id === params[2]),
+        1
+      )
+      return { status: 204 }
+    })
+
+  await page.goto("/products/p1")
+  const sizes = page.getByRole("region", { name: "Sizes" })
+  const search = sizes.getByRole("searchbox", { name: "Search sizes or SKUs" })
+  const visible = sizes.getByRole("listitem")
+  await expect(visible).toHaveCount(5)
+  await expect(
+    visible
+      .filter({ hasText: "Standard" })
+      .getByRole("button", { name: "Remove size" })
+  ).toHaveCount(0)
+  await sizes.getByRole("button", { name: "Next" }).click()
+  await expect(visible).toHaveCount(1)
+  await expect(visible.first()).toContainText("500 g")
+
+  await search.fill("sku-4")
+  await expect(visible).toHaveCount(1)
+  await expect(visible.first()).toContainText("400 g")
+  await search.fill("XXX")
+  await expect(sizes.getByText("No sizes match your search.")).toBeVisible()
+  await search.fill("500 G")
+  await expect(visible).toHaveCount(1)
+
+  await search.clear()
+  await expect(visible).toHaveCount(5)
+  await sizes.getByRole("button", { name: "Next" }).click()
+  await sizes.getByRole("button", { name: "Edit size 500 g" }).click()
+  const edit = page.getByRole("dialog", { name: "Edit size" })
+  await expect(edit.getByLabel("Size", { exact: true })).toHaveValue("500 g")
+  await expect(edit.getByLabel("Price excl. VAT")).toHaveValue("4.20")
+  await expect(edit.getByLabel("SKU")).toHaveValue("SKU-5")
+  await edit.getByLabel("Size", { exact: true }).fill("550 G")
+  await edit.getByLabel("Price excl. VAT").fill("5.25")
+  await edit.getByLabel("SKU").clear()
+  await edit.getByRole("button", { name: "Save" }).click()
+  await expect(visible.first()).toContainText("550 G")
+  expect(api.callsTo("PUT", variantPath)[0]?.body).toEqual({
+    size_labels: ["550 G"],
+    price: "5.25",
+    sku: null,
+  })
+
+  await sizes.getByRole("button", { name: "Remove size" }).click()
+  const confirm = page.getByRole("alertdialog", { name: "Remove 550 G?" })
+  await confirm.getByRole("button", { name: "Cancel" }).click()
+  expect(api.callsTo("DELETE", variantPath)).toHaveLength(0)
+  await sizes.getByRole("button", { name: "Remove size" }).click()
+  await confirm.getByRole("button", { name: "Remove size" }).click()
+  await expect(visible).toHaveCount(5)
+  await expect(visible.first()).toContainText("Standard")
+  await expect(sizes.getByRole("button", { name: "Next" })).toHaveCount(0)
+  expect(api.callsTo("DELETE", variantPath)).toHaveLength(1)
   await expectFits(page)
 })
 

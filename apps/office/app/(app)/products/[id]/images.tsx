@@ -1,7 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeftIcon, ArrowRightIcon, Trash2Icon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ExpandIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -17,6 +23,7 @@ import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -49,6 +56,9 @@ export function ProductImages({
   const files = useFilesList(workspaceId, { page_size: 100 }, enabled)
   const [draft, setDraft] = React.useState<ImageInput[] | null>(null)
   const [adding, setAdding] = React.useState(false)
+  const [previewIndex, setPreviewIndex] = React.useState(0)
+  const closePreview = React.useRef<HTMLButtonElement>(null)
+  const touchStart = React.useRef<{ x: number; y: number } | null>(null)
   const replace = useProductsImagesReplace({
     mutation: {
       onMutate: done.clear,
@@ -81,6 +91,15 @@ export function ProductImages({
   const name = (fileId: string) =>
     files.data?.data.find((f) => f.id === fileId)?.document_name ??
     t("images.unnamed")
+  const previews = list.flatMap((image, i) => {
+    const url = src(image.file_id)
+    return url ? [{ url, name: name(image.file_id), position: i }] : []
+  })
+  const preview = previews[previewIndex]
+  const turn = (step: number) => {
+    if (previews.length > 1)
+      setPreviewIndex((i) => (i + step + previews.length) % previews.length)
+  }
 
   return (
     <Tile
@@ -136,7 +155,10 @@ export function ProductImages({
       }
     >
       {images.isPending ? (
-        <div aria-busy="true" className="grid grid-cols-3 gap-2 max-md:grid-cols-2">
+        <div
+          aria-busy="true"
+          className="grid grid-cols-3 gap-2 max-md:grid-cols-2"
+        >
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="aspect-square rounded-2xl" />
           ))}
@@ -148,64 +170,182 @@ export function ProductImages({
           {list.length === 0 ? (
             <Empty title={t("images.empty")} />
           ) : (
-            <ol className="grid grid-cols-3 gap-2 max-md:grid-cols-2">
-              {list.map((img, i) => (
-                <li key={`${img.file_id}-${i}`} className="flex min-w-0 flex-col gap-1">
-                  <div className="relative aspect-square overflow-hidden rounded-2xl border border-(--hair) bg-(--glass-subtle)">
-                    {src(img.file_id) ? (
-                      <img
-                        src={src(img.file_id)}
-                        alt=""
-                        referrerPolicy="no-referrer"
-                        className="size-full object-cover"
-                      />
-                    ) : null}
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      className="absolute top-1.5 right-1.5"
-                      aria-label={t("images.removeOne", { position: i + 1 })}
-                      onClick={() => set(list.filter((_, j) => j !== i))}
-                    >
-                      <Trash2Icon />
-                    </Button>
-                    <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between">
+            <Dialog>
+              <ol className="grid grid-cols-3 gap-2 max-md:grid-cols-2">
+                {list.map((img, i) => (
+                  <li
+                    key={`${img.file_id}-${i}`}
+                    className="flex min-w-0 flex-col gap-1"
+                  >
+                    <div className="relative aspect-square overflow-hidden rounded-2xl border border-(--hair) bg-(--glass-subtle)">
+                      {src(img.file_id) ? (
+                        <DialogTrigger
+                          aria-label={t("images.previewOne", {
+                            name: name(img.file_id),
+                            position: i + 1,
+                          })}
+                          onClick={() =>
+                            setPreviewIndex(
+                              previews.findIndex(
+                                (entry) => entry.position === i
+                              )
+                            )
+                          }
+                          className="group relative block size-full cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring"
+                        >
+                          <img
+                            src={src(img.file_id)}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="size-full object-cover"
+                          />
+                          <span className="absolute top-1.5 left-1.5 rounded-md bg-background px-2 py-1.5 text-foreground opacity-75 group-hover:opacity-100">
+                            <ExpandIcon className="size-4" aria-hidden />
+                          </span>
+                        </DialogTrigger>
+                      ) : null}
                       <Button
                         variant="outline"
                         size="icon-sm"
-                        aria-label={t("passport.moveUp")}
-                        disabled={i === 0}
-                        onClick={() => move(i, i - 1)}
+                        className="absolute top-1.5 right-1.5"
+                        aria-label={t("images.removeOne", { position: i + 1 })}
+                        onClick={() => set(list.filter((_, j) => j !== i))}
                       >
-                        <ArrowLeftIcon />
+                        <Trash2Icon />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        aria-label={t("passport.moveDown")}
-                        disabled={i === list.length - 1}
-                        onClick={() => move(i, i + 1)}
-                      >
-                        <ArrowRightIcon />
-                      </Button>
+                      <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between">
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          aria-label={t("passport.moveUp")}
+                          disabled={i === 0}
+                          onClick={() => move(i, i - 1)}
+                        >
+                          <ArrowLeftIcon />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          aria-label={t("passport.moveDown")}
+                          disabled={i === list.length - 1}
+                          onClick={() => move(i, i + 1)}
+                        >
+                          <ArrowRightIcon />
+                        </Button>
+                      </div>
                     </div>
+                    <p className="truncate text-xs" title={name(img.file_id)}>
+                      {i + 1}. {name(img.file_id)}
+                    </p>
+                    {img.product_variant_id ? (
+                      <p className="text-xs text-muted-foreground">
+                        {t("images.variant")}
+                      </p>
+                    ) : null}
+                    {errors[`images.${i}.file_id`] ? (
+                      <p className="text-xs text-destructive">
+                        {errors[`images.${i}.file_id`]?.join(" ")}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+              {preview ? (
+                <DialogContent
+                  data-product-image-preview
+                  showCloseButton={false}
+                  initialFocus={closePreview}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+                      return
+                    event.preventDefault()
+                    turn(event.key === "ArrowLeft" ? -1 : 1)
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <DialogTitle>{t("images.previewTitle")}</DialogTitle>
+                    <DialogClose
+                      ref={closePreview}
+                      aria-label={t("images.previewClose")}
+                      render={
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="min-h-11 min-w-11"
+                        />
+                      }
+                    >
+                      <XIcon aria-hidden />
+                    </DialogClose>
                   </div>
-                  <p className="truncate text-xs" title={name(img.file_id)}>
-                    {i + 1}. {name(img.file_id)}
-                  </p>
-                  {img.product_variant_id ? (
-                    <p className="text-xs text-muted-foreground">
-                      {t("images.variant")}
+                  <div
+                    className="flex min-h-0 touch-pan-y touch-pinch-zoom items-center justify-center"
+                    onTouchStart={(event) => {
+                      const touch = event.touches[0]
+                      touchStart.current =
+                        event.touches.length === 1 && touch
+                          ? { x: touch.clientX, y: touch.clientY }
+                          : null
+                    }}
+                    onTouchEnd={(event) => {
+                      const start = touchStart.current
+                      const end = event.changedTouches[0]
+                      touchStart.current = null
+                      if (!start || !end) return
+                      const dx = end.clientX - start.x
+                      if (
+                        Math.abs(dx) > 40 &&
+                        Math.abs(dx) > Math.abs(end.clientY - start.y)
+                      )
+                        turn(dx < 0 ? 1 : -1)
+                    }}
+                    onTouchCancel={() => {
+                      touchStart.current = null
+                    }}
+                  >
+                    <img
+                      src={preview.url}
+                      alt={preview.name}
+                      referrerPolicy="no-referrer"
+                      className="size-full object-contain"
+                    />
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    {previews.length > 1 ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="min-h-11 min-w-11"
+                        aria-label={t("images.previewPrevious")}
+                        onClick={() => turn(-1)}
+                      >
+                        <ArrowLeftIcon aria-hidden />
+                      </Button>
+                    ) : null}
+                    <p role="status" className="min-w-0 truncate text-center">
+                      {t("images.previewPosition", {
+                        position: previewIndex + 1,
+                        total: previews.length,
+                        name: preview.name,
+                      })}
                     </p>
-                  ) : null}
-                  {errors[`images.${i}.file_id`] ? (
-                    <p className="text-xs text-destructive">
-                      {errors[`images.${i}.file_id`]?.join(" ")}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
+                    {previews.length > 1 ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="min-h-11 min-w-11"
+                        aria-label={t("images.previewNext")}
+                        onClick={() => turn(1)}
+                      >
+                        <ArrowRightIcon aria-hidden />
+                      </Button>
+                    ) : null}
+                  </div>
+                </DialogContent>
+              ) : null}
+            </Dialog>
           )}
           <p className="text-xs text-muted-foreground">{t("images.hint")}</p>
           <ApiError error={replace.error} fallback={t("common.error")} />

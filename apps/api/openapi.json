@@ -40529,6 +40529,28 @@
         },
         "type": "object"
       },
+      "UpdateProductVariantRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProductVariantRequest"
+          },
+          {
+            "properties": {
+              "size_labels": {
+                "description": "Replace Size labels in their current order, one per existing label. For a variant with\nno Size labels, send one. Labels must be nonempty, distinct ignoring case, and at most\n255 characters each. Omit this field to retain the current labels.",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 200,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "Send only changed fields. A SKU or size-label edit can omit price and impact on price."
+      },
       "UpdatePurchaseUnitPayload": {
         "additionalProperties": false,
         "description": "The only editable field.",
@@ -121106,7 +121128,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProductVariantRequest"
+                "$ref": "#/components/schemas/UpdateProductVariantRequest"
               }
             }
           },

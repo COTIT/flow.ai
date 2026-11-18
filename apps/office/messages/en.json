@@ -16,6 +16,11 @@
     "shortDescription": "Short description",
     "description": "Description",
     "storeOnly": "Sold at the till only (not in the web shop)",
+    "passportQr": {
+      "title": "Passport QR code",
+      "image": "QR code for {name}",
+      "print": "Print QR code"
+    },
     "statuses": {
       "active": "Active",
       "disabled": "Disabled",
@@ -44,7 +49,15 @@
     "noCategory": "No category",
     "allCategories": "All categories",
     "categoriesFailed": "Categories could not be loaded, so the category stays as it is.",
-    "categoriesNone": "No categories yet. Add them under Categories."
+    "categoriesNone": "No categories yet. Add them under Categories.",
+    "editSize": "Edit size",
+    "editSizeNamed": "Edit size {label}",
+    "numberedSize": "Size label {number}",
+    "searchSizes": "Search sizes or SKUs",
+    "noMatchingSizes": "No sizes match your search.",
+    "removeSize": "Remove size",
+    "removeSizeTitle": "Remove {label}?",
+    "removeSizeDescription": "This size will stop showing in the shop and till. Its history is kept."
   },
   "nav": {
     "label": "Main menu",
@@ -738,6 +751,8 @@
     "imagesSaved": "Images saved.",
     "productCreated": "Product created.",
     "sizeAdded": "Size added.",
+    "sizeSaved": "Size saved.",
+    "sizeRemoved": "Size removed.",
     "inviteSent": "Invite sent to {email}",
     "inviteWithdrawn": "Invite withdrawn.",
     "memberRemoved": "{name} no longer has access.",
@@ -792,6 +807,12 @@
     "pick": "Image file",
     "add": "Add image",
     "removeOne": "Remove image {position}",
+    "previewOne": "Preview image {position}: {name}",
+    "previewTitle": "Product images",
+    "previewClose": "Close image preview",
+    "previewPrevious": "Previous image",
+    "previewNext": "Next image",
+    "previewPosition": "Image {position} of {total} · {name}",
     "save": "Save images",
     "discard": "Discard changes",
     "hint": "First image is the shop cover. Use the arrows to reorder."
@@ -1864,5 +1885,30 @@
       "tax_profile_correction_exists": "This profile already has a correction.",
       "tax_profile_overlap": "Another verified profile already covers the same country, region, type, category and dates."
     }
+  },
+  "warehouses": {
+    "title": "Warehouses",
+    "manage": "Manage warehouses",
+    "name": "Name",
+    "description": "Description",
+    "default": "Default",
+    "actions": "Warehouse actions",
+    "new": "New warehouse",
+    "edit": "Edit",
+    "editTitle": "Edit {name}",
+    "remove": "Delete",
+    "removeTitle": "Delete {name}?",
+    "removeText": "This warehouse will no longer be available for stock. A warehouse with stock or reservations cannot be deleted.",
+    "empty": "No warehouses yet.",
+    "createGeneral": "Create General stock",
+    "generalReady": "General stock is ready.",
+    "created": "Warehouse created.",
+    "saved": "Warehouse saved.",
+    "removed": "Warehouse deleted.",
+    "holdsStock": "This warehouse still has stock or reservations. Clear them before deleting it.",
+    "loading": "Loading warehouses…",
+    "select": "Choose a warehouse",
+    "selectionUnavailable": "This warehouse is unavailable. Choose another warehouse to continue.",
+    "listDenied": "You need permission to view warehouses before you can change stock."
   }
 }
