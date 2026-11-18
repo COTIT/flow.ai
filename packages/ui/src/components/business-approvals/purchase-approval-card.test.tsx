@@ -88,6 +88,7 @@ describe("PurchaseApprovalCard", () => {
   it("shows decision buttons only when the API says can_decide", () => {
     expect(html(request())).toContain(">Approve<")
     expect(html(request({ can_decide: false }))).not.toContain(">Approve<")
+    expect(html(request({ can_decide: false }))).toContain("You can&#x27;t decide this request.")
   })
 
   it("lists blocked reasons in words with a mapping link", () => {

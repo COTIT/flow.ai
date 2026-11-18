@@ -223,6 +223,10 @@ export function PurchaseApprovalCard({
         </div>
       ) : null}
 
+      {request.status === "pending" && !request.can_decide ? (
+        <Notice variant="info" live={false} title={t("card.noRight")} />
+      ) : null}
+
       {request.can_decide ? (
         <section className="flex flex-col gap-2" aria-label={t("card.approve")}>
           <Label htmlFor={`${id}-comment`}>{t("card.commentOptional")}</Label>
