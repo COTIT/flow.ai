@@ -49,6 +49,7 @@ pub mod invoices;
 pub mod lots;
 pub mod messages;
 pub mod orders;
+pub mod payables;
 pub mod pdf_templates;
 pub mod permissions;
 pub mod price_corrections;

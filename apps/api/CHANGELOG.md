@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Payables, Flow ERP M5-A (`docs/api/payables.md`; migration `payables`; permission groups `supplierbill`, `supplierpayment`, `purchasereturn`, catalog 57 / 307; cost adjustments use `accounting.*`). Active books only.
+  - Supplier bills: draft, match, post, reverse, each with `/review`. Draft matches reserve receipt capacity under the §11 equation (matchable = booked − unbilled returns − posted matches − draft reservations), computed in SQL `receipt_line_capacity` under receipt-line row locks.
+  - Bill post (SQL `supplier_bill_plan` / `supplier_bill_journal`): DR GRNI at remaining carrying, DR recoverable tax (`tax_line` per line), DR expense lines, ±realized FX, ±pending purchase cost variance, CR AP open item. Landed-cost lines clear their component's GRNI. Duplicate supplier invoice numbers are refused per supplier, currency and book; a reversed bill's number is reusable only through `corrects_bill_id`. A typed reverse releases capacity and closes AP with a supplier-credit twin.
+  - Supplier payments and refunds received at a cash place or bank account. They open supplier-credit / payable items, allocate with realized FX, and reverse only while unapplied.
+  - Purchase returns: goods out at the current average (`Valued::SupplierReturn`). An unbilled line relieves GRNI; a billed line opens a supplier credit at the original bill basis. Explicit purchase-return variance, FX 0. Reverse covers both components only.
+  - Purchase cost adjustments: pending variance split into inventory (value-only pool entry, `value::revalue`) and COGS. Reverse is refused once the pool has moved (`dependent_effects_exist`).
+  - Receipt booking now stores the PO-currency share `doc_value`; lines booked before it can't be billed or returned (422).
+  - Posted payables rows are guarded by trigger.
 - Purchase receipts use the book's business date in the workspace timezone (`docs/api/purchasing.md` "Business date"; no migration). Before an accounting timezone is set, "today" follows `settings.general.timezone` instead of UTC, so a receipt dated today was refused as future for hours each night east of UTC. `PurchaseOrderResource` gains `business_date`; the Office receive dialog offers it instead of the browser's date.
 
 - Linked invoices copy the recognised money (masterplan §12 LATER INVOICE; no migration). An invoice billing recognitions takes subtotal, VAT per rate, total and line amounts from the recognition lines (SQL), never from the pricing engine: on draft creation, any totals recompute (update, issue re-pricing), the detail, the public page, the approval review and the PDF. Total = Σ recognised gross to the cent; issue reclassifies exactly that. Standalone invoices unchanged.

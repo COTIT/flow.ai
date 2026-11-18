@@ -97,6 +97,7 @@ mod member_removal;
 mod money_sql;
 mod numbering;
 mod orders;
+mod payables;
 mod payments;
 mod payments_stripe;
 mod pdf_templates;

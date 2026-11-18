@@ -46,6 +46,10 @@ pub enum Valued {
     /// Stocktake difference (M6) dated `date`: out at the current average; in at `value`
     /// (functional minor units) when the caller found the pool empty, else at the average.
     Count { value: Option<i64>, date: NaiveDate },
+    /// Purchase return (M5-A, D08) dated `date`: out at the current average (`value` None);
+    /// its physical undo back in at exactly `value`. No journal here: the caller posts the
+    /// return's own (GRNI / supplier credit / variance) journal with the value entry's C.
+    SupplierReturn { value: Option<i64>, date: NaiveDate },
 }
 
 const NO_OPENING: &str =
@@ -334,6 +338,22 @@ async fn plan(
                 roles: Some(roles),
             });
         }
+        Valued::SupplierReturn { value, .. } => {
+            let value = match value {
+                None if out => -issue_value(&mut *conn, pool, q).await?,
+                Some(v) if !out => v,
+                _ => return Err(unsupported(UNKNOWN)),
+            };
+            return Ok(Plan {
+                class: if out {
+                    "supplier_return"
+                } else {
+                    "supplier_return_reversal"
+                },
+                value,
+                roles: None,
+            });
+        }
         Valued::Relocate | Valued::Infer => None,
     };
     if let Some((out_class, in_class)) = pair {
@@ -501,6 +521,7 @@ pub async fn on_movement(
         {
             return Err(reason(RECEIPT_BOOKING, BOOK_FIRST));
         }
+        Valued::SupplierReturn { date, .. } => date,
         _ => date,
     };
     if pool.last_date.is_some_and(|last| date < last) {
@@ -591,4 +612,74 @@ pub async fn on_movement(
     .execute(&mut *conn)
     .await?;
     Ok(())
+}
+
+const NO_STOCK_TO_REVALUE: &str =
+    "There is no stock left here to carry this cost. Put it to cost of goods sold instead.";
+
+/// Value-only change of `delta` (functional minor units) to an active pool dated `date`
+/// (M5-A purchase cost adjustment): warehouse SHARE → pool UPDATE, chronology checked, no
+/// journal (the caller posts). Refuses an empty pool and a value below zero (422). The value
+/// entry's (id, sequence).
+pub async fn revalue(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    (product, warehouse): (Uuid, Uuid),
+    delta: i64,
+    date: NaiveDate,
+    (source_kind, source_id): (&str, Uuid),
+) -> Result<(Uuid, i64), AppError> {
+    if !crate::modules::stock::repo::share_warehouse(&mut *conn, ws, warehouse).await? {
+        return Err(AppError::NotFound);
+    }
+    let pool = lock_pool(conn, ws, product, warehouse)
+        .await?
+        .filter(|p| !p.quantity.is_zero())
+        .ok_or_else(|| unsupported(NO_STOCK_TO_REVALUE))?;
+    if pool.last_date.is_some_and(|last| date < last) {
+        return Err(reason(
+            "backdated_valuation",
+            "This stock was already valued on a later date.",
+        ));
+    }
+    let updated = sqlx::query!(
+        "UPDATE inventory_cost_pools
+         SET value = value + $2, last_accounting_date = $3,
+             valuation_sequence = valuation_sequence + 1, version = version + 1, updated_at = now()
+         WHERE id = $1 RETURNING valuation_sequence, value",
+        pool.id,
+        delta,
+        date
+    )
+    .fetch_one(&mut *conn)
+    .await;
+    let (sequence, value_after) = match updated {
+        Ok(r) => (r.valuation_sequence, r.value),
+        Err(e) if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("23514") => {
+            return Err(AppError::Unprocessable(
+                "This would take the stock value below zero.".into(),
+            ));
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let id = sqlx::query_scalar!(
+        "INSERT INTO inventory_value_entries (workspace_id, pool_id, sequence, movement_id,
+             accounting_date, classification, source_kind, source_id, quantity_before,
+             quantity_delta, quantity_after, value_before, value_delta, value_after)
+         VALUES ($1, $2, $3, NULL, $4, 'cost_adjustment', $5, $6, $7, 0, $7, $8, $9, $10)
+         RETURNING id",
+        ws,
+        pool.id,
+        sequence,
+        date,
+        source_kind,
+        source_id,
+        pool.quantity,
+        pool.value,
+        delta,
+        value_after
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    Ok((id, sequence))
 }
