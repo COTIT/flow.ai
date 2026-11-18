@@ -64,6 +64,8 @@ struct Ns {
     token_calls: Arc<AtomicUsize>,
     ttl: Arc<AtomicUsize>,
     stored: Arc<Mutex<Vec<Value>>>,
+    /// Rate NetSuite reports on read for every line (it may differ from the posted one).
+    read_rate: Arc<Mutex<Option<Value>>>,
 }
 
 impl Ns {
@@ -86,6 +88,46 @@ impl Ns {
         po["id"] = json!(id);
         stored.push(po);
         id
+    }
+    /// GET-by-id reply in the documented read shape, built from the stored POST body (C6-F1).
+    /// `refName` text and `taxTotal: 0` are fake values: they copy the documented shape only,
+    /// not NetSuite's real behaviour (the fake does not model names or tax).
+    fn read_shape(&self, po: &Value) -> Value {
+        // facts/netsuite-rest.md:131 a reference is {id, refName}
+        let reference = |r: &Value, kind: &str| json!({"id": r["id"], "refName": format!("Fake {kind} {}", r["id"].as_str().unwrap_or_default())});
+        let num = |v: &Value| Decimal::from_str(&v.to_string()).unwrap();
+        let read_rate = self.read_rate.lock().unwrap().clone();
+        let mut subtotal = Decimal::ZERO;
+        let items: Vec<Value> = po["item"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|l| {
+                let mut line = l.clone();
+                line["item"] = reference(&l["item"], "item");
+                if let Some(rate) = &read_rate {
+                    line["rate"] = rate.clone();
+                }
+                subtotal += num(&line["quantity"]) * num(&line["rate"]);
+                line
+            })
+            .collect();
+        let mut out = po.clone();
+        for field in ["entity", "subsidiary", "currency", "location"] {
+            if !po[field].is_null() {
+                out[field] = reference(&po[field], field);
+            }
+        }
+        let n = items.len();
+        // facts/netsuite-rest.md:156 item collection: items + read-only count, hasMore, offset,
+        // totalResults, links
+        out["item"] = json!({"items": items, "count": n, "hasMore": false, "offset": 0,
+                             "totalResults": n, "links": []});
+        // facts/netsuite-rest.md:146-147 subtotal, taxTotal (numbers)
+        out["subtotal"] =
+            Value::Number(serde_json::Number::from_str(&subtotal.to_string()).unwrap());
+        out["taxTotal"] = json!(0);
+        out
     }
 }
 
@@ -178,7 +220,7 @@ async fn handle(ns: Ns, base: String, req: Request<Body>) -> Response<Body> {
                 &json!({"items": items, "totalResults": items.len()}),
             )
         }
-        // facts/netsuite-rest.md:116 GET by internal id
+        // facts/netsuite-rest.md:116 GET by internal id, documented read shape (C6-F1)
         ("GET", p) if p.starts_with(PO_PATH) => {
             let id = p.rsplit('/').next().unwrap_or_default();
             let found = ns
@@ -189,7 +231,7 @@ async fn handle(ns: Ns, base: String, req: Request<Body>) -> Response<Body> {
                 .find(|s| s["id"] == json!(id))
                 .cloned();
             match found {
-                Some(po) => reply(200, None, &po),
+                Some(po) => reply(200, None, &ns.read_shape(&po)),
                 None => reply(
                     404,
                     None,
@@ -404,6 +446,27 @@ async fn create_401_is_rejected_without_retry() {
     assert_eq!(posts(&ns), 1);
 }
 
+/// C6-N2: a refused token is dropped, so the next call fetches a new one.
+#[tokio::test]
+async fn create_401_forgets_token() {
+    let (ns, base) = fake().await;
+    ns.step(Step::Reply(
+        401,
+        None,
+        ns_error(401, "INVALID_LOGIN", "Invalid login attempt."),
+    ));
+    let c = client(&base);
+    rejected(c.create(&po("vz-1")).await);
+    c.find_by_external_id("vz-1").await.unwrap();
+    assert_eq!(ns.tokens(), 2);
+    let seen = ns.seen();
+    assert_eq!(
+        (seen[0].auth.as_str(), seen[1].auth.as_str()),
+        ("Bearer tok-1", "Bearer tok-2")
+    );
+    assert_eq!(posts(&ns), 1);
+}
+
 #[tokio::test]
 async fn create_that_commits_then_times_out_is_ambiguous_and_found_later() {
     let (ns, base) = fake().await;
@@ -607,6 +670,21 @@ async fn read_normalises_mismatching_values_exactly() {
             .class,
         ErrorClass::Validation
     );
+}
+
+/// C6-F1: the default read path reports NetSuite's stored values, not the posted ones.
+#[tokio::test]
+async fn read_reports_netsuite_rate_not_posted() {
+    let (ns, base) = fake().await;
+    let c = client(&base);
+    let CreateOutcome::Created { id, .. } = c.create(&po("vz-1")).await else {
+        panic!("not created");
+    };
+    *ns.read_rate.lock().unwrap() = Some(json!(10.3));
+    let t = c.read(&id).await.unwrap();
+    assert_eq!(t.lines[0].rate, dec("10.3"));
+    assert_eq!(t.untaxed, Some(dec("30.9")));
+    assert_eq!(t.tax, Some(dec("0")));
 }
 
 #[tokio::test]

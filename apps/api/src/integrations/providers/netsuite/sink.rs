@@ -89,14 +89,12 @@ pub fn normalise(id: &str, v: &Value) -> Result<TargetPo, ProviderError> {
     let need = |field: &str| {
         ref_id(&v[field]).ok_or_else(|| unknown(format!("Purchase order {id} has no {field}.")))
     };
-    let mut lines = Vec::new();
-    for (n, l) in v["item"]["items"]
+    // No `item` list is unknown, not zero lines: GET may omit it (C6-N3, facts N1 UNVERIFIED 1).
+    let items = v["item"]["items"]
         .as_array()
-        .map(Vec::as_slice)
-        .unwrap_or_default()
-        .iter()
-        .enumerate()
-    {
+        .ok_or_else(|| unknown(format!("Purchase order {id} has no item list.")))?;
+    let mut lines = Vec::new();
+    for (n, l) in items.iter().enumerate() {
         let bad = |f: &str| unknown(format!("Purchase order {id} line {n} has no {f}."));
         lines.push(NewPoLine {
             item_id: ref_id(&l["item"]).ok_or_else(|| bad("item"))?,
@@ -201,6 +199,11 @@ impl PurchaseOrderSink for Client {
                 }
             }
             409 => CreateOutcome::Conflict(errors::from_status(409, &reply.body)),
+            // Refused token leaves the cache (C6-N2, as `get_json`); the POST is never retried.
+            401 => {
+                self.forget_token();
+                CreateOutcome::Rejected(errors::from_status(401, &reply.body))
+            }
             400..=499 => CreateOutcome::Rejected(errors::from_status(reply.status, &reply.body)),
             // 5xx, 202 (async), other 2xx/3xx: may have committed.
             s => {
@@ -273,5 +276,33 @@ mod tests {
         assert!(s.contains(r#""rate":0.1234567890123456789"#), "{s}");
         assert!(s.contains(r#""quantity":3.000"#), "{s}");
         assert!(!s.contains("location") && !s.contains("units"));
+    }
+
+    fn head() -> Value {
+        json!({"entity": {"id": "11"}, "subsidiary": {"id": "1"}, "currency": {"id": "2"}})
+    }
+
+    /// C6-N3: a GET may omit `item` (facts N1, UNVERIFIED item 1); that is not zero lines.
+    #[test]
+    fn missing_item_list_is_unknown() {
+        let e = normalise("1", &head()).err().expect("error");
+        assert_eq!(e.class, ErrorClass::Unknown);
+        assert_eq!(e.detail, "Purchase order 1 has no item list.");
+    }
+
+    #[test]
+    fn non_array_item_list_is_unknown() {
+        let mut v = head();
+        v["item"] = json!({"items": "x"});
+        let e = normalise("1", &v).err().expect("error");
+        assert_eq!(e.class, ErrorClass::Unknown);
+        assert_eq!(e.detail, "Purchase order 1 has no item list.");
+    }
+
+    #[test]
+    fn empty_item_array_is_zero_lines() {
+        let mut v = head();
+        v["item"] = json!({"items": []});
+        assert!(normalise("1", &v).unwrap().lines.is_empty());
     }
 }
