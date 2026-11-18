@@ -111,28 +111,7 @@ async fn credit_item(p: &Paying, amount: i64) -> Uuid {
 /// the day they are confirmed); `open` adds the invoice's receivable item.
 async fn book(pool: PgPool, open: bool) -> Paying {
     let p = paying(pool, false).await;
-    let today = chrono::Utc::now().date_naive();
-    let first = |y, m| chrono::NaiveDate::from_ymd_opt(y, m, 1).unwrap();
-    use chrono::Datelike;
-    let (y, m) = (today.year(), today.month());
-    let next = if m == 12 {
-        first(y + 1, 1)
-    } else {
-        first(y, m + 1)
-    };
-    if y < 2027 {
-        let year =
-            p.w.create(
-                "/fiscal-years",
-                json!({"start_date": first(y, 1), "end_date": first(y + 1, 1)}),
-            )
-            .await;
-        p.w.create(
-            "/periods",
-            json!({"fiscal_year_id": year["id"], "start_date": first(y, m), "end_date": next}),
-        )
-        .await;
-    }
+    today_period(&p.w).await;
     if open {
         open_receivable(&p).await;
     }
@@ -145,6 +124,57 @@ async fn paid(p: &Paying) -> (i64, String) {
         .fetch_one(&p.w.pool)
         .await
         .unwrap()
+}
+
+/// Activate `api`'s book (roles mapped, EUR, 2027 plus a period holding today): provider
+/// facts post on the day they are confirmed.
+pub(crate) async fn active_today(api: &crate::common::Api) -> crate::accounting::World {
+    let eur: String = sqlx::query_scalar(
+        "SELECT id::text FROM currencies WHERE workspace_id = $1::uuid AND asset_type = 'eur'",
+    )
+    .bind(&api.ws)
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    let mut w = crate::accounting::World {
+        app: api.app.clone(),
+        pool: api.pool.clone(),
+        owner: api.owner.clone(),
+        ws: api.ws.clone(),
+        eur,
+        roles: Default::default(),
+        expense: String::new(),
+        income: String::new(),
+    };
+    w.ready().await;
+    today_period(&w).await;
+    w.activate().await;
+    w
+}
+
+async fn today_period(w: &crate::accounting::World) {
+    use chrono::Datelike;
+    let today = chrono::Utc::now().date_naive();
+    let first = |y, m| chrono::NaiveDate::from_ymd_opt(y, m, 1).unwrap();
+    let (y, m) = (today.year(), today.month());
+    let next = if m == 12 {
+        first(y + 1, 1)
+    } else {
+        first(y, m + 1)
+    };
+    if y < 2027 {
+        let year = w
+            .create(
+                "/fiscal-years",
+                json!({"start_date": first(y, 1), "end_date": first(y + 1, 1)}),
+            )
+            .await;
+        w.create(
+            "/periods",
+            json!({"fiscal_year_id": year["id"], "start_date": first(y, m), "end_date": next}),
+        )
+        .await;
+    }
 }
 
 fn action(version: i64, payload: Value) -> Value {
@@ -551,4 +581,43 @@ async fn exceptions_stay_in_their_workspace(pool: PgPool) {
         let (s, _) = p.w.call(method, &path, body, &other).await;
         assert_eq!(s, StatusCode::NOT_FOUND, "{path}");
     }
+}
+
+/// Retry and resolve need accounting.post; a read-only member can only read.
+#[sqlx::test]
+async fn read_only_members_cannot_retry_or_resolve(pool: PgPool) {
+    let p = book(pool, false).await;
+    let op = operation(&p, None, None, 10_000).await;
+    collect(&p, &op).await;
+    let id = exception(&p).await["id"].as_str().unwrap().to_owned();
+    let reader = crate::common::member_with(
+        &p.w.app,
+        &p.w.pool,
+        &p.w.ws,
+        "rae@example.com",
+        &["accounting.read"],
+    )
+    .await;
+    let (s, _) =
+        p.w.call(Method::GET, &format!("/exceptions/{id}"), None, &reader)
+            .await;
+    assert_eq!(s, StatusCode::OK);
+    for (path, body) in [
+        (format!("/exceptions/{id}/retry"), action(1, json!({}))),
+        (
+            format!("/exceptions/{id}/resolve/review"),
+            json!({"resolution":"write_off","reason":"r","evidence_ref":"e"}),
+        ),
+        (
+            format!("/exceptions/{id}/resolve"),
+            action(
+                1,
+                json!({"resolution":"write_off","reason":"r","evidence_ref":"e","review_fingerprint":"x"}),
+            ),
+        ),
+    ] {
+        let (s, _) = p.w.call(Method::POST, &path, Some(body), &reader).await;
+        assert_eq!(s, StatusCode::FORBIDDEN, "{path}");
+    }
+    assert_eq!(exception(&p).await["attempts"], 1);
 }
