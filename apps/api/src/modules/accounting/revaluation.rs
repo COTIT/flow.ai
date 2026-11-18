@@ -476,7 +476,6 @@ pub(crate) async fn latest(
 /// "Revaluation done for period" (for period close): true when no open foreign monetary item
 /// needs it (none, or all left out), or when the latest run, recomputed at its rate date, has
 /// nothing left to post. A missing rate or closed period surfaces as its 422.
-#[expect(dead_code, reason = "caller is period close (later M5)")]
 pub(crate) async fn current(
     conn: &mut PgConnection,
     ws: Uuid,

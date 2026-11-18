@@ -60,7 +60,7 @@ Resources carry `roles` (the roles mapped to the account).
 - `GET/POST /fiscal-years` (`accounting_years_list` / `accounting_years_create`): payload `{start_date, end_date}`. At most 24 months long, never overlapping another year.
 - `GET/POST /periods` (`accounting_periods_list` / `accounting_periods_create`): payload `{fiscal_year_id, start_date, end_date}`. Must lie inside an open fiscal year and never overlap another period.
 
-Both are enforced again by database triggers. Close arrives in M5.
+Both are enforced again by database triggers. Close: see "Period close and year-end close (M5-E)". `allowed_actions`: an open year `["close"]`; an open period `["revalue", "close"]`, or `["revalue"]` when it is the final period (it ends on its year's end); closed: `[]`.
 
 ## Journals
 
@@ -267,13 +267,59 @@ Rules:
 
 Response (`RevaluationResource`): `id` (null on review), `period_id`, `period_version`, `rate_date`, `accounting_date`, `functional_currency`, `rates[]` (`currency`, `rate`, `inverse`, `source`, `effective_on`), `items[]` (`open_item_id`, `classification`, `relation_id`, `currency`, `residual`, `carrying`, `revalued`, `delta`, `journal_id`), `not_revalued[]` (`open_item_id`, `reason`), `review_fingerprint`.
 
-`PeriodResource` gains `last_revaluation` (`id`, `rate_date`, `accounting_date`, `created_at`, or null) and `allowed_actions: ["revalue"]` while open. For period close, `revaluation::current(period)` says whether revaluation is done: no in-scope item needs it, or the latest run recomputed at its rate date has nothing left to post.
+`PeriodResource` gains `last_revaluation` (`id`, `rate_date`, `accounting_date`, `created_at`, or null) and `allowed_actions: ["revalue"]` while open. The period close's `fx_revaluation` check uses `revaluation::current(period)`: whether revaluation is done: no in-scope item needs it, or the latest run recomputed at its rate date has nothing left to post.
 
 Known limits: foreign bank-account and cash-place balances are not revalued (the book keeps no transaction-currency balance for them); revaluation is not reversed in the next period.
 
+## Period close and year-end close (M5-E)
+
+Active books only; a setup book gets 422 `accounting_not_configured`. Masterplan §13 "PERIOD CLOSE" and "YEAR-END — FINAL ORDER". There is no reopen route and no year-end reversal; later errors use current-period source corrections.
+
+### GET /accounting/reports/close-checks?period_id= (`accounting_close_checks`, `accounting.read`)
+
+Runs the checks of an open period as of its last day (`end_date − 1`). No writes. Unknown period or another workspace: 404. Closed period or year: 422 `accounting_period_closed`.
+
+| `code` | Blocks when |
+|---|---|
+| `missing_effects` | a provider observation that occurred (book timezone) by the cutoff still has its source link `pending_observation` |
+| `unbalanced_journals` | a posted journal in the period has functional debits ≠ credits |
+| `inventory_difference` | inventory valuation on the cutoff differs from the `inventory` GL balance |
+| `open_item_control_difference` | for an account holding open items, the posted GL balance on the cutoff ≠ Σ open-item carrying rebuilt as of the cutoff (allocations and carrying adjustments dated by then; debit items +, credit items −) |
+| `unbooked_receipts` | a receipt line dated in the period is not booked (late lines included) |
+| `pending_cost_variance` | the `pending_purchase_cost_variance` balance on the cutoff is not 0 |
+| `fx_revaluation` | an open foreign monetary item still needs revaluation, or its closing rate is missing |
+| `pending_exceptions` | a pending accounting exception whose observation occurred by the cutoff |
+
+Not blockers (never queried): recognized unbilled deliveries, anonymous Till receipts, ordinary unpaid invoices, draft credits, checkouts never submitted financially.
+
+Response (`CloseChecksResource`): `period_id`, `period_version`, `fiscal_year_id`, `accounting_date` (cutoff), `final_period`, `checks[]` (`code`, `passed`, `count`), `ready`, `checks_fingerprint`.
+
+### POST /accounting/periods/{id}/close (`accounting_periods_close`, `accounting.close`)
+
+A envelope `{client_ref, expected_version, payload: {checks_fingerprint}}` on the period version, Idempotency-Key; replay by `client_ref` returns the stored answer. Takes the exclusive book gate, locks the period and rechecks. Order of refusals: 404; 422 `accounting_not_configured`; 422 `accounting_period_closed`; final period 422 `unsupported_active_erp_operation` ("Close it with the year-end close."); changed version or checks 409 `stale_document`; a failing check 422 with the first failing check's reason (`unbooked_receipts` → `receipt_booking_required`; `missing_effects` / `pending_exceptions` → `external_financial_fact_pending`; others `unsupported_active_erp_operation`) and every failing code in the message. Success: the `PeriodResource`, state `closed`, version + 1. Earlier periods need not be closed first.
+
+A closed period refuses every posting dated in it (422 `accounting_period_closed`). A posting holds the gate shared, so one racing a close either commits before it or sees the closed period.
+
+### POST /accounting/fiscal-years/{id}/close/review and /close (`accounting_year_close`, `accounting.close`)
+
+Review: no body, no writes. Close: A envelope `{client_ref, expected_version, payload: {review_fingerprint}}` on the year version, Idempotency-Key. In one transaction under the exclusive gate:
+
+1. Lock the year and its periods. Year closed: 422 `accounting_period_closed`.
+2. The periods must tile the year with no gap, the last ending on the year's end; every earlier period closed. Otherwise 422 `unsupported_active_erp_operation`.
+3. The final period stays open; its close checks run (failing: 422 as above).
+4. Closing lines, in SQL: each income/expense account's posted year balance (all kinds) reversed; the net to `retained_earnings` (omitted when income equals expense).
+5. Effect (`year_end_close`, year id, `posted`), unique per year. With any line: one posted `year_end_close` journal dated the final period's last day.
+6. Close the final period and the year (each version + 1).
+
+A year with no income or expense balance closes with `journal_id` null; its effect still records the close. Response (`YearCloseResource`): `fiscal_year_id`, `fiscal_year_version`, `final_period_id`, `accounting_date`, `functional_currency`, `checks[]`, `lines[]` (`account_id`, `debit`, `credit`), `net_income`, `review_fingerprint`, `journal_id`, `effect_id` (both null on review). Changed version or facts: 409 `stale_document`.
+
+Reports: P&L leaves out `year_end_close` journals; trial balance and general ledger include them; the balance sheet's `current_earnings` holds only earnings not yet closed, so earnings count once.
+
+Known limits: "unresolved opening controls" is not checked yet (the opening baseline tables arrive in M6). Bank reconciliation is not a close check (§13 doesn't list it).
+
 ## Permissions
 
-`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` and `accounting.revalue` are used now. `accounting.reconcile`, `accounting.close` and `accounting.activate` are catalogued for later milestones.
+`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse`, `accounting.revalue`, `accounting.reconcile` and `accounting.close` are used now. `accounting.activate` is catalogued for a later milestone.
 
 ## Provider observations
 

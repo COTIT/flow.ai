@@ -73,6 +73,8 @@ mod payables;
 mod payments;
 #[path = "api/payments_stripe.rs"]
 mod payments_stripe;
+#[path = "api/period_close.rs"]
+mod period_close;
 #[path = "api/provider_observations.rs"]
 mod provider_observations;
 #[path = "api/purchasing.rs"]

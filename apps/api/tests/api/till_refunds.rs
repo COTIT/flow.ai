@@ -14,13 +14,13 @@ use crate::{
 };
 
 /// Active till world with one cash sale of 3 honey on register 1 (gross 32.73, cash 32.75).
-struct R {
-    w: W,
+pub(crate) struct R {
+    pub(crate) w: W,
     order: String,
     line: String,
 }
 
-async fn world(pool: PgPool) -> R {
+pub(crate) async fn world(pool: PgPool) -> R {
     let w = t::world(pool).await;
     t::activate_with_stock(&w).await;
     sold(w, t::cash(5000)).await
@@ -61,7 +61,7 @@ async fn req(
 }
 
 /// Review then post a till return of `q` honey; (status, body of the failing or final call).
-async fn till_return(r: &R, q: &str, restock: bool) -> (StatusCode, Value) {
+pub(crate) async fn till_return(r: &R, q: &str, restock: bool) -> (StatusCode, Value) {
     let path = format!("/till/sales/{}/returns", r.order);
     let input = json!({ "lines": [{ "original_line_id": r.line, "quantity": q }],
                         "restock": restock, "reason": "damaged jar" });
@@ -134,7 +134,7 @@ async fn refund_as(r: &R, member: &str, till: &str, input: Value) -> (StatusCode
     .await
 }
 
-async fn refund(
+pub(crate) async fn refund(
     r: &R,
     item: &str,
     amount: i64,

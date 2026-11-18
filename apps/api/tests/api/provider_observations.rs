@@ -11,7 +11,12 @@ use uuid::Uuid;
 use crate::settlement::{Paying, paying};
 
 /// A Globadyme operation row on the paying invoice (`note` makes it a refund of `parent`).
-async fn operation(p: &Paying, note: Option<Uuid>, parent: Option<Uuid>, amount: i64) -> Operation {
+pub(crate) async fn operation(
+    p: &Paying,
+    note: Option<Uuid>,
+    parent: Option<Uuid>,
+    amount: i64,
+) -> Operation {
     let ws: Uuid = p.w.ws.parse().unwrap();
     let invoice: Uuid = p.invoice.parse().unwrap();
     let id = Uuid::now_v7();
@@ -28,7 +33,7 @@ async fn operation(p: &Paying, note: Option<Uuid>, parent: Option<Uuid>, amount:
         .unwrap()
 }
 
-async fn collect(p: &Paying, op: &Operation) {
+pub(crate) async fn collect(p: &Paying, op: &Operation) {
     let ws = p.w.ws.parse().unwrap();
     let mut tx = p.w.pool.begin().await.unwrap();
     gateway::apply_collection(
@@ -109,7 +114,7 @@ async fn credit_item(p: &Paying, amount: i64) -> Uuid {
 
 /// A paying invoice in an active book whose open period holds today (provider facts post on
 /// the day they are confirmed); `open` adds the invoice's receivable item.
-async fn book(pool: PgPool, open: bool) -> Paying {
+pub(crate) async fn book(pool: PgPool, open: bool) -> Paying {
     let p = paying(pool, false).await;
     today_period(&p.w).await;
     if open {

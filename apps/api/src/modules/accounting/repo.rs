@@ -279,6 +279,8 @@ pub struct RangeRow {
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Period ends on its year's end (always false for a year).
+    pub final_period: bool,
 }
 
 /// One page of fiscal years by start, or the one with `id`.
@@ -292,7 +294,7 @@ pub async fn years(
     sqlx::query_as!(
         RangeRow,
         r#"SELECT id, NULL::uuid AS fiscal_year_id, start_date, end_date, state, version,
-                  created_by, created_at, updated_at
+                  created_by, created_at, updated_at, false AS "final_period!"
            FROM accounting_fiscal_years
            WHERE workspace_id = $1 AND ($2::uuid IS NULL OR id = $2)
            ORDER BY start_date LIMIT $3 OFFSET $4"#,
@@ -315,11 +317,14 @@ pub async fn periods(
 ) -> Result<Vec<RangeRow>, sqlx::Error> {
     sqlx::query_as!(
         RangeRow,
-        r#"SELECT id, fiscal_year_id AS "fiscal_year_id?", start_date, end_date, state, version,
-                  created_by, created_at, updated_at
-           FROM accounting_periods
-           WHERE workspace_id = $1 AND ($2::uuid IS NULL OR id = $2)
-           ORDER BY start_date LIMIT $3 OFFSET $4"#,
+        r#"SELECT p.id, p.fiscal_year_id AS "fiscal_year_id?", p.start_date, p.end_date, p.state,
+                  p.version, p.created_by, p.created_at, p.updated_at,
+                  EXISTS (SELECT 1 FROM accounting_fiscal_years y
+                          WHERE y.workspace_id = p.workspace_id AND y.id = p.fiscal_year_id
+                            AND y.end_date = p.end_date) AS "final_period!"
+           FROM accounting_periods p
+           WHERE p.workspace_id = $1 AND ($2::uuid IS NULL OR p.id = $2)
+           ORDER BY p.start_date LIMIT $3 OFFSET $4"#,
         ws,
         id,
         limit,

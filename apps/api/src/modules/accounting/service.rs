@@ -303,6 +303,11 @@ pub async fn update_account(
 }
 
 fn year_resource(r: RangeRow, ws: Uuid) -> YearResource {
+    let actions = if r.state == "open" {
+        vec!["close"]
+    } else {
+        vec![]
+    };
     YearResource {
         id: r.id,
         workspace_id: ws,
@@ -313,13 +318,22 @@ fn year_resource(r: RangeRow, ws: Uuid) -> YearResource {
         created_by: r.created_by,
         created_at: r.created_at,
         updated_at: r.updated_at,
-        // shortcut: year close arrives in M5; no actions until then.
-        allowed_actions: vec![],
+        allowed_actions: actions,
     }
 }
 
-fn period_resource(r: RangeRow, ws: Uuid, last: Option<RevaluationRef>) -> PeriodResource {
+pub(crate) fn period_resource(
+    r: RangeRow,
+    ws: Uuid,
+    last: Option<RevaluationRef>,
+) -> PeriodResource {
     let open = r.state == "open";
+    // The final period closes only through the year-end close.
+    let actions = match (open, r.final_period) {
+        (true, false) => vec!["revalue", "close"],
+        (true, true) => vec!["revalue"],
+        _ => vec![],
+    };
     PeriodResource {
         id: r.id,
         workspace_id: ws,
@@ -332,8 +346,7 @@ fn period_resource(r: RangeRow, ws: Uuid, last: Option<RevaluationRef>) -> Perio
         created_at: r.created_at,
         updated_at: r.updated_at,
         last_revaluation: last,
-        // shortcut: period close arrives later in M5.
-        allowed_actions: if open { vec!["revalue"] } else { vec![] },
+        allowed_actions: actions,
     }
 }
 
