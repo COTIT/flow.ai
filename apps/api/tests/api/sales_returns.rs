@@ -1038,3 +1038,133 @@ async fn deleting_a_draft_credit_note_frees_its_capacity(pool: PgPool) {
         .unwrap();
     assert_eq!(state, "cancelled");
 }
+
+// --- concurrency and permissions -------------------------------------------------------------
+
+#[sqlx::test]
+async fn concurrent_credits_never_exceed_the_recognised_quantity(pool: PgPool) {
+    let (s, _, _, rec, line) = shipped(pool).await;
+    // Two drafts of the whole line at once: the recognition lock lets one reserve it.
+    let whole = [(line, "2")];
+    let (a, b) = tokio::join!(draft(&s, rec, &whole), draft(&s, rec, &whole));
+    let mut st = [a.0, b.0];
+    st.sort();
+    assert_eq!(
+        st,
+        [StatusCode::CREATED, StatusCode::UNPROCESSABLE_ENTITY],
+        "{} {}",
+        a.1,
+        b.1
+    );
+    let won = if a.0 == StatusCode::CREATED { a.1 } else { b.1 };
+    let (st, _) = s
+        .post(
+            &format!(
+                "/sales-returns/{}/cancel",
+                won["data"]["id"].as_str().unwrap()
+            ),
+            action(&won["data"]["version"], json!({ "reason": "redo" })),
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK);
+    // Two drafts of one unit each, posted at once: both post, together the exact sale.
+    let (_, d1) = draft(&s, rec, &[(line, "1")]).await;
+    let (_, d2) = draft(&s, rec, &[(line, "1")]).await;
+    let (p1, p2) = tokio::join!(post_return(&s, &d1["data"]), post_return(&s, &d2["data"]));
+    assert_eq!(
+        (p1.0, p2.0),
+        (StatusCode::OK, StatusCode::OK),
+        "{} {}",
+        p1.1,
+        p2.1
+    );
+    let posted: (String, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT trim_scale(sum(x.quantity))::text FROM sales_return_lines x
+                 JOIN sales_returns r ON r.id = x.return_id
+                 WHERE r.recognition_id = $1 AND r.state = 'posted'),
+                sum(net)::int8, sum(tax)::int8
+         FROM sales_returns WHERE recognition_id = $1 AND state = 'posted'",
+    )
+    .bind(rec)
+    .fetch_one(s.pool())
+    .await
+    .unwrap();
+    let (net, tax) = recognised(&s, rec).await;
+    assert_eq!(posted, ("2".into(), net, tax));
+    crate::inventory_valuation::assert_books(s.pool(), s.ws()).await;
+}
+
+#[sqlx::test]
+async fn members_without_post_or_reverse_are_refused(pool: PgPool) {
+    let (s, _, _, rec, line) = shipped(pool).await;
+    let p = credit(&s, rec, &[(line, "1")]).await;
+    let (_, d) = draft(&s, rec, &[(line, "1")]).await;
+    let reader = crate::common::member_with(
+        &s.api.app,
+        s.pool(),
+        s.ws(),
+        "r@example.com",
+        &["salesreturn.get", "salesreturn.list", "salesreturn.create"],
+    )
+    .await;
+    let ws = s.ws().to_owned();
+    let (pid, did) = (p["id"].as_str().unwrap(), d["data"]["id"].as_str().unwrap());
+    let l = p["lines"][0]["id"].clone();
+    for (path, body) in [
+        (format!("/sales-returns/{did}/post/review"), json!({})),
+        (
+            format!("/sales-returns/{did}/post"),
+            action(&d["data"]["version"], json!({ "review_fingerprint": "00" })),
+        ),
+        (
+            format!("/sales-returns/{pid}/restock"),
+            action(
+                &p["version"],
+                json!({ "lines": restock_lines(&[(&l, "1")], &s.main, None), "review_fingerprint": "00" }),
+            ),
+        ),
+        (
+            format!("/sales-returns/{pid}/reverse"),
+            action(
+                &p["version"],
+                json!({ "accounting_date": today(), "reason": "x", "review_fingerprint": "00" }),
+            ),
+        ),
+        (
+            format!("/sales-returns/{pid}/restocks/{}/reverse", Uuid::now_v7()),
+            action(
+                &p["version"],
+                json!({ "reason": "x", "review_fingerprint": "00" }),
+            ),
+        ),
+        (
+            "/legacy-return-costs".to_owned(),
+            json!({ "client_ref": Uuid::now_v7(), "payload": {} }),
+        ),
+    ] {
+        let key = Uuid::now_v7().to_string();
+        let (st, b) = s
+            .req_as(Method::POST, &path, Some(body), Some(&key), &reader, &ws)
+            .await;
+        assert_eq!(st, StatusCode::FORBIDDEN, "{path}: {b}");
+    }
+    // Reading and drafting stay allowed.
+    let (st, _) = s
+        .req_as(
+            Method::GET,
+            &format!("/sales-returns/{pid}"),
+            None,
+            None,
+            &reader,
+            &ws,
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK);
+    assert_eq!(
+        s.count(
+            "SELECT count(*) FROM sales_returns WHERE workspace_id = $1::uuid AND state = 'posted'"
+        )
+        .await,
+        1
+    );
+}
