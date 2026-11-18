@@ -299,23 +299,10 @@ pub async fn execute(
     }
 
     // Granted attempt: wait out NetSuite's 15-minute request cap (facts N5 l.244).
-    if e.remote_attempts > 0 && !window_open(db, e.id).await? {
-        let patch = Patch {
-            error_detail: Some(WINDOW.into()),
-            ..Patch::default()
-        };
-        // shortcut: no NewJob run_at; the 1-minute tick backstop re-enqueues queued rows.
-        executions::transition(
-            db,
-            j.ws,
-            e.id,
-            j.token,
-            &[Status::Running],
-            Status::Queued,
-            patch,
-        )
-        .await?;
-        return Ok(Step::Done);
+    if e.remote_attempts > 0
+        && let Some(earliest) = window_closed(db, e.id).await?
+    {
+        return wait_window(db, j, &e, earliest).await;
     }
 
     let po = new_po(&e).ok_or_else(|| AppError::Internal("wf01 snapshot incomplete".into()))?;
@@ -735,15 +722,69 @@ async fn approver_holds(db: &PgPool, ws: Uuid, e: &Loaded) -> Result<bool, AppEr
     .await?)
 }
 
-/// True once the newest attempt's write intent is older than NetSuite's 15-minute request cap.
-async fn window_open(db: &PgPool, id: Uuid) -> Result<bool, AppError> {
+/// Earliest time a granted attempt may write, while the newest write intent is younger than
+/// NetSuite's 15-minute request cap; None once it is older.
+async fn window_closed(
+    db: &PgPool,
+    id: Uuid,
+) -> Result<Option<chrono::DateTime<chrono::Utc>>, AppError> {
     Ok(sqlx::query_scalar!(
-        r#"SELECT coalesce(max(write_intent_at) + interval '15 minutes' <= now(), true) AS "x!"
-           FROM workflow_execution_attempts WHERE execution_id = $1"#,
+        r#"SELECT max(write_intent_at) + interval '15 minutes' AS "t?"
+           FROM workflow_execution_attempts WHERE execution_id = $1
+           HAVING max(write_intent_at) + interval '15 minutes' > now()"#,
         id,
     )
-    .fetch_one(db)
-    .await?)
+    .fetch_optional(db)
+    .await?
+    .flatten())
+}
+
+/// Too early: fenced `running → queued`, no write intent; the 1-minute tick backstop runs it
+/// again. `retry_window_wait` is logged once per attempt, not per tick.
+async fn wait_window(
+    db: &PgPool,
+    j: &Job,
+    e: &Loaded,
+    earliest: chrono::DateTime<chrono::Utc>,
+) -> Result<Step, AppError> {
+    let mut tx = db.begin().await?;
+    let patch = Patch {
+        error_detail: Some(WINDOW.into()),
+        ..Patch::default()
+    };
+    let running = &[Status::Running];
+    if !executions::transition(
+        &mut *tx,
+        j.ws,
+        e.id,
+        j.token,
+        running,
+        Status::Queued,
+        patch,
+    )
+    .await?
+    {
+        return Ok(Step::Done);
+    }
+    let logged = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM workflow_events WHERE workspace_id = $1
+               AND execution_id = $2 AND kind = 'retry_window_wait' AND attempt_no = $3) AS "x!""#,
+        j.ws,
+        e.id,
+        e.latest_no,
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+    if !logged {
+        let at = EventRef {
+            attempt_no: e.latest_no,
+            ..e.at()
+        };
+        let p = json!({"earliest": earliest});
+        events::record(&mut *tx, j.ws, at, "retry_window_wait", p, Actor::System).await?;
+    }
+    tx.commit().await?;
+    Ok(Step::Done)
 }
 
 /// The approved action (snapshot §5.4) as the PO to create. P3: values unchanged.

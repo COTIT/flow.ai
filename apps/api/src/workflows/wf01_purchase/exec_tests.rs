@@ -498,13 +498,31 @@ async fn t27_not_found_never_proof_grant_one_more_after_window(pool: PgPool) {
     assert_eq!(x.posts(), 1);
 
     x.grant(e).await;
-    // Too early: the first request may still land (facts N5 l.244, 15 min).
-    assert_eq!(x.exec(e).await, Step::Done);
-    assert_eq!(x.posts(), 1);
-    let r = x.row(e).await;
-    assert_eq!((r.status.as_str(), r.remote_attempts), ("queued", 1));
+    // Too early: the first request may still land (facts N5 l.244, 15 min). Each tick-driven
+    // run is a no-op (no write intent, no POST); the wait is logged once.
+    let tick_run = async || {
+        tick::enqueue_queued_executions(&x.w.pool).await.unwrap();
+        let c = x.claim().await;
+        assert_eq!(x.run(job_of(&c, e)).await, Step::Done);
+        jobs::finish(&x.w.pool, c.id, c.token).await.unwrap();
+    };
+    for _ in 0..2 {
+        tick_run().await;
+        assert_eq!(x.posts(), 1);
+        let r = x.row(e).await;
+        assert_eq!((r.status.as_str(), r.remote_attempts), ("queued", 1));
+    }
+    let waits: Vec<Value> = sqlx::query_scalar(
+        "SELECT payload FROM workflow_events WHERE execution_id = $1 AND kind = 'retry_window_wait'",
+    )
+    .bind(e)
+    .fetch_all(&x.w.pool)
+    .await
+    .unwrap();
+    assert_eq!(waits.len(), 1, "logged once, not per tick");
+    assert!(waits[0]["earliest"].is_string());
     backdate_intent(&x, e, 16).await;
-    assert_eq!(x.exec(e).await, Step::Done);
+    tick_run().await;
     let posts = fake_netsuite::posts(&x.ns);
     assert_eq!(posts.len(), 2);
     let eid = |p: &fake_netsuite::Seen| {

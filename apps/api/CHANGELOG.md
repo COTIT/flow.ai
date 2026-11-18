@@ -17,7 +17,7 @@
     - `cancelled` (+ approval invalidated and next revision);
     - `failed` `attempts_exhausted`.
   - **429 or not-sent:** the attempt is `rejected` / `not_sent` and the run waits in reconciliation for a person to allow one more attempt.
-  - **Granted attempts** wait 15 minutes after the previous write intent.
+  - **Granted attempts** wait 15 minutes after the previous write intent. Until then each run is a no-op, and the wait is logged once as `retry_window_wait`.
   - **A stale worker** only leaves `stale_worker_result` evidence.
   - **`wf01_reconcile`:** reads back created ids, stale evidence, then the externalId lookup. A miss never counts as proof; after 10 checks a person decides.
   - **`link_existing`** now reads and verifies the PO (match → `succeeded`; differences → `resolved_manual` `linked_with_differences`). It no longer returns 503 `link_unavailable`; an unreadable id → 422, NetSuite unreachable → 503.
