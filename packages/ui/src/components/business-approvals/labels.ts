@@ -34,6 +34,7 @@ export const CODES = {
     "amount_not_exact",
     "rate_precision",
     "untotalled_lines",
+    "downpayment_line",
     "connection_inactive",
   ],
   invalidated: [
@@ -53,6 +54,7 @@ export const CODES = {
     "approver_revoked",
     "rate_precision",
     "untotalled_lines",
+    "downpayment_line",
     "pair_paused",
     "source_changed",
     "attempts_exhausted",

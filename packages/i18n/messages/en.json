@@ -84,6 +84,7 @@
       "amount_not_exact": "The amount cannot be copied exactly",
       "rate_precision": "A price has more decimals than NetSuite takes",
       "untotalled_lines": "Some lines have no total",
+      "downpayment_line": "This RFQ has a down-payment line, which WF-01 doesn't support",
       "connection_inactive": "A connection is not active",
       "unknown": "Blocked for another reason"
     },
@@ -105,6 +106,7 @@
       "approver_revoked": "The approver lost the right to approve",
       "rate_precision": "A price has more decimals than NetSuite takes",
       "untotalled_lines": "Some lines have no total",
+      "downpayment_line": "This RFQ has a down-payment line, which WF-01 doesn't support",
       "pair_paused": "The workflow is paused",
       "source_changed": "The Odoo order changed",
       "attempts_exhausted": "Gave up after several tries",

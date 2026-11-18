@@ -244,6 +244,15 @@ order.amount_untaxed = tax_totals['base_amount_currency']
 - **Price-included taxes** ("included" or "mixed" mode, [#L2047-L2075](https://github.com/odoo/odoo/blob/61d8ae93ae5d2af016a794f67df3f1bb3df1d94f/addons/account/models/account_tax.py#L2047-L2075)): **PARTIAL**, not traced to a closed formula.
 - **No sandbox run.** These rules come from reading code only. Golden values for T30 should be confirmed on live instance L1.
 
+### Line: `is_downpayment` (C6-O1) — **VERIFIED (code)**
+
+Constraint at [GH/addons/purchase/models/purchase_order_line.py#L105-L107](https://github.com/odoo/odoo/blob/61d8ae93ae5d2af016a794f67df3f1bb3df1d94f/addons/purchase/models/purchase_order_line.py#L105-L107): an accountable line needs a product unless it is a down-payment line ("CHECK(display_type IS NOT NULL OR is_downpayment OR (product_id IS NOT NULL …").
+
+- `product_id` and `product_uom_id` have no `required=True` (lines 43-44 of the same file).
+- WF-01 reads `is_downpayment` in `LINE_FIELDS`. A down-payment line is kept (its `price_subtotal` counts), flagged `downpayment`, with `product_id`/`uom_id` = `""` when Odoo sends `false`.
+- WF-01 does not support it: intake blocks the RFQ with `downpayment_line`; the executor blocks with the same code if a line turns into one after approval.
+- **UNVERIFIED:** whether a down-payment line can exist on a `draft` or `sent` RFQ. `_create_downpayments` (`purchase_order.py#L744`) was not traced.
+
 ---
 
 ## UNVERIFIED (Odoo)

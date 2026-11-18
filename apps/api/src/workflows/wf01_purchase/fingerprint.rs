@@ -67,6 +67,7 @@ mod tests {
             subtotal: Decimal::from_str("300").unwrap(),
             tax_ids: taxes.iter().map(|t| t.to_string()).collect(),
             date_planned: Some("2026-11-20 00:00:00".into()),
+            downpayment: false,
         }
     }
 

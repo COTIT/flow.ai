@@ -482,6 +482,39 @@ async fn t30_rate_precision_blocks(pool: PgPool) {
     assert_eq!(w.history(17).await[0].3, vec!["rate_precision"]);
 }
 
+// C6-O1: a down-payment line (no product) blocks only its RFQ, in words; the batch carries on.
+#[sqlx::test]
+async fn o1_downpayment_line_blocks_only_its_rfq(pool: PgPool) {
+    let w = world(pool).await;
+    let mut o = Order::draft(T0, 55);
+    o.lines.push(Line {
+        id: 56,
+        product: 0,
+        qty: "1.0",
+        price: "50.0",
+        subtotal: "50.00",
+        taxes: vec![],
+        downpayment: true,
+        ..o.lines[0].clone()
+    });
+    o.untaxed = "350.00";
+    o.total = "413.00";
+    w.put(17, o);
+    w.put(18, Order::draft(T0, 65));
+    assert_eq!(w.poll().await.unwrap(), Step::Done);
+    let h = w.history(17).await;
+    assert_eq!(h[0].1, "blocked");
+    assert_eq!(h[0].3, vec!["downpayment_line"], "no unmapped noise");
+    let (_, _, snap) = w.latest(17).await;
+    assert_eq!(
+        snap["lines"].as_array().unwrap().len(),
+        2,
+        "money never dropped"
+    );
+    assert_eq!(snap["amount_untaxed_minor"], 35000);
+    assert_eq!(status(&w.history(18).await), [(1, "pending", None)]);
+}
+
 // PLAN 17: a crash mid-page rolls the page back; the cursor stays; the rerun makes no duplicate.
 #[sqlx::test]
 async fn t17_crash_mid_page_keeps_cursor_and_no_duplicates(pool: PgPool) {

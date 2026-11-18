@@ -30,6 +30,8 @@ pub struct Line {
     pub price: &'static str,
     pub subtotal: &'static str,
     pub taxes: Vec<i64>,
+    /// Odoo `is_downpayment`; with `product: 0` the line has no product or uom (`false`).
+    pub downpayment: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -67,6 +69,7 @@ impl Order {
                 price: "150.0",
                 subtotal: "300.00",
                 taxes: vec![1],
+                downpayment: false,
             }],
         }
     }
@@ -179,8 +182,10 @@ fn answer(db: &Db, path: &str, body: &Value) -> Value {
                 {
                     out.push(json!({
                         "id": l.id, "order_id": [oid, format!("P{oid:05}")], "display_type": false,
-                        "product_id": [l.product, format!("Product {}", l.product)],
-                        "product_uom_id": [l.uom, "Units"],
+                        "is_downpayment": l.downpayment,
+                        "product_id": if l.product == 0 { json!(false) }
+                                      else { json!([l.product, format!("Product {}", l.product)]) },
+                        "product_uom_id": if l.product == 0 { json!(false) } else { json!([l.uom, "Units"]) },
                         "product_qty": n(l.qty), "price_unit": n(l.price), "price_subtotal": n(l.subtotal),
                         "tax_ids": l.taxes, "date_planned": false,
                     }));

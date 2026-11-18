@@ -261,6 +261,10 @@ pub async fn execute(
         return cancel(db, j, &e, &pair_ctx, &src_id, seen, reason).await;
     };
 
+    // C6-O1: the fingerprint leaves the flag out, so a line that became a down payment shows here.
+    if req.lines.iter().any(|l| l.downpayment) {
+        return block(db, j, &e, "downpayment_line", None, None).await;
+    }
     // P1/P2 with C4a's verified code as it stands (P-3).
     let checked = money::check(req);
     if let Some(r) = checked.reasons.iter().find(|r| {

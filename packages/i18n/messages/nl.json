@@ -84,6 +84,7 @@
       "amount_not_exact": "Het bedrag kan niet exact worden overgenomen",
       "rate_precision": "Een prijs heeft meer decimalen dan NetSuite accepteert",
       "untotalled_lines": "Sommige regels hebben geen totaal",
+      "downpayment_line": "Deze offerteaanvraag heeft een aanbetalingsregel, die WF-01 niet ondersteunt",
       "connection_inactive": "Een verbinding is niet actief",
       "unknown": "Om een andere reden geblokkeerd"
     },
@@ -105,6 +106,7 @@
       "approver_revoked": "De goedkeurder mag niet meer goedkeuren",
       "rate_precision": "Een prijs heeft meer decimalen dan NetSuite accepteert",
       "untotalled_lines": "Sommige regels hebben geen totaal",
+      "downpayment_line": "Deze offerteaanvraag heeft een aanbetalingsregel, die WF-01 niet ondersteunt",
       "pair_paused": "De workflow is gepauzeerd",
       "source_changed": "De Odoo-order is gewijzigd",
       "attempts_exhausted": "Gestopt na meerdere pogingen",

@@ -55,7 +55,7 @@ The full request with `snapshot`. Members with an integration permission see any
 
 The approval status, the run status (`execution`) and the open incidents are separate fields. An approved request whose run failed shows `status: approved` next to the run's own status. `verified` is true only for `succeeded` and `succeeded_with_variance`.
 
-`blocked_reasons` codes: `unmapped:<entity>:<source_id>`, `no_policy:<currency>`, `no_requester`, `no_eligible_approver`, `amount_not_exact`, `rate_precision`, `untotalled_lines`, `connection_inactive:<connection_id>`. A code with a value after it puts that value in `entity` (for example `no_policy:EUR` gives `{"code":"no_policy","entity":"EUR"}`).
+`blocked_reasons` codes: `unmapped:<entity>:<source_id>`, `no_policy:<currency>`, `no_requester`, `no_eligible_approver`, `amount_not_exact`, `rate_precision`, `untotalled_lines`, `downpayment_line`, `connection_inactive:<connection_id>`. A code with a value after it puts that value in `entity` (for example `no_policy:EUR` gives `{"code":"no_policy","entity":"EUR"}`).
 
 ### POST `/requests/{request}/approve` · `/reject` · `/return`
 

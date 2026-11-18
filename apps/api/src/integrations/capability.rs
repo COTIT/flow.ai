@@ -130,6 +130,8 @@ pub struct RequestLine {
     pub subtotal: Decimal,
     pub tax_ids: Vec<String>,
     pub date_planned: Option<String>,
+    /// Odoo `is_downpayment`: such a line may have no product or uom (then `""`); WF-01 blocks it.
+    pub downpayment: bool,
 }
 
 /// Source approval settings per company (R3-§2).

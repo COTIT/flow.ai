@@ -176,6 +176,7 @@ mod tests {
                     subtotal: d(s),
                     tax_ids: vec![],
                     date_planned: None,
+                    downpayment: false,
                 })
                 .collect(),
             amount_untaxed: d(untaxed),
