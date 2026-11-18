@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workflow_executions\n                 SET status = 'resolved_manual', resolution = 'linked_with_differences',\n                     reason = 'linked_with_differences', target_ref = $3, phase = 'done',\n                     error_class = NULL, error_detail = NULL, updated_at = now()\n                 WHERE workspace_id = $1 AND id = $2 AND status = 'awaiting_reconciliation'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2e581d7637aeae152ee712733b07d081cacd84ad9f7992c118df85d36e44ae6"
+}

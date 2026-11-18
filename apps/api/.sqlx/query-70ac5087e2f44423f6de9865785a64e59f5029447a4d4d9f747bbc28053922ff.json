@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM workflow_events WHERE workspace_id = $1\n               AND execution_id = $2 AND kind = 'retry_window_wait' AND attempt_no = $3) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "70ac5087e2f44423f6de9865785a64e59f5029447a4d4d9f747bbc28053922ff"
+}

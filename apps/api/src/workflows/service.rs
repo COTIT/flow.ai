@@ -25,6 +25,7 @@ use crate::{
         },
         events::{self, Actor as EventActor, EventRef},
         repo::{self, ExecutionRow, HumanMove, IncidentRow, NewResolution},
+        wf01_purchase::link,
     },
 };
 
@@ -354,21 +355,6 @@ pub async fn retry(
     .await
 }
 
-/// C4b seam: read the existing target PO and link it (→ succeeded, or resolved_manual
-/// `linked_with_differences`). Until C4b ships it, 503 `link_unavailable`.
-async fn link_existing(
-    _tx: &mut PgConnection,
-    _ws: Uuid,
-    _id: Uuid,
-    _target_id: &str,
-) -> Result<&'static str, AppError> {
-    Err(reason(
-        StatusCode::SERVICE_UNAVAILABLE,
-        "link_unavailable",
-        "Linking an existing order is not available yet.",
-    ))
-}
-
 /// POST …/resolve: reconcile permission (route), not the request's requester.
 pub async fn resolve(
     state: &AppState,
@@ -426,7 +412,7 @@ pub async fn resolve(
         }
         "link_existing" if e.status == "awaiting_reconciliation" => {
             let target = input.target_id.as_deref().unwrap_or_default();
-            let outcome = link_existing(&mut tx, ws, id, target).await?;
+            let outcome = link::link_existing(state, &mut tx, ws, id, target).await?;
             (None, outcome)
         }
         _ => return Err(changed()),

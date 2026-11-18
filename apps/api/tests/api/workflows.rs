@@ -249,7 +249,7 @@ async fn allow_retry_needs_a_settled_attempt(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn close_no_po_and_link_seam(pool: PgPool) {
+async fn close_no_po_and_link_existing_unreachable(pool: PgPool) {
     let w = world(pool).await;
     w.after_attempt("awaiting_reconciliation", "ambiguous")
         .await;
@@ -267,10 +267,15 @@ async fn close_no_po_and_link_seam(pool: PgPool) {
             json!({"action": "link_existing", "reason": "Found", "target_id": "8812"}),
         )
         .await;
+    // C4b: the PO is read from NetSuite; this connection has no usable config, so the read
+    // can't happen and nothing moves (wf01_purchase exec_tests cover the read + verify).
+    assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE, "{b}");
+    assert_eq!(b["code"], Value::Null);
     assert_eq!(
-        (s, b["code"].clone()),
-        (StatusCode::SERVICE_UNAVAILABLE, json!("link_unavailable"))
+        b["message"],
+        "NetSuite could not be reached. Try again later."
     );
+    assert_eq!(w.status().await.0, "awaiting_reconciliation");
     let (s, b) = w
         .resolve(&w.rex, json!({"action": "nope", "reason": "x"}))
         .await;

@@ -103,7 +103,7 @@ pub async fn retry(
 #[utoipa::path(
     post, path = "/workspace/{workspace}/workflows/executions/{execution}/resolve", tag = "workflows",
     operation_id = "workflows_executions_resolve", summary = "Resolve a run by hand",
-    description = "Not the request's requester. `allow_retry` grants one more attempt (latest outcome ambiguous, not_sent or rejected); `close_no_po` closes a run awaiting reconciliation; `accept_variance` / `reject_variance` review a tax variance; `link_existing` links a found order (503 `link_unavailable` until built). Audited in `resolutions`.",
+    description = "Not the request's requester. `allow_retry` grants one more attempt (latest outcome ambiguous, not_sent or rejected); `close_no_po` closes a run awaiting reconciliation; `accept_variance` / `reject_variance` review a tax variance; `link_existing` reads the order from NetSuite and verifies it: match → `succeeded`, differences → `resolved_manual` `linked_with_differences` (422 when the id can't be read, 503 when NetSuite can't be reached). Audited in `resolutions`.",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"), ("execution" = Uuid, Path, description = "Run id"),
         ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters; a retry replays the first answer."),

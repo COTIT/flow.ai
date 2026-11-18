@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- WF-01 execute and reconcile, Verzo C4b (`docs/api/integrations.md` "WF-01 execute and reconcile"; no migration).
+  - **`wf01_execute`:**
+    - claims or takes over the run (the job lease is the owner token);
+    - never POSTs again once a write may be in flight (W1);
+    - re-checks the pair, connections, source fingerprint, money, snapshot precision, mappings and approver;
+    - looks up the externalId;
+    - commits the attempt row before exactly one POST, then verifies the PO it reads back (V1 ids and lines; V2/V3 money in SQL).
+  - **Outcomes:**
+    - `succeeded`;
+    - `succeeded_with_variance` + `tax_variance`;
+    - `awaiting_reconciliation` + `target_conflict`;
+    - `blocked` (with a reason);
+    - `cancelled` (+ approval invalidated and next revision);
+    - `failed` `attempts_exhausted`.
+  - **429 or not-sent:** the attempt is `rejected` / `not_sent` and the run waits in reconciliation for a person to allow one more attempt.
+  - **Granted attempts** wait 15 minutes after the previous write intent. Until then each run is a no-op, and the wait is logged once as `retry_window_wait`.
+  - **A stale worker** only leaves `stale_worker_result` evidence.
+  - **`wf01_reconcile`:** reads back created ids, stale evidence, then the externalId lookup. A miss never counts as proof; after 10 checks a person decides.
+  - **`link_existing`** now reads and verifies the PO (match → `succeeded`; differences → `resolved_manual` `linked_with_differences`). It no longer returns 503 `link_unavailable`; an unreadable id → 422, NetSuite unreachable → 503.
+  - **Jobs:** approve, retry and allow_retry queue `wf01_execute`; `wf01_tick` re-queues `queued` runs and orphaned `running` runs.
+  - **Tests:** verified against an in-process fake NetSuite only.
 - WF-01 intake, Verzo C4a (`docs/api/workflows.md` "WF-01 intake"; no migration). New job kinds `wf01_tick` (system schedule each minute, fans out per active pair like `webhook_sweep`), `wf01_poll`, `wf01_sweep`, `wf01_full_scan`, plus `wf01_execute` / `wf01_reconcile` placeholders that fail permanently until C4b. Poll checks the Odoo two-step controls first (drift → pair `paused` + `odoo_control_drift` incident), then walks the `write_date`/id cursor with a 120 s overlap, one transaction per page (requests, events, cursor). Intake builds the snapshot, lists every missing mapping at once, applies the strict money rule (`amount_not_exact`, `rate_precision`, `untotalled_lines`; discounts and price-included taxes block for now) and follows the revision rules (invalidate on change, skip a rejected/returned fingerprint, incidents only once an execution exists). Pair activation now refuses with 422 `source_controls_unmet` when a mapped company's controls are unmet or no company is mapped. Tested against an in-process fake Odoo, not a live one.
 - Odoo 19 JSON-2 source adapter, Verzo C3a (`docs/api/integrations.md` "Odoo adapter"; no migration). Live `odoo` connections now get a real client: RFQ cursor poll (`write_date`, id tie-break), full-scan ids, batch read into exact-decimal purchase requests (section and note lines dropped, absent ids reported gone), `res.company` two-step approval controls, and a three-check probe. Errors map to `auth`, `permission`, `not_found`, `conflict`, `validation`, `transient` or `unknown`. Tested against an in-process fake built from `docs/integrations/facts/odoo-19.md`, not against a live Odoo.
 - NetSuite adapter for WF-01, Verzo C3b (`docs/api/integrations.md` "NetSuite adapter"; no migration). `SinkClient::NetSuite` for live `netsuite` connections: OAuth 2.0 M2M with an ES256 client assertion signed by `ring` (now a direct dependency, same version rustls already compiled), token cached in memory until expiry − 60 s; `PurchaseOrderSink` (externalId lookup by `q=`, one POST create with `externalId` in the body and `X-NetSuite-PropertyNameValidation: error`, read-back normalised to exact decimals) and a read-only probe. Create outcomes tell a failed connect (`Rejected`, Transient) from a failure after send (`Ambiguous`); create never retries. `Outbound::execute` keeps the reqwest error (`send` unchanged). Verified against the documented contract with a fake NetSuite only; LIVE gates L2–L6 stay open.

@@ -252,3 +252,63 @@ Keyed on HTTP status; `code` = first `o:errorDetails[].o:errorCode`, detail = it
 - **L4** approval routing on REST create.
 - **L5** M2M token (JWT form, signature encoding) and least-privilege role permissions.
 - **L6** currency, vendor and subsidiary restrictions.
+
+## WF-01 execute and reconcile (C4b)
+
+Verified against the documented contract with an in-process fake Odoo and fake NetSuite. Not tested against a live account (LIVE gates L2–L6).
+
+### `wf01_execute` (payload `{"execution_id"}`, dedupe on the execution id, 5 attempts)
+
+1. **Own the run.** Claim a `queued` row. Otherwise take over a `running` row whose owner job has no live lease (P-2). Otherwise do nothing. The owner token is the job's `locked_by`, and every later state write is fenced on it.
+2. **W1.** If the phase is past `prechecking`, or the newest attempt has no outcome, the run never POSTs. The attempt becomes `ambiguous`, the run goes to `awaiting_reconciliation`, and a `wf01_reconcile` job is queued in the same transaction.
+3. **Pre-checks.** Any failure moves the run to `blocked`, with no write intent:
+   - the pair must be active (`pair_paused`);
+   - each connection must be usable, with its expiry applied (`connection_unauthorized`, `connection_expired`, `connection_inactive`);
+   - the RFQ is read again. If it is gone, no longer draft/sent, or its fingerprint changed, the run goes to `cancelled` (`source_changed`), the approval to `invalidated`, and the next revision is created in the same transaction;
+   - the C4a money check runs again (`rate_precision`, `untotalled_lines`);
+   - the snapshot quantity and price must equal the exact source values (`rate_precision`);
+   - snapshot mappings and the default location must be unchanged (`mapping_changed`);
+   - the approver must still be an active member with the permission (`approver_revoked`).
+   An Auth or Permission error from a provider also marks the connection (`unauthorized` / `degraded`). Any other provider error queues the run again with job backoff. On the last job attempt the run becomes `failed` (`attempts_exhausted`).
+4. **Existence guard.** The run looks up the externalId (the execution's `correlation_id`). If a PO is found, it is verified (step 7) and nothing is POSTed. The guard is cheap; correctness does not depend on it.
+5. **15-minute window.** An attempt after the first (granted by `allow_retry`) waits until the previous write intent is 15 minutes old, because NetSuite requests can run that long (facts l.244). Until then each run is a no-op: the run goes back to `queued` with no write intent and no POST, and the tick backstop runs it again within a minute. The wait is logged once per attempt as a `retry_window_wait {earliest}` event.
+6. **Write intent, then one POST.** The attempt row and the `write_intent` event commit first. Then phase `write_sent` and `sent_at` are set, and exactly one POST is sent. The fenced outcome follows. If ownership was lost, the worker only appends `stale_worker_result` (attempt number, HTTP status, NetSuite id, Location).
+
+| Create result | Attempt outcome | Run |
+|---|---|---|
+| 204 with the PO's Location | `created` | read back, then verify |
+| timeout or 5xx after send, unreadable Location | `ambiguous` | `awaiting_reconciliation` |
+| 409 | `conflict` | `awaiting_reconciliation` |
+| 429 "Request blocked." (facts l.256) | `rejected`, evidence `{http_status, error_code}` | `awaiting_reconciliation`, error class `transient`; a reconciler grants the next attempt |
+| connect failure, nothing sent | `not_sent` | same as 429 |
+| 401 | `rejected` | `blocked` `connection_unauthorized`, connection `unauthorized` |
+| 403 | `rejected` | `blocked` `permission_denied`, connection `degraded` |
+| 400 | `rejected` | `blocked` `validation_rejected`, with NetSuite's detail |
+| 404 | `rejected` | `blocked` `mapping_stale` |
+
+7. **Verify (R3-§2b).**
+   - **V1:** vendor, subsidiary, currency, and lines as (item, quantity, rate), compared as exact decimals. The unit is not compared, because whether `units` holds an id or a name is UNVERIFIED (facts l.168).
+   - **V2 and V3** run in SQL `numeric`: `subtotal` × 10^decimals must equal the approved untaxed minor amount, and |`taxTotal` × 10^decimals − Odoo tax minor| must be ≤ the pair's `tax_tolerance_minor` (default 0).
+   - **Outcomes:**
+     - Match → `succeeded`, with a `verify_match` event and `external_links` set to `linked`.
+     - Tax off or missing → `succeeded_with_variance` plus a `tax_variance` incident.
+     - V1 or V2 off → `awaiting_reconciliation`, a `verify_mismatch` event, a `target_conflict` incident, and the link set to `conflict`.
+   - Never PATCH or PUT.
+
+### `wf01_reconcile` (dedupe `wf01_reconcile:<execution>`, 10 attempts)
+
+Acts only on `awaiting_reconciliation` and never POSTs.
+- **Evidence order:** NetSuite ids from `created` attempts, then from `stale_worker_result` events, then the externalId lookup. A PO that is found is read back and verified as in step 7.
+- **Not found** never counts as proof that the PO is absent (facts l.202-206). The run records a `reconcile_check` event and checks again with job backoff. After the 10th check it stays open for a person: `link_existing`, `allow_retry` or `close_no_po`.
+
+### `link_existing` (resolve route)
+
+Reads the given NetSuite id inside the resolve transaction and verifies it as in step 7.
+- **Match** → `succeeded` (or `succeeded_with_variance`).
+- **Differences** → `resolved_manual` / `linked_with_differences` with `target_ref` set. It is never shown as verified.
+- **Errors:** an id NetSuite can't read → 422 on `target_id`; NetSuite unreachable → 503.
+
+### Jobs
+
+- **Approve, `retry` and `allow_retry`** queue `wf01_execute` in their own transaction, through `dispatch::enqueue_execution`.
+- **`wf01_tick`** also re-queues WF-01 runs that are `queued`, or `running` with a dead owner lease (500 per tick). It never re-queues `awaiting_reconciliation`.

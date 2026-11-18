@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.k AS \"k!\", m.entity || ':' || m.source_id AS \"now?\", m.target_id AS \"target?\"\n           FROM jsonb_each_text($3::jsonb) AS s(k, v)\n           LEFT JOIN integration_mappings m\n             ON m.workspace_id = $1 AND m.pair_id = $2 AND m.id::text = s.v",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "k!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "now?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "target?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "target_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "bc0b56d07741b5abc36e03db38ec6f199d39f7e4492b007da547013c8c9c2708"
+}
