@@ -12,9 +12,9 @@ import {
   approvalsRequestsReturn,
 } from "./generated/approvals/approvals"
 import {
-  integrationConnectionsList,
-  integrationMappingsList,
-  integrationPairsList,
+  integrationsConnectionsList,
+  integrationsMappingsList,
+  integrationsPairsList,
 } from "./generated/integrations/integrations"
 import {
   workflowsExecutionsGet,
@@ -181,7 +181,7 @@ export function useIntegrationList<T>(
 ) {
   const ws = useWorkspace()
   const list =
-    path === "connections" ? integrationConnectionsList : integrationPairsList
+    path === "connections" ? integrationsConnectionsList : integrationsPairsList
   return useQuery({
     queryKey: [...ROOT, ws, path],
     enabled: Boolean(ws) && enabled,
@@ -197,7 +197,7 @@ export function useMappings<T>(pair: string, entity?: string) {
     enabled: Boolean(ws && pair),
     queryFn: ({ signal }) =>
       as<List<T>>(
-        integrationMappingsList(
+        integrationsMappingsList(
           ws,
           pair,
           entity ? { entity } : undefined,
@@ -210,7 +210,7 @@ export function useMappings<T>(pair: string, entity?: string) {
 
 /**
  * One integrations write: `call` gets the workspace and runs a generated endpoint
- * (e.g. `(ws) => integrationConnectionsTest(ws, id)`); this feature's reads refresh after.
+ * (e.g. `(ws) => integrationsConnectionsTest(ws, id)`); this feature's reads refresh after.
  * Secrets travel only in the body, never the URL.
  */
 export function useIntegrationWrite<T = unknown>() {

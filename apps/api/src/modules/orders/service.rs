@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::PgConnection;
 use uuid::Uuid;
@@ -33,8 +33,9 @@ use crate::{
         },
         pricing::engine,
         product_images::service as product_images,
-        products, settings,
+        products, settings, shipments,
         stock::{
+            self,
             repo::Cause,
             reserve::{self, Reserved, Want},
         },
@@ -50,6 +51,8 @@ const NOT_DRAFT: &str = "Only a draft order can change this.";
 const NOT_OPEN: &str = "Only an open order can change this.";
 const NOT_PICKED: &str = "Pick every stock line in full before completing.";
 const NOT_CANCELLABLE: &str = "This order can no longer be cancelled.";
+const SHIPPED: &str = "Goods of this order were already shipped.";
+const DRAFT_SHIPMENT: &str = "Post or cancel this order's draft shipments first.";
 const NOT_RETURNABLE: &str = "Only a completed order takes returns.";
 const NOT_INVOICEABLE: &str = "Only an open or completed order can be invoiced.";
 const INVOICED: &str = "This order already has an invoice.";
@@ -141,19 +144,19 @@ pub async fn price(
     web: bool,
 ) -> Result<Priced, AppError> {
     let ids: Vec<Uuid> = lines.iter().map(|l| l.product_id).collect();
-    let found: HashMap<Uuid, repo::CatalogProduct> = repo::products(&mut *conn, workspace_id, &ids)
-        .await?
-        .into_iter()
-        .map(|p| (p.id, p))
-        .collect();
+    let found: HashMap<Uuid, repo::CatalogProduct> =
+        repo::products(&mut *conn, workspace_id, &ids, dp as i32)
+            .await?
+            .into_iter()
+            .map(|p| (p.id, p))
+            .collect();
     let vids: Vec<Uuid> = lines.iter().filter_map(|l| l.product_variant_id).collect();
     let variants: HashMap<Uuid, repo::CatalogVariant> =
-        repo::variants(&mut *conn, workspace_id, &vids)
+        repo::variants(&mut *conn, workspace_id, &vids, dp as i32)
             .await?
             .into_iter()
             .map(|v| (v.id, v))
             .collect();
-    let scale = Decimal::from(10_i64.pow(dp));
     let mut errors = std::collections::BTreeMap::<String, Vec<String>>::new();
     let mut add = |k: String, m: &str| errors.entry(k).or_default().push(m.to_owned());
     let mut priced = Vec::new();
@@ -183,11 +186,9 @@ pub async fn price(
             },
             None => None,
         };
-        let catalog = variant.map_or(p.price, |v| v.price);
-        let unit = match l.unit_price {
-            Some(u) => Some(u),
-            None => (catalog * scale).round().to_i64(),
-        };
+        let unit = l
+            .unit_price
+            .or_else(|| variant.map_or(p.price_minor, |v| v.price_minor));
         let Some(unit) = unit else {
             add(
                 format!("lines.{n}.unit_price"),
@@ -437,6 +438,7 @@ pub fn check(
         OrderAction::Cancel => {
             let open = matches!(status, "draft" | "awaiting_payment" | "open");
             need(open, NOT_CANCELLABLE)?;
+            need(lines.iter().all(|l| l.deducted.is_zero()), SHIPPED)?;
             need(o.paid_at.is_none() || paid.net <= 0, REFUND_REQUIRED)
         }
         OrderAction::Return => need(
@@ -906,7 +908,8 @@ pub async fn pick(
     .await
 }
 
-/// open → completed: take every stock line's hold off the shelf.
+/// open → completed: take every stock line's hold off the shelf. In an active book the rest
+/// ships as one posted shipment (stock, delivered quantity and sale recognition).
 pub async fn complete(
     state: &AppState,
     workspace_id: Uuid,
@@ -922,16 +925,46 @@ pub async fn complete(
         key,
         async |conn, o, lines| {
             check(OrderAction::Complete, &o, &lines, Paid::default())?;
-            let (wants, _) = wants(&lines, |l| l.quantity);
-            let reason = format!("order {}", o.number);
-            reserve::commit(
-                conn,
-                workspace_id,
-                o.warehouse_id,
-                &wants,
-                &cause(&o, &reason),
-            )
-            .await?;
+            if shipments::repo::has_draft(&mut *conn, workspace_id, o.id).await? {
+                return Err(conflict(DRAFT_SHIPMENT));
+            }
+            // What posted shipments didn't take yet (all of it without shipments).
+            let rest: Vec<(Uuid, Decimal)> = lines
+                .iter()
+                .filter(|l| l.quantity > l.deducted)
+                .map(|l| (l.id, l.quantity - l.deducted))
+                .collect();
+            if stock::value::active(conn, workspace_id).await? {
+                if !rest.is_empty() {
+                    let input = shipments::dto::ShipmentInput {
+                        lines: rest,
+                        note: None,
+                    };
+                    let both = (&o, lines.as_slice());
+                    let sid = shipments::service::create_locked(
+                        conn,
+                        workspace_id,
+                        both,
+                        &input,
+                        user_id,
+                    )
+                    .await?;
+                    let date = shipments::repo::book_today(&mut *conn, workspace_id).await?;
+                    shipments::service::post_locked(conn, workspace_id, both, sid, (date, user_id))
+                        .await?;
+                }
+            } else {
+                let (wants, _) = wants(&lines, |l| l.quantity - l.deducted);
+                let reason = format!("order {}", o.number);
+                reserve::commit(
+                    conn,
+                    workspace_id,
+                    o.warehouse_id,
+                    &wants,
+                    &cause(&o, &reason),
+                )
+                .await?;
+            }
             let rows: Vec<_> = lines
                 .iter()
                 .map(|l| (l.id, l.picked, l.quantity, l.returned))
@@ -1183,7 +1216,10 @@ async fn book_paid(
         settle_twin_id: None,
     };
     invoice_payments::repo::insert(conn, workspace_id, &[row]).await?;
-    invoice_payments::repo::set_balance(conn, workspace_id, invoice_id, net, None).await?;
+    // Active books: paid comes from canonical settlement only (deposits are applied there).
+    let (paid, _) =
+        invoice_payments::service::paid_and_cash(conn, workspace_id, invoice_id).await?;
+    invoice_payments::repo::set_balance(conn, workspace_id, invoice_id, paid, None).await?;
     Ok(())
 }
 
@@ -1263,9 +1299,26 @@ pub async fn invoice(
             let pending_gateway_refund:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM order_payments WHERE workspace_id=$1 AND order_id=$2 AND provider='globadyme' AND kind='refund' AND status IN ('creating','open','unknown'))")
                 .bind(workspace_id).bind(o.id).fetch_one(&mut *conn).await?;
             if pending_gateway_refund{return Err(AppError::Conflict("Resolve pending gateway refunds before creating an invoice."));}
-            let input = invoice_input(&o, &lines)?;
-            let invoice_id =
-                invoices::service::create_in(conn, workspace_id, user_id, input).await?;
+            // Active book: bill every recognised, unbilled sale of the order (none → 422).
+            let invoice_id = if stock::value::active(conn, workspace_id).await? {
+                let relation = o
+                    .relation_id
+                    .ok_or_else(|| AppError::field("relation_id", NO_RELATION))?;
+                let ids = shipments::billing::unbilled(conn, workspace_id, o.id).await?;
+                let reference = o.reference.clone().unwrap_or_else(|| o.number.clone());
+                shipments::billing::draft(
+                    conn,
+                    workspace_id,
+                    user_id,
+                    (o.id, o.currency_id, &reference),
+                    (relation, None),
+                    &ids,
+                )
+                .await?
+            } else {
+                let input = invoice_input(&o, &lines)?;
+                invoices::service::create_in(conn, workspace_id, user_id, input).await?
+            };
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
             book_paid(state, conn, workspace_id, user_id, &o, invoice_id).await?;
             log(conn, workspace_id, o.id, "invoiced", user_id).await

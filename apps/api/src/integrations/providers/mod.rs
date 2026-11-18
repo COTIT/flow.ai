@@ -1,6 +1,6 @@
 //! Provider dispatch (K20 style): one enum variant per adapter, chosen per connection row.
-//! C3a adds `SourceClient::Odoo`, C3b `SinkClient::NetSuite`; until then live mode has no
-//! adapter and every capability check fails with a readable detail.
+//! Live `odoo` rows get `SourceClient::Odoo` (C3a); live `netsuite` rows get `SinkClient::NetSuite`
+//! (C3b). A provider without an adapter fails every capability check with a readable detail.
 
 use std::sync::Arc;
 
@@ -9,13 +9,19 @@ use sqlx::PgPool;
 use crate::{
     crypto::CredentialKey,
     integrations::{
-        capability::{CapabilityCheck, ConnectionProbe, ErrorClass, ProviderError},
+        capability::{
+            CapabilityCheck, ConnectionProbe, CreateOutcome, Cursor, ErrorClass, NewPo, Page,
+            ProviderError, PurchaseOrderSink, PurchaseRequest, PurchaseRequestSource,
+            SourceControls, SourceRef, TargetPo,
+        },
         connections::repo::ConnectionRow,
     },
     outbound::Outbound,
 };
 
 pub mod fake;
+pub mod netsuite;
+pub mod odoo;
 
 /// `INTEGRATIONS_PROVIDERS`: unset = live adapters; `fake` only in debug builds.
 #[derive(Clone, Debug)]
@@ -47,11 +53,13 @@ pub struct ConnCtx {
 /// Source-side clients (Odoo).
 pub enum SourceClient {
     Fake(fake::Client),
+    Odoo(odoo::Client),
 }
 
 /// Target-side clients (NetSuite).
 pub enum SinkClient {
     Fake(fake::Client),
+    NetSuite(netsuite::Client),
 }
 
 fn not_built() -> ProviderError {
@@ -77,14 +85,74 @@ fn fake_client(ctx: &ConnCtx, row: &ConnectionRow) -> Option<fake::Client> {
 impl SourceClient {
     /// Client for a source connection row.
     pub fn for_connection(ctx: &ConnCtx, row: &ConnectionRow) -> Result<Self, ProviderError> {
-        fake_client(ctx, row).map(Self::Fake).ok_or_else(not_built)
+        if let Some(f) = fake_client(ctx, row) {
+            return Ok(Self::Fake(f));
+        }
+        match row.provider.as_str() {
+            "odoo" => odoo::Client::for_connection(ctx, row).map(Self::Odoo),
+            _ => Err(not_built()),
+        }
     }
 }
 
 impl SinkClient {
     /// Client for a target connection row.
     pub fn for_connection(ctx: &ConnCtx, row: &ConnectionRow) -> Result<Self, ProviderError> {
-        fake_client(ctx, row).map(Self::Fake).ok_or_else(not_built)
+        if let Some(c) = fake_client(ctx, row) {
+            return Ok(Self::Fake(c));
+        }
+        if row.provider != "netsuite" {
+            return Err(not_built());
+        }
+        let key = ctx.credentials.clone().ok_or_else(|| ProviderError {
+            class: ErrorClass::Unknown,
+            detail: "CREDENTIALS_KEY is not set, so the private key can't be opened.".into(),
+            code: None,
+            http_status: None,
+        })?;
+        netsuite::Client::for_connection(
+            ctx.outbound.clone(),
+            &row.config,
+            netsuite::KeySource::Sealed {
+                db: ctx.db.clone(),
+                key,
+                ws: row.workspace_id,
+                connection_id: row.id,
+            },
+        )
+        .map(Self::NetSuite)
+    }
+}
+
+fn fake_has_no_orders() -> ProviderError {
+    ProviderError {
+        class: ErrorClass::Unknown,
+        detail: "The fake provider has no purchase orders.".into(),
+        code: None,
+        http_status: None,
+    }
+}
+
+impl PurchaseOrderSink for SinkClient {
+    async fn find_by_external_id(&self, eid: &str) -> Result<Option<TargetPo>, ProviderError> {
+        match self {
+            Self::Fake(_) => Err(fake_has_no_orders()),
+            Self::NetSuite(c) => c.find_by_external_id(eid).await,
+        }
+    }
+
+    async fn create(&self, po: &NewPo) -> CreateOutcome {
+        match self {
+            Self::Fake(_) => CreateOutcome::Rejected(fake_has_no_orders()),
+            Self::NetSuite(c) => c.create(po).await,
+        }
+    }
+
+    async fn read(&self, id: &str) -> Result<TargetPo, ProviderError> {
+        match self {
+            Self::Fake(_) => Err(fake_has_no_orders()),
+            Self::NetSuite(c) => c.read(id).await,
+        }
     }
 }
 
@@ -92,6 +160,57 @@ impl ConnectionProbe for SourceClient {
     async fn test(&self) -> Vec<CapabilityCheck> {
         match self {
             Self::Fake(c) => c.fake.test(&c.connection_id, &c.provider),
+            Self::Odoo(c) => c.test().await,
+        }
+    }
+}
+
+// The fake holds no purchase requests: nothing changed, every id gone, no controls.
+impl PurchaseRequestSource for SourceClient {
+    async fn list_changed(
+        &self,
+        company_ids: &[String],
+        cursor: &Cursor,
+        limit: u32,
+    ) -> Result<Page<SourceRef>, ProviderError> {
+        match self {
+            Self::Fake(_) => Ok(Page {
+                items: Vec::new(),
+                next: None,
+            }),
+            Self::Odoo(c) => c.list_changed(company_ids, cursor, limit).await,
+        }
+    }
+
+    async fn list_eligible_ids(
+        &self,
+        company_id: &str,
+        after_id: i64,
+        limit: u32,
+    ) -> Result<Vec<String>, ProviderError> {
+        match self {
+            Self::Fake(_) => Ok(Vec::new()),
+            Self::Odoo(c) => c.list_eligible_ids(company_id, after_id, limit).await,
+        }
+    }
+
+    async fn read(
+        &self,
+        ids: &[String],
+    ) -> Result<(Vec<PurchaseRequest>, Vec<String>), ProviderError> {
+        match self {
+            Self::Fake(_) => Ok((Vec::new(), ids.to_vec())),
+            Self::Odoo(c) => c.read(ids).await,
+        }
+    }
+
+    async fn read_controls(
+        &self,
+        company_ids: &[String],
+    ) -> Result<Vec<SourceControls>, ProviderError> {
+        match self {
+            Self::Fake(_) => Ok(Vec::new()),
+            Self::Odoo(c) => c.read_controls(company_ids).await,
         }
     }
 }
@@ -100,6 +219,7 @@ impl ConnectionProbe for SinkClient {
     async fn test(&self) -> Vec<CapabilityCheck> {
         match self {
             Self::Fake(c) => c.fake.test(&c.connection_id, &c.provider),
+            Self::NetSuite(c) => c.test().await,
         }
     }
 }
@@ -115,5 +235,25 @@ mod tests {
         assert!(matches!(select(Some("fake"), false), Ok(Mode::Fake(_))));
         assert!(select(Some("fake"), true).unwrap_err().contains("release"));
         assert!(select(Some("odoo"), false).is_err());
+    }
+
+    #[tokio::test]
+    async fn fake_source_has_no_requests() {
+        let c = SourceClient::Fake(fake::Client {
+            fake: fake::Fake::default(),
+            connection_id: "c".into(),
+            provider: "odoo".into(),
+        });
+        let cursor = Cursor {
+            ts: chrono::Utc::now(),
+            id: 0,
+        };
+        let page = c.list_changed(&["1".into()], &cursor, 10).await.unwrap();
+        assert!(page.items.is_empty() && page.next.is_none());
+        assert!(c.list_eligible_ids("1", 0, 10).await.unwrap().is_empty());
+        let (found, gone) = c.read(&["7".into()]).await.unwrap();
+        assert!(found.is_empty());
+        assert_eq!(gone, ["7"]);
+        assert!(c.read_controls(&["1".into()]).await.unwrap().is_empty());
     }
 }

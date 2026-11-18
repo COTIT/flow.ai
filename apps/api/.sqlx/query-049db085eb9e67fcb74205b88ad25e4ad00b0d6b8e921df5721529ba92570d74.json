@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT subtotal AS \"net!\", (total - subtotal) AS \"tax!\" FROM invoices\n           WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "net!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "subtotal"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "tax!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "049db085eb9e67fcb74205b88ad25e4ad00b0d6b8e921df5721529ba92570d74"
+}

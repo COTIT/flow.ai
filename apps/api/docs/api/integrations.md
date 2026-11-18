@@ -139,3 +139,116 @@ Mapping JSON: `id, pair_id, entity, source_id, target_id, source_label, target_l
 - `cursors::get` and `cursors::advance` (inside the page's transaction)
 - `links::upsert`
 - `probe::run`, `probe::status`, `probe::expiry`
+
+## Odoo adapter: verified against documented contract, not live
+
+`src/integrations/providers/odoo/` (C3a). Built only from `docs/integrations/facts/odoo-19.md`. Tests run against an in-process fake whose replies cite that file. No Odoo 19 instance has been called; live gate L1 is still open.
+
+A live `odoo` connection row gets `SourceClient::Odoo`. The client reads `base_url` and `database` from the config and opens the `api_key` secret on its first call. In fake mode (`INTEGRATIONS_PROVIDERS=fake`) the in-process fake still answers.
+
+**Transport.** Every call is `POST {base_url}/json/2/<model>/<method>` with `Authorization: bearer <key>`, `Content-Type: application/json; charset=utf-8`, `User-Agent: verzo`, and `X-Odoo-Database` when `database` is set. The body is always a JSON object of named arguments, because Odoo drops an array body without an error (facts §0a). Each call has a 30 s limit. Amounts are parsed from the JSON number text into exact decimals and never pass through a float.
+
+| Operation | Call |
+|---|---|
+| `list_changed(companies, cursor, limit)` | `purchase.order/search_read`. Domain: company in the list, `state` in `draft`/`sent`, then `write_date > ts` or (`write_date = ts` and `id > last_id`). Order `write_date asc, id asc`. `ts` is sent as `YYYY-MM-DD HH:MM:SS` UTC. A full page returns `next` = the last row's `(write_date, id)`; a short page returns `next = None`. The 120 s overlap belongs to the caller (PLAN §6a). |
+| `list_eligible_ids(company, after_id, limit)` | `purchase.order/search` with company, eligible state and `id > after_id`, order `id asc` |
+| `read(ids)` | `purchase.order/search_read` with `id in ids`. Ids that don't come back (deleted, or hidden by record rules) are returned as gone. Then one `purchase.order.line/search_read` and one `res.currency/search_read` (`active_test: false`), so a batch costs 3 calls. Lines with a `display_type` (sections, notes) are dropped. `currency_ref` = currency `name`, `currency_decimals` = `decimal_places` (O2). |
+| `read_controls(companies)` | `res.company/search_read` for `po_double_validation` and `po_double_validation_amount` (O5): `two_step`, plus `threshold_zero` when the amount is 0. Companies that don't come back are left out. |
+| probe | Runs each read above once with `limit 1` and the real field lists. Checks: `purchase_request.list`, `purchase_request.read` (order, line and currency fields), `source_controls.read`. |
+
+**Error classes** (facts L28, L33-39, L84-87). Every C3a call is a read and safe to retry.
+
+| Reply | Class |
+|---|---|
+| Not sent or not answered (connect, DNS, address guard, timeout) | `transient` |
+| 401 (`Invalid apikey`) | `auth` |
+| 403 (`AccessError`, `AccessDenied`) | `permission` |
+| 404 (unknown model or method) | `not_found` |
+| 409 (`LockError`) | `conflict` |
+| 400 (bad JSON), 422 (`UserError`, bad argument, bad `order`) | `validation` |
+| 500 with `name: builtins.ValueError` (unknown field or malformed domain, L86-87) | `validation` |
+| 429, other 5xx | `transient` |
+| 2xx that is not the documented shape | `unknown` |
+| Other status | `unknown` |
+
+`code` holds Odoo's error `name` and `http_status` the status. The detail holds a readable sentence plus up to 200 characters of Odoo's `message`. The `debug` traceback and the key are never copied.
+
+**Not done here.**
+- Money checks P1/P2 (O6) belong to C4a/C4b.
+- `picking_type_id` (O4) is never requested, so `location_id` is always empty and WF-01 takes the location from the pair's default-location config. Later improvement: detect `purchase_stock` (for example with `fields_get`, whose JSON-2 signature is UNVERIFIED) and read the field when it exists.
+- Field names `product_uom_id` and `tax_ids` follow PLAN §1b. The facts pack does not list them, so the probe is the first check against a real instance.
+- UNVERIFIED items the parser guards against: many2one comes back as `[id, name]` or as a bare id, and both are accepted (item 4). Sub-second `write_date` only re-delivers rows, it loses none (item 3).
+## NetSuite adapter (C3b)
+
+Code: `src/integrations/providers/netsuite/` (`auth`, `errors`, `sink`, `probe`). `SinkClient::NetSuite` is built for a live `netsuite` connection; `SinkClient` implements `PurchaseOrderSink` and `ConnectionProbe` by delegation (the fake variant has no purchase orders and refuses them).
+
+Everything here is **verified against the documented contract** (`docs/integrations/facts/netsuite-rest.md`, cited as `l.N`) with an in-process fake NetSuite (`tests/api/netsuite.rs`). No NetSuite account was used, so this is not an integration claim.
+
+### Auth (OAuth 2.0 client credentials, M2M)
+
+- Base URL `https://<rest_domain>`. Token: `POST /services/rest/auth/oauth2/v1/token`, form `grant_type=client_credentials`, `client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`, `client_assertion=<JWT>` (l.44-54).
+- JWT header `{typ: "JWT", alg: "ES256", kid: certificate_id}`; claims `iss` = client id, `scope` = `"rest_webservices"`, `aud` = token URL, `iat`, `exp` = `iat` + 30 min (under the 60-minute cap, l.56-68). Signed with `ring` `ECDSA_P256_SHA256_FIXED_SIGNING` (raw R‖S, RFC 7518 §3.4). Tests: RFC 7515 A.3 known vector and a field check.
+- Key: the connection's sealed `private_key`, opened only when a token is fetched. It must be an unencrypted PKCS#8 PEM (`BEGIN PRIVATE KEY`) on the named P-256 curve. A SEC1 key (`BEGIN EC PRIVATE KEY`) is refused with the fix: `openssl pkcs8 -topk8 -nocrypt`.
+- Cache: in memory, per token URL + client id + certificate id, until `expires_in` − 60 s. Tokens and keys are never logged or stored.
+- Token endpoint `invalid_grant`: one more try with a fresh assertion, then `Auth`. Other 4xx → `Auth`; 429/5xx/transport → `Transient`.
+- REST 401 on a read (find, read, probe): drop the token, fetch a new one, retry once, then `Auth`. **Create never retries**: a 401 is `Rejected(Auth)`.
+
+### Calls
+
+| Call | Request | Result |
+|---|---|---|
+| `find_by_external_id(eid)` | `GET /services/rest/record/v1/purchaseOrder?q=externalId IS "<eid>"` (l.195) | 0 hits or 404 → `None`; 1 → `read(id)`; more → `Conflict`. eid must match `[A-Za-z0-9_-]` (l.194), else `Validation` and nothing is sent. PARTIAL: the miss shape is UNVERIFIED, so `None` is never proof of absence |
+| `create(po)` | one `POST /services/rest/record/v1/purchaseOrder`, header `X-NetSuite-PropertyNameValidation: error` (l.282), body `externalId`, `entity`, `subsidiary`, `currency`, `location?`, `item.items[]{item, quantity, rate, units?}` (l.105, l.133-168). Never PUT, never PATCH, never async | see outcomes below |
+| `read(id)` | `GET /services/rest/record/v1/purchaseOrder/<digits>?expandSubResources=true` (l.116) | `TargetPo`: `entity`→vendor, `subsidiary`, `currency`, `externalId`, lines `item.id`/`units`/`quantity`/`rate`, `subtotal`→untaxed, `taxTotal`→tax (l.146-147). Numbers are exact decimals. A missing reference or line value → `Unknown` |
+| probe | token fetch, then `GET /services/rest/record/v1/purchaseOrder?limit=1` (l.119) | `auth.token` from the token; find, read and create from the one read. Create is never tested (a probe never writes); its check says so (LIVE L5) |
+
+### Create outcomes (for C4b)
+
+`Rejected` means NetSuite did not create the PO. `Ambiguous` means it may have: reconcile by externalId.
+
+| What happened | Outcome | Class |
+|---|---|---|
+| 204 + `Location: …/record/v1/purchaseOrder/<digits>` (l.125) | `Created{id, location}` | — |
+| 204 without a readable purchase order Location; 202; other 2xx/3xx | `Ambiguous` | Ambiguous |
+| connect/DNS failure (nothing sent) | `Rejected` | Transient |
+| host not public (address guard) | `Rejected` | Validation |
+| timeout, reset or cut body after the request went out | `Ambiguous` | Ambiguous |
+| 5xx (`UNEXPECTED_ERROR`, l.278) | `Ambiguous` | Ambiguous |
+| 429 `CONCURRENCY_LIMIT_EXCEEDED` (l.256) | `Rejected` | Transient |
+| 409 | `Conflict` | Conflict |
+| other 4xx | `Rejected` | by status (below) |
+
+### Error classes by status (l.271-278)
+
+Keyed on HTTP status; `code` = first `o:errorDetails[].o:errorCode`, detail = its `detail` plus `o:errorPath` when given.
+
+| Status | Example code | Class |
+|---|---|---|
+| 400 | `INVALID_CONTENT`, `INVALID_REQUEST` | Validation |
+| 401 | `INVALID_LOGIN` | Auth |
+| 403 | none documented for REST (N6) | Permission |
+| 404 | `NONEXISTENT_ID` | NotFound |
+| 409 | — | Conflict |
+| 429 | `CONCURRENCY_LIMIT_EXCEEDED` | Transient |
+| 5xx | `UNEXPECTED_ERROR` | Ambiguous on create, Transient on reads |
+
+### UNVERIFIED (from the facts pack)
+
+- Item sublist writability over REST (l.104-107, L3): the create body follows the documented sample.
+- `units` on a line: id or name (RAB types it as a string, l.168).
+- Required body/line fields, location and subsidiary needs (l.183, L3).
+- `q=` miss shape and read-after-write consistency (l.202-206, L2).
+- POST with an existing externalId (N3, L2): a 409 is treated as `Conflict`.
+- `scope` as text vs array, `aud` host, `jti` (l.70-74, L5); raw R‖S vs DER signature (l.82).
+- Token endpoint error bodies other than `invalid_grant` (l.93).
+- REST permission error status and code (N6, L5): `Permission` only from 403.
+- Approval routing of REST-created POs (N4, L4): Flow sets no approval fields.
+- Sandbox host form for `<id>_SB1` (l.27).
+
+### LIVE gates (need a NetSuite sandbox)
+
+- **L2** create with a duplicate externalId; `q=` lookup misses and consistency.
+- **L3** required purchaseOrder fields and item sublist writes under real account features.
+- **L4** approval routing on REST create.
+- **L5** M2M token (JWT form, signature encoding) and least-privilege role permissions.
+- **L6** currency, vendor and subsidiary restrictions.

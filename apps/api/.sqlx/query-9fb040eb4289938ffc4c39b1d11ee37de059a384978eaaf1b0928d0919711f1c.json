@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.supplier_id, count(*) AS \"orders!\",\n                  coalesce(sum(o.open_value / 10::numeric ^ c.decimals)\n                           FILTER (WHERE c.default_currency), 0) AS \"value!\"\n           FROM (SELECT o.supplier_id, o.currency_id,\n                        sum(money_round_div(l.extension * (l.base_quantity\n                                                - l.received_quantity - l.closed_quantity),\n                                            l.base_quantity)) AS open_value\n                 FROM purchase_orders o\n                 JOIN purchase_order_lines l ON l.purchase_order_id = o.id\n                 WHERE o.workspace_id = $1 AND o.supplier_id = ANY($2) AND o.state = 'confirmed'\n                 GROUP BY o.id\n                 HAVING sum(l.base_quantity - l.received_quantity - l.closed_quantity) > 0) o\n           JOIN currencies c ON c.workspace_id = $1 AND c.id = o.currency_id\n           GROUP BY o.supplier_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "supplier_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "supplier_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "orders!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "value!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "9fb040eb4289938ffc4c39b1d11ee37de059a384978eaaf1b0928d0919711f1c"
+}

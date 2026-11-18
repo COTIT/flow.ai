@@ -5,13 +5,21 @@ use crate::common;
 
 use axum::{
     Router,
-    http::{Method, StatusCode},
+    http::{HeaderMap, Method, StatusCode},
+    routing::post,
 };
 use common::{app_with_mail, member_with, send, signup, state};
 use genesy_360_api::{
     build_app,
-    integrations::{Runtime, capability::CapabilityCheck, providers::fake::Fake},
+    integrations::{
+        Runtime,
+        capability::{CapabilityCheck, ErrorClass},
+        connections::service as connections,
+        probe,
+        providers::{Mode, fake::Fake},
+    },
     mail::Mailer,
+    outbound::Outbound,
 };
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -437,7 +445,7 @@ async fn test_probe_sets_status(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn live_mode_without_adapter_reports_failed_checks(pool: PgPool) {
+async fn live_netsuite_probe_with_unusable_key_is_unauthorized(pool: PgPool) {
     let (app, _) = app_with_mail(pool);
     let (owner, ws) = signup(&app, "ada@example.com", "acme").await;
     let base = format!("/v1/workspace/{ws}/integrations/connections");
@@ -454,9 +462,94 @@ async fn live_mode_without_adapter_reports_failed_checks(pool: PgPool) {
     assert_eq!(s, StatusCode::OK, "{b}");
     let checks = b["data"]["last_probe"].as_array().unwrap();
     assert_eq!(checks.len(), 4);
-    assert!(checks.iter().all(|c| c["ok"] == false));
-    assert_eq!(b["data"]["status"], "degraded");
-    assert_eq!(b["data"]["status_reason"], "probe_failed:auth.token");
+    // The C3b adapter refuses the truncated test PEM before any request leaves.
+    assert!(
+        checks
+            .iter()
+            .all(|c| c["ok"] == false && c["error_class"] == "auth")
+    );
+    assert_eq!(b["data"]["status"], "unauthorized");
+    assert_eq!(b["data"]["status_reason"], "auth_failed");
+}
+
+/// Fake Odoo 19: every JSON-2 call answers `[]` for the stored key, else the documented 401
+/// (facts odoo-19.md L27-28, L37).
+async fn fake_odoo() -> String {
+    let app = Router::new().route(
+        "/json/2/{model}/{method}",
+        post(|headers: HeaderMap| async move {
+            let auth = headers.get("authorization").and_then(|v| v.to_str().ok());
+            if auth == Some(format!("bearer {SECRET}").as_str()) {
+                (StatusCode::OK, "[]".to_owned())
+            } else {
+                let body = json!({"name": "werkzeug.exceptions.Unauthorized",
+                    "message": "Invalid apikey", "arguments": [], "context": {}, "debug": ""});
+                (StatusCode::UNAUTHORIZED, body.to_string())
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    format!("http://{addr}")
+}
+
+#[sqlx::test]
+async fn live_odoo_connection_probes_with_its_stored_key(pool: PgPool) {
+    let st = state(pool.clone(), Mailer::capture().0);
+    let app = build_app(st.clone());
+    let (owner, ws) = signup(&app, "ada@example.com", "acme").await;
+    let base = format!("/v1/workspace/{ws}/integrations/connections");
+    let (_, b) = send(&app, Method::POST, &base, Some(odoo("O")), Some(&owner)).await;
+    let id: uuid::Uuid = b["data"]["connection_id"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    // The route only takes public https hosts; point the row at the loopback fake directly.
+    let url = fake_odoo().await;
+    sqlx::query("UPDATE integration_connections SET config = $2 WHERE id = $1")
+        .bind(id)
+        .bind(json!({"base_url": url, "database": "acme"}))
+        .execute(&pool)
+        .await
+        .unwrap();
+    let ws_id: uuid::Uuid =
+        sqlx::query_scalar("SELECT workspace_id FROM integration_connections WHERE id = $1")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let mut ctx = connections::ctx(&st);
+    ctx.outbound = Outbound::new(&["127.0.0.1".to_owned()]).unwrap();
+    ctx.mode = Mode::Live;
+
+    let row = connections::load(&pool, ws_id, id).await.unwrap();
+    let checks = probe::run(&ctx, &row).await;
+    let keys: Vec<_> = checks.iter().map(|c| c.key.as_str()).collect();
+    assert_eq!(
+        keys,
+        [
+            "purchase_request.list",
+            "purchase_request.read",
+            "source_controls.read"
+        ]
+    );
+    assert!(checks.iter().all(|c| c.ok), "{checks:?}");
+
+    // No stored key: every check fails as auth, without calling Odoo.
+    sqlx::query("DELETE FROM integration_secrets WHERE connection_id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let checks = probe::run(&ctx, &row).await;
+    assert!(
+        checks
+            .iter()
+            .all(|c| !c.ok && c.error_class == Some(ErrorClass::Auth)),
+        "{checks:?}"
+    );
 }
 
 #[sqlx::test]

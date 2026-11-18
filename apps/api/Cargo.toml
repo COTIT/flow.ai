@@ -20,6 +20,7 @@ hmac = "0.13.0"
 lettre = { version = "0.11.23", default-features = false, features = ["builder", "smtp-transport", "hostname", "pool", "tokio1-rustls-tls"] }
 lopdf = { version = "0.47.0", default-features = false }
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "multipart"] }
+ring = "0.17.14"
 rlimit = "0.11.0"
 rust_decimal = { version = "1", default-features = false, features = ["std"] }
 rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }

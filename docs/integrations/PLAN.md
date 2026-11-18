@@ -744,3 +744,9 @@ All of these are adversarial and concurrent. Each test asserts both the database
   - the price precision (decimal.precision "Product Price").
 - **Then rewrite P1/P2 and T30 to match the verified rule**, instead of the assumed `round_half_away(qty × price)`.
 - **Until O6 is verified,** C4a/C4b may not implement P1/P2.
+
+# REV 5 (user, 2026-11-18): sandbox last
+- Order: finish all code and integration work against the documented contracts first (C3b, C4a, C4b, C5 stack). Sandbox setup (Odoo 19 Custom plan + NetSuite sandbox) and the live gates L1–L6 come last.
+- Added before the sandbox step:
+  - **C6 docs-conformance audit** (read-only child). Every adapter request, response parser and error mapping is cross-checked line by line against `docs/integrations/facts/*` and the official URLs. Findings get fixed by one child per fix.
+  - **Live smoke kit.** `#[ignore]` live tests gated by env vars (`LIVE_ODOO_*`, `LIVE_NETSUITE_*`), one per gate L1–L6, plus `docs/integrations/SANDBOX.md`: a setup runbook covering the Odoo two_step/amount 0 control, the NetSuite integration record, the M2M EC P-256 certificate and the least-privilege role. Running these tests is the only step left once the sandboxes exist.

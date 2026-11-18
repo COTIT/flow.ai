@@ -24,7 +24,8 @@ use crate::{
         pdf_templates, permissions, price_corrections, pricing, product_brands, product_categories,
         product_images, product_variants, products, relations, sales_groups, scheduled_reports,
         search, settings, shipment_methods, special_offers, stock, storage_locations, storefront,
-        storefront_design, supply_chain, supply_links, teams, till, till_catalog, till_sales,
+        storefront_design, supply_chain, supply_links, tax_profiles, teams, till, till_catalog,
+        till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -150,6 +151,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(currency_rates::routes::private())
         .merge(users::routes::private())
         .merge(permissions::routes::private())
+        .merge(crate::modules::imports::routes::private())
         .merge(workspaces::routes::private())
         .merge(teams::routes::private())
         .merge(search::routes::private())
@@ -175,6 +177,10 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(crate::modules::product_fields::routes::private())
         .merge(crate::modules::product_bulk_runs::routes::private())
         .merge(crate::modules::purchase_units::routes::private())
+        .merge(crate::modules::purchasing::routes::private())
+        .merge(crate::modules::shipments::routes::private())
+        .merge(crate::modules::customer_deposits::routes::private())
+        .merge(crate::modules::stocktakes::routes::private())
         .merge(product_categories::routes::private())
         .merge(product_brands::routes::private())
         .merge(warehouse_bins::routes::private())
@@ -223,6 +229,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(orders::routes::private())
         .merge(analytics::routes::private())
         .merge(accounting::routes::private())
+        .merge(tax_profiles::routes::private())
         .merge(orders::routes::storefront())
         .merge(till::routes::private())
         .merge(till_catalog::routes::private())

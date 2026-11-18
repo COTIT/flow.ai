@@ -27,7 +27,7 @@ use crate::{
 /// GET /integrations/pairs/{pair}/mappings.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/integrations/pairs/{pair}/mappings", tag = "integrations",
-    operation_id = "integration_mappings_list", summary = "List a pair's mappings",
+    operation_id = "integrations_mappings_list", summary = "List a pair's mappings",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("pair" = Uuid, Path, description = "Pair id"),
@@ -68,7 +68,7 @@ pub async fn list(
 /// POST /integrations/pairs/{pair}/mappings.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/pairs/{pair}/mappings", tag = "integrations",
-    operation_id = "integration_mappings_upsert", summary = "Create or replace a mapping",
+    operation_id = "integrations_mappings_upsert", summary = "Create or replace a mapping",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("pair" = Uuid, Path, description = "Pair id"),
@@ -96,7 +96,7 @@ pub async fn upsert(
 /// DELETE /integrations/pairs/{pair}/mappings/{mapping}.
 #[utoipa::path(
     delete, path = "/workspace/{workspace}/integrations/pairs/{pair}/mappings/{mapping}", tag = "integrations",
-    operation_id = "integration_mappings_delete", summary = "Delete a mapping",
+    operation_id = "integrations_mappings_delete", summary = "Delete a mapping",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("pair" = Uuid, Path, description = "Pair id"),

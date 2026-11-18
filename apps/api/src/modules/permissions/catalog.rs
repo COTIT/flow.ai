@@ -1,6 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting` and `integration` (50 / 263). Name =
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import`, `shipment` and `integration` (55 / 295). Name =
 //! `group.action`. `integration.*`: Verzo glue (WF-01), not Laravel.
 //! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
@@ -104,6 +104,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "hourregistration",
         &["create", "delete", "get", "list", "update"],
     ),
+    // import: genesy master-data imports (masterplan §15).
+    (
+        "import",
+        &["apply", "create", "get", "list", "upload", "validate"],
+    ),
     (
         "integration",
         &["approve", "approve_high", "manage", "reconcile", "view"],
@@ -165,6 +170,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "productcategory",
         &["create", "delete", "get", "list", "update"],
     ),
+    // purchaseorder: Flow ERP M3 purchasing (masterplan §15), not Laravel.
+    (
+        "purchaseorder",
+        &[
+            "book", "cancel", "close", "confirm", "create", "get", "list", "receive", "update",
+        ],
+    ),
     (
         "relation",
         &["create", "delete", "get", "history", "list", "update"],
@@ -173,6 +185,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     // salesgroup, shipmentmethod, vatgroup: added by genesy (Laravel checked them, never catalogued).
     ("salesgroup", &["create", "delete", "get", "list", "update"]),
     ("setting", &["get", "update"]),
+    // shipment: Flow ERP M4 partial shipments (masterplan §15), not Laravel.
+    (
+        "shipment",
+        &[
+            "cancel", "create", "get", "invoice", "list", "post", "update",
+        ],
+    ),
     (
         "shipmentmethod",
         &["create", "delete", "get", "list", "update"],
@@ -198,7 +217,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
             "set_stock_requirements",
         ],
     ),
+    // stocktake: Flow ERP M6 counts (masterplan §15), not Laravel.
+    (
+        "stocktake",
+        &["cancel", "count", "create", "get", "list", "post", "start"],
+    ),
     ("tag", &["create", "delete", "list", "update", "view"]),
+    ("taxprofile", &["configure", "read", "verify"]),
     (
         "team",
         &[
@@ -273,8 +298,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 50);
-        assert_eq!(names().count(), 263);
+        assert_eq!(GROUPS.len(), 55);
+        assert_eq!(names().count(), 295);
     }
 
     #[test]

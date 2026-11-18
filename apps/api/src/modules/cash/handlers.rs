@@ -17,22 +17,32 @@ use crate::{
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
+    idempotency::{Answer, Command},
     modules::{
+        accounting::dto::Create,
         cash::{
             dto::{
-                CountQuote, CountRequest, CreateVaultRequest, ShiftQuery, ShiftResource,
-                TransferRequest, TransferResource, VaultResource,
+                AdjustReviewResource, CashAdjustmentResource, CashPlaceResource, CountQuote,
+                CountRequest, CreateVaultRequest, OfficeAdjustPayload, OfficeReviewRequest, Place,
+                ShiftQuery, ShiftResource, TillAdjustPayload, TillReviewRequest, TransferRequest,
+                TransferResource, VaultResource,
             },
+            places::{self, Approver},
             service,
         },
-        till::session::TillSession,
+        till::{privileged::PrivilegedTill, session::TillSession},
     },
 };
 
 permissions! {
     CashList => "cashregister.list",
     CashCreate => "cashregister.create",
+    CashAdjust => "cashregister.adjust",
+    AccountingRead => "accounting.read",
 }
+
+const NO_ADJUST: &str = "This action requires the cashregister.adjust permission.";
+const OFFICE_ONLY: &str = "Vaults are adjusted from the Office.";
 
 /// GET /till/shift -> `{data: shift|null}`.
 #[utoipa::path(
@@ -217,4 +227,163 @@ pub async fn list_shifts(
         service::list_shifts(&state, access.workspace_id, &f, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /accounting/cash-places -> `{data:[place]}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/cash-places", tag = "accounting",
+    operation_id = "accounting_cash_places_list", summary = "Drawers and vaults with book cash",
+    description = "Balance = reviewed adjustments + posted place movements, minor units. Counts \
+        (shift open/close) are observations and never add cash.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<Vec<CashPlaceResource>>, description = "Every drawer and vault"),
+        (status = 403, body = MessageBody, description = "Missing `accounting.read` or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn cash_places(
+    State(state): State<AppState>,
+    access: Can<AccountingRead>,
+) -> Result<Data<Vec<CashPlaceResource>>, AppError> {
+    Ok(Data(places::list(&state, access.workspace_id).await?))
+}
+
+/// POST /accounting/cash-adjustments/review -> `{data: review}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/cash-adjustments/review", tag = "accounting",
+    operation_id = "accounting_cash_adjustments_create_review",
+    summary = "Preview a cash adjustment (no writes)",
+    request_body = OfficeReviewRequest,
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<AdjustReviewResource>, description = "Expected, counted, difference, journal plan and fingerprint"),
+        (status = 403, body = MessageBody, description = "Missing `cashregister.adjust` or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, nothing to adjust, or `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn office_adjust_review(
+    State(state): State<AppState>,
+    access: Can<CashAdjust>,
+    ValidatedJson(input): ValidatedJson<OfficeReviewRequest>,
+) -> Result<Data<AdjustReviewResource>, AppError> {
+    Ok(Data(
+        places::review(&state, access.workspace_id, &input).await?,
+    ))
+}
+
+/// POST /accounting/cash-adjustments -> 201 `{data: adjustment}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/cash-adjustments", tag = "accounting",
+    operation_id = "accounting_cash_adjustments_create", summary = "Post a reviewed cash adjustment",
+    description = "Member authority. Moves the place by counted − expected in every book; in an \
+        active book also posts cash_over_short/cash once.",
+    request_body = Create<OfficeAdjustPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<CashAdjustmentResource>, description = "Posted"),
+        (status = 403, body = MessageBody, description = "Missing `cashregister.adjust` or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, nothing to adjust, or `accounting_period_closed` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn office_adjust(
+    State(state): State<AppState>,
+    access: Can<CashAdjust>,
+    cmd: Command<Create<OfficeAdjustPayload>>,
+) -> Result<Answer, AppError> {
+    let by = Approver {
+        member: access.user_id,
+        till_user_id: None,
+    };
+    places::adjust(
+        &state,
+        access.workspace_id,
+        "accounting_cash_adjustments_create",
+        by,
+        cmd,
+    )
+    .await
+}
+
+/// Privileged Till context allowed to adjust its own drawer.
+fn till_adjuster(p: &PrivilegedTill, place: Place) -> Result<Approver, AppError> {
+    if !p.member.allows("cashregister.adjust") {
+        return Err(AppError::Forbidden(NO_ADJUST));
+    }
+    match place {
+        Place::Drawer(id) if id == p.till.register_id => Ok(Approver {
+            member: p.member.user_id,
+            till_user_id: Some(p.till.till_user_id),
+        }),
+        Place::Drawer(_) => Err(AppError::NotFound),
+        Place::Vault(_) => Err(AppError::field("target_cash_place", OFFICE_ONLY)),
+    }
+}
+
+/// POST /till/cash-adjustments/review -> `{data: review}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/till/cash-adjustments/review", tag = "till",
+    operation_id = "till_cash_adjustments_create_review",
+    summary = "Preview a drawer adjustment (no writes)",
+    description = "Member bearer + `X-Till-Session`. Only the session's own drawer.",
+    request_body = TillReviewRequest,
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<AdjustReviewResource>, description = "Expected, counted, difference, journal plan and fingerprint"),
+        (status = 401, body = MessageBody, description = "No live member login or till session"),
+        (status = 403, body = MessageBody, description = "Missing `cashregister.adjust`"),
+        (status = 404, body = MessageBody, description = "Not a member, other workspace, or another register's drawer"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, a vault, nothing to adjust, or `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = [], "till_privileged" = []))
+)]
+pub async fn till_adjust_review(
+    State(state): State<AppState>,
+    p: PrivilegedTill,
+    ValidatedJson(input): ValidatedJson<TillReviewRequest>,
+) -> Result<Data<AdjustReviewResource>, AppError> {
+    till_adjuster(&p, input.place)?;
+    Ok(Data(
+        places::review(&state, p.member.workspace_id, &input).await?,
+    ))
+}
+
+/// POST /till/cash-adjustments -> 201 `{data: adjustment}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/till/cash-adjustments", tag = "till",
+    operation_id = "till_cash_adjustments_create", summary = "Post a reviewed drawer adjustment",
+    description = "Member bearer + `X-Till-Session` (D14): a till PIN or member link never \
+        counts. Accounting date = today in the book timezone.",
+    request_body = Create<TillAdjustPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<CashAdjustmentResource>, description = "Posted"),
+        (status = 401, body = MessageBody, description = "No live member login or till session"),
+        (status = 403, body = MessageBody, description = "Missing `cashregister.adjust`"),
+        (status = 404, body = MessageBody, description = "Not a member, other workspace, or another register's drawer"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, a vault, nothing to adjust, or `accounting_period_closed` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = [], "till_privileged" = []))
+)]
+pub async fn till_adjust(
+    State(state): State<AppState>,
+    p: PrivilegedTill,
+    cmd: Command<Create<TillAdjustPayload>>,
+) -> Result<Answer, AppError> {
+    let by = till_adjuster(&p, cmd.input.payload.review.place)?;
+    places::adjust(
+        &state,
+        p.member.workspace_id,
+        "till_cash_adjustments_create",
+        by,
+        cmd,
+    )
+    .await
 }

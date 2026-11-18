@@ -922,6 +922,14 @@ pub struct RelationIndexResource {
     advice_count: Option<i64>,
 }
 
+impl RelationIndexResource {
+    /// Open confirmed purchase orders and their open value (default-currency orders only).
+    pub fn set_open_orders(&mut self, count: i64, value: rust_decimal::Decimal) {
+        self.open_orders = Some(count);
+        self.open_order_value = format_decimals(Some(value), 2, true, Zero::Falsy);
+    }
+}
+
 /// List flags that change the row shape.
 #[derive(Clone, Copy)]
 pub struct IndexFlags {
@@ -969,7 +977,7 @@ impl RelationIndexResource {
                 contacts: (!bare).then(|| contacts.into_iter().map(Into::into).collect()),
                 tags: [],
             },
-            // shortcut: purchase orders not ported; counts are 0 / "0.00" until they are.
+            // Supplier list rows get real figures from `set_open_orders` (purchasing, M3).
             open_orders: flags.suppliers.then_some(0),
             open_order_value: format_decimals(None, 2, true, Zero::Falsy),
             has_advice: flags.include_advice.then_some(false),

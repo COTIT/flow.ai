@@ -31,7 +31,7 @@ type PairPath = Path<(String, String)>;
 /// GET /integrations/pairs.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/integrations/pairs", tag = "integrations",
-    operation_id = "integration_pairs_list", summary = "List pairs",
+    operation_id = "integrations_pairs_list", summary = "List pairs",
     params(("workspace" = Uuid, Path, description = "Workspace id"), PageQuery),
     responses(
         (status = 200, body = Paginated<PairResource>, description = "One page of pairs"),
@@ -59,7 +59,7 @@ pub async fn list(
 /// POST /integrations/pairs.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/pairs", tag = "integrations",
-    operation_id = "integration_pairs_create", summary = "Create a pair (draft)",
+    operation_id = "integrations_pairs_create", summary = "Create a pair (draft)",
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = PairInput,
     responses(
@@ -82,7 +82,7 @@ pub async fn create(
 /// GET /integrations/pairs/{pair}.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/integrations/pairs/{pair}", tag = "integrations",
-    operation_id = "integration_pairs_get", summary = "Get a pair",
+    operation_id = "integrations_pairs_get", summary = "Get a pair",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("pair" = Uuid, Path, description = "Pair id")),
     responses(
         (status = 200, body = Envelope<PairResource>, description = "The pair"),
@@ -105,7 +105,7 @@ pub async fn get(
 /// POST /integrations/pairs/{pair}.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/pairs/{pair}", tag = "integrations",
-    operation_id = "integration_pairs_update", summary = "Update a pair's config",
+    operation_id = "integrations_pairs_update", summary = "Update a pair's config",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("pair" = Uuid, Path, description = "Pair id")),
     request_body = PairInput,
     responses(
@@ -129,7 +129,7 @@ pub async fn update(
 /// POST /integrations/pairs/{pair}/activate.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/pairs/{pair}/activate", tag = "integrations",
-    operation_id = "integration_pairs_activate", summary = "Activate a pair",
+    operation_id = "integrations_pairs_activate", summary = "Activate a pair",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("pair" = Uuid, Path, description = "Pair id")),
     responses(
         (status = 200, body = Envelope<PairResource>, description = "The active pair"),
@@ -154,7 +154,7 @@ pub async fn activate(
 /// POST /integrations/pairs/{pair}/pause.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/pairs/{pair}/pause", tag = "integrations",
-    operation_id = "integration_pairs_pause", summary = "Pause a pair",
+    operation_id = "integrations_pairs_pause", summary = "Pause a pair",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("pair" = Uuid, Path, description = "Pair id")),
     responses(
         (status = 200, body = Envelope<PairResource>, description = "The paused pair"),

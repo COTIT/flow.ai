@@ -17,6 +17,7 @@ use crate::{
     http::{json::Rules, list::Page, workspace::WorkspaceAccess},
     idempotency::{self, Answer, Command},
     modules::{
+        accounting::settlement::Side,
         accounting::{
             dto::{
                 Acted, Action, CONTROL_ROLES, Create, CurrencyRef, JournalInput, JournalPayload,
@@ -24,10 +25,10 @@ use crate::{
                 ReviewResource, Totals,
             },
             gate,
-            repo::{self, DraftFields, EntryRow, LineRow, NewLine},
+            repo::{self, DraftFields, EntryRow, LineRow, NewLine, SumsRow},
             service::{created, not_configured, ok, period_closed, stale, unsupported},
         },
-        currency_rates::{convert::convert, repo::in_force},
+        currency_rates::repo::in_force,
     },
     numbering::{self, Series},
 };
@@ -60,13 +61,14 @@ fn line_resource(l: &LineRow, dp: i16, fdp: i16) -> LineResource {
     }
 }
 
-fn totals(lines: &[LineRow], dp: i16, fdp: i16) -> Totals {
-    let sum = |f: fn(&LineRow) -> i64| lines.iter().map(f).sum::<i64>();
+/// Line sums (computed in SQL) as decimal strings; no lines → zeros.
+fn totals(s: Option<&SumsRow>, dp: i16, fdp: i16) -> Totals {
+    let s = |f: fn(&SumsRow) -> i64| s.map_or(0, f);
     Totals {
-        debit: amount(sum(|l| l.debit), dp),
-        credit: amount(sum(|l| l.credit), dp),
-        functional_debit: amount(sum(|l| l.functional_debit), fdp),
-        functional_credit: amount(sum(|l| l.functional_credit), fdp),
+        debit: amount(s(|s| s.debit), dp),
+        credit: amount(s(|s| s.credit), dp),
+        functional_debit: amount(s(|s| s.functional_debit), fdp),
+        functional_credit: amount(s(|s| s.functional_credit), fdp),
     }
 }
 
@@ -81,6 +83,7 @@ async fn resources(
     for l in repo::lines(&mut *conn, ws, &ids).await? {
         by_entry.entry(l.entry_id).or_default().push(l);
     }
+    let sums = repo::sums(&mut *conn, ws, &ids).await?;
     let functional = functional(conn, ws).await?;
     let fdp = functional.as_ref().map_or(2, |c| c.decimals);
     Ok(rows
@@ -117,7 +120,7 @@ async fn resources(
                 created_by: e.created_by,
                 created_at: e.created_at,
                 updated_at: e.updated_at,
-                totals: totals(&lines, dp, fdp),
+                totals: totals(sums.iter().find(|s| s.entry_id == e.id), dp, fdp),
                 lines: lines.iter().map(|l| line_resource(l, dp, fdp)).collect(),
                 allowed_actions,
             }
@@ -206,6 +209,7 @@ async fn draft_lines(
                 line_no: i16::try_from(i + 1).unwrap_or(i16::MAX),
                 account_id: l.account,
                 relation_id: l.relation,
+                bank_account_id: None,
                 source_ref: l.source_ref.clone(),
                 debit,
                 credit,
@@ -329,6 +333,7 @@ struct Prepared {
     functional: CurrencyRef,
     date: NaiveDate,
     lines: Vec<NewLine>,
+    sums: SumsRow,
     fingerprint: [u8; 32],
 }
 
@@ -367,7 +372,7 @@ impl Prepared {
             period_id: self.period,
             currency: self.currency.clone(),
             functional_currency: self.functional.clone(),
-            totals: totals(&rows, dp, fdp),
+            totals: totals(Some(&self.sums), dp, fdp),
             lines: rows.iter().map(|l| line_resource(l, dp, fdp)).collect(),
             review_fingerprint: hex::encode(self.fingerprint),
         }
@@ -417,26 +422,6 @@ fn lines_json(lines: &[NewLine]) -> serde_json::Value {
         .collect()
 }
 
-/// Split `total` functional units over `parts` (entry-currency minor units) in line order:
-/// each part converted alone, the last one takes the exact remainder (§5 rounding).
-fn distribute(parts: &[i64], total: i64, conv: &dyn Fn(i64) -> Option<i64>) -> Option<Vec<i64>> {
-    let mut out = Vec::with_capacity(parts.len());
-    let mut used = 0_i64;
-    for (i, p) in parts.iter().enumerate() {
-        let v = if i + 1 == parts.len() {
-            total.checked_sub(used)?
-        } else {
-            conv(*p)?
-        };
-        if v < 0 {
-            return None;
-        }
-        used = used.checked_add(v)?;
-        out.push(v);
-    }
-    Some(out)
-}
-
 /// Post facts for a draft, rechecked under locks (period and accounts FOR SHARE).
 async fn prepare_post(
     conn: &mut PgConnection,
@@ -455,10 +440,7 @@ async fn prepare_post(
         return Err(stale());
     }
     let stored = repo::lines(&mut *conn, ws, &[id]).await?;
-    let (debit, credit) = stored.iter().fold((0_i64, 0_i64), |(d, c), l| {
-        (d.saturating_add(l.debit), c.saturating_add(l.credit))
-    });
-    if stored.len() < 2 || debit != credit {
+    if stored.len() < 2 || !repo::balanced(&mut *conn, ws, id).await? {
         return Err(AppError::field("lines", "Debits and credits must balance."));
     }
     let ids: Vec<Uuid> = stored.iter().map(|l| l.account_id).collect();
@@ -511,53 +493,44 @@ async fn prepare_post(
             ),
         ));
     };
-    let (from, to) = (
-        u32::try_from(currency.decimals).unwrap_or(0),
-        u32::try_from(functional.decimals).unwrap_or(0),
-    );
-    let conv = |minor: i64| convert(minor, rate, from, to, inverse);
     let unconvertible = || {
         AppError::field(
             "lines",
             "The lines can't be converted to the functional currency exactly.",
         )
     };
-    let total = conv(debit).ok_or_else(unconvertible)?;
-    let debits: Vec<i64> = stored
-        .iter()
-        .filter(|l| l.debit > 0)
-        .map(|l| l.debit)
-        .collect();
-    let credits: Vec<i64> = stored
-        .iter()
-        .filter(|l| l.credit > 0)
-        .map(|l| l.credit)
-        .collect();
-    let mut fd = distribute(&debits, total, &conv)
-        .ok_or_else(unconvertible)?
-        .into_iter();
-    let mut fc = distribute(&credits, total, &conv)
-        .ok_or_else(unconvertible)?
-        .into_iter();
+    let dps = (i32::from(currency.decimals), i32::from(functional.decimals));
+    let converted = match repo::converted(&mut *conn, ws, id, rate, inverse, dps).await {
+        Ok(Some(rows)) => rows,
+        Ok(None) => return Err(unconvertible()),
+        // 22003: a converted amount past bigint.
+        Err(sqlx::Error::Database(e)) if e.code().as_deref() == Some("22003") => {
+            return Err(unconvertible());
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let sums = converted
+        .first()
+        .map(|r| r.sums)
+        .ok_or_else(unconvertible)?;
     let lines: Vec<NewLine> = stored
         .iter()
         .map(|l| NewLine {
             line_no: l.line_no,
             account_id: l.account_id,
             relation_id: l.relation_id,
+            bank_account_id: None,
             source_ref: l.source_ref.clone(),
             debit: l.debit,
             credit: l.credit,
-            functional_debit: if l.debit > 0 {
-                fd.next().unwrap_or(0)
-            } else {
-                0
-            },
-            functional_credit: if l.credit > 0 {
-                fc.next().unwrap_or(0)
-            } else {
-                0
-            },
+            functional_debit: converted
+                .iter()
+                .find(|c| c.line_no == l.line_no)
+                .map_or(0, |c| c.functional_debit),
+            functional_credit: converted
+                .iter()
+                .find(|c| c.line_no == l.line_no)
+                .map_or(0, |c| c.functional_credit),
             rate,
             rate_inverse: inverse,
             rate_source: source,
@@ -578,6 +551,7 @@ async fn prepare_post(
             functional,
             date,
             lines,
+            sums,
             fingerprint,
         },
         stored,
@@ -675,6 +649,7 @@ async fn prepare_reverse(
             line_no: l.line_no,
             account_id: l.account_id,
             relation_id: l.relation_id,
+            bank_account_id: None,
             source_ref: l.source_ref.clone(),
             debit: l.credit,
             credit: l.debit,
@@ -695,6 +670,18 @@ async fn prepare_reverse(
         code: entry.currency_code.clone(),
         decimals: entry.currency_decimals,
     };
+    // Same lines with sides swapped: the stored sums, swapped.
+    let sums = repo::sums(&mut *conn, ws, &[id])
+        .await?
+        .pop()
+        .map(|s| SumsRow {
+            entry_id: id,
+            debit: s.credit,
+            credit: s.debit,
+            functional_debit: s.functional_credit,
+            functional_credit: s.functional_debit,
+        })
+        .ok_or_else(|| AppError::Internal("posted journal without lines".into()))?;
     let fingerprint = fingerprint(&json!({
         "action": "reverse", "entry": entry.id, "version": entry.version, "period": period,
         "date": input.date, "reason": input.reason, "lines": lines_json(&lines),
@@ -707,6 +694,7 @@ async fn prepare_reverse(
             functional,
             date: input.date,
             lines,
+            sums,
             fingerprint,
         },
         stored,
@@ -796,51 +784,117 @@ pub async fn reverse(
     Ok(answer)
 }
 
-/// A source posting in the functional currency: one debit and one credit line on mapped roles.
+/// A two-line source posting in the functional currency: one debit and one credit side.
 pub struct SourceJournal<'a> {
     pub source_kind: &'a str,
     pub source_id: Uuid,
     pub effect_kind: &'a str,
     pub date: NaiveDate,
     pub reason: &'a str,
-    pub debit: &'a str,
-    pub credit: &'a str,
+    pub debit: Side,
+    pub credit: Side,
+    /// Party on both lines (receivable/deposit control detail).
+    pub relation_id: Option<Uuid>,
+    /// Bank account on the line that hits its GL account.
+    pub bank_account_id: Option<Uuid>,
     /// Functional minor units, > 0.
     pub amount: i64,
     pub fingerprint: &'a [u8; 32],
     pub by: Uuid,
 }
 
-/// Post `j` as a `source` journal in the caller's transaction; its id. 422
-/// `accounting_not_configured` without functional currency or an active mapped account per
-/// role (accounts locked FOR SHARE), `accounting_period_closed` without an open period on the
-/// date. The effect identity
-/// makes a second posting of the same source a database error.
+/// Effect identity, date and actor of a multi-line source posting.
+pub struct SourceHeader<'a> {
+    pub source_kind: &'a str,
+    pub source_id: Uuid,
+    pub effect_kind: &'a str,
+    pub date: NaiveDate,
+    pub reason: &'a str,
+    pub fingerprint: &'a [u8; 32],
+    pub by: Uuid,
+}
+
+/// One line of a source posting, functional minor units (one side > 0): a mapped role or a
+/// concrete account (a bank account's GL account).
+pub struct SourceLine {
+    pub side: Side,
+    pub debit: i64,
+    pub credit: i64,
+    /// Customer or supplier of a control-account line.
+    pub relation_id: Option<Uuid>,
+    /// Bank account of a `Side::Account` line (ignored on role lines).
+    pub bank_account_id: Option<Uuid>,
+}
+
+/// Post `j` as a two-line `source` journal; its id. See [`post_source_lines`].
 pub async fn post_source(
     conn: &mut PgConnection,
     ws: Uuid,
     j: &SourceJournal<'_>,
 ) -> Result<Uuid, AppError> {
+    let header = SourceHeader {
+        source_kind: j.source_kind,
+        source_id: j.source_id,
+        effect_kind: j.effect_kind,
+        date: j.date,
+        reason: j.reason,
+        fingerprint: j.fingerprint,
+        by: j.by,
+    };
+    let lines = [
+        SourceLine {
+            side: j.debit,
+            debit: j.amount,
+            credit: 0,
+            relation_id: j.relation_id,
+            bank_account_id: j.bank_account_id,
+        },
+        SourceLine {
+            side: j.credit,
+            debit: 0,
+            credit: j.amount,
+            relation_id: j.relation_id,
+            bank_account_id: j.bank_account_id,
+        },
+    ];
+    Ok(post_source_lines(conn, ws, &header, &lines).await?.0)
+}
+
+/// Post `lines` as a `source` journal in the caller's transaction; (entry, effect). 422
+/// `accounting_not_configured` without functional currency or an active mapped account per
+/// role (accounts locked FOR SHARE), `accounting_period_closed` without an open period on the
+/// date. Balance is checked at commit (deferred trigger). The effect identity makes a second
+/// posting of the same source a database error.
+pub async fn post_source_lines(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    j: &SourceHeader<'_>,
+    lines: &[SourceLine],
+) -> Result<(Uuid, Uuid), AppError> {
     let currency = repo::settings(&mut *conn, ws, false)
         .await?
         .functional_currency_id
         .ok_or_else(not_configured)?;
     let mappings = repo::mappings(&mut *conn, ws).await?;
-    let account = |role: &str| {
-        mappings
-            .iter()
-            .find(|m| m.role == role)
-            .map(|m| m.account_id)
-            .ok_or_else(not_configured)
-    };
-    let (debit, credit) = (account(j.debit)?, account(j.credit)?);
+    let accounts = lines
+        .iter()
+        .map(|l| match l.side {
+            Side::Account(id) => Ok(id),
+            Side::Role(role) => mappings
+                .iter()
+                .find(|m| m.role == role)
+                .map(|m| m.account_id)
+                .ok_or_else(not_configured),
+        })
+        .collect::<Result<Vec<Uuid>, AppError>>()?;
     // As manual posting: FOR SHARE in id order, so a deactivation waits for this posting or
     // this posting sees it; active read under the lock.
-    let locked = repo::line_accounts(&mut *conn, ws, &[debit, credit]).await?;
-    for id in [debit, credit] {
-        if !locked.iter().any(|a| a.0 == id && a.1) {
-            return Err(not_configured());
-        }
+    let locked = repo::line_accounts(&mut *conn, ws, &accounts).await?;
+    if !accounts
+        .iter()
+        .all(|id| locked.iter().any(|a| a.0 == *id && a.1))
+    {
+        return Err(not_configured());
     }
     let period = repo::open_period(&mut *conn, ws, j.date)
         .await?
@@ -854,22 +908,30 @@ pub async fn post_source(
         reversal_of: None,
     };
     let entry = repo::insert_entry(&mut *conn, ws, &fields, j.by).await?;
-    let line = |line_no, account_id, debit, credit| NewLine {
-        line_no,
-        account_id,
-        relation_id: None,
-        source_ref: None,
-        debit,
-        credit,
-        functional_debit: debit,
-        functional_credit: credit,
-        rate: Decimal::ONE,
-        rate_inverse: false,
-        rate_source: "identity",
-        rate_date: None,
-    };
-    let lines = [line(1, debit, j.amount, 0), line(2, credit, 0, j.amount)];
-    repo::insert_lines(&mut *conn, ws, entry, &lines).await?;
+    let rows: Vec<NewLine> = lines
+        .iter()
+        .zip(&accounts)
+        .zip(1i16..)
+        .map(|((l, account_id), line_no)| NewLine {
+            line_no,
+            account_id: *account_id,
+            relation_id: l.relation_id,
+            // Only a line on a concrete (bank GL) account names its bank account.
+            bank_account_id: l
+                .bank_account_id
+                .filter(|_| matches!(l.side, Side::Account(_))),
+            source_ref: None,
+            debit: l.debit,
+            credit: l.credit,
+            functional_debit: l.debit,
+            functional_credit: l.credit,
+            rate: Decimal::ONE,
+            rate_inverse: false,
+            rate_source: "identity",
+            rate_date: None,
+        })
+        .collect();
+    repo::insert_lines(&mut *conn, ws, entry, &rows).await?;
     let effect = repo::insert_effect(
         &mut *conn,
         ws,
@@ -882,36 +944,155 @@ pub async fn post_source(
     .await?;
     let number = numbering::next(&mut *conn, ws, Series::Journal, 1).await?;
     repo::mark_posted(&mut *conn, ws, entry, number, period, effect, j.by).await?;
-    Ok(entry)
+    Ok((entry, effect))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn last_part_takes_the_exact_remainder() {
-        // 3 × 0.01 EUR at 1.005 → each rounds to 1, total 0.03015 → 3: parts 1, 1, 1.
-        let conv = |m: i64| convert(m, Decimal::new(1005, 3), 2, 2, false);
+    /// Book with EUR functional, roles unbilled_receivables/revenue/tax_payable mapped, an
+    /// open period around today; (ws, user).
+    async fn book(pool: &sqlx::PgPool) -> (Uuid, Uuid) {
+        let row: (Uuid, Uuid) = sqlx::query_as(
+            "WITH u AS (INSERT INTO users (email, first_name, last_name, password_hash)
+                        VALUES ('o@x.io', 'O', 'W', 'h') RETURNING id),
+                  w AS (INSERT INTO workspaces (name, created_by_user_id)
+                        SELECT 'acme', id FROM u RETURNING id, created_by_user_id),
+                  c AS (INSERT INTO currencies (workspace_id, name, asset_type, decimals, active)
+                        SELECT id, 'Euro', 'EUR', 2, true FROM w RETURNING id)
+             SELECT w.id, w.created_by_user_id FROM w, c",
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+        let (ws, user) = row;
+        for (code, ty, role) in [
+            ("1210", "asset", "unbilled_receivables"),
+            ("4000", "income", "revenue"),
+            ("2200", "liability", "tax_payable"),
+        ] {
+            sqlx::query(
+                "WITH a AS (INSERT INTO accounts (workspace_id, code, name, type, created_by)
+                            VALUES ($1, $2, $2, $3, $4) RETURNING id)
+                 INSERT INTO account_mappings (workspace_id, role, account_id)
+                 SELECT $1, $5, id FROM a",
+            )
+            .bind(ws)
+            .bind(code)
+            .bind(ty)
+            .bind(user)
+            .bind(role)
+            .execute(pool)
+            .await
+            .unwrap();
+        }
+        sqlx::query(
+            "WITH y AS (INSERT INTO accounting_fiscal_years (workspace_id, start_date, end_date, created_by)
+                        VALUES ($1, current_date - 10, current_date + 10, $2) RETURNING id)
+             INSERT INTO accounting_periods (workspace_id, fiscal_year_id, start_date, end_date, created_by)
+             SELECT $1, id, current_date - 10, current_date + 10, $2 FROM y",
+        )
+        .bind(ws)
+        .bind(user)
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "UPDATE accounting_settings SET functional_currency_id =
+                 (SELECT id FROM currencies WHERE workspace_id = $1), timezone = 'UTC'
+             WHERE workspace_id = $1",
+        )
+        .bind(ws)
+        .execute(pool)
+        .await
+        .unwrap();
+        row
+    }
+
+    #[sqlx::test]
+    async fn source_lines_post_once(pool: sqlx::PgPool) {
+        let (ws, user) = book(&pool).await;
+        let source = Uuid::now_v7();
+        let header = SourceHeader {
+            source_kind: "shipment",
+            source_id: source,
+            effect_kind: "fulfilled",
+            date: chrono::Utc::now().date_naive(),
+            reason: "sale",
+            fingerprint: &[7; 32],
+            by: user,
+        };
+        let line = |role, debit, credit, relation_id| SourceLine {
+            side: Side::Role(role),
+            debit,
+            credit,
+            relation_id,
+            bank_account_id: None,
+        };
+        let lines = [
+            line("unbilled_receivables", 121, 0, None),
+            line("revenue", 0, 100, None),
+            line("tax_payable", 0, 21, None),
+        ];
+        let mut tx = pool.begin().await.unwrap();
+        let (entry, effect) = post_source_lines(&mut tx, ws, &header, &lines)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+        let got: Vec<(i16, String, i64, i64, Option<Uuid>)> = sqlx::query_as(
+            "SELECT l.line_no, m.role, l.functional_debit, l.functional_credit, l.relation_id
+             FROM journal_lines l
+             JOIN account_mappings m ON m.workspace_id = l.workspace_id AND m.account_id = l.account_id
+             WHERE l.entry_id = $1 ORDER BY l.line_no",
+        )
+        .bind(entry)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
         assert_eq!(
-            distribute(&[1, 1, 1], conv(3).unwrap(), &conv),
-            Some(vec![1, 1, 1])
+            got,
+            vec![
+                (1, "unbilled_receivables".into(), 121, 0, None),
+                (2, "revenue".into(), 0, 100, None),
+                (3, "tax_payable".into(), 0, 21, None),
+            ]
         );
-        // 1/3 rate: 100 → 33 each, total 300 → 100: last takes 34.
-        let third = |m: i64| convert(m, Decimal::new(3, 0), 2, 2, true);
-        assert_eq!(
-            distribute(&[100, 100, 100], third(300).unwrap(), &third),
-            Some(vec![33, 33, 34])
+        let posted: (String, Uuid) =
+            sqlx::query_as("SELECT state, effect_id FROM journal_entries WHERE id = $1")
+                .bind(entry)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(posted, ("posted".into(), effect));
+        // Same effect identity again: refused by the database.
+        let mut tx = pool.begin().await.unwrap();
+        assert!(
+            post_source_lines(&mut tx, ws, &header, &lines)
+                .await
+                .is_err()
         );
-        assert_eq!(
-            distribute(&[5], 7, &third),
-            Some(vec![7]),
-            "single part is the total"
-        );
-        assert_eq!(
-            distribute(&[100, 1], 10, &|_| Some(50)),
-            None,
-            "never negative"
-        );
+        tx.rollback().await.unwrap();
+        // An unmapped role: accounting_not_configured, nothing written.
+        let mut tx = pool.begin().await.unwrap();
+        let other = SourceHeader {
+            source_id: Uuid::now_v7(),
+            ..header
+        };
+        let err = post_source_lines(
+            &mut tx,
+            ws,
+            &other,
+            &[line("cash", 5, 0, None), line("revenue", 0, 5, None)],
+        )
+        .await
+        .unwrap_err();
+        assert!(matches!(
+            err,
+            AppError::Reason {
+                code: "accounting_not_configured",
+                ..
+            }
+        ));
     }
 }

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO purchase_order_lines (workspace_id, purchase_order_id, line_no, product_id,\n             purchase_unit_id, input_quantity, ratio, base_quantity, unit_price, extension,\n             warehouse_id)\n         SELECT $1, $2, n::int, x.product, x.unit, x.q, x.ratio, x.base, x.price,\n                money_round_div(x.q * x.price * 10::numeric ^ c.decimals, 1)::bigint, x.wh\n         FROM unnest($3::uuid[], $4::uuid[], $5::numeric[], $6::numeric[], $7::numeric[],\n                     $8::numeric[], $9::uuid[])\n              WITH ORDINALITY AS x(product, unit, q, ratio, base, price, wh, n)\n         JOIN purchase_orders o ON o.workspace_id = $1 AND o.id = $2\n         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "NumericArray",
+        "NumericArray",
+        "NumericArray",
+        "NumericArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "29a30395087b8e9b8f6ad834eba12f63db6415421d70a3168cd3208ea73fea7f"
+}

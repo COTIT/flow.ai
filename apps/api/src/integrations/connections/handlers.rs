@@ -35,7 +35,7 @@ type ConnectionPath = Path<(String, String)>;
 /// GET /integrations/connections.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/integrations/connections", tag = "integrations",
-    operation_id = "integration_connections_list", summary = "List connections",
+    operation_id = "integrations_connections_list", summary = "List connections",
     params(("workspace" = Uuid, Path, description = "Workspace id"), PageQuery),
     responses(
         (status = 200, body = Paginated<ConnectionResource>, description = "One page of connections"),
@@ -62,7 +62,7 @@ pub async fn list(
 /// POST /integrations/connections.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/connections", tag = "integrations",
-    operation_id = "integration_connections_create", summary = "Create a connection (draft)",
+    operation_id = "integrations_connections_create", summary = "Create a connection (draft)",
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = ConnectionInput,
     responses(
@@ -88,7 +88,7 @@ pub async fn create(
 /// GET /integrations/connections/{connection}.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/integrations/connections/{connection}", tag = "integrations",
-    operation_id = "integration_connections_get", summary = "Get a connection",
+    operation_id = "integrations_connections_get", summary = "Get a connection",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("connection" = Uuid, Path, description = "Connection id"),
@@ -112,7 +112,7 @@ pub async fn get(
 /// POST /integrations/connections/{connection}.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/connections/{connection}", tag = "integrations",
-    operation_id = "integration_connections_update", summary = "Update a connection (send only changed fields)",
+    operation_id = "integrations_connections_update", summary = "Update a connection (send only changed fields)",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("connection" = Uuid, Path, description = "Connection id"),
@@ -139,7 +139,7 @@ pub async fn update(
 /// POST /integrations/connections/{connection}/test.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/connections/{connection}/test", tag = "integrations",
-    operation_id = "integration_connections_test", summary = "Probe a connection and update its status",
+    operation_id = "integrations_connections_test", summary = "Probe a connection and update its status",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("connection" = Uuid, Path, description = "Connection id"),
@@ -163,7 +163,7 @@ pub async fn test(
 /// POST /integrations/connections/{connection}/disconnect.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/integrations/connections/{connection}/disconnect", tag = "integrations",
-    operation_id = "integration_connections_disconnect", summary = "Disconnect and drop the stored secret",
+    operation_id = "integrations_connections_disconnect", summary = "Disconnect and drop the stored secret",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("connection" = Uuid, Path, description = "Connection id"),

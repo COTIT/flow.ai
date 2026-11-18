@@ -31,9 +31,9 @@ import type {
   EnvelopeMappingCreated,
   EnvelopePairCreated,
   EnvelopePairResource,
-  IntegrationConnectionsListParams,
-  IntegrationMappingsListParams,
-  IntegrationPairsListParams,
+  IntegrationsConnectionsListParams,
+  IntegrationsMappingsListParams,
+  IntegrationsPairsListParams,
   MappingInput,
   MessageBody,
   PaginatedConnectionResource,
@@ -70,9 +70,9 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 /**
  * @summary List connections
  */
-export const integrationConnectionsList = (
+export const integrationsConnectionsList = (
     workspace: string,
-    params?: IntegrationConnectionsListParams,
+    params?: IntegrationsConnectionsListParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
@@ -87,75 +87,75 @@ export const integrationConnectionsList = (
 
 
 
-export const getIntegrationConnectionsListQueryKey = (workspace: string,
-    params?: IntegrationConnectionsListParams,) => {
+export const getIntegrationsConnectionsListQueryKey = (workspace: string,
+    params?: IntegrationsConnectionsListParams,) => {
     return [
     `/workspace/${workspace}/integrations/connections`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getIntegrationConnectionsListQueryOptions = <TData = Awaited<ReturnType<typeof integrationConnectionsList>>, TError = ErrorType<MessageBody>>(workspace: string,
-    params?: IntegrationConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getIntegrationsConnectionsListQueryOptions = <TData = Awaited<ReturnType<typeof integrationsConnectionsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: IntegrationsConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIntegrationConnectionsListQueryKey(workspace,params);
+  const queryKey =  queryOptions?.queryKey ?? getIntegrationsConnectionsListQueryKey(workspace,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationConnectionsList>>> = ({ signal }) => integrationConnectionsList(workspace,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationsConnectionsList>>> = ({ signal }) => integrationsConnectionsList(workspace,params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type IntegrationConnectionsListQueryResult = NonNullable<Awaited<ReturnType<typeof integrationConnectionsList>>>
-export type IntegrationConnectionsListQueryError = ErrorType<MessageBody>
+export type IntegrationsConnectionsListQueryResult = NonNullable<Awaited<ReturnType<typeof integrationsConnectionsList>>>
+export type IntegrationsConnectionsListQueryError = ErrorType<MessageBody>
 
 
-export function useIntegrationConnectionsList<TData = Awaited<ReturnType<typeof integrationConnectionsList>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsList<TData = Awaited<ReturnType<typeof integrationsConnectionsList>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    params: undefined |  IntegrationConnectionsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsList>>, TError, TData>> & Pick<
+    params: undefined |  IntegrationsConnectionsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationConnectionsList>>,
+          Awaited<ReturnType<typeof integrationsConnectionsList>>,
           TError,
-          Awaited<ReturnType<typeof integrationConnectionsList>>
+          Awaited<ReturnType<typeof integrationsConnectionsList>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationConnectionsList<TData = Awaited<ReturnType<typeof integrationConnectionsList>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsList<TData = Awaited<ReturnType<typeof integrationsConnectionsList>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    params?: IntegrationConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsList>>, TError, TData>> & Pick<
+    params?: IntegrationsConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationConnectionsList>>,
+          Awaited<ReturnType<typeof integrationsConnectionsList>>,
           TError,
-          Awaited<ReturnType<typeof integrationConnectionsList>>
+          Awaited<ReturnType<typeof integrationsConnectionsList>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationConnectionsList<TData = Awaited<ReturnType<typeof integrationConnectionsList>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsList<TData = Awaited<ReturnType<typeof integrationsConnectionsList>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    params?: IntegrationConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List connections
  */
 
-export function useIntegrationConnectionsList<TData = Awaited<ReturnType<typeof integrationConnectionsList>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsList<TData = Awaited<ReturnType<typeof integrationsConnectionsList>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    params?: IntegrationConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsConnectionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIntegrationConnectionsListQueryOptions(workspace,params,options)
+  const queryOptions = getIntegrationsConnectionsListQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -170,7 +170,7 @@ export function useIntegrationConnectionsList<TData = Awaited<ReturnType<typeof 
 /**
  * @summary Create a connection (draft)
  */
-export const integrationConnectionsCreate = (
+export const integrationsConnectionsCreate = (
     workspace: string,
     connectionInput: BodyType<ConnectionInput>,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -188,13 +188,13 @@ export const integrationConnectionsCreate = (
 
 
 
-export const getIntegrationConnectionsCreateMutationKey = () => ['integrationConnectionsCreate'] as const;
+export const getIntegrationsConnectionsCreateMutationKey = () => ['integrationsConnectionsCreate'] as const;
 
-export const getIntegrationConnectionsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsCreate>>, TError,IntegrationConnectionsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsCreate>>, TError,IntegrationConnectionsCreateMutationVariables, TContext> => {
+export const getIntegrationsConnectionsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsCreate>>, TError,IntegrationsConnectionsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsCreate>>, TError,IntegrationsConnectionsCreateMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationConnectionsCreateMutationKey();
+const mutationKey = getIntegrationsConnectionsCreateMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -204,10 +204,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationConnectionsCreate>>, IntegrationConnectionsCreateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsConnectionsCreate>>, IntegrationsConnectionsCreateMutationVariables> = (props) => {
           const {workspace,data} = props ?? {};
 
-          return  integrationConnectionsCreate(workspace,data,requestOptions)
+          return  integrationsConnectionsCreate(workspace,data,requestOptions)
         }
 
 
@@ -217,28 +217,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationConnectionsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationConnectionsCreate>>>
-    export type IntegrationConnectionsCreateMutationBody = BodyType<ConnectionInput>
-    export type IntegrationConnectionsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
-    export type IntegrationConnectionsCreateMutationVariables = {workspace: string;data: BodyType<ConnectionInput>}
+    export type IntegrationsConnectionsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsConnectionsCreate>>>
+    export type IntegrationsConnectionsCreateMutationBody = BodyType<ConnectionInput>
+    export type IntegrationsConnectionsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type IntegrationsConnectionsCreateMutationVariables = {workspace: string;data: BodyType<ConnectionInput>}
 
     /**
  * @summary Create a connection (draft)
  */
-export const useIntegrationConnectionsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsCreate>>, TError,IntegrationConnectionsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsConnectionsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsCreate>>, TError,IntegrationsConnectionsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationConnectionsCreate>>,
+        Awaited<ReturnType<typeof integrationsConnectionsCreate>>,
         TError,
-        IntegrationConnectionsCreateMutationVariables,
+        IntegrationsConnectionsCreateMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationConnectionsCreateMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsConnectionsCreateMutationOptions(options), queryClient);
     }
     /**
  * @summary Get a connection
  */
-export const integrationConnectionsGet = (
+export const integrationsConnectionsGet = (
     workspace: string,
     connection: string,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -254,7 +254,7 @@ export const integrationConnectionsGet = (
 
 
 
-export const getIntegrationConnectionsGetQueryKey = (workspace: string,
+export const getIntegrationsConnectionsGetQueryKey = (workspace: string,
     connection: string,) => {
     return [
     `/workspace/${workspace}/integrations/connections/${connection}`
@@ -262,67 +262,67 @@ export const getIntegrationConnectionsGetQueryKey = (workspace: string,
     }
 
 
-export const getIntegrationConnectionsGetQueryOptions = <TData = Awaited<ReturnType<typeof integrationConnectionsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
-    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getIntegrationsConnectionsGetQueryOptions = <TData = Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIntegrationConnectionsGetQueryKey(workspace,connection);
+  const queryKey =  queryOptions?.queryKey ?? getIntegrationsConnectionsGetQueryKey(workspace,connection);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationConnectionsGet>>> = ({ signal }) => integrationConnectionsGet(workspace,connection, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationsConnectionsGet>>> = ({ signal }) => integrationsConnectionsGet(workspace,connection, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && connection !== null && connection !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && connection !== null && connection !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type IntegrationConnectionsGetQueryResult = NonNullable<Awaited<ReturnType<typeof integrationConnectionsGet>>>
-export type IntegrationConnectionsGetQueryError = ErrorType<MessageBody>
+export type IntegrationsConnectionsGetQueryResult = NonNullable<Awaited<ReturnType<typeof integrationsConnectionsGet>>>
+export type IntegrationsConnectionsGetQueryError = ErrorType<MessageBody>
 
 
-export function useIntegrationConnectionsGet<TData = Awaited<ReturnType<typeof integrationConnectionsGet>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsGet<TData = Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    connection: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsGet>>, TError, TData>> & Pick<
+    connection: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationConnectionsGet>>,
+          Awaited<ReturnType<typeof integrationsConnectionsGet>>,
           TError,
-          Awaited<ReturnType<typeof integrationConnectionsGet>>
+          Awaited<ReturnType<typeof integrationsConnectionsGet>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationConnectionsGet<TData = Awaited<ReturnType<typeof integrationConnectionsGet>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsGet<TData = Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsGet>>, TError, TData>> & Pick<
+    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationConnectionsGet>>,
+          Awaited<ReturnType<typeof integrationsConnectionsGet>>,
           TError,
-          Awaited<ReturnType<typeof integrationConnectionsGet>>
+          Awaited<ReturnType<typeof integrationsConnectionsGet>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationConnectionsGet<TData = Awaited<ReturnType<typeof integrationConnectionsGet>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsGet<TData = Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get a connection
  */
 
-export function useIntegrationConnectionsGet<TData = Awaited<ReturnType<typeof integrationConnectionsGet>>, TError = ErrorType<MessageBody>>(
+export function useIntegrationsConnectionsGet<TData = Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationConnectionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    connection: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsConnectionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIntegrationConnectionsGetQueryOptions(workspace,connection,options)
+  const queryOptions = getIntegrationsConnectionsGetQueryOptions(workspace,connection,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -337,7 +337,7 @@ export function useIntegrationConnectionsGet<TData = Awaited<ReturnType<typeof i
 /**
  * @summary Update a connection (send only changed fields)
  */
-export const integrationConnectionsUpdate = (
+export const integrationsConnectionsUpdate = (
     workspace: string,
     connection: string,
     connectionInput: BodyType<ConnectionInput>,
@@ -356,13 +356,13 @@ export const integrationConnectionsUpdate = (
 
 
 
-export const getIntegrationConnectionsUpdateMutationKey = () => ['integrationConnectionsUpdate'] as const;
+export const getIntegrationsConnectionsUpdateMutationKey = () => ['integrationsConnectionsUpdate'] as const;
 
-export const getIntegrationConnectionsUpdateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsUpdate>>, TError,IntegrationConnectionsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsUpdate>>, TError,IntegrationConnectionsUpdateMutationVariables, TContext> => {
+export const getIntegrationsConnectionsUpdateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsUpdate>>, TError,IntegrationsConnectionsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsUpdate>>, TError,IntegrationsConnectionsUpdateMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationConnectionsUpdateMutationKey();
+const mutationKey = getIntegrationsConnectionsUpdateMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -372,10 +372,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationConnectionsUpdate>>, IntegrationConnectionsUpdateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsConnectionsUpdate>>, IntegrationsConnectionsUpdateMutationVariables> = (props) => {
           const {workspace,connection,data} = props ?? {};
 
-          return  integrationConnectionsUpdate(workspace,connection,data,requestOptions)
+          return  integrationsConnectionsUpdate(workspace,connection,data,requestOptions)
         }
 
 
@@ -385,28 +385,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationConnectionsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationConnectionsUpdate>>>
-    export type IntegrationConnectionsUpdateMutationBody = BodyType<ConnectionInput>
-    export type IntegrationConnectionsUpdateMutationError = ErrorType<MessageBody | ValidationErrorBody>
-    export type IntegrationConnectionsUpdateMutationVariables = {workspace: string;connection: string;data: BodyType<ConnectionInput>}
+    export type IntegrationsConnectionsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsConnectionsUpdate>>>
+    export type IntegrationsConnectionsUpdateMutationBody = BodyType<ConnectionInput>
+    export type IntegrationsConnectionsUpdateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type IntegrationsConnectionsUpdateMutationVariables = {workspace: string;connection: string;data: BodyType<ConnectionInput>}
 
     /**
  * @summary Update a connection (send only changed fields)
  */
-export const useIntegrationConnectionsUpdate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsUpdate>>, TError,IntegrationConnectionsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsConnectionsUpdate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsUpdate>>, TError,IntegrationsConnectionsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationConnectionsUpdate>>,
+        Awaited<ReturnType<typeof integrationsConnectionsUpdate>>,
         TError,
-        IntegrationConnectionsUpdateMutationVariables,
+        IntegrationsConnectionsUpdateMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationConnectionsUpdateMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsConnectionsUpdateMutationOptions(options), queryClient);
     }
     /**
  * @summary Disconnect and drop the stored secret
  */
-export const integrationConnectionsDisconnect = (
+export const integrationsConnectionsDisconnect = (
     workspace: string,
     connection: string,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -422,13 +422,13 @@ export const integrationConnectionsDisconnect = (
 
 
 
-export const getIntegrationConnectionsDisconnectMutationKey = () => ['integrationConnectionsDisconnect'] as const;
+export const getIntegrationsConnectionsDisconnectMutationKey = () => ['integrationsConnectionsDisconnect'] as const;
 
-export const getIntegrationConnectionsDisconnectMutationOptions = <TError = ErrorType<MessageBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsDisconnect>>, TError,IntegrationConnectionsDisconnectMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsDisconnect>>, TError,IntegrationConnectionsDisconnectMutationVariables, TContext> => {
+export const getIntegrationsConnectionsDisconnectMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsDisconnect>>, TError,IntegrationsConnectionsDisconnectMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsDisconnect>>, TError,IntegrationsConnectionsDisconnectMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationConnectionsDisconnectMutationKey();
+const mutationKey = getIntegrationsConnectionsDisconnectMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -438,10 +438,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationConnectionsDisconnect>>, IntegrationConnectionsDisconnectMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsConnectionsDisconnect>>, IntegrationsConnectionsDisconnectMutationVariables> = (props) => {
           const {workspace,connection} = props ?? {};
 
-          return  integrationConnectionsDisconnect(workspace,connection,requestOptions)
+          return  integrationsConnectionsDisconnect(workspace,connection,requestOptions)
         }
 
 
@@ -451,28 +451,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationConnectionsDisconnectMutationResult = NonNullable<Awaited<ReturnType<typeof integrationConnectionsDisconnect>>>
+    export type IntegrationsConnectionsDisconnectMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsConnectionsDisconnect>>>
 
-    export type IntegrationConnectionsDisconnectMutationError = ErrorType<MessageBody>
-    export type IntegrationConnectionsDisconnectMutationVariables = {workspace: string;connection: string}
+    export type IntegrationsConnectionsDisconnectMutationError = ErrorType<MessageBody>
+    export type IntegrationsConnectionsDisconnectMutationVariables = {workspace: string;connection: string}
 
     /**
  * @summary Disconnect and drop the stored secret
  */
-export const useIntegrationConnectionsDisconnect = <TError = ErrorType<MessageBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsDisconnect>>, TError,IntegrationConnectionsDisconnectMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsConnectionsDisconnect = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsDisconnect>>, TError,IntegrationsConnectionsDisconnectMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationConnectionsDisconnect>>,
+        Awaited<ReturnType<typeof integrationsConnectionsDisconnect>>,
         TError,
-        IntegrationConnectionsDisconnectMutationVariables,
+        IntegrationsConnectionsDisconnectMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationConnectionsDisconnectMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsConnectionsDisconnectMutationOptions(options), queryClient);
     }
     /**
  * @summary Probe a connection and update its status
  */
-export const integrationConnectionsTest = (
+export const integrationsConnectionsTest = (
     workspace: string,
     connection: string,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -488,13 +488,13 @@ export const integrationConnectionsTest = (
 
 
 
-export const getIntegrationConnectionsTestMutationKey = () => ['integrationConnectionsTest'] as const;
+export const getIntegrationsConnectionsTestMutationKey = () => ['integrationsConnectionsTest'] as const;
 
-export const getIntegrationConnectionsTestMutationOptions = <TError = ErrorType<MessageBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsTest>>, TError,IntegrationConnectionsTestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsTest>>, TError,IntegrationConnectionsTestMutationVariables, TContext> => {
+export const getIntegrationsConnectionsTestMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsTest>>, TError,IntegrationsConnectionsTestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsTest>>, TError,IntegrationsConnectionsTestMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationConnectionsTestMutationKey();
+const mutationKey = getIntegrationsConnectionsTestMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -504,10 +504,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationConnectionsTest>>, IntegrationConnectionsTestMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsConnectionsTest>>, IntegrationsConnectionsTestMutationVariables> = (props) => {
           const {workspace,connection} = props ?? {};
 
-          return  integrationConnectionsTest(workspace,connection,requestOptions)
+          return  integrationsConnectionsTest(workspace,connection,requestOptions)
         }
 
 
@@ -517,30 +517,30 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationConnectionsTestMutationResult = NonNullable<Awaited<ReturnType<typeof integrationConnectionsTest>>>
+    export type IntegrationsConnectionsTestMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsConnectionsTest>>>
 
-    export type IntegrationConnectionsTestMutationError = ErrorType<MessageBody>
-    export type IntegrationConnectionsTestMutationVariables = {workspace: string;connection: string}
+    export type IntegrationsConnectionsTestMutationError = ErrorType<MessageBody>
+    export type IntegrationsConnectionsTestMutationVariables = {workspace: string;connection: string}
 
     /**
  * @summary Probe a connection and update its status
  */
-export const useIntegrationConnectionsTest = <TError = ErrorType<MessageBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationConnectionsTest>>, TError,IntegrationConnectionsTestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsConnectionsTest = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsConnectionsTest>>, TError,IntegrationsConnectionsTestMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationConnectionsTest>>,
+        Awaited<ReturnType<typeof integrationsConnectionsTest>>,
         TError,
-        IntegrationConnectionsTestMutationVariables,
+        IntegrationsConnectionsTestMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationConnectionsTestMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsConnectionsTestMutationOptions(options), queryClient);
     }
     /**
  * @summary List pairs
  */
-export const integrationPairsList = (
+export const integrationsPairsList = (
     workspace: string,
-    params?: IntegrationPairsListParams,
+    params?: IntegrationsPairsListParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
@@ -555,75 +555,75 @@ export const integrationPairsList = (
 
 
 
-export const getIntegrationPairsListQueryKey = (workspace: string,
-    params?: IntegrationPairsListParams,) => {
+export const getIntegrationsPairsListQueryKey = (workspace: string,
+    params?: IntegrationsPairsListParams,) => {
     return [
     `/workspace/${workspace}/integrations/pairs`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getIntegrationPairsListQueryOptions = <TData = Awaited<ReturnType<typeof integrationPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
-    params?: IntegrationPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getIntegrationsPairsListQueryOptions = <TData = Awaited<ReturnType<typeof integrationsPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    params?: IntegrationsPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIntegrationPairsListQueryKey(workspace,params);
+  const queryKey =  queryOptions?.queryKey ?? getIntegrationsPairsListQueryKey(workspace,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationPairsList>>> = ({ signal }) => integrationPairsList(workspace,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationsPairsList>>> = ({ signal }) => integrationsPairsList(workspace,params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationPairsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type IntegrationPairsListQueryResult = NonNullable<Awaited<ReturnType<typeof integrationPairsList>>>
-export type IntegrationPairsListQueryError = ErrorType<MessageBody | UnprocessableBody>
+export type IntegrationsPairsListQueryResult = NonNullable<Awaited<ReturnType<typeof integrationsPairsList>>>
+export type IntegrationsPairsListQueryError = ErrorType<MessageBody | UnprocessableBody>
 
 
-export function useIntegrationPairsList<TData = Awaited<ReturnType<typeof integrationPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsList<TData = Awaited<ReturnType<typeof integrationsPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    params: undefined |  IntegrationPairsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsList>>, TError, TData>> & Pick<
+    params: undefined |  IntegrationsPairsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationPairsList>>,
+          Awaited<ReturnType<typeof integrationsPairsList>>,
           TError,
-          Awaited<ReturnType<typeof integrationPairsList>>
+          Awaited<ReturnType<typeof integrationsPairsList>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationPairsList<TData = Awaited<ReturnType<typeof integrationPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsList<TData = Awaited<ReturnType<typeof integrationsPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    params?: IntegrationPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsList>>, TError, TData>> & Pick<
+    params?: IntegrationsPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationPairsList>>,
+          Awaited<ReturnType<typeof integrationsPairsList>>,
           TError,
-          Awaited<ReturnType<typeof integrationPairsList>>
+          Awaited<ReturnType<typeof integrationsPairsList>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationPairsList<TData = Awaited<ReturnType<typeof integrationPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsList<TData = Awaited<ReturnType<typeof integrationsPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    params?: IntegrationPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List pairs
  */
 
-export function useIntegrationPairsList<TData = Awaited<ReturnType<typeof integrationPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsList<TData = Awaited<ReturnType<typeof integrationsPairsList>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    params?: IntegrationPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsPairsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIntegrationPairsListQueryOptions(workspace,params,options)
+  const queryOptions = getIntegrationsPairsListQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -638,7 +638,7 @@ export function useIntegrationPairsList<TData = Awaited<ReturnType<typeof integr
 /**
  * @summary Create a pair (draft)
  */
-export const integrationPairsCreate = (
+export const integrationsPairsCreate = (
     workspace: string,
     pairInput: BodyType<PairInput>,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -656,13 +656,13 @@ export const integrationPairsCreate = (
 
 
 
-export const getIntegrationPairsCreateMutationKey = () => ['integrationPairsCreate'] as const;
+export const getIntegrationsPairsCreateMutationKey = () => ['integrationsPairsCreate'] as const;
 
-export const getIntegrationPairsCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsCreate>>, TError,IntegrationPairsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationPairsCreate>>, TError,IntegrationPairsCreateMutationVariables, TContext> => {
+export const getIntegrationsPairsCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsCreate>>, TError,IntegrationsPairsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsCreate>>, TError,IntegrationsPairsCreateMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationPairsCreateMutationKey();
+const mutationKey = getIntegrationsPairsCreateMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -672,10 +672,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationPairsCreate>>, IntegrationPairsCreateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsPairsCreate>>, IntegrationsPairsCreateMutationVariables> = (props) => {
           const {workspace,data} = props ?? {};
 
-          return  integrationPairsCreate(workspace,data,requestOptions)
+          return  integrationsPairsCreate(workspace,data,requestOptions)
         }
 
 
@@ -685,28 +685,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationPairsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationPairsCreate>>>
-    export type IntegrationPairsCreateMutationBody = BodyType<PairInput>
-    export type IntegrationPairsCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
-    export type IntegrationPairsCreateMutationVariables = {workspace: string;data: BodyType<PairInput>}
+    export type IntegrationsPairsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsPairsCreate>>>
+    export type IntegrationsPairsCreateMutationBody = BodyType<PairInput>
+    export type IntegrationsPairsCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type IntegrationsPairsCreateMutationVariables = {workspace: string;data: BodyType<PairInput>}
 
     /**
  * @summary Create a pair (draft)
  */
-export const useIntegrationPairsCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsCreate>>, TError,IntegrationPairsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsPairsCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsCreate>>, TError,IntegrationsPairsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationPairsCreate>>,
+        Awaited<ReturnType<typeof integrationsPairsCreate>>,
         TError,
-        IntegrationPairsCreateMutationVariables,
+        IntegrationsPairsCreateMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationPairsCreateMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsPairsCreateMutationOptions(options), queryClient);
     }
     /**
  * @summary Get a pair
  */
-export const integrationPairsGet = (
+export const integrationsPairsGet = (
     workspace: string,
     pair: string,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -722,7 +722,7 @@ export const integrationPairsGet = (
 
 
 
-export const getIntegrationPairsGetQueryKey = (workspace: string,
+export const getIntegrationsPairsGetQueryKey = (workspace: string,
     pair: string,) => {
     return [
     `/workspace/${workspace}/integrations/pairs/${pair}`
@@ -730,67 +730,67 @@ export const getIntegrationPairsGetQueryKey = (workspace: string,
     }
 
 
-export const getIntegrationPairsGetQueryOptions = <TData = Awaited<ReturnType<typeof integrationPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
-    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getIntegrationsPairsGetQueryOptions = <TData = Awaited<ReturnType<typeof integrationsPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(workspace: string,
+    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIntegrationPairsGetQueryKey(workspace,pair);
+  const queryKey =  queryOptions?.queryKey ?? getIntegrationsPairsGetQueryKey(workspace,pair);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationPairsGet>>> = ({ signal }) => integrationPairsGet(workspace,pair, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationsPairsGet>>> = ({ signal }) => integrationsPairsGet(workspace,pair, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && pair !== null && pair !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationPairsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && pair !== null && pair !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type IntegrationPairsGetQueryResult = NonNullable<Awaited<ReturnType<typeof integrationPairsGet>>>
-export type IntegrationPairsGetQueryError = ErrorType<MessageBody | UnprocessableBody>
+export type IntegrationsPairsGetQueryResult = NonNullable<Awaited<ReturnType<typeof integrationsPairsGet>>>
+export type IntegrationsPairsGetQueryError = ErrorType<MessageBody | UnprocessableBody>
 
 
-export function useIntegrationPairsGet<TData = Awaited<ReturnType<typeof integrationPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsGet<TData = Awaited<ReturnType<typeof integrationsPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    pair: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsGet>>, TError, TData>> & Pick<
+    pair: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsGet>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationPairsGet>>,
+          Awaited<ReturnType<typeof integrationsPairsGet>>,
           TError,
-          Awaited<ReturnType<typeof integrationPairsGet>>
+          Awaited<ReturnType<typeof integrationsPairsGet>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationPairsGet<TData = Awaited<ReturnType<typeof integrationPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsGet<TData = Awaited<ReturnType<typeof integrationsPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsGet>>, TError, TData>> & Pick<
+    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsGet>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationPairsGet>>,
+          Awaited<ReturnType<typeof integrationsPairsGet>>,
           TError,
-          Awaited<ReturnType<typeof integrationPairsGet>>
+          Awaited<ReturnType<typeof integrationsPairsGet>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationPairsGet<TData = Awaited<ReturnType<typeof integrationPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsGet<TData = Awaited<ReturnType<typeof integrationsPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get a pair
  */
 
-export function useIntegrationPairsGet<TData = Awaited<ReturnType<typeof integrationPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
+export function useIntegrationsPairsGet<TData = Awaited<ReturnType<typeof integrationsPairsGet>>, TError = ErrorType<MessageBody | UnprocessableBody>>(
  workspace: string,
-    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationPairsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    pair: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsPairsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIntegrationPairsGetQueryOptions(workspace,pair,options)
+  const queryOptions = getIntegrationsPairsGetQueryOptions(workspace,pair,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -805,7 +805,7 @@ export function useIntegrationPairsGet<TData = Awaited<ReturnType<typeof integra
 /**
  * @summary Update a pair's config
  */
-export const integrationPairsUpdate = (
+export const integrationsPairsUpdate = (
     workspace: string,
     pair: string,
     pairInput: BodyType<PairInput>,
@@ -824,13 +824,13 @@ export const integrationPairsUpdate = (
 
 
 
-export const getIntegrationPairsUpdateMutationKey = () => ['integrationPairsUpdate'] as const;
+export const getIntegrationsPairsUpdateMutationKey = () => ['integrationsPairsUpdate'] as const;
 
-export const getIntegrationPairsUpdateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsUpdate>>, TError,IntegrationPairsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationPairsUpdate>>, TError,IntegrationPairsUpdateMutationVariables, TContext> => {
+export const getIntegrationsPairsUpdateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsUpdate>>, TError,IntegrationsPairsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsUpdate>>, TError,IntegrationsPairsUpdateMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationPairsUpdateMutationKey();
+const mutationKey = getIntegrationsPairsUpdateMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -840,10 +840,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationPairsUpdate>>, IntegrationPairsUpdateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsPairsUpdate>>, IntegrationsPairsUpdateMutationVariables> = (props) => {
           const {workspace,pair,data} = props ?? {};
 
-          return  integrationPairsUpdate(workspace,pair,data,requestOptions)
+          return  integrationsPairsUpdate(workspace,pair,data,requestOptions)
         }
 
 
@@ -853,28 +853,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationPairsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationPairsUpdate>>>
-    export type IntegrationPairsUpdateMutationBody = BodyType<PairInput>
-    export type IntegrationPairsUpdateMutationError = ErrorType<MessageBody | UnprocessableBody>
-    export type IntegrationPairsUpdateMutationVariables = {workspace: string;pair: string;data: BodyType<PairInput>}
+    export type IntegrationsPairsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsPairsUpdate>>>
+    export type IntegrationsPairsUpdateMutationBody = BodyType<PairInput>
+    export type IntegrationsPairsUpdateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type IntegrationsPairsUpdateMutationVariables = {workspace: string;pair: string;data: BodyType<PairInput>}
 
     /**
  * @summary Update a pair's config
  */
-export const useIntegrationPairsUpdate = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsUpdate>>, TError,IntegrationPairsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsPairsUpdate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsUpdate>>, TError,IntegrationsPairsUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationPairsUpdate>>,
+        Awaited<ReturnType<typeof integrationsPairsUpdate>>,
         TError,
-        IntegrationPairsUpdateMutationVariables,
+        IntegrationsPairsUpdateMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationPairsUpdateMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsPairsUpdateMutationOptions(options), queryClient);
     }
     /**
  * @summary Activate a pair
  */
-export const integrationPairsActivate = (
+export const integrationsPairsActivate = (
     workspace: string,
     pair: string,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -890,13 +890,13 @@ export const integrationPairsActivate = (
 
 
 
-export const getIntegrationPairsActivateMutationKey = () => ['integrationPairsActivate'] as const;
+export const getIntegrationsPairsActivateMutationKey = () => ['integrationsPairsActivate'] as const;
 
-export const getIntegrationPairsActivateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsActivate>>, TError,IntegrationPairsActivateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationPairsActivate>>, TError,IntegrationPairsActivateMutationVariables, TContext> => {
+export const getIntegrationsPairsActivateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsActivate>>, TError,IntegrationsPairsActivateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsActivate>>, TError,IntegrationsPairsActivateMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationPairsActivateMutationKey();
+const mutationKey = getIntegrationsPairsActivateMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -906,10 +906,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationPairsActivate>>, IntegrationPairsActivateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsPairsActivate>>, IntegrationsPairsActivateMutationVariables> = (props) => {
           const {workspace,pair} = props ?? {};
 
-          return  integrationPairsActivate(workspace,pair,requestOptions)
+          return  integrationsPairsActivate(workspace,pair,requestOptions)
         }
 
 
@@ -919,31 +919,31 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationPairsActivateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationPairsActivate>>>
+    export type IntegrationsPairsActivateMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsPairsActivate>>>
 
-    export type IntegrationPairsActivateMutationError = ErrorType<MessageBody | UnprocessableBody>
-    export type IntegrationPairsActivateMutationVariables = {workspace: string;pair: string}
+    export type IntegrationsPairsActivateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type IntegrationsPairsActivateMutationVariables = {workspace: string;pair: string}
 
     /**
  * @summary Activate a pair
  */
-export const useIntegrationPairsActivate = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsActivate>>, TError,IntegrationPairsActivateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsPairsActivate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsActivate>>, TError,IntegrationsPairsActivateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationPairsActivate>>,
+        Awaited<ReturnType<typeof integrationsPairsActivate>>,
         TError,
-        IntegrationPairsActivateMutationVariables,
+        IntegrationsPairsActivateMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationPairsActivateMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsPairsActivateMutationOptions(options), queryClient);
     }
     /**
  * @summary List a pair's mappings
  */
-export const integrationMappingsList = (
+export const integrationsMappingsList = (
     workspace: string,
     pair: string,
-    params?: IntegrationMappingsListParams,
+    params?: IntegrationsMappingsListParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
@@ -958,81 +958,81 @@ export const integrationMappingsList = (
 
 
 
-export const getIntegrationMappingsListQueryKey = (workspace: string,
+export const getIntegrationsMappingsListQueryKey = (workspace: string,
     pair: string,
-    params?: IntegrationMappingsListParams,) => {
+    params?: IntegrationsMappingsListParams,) => {
     return [
     `/workspace/${workspace}/integrations/pairs/${pair}/mappings`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getIntegrationMappingsListQueryOptions = <TData = Awaited<ReturnType<typeof integrationMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+export const getIntegrationsMappingsListQueryOptions = <TData = Awaited<ReturnType<typeof integrationsMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     pair: string,
-    params?: IntegrationMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationMappingsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsMappingsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getIntegrationMappingsListQueryKey(workspace,pair,params);
+  const queryKey =  queryOptions?.queryKey ?? getIntegrationsMappingsListQueryKey(workspace,pair,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationMappingsList>>> = ({ signal }) => integrationMappingsList(workspace,pair,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof integrationsMappingsList>>> = ({ signal }) => integrationsMappingsList(workspace,pair,params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && pair !== null && pair !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationMappingsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && pair !== null && pair !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof integrationsMappingsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type IntegrationMappingsListQueryResult = NonNullable<Awaited<ReturnType<typeof integrationMappingsList>>>
-export type IntegrationMappingsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
+export type IntegrationsMappingsListQueryResult = NonNullable<Awaited<ReturnType<typeof integrationsMappingsList>>>
+export type IntegrationsMappingsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useIntegrationMappingsList<TData = Awaited<ReturnType<typeof integrationMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+export function useIntegrationsMappingsList<TData = Awaited<ReturnType<typeof integrationsMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     pair: string,
-    params: undefined |  IntegrationMappingsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationMappingsList>>, TError, TData>> & Pick<
+    params: undefined |  IntegrationsMappingsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsMappingsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationMappingsList>>,
+          Awaited<ReturnType<typeof integrationsMappingsList>>,
           TError,
-          Awaited<ReturnType<typeof integrationMappingsList>>
+          Awaited<ReturnType<typeof integrationsMappingsList>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationMappingsList<TData = Awaited<ReturnType<typeof integrationMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+export function useIntegrationsMappingsList<TData = Awaited<ReturnType<typeof integrationsMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     pair: string,
-    params?: IntegrationMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationMappingsList>>, TError, TData>> & Pick<
+    params?: IntegrationsMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsMappingsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof integrationMappingsList>>,
+          Awaited<ReturnType<typeof integrationsMappingsList>>,
           TError,
-          Awaited<ReturnType<typeof integrationMappingsList>>
+          Awaited<ReturnType<typeof integrationsMappingsList>>
         > , 'initialData'
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useIntegrationMappingsList<TData = Awaited<ReturnType<typeof integrationMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+export function useIntegrationsMappingsList<TData = Awaited<ReturnType<typeof integrationsMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     pair: string,
-    params?: IntegrationMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationMappingsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsMappingsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List a pair's mappings
  */
 
-export function useIntegrationMappingsList<TData = Awaited<ReturnType<typeof integrationMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+export function useIntegrationsMappingsList<TData = Awaited<ReturnType<typeof integrationsMappingsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     pair: string,
-    params?: IntegrationMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationMappingsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    params?: IntegrationsMappingsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof integrationsMappingsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getIntegrationMappingsListQueryOptions(workspace,pair,params,options)
+  const queryOptions = getIntegrationsMappingsListQueryOptions(workspace,pair,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1047,7 +1047,7 @@ export function useIntegrationMappingsList<TData = Awaited<ReturnType<typeof int
 /**
  * @summary Create or replace a mapping
  */
-export const integrationMappingsUpsert = (
+export const integrationsMappingsUpsert = (
     workspace: string,
     pair: string,
     mappingInput: BodyType<MappingInput>,
@@ -1066,13 +1066,13 @@ export const integrationMappingsUpsert = (
 
 
 
-export const getIntegrationMappingsUpsertMutationKey = () => ['integrationMappingsUpsert'] as const;
+export const getIntegrationsMappingsUpsertMutationKey = () => ['integrationsMappingsUpsert'] as const;
 
-export const getIntegrationMappingsUpsertMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationMappingsUpsert>>, TError,IntegrationMappingsUpsertMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationMappingsUpsert>>, TError,IntegrationMappingsUpsertMutationVariables, TContext> => {
+export const getIntegrationsMappingsUpsertMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsMappingsUpsert>>, TError,IntegrationsMappingsUpsertMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsMappingsUpsert>>, TError,IntegrationsMappingsUpsertMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationMappingsUpsertMutationKey();
+const mutationKey = getIntegrationsMappingsUpsertMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1082,10 +1082,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationMappingsUpsert>>, IntegrationMappingsUpsertMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsMappingsUpsert>>, IntegrationsMappingsUpsertMutationVariables> = (props) => {
           const {workspace,pair,data} = props ?? {};
 
-          return  integrationMappingsUpsert(workspace,pair,data,requestOptions)
+          return  integrationsMappingsUpsert(workspace,pair,data,requestOptions)
         }
 
 
@@ -1095,28 +1095,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationMappingsUpsertMutationResult = NonNullable<Awaited<ReturnType<typeof integrationMappingsUpsert>>>
-    export type IntegrationMappingsUpsertMutationBody = BodyType<MappingInput>
-    export type IntegrationMappingsUpsertMutationError = ErrorType<MessageBody | ValidationErrorBody>
-    export type IntegrationMappingsUpsertMutationVariables = {workspace: string;pair: string;data: BodyType<MappingInput>}
+    export type IntegrationsMappingsUpsertMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsMappingsUpsert>>>
+    export type IntegrationsMappingsUpsertMutationBody = BodyType<MappingInput>
+    export type IntegrationsMappingsUpsertMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type IntegrationsMappingsUpsertMutationVariables = {workspace: string;pair: string;data: BodyType<MappingInput>}
 
     /**
  * @summary Create or replace a mapping
  */
-export const useIntegrationMappingsUpsert = <TError = ErrorType<MessageBody | ValidationErrorBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationMappingsUpsert>>, TError,IntegrationMappingsUpsertMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsMappingsUpsert = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsMappingsUpsert>>, TError,IntegrationsMappingsUpsertMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationMappingsUpsert>>,
+        Awaited<ReturnType<typeof integrationsMappingsUpsert>>,
         TError,
-        IntegrationMappingsUpsertMutationVariables,
+        IntegrationsMappingsUpsertMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationMappingsUpsertMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsMappingsUpsertMutationOptions(options), queryClient);
     }
     /**
  * @summary Delete a mapping
  */
-export const integrationMappingsDelete = (
+export const integrationsMappingsDelete = (
     workspace: string,
     pair: string,
     mapping: string,
@@ -1133,13 +1133,13 @@ export const integrationMappingsDelete = (
 
 
 
-export const getIntegrationMappingsDeleteMutationKey = () => ['integrationMappingsDelete'] as const;
+export const getIntegrationsMappingsDeleteMutationKey = () => ['integrationsMappingsDelete'] as const;
 
-export const getIntegrationMappingsDeleteMutationOptions = <TError = ErrorType<MessageBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationMappingsDelete>>, TError,IntegrationMappingsDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationMappingsDelete>>, TError,IntegrationMappingsDeleteMutationVariables, TContext> => {
+export const getIntegrationsMappingsDeleteMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsMappingsDelete>>, TError,IntegrationsMappingsDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsMappingsDelete>>, TError,IntegrationsMappingsDeleteMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationMappingsDeleteMutationKey();
+const mutationKey = getIntegrationsMappingsDeleteMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1149,10 +1149,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationMappingsDelete>>, IntegrationMappingsDeleteMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsMappingsDelete>>, IntegrationsMappingsDeleteMutationVariables> = (props) => {
           const {workspace,pair,mapping} = props ?? {};
 
-          return  integrationMappingsDelete(workspace,pair,mapping,requestOptions)
+          return  integrationsMappingsDelete(workspace,pair,mapping,requestOptions)
         }
 
 
@@ -1162,28 +1162,28 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationMappingsDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof integrationMappingsDelete>>>
+    export type IntegrationsMappingsDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsMappingsDelete>>>
 
-    export type IntegrationMappingsDeleteMutationError = ErrorType<MessageBody>
-    export type IntegrationMappingsDeleteMutationVariables = {workspace: string;pair: string;mapping: string}
+    export type IntegrationsMappingsDeleteMutationError = ErrorType<MessageBody>
+    export type IntegrationsMappingsDeleteMutationVariables = {workspace: string;pair: string;mapping: string}
 
     /**
  * @summary Delete a mapping
  */
-export const useIntegrationMappingsDelete = <TError = ErrorType<MessageBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationMappingsDelete>>, TError,IntegrationMappingsDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsMappingsDelete = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsMappingsDelete>>, TError,IntegrationsMappingsDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationMappingsDelete>>,
+        Awaited<ReturnType<typeof integrationsMappingsDelete>>,
         TError,
-        IntegrationMappingsDeleteMutationVariables,
+        IntegrationsMappingsDeleteMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationMappingsDeleteMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsMappingsDeleteMutationOptions(options), queryClient);
     }
     /**
  * @summary Pause a pair
  */
-export const integrationPairsPause = (
+export const integrationsPairsPause = (
     workspace: string,
     pair: string,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
@@ -1199,13 +1199,13 @@ export const integrationPairsPause = (
 
 
 
-export const getIntegrationPairsPauseMutationKey = () => ['integrationPairsPause'] as const;
+export const getIntegrationsPairsPauseMutationKey = () => ['integrationsPairsPause'] as const;
 
-export const getIntegrationPairsPauseMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsPause>>, TError,IntegrationPairsPauseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
-): UseMutationOptions<Awaited<ReturnType<typeof integrationPairsPause>>, TError,IntegrationPairsPauseMutationVariables, TContext> => {
+export const getIntegrationsPairsPauseMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsPause>>, TError,IntegrationsPairsPauseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsPause>>, TError,IntegrationsPairsPauseMutationVariables, TContext> => {
 
-const mutationKey = getIntegrationPairsPauseMutationKey();
+const mutationKey = getIntegrationsPairsPauseMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1215,10 +1215,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationPairsPause>>, IntegrationPairsPauseMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof integrationsPairsPause>>, IntegrationsPairsPauseMutationVariables> = (props) => {
           const {workspace,pair} = props ?? {};
 
-          return  integrationPairsPause(workspace,pair,requestOptions)
+          return  integrationsPairsPause(workspace,pair,requestOptions)
         }
 
 
@@ -1228,21 +1228,21 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type IntegrationPairsPauseMutationResult = NonNullable<Awaited<ReturnType<typeof integrationPairsPause>>>
+    export type IntegrationsPairsPauseMutationResult = NonNullable<Awaited<ReturnType<typeof integrationsPairsPause>>>
 
-    export type IntegrationPairsPauseMutationError = ErrorType<MessageBody | UnprocessableBody>
-    export type IntegrationPairsPauseMutationVariables = {workspace: string;pair: string}
+    export type IntegrationsPairsPauseMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type IntegrationsPairsPauseMutationVariables = {workspace: string;pair: string}
 
     /**
  * @summary Pause a pair
  */
-export const useIntegrationPairsPause = <TError = ErrorType<MessageBody | UnprocessableBody>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationPairsPause>>, TError,IntegrationPairsPauseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+export const useIntegrationsPairsPause = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof integrationsPairsPause>>, TError,IntegrationsPairsPauseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof integrationPairsPause>>,
+        Awaited<ReturnType<typeof integrationsPairsPause>>,
         TError,
-        IntegrationPairsPauseMutationVariables,
+        IntegrationsPairsPauseMutationVariables,
         TContext
       > => {
-      return useMutation(getIntegrationPairsPauseMutationOptions(options), queryClient);
+      return useMutation(getIntegrationsPairsPauseMutationOptions(options), queryClient);
     }

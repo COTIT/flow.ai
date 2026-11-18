@@ -9,8 +9,8 @@ import {
   useMappings,
 } from "@genesy/api-client/business-approvals"
 import {
-  integrationMappingsDelete,
-  integrationMappingsUpsert,
+  integrationsMappingsDelete,
+  integrationsMappingsUpsert,
 } from "@genesy/api-client/endpoints/integrations"
 import { fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
@@ -89,7 +89,7 @@ export default function MappingsPage() {
             done.clear()
             write.mutate(
               (ws) =>
-                integrationMappingsUpsert(ws, pair, {
+                integrationsMappingsUpsert(ws, pair, {
                   entity: v("entity"),
                   source_id: v("source_id"),
                   target_id: v("target_id"),
@@ -224,7 +224,7 @@ export default function MappingsPage() {
           if (!removing) return
           done.clear()
           write.mutate(
-            (ws) => integrationMappingsDelete(ws, pair, removing.m.id),
+            (ws) => integrationsMappingsDelete(ws, pair, removing.m.id),
             { onSuccess: () => done.show(t("mappings.deleted")) }
           )
         }}

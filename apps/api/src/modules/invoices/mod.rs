@@ -10,6 +10,7 @@ pub mod delivery;
 pub mod delivery_repo;
 pub mod dto;
 pub mod handlers;
+pub mod issue;
 pub mod pdf;
 pub mod repo;
 pub mod resource;

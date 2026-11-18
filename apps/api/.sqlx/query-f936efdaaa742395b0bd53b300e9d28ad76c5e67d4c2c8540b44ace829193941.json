@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tax_profiles SET state = 'verified', evidence_ref = $3, verify_fingerprint = $4,\n                verified_by = $5, verified_at = now(), version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bytea",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f936efdaaa742395b0bd53b300e9d28ad76c5e67d4c2c8540b44ace829193941"
+}

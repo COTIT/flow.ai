@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.kind AS \"kind!\", p.id AS \"id!\", p.name AS \"name!\",\n                  p.currency_id AS \"currency_id!\", upper(c.asset_type) AS \"code!\",\n                  c.decimals AS \"decimals!\", p.balance AS \"balance!\", p.open_shift_id\n           FROM (\n               SELECT 'drawer' AS kind, r.id, r.name, r.currency_id, r.workspace_id,\n                      (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                       WHERE l.workspace_id = r.workspace_id AND l.register_id = r.id\n                         AND l.kind NOT IN ('open_count', 'close_count')) AS balance,\n                      (SELECT s.id FROM drawer_shifts s\n                       WHERE s.register_id = r.id AND s.closed_at IS NULL) AS open_shift_id\n               FROM till_registers r WHERE r.workspace_id = $1\n               UNION ALL\n               SELECT 'vault', v.id, v.name, v.currency_id, v.workspace_id,\n                      (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                       WHERE l.workspace_id = v.workspace_id AND l.vault_id = v.id\n                         AND l.kind NOT IN ('open_count', 'close_count')),\n                      NULL::uuid\n               FROM cash_vaults v WHERE v.workspace_id = $1\n           ) p\n           JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id\n           ORDER BY p.kind, p.name, p.id\n           LIMIT 2000",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "balance!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "open_shift_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "b57f71d6ff6e925f0432e61c4973558b85bb906da99434c9cdb1b406b4e4c76f"
+}

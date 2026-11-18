@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stocktake_lines l\n         SET counted = u.counted, positive_adjustment_value = u.v, counted_by = $6,\n             counted_at = now()\n         FROM unnest($3::uuid[], $4::numeric[], $5::bigint[]) AS u(stock_id, counted, v)\n         WHERE l.workspace_id = $1 AND l.stocktake_id = $2 AND l.stock_id = u.stock_id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "NumericArray",
+        "Int8Array",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2d6c7324fd8f0cf754f315e5fe7dd790fcd49cabaa5bb57fed3cfda8937c316e"
+}

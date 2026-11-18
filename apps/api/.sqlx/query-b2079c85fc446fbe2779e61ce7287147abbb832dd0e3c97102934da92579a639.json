@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH l AS (\n               SELECT jl.account_id,\n                      coalesce(sum(jl.functional_debit - jl.functional_credit)\n                               FILTER (WHERE je.accounting_date < $2), 0) AS opening,\n                      coalesce(sum(jl.functional_debit) FILTER (WHERE je.accounting_date >= $2), 0) AS debit,\n                      coalesce(sum(jl.functional_credit) FILTER (WHERE je.accounting_date >= $2), 0) AS credit\n               FROM journal_lines jl\n               JOIN journal_entries je ON je.workspace_id = jl.workspace_id AND je.id = jl.entry_id\n               WHERE jl.workspace_id = $1 AND je.state = 'posted' AND je.accounting_date < $3\n               GROUP BY jl.account_id),\n           r AS (\n               SELECT a.id, a.code, a.name, a.type,\n                      greatest(l.opening, 0) AS od, greatest(-l.opening, 0) AS oc, l.debit, l.credit,\n                      greatest(l.opening + l.debit - l.credit, 0) AS cd,\n                      greatest(-(l.opening + l.debit - l.credit), 0) AS cc\n               FROM l JOIN accounts a ON a.workspace_id = $1 AND a.id = l.account_id),\n           t AS (\n               SELECT id, code, name, type, GROUPING(id) AS total,\n                      coalesce(sum(od), 0) AS od, coalesce(sum(oc), 0) AS oc,\n                      coalesce(sum(debit), 0) AS debit, coalesce(sum(credit), 0) AS credit,\n                      coalesce(sum(cd), 0) AS cd, coalesce(sum(cc), 0) AS cc\n               FROM r GROUP BY GROUPING SETS ((id, code, name, type), ()))\n           SELECT id AS \"id?\", code AS \"code?\", name AS \"name?\", type AS \"type?\", total AS \"total!\",\n                  round(od / 10::numeric ^ $4::int, $4::int)::text AS \"opening_debit!\",\n                  round(oc / 10::numeric ^ $4::int, $4::int)::text AS \"opening_credit!\",\n                  round(debit / 10::numeric ^ $4::int, $4::int)::text AS \"debit!\",\n                  round(credit / 10::numeric ^ $4::int, $4::int)::text AS \"credit!\",\n                  round(cd / 10::numeric ^ $4::int, $4::int)::text AS \"closing_debit!\",\n                  round(cc / 10::numeric ^ $4::int, $4::int)::text AS \"closing_credit!\"\n           FROM t ORDER BY total, code",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "total!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "opening_debit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "opening_credit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "debit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "credit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "closing_debit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "closing_credit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b2079c85fc446fbe2779e61ce7287147abbb832dd0e3c97102934da92579a639"
+}

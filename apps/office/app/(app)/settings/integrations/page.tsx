@@ -10,13 +10,13 @@ import {
   useIntegrationWrite,
 } from "@genesy/api-client/business-approvals"
 import {
-  integrationConnectionsCreate,
-  integrationConnectionsDisconnect,
-  integrationConnectionsTest,
-  integrationConnectionsUpdate,
-  integrationPairsActivate,
-  integrationPairsCreate,
-  integrationPairsPause,
+  integrationsConnectionsCreate,
+  integrationsConnectionsDisconnect,
+  integrationsConnectionsTest,
+  integrationsConnectionsUpdate,
+  integrationsPairsActivate,
+  integrationsPairsCreate,
+  integrationsPairsPause,
 } from "@genesy/api-client/endpoints/integrations"
 import { fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
@@ -142,7 +142,7 @@ export default function IntegrationsPage() {
                       disabled={write.isPending}
                       onClick={() =>
                         run(
-                          (ws) => integrationConnectionsTest(ws, c.id),
+                          (ws) => integrationsConnectionsTest(ws, c.id),
                           "settings.tested"
                         )
                       }
@@ -239,7 +239,7 @@ export default function IntegrationsPage() {
                         disabled={write.isPending}
                         onClick={() =>
                           run(
-                            (ws) => integrationPairsActivate(ws, p.id),
+                            (ws) => integrationsPairsActivate(ws, p.id),
                             "settings.activated"
                           )
                         }
@@ -255,7 +255,7 @@ export default function IntegrationsPage() {
                         disabled={write.isPending}
                         onClick={() =>
                           run(
-                            (ws) => integrationPairsPause(ws, p.id),
+                            (ws) => integrationsPairsPause(ws, p.id),
                             "settings.paused"
                           )
                         }
@@ -284,7 +284,7 @@ export default function IntegrationsPage() {
         onConfirm={() =>
           disconnecting &&
           run(
-            (ws) => integrationConnectionsDisconnect(ws, disconnecting.c.id),
+            (ws) => integrationsConnectionsDisconnect(ws, disconnecting.c.id),
             "settings.disconnected"
           )
         }
@@ -436,8 +436,8 @@ function ConnectionDialog({
             write.mutate(
               (ws) =>
                 connection
-                  ? integrationConnectionsUpdate(ws, connection.id, data)
-                  : integrationConnectionsCreate(ws, data),
+                  ? integrationsConnectionsUpdate(ws, connection.id, data)
+                  : integrationsConnectionsCreate(ws, data),
               {
                 onSuccess: () => {
                   onDone()
@@ -623,7 +623,7 @@ function PairDialog({
             const f = new FormData(e.currentTarget)
             write.mutate(
               (ws) =>
-                integrationPairsCreate(ws, {
+                integrationsPairsCreate(ws, {
                   workflow_key: "wf01_purchase",
                   source_connection_id: String(f.get("source")),
                   target_connection_id: String(f.get("target")),

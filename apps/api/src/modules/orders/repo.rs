@@ -13,7 +13,8 @@ use uuid::Uuid;
 pub struct CatalogProduct {
     pub id: Uuid,
     pub name: String,
-    pub price: Decimal,
+    /// Catalog price in minor units at the order's decimals; None past bigint.
+    pub price_minor: Option<i64>,
     pub currency_id: Uuid,
     pub has_stock: bool,
     /// Sellable on the web shop: active, not archived.
@@ -26,43 +27,57 @@ pub struct CatalogVariant {
     pub id: Uuid,
     pub product_id: Uuid,
     pub sku: Option<String>,
-    pub price: Decimal,
+    /// Price in minor units at the order's decimals; None past bigint.
+    pub price_minor: Option<i64>,
 }
 
-/// Live products of `ids` with their VAT rate (0 without a VAT group).
+/// Live products of `ids` with their VAT rate (0 without a VAT group), price in minor units
+/// at `dp` decimals rounded half away from zero.
 pub async fn products(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     ids: &[Uuid],
+    dp: i32,
 ) -> Result<Vec<CatalogProduct>, sqlx::Error> {
     sqlx::query_as!(
         CatalogProduct,
-        r#"SELECT p.id, p.name, p.price, p.currency_id, p.has_stock,
+        r#"SELECT p.id, p.name,
+                  CASE WHEN m.v BETWEEN -9223372036854775808 AND 9223372036854775807
+                       THEN m.v::bigint END AS price_minor,
+                  p.currency_id, p.has_stock,
                   (p.status = 'active' AND NOT p.archived) AS "sellable!",
                   coalesce(v.vat_amount, 0) AS "vat!"
            FROM products p
+           CROSS JOIN LATERAL (SELECT money_round_div(p.price * 10::numeric ^ $3::int, 1) AS v) m
            LEFT JOIN vat_groups v ON v.workspace_id = p.workspace_id AND v.id = p.vat_group_id
                 AND v.deleted_at IS NULL
            WHERE p.workspace_id = $1 AND p.id = ANY($2) AND p.deleted_at IS NULL"#,
         workspace_id,
         ids,
+        dp,
     )
     .fetch_all(db)
     .await
 }
 
-/// Live variants of `ids`.
+/// Live variants of `ids`, price as in `products`.
 pub async fn variants(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     ids: &[Uuid],
+    dp: i32,
 ) -> Result<Vec<CatalogVariant>, sqlx::Error> {
     sqlx::query_as!(
         CatalogVariant,
-        "SELECT id, product_id, sku, price FROM product_variants
-         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL",
+        r#"SELECT id, product_id, sku,
+                  CASE WHEN m.v BETWEEN -9223372036854775808 AND 9223372036854775807
+                       THEN m.v::bigint END AS price_minor
+           FROM product_variants
+           CROSS JOIN LATERAL (SELECT money_round_div(price * 10::numeric ^ $3::int, 1) AS v) m
+           WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL"#,
         workspace_id,
         ids,
+        dp,
     )
     .fetch_all(db)
     .await
