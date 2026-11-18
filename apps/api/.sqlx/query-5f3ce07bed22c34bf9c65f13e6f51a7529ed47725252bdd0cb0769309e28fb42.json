@@ -1,0 +1,275 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (SELECT (cutover_at AT TIME ZONE timezone)::date AS cutover\n                      FROM accounting_settings WHERE workspace_id = $1),\n           i AS (\n               SELECT o.id, o.relation_id, o.classification, o.source_kind, o.source_id,\n                      o.invoice_id, o.issue_date, o.due_date, o.currency_id, o.amount,\n                      $2::date - coalesce(o.due_date, o.issue_date) AS days,\n                      CASE WHEN o.classification IN ('customer_credit', 'supplier_credit') THEN 'credits'\n                           WHEN o.classification IN ('customer_deposit', 'supplier_advance') THEN 'deposits'\n                           WHEN o.classification = 'received_not_invoiced'\n                                OR o.account_role = 'unbilled_receivables' THEN 'unbilled'\n                           WHEN $2::date - coalesce(o.due_date, o.issue_date) <= 0 THEN 'not_due'\n                           WHEN $2::date - coalesce(o.due_date, o.issue_date) <= 30 THEN '1_30'\n                           WHEN $2::date - coalesce(o.due_date, o.issue_date) <= 60 THEN '31_60'\n                           WHEN $2::date - coalesce(o.due_date, o.issue_date) <= 90 THEN '61_90'\n                           ELSE 'over_90' END AS bucket,\n                      o.amount - coalesce(r.amount, 0) AS residual,\n                      o.functional_amount - coalesce(r.functional, 0) + coalesce(c.delta, 0)\n                          AS functional_residual\n               FROM accounting_open_items o\n               CROSS JOIN s\n               -- Relief as of the cutoff: reclassification relieves its source only.\n               LEFT JOIN LATERAL (\n                   SELECT sum(CASE WHEN a.reversal_of IS NULL THEN 1 ELSE -1 END * a.amount) AS amount,\n                          sum(CASE WHEN a.reversal_of IS NULL THEN 1 ELSE -1 END\n                              * CASE WHEN a.source_item_id = o.id THEN a.source_functional\n                                     ELSE a.target_functional END) AS functional\n                   FROM accounting_allocations a\n                   WHERE a.workspace_id = o.workspace_id AND a.accounting_date <= $2\n                     AND (a.source_item_id = o.id\n                          OR (a.target_item_id = o.id AND a.kind <> 'reclassification'))) r ON true\n               LEFT JOIN LATERAL (\n                   SELECT sum(x.functional_delta) AS delta FROM accounting_carrying_adjustments x\n                   WHERE x.workspace_id = o.workspace_id AND x.item_id = o.id\n                     AND x.accounting_date <= $2) c ON true\n               WHERE o.workspace_id = $1 AND o.issue_date <= $2 AND o.classification = ANY($3)\n                 AND ($4::uuid IS NULL OR o.relation_id = $4)\n                 AND (o.origin = 'posted' OR $2 >= s.cutover)),\n           g AS (\n               SELECT grouping(i.relation_id) AS gr, grouping(i.id) AS gi, i.relation_id, i.id,\n                      i.classification, i.source_kind, i.source_id, i.invoice_id, i.issue_date,\n                      i.due_date, i.days, i.bucket, i.currency_id, i.amount, i.residual,\n                      sum(i.functional_residual) AS fres,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = 'not_due'), 0) AS nd,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = '1_30'), 0) AS b1,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = '31_60'), 0) AS b2,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = '61_90'), 0) AS b3,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = 'over_90'), 0) AS b4,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = 'credits'), 0) AS cr,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = 'deposits'), 0) AS dep,\n                      coalesce(sum(i.functional_residual) FILTER (WHERE i.bucket = 'unbilled'), 0) AS unb\n               FROM i WHERE i.residual > 0\n               GROUP BY GROUPING SETS ((), (i.relation_id), (i.relation_id, i.id, i.classification,\n                   i.source_kind, i.source_id, i.invoice_id, i.issue_date, i.due_date, i.days,\n                   i.bucket, i.currency_id, i.amount, i.residual))),\n           p AS (\n               SELECT g.*, coalesce(rel.company_name, rel.alias, '') AS name,\n                      CASE WHEN g.gr = 0 AND g.gi = 1 THEN row_number() OVER (\n                          PARTITION BY g.gr = 0 AND g.gi = 1\n                          ORDER BY g.relation_id IS NULL, coalesce(rel.company_name, rel.alias, ''),\n                                   g.relation_id) END AS rn\n               FROM g LEFT JOIN relations rel\n                 ON rel.workspace_id = $1 AND rel.id = g.relation_id)\n           SELECT p.gr AS \"gr!\", p.gi AS \"gi!\", p.relation_id AS \"relation_id?\", p.name AS \"name!\",\n                  p.id AS \"id?\", p.classification AS \"classification?\",\n                  p.source_kind AS \"source_kind?\", p.source_id AS \"source_id?\",\n                  p.invoice_id AS \"invoice_id?\", p.issue_date AS \"issue_date?\",\n                  p.due_date AS \"due_date?\", p.days AS \"days?\", p.bucket AS \"bucket?\",\n                  cur.id AS \"currency_id?\", upper(cur.asset_type) AS \"currency_code?\",\n                  cur.decimals AS \"currency_decimals?\",\n                  round(p.amount / 10::numeric ^ cur.decimals, cur.decimals)::text AS \"amount?\",\n                  round(p.residual / 10::numeric ^ cur.decimals, cur.decimals)::text AS \"residual?\",\n                  round(p.fres / 10::numeric ^ $5::int, $5::int)::text AS \"fres?\",\n                  (SELECT count(*) FROM g WHERE g.gr = 0 AND g.gi = 1) AS \"parties!\",\n                  round(p.nd / 10::numeric ^ $5::int, $5::int)::text AS \"nd!\",\n                  round(p.b1 / 10::numeric ^ $5::int, $5::int)::text AS \"b1!\",\n                  round(p.b2 / 10::numeric ^ $5::int, $5::int)::text AS \"b2!\",\n                  round(p.b3 / 10::numeric ^ $5::int, $5::int)::text AS \"b3!\",\n                  round(p.b4 / 10::numeric ^ $5::int, $5::int)::text AS \"b4!\",\n                  round((p.nd + p.b1 + p.b2 + p.b3 + p.b4) / 10::numeric ^ $5::int, $5::int)::text\n                      AS \"total!\",\n                  round(p.cr / 10::numeric ^ $5::int, $5::int)::text AS \"cr!\",\n                  round(p.dep / 10::numeric ^ $5::int, $5::int)::text AS \"dep!\",\n                  round(p.unb / 10::numeric ^ $5::int, $5::int)::text AS \"unb!\"\n           FROM p LEFT JOIN currencies cur ON cur.workspace_id = $1 AND cur.id = p.currency_id\n           WHERE p.gr = 1\n              OR (p.gi = 1 AND p.rn > $6 AND p.rn <= $6 + $7)\n              OR (p.gi = 0 AND $4::uuid IS NOT NULL)\n           ORDER BY p.gr DESC, p.rn, p.issue_date, p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "gr!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "gi!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "relation_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "classification?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "classification"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "source_kind?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "source_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "source_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "source_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "invoice_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "issue_date?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "issue_date"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "due_date?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "accounting_open_items",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "days?",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "bucket?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "currency_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "currency_code?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "currency_decimals?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "amount?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 17,
+        "name": "residual?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 18,
+        "name": "fres?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 19,
+        "name": "parties!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 20,
+        "name": "nd!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 21,
+        "name": "b1!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 22,
+        "name": "b2!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 23,
+        "name": "b3!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 24,
+        "name": "b4!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 25,
+        "name": "total!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 26,
+        "name": "cr!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 27,
+        "name": "dep!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 28,
+        "name": "unb!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "TextArray",
+        "Uuid",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      true,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      null,
+      null,
+      false,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "5f3ce07bed22c34bf9c65f13e6f51a7529ed47725252bdd0cb0769309e28fb42"
+}

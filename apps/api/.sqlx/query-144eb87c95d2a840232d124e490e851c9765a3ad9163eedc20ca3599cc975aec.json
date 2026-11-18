@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (SELECT (cutover_at AT TIME ZONE timezone)::date AS cutover\n                      FROM accounting_settings WHERE workspace_id = $1),\n           v AS (\n               SELECT p.product_id, p.warehouse_id,\n                      coalesce(l.quantity_after, f.quantity_before, p.quantity) AS qty,\n                      coalesce(l.value_after, f.value_before, p.value) AS value\n               FROM inventory_cost_pools p\n               CROSS JOIN s\n               LEFT JOIN LATERAL (\n                   SELECT e.quantity_after, e.value_after FROM inventory_value_entries e\n                   WHERE e.workspace_id = p.workspace_id AND e.pool_id = p.id\n                     AND e.accounting_date <= $2\n                   ORDER BY e.sequence DESC LIMIT 1) l ON true\n               LEFT JOIN LATERAL (\n                   SELECT e.quantity_before, e.value_before FROM inventory_value_entries e\n                   WHERE e.workspace_id = p.workspace_id AND e.pool_id = p.id\n                   ORDER BY e.sequence LIMIT 1) f ON true\n               WHERE p.workspace_id = $1 AND ($3::uuid IS NULL OR p.warehouse_id = $3)\n                 AND $2 >= s.cutover),\n           g AS (\n               SELECT grouping(v.product_id) AS gr, v.product_id, pr.name AS product,\n                      v.warehouse_id, wh.name AS warehouse, v.qty, coalesce(sum(v.value), 0) AS value\n               FROM v\n               JOIN products pr ON pr.workspace_id = $1 AND pr.id = v.product_id\n               JOIN warehouses wh ON wh.workspace_id = $1 AND wh.id = v.warehouse_id\n               WHERE v.qty <> 0 OR v.value <> 0\n               GROUP BY GROUPING SETS ((), (v.product_id, pr.name, v.warehouse_id, wh.name, v.qty))),\n           gl AS (\n               SELECT coalesce(sum(jl.functional_debit - jl.functional_credit), 0) AS balance\n               FROM journal_lines jl\n               JOIN journal_entries je ON je.workspace_id = jl.workspace_id AND je.id = jl.entry_id\n               JOIN account_mappings m ON m.workspace_id = jl.workspace_id\n                                      AND m.account_id = jl.account_id AND m.role = 'inventory'\n               WHERE jl.workspace_id = $1 AND je.state = 'posted' AND je.accounting_date <= $2)\n           SELECT g.gr AS \"gr!\", g.product_id AS \"product_id?\", g.product AS \"product?\",\n                  g.warehouse_id AS \"warehouse_id?\", g.warehouse AS \"warehouse?\",\n                  trim_scale(g.qty)::text AS \"quantity?\",\n                  round(g.value / 10::numeric ^ $4::int, $4::int)::text AS \"value!\",\n                  round(gl.balance / 10::numeric ^ $4::int, $4::int)::text AS \"gl!\",\n                  round((g.value - gl.balance) / 10::numeric ^ $4::int, $4::int)::text AS \"diff!\"\n           FROM g CROSS JOIN gl\n           ORDER BY g.gr DESC, g.product, g.warehouse, g.product_id, g.warehouse_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "gr!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "product?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "warehouse_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "inventory_cost_pools",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "warehouse?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "quantity?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "value!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "gl!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "diff!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "144eb87c95d2a840232d124e490e851c9765a3ad9163eedc20ca3599cc975aec"
+}

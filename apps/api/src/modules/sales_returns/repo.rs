@@ -582,7 +582,7 @@ pub async fn insert_restock_line(
 }
 
 /// Allocations touching credit item `item` that aren't reversed, other than the post's own
-/// application (effect `own`): refunds or applications that depend on the credit.
+/// application (effect `own`), plus pending refund holds: what depends on the credit.
 pub async fn dependents(
     conn: &mut PgConnection,
     ws: Uuid,
@@ -590,11 +590,13 @@ pub async fn dependents(
     own: Uuid,
 ) -> Result<i64, AppError> {
     Ok(sqlx::query_scalar(
-        "SELECT count(*) FROM accounting_allocations a
+        "SELECT (SELECT count(*) FROM accounting_allocations a
          WHERE a.workspace_id = $1 AND (a.source_item_id = $2 OR a.target_item_id = $2)
            AND a.reversal_of IS NULL AND a.effect_id <> $3
            AND NOT EXISTS (SELECT 1 FROM accounting_allocations b
-                           WHERE b.workspace_id = a.workspace_id AND b.reversal_of = a.id)",
+                           WHERE b.workspace_id = a.workspace_id AND b.reversal_of = a.id))
+              + (SELECT count(*) FROM credit_refund_reservations r
+                 WHERE r.workspace_id = $1 AND r.credit_item_id = $2 AND r.state = 'pending')",
     )
     .bind(ws)
     .bind(item)

@@ -4,6 +4,8 @@ export * from './approvals/approvals';
 export * from './assistant/assistant';
 export * from './attention/attention';
 export * from './auth/auth';
+export * from './bank-reconciliations/bank-reconciliations';
+export * from './bank-statements/bank-statements';
 export * from './contacts/contacts';
 export * from './currencies/currencies';
 export * from './currency-rates/currency-rates';

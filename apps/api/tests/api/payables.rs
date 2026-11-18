@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 
 /// Active book (M3 fixture) plus the payables roles and one plain expense account.
-async fn book(w: &W) -> String {
+pub(crate) async fn book(w: &W) -> String {
     active(w).await;
     for (code, kind, role) in [
         ("2000", "liability", Some("payables")),
@@ -50,7 +50,7 @@ async fn book(w: &W) -> String {
 }
 
 impl W {
-    async fn usd(&self) -> String {
+    pub(crate) async fn usd(&self) -> String {
         let (s, res) = self
             .req(
                 Method::POST,
@@ -63,7 +63,7 @@ impl W {
         res["data"]["currency_id"].as_str().unwrap().to_owned()
     }
 
-    async fn rate(&self, from: &str, rate: &str, days: i32) {
+    pub(crate) async fn rate(&self, from: &str, rate: &str, days: i32) {
         let (s, res) = self
             .req(
                 Method::POST,
@@ -78,7 +78,7 @@ impl W {
     }
 
     /// Booked receipt of `q` × `product` at `price` in `currency`, received `days` from today.
-    async fn booked(
+    pub(crate) async fn booked(
         &self,
         currency: &str,
         product: &str,
@@ -97,13 +97,13 @@ impl W {
         self.book(&r["data"]).await
     }
 
-    fn bill_body(&self, currency: &str, number: &str, lines: Value) -> Value {
+    pub(crate) fn bill_body(&self, currency: &str, number: &str, lines: Value) -> Value {
         json!({ "supplier_id": self.supplier, "currency_id": currency,
                 "supplier_invoice_number": number, "invoice_date": "2026-11-01",
                 "accounting_date": "2026-11-01", "lines": lines })
     }
 
-    async fn bill_create(&self, payload: Value) -> (StatusCode, Value) {
+    pub(crate) async fn bill_create(&self, payload: Value) -> (StatusCode, Value) {
         self.req(
             Method::POST,
             "/supplier-bills",
@@ -113,7 +113,7 @@ impl W {
     }
 
     /// Draft bill; dated today.
-    async fn bill(&self, currency: &str, number: &str, lines: Value) -> Value {
+    pub(crate) async fn bill(&self, currency: &str, number: &str, lines: Value) -> Value {
         let mut body = self.bill_body(currency, number, lines);
         let today = self.today(0).await;
         body["invoice_date"] = json!(today);
@@ -123,7 +123,12 @@ impl W {
         b["data"].clone()
     }
 
-    async fn act(&self, path: &str, version: &Value, payload: Value) -> (StatusCode, Value) {
+    pub(crate) async fn act(
+        &self,
+        path: &str,
+        version: &Value,
+        payload: Value,
+    ) -> (StatusCode, Value) {
         self.req(
             Method::POST,
             path,
@@ -134,7 +139,7 @@ impl W {
     }
 
     /// Match bill line `line` to receipt lines (id, quantity).
-    async fn matched(
+    pub(crate) async fn matched(
         &self,
         bill: &Value,
         line: usize,
@@ -157,7 +162,7 @@ impl W {
     }
 
     /// Review then post; (status, body) of the first refusal or the post.
-    async fn post_bill(&self, bill: &Value) -> (StatusCode, Value) {
+    pub(crate) async fn post_bill(&self, bill: &Value) -> (StatusCode, Value) {
         let id = bill["id"].as_str().unwrap();
         let (s, review) = self
             .req(
@@ -177,7 +182,7 @@ impl W {
         .await
     }
 
-    async fn posted(&self, bill: &Value) -> Value {
+    pub(crate) async fn posted(&self, bill: &Value) -> Value {
         let (s, b) = self.post_bill(bill).await;
         assert_eq!(s, StatusCode::OK, "{b}");
         b["data"].clone()
@@ -208,7 +213,7 @@ impl W {
     }
 
     /// Open AP item amounts of a bill: (amount, functional, residual).
-    async fn ap(&self, bill: &Value) -> (i64, i64, i64) {
+    pub(crate) async fn ap(&self, bill: &Value) -> (i64, i64, i64) {
         sqlx::query_as(
             "SELECT i.amount, i.functional_amount, i.residual FROM accounting_open_items i
              JOIN supplier_bills b ON b.ap_item_id = i.id WHERE b.id = $1::uuid",
@@ -618,7 +623,7 @@ async fn bills_check_permissions_isolation_replay_and_staleness(pool: PgPool) {
 
 impl W {
     /// Bank account in `currency` on a new asset GL account.
-    async fn bank(&self, currency: &str, code: &str) -> String {
+    pub(crate) async fn bank(&self, currency: &str, code: &str) -> String {
         sqlx::query_scalar(
             "WITH a AS (INSERT INTO accounts (workspace_id, code, name, type, created_by)
                         SELECT $1::uuid, $3, $3, 'asset', created_by_user_id
@@ -656,13 +661,19 @@ impl W {
         .unwrap()
     }
 
-    async fn money(&self, currency: &str, direction: &str, amount: &str, location: Value) -> Value {
+    pub(crate) async fn money(
+        &self,
+        currency: &str,
+        direction: &str,
+        amount: &str,
+        location: Value,
+    ) -> Value {
         json!({ "supplier_id": self.supplier, "currency_id": currency, "direction": direction,
                 "amount": amount, "date": self.today(0).await, "location": location,
                 "evidence_ref": "Statement 11/7" })
     }
 
-    async fn pay(&self, payload: Value) -> (StatusCode, Value) {
+    pub(crate) async fn pay(&self, payload: Value) -> (StatusCode, Value) {
         let (s, review) = self
             .req(
                 Method::POST,
@@ -683,13 +694,18 @@ impl W {
         .await
     }
 
-    async fn paid(&self, payload: Value) -> Value {
+    pub(crate) async fn paid(&self, payload: Value) -> Value {
         let (s, b) = self.pay(payload).await;
         assert_eq!(s, StatusCode::CREATED, "{b}");
         b["data"].clone()
     }
 
-    async fn allocate(&self, payment: &Value, target: &Value, amount: &str) -> (StatusCode, Value) {
+    pub(crate) async fn allocate(
+        &self,
+        payment: &Value,
+        target: &Value,
+        amount: &str,
+    ) -> (StatusCode, Value) {
         let id = payment["id"].as_str().unwrap();
         let body = json!({ "target_open_item_id": target, "amount": amount });
         let (s, review) = self
@@ -712,7 +728,7 @@ impl W {
         .await
     }
 
-    async fn reverse_payment(&self, payment: &Value) -> (StatusCode, Value) {
+    pub(crate) async fn reverse_payment(&self, payment: &Value) -> (StatusCode, Value) {
         let id = payment["id"].as_str().unwrap();
         let body = json!({ "accounting_date": self.today(0).await, "reason": "Entered twice" });
         let (s, review) = self
@@ -736,7 +752,7 @@ impl W {
     }
 }
 
-fn bank_location(bank: &str) -> Value {
+pub(crate) fn bank_location(bank: &str) -> Value {
     json!({ "kind": "bank_account", "bank_account_id": bank, "reference": "TX-1",
             "evidence_ref": "Statement 11", "confirmation_method": "bank_statement" })
 }

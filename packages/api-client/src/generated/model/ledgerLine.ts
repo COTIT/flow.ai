@@ -9,7 +9,7 @@
 /**
  * One posted line on the general ledger; functional amounts.
  */
-export type PaginatedLedgerLineDataItem = {
+export interface LedgerLine {
   accounting_date: string;
   /** Running balance after this line, debit-positive. */
   balance: string;
@@ -25,4 +25,4 @@ export type PaginatedLedgerLineDataItem = {
   relation_id?: string | null;
   /** @nullable */
   source_ref?: string | null;
-};
+}

@@ -7,6 +7,7 @@
  */
 
 /**
- * products: `{operation: create|update, match_key}`; relations: `{}`.
+ * products: `{operation: create|update, match_key}`; relations: `{}`; bank_statement:
+ * `{bank_account_id, reference, start_date, end_date, opening_balance, closing_balance}`.
  */
 export type ImportCreatePayloadMapping = { [key: string]: unknown };

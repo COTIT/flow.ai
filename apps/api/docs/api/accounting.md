@@ -60,7 +60,7 @@ Resources carry `roles` (the roles mapped to the account).
 - `GET/POST /fiscal-years` (`accounting_years_list` / `accounting_years_create`): payload `{start_date, end_date}`. At most 24 months long, never overlapping another year.
 - `GET/POST /periods` (`accounting_periods_list` / `accounting_periods_create`): payload `{fiscal_year_id, start_date, end_date}`. Must lie inside an open fiscal year and never overlap another period.
 
-Both are enforced again by database triggers. Close arrives in M5.
+Both are enforced again by database triggers. Close: see "Period close and year-end close (M5-E)". `allowed_actions`: an open year `["close"]`; an open period `["revalue", "close"]`, or `["revalue"]` when it is the final period (it ends on its year's end); closed: `[]`.
 
 ## Journals
 
@@ -139,6 +139,61 @@ The Till variant is `POST /till/cash-adjustments` (`docs/api/till.md`).
 
 `POST /accounting/bank-accounts` (`accounting_bank_accounts_create`, `accounting.configure`, C envelope, Idempotency-Key): `payload {name (1-255, unique per book), currency_id, account_id}`. The account must be an active asset account of this book (422 `payload.account_id`); unknown currency 422 `payload.currency_id`; taken name 422 `payload.name`. 201 with the bank account.
 
+## Bank statements and reconciliation
+
+Flow ERP M5-C (masterplan §13 BANKING). Active books only: in a setup book every write here is 422 `unsupported_active_erp_operation`. No automated bank feeds (D22). Amounts are exact decimal strings in the bank account's currency ("-40.00"); positive is money in. Sums, residuals and states are computed in SQL.
+
+### Statements arrive through imports
+
+`POST /imports` with `profile: "bank_statement"` (`docs/api/imports.md`), native permission `accounting.reconcile` (checked at apply and again in the apply job).
+
+- `mapping`: `{bank_account_id, reference (1-255), start_date, end_date (YYYY-MM-DD, inclusive, start ≤ end), opening_balance, closing_balance}`.
+- Row `fields`: `booking_date` (inside the statement dates), `amount` (nonzero, at most the currency's decimals), `description` (optional). `external_key` carries the bank's own transaction id, when the file has one.
+- Create refuses an unknown bank account (422 `payload.mapping.bank_account_id`) and a bank account outside the book's functional currency (422 `currency_mismatch`, see limits).
+- Validation marks rows invalid with: a field error; `duplicate_key` (a transaction id twice in the file or already stored for the account); `duplicate_statement` (the account already has this `reference`, every row); `statement_unbalanced` (opening + Σ amounts ≠ closing, every row). Equal date, description and amount is never treated as a duplicate.
+- Apply needs every row valid. The job writes the statement and all its lines in one transaction (never part of a statement), rechecking the book, the rows and the bank ids. The statement keeps `import_batch_id` and `file_hash`; each line keeps its `row_number` and import row.
+- The database refuses a statement whose opening + lines ≠ closing, and refuses any change or delete of statements, lines and allocations.
+
+### Reads (`accounting.read`)
+
+`GET /accounting/bank-statements` (`bank_statements_list`, paginated, newest `end_date` first) and `GET /accounting/bank-statements/{id}` (`bank_statements_get`):
+`{id, bank_account_id, currency_id, reference, start_date, end_date, opening_balance, closing_balance, line_count, reconciled_lines, unreconciled_lines, unreconciled_amount, state: open|reconciled, import_batch_id, file_hash, created_by, created_at}`.
+
+`GET /accounting/bank-statements/{id}/lines` (`bank_statement_lines`, paginated, file order):
+`{id, statement_id, row_number, transaction_id, booking_date, description, amount, matched_amount, residual, state: unreconciled|reconciled, reconciliation_id, reconciliation_version, allocations: [{journal_line_id, journal_entry_id, entry_number, accounting_date, amount, journal_reversed}]}`. Only the live match shows. `journal_reversed` is true when the matched entry was reversed after matching (or is a reversal).
+
+Another workspace's statement: 404.
+
+### POST /accounting/bank-reconciliations (`bank_reconciliations_create`, `accounting.reconcile`)
+
+C envelope + Idempotency-Key, permanent `client_ref` replay (same body → same answer; other body → 409). `payload {statement_line_id, allocations: [{journal_line_id, amount}] (1-50, each line once)}`. Matching posts nothing (no cash, no journal).
+
+Under the shared book gate, the statement line is locked, then the journal lines in id order. Refusals:
+
+| Status | code | When |
+|---|---|---|
+| 404 | | statement line or a journal line not in this workspace |
+| 409 | `already_reconciled` | the statement line has a live match |
+| 422 | `not_this_bank_account` | a journal line is not posted, not tagged with the statement's bank account, or not on that bank account's GL account |
+| 422 | `currency_mismatch` | the journal entry's currency differs from the bank account's |
+| 422 | `journal_line_reversed` | the journal entry is a reversal or was reversed (manual `reversal_of` or a source `reversed` effect) |
+| 422 | `amount_mismatch` | Σ allocations ≠ the statement line amount (partial or over) |
+| 422 | `capacity_exceeded` | an allocation has another sign than, or is larger than, the journal line's remaining `(debit − credit) − Σ live allocations` |
+
+201 with `{id, statement_line_id, statement_id, version, created_by, created_at, reversed_at, reversed_by, reverse_reason, allocations: [{journal_line_id, amount}]}`. One journal line may be split over several statement lines up to its amount.
+
+### POST /accounting/bank-reconciliations/{id}/reverse (`bank_reconciliations_reverse`, `accounting.reconcile`)
+
+A envelope `{client_ref, expected_version, payload: {reason (1-1000)}}`. Stamps `reversed_at`, `reversed_by`, `reverse_reason` once and bumps `version`; nothing is deleted. The statement line and the journal lines' capacity are free again. Already reversed: 422 `already_reversed`; stale version: 409 `stale_document`; other workspace: 404. 200 with the reconciliation.
+
+### Known limits
+
+- Only bank accounts in the functional currency reconcile: source journals hold functional amounts only, so a foreign statement line has no exact bank-currency amount to match.
+- Provider payouts and fees: §13 wants an explicit clearing→bank transfer plus fee before matching, but no route posts one yet and manual journals refuse bank lines. Such statement lines stay unmatched (masterplan gap: provider payout/fee transfer route missing).
+- Reversing a journal after matching doesn't unmatch it; reads flag `journal_reversed` and the match is reversed by hand.
+- A source with a `reversed` effect counts as reversed for all of its bank lines.
+- Period close does not check reconciliation yet.
+
 ## Settlement (open items and allocations)
 
 Canonical settlement owns paid amounts in active books (masterplan §8). Tables, no routes yet:
@@ -167,6 +222,10 @@ Read-only, `accounting.read`, `GET` under `/accounting/reports`. Only posted jou
 | `/reports/general-ledger` | `accounting_general_ledger` | `account_id`, `from`, `to`, `page`, `page_size` (default 50, max 100) |
 | `/reports/profit-and-loss` | `accounting_profit_and_loss` | `from`, `to` |
 | `/reports/balance-sheet` | `accounting_balance_sheet` | `as_of` |
+| `/reports/party-ledger` | `accounting_party_ledger` | `relation_id`, `from`, `to`, `page`, `page_size` |
+| `/reports/receivables-aging` | `accounting_receivables_aging` | `as_of`, `relation_id?`, `page`, `page_size` |
+| `/reports/payables-aging` | `accounting_payables_aging` | `as_of`, `relation_id?`, `page`, `page_size` |
+| `/reports/inventory-valuation` | `accounting_inventory_valuation` | `as_of`, `warehouse_id?` |
 
 Each answers `{data: …}` with `functional_currency` and its dates.
 
@@ -175,13 +234,92 @@ Each answers `{data: …}` with `functional_currency` and its dates.
 - **Profit and loss**: `income` (credit-positive) and `expenses` (debit-positive) per account, `total_income`, `total_expenses`, `net_profit`. Year-end close transfers (`kind = year_end_close`) are left out.
 - **Balance sheet**: `assets` (debit-positive), `liabilities` and `equity` (credit-positive) per account, their totals, `current_earnings` and `total_liabilities_and_equity` (= liabilities + equity + current earnings = `total_assets`). `current_earnings` is income − expense through `as_of` not yet moved to equity by a year-end close, across every year not yet closed; there's no split between this year and earlier years until year-end close exists. A close moves it into retained earnings, so it's counted once.
 
-422 field errors: missing or malformed date, `to` not after `from`, missing or malformed `account_id`. A book without a functional currency gets 422 `accounting_not_configured`.
+- **Party ledger**: the general ledger for one relation across every account. `relation` = `{id, name}`; each line also carries its `account`. Only lines tagged with the relation count. A relation of another workspace, or none, gets 404.
+- **Receivables / payables aging**: open items on `as_of`, rebuilt from dated rows, never from today's residual. Residual on `as_of` = amount − allocations dated on or before `as_of` (a reversal adds its amount back on its own date; a reclassification relieves only its source). Functional residual also adds carrying adjustments dated on or before `as_of`. So a January invoice paid in February still shows in January, and a March reversal changes March only. Items issued after `as_of` are left out. Opening items count from `cutover_date`, the cutover day in the book timezone (null before activation); no history before it is invented.
+  - Columns, functional: `not_due`, `1_30`, `31_60`, `61_90`, `over_90` (days past the due date, or past the issue date when there is none; the due day itself is not due), `total` (the five buckets), and the unaged `credits`, `deposits`, `unbilled`.
+  - Receivables: aged = receivables (billed); `credits` = customer credits, `deposits` = customer deposits, `unbilled` = unbilled receivables. Recovery items are left out until assigned to a customer.
+  - Payables: aged = payables; `credits` = supplier credits, `deposits` = supplier advances, `unbilled` = received not invoiced.
+  - `totals` covers everything; `parties` = one page `{data, meta}` per relation (`relation` `{id, name}`, null for anonymous retail, listed last) ordered by name. With `relation_id`, only that party, and `items` lists its outstanding items: `id`, `classification`, `source_kind`, `source_id`, `invoice_id`, `issue_date`, `due_date`, `days_overdue`, `bucket`, `currency`, `amount` and `residual` (item currency), `functional_residual`. Without it `items` is `[]`. An unknown or foreign relation gets 404.
+- **Inventory valuation**: one row per product and warehouse pool on `as_of` (`product`, `warehouse` = `{id, name}`, `quantity`, `value`), rows at zero left out, plus `total_value`. A pool's state is its last value entry dated on or before `as_of`, else its opening state at cutover. Nothing shows before `cutover_date`. Without `warehouse_id`, `gl_balance` is the posted balance of the `inventory` role account on `as_of`, and `difference` = `total_value` − `gl_balance`. With `warehouse_id` both are null (the GL has no warehouse split). An unknown or foreign warehouse gets 404.
 
-Not yet: party ledger, receivables and payables aging (they need open items and allocations, M4/M5), inventory valuation and close checks.
+422 field errors: missing or malformed date, `to` not after `from`, missing or malformed `account_id` / `relation_id` / `warehouse_id`. A book without a functional currency gets 422 `accounting_not_configured`; a book still in setup answers empty reports.
+
+Not yet: close checks (`accounting_close_checks`), with period close (M5-E).
+
+## Period FX revaluation (M5-B)
+
+Active books only; a setup book gets 422 `accounting_not_configured`. Masterplan §13 "Period revaluation".
+
+- `POST /accounting/periods/{id}/revalue/review` (`accounting_periods_revalue_review`, `accounting.revalue`): body `{rate_date}`. No writes.
+- `POST /accounting/periods/{id}/revalue` (`accounting_periods_revalue`, `accounting.revalue`): A envelope `{client_ref, expected_version, payload: {rate_date, review_fingerprint}}`, Idempotency-Key. `expected_version` is the period's version; a post adds 1 to it. Replay returns the stored answer.
+
+What is revalued: open items (`residual > 0`) in a currency other than the functional one, issued on or before the period's last day (`end_date − 1`), classed `receivable`, `payable`, `customer_credit`, `supplier_credit` or `recovery_receivable`. Customer deposits and supplier advances (nonmonetary, D23), GRNI (bills relieve it at receipt basis) and foreign bank/cash balances are not.
+
+Rules:
+
+- `rate_date` must be on or before the period's last day (422 field error). Each currency uses the rate in force on `rate_date`: direct, else inverse; no rate-1 fallback, no third currency. A missing rate is a 422 field error on `rate_date` ("No USD → EUR rate is in force on …").
+- Closed period or fiscal year: 422 `accounting_period_closed`. Unknown period or another workspace: 404.
+- Per item, in SQL: `revalued = money_convert(residual, rate)` (half away from zero), `delta = revalued − carrying` (carrying = `functional_residual`). Items with delta 0 post nothing. An open residual that converts to 0 refuses the run (422 `unsupported_active_erp_operation`).
+- Left out and listed in `not_revalued`: `settled_after_rate_date` (a non-reversed allocation dated after `rate_date` already realized its FX against the old carrying) and `revalued_after_accounting_date` (a later period's run already moved it).
+- Per item with delta ≠ 0, dated the period's last day: one posted `fx_revaluation` journal (control account of the item with its relation vs `unrealized_fx`) and one `accounting_carrying_adjustments` row (`revaluation`, delta). A debit-side item worth more, or a credit-side item worth less, debits the control account. The adjustment moves the item's `functional_residual`, so a later allocation relieves the adjusted carrying and realizes only the rest (no FX counted twice).
+- One `accounting_revaluations` row and one effect (`fx_revaluation`, run id, `posted`) per post, shared by its journals and adjustments. A period may be revalued again: the next run posts only the difference from the adjusted carrying, and an all-zero run is still recorded. There is no reversal route; adjustments are not reversed in the next period.
+- The exclusive book gate is held for the whole run, so nothing settles while it posts. Review recomputes everything; a changed fact or version is 409 `stale_document`.
+
+Response (`RevaluationResource`): `id` (null on review), `period_id`, `period_version`, `rate_date`, `accounting_date`, `functional_currency`, `rates[]` (`currency`, `rate`, `inverse`, `source`, `effective_on`), `items[]` (`open_item_id`, `classification`, `relation_id`, `currency`, `residual`, `carrying`, `revalued`, `delta`, `journal_id`), `not_revalued[]` (`open_item_id`, `reason`), `review_fingerprint`.
+
+`PeriodResource` gains `last_revaluation` (`id`, `rate_date`, `accounting_date`, `created_at`, or null) and `allowed_actions: ["revalue"]` while open. The period close's `fx_revaluation` check uses `revaluation::current(period)`: whether revaluation is done: no in-scope item needs it, or the latest run recomputed at its rate date has nothing left to post.
+
+Known limits: foreign bank-account and cash-place balances are not revalued (the book keeps no transaction-currency balance for them); revaluation is not reversed in the next period.
+
+## Period close and year-end close (M5-E)
+
+Active books only; a setup book gets 422 `accounting_not_configured`. Masterplan §13 "PERIOD CLOSE" and "YEAR-END — FINAL ORDER". There is no reopen route and no year-end reversal; later errors use current-period source corrections.
+
+### GET /accounting/reports/close-checks?period_id= (`accounting_close_checks`, `accounting.read`)
+
+Runs the checks of an open period as of its last day (`end_date − 1`). No writes. Unknown period or another workspace: 404. Closed period or year: 422 `accounting_period_closed`.
+
+| `code` | Blocks when |
+|---|---|
+| `missing_effects` | a provider observation that occurred (book timezone) by the cutoff still has its source link `pending_observation` |
+| `unbalanced_journals` | a posted journal in the period has functional debits ≠ credits |
+| `inventory_difference` | inventory valuation on the cutoff differs from the `inventory` GL balance |
+| `open_item_control_difference` | for an account holding open items, the posted GL balance on the cutoff ≠ Σ open-item carrying rebuilt as of the cutoff (allocations and carrying adjustments dated by then; debit items +, credit items −) |
+| `unbooked_receipts` | a receipt line dated in the period is not booked (late lines included) |
+| `pending_cost_variance` | the `pending_purchase_cost_variance` balance on the cutoff is not 0 |
+| `fx_revaluation` | an open foreign monetary item still needs revaluation, or its closing rate is missing |
+| `pending_exceptions` | a pending accounting exception whose observation occurred by the cutoff |
+
+Not blockers (never queried): recognized unbilled deliveries, anonymous Till receipts, ordinary unpaid invoices, draft credits, checkouts never submitted financially.
+
+Response (`CloseChecksResource`): `period_id`, `period_version`, `fiscal_year_id`, `accounting_date` (cutoff), `final_period`, `checks[]` (`code`, `passed`, `count`), `ready`, `checks_fingerprint`.
+
+### POST /accounting/periods/{id}/close (`accounting_periods_close`, `accounting.close`)
+
+A envelope `{client_ref, expected_version, payload: {checks_fingerprint}}` on the period version, Idempotency-Key; replay by `client_ref` returns the stored answer. Takes the exclusive book gate, locks the period and rechecks. Order of refusals: 404; 422 `accounting_not_configured`; 422 `accounting_period_closed`; final period 422 `unsupported_active_erp_operation` ("Close it with the year-end close."); changed version or checks 409 `stale_document`; a failing check 422 with the first failing check's reason (`unbooked_receipts` → `receipt_booking_required`; `missing_effects` / `pending_exceptions` → `external_financial_fact_pending`; others `unsupported_active_erp_operation`) and every failing code in the message. Success: the `PeriodResource`, state `closed`, version + 1. Earlier periods need not be closed first.
+
+A closed period refuses every posting dated in it (422 `accounting_period_closed`). A posting holds the gate shared, so one racing a close either commits before it or sees the closed period.
+
+### POST /accounting/fiscal-years/{id}/close/review and /close (`accounting_year_close`, `accounting.close`)
+
+Review: no body, no writes. Close: A envelope `{client_ref, expected_version, payload: {review_fingerprint}}` on the year version, Idempotency-Key. In one transaction under the exclusive gate:
+
+1. Lock the year and its periods. Year closed: 422 `accounting_period_closed`.
+2. The periods must tile the year with no gap, the last ending on the year's end; every earlier period closed. Otherwise 422 `unsupported_active_erp_operation`.
+3. The final period stays open; its close checks run (failing: 422 as above).
+4. Closing lines, in SQL: each income/expense account's posted year balance (all kinds) reversed; the net to `retained_earnings` (omitted when income equals expense).
+5. Effect (`year_end_close`, year id, `posted`), unique per year. With any line: one posted `year_end_close` journal dated the final period's last day.
+6. Close the final period and the year (each version + 1).
+
+A year with no income or expense balance closes with `journal_id` null; its effect still records the close. Response (`YearCloseResource`): `fiscal_year_id`, `fiscal_year_version`, `final_period_id`, `accounting_date`, `functional_currency`, `checks[]`, `lines[]` (`account_id`, `debit`, `credit`), `net_income`, `review_fingerprint`, `journal_id`, `effect_id` (both null on review). Changed version or facts: 409 `stale_document`.
+
+Reports: P&L leaves out `year_end_close` journals; trial balance and general ledger include them; the balance sheet's `current_earnings` holds only earnings not yet closed, so earnings count once.
+
+Known limits: "unresolved opening controls" is not checked yet (the opening baseline tables arrive in M6). Bank reconciliation is not a close check (§13 doesn't list it).
 
 ## Permissions
 
-`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` are used now. `accounting.reconcile`, `accounting.close`, `accounting.revalue` and `accounting.activate` are catalogued for later milestones.
+`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse`, `accounting.revalue`, `accounting.reconcile` and `accounting.close` are used now. `accounting.activate` is catalogued for a later milestone.
 
 ## Provider observations
 

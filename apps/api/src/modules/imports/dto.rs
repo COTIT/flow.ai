@@ -22,14 +22,15 @@ pub const MATCH_KEYS: &[&str] = &["product_nr_formatted", "barcode", "ean13", "r
 #[derive(Deserialize, ToSchema)]
 #[schema(as = ImportCreatePayload)]
 pub struct CreatePayload {
-    /// `products` or `relations`.
+    /// `products`, `relations` or `bank_statement`.
     pub profile: Option<String>,
     pub filename: Option<String>,
     /// SHA-256 of the source file, lowercase hex.
     pub file_hash: Option<String>,
     #[schema(value_type = i64, minimum = 1, maximum = 500)]
     pub expected_rows: Option<Value>,
-    /// products: `{operation: create|update, match_key}`; relations: `{}`.
+    /// products: `{operation: create|update, match_key}`; relations: `{}`; bank_statement:
+    /// `{bank_account_id, reference, start_date, end_date, opening_balance, closing_balance}`.
     #[schema(value_type = Object)]
     pub mapping: Option<Value>,
 }
@@ -51,8 +52,13 @@ impl Validate for CreatePayload {
         if let Some(p) = &profile {
             r.check(
                 "profile",
-                ["products", "relations"].contains(&p.as_str()),
-                "The profile must be products or relations.",
+                [
+                    "products",
+                    "relations",
+                    crate::modules::accounting::banking::PROFILE,
+                ]
+                .contains(&p.as_str()),
+                "The profile must be products, relations or bank_statement.",
             );
         }
         let filename = r.text("filename", self.filename, MAX_CELL);
@@ -96,6 +102,9 @@ impl Validate for CreatePayload {
                     "Relations imports take no mapping options.",
                 );
                 Some(json!({}))
+            }
+            Some(crate::modules::accounting::banking::PROFILE) => {
+                crate::modules::accounting::banking::mapping(r, &mapping)
             }
             _ => None,
         };

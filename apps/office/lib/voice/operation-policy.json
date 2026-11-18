@@ -23282,6 +23282,753 @@
     },
     "confirmationFields": []
   },
+  "accounting_inventory_valuation": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/inventory-valuation",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#inventory_valuation",
+        "apps/api/src/modules/accounting/reports.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_party_ledger": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/party-ledger",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#party_ledger",
+        "apps/api/src/modules/accounting/reports.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_payables_aging": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/payables-aging",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#payables_aging",
+        "apps/api/src/modules/accounting/reports.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_periods_revalue": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/periods/{period}/revalue",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#periods_revalue",
+        "apps/api/src/modules/accounting/revaluation.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_periods_revalue_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/periods/{period}/revalue/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#periods_revalue_review",
+        "apps/api/src/modules/accounting/revaluation.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_receivables_aging": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/receivables-aging",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#receivables_aging",
+        "apps/api/src/modules/accounting/reports.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "bank_reconciliations_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/bank-reconciliations",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_reconciliations_create",
+        "apps/api/src/modules/accounting/banking.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "bank_reconciliations_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/bank-reconciliations/{reconciliation}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_reconciliations_reverse",
+        "apps/api/src/modules/accounting/banking.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "bank_statements_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/bank-statements/{statement}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_statements_get",
+        "apps/api/src/modules/accounting/banking.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "bank_statements_lines": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/bank-statements/{statement}/lines",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_statement_lines",
+        "apps/api/src/modules/accounting/banking.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "bank_statements_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/bank-statements",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_statements_list",
+        "apps/api/src/modules/accounting/banking.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_refunds_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/till/sales/{order}/refunds",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_refunds_create",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_refunds_create_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/till/sales/{order}/refunds/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_refunds_create_review",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_refunds_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/till/sales/{order}/refunds/{refund}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_refunds_get",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_refunds_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/till/sales/{order}/refunds",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_refunds_list",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_sales_return": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/till/sales/{order}/returns",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_sales_return",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_sales_return_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/till/sales/{order}/returns/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_sales_return_review",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_close_checks": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/close-checks",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#close_checks",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_periods_close": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/periods/{period}/close",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#periods_close",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_year_close": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/fiscal-years/{year}/close",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#years_close",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_year_close_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/fiscal-years/{year}/close/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#years_close_review",
+        "apps/api/src/modules/accounting/close.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "approvals_policies_list": {
     "method": "GET",
     "path": "/workspace/{workspace}/approvals/policies",
