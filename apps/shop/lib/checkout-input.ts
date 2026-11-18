@@ -1,11 +1,12 @@
 import type { CheckoutRequest } from "@genesy/api-client/model"
 
 import { isUuid } from "./passport"
+import { COUNTRY_CODES } from "./countries"
 
 export type ParsedCheckout =
   | { ok: true; body: CheckoutRequest; idempotencyKey: string }
   /** `missing`: required fields left empty; empty list = tampered or malformed input. */
-  | { ok: false; missing: string[] }
+  | { ok: false; missing: string[]; errors?: Record<string, string[]> }
 
 const REQUIRED = [
   "email",
@@ -18,8 +19,8 @@ const REQUIRED = [
 const OPTIONAL = ["phone", "line2"] as const
 
 /**
- * The checkout form as posted to the server action: shape and size only. Every business
- * rule (stock, prices, product state, address rules) is the API's; its 422 comes back as is.
+ * Reject malformed form data before creating an order. The API also validates checkout;
+ * its business-rule errors (stock, prices, product state) come back as field messages.
  */
 export function parseCheckout(form: FormData): ParsedCheckout {
   const bad: ParsedCheckout = { ok: false, missing: [] }
@@ -64,9 +65,23 @@ export function parseCheckout(form: FormData): ParsedCheckout {
   const fields = Object.fromEntries(
     [...REQUIRED, ...OPTIONAL].map((f) => [f, text(f)])
   ) as Record<(typeof REQUIRED)[number] | (typeof OPTIONAL)[number], string>
-  if (Object.values(fields).some((v) => v.length > 255)) return bad
   const missing = REQUIRED.filter((f) => !fields[f])
   if (missing.length) return { ok: false, missing }
+
+  const errors: Record<string, string[]> = {}
+  for (const [field, value] of Object.entries(fields)) {
+    const max = field === "phone" ? 50 : 255
+    if ([...value].length > max) {
+      const path = [...REQUIRED.slice(2), "line2"].includes(field)
+        ? `customer.shipping_address.${field}`
+        : `customer.${field}`
+      errors[path] = [`Use ${max} characters or fewer.`]
+    }
+  }
+  fields.country = fields.country.toUpperCase()
+  if (!COUNTRY_CODES.includes(fields.country))
+    errors["customer.shipping_address.country"] = ["Select a valid country."]
+  if (Object.keys(errors).length) return { ok: false, missing: [], errors }
 
   const { email, name, phone, line1, line2, postal_code, city, country } =
     fields

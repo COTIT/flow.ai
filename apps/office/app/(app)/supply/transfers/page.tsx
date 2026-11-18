@@ -187,6 +187,8 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
   // shortcut: first 100 products and warehouses in the pickers; add search when catalogs grow.
   const products = useProductsList(workspaceId, { page_size: 100 }, enabled)
   const warehouses = useWarehousesList(workspaceId, { page_size: 100 }, enabled)
+  const eligibleProducts =
+    products.data?.data.filter((p) => p.should_mutate_stock) ?? []
   const receive = useSupplyChainReceive({
     mutation: {
       onSuccess: ({ data }) => {
@@ -254,13 +256,27 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
             </Notice>
           ) : null}
           <Capped meta={products.data?.meta} />
+          {products.isError ? (
+            <LoadError
+              error={products.error}
+              onRetry={() => void products.refetch()}
+            />
+          ) : products.isSuccess && !eligibleProducts.length ? (
+            <Notice variant="warning" title={t("supply.noReceivingProducts")} />
+          ) : null}
           <Field
             id="rcv-product"
             label={t("lots.product")}
             errors={errors.product_id}
           >
-            <select name="product_id" className={selectClass} required>
-              {products.data?.data.map((p) => (
+            <select
+              name="product_id"
+              className={selectClass}
+              defaultValue=""
+              required
+            >
+              <option value="">{t("supply.chooseProduct")}</option>
+              {eligibleProducts.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -275,6 +291,14 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
             <Input name="code" required />
           </Field>
           <Capped meta={warehouses.data?.meta} />
+          {warehouses.isError ? (
+            <LoadError
+              error={warehouses.error}
+              onRetry={() => void warehouses.refetch()}
+            />
+          ) : warehouses.isSuccess && !warehouses.data.data.length ? (
+            <Notice variant="warning" title={t("supply.noReceivingWarehouses")} />
+          ) : null}
           <Field
             id="rcv-warehouse"
             label={t("stock.warehouse")}
@@ -305,11 +329,14 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
             <DialogClose render={<Button type="button" variant="outline" />}>
               {t("actions.cancel")}
             </DialogClose>
-            {/* Empty required pickers would block the submit silently: wait for both lists. */}
             <Button
               type="submit"
               disabled={
-                receive.isPending || products.isPending || warehouses.isPending
+                receive.isPending ||
+                !products.isSuccess ||
+                !eligibleProducts.length ||
+                !warehouses.isSuccess ||
+                !warehouses.data.data.length
               }
             >
               {t("supply.receive")}

@@ -182,3 +182,37 @@ Not yet: party ledger, receivables and payables aging (they need open items and 
 ## Permissions
 
 `accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` are used now. `accounting.reconcile`, `accounting.close`, `accounting.revalue` and `accounting.activate` are catalogued for later milestones.
+
+## Provider observations
+
+Active books only (setup books keep the legacy provider ledger rows and attention flags).
+
+A confirmed provider fact is stored once in `provider_observations`, keyed by provider, economic kind (`collection`, `refund`, `chargeback`) and external id. Sources: Globadyme invoice collections and credit-note refunds, Globadyme and Stripe/fake web-shop payments and refunds, and a Globadyme transaction seen as `CHARGEBACKED` on refresh. Chargeback list rows stay attention-only. The book state lives in `accounting_source_links` (`provider_observation`, id): `posted` or `pending_observation`.
+
+Posting runs inside a savepoint in the confirming transaction:
+
+| fact | journal | open items |
+|---|---|---|
+| invoice collection | canonical receipt: DR `provider_clearing` / CR `customer_deposits`, then DR `customer_deposits` / CR `receivables` | deposit applied to the receivable up to its residual; the excess stays an open customer deposit |
+| shop collection (no invoice yet) | DR `provider_clearing` / CR `customer_deposits` | `customer_deposit` with `order_id`, customer optional |
+| refund / chargeback | DR open credit (credit-note `customer_credit`, else the source deposit) + DR `financial_discrepancy` (rest) / CR `provider_clearing` | allocation kind `refund` on the credit; rest opens a `recovery_receivable` and a `discrepancy` exception |
+
+If posting fails (no receivable, foreign currency, closed period, unmapped role, any error), the savepoint rolls back, the observation commits with a `pending_posting` exception, and the provider operation carries the pending attention flag. The paid projection stays unchanged until posting succeeds.
+
+### Routes
+
+- `GET /workspace/{ws}/accounting/exceptions?state=pending|all&before=&limit=` (`accounting.read`): newest first, keyset by id, at most 100.
+- `GET /workspace/{ws}/accounting/exceptions/{id}` (`accounting.read`): exception, observation, recovery residual, source-link disposition.
+- `POST .../{id}/retry` (`accounting.post`, A envelope `{client_ref, expected_version, payload: {}}`, Idempotency-Key). `pending_posting` only. It reruns the posting with no provider call. Success: 200, resolution `posted`, invoice paid projection updated once. Still failing: 422 with the reason, and the attempt is counted. Resolved or discrepancy: 409 `exception_state`. Wrong version: 409 `stale_document`.
+- `POST .../{id}/resolve/review` (`accounting.post`, `{resolution, relation_id?, reason, evidence_ref}`) has no writes. It returns `review_fingerprint`, the amount, the date (book's day) and the debit/credit roles.
+- `POST .../{id}/resolve` (`accounting.post`, A envelope, payload with `review_fingerprint`). `discrepancy` only; a pending posting gets 422 (retry it).
+  - `assign_receivable`: DR `receivables` (customer, default the observation's) / CR `financial_discrepancy`, plus a new `receivable` item.
+  - `write_off`: DR `financial_loss` / CR `financial_discrepancy`.
+  - Either way the recovery item is relieved (allocation `assignment` | `write_off`) and the original observation is kept.
+
+### Known limits
+
+- Chargeback reversal (won) is not modelled.
+- An opening-covered callback no-op is planned for M8.
+- Foreign-currency provider money stays pending until FX (M5).
+- The credit-note refund cap still uses the legacy balance.

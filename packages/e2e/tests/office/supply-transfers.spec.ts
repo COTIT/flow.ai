@@ -1,5 +1,11 @@
 import { expect, paged, test, type FakeApi } from "./fake-api"
 
+const giftBasket = {
+  id: "prod-gift",
+  name: "Holiday Gift Basket | The Tea Tradition",
+  should_mutate_stock: false,
+}
+
 function transfersApi(api: FakeApi) {
   const transfers = [
     {
@@ -33,7 +39,10 @@ function transfersApi(api: FakeApi) {
   api
     .on("GET", "/workspace/:ws/supply-transfers", () => paged(transfers))
     .on("GET", "/workspace/:ws/products", () =>
-      paged([{ id: "prod-raw", name: "Raw honey (kg)" }])
+      paged([
+        giftBasket,
+        { id: "prod-raw", name: "Raw honey (kg)", should_mutate_stock: true },
+      ])
     )
     // The new batch's page reads its product and passport.
     .on("GET", "/workspace/:ws/products/:id", () => ({
@@ -126,8 +135,20 @@ test("receive: cancel sends nothing; the body is exact; opens the new batch", as
     .getByRole("button", { name: "Receive batch ILU-H-2026-01" })
     .click()
   await expect(dialog.getByLabel("Quantity")).toHaveValue("250.00")
+  const product = dialog.getByLabel("Product")
+  await expect(product.locator("option")).toHaveText([
+    "Choose a product",
+    "Raw honey (kg)",
+  ])
+  await expect(product).toHaveValue("")
   await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
   await dialog.getByLabel("Quantity").fill("248.50")
+  await dialog.getByRole("button", { name: "Receive" }).click()
+  await expect(product).toBeFocused()
+  expect(
+    api.callsTo("POST", "/workspace/:ws/supply-transfers/:id/receive")
+  ).toHaveLength(0)
+  await product.selectOption("prod-raw")
   await dialog.getByRole("button", { name: "Receive" }).click()
   await expect(page).toHaveURL(/\/lots\/lot-9\?done=received$/)
   await expect(
@@ -146,6 +167,24 @@ test("receive: cancel sends nothing; the body is exact; opens the new batch", as
   })
 })
 
+test("receive: no stock-tracked products blocks submission", async ({
+  page,
+  api,
+}) => {
+  transfersApi(api)
+  api.on("GET", "/workspace/:ws/products", () => paged([giftBasket]))
+  await page.goto("/supply/transfers")
+  await page.getByRole("button", { name: "Receive batch ILU-H-2026-01" }).click()
+  const dialog = page.getByRole("dialog")
+  await expect(
+    dialog.getByText("No stock-tracked products in this list.")
+  ).toBeVisible()
+  await expect(dialog.getByRole("button", { name: "Receive" })).toBeDisabled()
+  expect(
+    api.callsTo("POST", "/workspace/:ws/supply-transfers/:id/receive")
+  ).toHaveLength(0)
+})
+
 test("receive: can't be sent until the product and warehouse pickers have loaded", async ({
   page,
   api,
@@ -162,6 +201,7 @@ test("receive: can't be sent until the product and warehouse pickers have loaded
   await page.goto("/supply/transfers")
   await page.getByRole("button", { name: "Receive batch ILU-H-2026-01" }).click()
   const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("Product").selectOption("prod-raw")
   await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
   await expect(dialog.getByRole("button", { name: "Receive" })).toBeDisabled()
   release()
@@ -189,6 +229,7 @@ test.describe(() => {
       .getByRole("button", { name: "Receive batch ILU-H-2026-01" })
       .click()
     const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("Product").selectOption("prod-raw")
     await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
     await dialog.getByLabel("Quantity").fill("300")
     await dialog.getByRole("button", { name: "Receive" }).click()
@@ -227,6 +268,7 @@ test.describe(() => {
       .getByRole("button", { name: "Receive batch ILU-H-2026-01" })
       .click()
     const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("Product").selectOption("prod-raw")
     await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
     await dialog.getByRole("button", { name: "Receive" }).click()
     await expect(
@@ -256,6 +298,7 @@ test.describe(() => {
     await page.goto("/supply/transfers")
     await page.getByRole("button", { name: "Receive batch ILU-H-2026-01" }).click()
     const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("Product").selectOption("prod-raw")
     await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
     await dialog.getByRole("button", { name: "Receive" }).click()
     await expect(

@@ -1186,6 +1186,11 @@
     "nl": ["productveld", "aangepast veld", "velddefinitie", "velddetails"],
     "sw": ["onyesha", "maelezo", "sehemu maalum", "bidhaa"]
   },
+  "product_variants_delete": {
+    "en": ["delete", "product size"],
+    "nl": ["verwijder", "productmaat"],
+    "sw": ["futa", "saizi ya bidhaa"]
+  },
   "product_variants_generate": {
     "en": ["add", "sizes"],
     "nl": ["maten", "toevoegen"],
@@ -1195,6 +1200,11 @@
     "en": ["sizes"],
     "nl": ["maten"],
     "sw": ["saizi", "zilizopo"]
+  },
+  "product_variants_update": {
+    "en": ["correct", "product size"],
+    "nl": ["corrigeer", "productmaat"],
+    "sw": ["sahihisha", "saizi ya bidhaa"]
   },
   "products_create": {
     "en": ["add", "new"],
@@ -1265,10 +1275,25 @@
     "nl": ["btw", "tarieven"],
     "sw": ["viwango"]
   },
+  "warehouses_create": {
+    "en": ["create", "warehouse"],
+    "nl": ["nieuw magazijn", "maak"],
+    "sw": ["unda", "ghala jipya"]
+  },
+  "warehouses_delete": {
+    "en": ["delete", "warehouse"],
+    "nl": ["verwijder", "magazijn"],
+    "sw": ["futa", "ghala"]
+  },
   "warehouses_list": {
     "en": [],
     "nl": ["magazijnen"],
     "sw": ["maghala", "maghala yote"]
+  },
+  "warehouses_update": {
+    "en": ["rename", "warehouse"],
+    "nl": ["hernoem", "magazijn"],
+    "sw": ["badilisha jina", "ghala"]
   },
   "lots_create": {
     "en": ["batch", "new batch"],

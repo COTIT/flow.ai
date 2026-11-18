@@ -46,6 +46,24 @@ pub enum Valued {
     /// Stocktake difference (M6) dated `date`: out at the current average; in at `value`
     /// (functional minor units) when the caller found the pool empty, else at the average.
     Count { value: Option<i64>, date: NaiveDate },
+    /// Customer return restock (M4): in at the original booked issue cost of `sale`
+    /// (`order`|`invoice`, id), DR inventory / CR cogs; or at reviewed `legacy` return cost,
+    /// DR inventory / CR inventory_adjustment.
+    SaleReturn {
+        sale: (&'static str, Uuid),
+        legacy: Option<Uuid>,
+    },
+    /// Exact undo of such a restock: out at `value`, DR cogs (legacy: inventory_adjustment)
+    /// / CR inventory; what the sale (or legacy record) counts as returned shrinks.
+    SaleReturnUndo {
+        sale: (&'static str, Uuid),
+        legacy: Option<Uuid>,
+        value: i64,
+    },
+    /// Purchase return (M5-A, D08) dated `date`: out at the current average (`value` None);
+    /// its physical undo back in at exactly `value`. No journal here: the caller posts the
+    /// return's own (GRNI / supplier credit / variance) journal with the value entry's C.
+    SupplierReturn { value: Option<i64>, date: NaiveDate },
 }
 
 const NO_OPENING: &str =
@@ -295,6 +313,144 @@ const BOOK_EARLIER: &str = "An earlier receipt of this stock is waiting. Book it
 const LEGACY_RETURN: &str =
     "This sale has no recorded cost in the book. Its return needs a reviewed cost.";
 
+/// Original booked cost of returning `q` of `row` from sale `kind`/`id` (its cost
+/// allocation): cumulative rounding, the return reaching the issued quantity takes the exact
+/// rest. 422 `legacy_return_cost_required` without an allocation or beyond what was issued.
+async fn restore(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    (kind, id): (&str, Uuid),
+    row: &StockRow,
+    q: Decimal,
+) -> Result<i64, AppError> {
+    let a = sqlx::query!(
+        r#"SELECT id,
+                  CASE WHEN returned_quantity + $6 > issued_quantity THEN NULL
+                       WHEN returned_quantity + $6 = issued_quantity
+                       THEN issued_value - returned_value
+                       ELSE money_round_div(issued_value * (returned_quantity + $6),
+                                            issued_quantity)::bigint - returned_value
+                  END AS value
+           FROM inventory_cost_allocations
+           WHERE workspace_id = $1 AND source_kind = $2 AND source_id = $3
+             AND product_id = $4 AND warehouse_id = $5
+           FOR UPDATE"#,
+        ws,
+        kind,
+        id,
+        row.product_id,
+        row.warehouse_id,
+        q
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
+    let value = a
+        .value
+        .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
+    sqlx::query!(
+        "UPDATE inventory_cost_allocations
+         SET returned_quantity = returned_quantity + $2, returned_value = returned_value + $3,
+             version = version + 1, updated_at = now()
+         WHERE id = $1",
+        a.id,
+        q,
+        value
+    )
+    .execute(&mut *conn)
+    .await?;
+    Ok(value)
+}
+
+/// Reviewed legacy cost of restocking `q` of `row` (record `id`, same product): cumulative
+/// share of its restoration amount, exact rest at its full quantity; 422 beyond it.
+async fn legacy_value(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+    row: &StockRow,
+    q: Decimal,
+) -> Result<i64, AppError> {
+    let value: Option<Option<i64>> = sqlx::query_scalar(
+        "SELECT CASE WHEN c.consumed_quantity + $4 > c.quantity
+                       OR coalesce(c.target_product_id, l.product_id) <> $3 THEN NULL
+                     WHEN c.consumed_quantity + $4 = c.quantity
+                     THEN c.restoration_amount - c.consumed_value
+                     ELSE money_round_div(c.restoration_amount * (c.consumed_quantity + $4),
+                                          c.quantity)::bigint - c.consumed_value END
+         FROM legacy_return_costs c
+         JOIN order_lines l ON l.workspace_id = c.workspace_id AND l.id = c.order_line_id
+         WHERE c.workspace_id = $1 AND c.id = $2
+         FOR UPDATE OF c",
+    )
+    .bind(ws)
+    .bind(id)
+    .bind(row.product_id)
+    .bind(q)
+    .fetch_optional(&mut *conn)
+    .await?;
+    let value = value
+        .flatten()
+        .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
+    sqlx::query(
+        "UPDATE legacy_return_costs SET consumed_quantity = consumed_quantity + $3,
+                consumed_value = consumed_value + $4, version = version + 1
+         WHERE workspace_id = $1 AND id = $2",
+    )
+    .bind(ws)
+    .bind(id)
+    .bind(q)
+    .bind(value)
+    .execute(conn)
+    .await?;
+    Ok(value)
+}
+
+/// Undo `value` of a restock of `q` of `row`: shrink what the sale's cost allocation (or
+/// the legacy record) counts as returned.
+async fn unrestore(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    (kind, id): (&str, Uuid),
+    legacy: Option<Uuid>,
+    (row, q, value): (&StockRow, Decimal, i64),
+) -> Result<(), AppError> {
+    let done = match legacy {
+        Some(l) => sqlx::query(
+            "UPDATE legacy_return_costs SET consumed_quantity = consumed_quantity - $3,
+                    consumed_value = consumed_value - $4, version = version + 1
+             WHERE workspace_id = $1 AND id = $2",
+        )
+        .bind(ws)
+        .bind(l)
+        .bind(q)
+        .bind(value),
+        None => sqlx::query(
+            "UPDATE inventory_cost_allocations
+             SET returned_quantity = returned_quantity - $5, returned_value = returned_value - $6,
+                 version = version + 1, updated_at = now()
+             WHERE workspace_id = $1 AND source_kind = $2 AND source_id = $3 AND product_id = $4
+               AND warehouse_id = $7",
+        )
+        .bind(ws)
+        .bind(kind)
+        .bind(id)
+        .bind(row.product_id)
+        .bind(q)
+        .bind(value)
+        .bind(row.warehouse_id),
+    }
+    .execute(conn)
+    .await?;
+    if done.rows_affected() == 1 {
+        Ok(())
+    } else {
+        Err(AppError::Internal(
+            "restock undo without its cost record".into(),
+        ))
+    }
+}
+
 async fn plan(
     conn: &mut PgConnection,
     ws: Uuid,
@@ -306,6 +462,40 @@ async fn plan(
     let q = delta.abs();
     let out = delta < Decimal::ZERO;
     let pair = match cause.value {
+        Valued::SaleReturn { sale, legacy } if !out => {
+            return Ok(match legacy {
+                None => Plan {
+                    class: "customer_return",
+                    value: restore(&mut *conn, ws, sale, row, q).await?,
+                    roles: Some(("inventory", "cogs")),
+                },
+                Some(l) => Plan {
+                    class: "legacy_return",
+                    value: legacy_value(&mut *conn, ws, l, row, q).await?,
+                    roles: Some(("inventory", "inventory_adjustment")),
+                },
+            });
+        }
+        Valued::SaleReturnUndo {
+            sale,
+            legacy,
+            value,
+        } if out => {
+            unrestore(&mut *conn, ws, sale, legacy, (row, q, value)).await?;
+            let debit = if legacy.is_some() {
+                "inventory_adjustment"
+            } else {
+                "cogs"
+            };
+            return Ok(Plan {
+                class: "customer_return_reversal",
+                value: -value,
+                roles: Some((debit, "inventory")),
+            });
+        }
+        Valued::SaleReturn { .. } | Valued::SaleReturnUndo { .. } => {
+            return Err(unsupported(UNKNOWN));
+        }
         Valued::Transfer => Some(("transfer_out", "transfer_in")),
         Valued::Pack => Some(("pack_out", "pack_in")),
         Valued::Receipt { value, .. } if !out => {
@@ -332,6 +522,22 @@ async fn plan(
                 class: "adjustment",
                 value,
                 roles: Some(roles),
+            });
+        }
+        Valued::SupplierReturn { value, .. } => {
+            let value = match value {
+                None if out => -issue_value(&mut *conn, pool, q).await?,
+                Some(v) if !out => v,
+                _ => return Err(unsupported(UNKNOWN)),
+            };
+            return Ok(Plan {
+                class: if out {
+                    "supplier_return"
+                } else {
+                    "supplier_return_reversal"
+                },
+                value,
+                roles: None,
             });
         }
         Valued::Relocate | Valued::Infer => None,
@@ -408,51 +614,11 @@ async fn plan(
                 roles: Some(("cogs", "inventory")),
             })
         }
-        Some((kind @ ("order" | "invoice"), id)) => {
-            // Cumulative rounding of the original cost; the return reaching the issued quantity
-            // takes the exact rest. NULL: more than was issued.
-            let a = sqlx::query!(
-                r#"SELECT id,
-                          CASE WHEN returned_quantity + $6 > issued_quantity THEN NULL
-                               WHEN returned_quantity + $6 = issued_quantity
-                               THEN issued_value - returned_value
-                               ELSE money_round_div(issued_value * (returned_quantity + $6),
-                                                    issued_quantity)::bigint - returned_value
-                          END AS value
-                   FROM inventory_cost_allocations
-                   WHERE workspace_id = $1 AND source_kind = $2 AND source_id = $3
-                     AND product_id = $4 AND warehouse_id = $5
-                   FOR UPDATE"#,
-                ws,
-                kind,
-                id,
-                row.product_id,
-                row.warehouse_id,
-                q
-            )
-            .fetch_optional(&mut *conn)
-            .await?
-            .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
-            let value = a
-                .value
-                .ok_or_else(|| reason("legacy_return_cost_required", LEGACY_RETURN))?;
-            sqlx::query!(
-                "UPDATE inventory_cost_allocations
-                 SET returned_quantity = returned_quantity + $2, returned_value = returned_value + $3,
-                     version = version + 1, updated_at = now()
-                 WHERE id = $1",
-                a.id,
-                q,
-                value
-            )
-            .execute(&mut *conn)
-            .await?;
-            Ok(Plan {
-                class: "customer_return",
-                value,
-                roles: Some(("inventory", "cogs")),
-            })
-        }
+        Some((kind @ ("order" | "invoice"), id)) => Ok(Plan {
+            class: "customer_return",
+            value: restore(&mut *conn, ws, (kind, id), row, q).await?,
+            roles: Some(("inventory", "cogs")),
+        }),
         Some(_) => Err(unsupported(UNKNOWN)),
     }
 }
@@ -501,6 +667,7 @@ pub async fn on_movement(
         {
             return Err(reason(RECEIPT_BOOKING, BOOK_FIRST));
         }
+        Valued::SupplierReturn { date, .. } => date,
         _ => date,
     };
     if pool.last_date.is_some_and(|last| date < last) {
@@ -591,4 +758,74 @@ pub async fn on_movement(
     .execute(&mut *conn)
     .await?;
     Ok(())
+}
+
+const NO_STOCK_TO_REVALUE: &str =
+    "There is no stock left here to carry this cost. Put it to cost of goods sold instead.";
+
+/// Value-only change of `delta` (functional minor units) to an active pool dated `date`
+/// (M5-A purchase cost adjustment): warehouse SHARE → pool UPDATE, chronology checked, no
+/// journal (the caller posts). Refuses an empty pool and a value below zero (422). The value
+/// entry's (id, sequence).
+pub async fn revalue(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    (product, warehouse): (Uuid, Uuid),
+    delta: i64,
+    date: NaiveDate,
+    (source_kind, source_id): (&str, Uuid),
+) -> Result<(Uuid, i64), AppError> {
+    if !crate::modules::stock::repo::share_warehouse(&mut *conn, ws, warehouse).await? {
+        return Err(AppError::NotFound);
+    }
+    let pool = lock_pool(conn, ws, product, warehouse)
+        .await?
+        .filter(|p| !p.quantity.is_zero())
+        .ok_or_else(|| unsupported(NO_STOCK_TO_REVALUE))?;
+    if pool.last_date.is_some_and(|last| date < last) {
+        return Err(reason(
+            "backdated_valuation",
+            "This stock was already valued on a later date.",
+        ));
+    }
+    let updated = sqlx::query!(
+        "UPDATE inventory_cost_pools
+         SET value = value + $2, last_accounting_date = $3,
+             valuation_sequence = valuation_sequence + 1, version = version + 1, updated_at = now()
+         WHERE id = $1 RETURNING valuation_sequence, value",
+        pool.id,
+        delta,
+        date
+    )
+    .fetch_one(&mut *conn)
+    .await;
+    let (sequence, value_after) = match updated {
+        Ok(r) => (r.valuation_sequence, r.value),
+        Err(e) if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("23514") => {
+            return Err(AppError::Unprocessable(
+                "This would take the stock value below zero.".into(),
+            ));
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let id = sqlx::query_scalar!(
+        "INSERT INTO inventory_value_entries (workspace_id, pool_id, sequence, movement_id,
+             accounting_date, classification, source_kind, source_id, quantity_before,
+             quantity_delta, quantity_after, value_before, value_delta, value_after)
+         VALUES ($1, $2, $3, NULL, $4, 'cost_adjustment', $5, $6, $7, 0, $7, $8, $9, $10)
+         RETURNING id",
+        ws,
+        pool.id,
+        sequence,
+        date,
+        source_kind,
+        source_id,
+        pool.quantity,
+        pool.value,
+        delta,
+        value_after
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    Ok((id, sequence))
 }

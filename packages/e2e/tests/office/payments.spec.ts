@@ -33,24 +33,64 @@ test("payment reconciliation refreshes without creating a payment", async ({
   page,
   api,
 }) => {
+  let refreshed = false
   api.on("GET", "/workspace/:ws/payments", () =>
-    paged([{ ...payment, kind: "collection", environment: "sandbox" }])
+    paged([
+      {
+        ...payment,
+        status: refreshed ? "paid" : "pending",
+        kind: "collection",
+        environment: "sandbox",
+      },
+    ])
   )
-  api.on("POST", "/workspace/:ws/payments/:id/refresh", () => ({
-    data: { ...payment, status: "paid" },
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: {
+      ...payment,
+      status: refreshed ? "paid" : "pending",
+      transactions: [],
+      chargebacks: [],
+    },
   }))
+  api.on("POST", "/workspace/:ws/payments/:id/refresh", () => {
+    refreshed = true
+    return { data: { ...payment, status: "paid" } }
+  })
   await page.goto("/payments")
   await expect(
     page.getByRole("heading", { name: "Payments", exact: true })
   ).toBeVisible()
-  await expect(page.getByText("€12.50", { exact: true })).toBeVisible()
-  await page.getByRole("button", { name: "Refresh status" }).click()
+  await expect(page.getByText("€12.50 EUR", { exact: true })).toBeVisible()
+  const row = page.getByRole("row").filter({
+    has: page.getByRole("button", {
+      name: `Payment details: ${payment.payment_id}`,
+      exact: true,
+    }),
+  })
+  await expect(row).toContainText("Collection")
+  await expect(row).toContainText("Sandbox")
+  await expect(
+    page.getByRole("button", { name: "Refresh status" })
+  ).toHaveCount(0)
+  await row.getByRole("cell").last().click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await expect(dialog).toBeVisible()
+  await expect(
+    dialog.getByRole("link", { name: "Open invoice" })
+  ).toHaveAttribute("href", "/invoices/inv-1")
+  await dialog.getByRole("button", { name: "Refresh status" }).click()
   await expect
     .poll(
       () => api.callsTo("POST", "/workspace/:ws/payments/:id/refresh").length
     )
     .toBe(1)
+  await expect(dialog.getByText("Paid", { exact: true })).toBeVisible()
   expect(api.callsTo("POST", "/workspace/:ws/payments")).toHaveLength(0)
+  await page.keyboard.press("Escape")
+  await expect(row).toContainText("Paid")
+  await expect(
+    page.getByRole("button", { name: "Payment details: payment-1" })
+  ).toBeFocused()
   await expectFits(page)
 })
 
@@ -65,7 +105,7 @@ test("payment details preserve keyboard focus without writing to the API", async
   }))
   await page.goto("/payments")
   const trigger = page.getByRole("button", {
-    name: "Payment details",
+    name: "Payment details: payment-1",
     exact: true,
   })
   await trigger.focus()
@@ -75,7 +115,7 @@ test("payment details preserve keyboard focus without writing to the API", async
   await expect(dialog).toBeVisible()
   await expect(
     dialog.getByText(payment.payment_id, { exact: true })
-  ).toBeVisible()
+  ).not.toBeVisible()
   for (const key of ["Tab", "Tab", "Shift+Tab", "Tab", "Tab"]) {
     await page.keyboard.press(key)
     await expect
@@ -84,11 +124,149 @@ test("payment details preserve keyboard focus without writing to the API", async
       )
       .toBe(true)
   }
+  await expectFits(page)
+  const viewport = page.viewportSize()!
+  const bounds = await dialog.boundingBox()
+  expect(bounds).not.toBeNull()
+  if (viewport.width >= 768) {
+    expect(bounds!.width).toBe(672)
+  } else {
+    expect(bounds!.x).toBe(0)
+    expect(bounds!.width).toBe(viewport.width)
+    expect(Math.abs(bounds!.y + bounds!.height - viewport.height)).toBeLessThan(
+      1
+    )
+  }
+  const references = dialog.locator("details").last()
+  await references.locator("summary").click()
+  await expect(
+    references.getByText(payment.payment_id, { exact: true })
+  ).toBeVisible()
   await page.keyboard.press("Escape")
   await expect(dialog).not.toBeVisible()
   await expect(trigger).toBeFocused()
+  await page.keyboard.press("Space")
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect(trigger).toBeFocused()
   expect(api.calls.filter((call) => call.method !== "GET")).toHaveLength(0)
   await expectFits(page)
+})
+
+test("payments table pagination preserves page size and boundaries", async ({
+  page,
+  api,
+}) => {
+  const rows = Array.from({ length: 26 }, (_, index) => ({
+    ...payment,
+    payment_id: `payment-${index + 1}`,
+  }))
+  const requests: string[] = []
+  api.on("GET", "/workspace/:ws/payments", ({ query }) => {
+    requests.push(query.toString())
+    return paged(rows, Number(query.get("page")), Number(query.get("per_page")))
+  })
+  await page.goto("/payments")
+  const pager = page.getByRole("navigation", { name: "Payment pages" })
+  await expect(
+    page.getByRole("button", { name: /^Payment details:/ })
+  ).toHaveCount(25)
+  await expect(pager.getByRole("button", { name: "Previous" })).toBeDisabled()
+  await expect(pager).toContainText("1 / 2")
+  await pager.getByRole("button", { name: "Next" }).click()
+  await expect(
+    page.getByRole("button", { name: /^Payment details:/ })
+  ).toHaveCount(1)
+  await expect(
+    page.getByRole("button", { name: "Payment details: payment-26" })
+  ).toBeVisible()
+  await expect(pager).toContainText("2 / 2")
+  await expect(pager.getByRole("button", { name: "Next" })).toBeDisabled()
+  expect(
+    requests.map((query) => new URLSearchParams(query).get("per_page"))
+  ).toEqual(["25", "25"])
+  expect(
+    requests.map((query) => new URLSearchParams(query).get("page"))
+  ).toEqual(["1", "2"])
+  await pager.getByRole("button", { name: "Previous" }).click()
+  await expect(
+    page.getByRole("button", {
+      name: "Payment details: payment-1",
+      exact: true,
+    })
+  ).toBeVisible()
+  await expectFits(page)
+})
+
+test.describe("payment table failures", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/v1/workspace/w1/payments?page=1&per_page=25", status: 503 },
+        { url: "/v1/workspace/w1/payments/payment-1/refresh", status: 503 },
+      ],
+    },
+  })
+
+  test("payment list error retries into empty state", async ({ page, api }) => {
+    let failed = true
+    api.on("GET", "/workspace/:ws/payments", () =>
+      failed
+        ? { status: 503, body: { message: "Payment list unavailable" } }
+        : paged([])
+    )
+    await page.goto("/payments")
+    await expect(
+      page.getByText("Payment list unavailable", { exact: true })
+    ).toBeVisible()
+    failed = false
+    await page.getByRole("button", { name: "Try again" }).click()
+    await expect(
+      page.getByText("No online payments yet.", { exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /^Payment details:/ })
+    ).toHaveCount(0)
+    expect(api.callsTo("GET", "/workspace/:ws/payments")).toHaveLength(2)
+    await expectFits(page)
+  })
+
+  test("refresh failure stays visible inside modal and can recover", async ({
+    page,
+    api,
+  }) => {
+    let failed = true
+    api.on("GET", "/workspace/:ws/payments", () => paged([payment]))
+    api.on("GET", "/workspace/:ws/payments/:id", () => ({
+      data: { ...payment, transactions: [], chargebacks: [] },
+    }))
+    api.on("POST", "/workspace/:ws/payments/:id/refresh", () =>
+      failed
+        ? { status: 503, body: { message: "Payment refresh unavailable" } }
+        : { data: payment }
+    )
+    await page.goto("/payments")
+    await page
+      .getByRole("button", { name: "Payment details: payment-1" })
+      .click()
+    const dialog = page.getByRole("dialog", { name: "Payment details" })
+    const refresh = dialog.getByRole("button", { name: "Refresh status" })
+    await refresh.click()
+    await expect(
+      dialog.getByText("Payment refresh unavailable", { exact: true })
+    ).toBeVisible()
+    failed = false
+    await refresh.click()
+    await expect(
+      dialog.getByText("Payment refresh unavailable", { exact: true })
+    ).toHaveCount(0)
+    await expect(dialog).toBeVisible()
+    expect(
+      api.callsTo("POST", "/workspace/:ws/payments/:id/refresh")
+    ).toHaveLength(2)
+    expect(api.callsTo("POST", "/workspace/:ws/payments")).toHaveLength(0)
+    await expectFits(page)
+  })
 })
 
 guestTest(
@@ -438,22 +616,39 @@ test("payment detail and refresh require view permission for that payment's owne
     data: { ...orderPayment, transactions: [], chargebacks: [] },
   }))
   await page.goto("/payments")
-  const invoiceCard = page
-    .getByRole("region")
-    .filter({ hasText: "invoice-payment" })
+  const invoiceRow = page.getByRole("row").filter({
+    has: page.getByRole("button", {
+      name: "Payment details: invoice-payment",
+      exact: true,
+    }),
+  })
   await expect(
-    invoiceCard.getByRole("button", { name: "Payment details" })
+    invoiceRow.getByRole("button", { name: "Payment details: invoice-payment" })
   ).toBeDisabled()
+  await invoiceRow.getByRole("cell").last().click()
+  await expect(page.getByRole("dialog")).toHaveCount(0)
+  expect(api.callsTo("GET", "/workspace/:ws/payments/:id")).toHaveLength(0)
+  expect(
+    api.callsTo("POST", "/workspace/:ws/payments/:id/refresh")
+  ).toHaveLength(0)
+  const orderRow = page.getByRole("row").filter({
+    has: page.getByRole("button", {
+      name: "Payment details: order-payment",
+      exact: true,
+    }),
+  })
+  await orderRow.getByRole("cell").last().click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await expect(dialog).toBeVisible()
   await expect(
-    invoiceCard.getByRole("button", { name: "Refresh status" })
-  ).toBeDisabled()
-  const orderCard = page
-    .getByRole("region")
-    .filter({ hasText: "order-payment" })
-  await orderCard.getByRole("button", { name: "Payment details" }).click()
+    dialog.getByRole("link", { name: "Open order" })
+  ).toHaveAttribute("href", "/orders/order-1")
+  await expect(dialog.getByRole("link", { name: "Open invoice" })).toHaveCount(
+    0
+  )
   await expect(
-    page.getByRole("dialog", { name: "Payment details" })
-  ).toBeVisible()
+    dialog.getByRole("button", { name: "Record resolution" })
+  ).toHaveCount(0)
   await expect
     .poll(() => api.callsTo("GET", "/workspace/:ws/payments/:id").length)
     .toBe(1)
@@ -511,7 +706,7 @@ test("open collection resolution offers only provider nonacceptance", async ({
   }))
   await page.goto("/payments")
   await page
-    .getByRole("button", { name: "Payment details", exact: true })
+    .getByRole("button", { name: "Payment details: payment-1", exact: true })
     .click()
   const dialog = page.getByRole("dialog", { name: "Payment details" })
   await dialog.getByRole("button", { name: "Record resolution" }).click()
@@ -558,9 +753,7 @@ test("unknown refund resolution retains provider confirmation", async ({
     data: { ...refund, transactions: [], chargebacks: [] },
   }))
   await page.goto("/payments")
-  await page
-    .getByRole("button", { name: "Payment details", exact: true })
-    .click()
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
   const dialog = page.getByRole("dialog", { name: "Payment details" })
   await dialog.getByRole("button", { name: "Record resolution" }).click()
   const outcome = dialog.getByLabel("Verified outcome")
@@ -606,9 +799,7 @@ test("paid source refund reconciliation requires audited evidence and offers onl
     return { data: { ...source, attention: false, attention_reason: null } }
   })
   await page.goto("/payments")
-  await page
-    .getByRole("button", { name: "Payment details", exact: true })
-    .click()
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
   const dialog = page.getByRole("dialog", { name: "Payment details" })
   await dialog.getByRole("button", { name: "Record resolution" }).click()
   await expect(
@@ -700,9 +891,10 @@ test("paid source reconciliation stays hidden without the exact warning or admin
   await page.goto("/payments")
   for (const source of sources) {
     await page
-      .getByRole("region")
-      .filter({ hasText: source.payment_id })
-      .getByRole("button", { name: "Payment details", exact: true })
+      .getByRole("button", {
+        name: `Payment details: ${source.payment_id}`,
+        exact: true,
+      })
       .click()
     const dialog = page.getByRole("dialog", { name: "Payment details" })
     await expect(dialog.getByText("No records yet.").first()).toBeVisible()
@@ -735,9 +927,7 @@ test("paid source reconciliation stays hidden without the exact warning or admin
     data: { ...source, transactions: [], chargebacks: [] },
   }))
   await page.reload()
-  await page
-    .getByRole("button", { name: "Payment details", exact: true })
-    .click()
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
   await expect(
     page.getByRole("dialog").getByText(refundObservation, { exact: true })
   ).toBeVisible()
@@ -1162,4 +1352,99 @@ test("blocked Globadyme setup can recover to legacy without changing stored slot
       payment: { ...integrations.payment, active_provider: null },
     },
   })
+})
+
+test("payment evidence separates capture from pending records and settlement", async ({
+  page,
+  api,
+}) => {
+  const paid = {
+    ...payment,
+    payment_id: "internal-payment-reference",
+    status: "paid",
+    amount: 1604,
+    currency: "USD",
+    kind: "payment",
+    environment: "sandbox",
+    captured_transaction_id: "captured-provider-reference",
+    attention: true,
+    attention_reason: "Settlement requires review.",
+  }
+  api.on("GET", "/workspace/:ws/payments", () => paged([paid]))
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: {
+      ...paid,
+      transactions: [
+        {
+          id: "pending-provider-reference",
+          amount: "16.04000000",
+          currency: "USD",
+          status: "PENDING",
+          settled: false,
+          created: "2026-11-18T07:52:57.163795",
+        },
+        {
+          id: "captured-provider-reference",
+          amount: "16.04000000",
+          currency: "USD",
+          status: "PROCESSED",
+          settled: false,
+          created: "2026-11-18T07:52:57.840935",
+        },
+      ],
+      chargebacks: [],
+    },
+  }))
+  await page.goto("/payments")
+  await expect(page.getByText(paid.payment_id, { exact: true })).toHaveCount(0)
+  await expect(page.getByText("Paid", { exact: true })).toBeVisible()
+  await expect(page.getByText("Pending review", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await expect(dialog.getByText("Paid", { exact: true })).toBeVisible()
+  const transactions = dialog.getByRole("region", {
+    name: "Transactions and settlements",
+  })
+  await expect(transactions.getByRole("listitem")).toHaveCount(2)
+  await expect(
+    transactions
+      .getByRole("listitem")
+      .first()
+      .getByText("Confirmed charge", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Confirmed charge", { exact: true })
+  ).toHaveCount(1)
+  await expect(transactions.getByText("Pending", { exact: true })).toBeVisible()
+  await expect(
+    transactions.getByText("Processed", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Not settled", { exact: true })
+  ).toHaveCount(2)
+  await expect(
+    transactions.getByText("$16.04 USD", { exact: true })
+  ).toHaveCount(2)
+  await expect(
+    dialog.getByText("No chargebacks recorded.", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Provider time · timezone not supplied", {
+      exact: true,
+    })
+  ).toHaveCount(2)
+  for (const reference of [
+    paid.payment_id,
+    "pending-provider-reference",
+    "captured-provider-reference",
+  ])
+    await expect(dialog.getByText(reference, { exact: true })).not.toBeVisible()
+  await expect(
+    dialog.getByText("2026-11-18T07:52:57.163795", { exact: true })
+  ).toHaveCount(0)
+  await expectFits(page)
+  const refs = dialog.locator("details").last()
+  await refs.locator("summary").click()
+  await expect(refs.getByText(paid.payment_id, { exact: true })).toBeVisible()
+  expect(api.calls.filter((call) => call.method !== "GET")).toHaveLength(0)
 })

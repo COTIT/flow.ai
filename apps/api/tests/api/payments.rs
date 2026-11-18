@@ -82,7 +82,7 @@ async fn shop(w: &W, method: Method, path: &str, body: Option<Value>) -> (Status
 /// A web order of `q` honey with its open intent: (order id, provider payment id).
 async fn awaiting(w: &W, q: u32) -> (String, String) {
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": q }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (s, o) = shop(w, Method::POST, "/orders", Some(body)).await;
     assert_eq!(s, StatusCode::CREATED, "{o}");
     let id = o["data"]["id"].as_str().unwrap().to_owned();
@@ -318,7 +318,7 @@ async fn a_provider_amount_that_does_not_match_is_rejected(pool: PgPool) {
 async fn a_request_killed_after_the_provider_call_is_recovered_once(pool: PgPool) {
     let w = world(pool).await;
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": 1 }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (_, o) = shop(&w, Method::POST, "/orders", Some(body)).await;
     let id = o["data"]["id"].as_str().unwrap().to_owned();
     // The request committed its `creating` row, reached the provider, then died.
@@ -870,7 +870,7 @@ async fn pay_page(
 /// A web order of `q` honey and its checkout URL.
 async fn checkout_url(w: &W, q: u32) -> (String, String) {
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": q }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (s, o) = shop(w, Method::POST, "/orders", Some(body)).await;
     assert_eq!(s, StatusCode::CREATED, "{o}");
     let id = o["data"]["id"].as_str().unwrap().to_owned();
@@ -1211,4 +1211,38 @@ async fn assistant_refund_settlement_before_http_finish_cannot_be_downgraded(poo
     );
     assert!(finished);
     assert_eq!(w.fake.creates(refund), 1);
+}
+
+/// Active book (C12): the fake provider's confirmed payment, through webhook + drain, is one
+/// provider observation and one order deposit; a second delivery stays at one.
+#[sqlx::test]
+async fn active_book_records_a_confirmed_shop_payment_once(pool: PgPool) {
+    let w = world(pool).await;
+    // Ordered before activation: active books refuse selling stock without an opening value.
+    let (id, pid) = awaiting(&w, 2).await;
+    crate::provider_observations::active_today(&w.api).await;
+    w.fake.set_status(&pid, Status::Paid);
+    for _ in 0..2 {
+        notify(&w, &pid).await;
+        drain(&w).await;
+    }
+    assert_eq!(
+        count(
+            &w,
+            "SELECT count(*) FROM provider_observations WHERE economic_kind = 'collection'"
+        )
+        .await,
+        1
+    );
+    let deposit: (i64, String) = sqlx::query_as(
+        "SELECT residual, order_id::text FROM accounting_open_items WHERE classification = 'customer_deposit'",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(deposit, (2_500, id));
+    assert_eq!(
+        count(&w, "SELECT count(*) FROM accounting_exceptions").await,
+        0
+    );
 }

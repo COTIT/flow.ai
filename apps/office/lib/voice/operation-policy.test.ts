@@ -483,21 +483,21 @@ describe("reviewed operation coverage", () => {
       )
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
-    expect(operationManifest).toHaveLength(672)
+    expect(operationManifest).toHaveLength(722)
     expect(tools).toHaveLength(415)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(187)
+    ).toHaveLength(237)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
     ).toBe(true)
   })
 
-  it("keeps ERP accounting, purchasing, tax and privileged Till routes internal until M7 review", () => {
+  it("keeps ERP accounting, purchasing, payables, returns, tax and privileged Till routes internal until M7 review", () => {
     const erp = operationManifest.filter(
       (op) =>
         [
@@ -515,10 +515,17 @@ describe("reviewed operation coverage", () => {
           "approvals_",
           "integrations_",
           "workflows_",
+          "sales_returns_",
+          "sales_return_restocks_",
+          "legacy_return_costs_",
+          "supplier_bills_",
+          "supplier_payments_",
+          "purchase_returns_",
+          "purchase_cost_adjustments_",
         ].some((prefix) => op.id.startsWith(prefix)) ||
         op.id === "till_privileged_session"
     )
-    expect(erp).toHaveLength(111)
+    expect(erp).toHaveLength(161)
     for (const op of erp) {
       expect(op.disposition, op.id).toBe("internal")
       expect(tools.some((tool) => tool.id === op.id), op.id).toBe(false)

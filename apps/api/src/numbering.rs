@@ -19,6 +19,12 @@ pub enum Series {
     PurchaseOrder,
     /// Purchase receipts.
     PurchaseReceipt,
+    /// Supplier bills (M5-A), numbered at create.
+    SupplierBill,
+    /// Supplier payments and refunds received.
+    SupplierPayment,
+    /// Purchase returns.
+    PurchaseReturn,
 }
 
 impl Series {
@@ -29,6 +35,9 @@ impl Series {
             Self::Journal => "journal",
             Self::PurchaseOrder => "purchase_order",
             Self::PurchaseReceipt => "purchase_receipt",
+            Self::SupplierBill => "supplier_bill",
+            Self::SupplierPayment => "supplier_payment",
+            Self::PurchaseReturn => "purchase_return",
         }
     }
 }

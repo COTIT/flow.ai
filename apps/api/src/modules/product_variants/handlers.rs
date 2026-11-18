@@ -20,8 +20,9 @@ use crate::{
     modules::{
         product_variants::{
             dto::{
-                GenerateBody, GenerateDoc, GeneratedVariants, GenerationReceipt, VariantBody,
-                VariantCreated, VariantDoc, VariantList, VariantRequestDoc,
+                GenerateBody, GenerateDoc, GeneratedVariants, GenerationReceipt, UpdateVariantBody,
+                UpdateVariantRequestDoc, VariantBody, VariantCreated, VariantDoc, VariantList,
+                VariantRequestDoc,
             },
             service,
         },
@@ -119,7 +120,7 @@ pub async fn create(
     put, path = "/workspace/{workspace}/products/{product}/variants/{variant}", tag = "product_variants",
     operation_id = "product_variants_update", summary = "Update a variant (send only changed fields)",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), ("variant" = Uuid, Path, description = "Variant id")),
-    request_body = VariantRequestDoc,
+    request_body = UpdateVariantRequestDoc,
     responses(
         (status = 200, body = Envelope<VariantDoc>, description = "The updated variant"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
@@ -133,7 +134,7 @@ pub async fn update(
     State(state): State<AppState>,
     access: Can<VariantUpdate>,
     Path((_, p, id)): VariantPath,
-    ValidatedJson(f): ValidatedJson<VariantBody>,
+    ValidatedJson(f): ValidatedJson<UpdateVariantBody>,
 ) -> Result<Data<Value>, AppError> {
     Ok(Data(
         service::update(

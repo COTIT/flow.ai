@@ -121,8 +121,9 @@ pub async fn products(
                               'unit_price', round(v.price * 10::numeric ^ c.decimals)::bigint,
                               'options', (
                                   SELECT coalesce(json_agg(json_build_object(
-                                             'type', ot.display_name, 'value', ov.display_value)
-                                         ORDER BY ot.display_name, ov.sort_order, ov.id), '[]')
+                                             'type', ot.display_name,
+                                             'value', coalesce(vov.display_value, ov.display_value))
+                                         ORDER BY ot.display_name, coalesce(vov.sort_order, ov.sort_order), ov.id), '[]')
                                   FROM variant_option_values vov
                                   JOIN option_values ov ON ov.id = vov.option_value_id
                                        AND ov.workspace_id = $1 AND ov.deleted_at IS NULL

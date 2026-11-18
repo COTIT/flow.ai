@@ -16,6 +16,11 @@
     "shortDescription": "Korte omschrijving",
     "description": "Omschrijving",
     "storeOnly": "Alleen aan de kassa verkocht (niet in de webshop)",
+    "passportQr": {
+      "title": "QR-code voor paspoort",
+      "image": "QR-code voor {name}",
+      "print": "QR-code afdrukken"
+    },
     "statuses": {
       "active": "Actief",
       "disabled": "Uitgeschakeld",
@@ -44,7 +49,15 @@
     "noCategory": "Geen categorie",
     "allCategories": "Alle categorieën",
     "categoriesFailed": "Categorieën konden niet worden geladen, dus de categorie blijft zoals ze is.",
-    "categoriesNone": "Nog geen categorieën. Voeg ze toe onder Categorieën."
+    "categoriesNone": "Nog geen categorieën. Voeg ze toe onder Categorieën.",
+    "editSize": "Maat bewerken",
+    "editSizeNamed": "Maat {label} bewerken",
+    "numberedSize": "Maatlabel {number}",
+    "searchSizes": "Zoek op maat of SKU",
+    "noMatchingSizes": "Geen maten gevonden voor je zoekopdracht.",
+    "removeSize": "Maat verwijderen",
+    "removeSizeTitle": "{label} verwijderen?",
+    "removeSizeDescription": "Deze maat verdwijnt uit de winkel en de kassa. De geschiedenis blijft bewaard."
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -672,6 +685,9 @@
     "receiveFrom": "Batch {code} ontvangen",
     "receiveText": "Er is {quantity} verstuurd. Ontvangen maakt hier een nieuwe batch en kan maar één keer; is er minder aangekomen, vul dan in wat aankwam en het tekort blijft geregistreerd.",
     "newLotCode": "Nieuwe batchcode",
+    "chooseProduct": "Kies een product",
+    "noReceivingProducts": "Geen producten met voorraadbeheer in deze lijst.",
+    "noReceivingWarehouses": "Geen magazijnen beschikbaar voor ontvangst.",
     "linksCount": "{total, plural, one {# koppeling} other {# koppelingen}}",
     "transfersCount": "{total, plural, one {# overdracht} other {# overdrachten}}"
   },
@@ -737,6 +753,8 @@
     "imagesSaved": "Afbeeldingen opgeslagen.",
     "productCreated": "Product aangemaakt.",
     "sizeAdded": "Maat toegevoegd.",
+    "sizeSaved": "Maat opgeslagen.",
+    "sizeRemoved": "Maat verwijderd.",
     "inviteSent": "Uitnodiging verstuurd naar {email}",
     "inviteWithdrawn": "Uitnodiging ingetrokken.",
     "memberRemoved": "{name} heeft geen toegang meer.",
@@ -791,6 +809,12 @@
     "pick": "Afbeeldingsbestand",
     "add": "Afbeelding toevoegen",
     "removeOne": "Afbeelding {position} verwijderen",
+    "previewOne": "Afbeelding {position} bekijken: {name}",
+    "previewTitle": "Productafbeeldingen",
+    "previewClose": "Afbeeldingsvoorbeeld sluiten",
+    "previewPrevious": "Vorige afbeelding",
+    "previewNext": "Volgende afbeelding",
+    "previewPosition": "Afbeelding {position} van {total} · {name}",
     "save": "Afbeeldingen opslaan",
     "discard": "Wijzigingen weggooien",
     "hint": "De eerste afbeelding is de omslag in de winkel. Gebruik de pijlen om de volgorde te wijzigen."
@@ -1244,7 +1268,35 @@
     "deploymentRealmHint": "De instellingen van het betaalaccount horen bij deze installatie. Staging en productie gebruiken aparte installaties en gegevens. De server bepaalt de betaalomgeving.",
     "setupUnavailable": "Betalingsinstellingen zijn niet beschikbaar",
     "setupUnavailableHint": "De server heeft geen toegestane betaalomgeving opgegeven. Vraag een beheerder deze installatie te controleren voordat je instellingen opslaat.",
-    "environmentUnavailable": "Niet beschikbaar"
+    "environmentUnavailable": "Niet beschikbaar",
+    "transactionHint": "Providerregistraties worden niet opgeteld. De bevestigde afschrijving toont de ontvangen betaling; uitbetaling wordt apart bijgehouden.",
+    "noChargebacks": "Geen terugboekingen geregistreerd.",
+    "supportReferences": "Referenties voor ondersteuning",
+    "paymentReference": "Betalingsreferentie",
+    "transactionNumber": "Transactie {number}",
+    "chargebackNumber": "Terugboeking {number}",
+    "confirmedCapture": "Bevestigde afschrijving",
+    "providerTime": "Tijd van provider · tijdzone niet opgegeven",
+    "settlement": "Uitbetaling",
+    "notSettled": "Niet uitbetaald",
+    "unavailable": "Niet beschikbaar",
+    "providerStatus": {
+      "new": "Nieuw",
+      "created": "Aangemaakt",
+      "pending": "In afwachting",
+      "authorized": "Geautoriseerd",
+      "processed": "Verwerkt",
+      "failed": "Mislukt",
+      "refunded": "Terugbetaald",
+      "partially_refunded": "Deels terugbetaald",
+      "chargebacked": "Teruggeboekt",
+      "cancelled": "Geannuleerd",
+      "declined": "Geweigerd",
+      "succeeded": "Geslaagd",
+      "open": "Open",
+      "closed": "Gesloten",
+      "review": "Te controleren"
+    }
   },
   "imports": {
     "title": "Importeren",
@@ -1835,5 +1887,30 @@
       "tax_profile_correction_exists": "Dit profiel heeft al een correctie.",
       "tax_profile_overlap": "Een ander geverifieerd profiel geldt al voor hetzelfde land, dezelfde regio, soort, categorie en data."
     }
+  },
+  "warehouses": {
+    "title": "Magazijnen",
+    "manage": "Magazijnen beheren",
+    "name": "Naam",
+    "description": "Beschrijving",
+    "default": "Standaard",
+    "actions": "Magazijnacties",
+    "new": "Nieuw magazijn",
+    "edit": "Bewerken",
+    "editTitle": "{name} bewerken",
+    "remove": "Verwijderen",
+    "removeTitle": "{name} verwijderen?",
+    "removeText": "Dit magazijn is daarna niet meer beschikbaar voor voorraad. Een magazijn met voorraad of reserveringen kan niet worden verwijderd.",
+    "empty": "Nog geen magazijnen.",
+    "createGeneral": "General stock aanmaken",
+    "generalReady": "General stock is klaar voor gebruik.",
+    "created": "Magazijn aangemaakt.",
+    "saved": "Magazijn opgeslagen.",
+    "removed": "Magazijn verwijderd.",
+    "holdsStock": "Dit magazijn heeft nog voorraad of reserveringen. Verwijder die voordat je het magazijn verwijdert.",
+    "loading": "Magazijnen laden…",
+    "select": "Kies een magazijn",
+    "selectionUnavailable": "Dit magazijn is niet beschikbaar. Kies een ander magazijn om verder te gaan.",
+    "listDenied": "Je hebt toestemming nodig om magazijnen te bekijken voordat je voorraad kunt wijzigen."
   }
 }

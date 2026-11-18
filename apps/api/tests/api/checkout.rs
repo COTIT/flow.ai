@@ -299,6 +299,109 @@ async fn bad_checkouts_are_refused(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn invalid_customer_data_creates_no_checkout_side_effects(pool: PgPool) {
+    async fn counts(w: &W) -> (i64, i64, i64, i64, i64, i64) {
+        sqlx::query_as("SELECT (SELECT count(*) FROM orders WHERE workspace_id=$1::uuid), (SELECT count(*) FROM stock_reservations WHERE workspace_id=$1::uuid), (SELECT count(*) FROM order_events WHERE workspace_id=$1::uuid), (SELECT count(*) FROM webhook_events WHERE workspace_id=$1::uuid), (SELECT count(*) FROM order_payments WHERE workspace_id=$1::uuid), (SELECT count(*) FROM jobs WHERE workspace_id=$1::uuid)")
+            .bind(&w.api.ws)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap()
+    }
+
+    let w = world(pool).await;
+    let (status, reply) = w.api.with_base("/webhook-endpoints").call(
+        Method::POST,
+        "",
+        Some(json!({"url":"https://shop.example.com/hooks","events":["order.created","stock.changed"]})),
+        &w.api.owner,
+    ).await;
+    assert_eq!(status, StatusCode::CREATED, "{reply}");
+    let before = counts(&w).await;
+    let country = "customer.shipping_address.country";
+    let cases = [
+        ("/shipping_address/country", Value::Null, country),
+        ("/shipping_address/country", json!(""), country),
+        ("/shipping_address/country", json!("test"), country),
+        ("/shipping_address/country", json!("ZZ"), country),
+        ("/shipping_address/country", json!(123), country),
+        ("/shipping_address", Value::Null, country),
+        ("/shipping_address", json!({}), country),
+        (
+            "/shipping_address",
+            json!("NL"),
+            "customer.shipping_address",
+        ),
+        (
+            "/shipping_address",
+            json!({"country":"NL","line1":"x".repeat(4096)}),
+            "customer.shipping_address",
+        ),
+        ("/name", json!("   "), "customer.name"),
+        ("/name", json!("x".repeat(256)), "customer.name"),
+        ("/email", json!("invalid"), "customer.email"),
+        (
+            "/billing_address",
+            json!({"country":"test"}),
+            "customer.billing_address.country",
+        ),
+        (
+            "/billing_address",
+            json!({"country":null}),
+            "customer.billing_address.country",
+        ),
+    ];
+    for (pointer, value, field) in cases {
+        let mut body = order_body(&w.honey, "1");
+        let customer = &mut body["customer"];
+        if pointer == "/billing_address" {
+            customer["billing_address"] = value;
+        } else {
+            *customer.pointer_mut(pointer).unwrap() = value;
+            if pointer == "/shipping_address/country" {
+                customer["billing_address"] = json!({"country":"NL"});
+            }
+        }
+        let (status, reply) = shop(&w, Method::POST, "/orders", Some(body), &w.key).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{field}: {reply}");
+        assert!(reply["errors"][field].is_array(), "{field}: {reply}");
+    }
+    let after = counts(&w).await;
+    assert_eq!(after, before, "invalid checkout changed persisted state");
+    assert_eq!((after.0, after.2, after.4), (0, 0, 0));
+    assert!(w.fake.intents().is_empty());
+    assert_eq!(available(&w).await, "5.00");
+}
+
+#[sqlx::test]
+async fn checkout_normalizes_country_and_accepts_billing_only(pool: PgPool) {
+    let w = world(pool).await;
+    for (shipping, billing, field) in [
+        (json!({"country":" nl "}), Value::Null, "shipping_address"),
+        (Value::Null, json!({"country":"de"}), "billing_address"),
+    ] {
+        let mut body = order_body(&w.honey, "1");
+        body["customer"]["shipping_address"] = shipping;
+        body["customer"]["billing_address"] = billing;
+        let (status, reply) = shop(&w, Method::POST, "/orders", Some(body), &w.key).await;
+        assert_eq!(status, StatusCode::CREATED, "{reply}");
+        let customer: Value = sqlx::query_scalar("SELECT customer FROM orders WHERE id=$1::uuid")
+            .bind(reply["data"]["id"].as_str().unwrap())
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            customer[field]["country"],
+            if field == "shipping_address" {
+                "NL"
+            } else {
+                "DE"
+            }
+        );
+    }
+    assert_eq!(available(&w).await, "3.00");
+}
+
+#[sqlx::test]
 async fn keys_need_the_checkout_scope_and_their_own_workspace(pool: PgPool) {
     let w = world(pool).await;
     let reader = key_for(&w.api, &["catalog:read"]).await;

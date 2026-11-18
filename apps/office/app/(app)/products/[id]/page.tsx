@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Package } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
@@ -21,11 +21,14 @@ import {
   useStockWithBins,
 } from "@genesy/api-client/endpoints/stock"
 import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
+import {
+  getWarehousesListQueryKey,
+  useWarehousesList,
+} from "@genesy/api-client/endpoints/warehouses"
 import type { StockWithBins } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Checkbox } from "@genesy/ui/components/checkbox"
-import { Button } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@genesy/ui/components/button"
 import {
   Dialog,
   DialogContent,
@@ -49,6 +52,7 @@ import { formatDateTime, formatQty } from "@genesy/ui/lib/format"
 import { Badge } from "@genesy/ui/components/badge"
 import { Bento, DetailSkeleton, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
+import { GeneralStock } from "@/components/general-stock"
 import {
   CardState,
   ListPager,
@@ -65,8 +69,11 @@ import {
   inlineLink,
   lotOf,
 } from "@/components/stock"
+import { useCan } from "@/lib/can"
+import { allWarehouses, findWarehouse } from "@/lib/warehouses"
 
 import { ProductImages } from "./images"
+import { ProductPassportQr } from "./passport-qr"
 import { ProductSizes } from "./sizes"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
@@ -487,6 +494,14 @@ export default function ProductPage({
               </div>
             )}
           </Tile>
+          {p.status === "active" && p.archived === 0 && !p.store_only ? (
+            <ProductPassportQr
+              key={`${workspaceId}:${p.id}`}
+              workspaceId={workspaceId}
+              productId={p.id}
+              productName={p.name}
+            />
+          ) : null}
           <ProductSizes productId={id} done={done} />
           <ProductImages productId={id} done={done} />
         </div>
@@ -597,7 +612,7 @@ function MutateStock({
 }: {
   productId: string
   at: string | null
-  onAt: (at: string | null) => void
+  onAt: React.Dispatch<React.SetStateAction<string | null>>
   rows: StockWithBins[]
   onDone: (message: string) => void
 }) {
@@ -606,14 +621,45 @@ function MutateStock({
   const qty = (v: string) => formatQty(v, locale)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const open = at !== null
-  const warehouses = useWarehousesList(
-    workspaceId,
-    { page_size: 100 },
-    { query: { enabled: open && Boolean(workspaceId) } }
+  const canListWarehouses = useCan("warehouse.list")
+  const warehouses = useWarehousesList(workspaceId, allWarehouses, {
+    query: { enabled: open && Boolean(workspaceId) && canListWarehouses },
+  })
+  const list = warehouses.data
+  const selectedId = at || list?.data[0]?.id
+  const listed = list?.data.find((warehouse) => warehouse.id === selectedId)
+  const needsLookup = Boolean(
+    open && at && !listed && list && list.meta.last_page > 1
   )
-  const chosen = at || warehouses.data?.data[0]?.id || ""
-  const place = byPlace(rows).find((p) => p.id === chosen)
-  const placeName = warehouses.data?.data.find((w) => w.id === chosen)?.name
+  const lookup = useQuery({
+    queryKey: [
+      ...getWarehousesListQueryKey(workspaceId, allWarehouses),
+      "selected",
+      at,
+    ],
+    queryFn: ({ signal }) =>
+      list
+        ? findWarehouse(
+            workspaceId,
+            list,
+            (warehouse) => warehouse.id === at,
+            signal
+          )
+        : null,
+    enabled: Boolean(workspaceId) && canListWarehouses && needsLookup,
+  })
+  const beyondFirstPage = needsLookup ? lookup.data : null
+  const chosen = listed ?? beyondFirstPage
+  const place = byPlace(rows).find((p) => p.id === chosen?.id)
+  const placeName = chosen?.name
+  const empty = warehouses.isSuccess && list?.meta.total === 0
+  const lookupFailed = needsLookup && lookup.isError
+  const loading = warehouses.isPending || (needsLookup && lookup.isPending)
+  const canSave =
+    canListWarehouses &&
+    warehouses.isSuccess &&
+    !lookupFailed &&
+    Boolean(chosen)
   const batches = place?.rows.filter((r) => lotOf(r.lot)) ?? []
   const mutate = useStockMutate({
     mutation: {
@@ -648,25 +694,75 @@ function MutateStock({
         {t("stock.change")}
       </DialogTrigger>
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("stock.change")}</DialogTitle>
+        </DialogHeader>
+        {canListWarehouses ? (
+          <>
+            {warehouses.isError ? (
+              <LoadError
+                error={warehouses.error}
+                onRetry={() => void warehouses.refetch()}
+              />
+            ) : lookupFailed ? (
+              <LoadError
+                error={lookup.error}
+                onRetry={() => void lookup.refetch()}
+              />
+            ) : loading ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t("warehouses.loading")}
+              </p>
+            ) : empty ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-muted-foreground">
+                  {t("warehouses.empty")}
+                </p>
+                <GeneralStock
+                  workspaceId={workspaceId}
+                  onReady={(warehouseId) =>
+                    onAt((current) => (current === null ? null : warehouseId))
+                  }
+                />
+              </div>
+            ) : !chosen ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t("warehouses.selectionUnavailable")}
+              </p>
+            ) : null}
+            <Link
+              href="/stock/warehouses"
+              className={buttonVariants({
+                variant: "outline",
+                size: "sm",
+                className: "justify-self-start",
+              })}
+            >
+              {t("warehouses.manage")}
+            </Link>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t("warehouses.listDenied")}
+          </p>
+        )}
         <form
           className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault()
+            if (!canSave || !chosen || mutate.isPending) return
             const f = new FormData(e.currentTarget)
             mutate.mutate({
               workspace: workspaceId,
               product: productId,
               data: {
-                warehouse_id: String(f.get("warehouse_id") ?? ""),
+                warehouse_id: chosen.id,
                 mutation_value: String(f.get("mutation_value") ?? ""),
                 reason: String(f.get("reason") ?? "") || null,
               },
             })
           }}
         >
-          <DialogHeader>
-            <DialogTitle>{t("stock.change")}</DialogTitle>
-          </DialogHeader>
           <Capped meta={warehouses.data?.meta} />
           <Field
             id="m-warehouse"
@@ -677,10 +773,21 @@ function MutateStock({
               name="warehouse_id"
               className={selectClass}
               required
-              value={chosen}
+              disabled={!canListWarehouses || !warehouses.isSuccess || empty}
+              value={chosen?.id ?? ""}
               onChange={(e) => onAt(e.target.value)}
             >
-              {warehouses.data?.data.map((w) => (
+              {!chosen ? (
+                <option value="" disabled>
+                  {t("warehouses.select")}
+                </option>
+              ) : null}
+              {beyondFirstPage ? (
+                <option value={beyondFirstPage.id}>
+                  {beyondFirstPage.name}
+                </option>
+              ) : null}
+              {list?.data.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.name}
                 </option>
@@ -730,7 +837,7 @@ function MutateStock({
           </Field>
           <ApiError error={mutate.error} fallback={t("common.error")} />
           <DialogFooter>
-            <Button type="submit" disabled={mutate.isPending}>
+            <Button type="submit" disabled={!canSave || mutate.isPending}>
               {t("actions.save")}
             </Button>
           </DialogFooter>

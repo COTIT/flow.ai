@@ -53,7 +53,7 @@ async fn book(conn: &mut PgConnection, ws: Uuid) -> Result<(Uuid, i16), AppError
 
 /// `amount` in minor units of a `dp`-decimals currency (SQL); 422 on `field` when it has more
 /// decimals than the currency.
-async fn minor(
+pub async fn minor(
     conn: &mut PgConnection,
     (a, dp): (Decimal, i16),
     field: &str,

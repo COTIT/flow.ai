@@ -16,20 +16,20 @@ use uuid::Uuid;
 
 const PIN: &str = "4821";
 
-struct W {
-    api: Api,
-    till: String,
-    shop_key: String,
+pub(crate) struct W {
+    pub(crate) api: Api,
+    pub(crate) till: String,
+    pub(crate) shop_key: String,
     /// Default store warehouse (till + web shop sell from it).
-    shop: String,
-    back: String,
-    wax: String,
-    honey: String,
-    supplier: String,
-    eur: String,
+    pub(crate) shop: String,
+    pub(crate) back: String,
+    pub(crate) wax: String,
+    pub(crate) honey: String,
+    pub(crate) supplier: String,
+    pub(crate) eur: String,
 }
 
-async fn world(pool: PgPool) -> W {
+pub(crate) async fn world(pool: PgPool) -> W {
     let api = Api::new(pool, "").await;
     let wh = api.with_base("/warehouses");
     let shop = wh
@@ -130,7 +130,7 @@ async fn world(pool: PgPool) -> W {
 }
 
 /// Activate the book (M2 fixture) and map GRNI too.
-async fn active(w: &W) {
+pub(crate) async fn active(w: &W) {
     activate(&w.api.pool, &w.api.ws).await;
     sqlx::query(
         "WITH a AS (INSERT INTO accounts (workspace_id, code, name, type, created_by)
@@ -145,20 +145,20 @@ async fn active(w: &W) {
     .unwrap();
 }
 
-fn code(b: &Value) -> &str {
+pub(crate) fn code(b: &Value) -> &str {
     b["code"].as_str().unwrap_or_default()
 }
 
-fn uuid() -> String {
+pub(crate) fn uuid() -> String {
     Uuid::now_v7().to_string()
 }
 
 impl W {
-    fn pool(&self) -> &PgPool {
+    pub(crate) fn pool(&self) -> &PgPool {
         &self.api.pool
     }
 
-    async fn req_as(
+    pub(crate) async fn req_as(
         &self,
         token: &str,
         method: Method,
@@ -179,25 +179,30 @@ impl W {
         (s, serde_json::from_slice(&b).unwrap_or(Value::Null))
     }
 
-    async fn req(&self, method: Method, path: &str, body: Option<Value>) -> (StatusCode, Value) {
+    pub(crate) async fn req(
+        &self,
+        method: Method,
+        path: &str,
+        body: Option<Value>,
+    ) -> (StatusCode, Value) {
         self.req_as(&self.api.owner.clone(), method, path, body)
             .await
     }
 
-    async fn get(&self, path: &str) -> Value {
+    pub(crate) async fn get(&self, path: &str) -> Value {
         let (s, b) = self.req(Method::GET, path, None).await;
         assert_eq!(s, StatusCode::OK, "{b}");
         b["data"].clone()
     }
 
-    fn order_body(&self, lines: &[(&str, &str, &str)]) -> Value {
+    pub(crate) fn order_body(&self, lines: &[(&str, &str, &str)]) -> Value {
         json!({ "supplier_id": self.supplier, "currency_id": self.eur,
                 "purchase_date": "2026-11-01", "default_warehouse_id": self.shop,
                 "lines": lines.iter().map(|(p, q, price)| json!({ "product_id": p,
                     "quantity": q, "unit_price": price })).collect::<Vec<_>>() })
     }
 
-    async fn draft(&self, payload: Value) -> Value {
+    pub(crate) async fn draft(&self, payload: Value) -> Value {
         let (s, b) = self
             .req(
                 Method::POST,
@@ -209,7 +214,7 @@ impl W {
         b["data"].clone()
     }
 
-    async fn confirm(&self, po: &Value) -> Value {
+    pub(crate) async fn confirm(&self, po: &Value) -> Value {
         let id = po["id"].as_str().unwrap();
         let (s, review) = self
             .req(
@@ -232,12 +237,12 @@ impl W {
     }
 
     /// Confirmed order of `lines` (product, quantity, price).
-    async fn order(&self, lines: &[(&str, &str, &str)]) -> Value {
+    pub(crate) async fn order(&self, lines: &[(&str, &str, &str)]) -> Value {
         let po = self.draft(self.order_body(lines)).await;
         self.confirm(&po).await
     }
 
-    async fn receive_on(
+    pub(crate) async fn receive_on(
         &self,
         po: &Value,
         date: &str,
@@ -260,7 +265,7 @@ impl W {
         .await
     }
 
-    async fn receive(&self, po: &Value, lines: &[(usize, &str)]) -> Value {
+    pub(crate) async fn receive(&self, po: &Value, lines: &[(usize, &str)]) -> Value {
         let today = self.today(0).await;
         let lines: Vec<(usize, &str, &str)> = lines
             .iter()
@@ -273,7 +278,7 @@ impl W {
 
     /// Review then book every line of `receipt`; (status, body) of the book call. A review
     /// refusal is returned as is.
-    async fn book_with(&self, receipt: &Value, landed: Value) -> (StatusCode, Value) {
+    pub(crate) async fn book_with(&self, receipt: &Value, landed: Value) -> (StatusCode, Value) {
         let po = receipt["purchase_order_id"].as_str().unwrap();
         let id = receipt["id"].as_str().unwrap();
         let lines: Vec<Value> = receipt["lines"]
@@ -303,14 +308,14 @@ impl W {
         .await
     }
 
-    async fn book(&self, receipt: &Value) -> Value {
+    pub(crate) async fn book(&self, receipt: &Value) -> Value {
         let (s, b) = self.book_with(receipt, json!([])).await;
         assert_eq!(s, StatusCode::OK, "{b}");
         b["data"].clone()
     }
 
     /// Book-local date `days` from today, as the server sees it.
-    async fn today(&self, days: i32) -> String {
+    pub(crate) async fn today(&self, days: i32) -> String {
         sqlx::query_scalar("SELECT ((now() AT TIME ZONE 'UTC')::date + $1)::text")
             .bind(days)
             .fetch_one(self.pool())
@@ -318,7 +323,7 @@ impl W {
             .unwrap()
     }
 
-    async fn level(&self, product: &str, warehouse: &str) -> String {
+    pub(crate) async fn level(&self, product: &str, warehouse: &str) -> String {
         sqlx::query_scalar(
             "SELECT coalesce(trim_scale(sum(stock_lvl)), 0)::text FROM stocks
              WHERE product_id = $1::uuid AND warehouse_id = $2::uuid AND deleted_at IS NULL",
@@ -330,7 +335,7 @@ impl W {
         .unwrap()
     }
 
-    async fn count(&self, table: &str) -> i64 {
+    pub(crate) async fn count(&self, table: &str) -> i64 {
         sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
             "SELECT count(*) FROM {table} WHERE workspace_id = $1::uuid"
         )))
@@ -340,7 +345,7 @@ impl W {
         .unwrap()
     }
 
-    async fn till_sell(&self, product: &str, q: &str) -> (StatusCode, Value) {
+    pub(crate) async fn till_sell(&self, product: &str, q: &str) -> (StatusCode, Value) {
         self.api
             .with_base("/till")
             .call(
@@ -355,7 +360,7 @@ impl W {
             .await
     }
 
-    async fn storefront(&self, product: &str) -> Value {
+    pub(crate) async fn storefront(&self, product: &str) -> Value {
         let (s, res) = send(
             &self.api.app,
             Method::GET,
@@ -368,7 +373,7 @@ impl W {
         res["data"]["available_stock"].clone()
     }
 
-    async fn till_stock(&self, product: &str) -> Value {
+    pub(crate) async fn till_stock(&self, product: &str) -> Value {
         let (s, res) = self
             .api
             .with_base("/till")
@@ -384,7 +389,7 @@ impl W {
             .clone()
     }
 
-    async fn sold_out_listed(&self, product: &str) -> bool {
+    pub(crate) async fn sold_out_listed(&self, product: &str) -> bool {
         let (s, res) = self
             .req(Method::GET, "/products?available_lte=0", None)
             .await;
@@ -396,7 +401,7 @@ impl W {
             .any(|p| p["id"] == product)
     }
 
-    async fn attention_out(&self) -> Value {
+    pub(crate) async fn attention_out(&self) -> Value {
         self.get("/attention").await["stock"]["out_of_stock"].clone()
     }
 }

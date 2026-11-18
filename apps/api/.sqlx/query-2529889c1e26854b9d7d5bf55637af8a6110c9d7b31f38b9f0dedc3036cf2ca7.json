@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM variant_option_values\n         WHERE workspace_id = $1 AND product_variant_id = $2 AND option_value_id = ANY($3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2529889c1e26854b9d7d5bf55637af8a6110c9d7b31f38b9f0dedc3036cf2ca7"
+}

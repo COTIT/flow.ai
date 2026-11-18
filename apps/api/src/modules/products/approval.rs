@@ -55,6 +55,7 @@ pub async fn capture(
     let workspace = owner.workspace_id;
     let body = input.body.clone().unwrap_or_else(|| json!({}));
     let mut current = None;
+    let mut locked = None;
     let (kind, priced) = match operation {
         "products_create" => {
             let fields = preconditions::validated::<dto::CreateProductRequest>(body)?;
@@ -89,7 +90,7 @@ pub async fn capture(
                 }
                 "product_variants_update" => {
                     let fields =
-                        preconditions::validated::<product_variants::dto::VariantBody>(body)?;
+                        preconditions::validated::<product_variants::dto::UpdateVariantBody>(body)?;
                     let before = product_variants::repo::find_locked(
                         &mut *conn,
                         workspace,
@@ -98,10 +99,26 @@ pub async fn capture(
                     )
                     .await?
                     .ok_or(AppError::NotFound)?;
-                    current = Some(variant_quote(conn, workspace, &product, &before).await?);
-                    let row =
-                        product_variants::service::prepare_update(&before, &fields, product.price)?;
-                    variant_quote(conn, workspace, &product, &row).await?
+                    let mut before_quote =
+                        variant_quote(conn, workspace, &product, &before).await?;
+                    let row = product_variants::service::prepare_update(
+                        &before,
+                        &fields.variant,
+                        product.price,
+                    )?;
+                    let mut proposed = variant_quote(conn, workspace, &product, &row).await?;
+                    if let Some(labels) = fields.size_labels {
+                        let values = product_variants::service::prepare_size_labels(
+                            conn, workspace, before.id, &labels,
+                        )
+                        .await?;
+                        let snapshot = size_snapshot(&values);
+                        before_quote["variant"]["size_labels"] = snapshot["size_labels"].clone();
+                        proposed["variant"]["size_labels"] = json!(labels);
+                        locked = Some(snapshot);
+                    }
+                    current = Some(before_quote);
+                    proposed
                 }
                 _ => {
                     let fields =
@@ -115,6 +132,9 @@ pub async fn capture(
         }
     };
     let mut facts = json!({"kind":kind,"priced":priced});
+    if let Some(snapshot) = locked {
+        facts["locked"] = snapshot;
+    }
     if let Some(before) = current {
         // Variant quotes nest the row under `variant`; currency always comes from the parent product.
         let (old, new, currency) = match kind {
@@ -295,12 +315,21 @@ pub(crate) async fn check_variant(
     workspace: Uuid,
     product: &repo::ProductRow,
     row: &product_variants::repo::VariantRow,
+    size_labels: Option<(&[product_variants::repo::OptionValueRow], &[String])>,
 ) -> Result<(), AppError> {
     if preconditions::expects("product_variant") {
-        let actual = variant_quote(conn, workspace, product, row).await?;
+        let mut actual = variant_quote(conn, workspace, product, row).await?;
+        if let Some((current, labels)) = size_labels {
+            preconditions::check_locked(workspace, "product_variant", &size_snapshot(current))?;
+            actual["variant"]["size_labels"] = json!(labels);
+        }
         preconditions::check_priced(workspace, "product_variant", &actual)?;
     }
     Ok(())
+}
+
+fn size_snapshot(values: &[product_variants::repo::OptionValueRow]) -> Value {
+    json!({"size_labels": values.iter().map(|value| &value.display_value).collect::<Vec<_>>()})
 }
 
 /// Check all generated monetary defaults before option rows or variants are created.

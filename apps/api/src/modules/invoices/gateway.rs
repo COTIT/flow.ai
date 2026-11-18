@@ -24,12 +24,15 @@ use crate::{
     },
     idempotency::{self, Actor, Answer, Key, Keyed},
     modules::{
+        accounting::gate,
         auth::token,
         currencies,
         gateway::{accounts, repo as operations, repo::Operation, service as engine},
         invoice_payments::{repo as ledger, service as payments},
         invoices::{self, repo, send},
-        orders, stock, workspaces,
+        orders,
+        provider_observations::service as observations,
+        workspaces,
     },
     money,
 };
@@ -136,6 +139,7 @@ pub async fn create_payment(
 ) -> Result<Data<Value>, AppError> {
     let (ws, invoice) = token_target(&state, &token).await?;
     let mut tx = state.db.begin().await?;
+    gate::shared(&mut tx, &[ws]).await?;
     let target = ledger::lock(&mut tx, ws, invoice)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -290,6 +294,8 @@ async fn create_refund(
     if let Some(answer) = idempotency::replay(&mut tx, ws, Actor::User(user), key.as_ref()).await? {
         return Ok(answer);
     }
+    // Book gate before order/invoice locks (masterplan §6).
+    gate::shared(&mut tx, &[ws]).await?;
     let note = repo::find(&mut *tx, ws, note_id)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -418,10 +424,8 @@ pub async fn redirect(state: &AppState, ws: Uuid, invoice: Uuid) -> Result<Strin
     Ok(send::payment_link(state, &token))
 }
 
-/// Active books keep the gateway row as evidence until it is posted (`external_financial_fact_pending`).
-const PENDING: &str = "Confirmed by the provider; posting to the book is pending.";
-
-/// Called by the gateway engine after invoice locks, before committing its paid status.
+/// Called by the gateway engine after gate → invoice locks, before committing its paid status.
+/// Active books also record the provider observation and post it (or keep it pending).
 pub async fn apply_collection(
     state: &AppState,
     conn: &mut PgConnection,
@@ -444,11 +448,12 @@ pub async fn apply_collection(
         || !invoices::actions::PAYABLE.contains(&target.status.as_str())
         || open.is_none_or(|open| op.amount > open);
     receipt(conn, ws, invoice, op, transaction_id, op.amount).await?;
+    let active = observations::active(conn, ws).await?;
+    if active {
+        observations::ingest(conn, ws, op, "collection", transaction_id, op.amount).await?;
+    }
     payments::rebalance(conn, ws, &target, None).await?;
-    if stock::value::active(conn, ws).await? {
-        // shortcut: no canonical posting yet; the provider-observation child posts it.
-        mark_attention(conn, ws, op.id, PENDING).await?;
-    } else if attention {
+    if !active && attention {
         mark_attention(
             conn,
             ws,
@@ -492,15 +497,18 @@ pub async fn apply_refund(
         .checked_neg()
         .ok_or(AppError::Conflict("Refund amount is out of range."))?;
     receipt(conn, ws, note, op, transaction_id, amount).await?;
+    let active = observations::active(conn, ws).await?;
+    if active {
+        observations::ingest(conn, ws, op, "refund", &op.id.to_string(), op.amount).await?;
+    }
     payments::rebalance(conn, ws, &target, None).await?;
-    if stock::value::active(conn, ws).await? {
-        mark_attention(conn, ws, op.id, PENDING).await?;
-    } else if !target.is_credit
-        || target.status != "pending"
-        || target
-            .paid_total
-            .checked_sub(target.total)
-            .is_none_or(|open| op.amount > open)
+    if !active
+        && (!target.is_credit
+            || target.status != "pending"
+            || target
+                .paid_total
+                .checked_sub(target.total)
+                .is_none_or(|open| op.amount > open))
     {
         mark_attention(
             conn,

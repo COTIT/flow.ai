@@ -40,7 +40,7 @@ pub struct Fields {
     pub meta: Option<Option<Value>>,
 }
 
-/// POST and PUT body (Laravel used the same rules for both).
+/// POST /variants.
 #[derive(Deserialize)]
 pub struct VariantBody(Map<String, Value>);
 
@@ -48,63 +48,112 @@ impl Validate for VariantBody {
     type Valid = Fields;
 
     fn validate(self, r: &mut Rules) -> Option<Fields> {
+        Some(variant_fields(&self.0, r, true))
+    }
+}
+
+/// PUT /variants/{variant}.
+#[derive(Deserialize)]
+pub struct UpdateVariantBody(Map<String, Value>);
+
+pub struct UpdateFields {
+    pub variant: Fields,
+    pub size_labels: Option<Vec<String>>,
+}
+
+impl Validate for UpdateVariantBody {
+    type Valid = UpdateFields;
+
+    fn validate(self, r: &mut Rules) -> Option<UpdateFields> {
         let m = &self.0;
-        let zero = Decimal::ZERO;
-        let max = money::MAX;
-        let price_sent = filled(m.get("price").cloned()).is_some();
-        let impact_sent = filled(m.get("impact_on_price").cloned()).is_some();
-        if !price_sent && !impact_sent {
-            r.add(
-                "price",
-                "The price field is required when impact on price is not present.",
-            );
-            r.add(
-                "impact_on_price",
-                "The impact on price field is required when price is not present.",
-            );
-        }
-        let text = |r: &mut Rules, k: &str| {
-            m.get(k).map(|v| match filled(Some(v.clone())) {
-                None => None,
-                Some(Value::String(s)) => {
-                    let s = s.trim().to_owned();
-                    r.max_chars(k, &s, 255);
-                    Some(s)
-                }
-                Some(Value::Number(n)) => Some(n.to_string()),
-                Some(_) => {
-                    r.add(k, format!("The {} must be a string.", human(k)));
-                    None
-                }
-            })
-        };
-        let num = |r: &mut Rules, k: &str, min: Decimal| {
-            m.get(k)
-                .map(|v| filled(Some(v.clone())).and_then(|v| r.decimal(k, &v, min, max)))
-        };
-        Some(Fields {
-            sku: text(r, "sku"),
-            barcode: text(r, "barcode"),
-            ean13: text(r, "ean13"),
-            price: num(r, "price", zero),
-            impact_on_price: num(r, "impact_on_price", -max),
-            original_price: num(r, "original_price", zero),
-            wholesale_price: num(r, "wholesale_price", zero),
-            original_wholesale_price: num(r, "original_wholesale_price", zero),
-            gross_price: num(r, "gross_price", zero),
-            supplier_wholesale_price: num(r, "supplier_wholesale_price", zero),
-            impact_on_wholesale_price: num(r, "impact_on_wholesale_price", -max),
-            weight: num(r, "weight", zero),
-            reference_vendor: text(r, "reference_vendor"),
-            reference_vendor2: text(r, "reference_vendor2"),
-            reference_vendor3: text(r, "reference_vendor3"),
-            is_default: m.get("is_default").map(|v| {
-                filled(Some(v.clone()))
-                    .and_then(|v| r.boolean("is_default", &v))
-                    .unwrap_or_default()
-            }),
-            meta: m.get("meta").and_then(|v| r.meta(Some(v.clone()))),
+        let size_labels = m.get("size_labels").and_then(|value| match value {
+            Value::Array(labels) if !labels.is_empty() && labels.len() <= MAX_VALUES => Some(
+                labels
+                    .iter()
+                    .enumerate()
+                    .map(|(index, label)| {
+                        r.text(
+                            &format!("size_labels.{index}"),
+                            label.as_str().map(str::to_owned),
+                            255,
+                        )
+                    })
+                    .collect(),
+            ),
+            _ => {
+                r.add(
+                    "size_labels",
+                    format!("Size labels must contain between 1 and {MAX_VALUES} values."),
+                );
+                None
+            }
+        });
+        let needs_price = (!m.contains_key("size_labels") && !m.contains_key("sku"))
+            || m.contains_key("price")
+            || m.contains_key("impact_on_price");
+        Some(UpdateFields {
+            variant: variant_fields(m, r, needs_price),
+            size_labels,
         })
+    }
+}
+
+fn variant_fields(m: &Map<String, Value>, r: &mut Rules, needs_price: bool) -> Fields {
+    let zero = Decimal::ZERO;
+    let max = money::MAX;
+    let price_sent = filled(m.get("price").cloned()).is_some();
+    let impact_sent = filled(m.get("impact_on_price").cloned()).is_some();
+    if needs_price && !price_sent && !impact_sent {
+        r.add(
+            "price",
+            "The price field is required when impact on price is not present.",
+        );
+        r.add(
+            "impact_on_price",
+            "The impact on price field is required when price is not present.",
+        );
+    }
+    let text = |r: &mut Rules, k: &str| {
+        m.get(k).map(|v| match filled(Some(v.clone())) {
+            None => None,
+            Some(Value::String(s)) => {
+                let s = s.trim().to_owned();
+                r.max_chars(k, &s, 255);
+                Some(s)
+            }
+            Some(Value::Number(n)) => Some(n.to_string()),
+            Some(_) => {
+                r.add(k, format!("The {} must be a string.", human(k)));
+                None
+            }
+        })
+    };
+    let num = |r: &mut Rules, k: &str, min: Decimal| {
+        m.get(k)
+            .map(|v| filled(Some(v.clone())).and_then(|v| r.decimal(k, &v, min, max)))
+    };
+    Fields {
+        sku: text(r, "sku"),
+        barcode: text(r, "barcode"),
+        ean13: text(r, "ean13"),
+        price: num(r, "price", zero),
+        impact_on_price: num(r, "impact_on_price", -max),
+        original_price: num(r, "original_price", zero),
+        wholesale_price: num(r, "wholesale_price", zero),
+        original_wholesale_price: num(r, "original_wholesale_price", zero),
+        gross_price: num(r, "gross_price", zero),
+        supplier_wholesale_price: num(r, "supplier_wholesale_price", zero),
+        impact_on_wholesale_price: num(r, "impact_on_wholesale_price", -max),
+        weight: num(r, "weight", zero),
+        reference_vendor: text(r, "reference_vendor"),
+        reference_vendor2: text(r, "reference_vendor2"),
+        reference_vendor3: text(r, "reference_vendor3"),
+        is_default: m.get("is_default").map(|v| {
+            filled(Some(v.clone()))
+                .and_then(|v| r.boolean("is_default", &v))
+                .unwrap_or_default()
+        }),
+        meta: m.get("meta").and_then(|v| r.meta(Some(v.clone()))),
     }
 }
 
@@ -434,6 +483,23 @@ pub struct VariantRequestDoc {
     is_default: Option<bool>,
     #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
+}
+
+/// Fields accepted by the variant update endpoint.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = UpdateProductVariantRequest,
+    description = "Send only changed fields. A SKU or size-label edit can omit price and impact on price."
+)]
+pub struct UpdateVariantRequestDoc {
+    #[serde(flatten)]
+    fields: VariantRequestDoc,
+    /// Replace Size labels in their current order, one per existing label. For a variant with
+    /// no Size labels, send one. Labels must be nonempty, distinct ignoring case, and at most
+    /// 255 characters each. Omit this field to retain the current labels.
+    #[schema(nullable = false, min_items = 1, max_items = 200)]
+    size_labels: Option<Vec<String>>,
 }
 
 /// OpenAPI shape of [`GenerateBody`]. Docs only: the body is read key by key.

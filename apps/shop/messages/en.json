@@ -67,6 +67,8 @@
     "lot": "Lot {code}",
     "villages": "{count, plural, one {# village} other {# villages}}",
     "openPassport": "Open the passport",
+    "passportUnavailable": "No batch passport is available for this product right now. If your package has a batch code, look it up below.",
+    "enterBatchCode": "Enter a batch code",
     "breadcrumb": "Breadcrumb",
     "grownBy": "Grown and harvested by",
     "people": "Meet the people behind it",
@@ -112,6 +114,8 @@
     "place": "Place order",
     "required": "Please fill this in.",
     "invalid": "This doesn't look right.",
+    "selectCountry": "Select a country",
+    "invalidCountry": "Select a valid country from the list.",
     "field": {
       "email": "Email",
       "name": "Full name",

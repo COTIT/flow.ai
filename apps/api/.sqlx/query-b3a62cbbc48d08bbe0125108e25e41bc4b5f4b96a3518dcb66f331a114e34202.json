@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_option_types (workspace_id, product_id, option_type_id, sort_order)\n         VALUES ($1, $2, $3, COALESCE($4, 0))\n         ON CONFLICT (product_id, option_type_id) DO UPDATE SET sort_order = EXCLUDED.sort_order\n         WHERE $4 IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b3a62cbbc48d08bbe0125108e25e41bc4b5f4b96a3518dcb66f331a114e34202"
+}

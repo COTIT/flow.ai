@@ -1,6 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import`, `shipment` and `integration` (55 / 295). Name =
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import`, `shipment`, `salesreturn`, `purchasereturn`, `supplierbill`, `supplierpayment` and `integration` (59 / 319). Name =
 //! `group.action`. `integration.*`: Verzo glue (WF-01), not Laravel.
 //! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
@@ -177,6 +177,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
             "book", "cancel", "close", "confirm", "create", "get", "list", "receive", "update",
         ],
     ),
+    // purchasereturn: Flow ERP M5-A supplier returns (masterplan §15), not Laravel.
+    (
+        "purchasereturn",
+        &["create", "get", "list", "post", "reverse"],
+    ),
     (
         "relation",
         &["create", "delete", "get", "history", "list", "update"],
@@ -184,6 +189,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     ("reminder", &["create", "delete", "get", "list", "update"]),
     // salesgroup, shipmentmethod, vatgroup: added by genesy (Laravel checked them, never catalogued).
     ("salesgroup", &["create", "delete", "get", "list", "update"]),
+    // salesreturn: Flow ERP M4 customer returns and credits (masterplan §15), not Laravel.
+    (
+        "salesreturn",
+        &[
+            "cancel", "create", "get", "list", "post", "reverse", "update",
+        ],
+    ),
     ("setting", &["get", "update"]),
     // shipment: Flow ERP M4 partial shipments (masterplan §15), not Laravel.
     (
@@ -221,6 +233,17 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     (
         "stocktake",
         &["cancel", "count", "create", "get", "list", "post", "start"],
+    ),
+    // supplierbill, supplierpayment: Flow ERP M5-A payables (masterplan §15), not Laravel.
+    (
+        "supplierbill",
+        &[
+            "create", "get", "list", "match", "post", "reverse", "update",
+        ],
+    ),
+    (
+        "supplierpayment",
+        &["allocate", "create", "get", "list", "reverse"],
     ),
     ("tag", &["create", "delete", "list", "update", "view"]),
     ("taxprofile", &["configure", "read", "verify"]),
@@ -298,8 +321,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 55);
-        assert_eq!(names().count(), 295);
+        assert_eq!(GROUPS.len(), 59);
+        assert_eq!(names().count(), 319);
     }
 
     #[test]

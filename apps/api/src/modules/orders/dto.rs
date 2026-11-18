@@ -537,7 +537,15 @@ pub struct CheckoutInput {
 fn address(r: &mut Rules, field: &str, v: Option<Value>) -> Value {
     match v {
         None | Some(Value::Null) => Value::Null,
-        Some(v @ Value::Object(_)) if v.to_string().len() <= ADDRESS_MAX => v,
+        Some(mut v @ Value::Object(_)) if v.to_string().len() <= ADDRESS_MAX => {
+            if let Some(country) = v.get_mut("country") {
+                let field = format!("{field}.country");
+                if let Some(code) = r.country(&field, country.as_str().unwrap_or("").trim()) {
+                    *country = Value::String(code);
+                }
+            }
+            v
+        }
         Some(_) => {
             r.add(
                 field,
@@ -565,6 +573,9 @@ impl Validate for CheckoutRequest {
         let phone = r.opt_text("customer.phone", c.phone, 50);
         let shipping = address(r, "customer.shipping_address", c.shipping_address);
         let billing = address(r, "customer.billing_address", c.billing_address);
+        if shipping.get("country").is_none() && billing.get("country").is_none() {
+            r.missing("customer.shipping_address.country");
+        }
         Some(CheckoutInput {
             lines,
             customer: serde_json::json!({

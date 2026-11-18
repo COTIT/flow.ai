@@ -902,7 +902,7 @@ pub async fn mark_booked(
          SET booked_at = now(), booked_by = $3, accounting_date = $4,
              movement_id = m.id, journal_entry_id = e.journal_entry_id,
              net_value = $5, landed_value = $6, rate = $7, rate_inverse = $8,
-             rate_source = $9, rate_date = $10
+             rate_source = $9, rate_date = $10, doc_value = $11
          FROM stock_movements m
          LEFT JOIN inventory_value_entries e ON e.movement_id = m.id
          WHERE l.workspace_id = $1 AND l.id = $2
@@ -917,7 +917,8 @@ pub async fn mark_booked(
         v.map(|v| v.3.0),
         v.map(|v| v.3.1),
         v.map(|v| v.3.2),
-        v.and_then(|v| v.3.3)
+        v.and_then(|v| v.3.3),
+        v.map(|v| v.2)
     )
     .execute(&mut *conn)
     .await?;

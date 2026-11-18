@@ -32,6 +32,7 @@ import type {
   MessageBody,
   ProductVariantRequest,
   UnprocessableBody,
+  UpdateProductVariantRequest,
   ValidationErrorBody,
   VariantList
 } from '../model';
@@ -476,7 +477,7 @@ export const productVariantsUpdate = (
     workspace: string,
     product: string,
     variant: string,
-    productVariantRequest: BodyType<ProductVariantRequest>,
+    updateProductVariantRequest: BodyType<UpdateProductVariantRequest>,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
@@ -484,7 +485,7 @@ export const productVariantsUpdate = (
       return apiRequest<EnvelopeProductVariantResource>(
       {url: `/workspace/${workspace}/products/${product}/variants/${variant}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
-      data: productVariantRequest, signal
+      data: updateProductVariantRequest, signal
     },
       options);
     }
@@ -522,9 +523,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ProductVariantsUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof productVariantsUpdate>>>
-    export type ProductVariantsUpdateMutationBody = BodyType<ProductVariantRequest>
+    export type ProductVariantsUpdateMutationBody = BodyType<UpdateProductVariantRequest>
     export type ProductVariantsUpdateMutationError = ErrorType<MessageBody | UnprocessableBody>
-    export type ProductVariantsUpdateMutationVariables = {workspace: string;product: string;variant: string;data: BodyType<ProductVariantRequest>}
+    export type ProductVariantsUpdateMutationVariables = {workspace: string;product: string;variant: string;data: BodyType<UpdateProductVariantRequest>}
 
     /**
  * @summary Update a variant (send only changed fields)

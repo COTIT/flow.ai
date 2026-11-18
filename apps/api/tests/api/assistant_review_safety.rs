@@ -1,6 +1,6 @@
 //! Voice reviews show current values, exact money changes and large-change warnings.
 
-use super::assistant_preconditions::{approved, approved_method, dispatch, world};
+use super::assistant_preconditions::{approved, approved_method, dispatch, dispatch_method, world};
 use crate::common::{Api, send};
 use axum::http::{Method, StatusCode};
 use serde_json::{Value, json};
@@ -188,6 +188,79 @@ async fn variant_update_review_has_before_and_warning(pool: PgPool) {
     let entry = change(facts, "price");
     assert_eq!(entry["change_bp"], 990000);
     assert_eq!(entry["warning"], "large_change");
+}
+
+#[sqlx::test]
+async fn size_update_review_binds_the_display_label(pool: PgPool) {
+    let (api, _, product) = world(pool).await;
+    let variants = api.with_base(Box::leak(
+        format!("/products/{product}/variants").into_boxed_str(),
+    ));
+    let variant = variants.list("").await["data"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let path = format!(
+        "/v1/workspace/{}/products/{product}/variants/{variant}",
+        api.ws
+    );
+    let body = json!({"size_labels":["Medium"]});
+    let (session, action, proposed) = approved_method(
+        &api,
+        "product_variants_update",
+        &path,
+        body.clone(),
+        Method::PUT,
+    )
+    .await;
+    let entry = change(&proposed["review_facts"]["facts"], "size_labels");
+    assert_eq!(entry["before"], json!([]));
+    assert_eq!(entry["after"], json!(["Medium"]));
+
+    let (status, current) = variants
+        .call(
+            Method::PUT,
+            &format!("/{variant}"),
+            Some(json!({"size_labels":["MEDIUM"]})),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{current}");
+    let (status, stale) = dispatch_method(
+        &api.app,
+        &path,
+        body.clone(),
+        &api.owner,
+        &session,
+        &action,
+        Method::PUT,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT, "{stale}");
+
+    let (session, action, _) = approved_method(
+        &api,
+        "product_variants_update",
+        &path,
+        body.clone(),
+        Method::PUT,
+    )
+    .await;
+    let (status, saved) = dispatch_method(
+        &api.app,
+        &path,
+        body,
+        &api.owner,
+        &session,
+        &action,
+        Method::PUT,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+    assert_eq!(
+        saved["data"]["relationships"]["option_values"][0]["display_value"],
+        "Medium"
+    );
 }
 
 #[sqlx::test]

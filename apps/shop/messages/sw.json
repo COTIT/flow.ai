@@ -67,6 +67,8 @@
     "lot": "Kundi {code}",
     "villages": "{count, plural, one {Kijiji #} other {Vijiji #}}",
     "openPassport": "Fungua pasipoti",
+    "passportUnavailable": "Kwa sasa hakuna pasipoti ya kundi la bidhaa hii. Ikiwa kifurushi chako kina msimbo wa kundi, uutafute hapa chini.",
+    "enterBatchCode": "Weka msimbo wa kundi",
     "breadcrumb": "Njia ya ukurasa",
     "grownBy": "Kimelimwa na kuvunwa na",
     "people": "Wafahamu watu walio nyuma yake",
@@ -112,6 +114,8 @@
     "place": "Weka oda",
     "required": "Tafadhali jaza hapa.",
     "invalid": "Hii haionekani sawa.",
+    "selectCountry": "Chagua nchi",
+    "invalidCountry": "Chagua nchi halali kutoka kwenye orodha.",
     "field": {
       "email": "Barua pepe",
       "name": "Jina kamili",

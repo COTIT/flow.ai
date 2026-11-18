@@ -1,3 +1,5 @@
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /** New shares always name their workspace's active connection; never use the legacy root. */
 export function storefrontUrl(
   base: string | undefined,
@@ -8,9 +10,7 @@ export function storefrontUrl(
     !base ||
     !connection?.active ||
     !connection.id ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      connection.id
-    )
+    !uuid.test(connection.id)
   )
     return null
   try {
@@ -28,4 +28,15 @@ export function storefrontUrl(
   } catch {
     return null
   }
+}
+
+/** Product links keep their address as the shop sells through different batches. */
+export function storefrontProductPassportUrl(
+  base: string | undefined,
+  connection: Parameters<typeof storefrontUrl>[1],
+  productId: string
+): string | null {
+  const shop = storefrontUrl(base, connection)
+  if (!shop || !uuid.test(productId)) return null
+  return `${shop}/products/${productId}#jar-passport`
 }

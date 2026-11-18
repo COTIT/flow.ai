@@ -48,6 +48,7 @@ pub use http::{
 pub use modules::gateway;
 pub use modules::invoice_payments;
 pub use modules::invoices::gateway as invoice_gateway;
+pub use modules::provider_observations::service as provider_observations;
 pub use modules::{imports, product_bulk_runs, product_fields};
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it

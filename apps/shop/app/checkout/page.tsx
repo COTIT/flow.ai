@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import { getTranslations } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 
 import { cn } from "@genesy/ui/lib/utils"
 
 import { CheckoutForm } from "@/components/checkout-form"
+import { COUNTRY_CODES } from "@/lib/countries"
 import { h2 } from "@/lib/look"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,6 +21,13 @@ const CURRENT = 1
 /** Mock `ShopCheckout`: title and steps, then the form tiles. */
 export default async function CheckoutPage() {
   const t = await getTranslations("checkout")
+  const locale = await getLocale()
+  // Send one server-rendered list: browser and server country names can differ by ICU version.
+  const names = new Intl.DisplayNames(locale, { type: "region" })
+  const countries = COUNTRY_CODES.map((code) => ({
+    code,
+    name: names.of(code) ?? code,
+  })).sort((a, b) => a.name.localeCompare(b.name, locale))
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -59,7 +67,7 @@ export default async function CheckoutPage() {
           ))}
         </ol>
       </div>
-      <CheckoutForm />
+      <CheckoutForm countries={countries} />
     </>
   )
 }

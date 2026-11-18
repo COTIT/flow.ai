@@ -39,16 +39,29 @@ const HINTED = new Set(["email"])
 const thumb = cn(honey, "size-12 shrink-0 rounded-[12px]")
 
 /** Mock `ShopCheckout`: Contact and Shipping address cards beside "Your order". */
-export function CheckoutForm() {
+export function CheckoutForm({
+  countries,
+}: {
+  countries: { code: string; name: string }[]
+}) {
   const t = useTranslations("checkout")
   const locale = useLocale()
   const { lines, ready } = useCart()
+  const formRef = React.useRef<HTMLFormElement>(null)
+  // React resets uncontrolled fields after a server action, including validation failures.
+  const [values, setValues] = React.useState<Record<string, string>>({})
   // One key per visit: a double submit or a retry places one order, not two.
   const [key] = React.useState(() => crypto.randomUUID())
   const [state, action, pending] = React.useActionState<
     CheckoutState,
     FormData
   >(placeOrder, {})
+
+  React.useEffect(() => {
+    formRef.current
+      ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?.focus()
+  }, [state])
 
   if (ready && !lines.length) return <EmptyCart />
 
@@ -72,9 +85,12 @@ export function CheckoutForm() {
   const field = ([name, type, autoComplete]: Field, className?: string) => {
     const missing = state.missing?.includes(name)
     // The API's text is English only: a translated line first, its words after as the detail.
-    const messages = missing
-      ? [t("required")]
-      : fieldMessages[name] && [t("invalid"), ...fieldMessages[name]]
+    const messages =
+      name === "country" && (missing || fieldMessages[name])
+        ? [t("invalidCountry")]
+        : missing
+          ? [t("required")]
+          : fieldMessages[name] && [t("invalid"), ...fieldMessages[name]]
     // The error first: it is what the buyer must act on.
     const described = [
       messages && `${name}-error`,
@@ -90,15 +106,50 @@ export function CheckoutForm() {
         <Label htmlFor={name} className="text-[13px]">
           {t(`field.${name}`)}
         </Label>
-        <Input
-          id={name}
-          name={name}
-          type={type}
-          autoComplete={autoComplete}
-          maxLength={255}
-          aria-invalid={messages ? true : undefined}
-          aria-describedby={described || undefined}
-        />
+        {name === "country" ? (
+          <select
+            id={name}
+            name={name}
+            autoComplete={autoComplete}
+            value={values[name] ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                [name]: event.target.value,
+              }))
+            }
+            required
+            aria-invalid={messages ? true : undefined}
+            aria-describedby={described || undefined}
+            data-slot="input"
+            className="h-11 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive md:text-sm"
+          >
+            <option value="">{t("selectCountry")}</option>
+            {countries.map(({ code, name }) => (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Input
+            id={name}
+            name={name}
+            type={type}
+            autoComplete={autoComplete}
+            maxLength={name === "phone" ? 50 : 255}
+            required={name !== "phone" && name !== "line2"}
+            value={values[name] ?? ""}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                [name]: event.target.value,
+              }))
+            }
+            aria-invalid={messages ? true : undefined}
+            aria-describedby={described || undefined}
+          />
+        )}
         {HINTED.has(name) ? (
           <p id={`${name}-hint`} className="text-xs text-muted-foreground">
             {t(`hint.${name}`)}
@@ -107,6 +158,7 @@ export function CheckoutForm() {
         {messages ? (
           <p
             id={`${name}-error`}
+            aria-live="polite"
             className="text-xs font-medium text-(--tone-error)"
           >
             {messages.join(" ")}
@@ -118,7 +170,10 @@ export function CheckoutForm() {
 
   return (
     <form
+      ref={formRef}
       action={action}
+      // Failed actions keep native controls intact; successful checkout redirects away.
+      onReset={(event) => event.preventDefault()}
       className="grid grid-cols-12 gap-3 md:gap-4"
       noValidate
     >

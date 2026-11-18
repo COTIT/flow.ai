@@ -1,6 +1,7 @@
 /** The right each office route needs: the one the API checks on the list its page reads. */
 const routeRights: [prefix: string, right: string][] = [
   ["/products", "product.list"],
+  ["/stock/warehouses", "warehouse.list"],
   ["/stock", "stock.list"],
   ["/orders", "order.list"],
   ["/invoices", "invoice.list"],

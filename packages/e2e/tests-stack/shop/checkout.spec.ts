@@ -134,7 +134,7 @@ test("more than is in stock: the API's refusal shows next to the product, no ord
   await page.getByLabel("Address", { exact: true }).fill("1 Main St")
   await page.getByLabel("Postal code").fill("10001")
   await page.getByLabel("City").fill("New York")
-  await page.getByLabel("Country").fill("US")
+  await page.getByLabel("Country").selectOption("US")
   await page.getByRole("button", { name: "Place order" }).click()
   await expect(
     page.getByRole("alert").filter({ hasText: "Please check your order" })
