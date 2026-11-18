@@ -299,7 +299,10 @@ test.describe("targeted", () => {
   test("language switch in one tab, then the other tab moves around", async ({ persona, page, api }) => {
     const { ledger } = await setup(persona, page, api)
     const b = await openTab(persona, api, ledger, 1)
+    // startText only clicks what is already shown: wait for tab B's home, then expect the conversation.
+    await expect(b.page.getByRole("button", { name: L.en.textInstead, exact: true })).toBeVisible()
     await startText(b.page)
+    await expect(b.page.getByLabel(L.en.message)).toBeVisible()
     await say(b.page, "Hello there")
     await setLanguage(page, "sw")
     await expect(page.locator("html")).toHaveAttribute("lang", "sw")

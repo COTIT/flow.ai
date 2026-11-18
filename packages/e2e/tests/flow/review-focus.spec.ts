@@ -22,6 +22,8 @@ async function reviewWhileOn(page: Page, target: (page: Page) => import("@playwr
   await page.getByLabel(v.message).fill("Set honey stock")
   await page.getByLabel(v.message).press("Enter")
   await expect(page.getByRole("button", { name: v.addFiles })).toBeVisible()
+  // Switch to voice stays disabled until the readiness check answers; focus() on it is a no-op.
+  await expect(target(page)).toBeEnabled()
   await page.keyboard.press("Shift+Tab") // keyboard focus, so the browser shows it
   await target(page).focus()
   await expect(target(page)).toBeFocused()
