@@ -18,9 +18,17 @@ import {
 import { Input } from "@genesy/ui/components/input"
 import { Notice } from "@genesy/ui/components/notice"
 import { Textarea } from "@genesy/ui/components/textarea"
-import { Tile } from "@/components/bento"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
-import { PageHead } from "@/components/list"
+import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
+import { StatusBadge } from "@/components/status-badge"
 import { Empty, LoadError, NoAccess } from "@/components/states"
 import { useRights } from "@/lib/can"
 import {
@@ -67,6 +75,7 @@ function Payments({
   const [page, setPage] = React.useState(1)
   const [selected, setSelected] = React.useState<PaymentView | null>(null)
   const [resolve, setResolve] = React.useState(false)
+  const returnFocus = React.useRef<HTMLButtonElement | null>(null)
   const queryClient = useQueryClient()
   const path = `/workspace/${workspace}/payments`
   const canView = (payment: PaymentView) =>
@@ -121,120 +130,152 @@ function Payments({
   return (
     <>
       <PageHead title={t("payments.title")} description={t("payments.intro")} />
-      <ApiError error={refresh.error} fallback={t("common.error")} />
-      {list.isPending ? (
-        <p role="status">{t("common.loading")}</p>
-      ) : list.isError ? (
-        <LoadError error={list.error} onRetry={() => void list.refetch()} />
-      ) : (
-        <>
-          {!list.data.data.length ? (
+      <ListCard
+        pager={
+          list.data?.data.length ? (
+            <nav
+              aria-label={t("payments.pages")}
+              className="flex items-center justify-between gap-4"
+            >
+              <Button
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
+                {t("payments.previous")}
+              </Button>
+              <span className="text-sm tabular-nums">
+                {page} / {list.data.meta.last_page}
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= list.data.meta.last_page}
+                onClick={() => setPage(page + 1)}
+              >
+                {t("payments.next")}
+              </Button>
+            </nav>
+          ) : null
+        }
+      >
+        {list.isPending ? (
+          <ListSkeleton
+            columns={[
+              { label: t("payments.record.id") },
+              { label: t("payments.record.type") },
+              { label: t("payments.environment") },
+              { label: t("payments.record.status") },
+              { label: t("payments.record.amount"), right: true },
+            ]}
+          />
+        ) : list.isError ? (
+          <CardState>
+            <LoadError error={list.error} onRetry={() => void list.refetch()} />
+          </CardState>
+        ) : !list.data.data.length ? (
+          <CardState>
             <Empty title={t("payments.empty")} />
-          ) : (
-            <div className="flex flex-col gap-3">
-              {list.data.data.map((payment) => (
-                <Tile
-                  key={payment.payment_id}
-                  id={`payment-${payment.payment_id}`}
-                  title={t(
-                    `payments.status.${paymentUncertain(payment) ? "review" : paymentStatusKey(payment.status)}`
-                  )}
-                  span="col-span-12"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <p className="font-semibold tabular-nums">
-                        {paymentMoney(payment, locale)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {t(
-                          payment.kind === "refund"
-                            ? "payments.refund"
-                            : "payments.collection"
-                        )}{" "}
-                        ·{" "}
-                        {t(
-                          payment.environment === "production"
-                            ? "payments.production"
-                            : "payments.sandbox"
-                        )}
-                      </p>
-                      <code className="text-xs break-all">
-                        {payment.payment_id}
-                      </code>
-                      {canView(payment) &&
-                      (payment.invoice_id || payment.credit_note_id) ? (
-                        <Link
-                          className="inline-flex min-h-11 items-center text-sm underline"
-                          href={`/invoices/${payment.credit_note_id ?? payment.invoice_id}`}
-                        >
-                          {t("payments.openInvoice")}
-                        </Link>
-                      ) : canView(payment) && payment.order_id ? (
-                        <Link
-                          className="inline-flex min-h-11 items-center text-sm underline"
-                          href={`/orders/${payment.order_id}`}
-                        >
-                          {t("payments.openOrder")}
-                        </Link>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        disabled={refresh.isPending || !canView(payment)}
-                        onClick={() => refresh.mutate(payment)}
-                      >
-                        {t("payments.refresh")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        disabled={!canView(payment)}
-                        onClick={() => {
-                          setSelected(payment)
-                          setResolve(false)
-                          resolution.reset()
+          </CardState>
+        ) : (
+          <Table aria-label={t("payments.title")}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("payments.record.id")}</TableHead>
+                <TableHead>{t("payments.record.type")}</TableHead>
+                <TableHead>{t("payments.environment")}</TableHead>
+                <TableHead>{t("payments.record.status")}</TableHead>
+                <TableHead className="text-right">
+                  {t("payments.record.amount")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.data.data.map((payment) => {
+                const allowed = canView(payment)
+                const status = paymentUncertain(payment)
+                  ? "review"
+                  : paymentStatusKey(payment.status)
+                const openDetails = (button: HTMLButtonElement) => {
+                  if (!allowed) return
+                  returnFocus.current = button
+                  setSelected(payment)
+                  setResolve(false)
+                  resolution.reset()
+                  refresh.reset()
+                }
+                return (
+                  <TableRow
+                    key={payment.payment_id}
+                    className={allowed ? "cursor-pointer" : undefined}
+                    onClick={
+                      allowed
+                        ? (event) => {
+                            const button =
+                              event.currentTarget.querySelector("button")
+                            if (button) openDetails(button)
+                          }
+                        : undefined
+                    }
+                  >
+                    <TableCell className="break-all whitespace-normal">
+                      <button
+                        type="button"
+                        className="min-h-11 text-left font-semibold underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default disabled:text-muted-foreground"
+                        aria-label={`${t("payments.details")}: ${payment.payment_id}`}
+                        aria-haspopup="dialog"
+                        disabled={!allowed}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          openDetails(event.currentTarget)
                         }}
                       >
-                        {t("payments.details")}
-                      </Button>
-                    </div>
-                  </div>
-                </Tile>
-              ))}
-            </div>
-          )}
-          <nav
-            aria-label={t("payments.pages")}
-            className="flex items-center justify-between gap-4"
-          >
-            <Button
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              {t("payments.previous")}
-            </Button>
-            <span className="text-sm tabular-nums">
-              {page} / {list.data.meta.last_page}
-            </span>
-            <Button
-              variant="outline"
-              disabled={page >= list.data.meta.last_page}
-              onClick={() => setPage(page + 1)}
-            >
-              {t("payments.next")}
-            </Button>
-          </nav>
-        </>
-      )}
+                        {payment.payment_id}
+                      </button>
+                    </TableCell>
+                    <TableCell data-m="sub">
+                      {t(
+                        payment.kind === "refund"
+                          ? "payments.refund"
+                          : "payments.collection"
+                      )}
+                    </TableCell>
+                    <TableCell data-m="hide" className="text-muted-foreground">
+                      {t(
+                        payment.environment === "production"
+                          ? "payments.production"
+                          : "payments.sandbox"
+                      )}
+                    </TableCell>
+                    <TableCell data-m="badge">
+                      <StatusBadge
+                        status={status}
+                        label={t(`payments.status.${status}`)}
+                      />
+                    </TableCell>
+                    <TableCell
+                      data-m="right"
+                      className="text-right font-semibold tabular-nums"
+                    >
+                      {paymentMoney(payment, locale)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </ListCard>
       <Dialog
         open={Boolean(selected && canView(selected))}
         onOpenChange={(open) => {
           if (!open) setSelected(null)
         }}
       >
-        <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <DialogContent
+          data-payment-details=""
+          finalFocus={returnFocus}
+          className="max-h-[90dvh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>{t("payments.details")}</DialogTitle>
           </DialogHeader>
@@ -255,6 +296,31 @@ function Payments({
               </p>
               <p className="tabular-nums">{paymentMoney(current, locale)}</p>
               <code className="text-xs break-all">{current.payment_id}</code>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="outline"
+                  disabled={refresh.isPending || !canView(current)}
+                  onClick={() => refresh.mutate(current)}
+                >
+                  {t("payments.refresh")}
+                </Button>
+                {current.invoice_id || current.credit_note_id ? (
+                  <Link
+                    className="inline-flex min-h-11 items-center text-sm underline"
+                    href={`/invoices/${current.credit_note_id ?? current.invoice_id}`}
+                  >
+                    {t("payments.openInvoice")}
+                  </Link>
+                ) : current.order_id ? (
+                  <Link
+                    className="inline-flex min-h-11 items-center text-sm underline"
+                    href={`/orders/${current.order_id}`}
+                  >
+                    {t("payments.openOrder")}
+                  </Link>
+                ) : null}
+              </div>
+              <ApiError error={refresh.error} fallback={t("common.error")} />
               {current.attention_reason ? (
                 <Notice variant="warning" title={current.attention_reason} />
               ) : null}

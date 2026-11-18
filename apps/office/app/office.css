@@ -127,3 +127,10 @@
 .overview-bento .magic-bento__card {
   user-select: text;
 }
+
+/* Payments needs more room for provider records; phones retain the shared bottom sheet. */
+@media (min-width: 768px) {
+  .theme-glass [data-payment-details][data-slot="dialog-content"] {
+    max-width: min(672px, calc(100% - 2rem));
+  }
+}
