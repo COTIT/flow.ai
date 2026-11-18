@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::{Rules, Validate, ValidatedJson},
         list::{Page, Paginated},
@@ -23,10 +23,11 @@ use crate::{
             AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
             BankAccountPayload, BankAccountResource, Create, GeneralLedgerResource, JournalPayload,
             JournalResource, LedgerQuery, ListQuery, PeriodPayload, PeriodResource, PostPayload,
-            ProfitAndLossResource, RangeQuery, ReversePayload, ReverseReviewBody, ReviewResource,
-            SetupPayload, SetupResource, TrialBalanceResource, YearPayload, YearResource,
+            ProfitAndLossResource, RangeQuery, RevaluationResource, RevaluePayload,
+            RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload,
+            SetupResource, TrialBalanceResource, YearPayload, YearResource,
         },
-        journals, reports, service,
+        journals, reports, revaluation, service,
     },
 };
 
@@ -36,6 +37,7 @@ permissions! {
     JournalCreate => "accounting.journal_create",
     Post => "accounting.post",
     Reverse => "accounting.reverse",
+    Revalue => "accounting.revalue",
 }
 
 /// A path id; malformed reads as missing.
@@ -228,6 +230,57 @@ pub async fn periods_list(
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
     let (rows, total) = service::periods(&state, access.workspace_id, page).await?;
     Ok(Json(Paginated::new(rows, total, page)))
+}
+
+/// accounting_periods_revalue_review: Preview a period's FX revaluation (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/periods/{period}/revalue/review", tag = "accounting",
+    operation_id = "accounting_periods_revalue_review",
+    summary = "Preview a period's FX revaluation (no writes)",
+    request_body = RevalueReviewBody,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("period" = Uuid, Path, description = "Period id")),
+    responses(
+        (status = 200, body = Envelope<RevaluationResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn periods_revalue_review(
+    State(state): State<AppState>,
+    access: Can<Revalue>,
+    Path((_, raw)): Path<(String, String)>,
+    ValidatedJson(rate_date): ValidatedJson<RevalueReviewBody>,
+) -> Result<Data<RevaluationResource>, AppError> {
+    Ok(Data(
+        revaluation::review(&state, access.workspace_id, id(&raw)?, rate_date).await?,
+    ))
+}
+
+/// accounting_periods_revalue: Post a reviewed FX revaluation of a period.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/periods/{period}/revalue", tag = "accounting",
+    operation_id = "accounting_periods_revalue",
+    summary = "Post a reviewed FX revaluation of a period",
+    request_body = Action<RevaluePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("period" = Uuid, Path, description = "Period id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<RevaluationResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or missing rate, or `accounting_not_configured` / `accounting_period_closed` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn periods_revalue(
+    State(state): State<AppState>,
+    access: Can<Revalue>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<RevaluePayload>>,
+) -> Result<Answer, AppError> {
+    revaluation::post(&state, &access, id(&raw)?, cmd).await
 }
 
 /// accounting_periods_create: Create a posting period inside a fiscal year.

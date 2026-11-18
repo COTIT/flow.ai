@@ -179,9 +179,34 @@ Each answers `{data: …}` with `functional_currency` and its dates.
 
 Not yet: party ledger, receivables and payables aging (they need open items and allocations, M4/M5), inventory valuation and close checks.
 
+## Period FX revaluation (M5-B)
+
+Active books only; a setup book gets 422 `accounting_not_configured`. Masterplan §13 "Period revaluation".
+
+- `POST /accounting/periods/{id}/revalue/review` (`accounting_periods_revalue_review`, `accounting.revalue`): body `{rate_date}`. No writes.
+- `POST /accounting/periods/{id}/revalue` (`accounting_periods_revalue`, `accounting.revalue`): A envelope `{client_ref, expected_version, payload: {rate_date, review_fingerprint}}`, Idempotency-Key. `expected_version` is the period's version; a post adds 1 to it. Replay returns the stored answer.
+
+What is revalued: open items (`residual > 0`) in a currency other than the functional one, issued on or before the period's last day (`end_date − 1`), classed `receivable`, `payable`, `customer_credit`, `supplier_credit` or `recovery_receivable`. Customer deposits and supplier advances (nonmonetary, D23), GRNI (bills relieve it at receipt basis) and foreign bank/cash balances are not.
+
+Rules:
+
+- `rate_date` must be on or before the period's last day (422 field error). Each currency uses the rate in force on `rate_date`: direct, else inverse; no rate-1 fallback, no third currency. A missing rate is a 422 field error on `rate_date` ("No USD → EUR rate is in force on …").
+- Closed period or fiscal year: 422 `accounting_period_closed`. Unknown period or another workspace: 404.
+- Per item, in SQL: `revalued = money_convert(residual, rate)` (half away from zero), `delta = revalued − carrying` (carrying = `functional_residual`). Items with delta 0 post nothing. An open residual that converts to 0 refuses the run (422 `unsupported_active_erp_operation`).
+- Left out and listed in `not_revalued`: `settled_after_rate_date` (a non-reversed allocation dated after `rate_date` already realized its FX against the old carrying) and `revalued_after_accounting_date` (a later period's run already moved it).
+- Per item with delta ≠ 0, dated the period's last day: one posted `fx_revaluation` journal (control account of the item with its relation vs `unrealized_fx`) and one `accounting_carrying_adjustments` row (`revaluation`, delta). A debit-side item worth more, or a credit-side item worth less, debits the control account. The adjustment moves the item's `functional_residual`, so a later allocation relieves the adjusted carrying and realizes only the rest (no FX counted twice).
+- One `accounting_revaluations` row and one effect (`fx_revaluation`, run id, `posted`) per post, shared by its journals and adjustments. A period may be revalued again: the next run posts only the difference from the adjusted carrying, and an all-zero run is still recorded. There is no reversal route; adjustments are not reversed in the next period.
+- The exclusive book gate is held for the whole run, so nothing settles while it posts. Review recomputes everything; a changed fact or version is 409 `stale_document`.
+
+Response (`RevaluationResource`): `id` (null on review), `period_id`, `period_version`, `rate_date`, `accounting_date`, `functional_currency`, `rates[]` (`currency`, `rate`, `inverse`, `source`, `effective_on`), `items[]` (`open_item_id`, `classification`, `relation_id`, `currency`, `residual`, `carrying`, `revalued`, `delta`, `journal_id`), `not_revalued[]` (`open_item_id`, `reason`), `review_fingerprint`.
+
+`PeriodResource` gains `last_revaluation` (`id`, `rate_date`, `accounting_date`, `created_at`, or null) and `allowed_actions: ["revalue"]` while open. For period close, `revaluation::current(period)` says whether revaluation is done: no in-scope item needs it, or the latest run recomputed at its rate date has nothing left to post.
+
+Known limits: foreign bank-account and cash-place balances are not revalued (the book keeps no transaction-currency balance for them); revaluation is not reversed in the next period.
+
 ## Permissions
 
-`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` are used now. `accounting.reconcile`, `accounting.close`, `accounting.revalue` and `accounting.activate` are catalogued for later milestones.
+`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse` and `accounting.revalue` are used now. `accounting.reconcile`, `accounting.close` and `accounting.activate` are catalogued for later milestones.
 
 ## Provider observations
 

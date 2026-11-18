@@ -16,6 +16,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         ))
         .routes(routes!(handlers::years_list, handlers::years_create))
         .routes(routes!(handlers::periods_list, handlers::periods_create))
+        .routes(routes!(handlers::periods_revalue_review))
+        .routes(routes!(handlers::periods_revalue))
         .routes(routes!(handlers::journals_list, handlers::journals_create))
         .routes(routes!(handlers::journals_get, handlers::journals_update))
         .routes(routes!(handlers::journals_post_review))

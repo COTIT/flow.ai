@@ -35,6 +35,8 @@ mod attention;
 mod attention_priorities;
 #[path = "api/cash_places.rs"]
 mod cash_places;
+#[path = "api/fx_revaluation.rs"]
+mod fx_revaluation;
 #[path = "api/gateway_accounts.rs"]
 mod gateway_accounts;
 #[path = "api/gateway_recovery.rs"]
