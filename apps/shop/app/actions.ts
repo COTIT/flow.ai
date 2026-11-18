@@ -22,9 +22,11 @@ export async function placeOrder(
 ): Promise<CheckoutState> {
   const parsed = parseCheckout(form)
   if (!parsed.ok)
-    return parsed.missing.length
-      ? { missing: parsed.missing }
-      : { problem: "invalid_input" }
+    return parsed.errors
+      ? { errors: parsed.errors }
+      : parsed.missing.length
+        ? { missing: parsed.missing }
+        : { problem: "invalid_input" }
   const result = await createOrder(parsed.body, parsed.idempotencyKey)
   if (!result.ok)
     return result.kind === "invalid"

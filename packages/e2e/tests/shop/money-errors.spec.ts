@@ -19,7 +19,7 @@ async function submit(page: Page, email: string) {
   await page.getByLabel("Address", { exact: true }).fill("1 Main St")
   await page.getByLabel("Postal code").fill("10001")
   await page.getByLabel("City").fill("New York")
-  await page.getByLabel("Country").fill("US")
+  await page.getByLabel("Country").selectOption("US")
   await page.getByRole("button", { name: "Place order" }).click()
 }
 
@@ -46,9 +46,7 @@ test("API down while placing the order: an error, the form and cart kept", async
   await expectNoHorizontalScroll(page)
 })
 
-// BUG: React 19 resets a form whose `action` finishes, so every refused order (API down,
-// 422, busy) wipes what the buyer typed and they must fill it all in again.
-// apps/shop/components/checkout-form.tsx (`<form action={action}>`, uncontrolled inputs).
+// Refused orders must leave customer details available for correction or retry.
 for (const [why, email] of [
   ["the API is down", CHECKOUT_DOWN_EMAIL],
   ["the API refuses a field (422)", "not-an-email"],
@@ -56,7 +54,6 @@ for (const [why, email] of [
   test(`what the buyer typed survives a refused order: ${why}`, async ({
     page,
   }) => {
-    test.fail(true, "checkout form is reset after every refused submit")
     await seedCart(page, 1)
     await submit(page, email)
     await expect(
@@ -68,6 +65,12 @@ for (const [why, email] of [
     await expect(page.getByLabel("Email")).toHaveValue(email, {
       timeout: 2_000,
     })
+    await expect(page.getByLabel("Country")).toHaveValue("US")
+    if (email === "not-an-email") {
+      await page.getByLabel("Email").fill("corrected@e2e.test")
+      await page.getByRole("button", { name: "Place order" }).click()
+      await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/)
+    }
   })
 
 test("cancelling on the provider's page comes back unpaid, ready to pay again", async ({

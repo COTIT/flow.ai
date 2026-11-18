@@ -171,7 +171,7 @@ async fn public_catalog_and_checkout_never_cross_workspace_or_inactive_connectio
             StatusCode::NOT_FOUND
         );
     }
-    let checkout = json!({"lines":[{"product_id":a,"quantity":"1"}],"customer":{"email":"buyer@example.com","name":"Buyer"}});
+    let checkout = json!({"lines":[{"product_id":a,"quantity":"1"}],"customer":{"email":"buyer@example.com","name":"Buyer","shipping_address":{"country":"NL"}}});
     assert_eq!(
         public(&api, Method::POST, id, "/orders", Some(checkout))
             .await
@@ -201,8 +201,20 @@ async fn reconnect_replays_original_checkout_and_disconnected_history_can_pay(po
     stock(&api, &product, &warehouse, 5).await;
     let connection = toggle(&api, true).await;
     let id = connection["id"].as_str().unwrap();
-    let body = json!({"lines":[{"product_id":product,"quantity":"1"}],"customer":{"email":"buyer@example.com","name":"Buyer"}});
+    let body = json!({"lines":[{"product_id":product,"quantity":"1"}],"customer":{"email":"buyer@example.com","name":"Buyer","shipping_address":{"country":"NL"}}});
     let path = format!("/v1/storefront/shops/{id}/orders");
+    let mut invalid = body.clone();
+    invalid["customer"]["shipping_address"]["country"] = json!("test");
+    let (status, reply) = public(&api, Method::POST, id, "/orders", Some(invalid)).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{reply}");
+    assert!(reply["errors"]["customer.shipping_address.country"].is_array());
+    let orders: i64 = sqlx::query_scalar("SELECT count(*) FROM orders WHERE workspace_id=$1::uuid")
+        .bind(&api.ws)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(orders, 0);
+    assert!(fake.intents().is_empty());
     let headers = [("Idempotency-Key", "checkout-one")];
     let create = || {
         common::send_raw(

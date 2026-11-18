@@ -413,7 +413,7 @@ async fn web(
                     "/storefront/orders",
                     Some(json!({ "lines": lines,
                         "customer": { "email": format!("{}.{}@mail.test", first.to_lowercase(), last.to_lowercase()),
-                                      "name": format!("{first} {last}") } })),
+                                      "name": format!("{first} {last}"), "shipping_address": { "country": "US" } } })),
                     Some(key),
                 )
                 .await?;

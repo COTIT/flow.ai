@@ -143,6 +143,7 @@ The shop's order view holds `id, number, status, currency, decimals, subtotal, v
 Checkout body: `{lines: [{product_id, product_variant_id?, quantity}], customer: {email, name, phone?, shipping_address?, billing_address?}}`.
 - Prices come from the catalog only: a sent `unit_price`, `discount_percentage` or `title` is a 422. Products must be active and not archived.
 - 1 to 50 lines, quantity at most 1000 per line; addresses are objects of at most 4 KiB.
+- Customer name and email are required; name/email are at most 255 characters, email must be valid, and optional phone is at most 50 characters. A shipping or billing address must contain a valid ISO 3166-1 alpha-2 `country`; every supplied country is validated and normalized to uppercase. Invalid customer details return field errors with 422 before creating an order, reserving stock or starting payment.
 - The main currency and the main warehouse; not enough stock is a 422 on `lines.N.quantity`.
 - At most `CHECKOUT_HOLD_MAX` (default 500) web orders per workspace may await payment: 429 above it. The per-key private rate limit applies too.
 

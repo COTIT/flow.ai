@@ -82,7 +82,7 @@ async fn shop(w: &W, method: Method, path: &str, body: Option<Value>) -> (Status
 /// A web order of `q` honey with its open intent: (order id, provider payment id).
 async fn awaiting(w: &W, q: u32) -> (String, String) {
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": q }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (s, o) = shop(w, Method::POST, "/orders", Some(body)).await;
     assert_eq!(s, StatusCode::CREATED, "{o}");
     let id = o["data"]["id"].as_str().unwrap().to_owned();
@@ -318,7 +318,7 @@ async fn a_provider_amount_that_does_not_match_is_rejected(pool: PgPool) {
 async fn a_request_killed_after_the_provider_call_is_recovered_once(pool: PgPool) {
     let w = world(pool).await;
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": 1 }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (_, o) = shop(&w, Method::POST, "/orders", Some(body)).await;
     let id = o["data"]["id"].as_str().unwrap().to_owned();
     // The request committed its `creating` row, reached the provider, then died.
@@ -870,7 +870,7 @@ async fn pay_page(
 /// A web order of `q` honey and its checkout URL.
 async fn checkout_url(w: &W, q: u32) -> (String, String) {
     let body = json!({ "lines": [{ "product_id": w.honey, "quantity": q }],
-                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+                       "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } } });
     let (s, o) = shop(w, Method::POST, "/orders", Some(body)).await;
     assert_eq!(s, StatusCode::CREATED, "{o}");
     let id = o["data"]["id"].as_str().unwrap().to_owned();
