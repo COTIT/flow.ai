@@ -65,6 +65,12 @@ for (const [why, email] of [
     await expect(page.getByLabel("Email")).toHaveValue(email, {
       timeout: 2_000,
     })
+    await expect(page.getByLabel("Country")).toHaveValue("US")
+    if (email === "not-an-email") {
+      await page.getByLabel("Email").fill("corrected@e2e.test")
+      await page.getByRole("button", { name: "Place order" }).click()
+      await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/)
+    }
   })
 
 test("cancelling on the provider's page comes back unpaid, ready to pay again", async ({

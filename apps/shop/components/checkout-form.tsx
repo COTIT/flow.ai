@@ -172,6 +172,8 @@ export function CheckoutForm({
     <form
       ref={formRef}
       action={action}
+      // Failed actions keep native controls intact; successful checkout redirects away.
+      onReset={(event) => event.preventDefault()}
       className="grid grid-cols-12 gap-3 md:gap-4"
       noValidate
     >
