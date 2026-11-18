@@ -62,7 +62,9 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   // Shop: the product page shows the size (once a product has sizes, the shop sells only those).
   await page.goto(`${urls.shop}/products/${id}`)
   await expect(page.getByRole("heading", { name })).toBeVisible()
-  await expect(page.getByRole("main").getByRole("button", { name: "250 G", exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("group", { name: "Size" }).getByRole("button", { name: /^250 G(?:\s|$)/ })
+  ).toBeVisible()
   await expectNoRawValues(page)
 
   // Till: a tile on the sale screen.
