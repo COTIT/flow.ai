@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM purchase_order_lines WHERE workspace_id = $1 AND purchase_order_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "efe0187c8c4910c478b31ddfd17132ae79c5dddc41a202998ae7764ad374e089"
+}

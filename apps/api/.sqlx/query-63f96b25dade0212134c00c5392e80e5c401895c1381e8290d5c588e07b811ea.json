@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT entry_id, sum(debit)::bigint AS \"debit!\", sum(credit)::bigint AS \"credit!\",\n                  sum(functional_debit)::bigint AS \"functional_debit!\",\n                  sum(functional_credit)::bigint AS \"functional_credit!\"\n           FROM journal_lines\n           WHERE workspace_id = $1 AND entry_id = ANY($2)\n           GROUP BY entry_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "entry_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "entry_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "debit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "credit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "functional_debit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "functional_credit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "63f96b25dade0212134c00c5392e80e5c401895c1381e8290d5c588e07b811ea"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE purchase_order_lines SET closed_quantity = closed_quantity + $3\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c2ae703662f7113b58d3b7f1edfc24aab1e73f80afd29ba323deb84d54b1a2b9"
+}

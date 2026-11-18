@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.currency_id, upper(c.asset_type) AS \"code!\", c.decimals\n           FROM cash_vaults v\n           JOIN currencies c ON c.workspace_id = v.workspace_id AND c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.id = $2 FOR NO KEY UPDATE OF v",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "cash_vaults",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "1846a0c575349a56e3a7975061fd38c9f9e8c133e86912d7031a8e38e90b0bc2"
+}

@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cash_ledger (workspace_id, register_id, vault_id, kind, amount, actor_kind,\n             member_user_id, till_user_id, source_kind, source_id, effect_id)\n         VALUES ($1, $2, $3, 'adjustment', $4, 'member', $5, $6, 'cash_adjustment', $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e28163823c78d5790a0560b08807b8cfc826b815ff44fca571a23389c5eaa1b7"
+}

@@ -47,7 +47,7 @@ async fn member_gets_laravel_catalog_shape(pool: PgPool) {
 
     assert_eq!(status, StatusCode::OK, "{res}");
     let data = res["data"].as_object().unwrap();
-    assert_eq!(data.len(), 51, "50 groups + __classification");
+    assert_eq!(data.len(), 56, "55 groups + __classification");
     assert_eq!(
         data["team"],
         json!([
@@ -71,7 +71,7 @@ async fn member_gets_laravel_catalog_shape(pool: PgPool) {
         ])
     );
     let enforced = class["api_enforced"].as_array().unwrap();
-    assert_eq!(enforced.len(), 263);
+    assert_eq!(enforced.len(), 295);
     assert!(enforced.contains(&json!("integration.approve_high")));
     assert!(enforced.contains(&json!("cashregister.refund")));
     assert!(enforced.contains(&json!("cashregister.adjust")));

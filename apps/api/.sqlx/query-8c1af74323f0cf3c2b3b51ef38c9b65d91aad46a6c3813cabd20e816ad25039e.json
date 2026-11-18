@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM stocktakes\n                          WHERE workspace_id = $1 AND warehouse_id = $2 AND state = 'counting')\n           AS \"paused!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "paused!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8c1af74323f0cf3c2b3b51ef38c9b65d91aad46a6c3813cabd20e816ad25039e"
+}

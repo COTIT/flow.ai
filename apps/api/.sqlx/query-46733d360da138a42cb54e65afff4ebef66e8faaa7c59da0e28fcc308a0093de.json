@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH d AS (\n               SELECT r.id,\n                      CASE WHEN o.booked_quantity + r.base_quantity = o.base_quantity\n                           THEN o.extension - o.booked_value\n                           ELSE money_round_div(o.extension * (o.booked_quantity + r.base_quantity),\n                                                o.base_quantity)::bigint - o.booked_value\n                      END AS doc\n               FROM purchase_receipt_lines r\n               JOIN purchase_order_lines o ON o.workspace_id = r.workspace_id AND o.id = r.po_line_id\n               WHERE r.workspace_id = $1 AND r.id = ANY($2))\n           SELECT id AS \"id!\", doc AS \"doc!\", money_convert(doc, $3, $4, $5, $6) AS \"net!\"\n           FROM d ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_receipt_lines",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "doc!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "net!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Numeric",
+        "Int4",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "46733d360da138a42cb54e65afff4ebef66e8faaa7c59da0e28fcc308a0093de"
+}

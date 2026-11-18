@@ -1,0 +1,303 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.number, o.state, o.supplier_id,\n                  coalesce(r.company_name, r.alias) AS supplier_name,\n                  o.supplier_snapshot, o.currency_id, upper(c.asset_type) AS \"currency_code!\",\n                  c.decimals AS currency_decimals, o.purchase_date, o.expected_date,\n                  o.reference, o.note, o.default_warehouse_id, o.version, o.created_by,\n                  o.created_at, o.updated_at, o.confirmed_by, o.confirmed_at, o.cancelled_at,\n                  o.cancel_reason, count(*) OVER () AS \"total!\",\n                  t.ordered AS \"ordered!\", t.received AS \"received!\", t.open AS \"open!\"\n           FROM purchase_orders o\n           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           JOIN relations r ON r.workspace_id = o.workspace_id AND r.id = o.supplier_id\n           CROSS JOIN LATERAL (\n               SELECT coalesce(sum(l.extension), 0)::bigint AS ordered,\n                      coalesce(sum(money_round_div(l.extension * l.received_quantity,\n                                                   l.base_quantity)), 0)::bigint AS received,\n                      coalesce(sum(money_round_div(l.extension * (l.base_quantity\n                                       - l.received_quantity - l.closed_quantity),\n                                   l.base_quantity)), 0)::bigint AS open\n               FROM purchase_order_lines l WHERE l.purchase_order_id = o.id) t\n           WHERE o.workspace_id = $1 AND ($2::uuid IS NULL OR o.id = $2)\n             AND ($3::text IS NULL OR o.state = $3)\n             AND ($4::uuid IS NULL OR o.supplier_id = $4)\n           ORDER BY o.number DESC\n           LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "supplier_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "supplier_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "supplier_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "supplier_snapshot",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "supplier_snapshot"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "currency_code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "purchase_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "purchase_date"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "expected_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "expected_date"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "default_warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "default_warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "confirmed_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "confirmed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "confirmed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "cancelled_at"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "cancel_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "purchase_orders",
+            "name": "cancel_reason"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 23,
+        "name": "ordered!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 24,
+        "name": "received!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 25,
+        "name": "open!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c15229a200a4329ad0a4c9b4a9615f46b2cc382c4446cb61888bf532dda1d872"
+}

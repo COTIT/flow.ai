@@ -13,6 +13,7 @@ One Rust backend (`apps/api`) and four Next.js apps (`apps/shop`, `apps/office`,
 ## Product rules
 
 - Money is exact: integer cents end to end, no floats. Farmer passbook lines are append-only.
+- All money calculation (totals, extensions, tax, conversions, averages, allocations, rounding) happens in the SQL query, in Postgres `numeric`. The Rust API passes the results through; frontends only display them.
 - An account (workspace) is the privacy boundary. Every query on account data filters by `workspace_id`, and a test proves another account is refused.
 - Sharing between accounts happens only through explicit supply links, with farmer consent.
 - Business rules live in `apps/api`. Frontend apps display and collect data; they never re-implement rules.

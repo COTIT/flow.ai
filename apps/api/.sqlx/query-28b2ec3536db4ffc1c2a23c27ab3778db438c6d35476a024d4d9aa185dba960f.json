@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (clock_timestamp() AT TIME ZONE coalesce(timezone, 'UTC'))::date AS \"d!\"\n           FROM accounting_settings WHERE workspace_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "d!",
+        "type_info": "Date",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "28b2ec3536db4ffc1c2a23c27ab3778db438c6d35476a024d4d9aa185dba960f"
+}

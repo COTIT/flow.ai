@@ -60,6 +60,8 @@ pub const SCHEDULED_REPORTS: &str = "scheduled_reports";
 pub const PRODUCT_BULK: &str = "product_bulk";
 /// Expire drafts and remove private sources/audit within the import retention policy.
 pub const PRODUCT_BULK_PRUNE: &str = "product_bulk_prune";
+/// Applies a validated master-data import, one row per transaction (`imports::worker`).
+pub const IMPORT_APPLY: &str = "import_apply";
 
 /// WF-01: system job each minute enqueueing the due per-pair jobs (`wf01_purchase::tick`).
 pub const WF01_TICK: &str = "wf01_tick";
@@ -92,6 +94,7 @@ pub const KINDS: &[&str] = &[
     SCHEDULED_REPORTS,
     PRODUCT_BULK,
     PRODUCT_BULK_PRUNE,
+    IMPORT_APPLY,
     WF01_TICK,
     WF01_POLL,
     WF01_SWEEP,
@@ -193,6 +196,7 @@ pub fn handler(ctx: Ctx) -> Handler {
 /// Run one job (or one chunk) of a known kind.
 pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
     match job.kind.as_str() {
+        IMPORT_APPLY => return crate::modules::imports::worker::run(ctx, &job).await,
         PRODUCT_BULK => return crate::modules::product_bulk_runs::worker::run(ctx, &job).await,
         PRODUCT_BULK_PRUNE => {
             if crate::modules::product_bulk_runs::worker::prune(&ctx.db, ctx.files.as_ref()).await?

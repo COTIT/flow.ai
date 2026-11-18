@@ -31,4 +31,20 @@ describe("ApiError", () => {
       renderToStaticMarkup(<ApiError error={failed()} fallback="Oops" />)
     ).toContain("Oops")
   })
+
+  it("reads a code field before the message (a 409 stale_document)", () => {
+    const out = renderToStaticMarkup(
+      <ApiError
+        error={{
+          response: {
+            data: { message: "The document changed.", code: "stale_document" },
+          },
+        }}
+        fallback="Oops"
+        codes={{ stale_document: "Someone changed this order." }}
+      />
+    )
+    expect(out).toContain("Someone changed this order.")
+    expect(out).not.toContain("stale_document")
+  })
 })

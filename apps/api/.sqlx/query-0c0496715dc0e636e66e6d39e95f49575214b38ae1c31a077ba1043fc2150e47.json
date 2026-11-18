@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH l AS (\n               SELECT line_no, debit, credit,\n                      money_convert(debit, $3, $5, $6, $4) AS cd,\n                      money_convert(credit, $3, $5, $6, $4) AS cc,\n                      row_number() OVER (PARTITION BY debit > 0 ORDER BY line_no) AS dn,\n                      count(*) OVER (PARTITION BY debit > 0) AS dk,\n                      row_number() OVER (PARTITION BY credit > 0 ORDER BY line_no) AS cn,\n                      count(*) OVER (PARTITION BY credit > 0) AS ck,\n                      money_convert(sum(debit) OVER ()::bigint, $3, $5, $6, $4) AS total\n               FROM journal_lines WHERE workspace_id = $1 AND entry_id = $2\n           ), f AS (\n               SELECT line_no, debit, credit,\n                      CASE WHEN debit <= 0 THEN 0\n                           WHEN dn = dk THEN total - coalesce(sum(cd) OVER (PARTITION BY debit > 0\n                               ORDER BY line_no ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)\n                           ELSE cd END AS fd,\n                      CASE WHEN credit <= 0 THEN 0\n                           WHEN cn = ck THEN total - coalesce(sum(cc) OVER (PARTITION BY credit > 0\n                               ORDER BY line_no ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)\n                           ELSE cc END AS fc\n               FROM l\n           )\n           SELECT line_no AS \"line_no!\", fd::bigint AS \"fd!\", fc::bigint AS \"fc!\",\n                  bool_and(fd >= 0 AND fc >= 0) OVER () AS \"ok!\",\n                  sum(debit) OVER ()::bigint AS \"debit!\", sum(credit) OVER ()::bigint AS \"credit!\",\n                  sum(fd) OVER ()::bigint AS \"sum_fd!\", sum(fc) OVER ()::bigint AS \"sum_fc!\"\n           FROM f ORDER BY line_no",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "line_no!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "journal_lines",
+            "name": "line_no"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "fd!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "fc!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "ok!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "debit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "credit!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "sum_fd!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "sum_fc!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Bool",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0c0496715dc0e636e66e6d39e95f49575214b38ae1c31a077ba1043fc2150e47"
+}

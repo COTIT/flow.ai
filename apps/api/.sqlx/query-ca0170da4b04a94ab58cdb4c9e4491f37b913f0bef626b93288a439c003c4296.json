@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE shipments SET note = $3, version = version + 1, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ca0170da4b04a94ab58cdb4c9e4491f37b913f0bef626b93288a439c003c4296"
+}

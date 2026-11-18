@@ -1,0 +1,87 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.name,\n                  CASE WHEN m.v BETWEEN -9223372036854775808 AND 9223372036854775807\n                       THEN m.v::bigint END AS price_minor,\n                  p.currency_id, p.has_stock,\n                  (p.status = 'active' AND NOT p.archived) AS \"sellable!\",\n                  coalesce(v.vat_amount, 0) AS \"vat!\"\n           FROM products p\n           CROSS JOIN LATERAL (SELECT money_round_div(p.price * 10::numeric ^ $3::int, 1) AS v) m\n           LEFT JOIN vat_groups v ON v.workspace_id = p.workspace_id AND v.id = p.vat_group_id\n                AND v.deleted_at IS NULL\n           WHERE p.workspace_id = $1 AND p.id = ANY($2) AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "price_minor",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "has_stock",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "has_stock"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "sellable!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "vat!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "71125d199817332a982610b1313110daac122ace74fe9fe6189c4867e2bf8b46"
+}

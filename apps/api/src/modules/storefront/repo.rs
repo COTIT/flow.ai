@@ -100,6 +100,8 @@ pub async fn products(
                             ORDER BY w.id LIMIT 1)
                         AND (s.lot_id IS NULL OR (l.status = 'released'
                              AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
+                        -- Accepted-unbooked receipts block the pool (active books, M3).
+                        AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id, s.product_id)
                   ) END AS available_stock,
                   pg.labels, pc.id AS "category_id?", pc.name AS "category_name?",
                   (SELECT l.public_code FROM lots l
@@ -111,7 +113,8 @@ pub async fn products(
                                       AND w.default_warehouse AND w.deleted_at IS NULL
                                  WHERE s.workspace_id = $1 AND s.lot_id = l.id
                                    AND s.bin_id IS NULL AND s.deleted_at IS NULL
-                                   AND s.stock_lvl - s.reserved > 0)
+                                   AND s.stock_lvl - s.reserved > 0
+                                   AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id, s.product_id))
                    ORDER BY least(l.expires_on, l.best_before) NULLS LAST, l.id
                    LIMIT 1) AS passport_code,
                   (SELECT coalesce(json_agg(json_build_object(

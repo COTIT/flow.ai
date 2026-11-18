@@ -44,10 +44,13 @@ struct ProviderState {
     requests: HashMap<String, Value>,
     transactions: HashMap<String, Vec<Value>>,
     ambiguous_request: bool,
+    assigned_request_id: Option<Uuid>,
     ambiguous_refund: bool,
     chargeback_pages: u32,
+    chargebacks_unavailable: bool,
     chargebacks: HashMap<u32, Vec<Value>>,
     chargeback_seen: Vec<(String, u32)>,
+    chargeback_metadata: HashMap<u32, Value>,
     refund_barrier: Option<Arc<RefundBarrier>>,
 }
 
@@ -114,9 +117,16 @@ async fn remote(
         if f.ambiguous_request {
             return (StatusCode::OK, "broken accepted response").into_response();
         }
-        return axum::Json(json!({"message":"OK","details":{"requestId":request,"redirectUrl":"https://api.sbx.globadyme.com/api/link?id=link_test"}})).into_response();
+        let assigned = f
+            .assigned_request_id
+            .map(|id| id.to_string())
+            .unwrap_or(request);
+        return axum::Json(json!({"message":"OK","details":{"requestId":assigned,"redirectUrl":"https://api.sbx.globadyme.com/api/link?id=link_test"}})).into_response();
     }
     if uri.path().ends_with("getChargebacks") {
+        if f.chargebacks_unavailable {
+            return StatusCode::SERVICE_UNAVAILABLE.into_response();
+        }
         let page = uri
             .query()
             .unwrap_or("")
@@ -140,7 +150,14 @@ async fn remote(
         f.chargeback_seen
             .push((token["sub"].as_str().unwrap().to_owned(), page));
         let pages = f.chargeback_pages.max(1);
-        return axum::Json(json!({"totalPages":pages,"totalElements":pages*50,"currentPage":page,"pageSize":50,"last":page+1>=pages,"content":f.chargebacks.get(&page).cloned().unwrap_or_default()})).into_response();
+        let total: usize = f.chargebacks.values().map(Vec::len).sum();
+        let mut response = json!({"totalPages":pages,"totalElements":total,"currentPage":page,"pageSize":50,"last":page+1>=pages,"content":f.chargebacks.get(&page).cloned().unwrap_or_default()});
+        if let Some(metadata) = f.chargeback_metadata.get(&page).and_then(Value::as_object) {
+            for (key, value) in metadata {
+                response[key] = value.clone();
+            }
+        }
+        return axum::Json(response).into_response();
     }
     if uri.path().contains("getChargebackDetails/") {
         return axum::Json(
@@ -342,6 +359,23 @@ pub(super) fn capture(w: &World, payment: Uuid) {
         .insert(payment.to_string(), vec![tx]);
 }
 
+pub(super) fn refund_observation(w: &World, payment: Uuid, status: &str) {
+    let tx = transaction(w, payment, "tx-1", status, false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![tx]);
+}
+
+pub(super) fn ambiguous_refund(w: &World, enabled: bool) {
+    w.remote.lock().unwrap().ambiguous_refund = enabled;
+}
+
+fn unrelated_chargebacks(start: usize, count: usize) -> Vec<Value> {
+    (start..start + count).map(|index| json!({"chargebackId":format!("unrelated-cb-{index}"),"transactionId":format!("unrelated-tx-{index}"),"merchantId":MERCHANT,"amount":1.00,"currency":"EUR","status":"OPEN","created":"2026-11-13T00:00:00Z"})).collect()
+}
+
 pub(super) fn posts(w: &World, endpoint: &str) -> usize {
     w.remote
         .lock()
@@ -412,8 +446,8 @@ async fn refund(w: &World, order: &str, amount: &str) -> (StatusCode, Value) {
         .await
 }
 
-async fn resolve(w: &World, refund: Uuid, outcome: &str) -> (StatusCode, Value) {
-    w.api.with_base("/payments").call(Method::POST,&format!("/{refund}/resolve"),Some(json!({"outcome":outcome,"reason":"Provider investigated","evidence":"support-case-123"})),&w.api.owner).await
+pub(super) async fn resolve(w: &World, refund: Uuid, outcome: &str) -> (StatusCode, Value) {
+    w.api.with_base("/payments").call(Method::POST,&format!("/{refund}/resolve"),Some(json!({"outcome":outcome,"reason":"Provider investigated","evidence":"support-case-123: all provider refunds match local confirmed total"})),&w.api.owner).await
 }
 
 async fn persisted_finance(w: &World) -> Value {
@@ -580,6 +614,8 @@ async fn wrong_realm_paid_capture_and_unknown_refund_cannot_release_reserved_mon
             let (status, body) = resolve(&w, refund_id, outcome).await;
             assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
         }
+        let (status, body) = resolve(&w, payment, "refund_reconciled").await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
         let (status, body) = refund(&w, &order, "1.00").await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
         let shown = operation(&w, payment).await;
@@ -780,6 +816,8 @@ async fn unavailable_storage_account_or_origin_blocks_new_payment_without_http(p
         .await;
     assert_eq!(status, StatusCode::OK, "{existing}");
     let mut production = complete_setup("production");
+    production["integrations"]["payment"]["payment_providers"]["globadyme"]["production"]["password"] =
+        Value::Null;
     production["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"] =
         existing["data"]["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"]
             .clone();
@@ -1123,6 +1161,176 @@ async fn committed_pre_post_claim_survives_crash_without_submission(pool: PgPool
     assert_eq!(saved["status"], "unknown");
     assert_eq!(posts(&w, "requestPayment"), 0);
     assert_qr_blocked_without_http(&w, payment).await;
+}
+
+#[sqlx::test]
+async fn server_assigned_request_id_binds_callback_and_capture_once(pool: PgPool) {
+    let w = world(pool).await;
+    let assigned = Uuid::now_v7();
+    w.remote.lock().unwrap().assigned_request_id = Some(assigned);
+    let (order, payment) = collection(&w).await;
+    assert_ne!(assigned, payment);
+    assert_eq!(operation(&w, payment).await["status"], "open");
+    let stored: (Uuid, Option<String>) =
+        sqlx::query_as("SELECT request_id,provider_id FROM order_payments WHERE id=$1")
+            .bind(payment)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(stored, (payment, Some(assigned.to_string())));
+    assert_eq!(intent(&w, &order).await.0, StatusCode::OK);
+    assert_eq!(posts(&w, "requestPayment"), 1);
+    let mut captured = transaction(&w, payment, "tx-assigned", "PROCESSED", false);
+    captured["requestId"] = json!(assigned);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(assigned.to_string(), vec![captured]);
+    callback(&w, "sandbox", payment, CALLBACK).await;
+    let inbox: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM payment_webhook_inbox WHERE payment_id=$1")
+            .bind(payment)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(inbox, 0, "known provider ID must disable local alias");
+    callback(&w, "sandbox", assigned, CALLBACK).await;
+    jobs(&w).await;
+    callback(&w, "sandbox", assigned, CALLBACK).await;
+    jobs(&w).await;
+    let saved = operation(&w, payment).await;
+    assert_eq!(saved["status"], "paid");
+    assert_eq!(saved["captured_transaction_id"], "tx-assigned");
+    assert_eq!(saved["attention"], false);
+    assert!(posts(&w, &assigned.to_string()) > 0);
+    assert_eq!(posts(&w, &payment.to_string()), 0);
+    let events: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM order_events WHERE order_id=$1::uuid AND kind='paid'",
+    )
+    .bind(&order)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(events, 1);
+    assert_eq!(posts(&w, "requestPayment"), 1);
+    let (status, reply) = refund(&w, &order, "5.00").await;
+    assert_eq!(status, StatusCode::CREATED, "{reply}");
+    let refund_id = reply["data"]["refund_id"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let mut partial = transaction(&w, payment, "tx-assigned", "PARTIALLY_REFUNDED", false);
+    partial["requestId"] = json!(assigned);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(assigned.to_string(), vec![partial]);
+    assert_eq!(refresh(&w, refund_id).await["status"], "refunded");
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    assert_eq!(reply["data"]["attention"], false);
+    assert_eq!(posts(&w, "initiateRefund"), 1);
+}
+
+#[sqlx::test]
+async fn server_assigned_request_id_rejects_wrong_transaction_identity(pool: PgPool) {
+    let w = world(pool).await;
+    let assigned = Uuid::now_v7();
+    w.remote.lock().unwrap().assigned_request_id = Some(assigned);
+    let (_, payment) = collection(&w).await;
+    assert_eq!(operation(&w, payment).await["status"], "open");
+    for wrong in [payment, Uuid::now_v7()] {
+        let mut tx = transaction(&w, payment, "tx-wrong-request", "PROCESSED", false);
+        tx["requestId"] = json!(wrong);
+        w.remote
+            .lock()
+            .unwrap()
+            .transactions
+            .insert(assigned.to_string(), vec![tx]);
+        let saved = refresh(&w, payment).await;
+        assert_eq!(saved["status"], "open");
+        assert_eq!(saved["attention"], true);
+        assert!(saved["captured_transaction_id"].is_null());
+    }
+    assert_eq!(posts(&w, "requestPayment"), 1);
+}
+
+#[sqlx::test]
+async fn server_assigned_request_id_lost_response_remains_reserved_without_replay(pool: PgPool) {
+    let w = world(pool).await;
+    let assigned = Uuid::now_v7();
+    {
+        let mut remote = w.remote.lock().unwrap();
+        remote.assigned_request_id = Some(assigned);
+        remote.ambiguous_request = true;
+    }
+    let (order, payment) = collection(&w).await;
+    let mut tx = transaction(&w, payment, "tx-lost-response", "PROCESSED", false);
+    tx["requestId"] = json!(assigned);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(assigned.to_string(), vec![tx]);
+    callback(&w, "sandbox", assigned, CALLBACK).await;
+    for _ in 0..2 {
+        assert_eq!(intent(&w, &order).await.0, StatusCode::OK);
+        assert_eq!(refresh(&w, payment).await["status"], "unknown");
+        jobs(&w).await;
+    }
+    let bound: Option<String> =
+        sqlx::query_scalar("SELECT provider_id FROM order_payments WHERE id=$1")
+            .bind(payment)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert!(bound.is_none());
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    assert_eq!(posts(&w, &assigned.to_string()), 0);
+    assert_eq!(posts(&w, "requestPayment"), 1);
+}
+
+#[sqlx::test]
+async fn server_assigned_request_id_collision_and_callback_alias_fail_closed(pool: PgPool) {
+    let w = world(pool).await;
+    let assigned = Uuid::now_v7();
+    w.remote.lock().unwrap().assigned_request_id = Some(assigned);
+    let (_, first) = collection(&w).await;
+    assert_eq!(operation(&w, first).await["status"], "open");
+    let other = new_order(&w).await;
+    // Accepted second POST cannot steal first operation's provider identity.
+    let _ = intent(&w, &other).await;
+    let second: (Uuid, String, Option<String>) =
+        sqlx::query_as("SELECT id,status,provider_id FROM order_payments WHERE order_id=$1::uuid")
+            .bind(&other)
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(second.1, "unknown");
+    assert!(second.2.is_none());
+    assert_eq!(intent(&w, &other).await.0, StatusCode::OK);
+    assert_eq!(posts(&w, "requestPayment"), 2);
+    sqlx::query("UPDATE order_payments SET request_id=$2 WHERE id=$1")
+        .bind(second.0)
+        .bind(assigned)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    callback(&w, "sandbox", assigned, CALLBACK).await;
+    let inbox: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM payment_webhook_inbox WHERE payment_id=ANY($1)")
+            .bind(vec![first, second.0])
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        inbox, 0,
+        "ambiguous bound ID and unknown local alias must not choose an operation"
+    );
 }
 
 #[sqlx::test]
@@ -1641,7 +1849,12 @@ async fn own_partial_refund_observation_keeps_remaining_amount_refundable(pool: 
         .insert(payment.to_string(), vec![partial]);
     let saved = refresh(&w, payment).await;
     assert_eq!(saved["status"], "paid");
-    assert_eq!(saved["attention"], false);
+    assert_eq!(saved["attention"], true);
+    let (status, reply) = refund(&w, &order, "8.00").await;
+    assert_eq!(status, StatusCode::CONFLICT, "{reply}");
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    assert_eq!(reply["data"]["attention"], false);
     let (status, reply) = refund(&w, &order, "8.00").await;
     assert_eq!(status, StatusCode::CREATED, "{reply}");
     let last = Uuid::parse_str(reply["data"]["refund_id"].as_str().unwrap()).unwrap();
@@ -1659,6 +1872,367 @@ async fn own_partial_refund_observation_keeps_remaining_amount_refundable(pool: 
     assert_eq!(refunds[1]["amount"].to_string(), "8.00");
     drop(f);
     assert_eq!(posts(&w, "requestPayment"), 1);
+}
+
+#[sqlx::test]
+async fn refund_refresh_and_callback_preserve_unknown_until_audited_source_recovery(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    w.remote.lock().unwrap().ambiguous_refund = true;
+    let (status, reply) = refund(&w, &order, "5.00").await;
+    assert_eq!(status, StatusCode::CREATED, "{reply}");
+    let child = reply["data"]["refund_id"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let partial = transaction(&w, payment, "tx-1", "PARTIALLY_REFUNDED", false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![partial]);
+    let reads = posts(&w, &payment.to_string());
+    assert_eq!(refresh(&w, child).await["status"], "unknown");
+    assert!(posts(&w, &payment.to_string()) > reads);
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    callback(&w, "sandbox", payment, CALLBACK).await;
+    jobs(&w).await;
+    assert_eq!(operation(&w, child).await["status"], "unknown");
+    assert_eq!(
+        resolve(&w, payment, "refund_reconciled").await.0,
+        StatusCode::CONFLICT
+    );
+    assert_eq!(
+        resolve(&w, child, "refund_confirmed").await.0,
+        StatusCode::OK
+    );
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    assert_eq!(reply["data"]["attention"], false);
+    let audit: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM payment_audit WHERE payment_id=$1 AND action='refund_reconciled'",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(audit, 1);
+    w.remote.lock().unwrap().ambiguous_refund = false;
+    let (status, reply) = refund(&w, &order, "7.50").await;
+    assert_eq!(status, StatusCode::CREATED, "{reply}");
+    assert_eq!(posts(&w, "initiateRefund"), 2);
+    assert_eq!(posts(&w, "requestPayment"), 1);
+}
+
+#[sqlx::test]
+async fn identical_partial_observation_requires_new_provider_review(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    let partial = transaction(&w, payment, "tx-1", "PARTIALLY_REFUNDED", false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![partial]);
+    assert_eq!(refresh(&w, payment).await["attention"], true);
+    assert_eq!(
+        resolve(&w, payment, "refund_reconciled").await.0,
+        StatusCode::OK
+    );
+    assert_eq!(operation(&w, payment).await["attention"], false);
+    callback(&w, "sandbox", payment, CALLBACK).await;
+    jobs(&w).await;
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    assert_eq!(refund(&w, &order, "7.50").await.0, StatusCode::CONFLICT);
+    assert_eq!(posts(&w, "initiateRefund"), 1);
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_requires_attestation_and_matching_provider_shape(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    let partial = transaction(&w, payment, "tx-1", "PARTIALLY_REFUNDED", false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![partial]);
+    refresh(&w, payment).await;
+    for evidence in [serde_json::Value::Null, json!("")] {
+        let (status, reply) = w.api.with_base("/payments").call(Method::POST,&format!("/{payment}/resolve"),Some(json!({"outcome":"refund_reconciled","reason":"Investigated","evidence":evidence})),&w.api.owner).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{reply}");
+    }
+    let reads = posts(&w, &payment.to_string());
+    let full = transaction(&w, payment, "tx-1", "REFUNDED", false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![full]);
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::CONFLICT, "{reply}");
+    assert!(posts(&w, &payment.to_string()) > reads);
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    let audit: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM payment_audit WHERE payment_id=$1 AND action='refund_reconciled'",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(audit, 0);
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_refuses_other_workspace_and_nonadministrator_without_http(
+    pool: PgPool,
+) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    refund_observation(&w, payment, "PARTIALLY_REFUNDED");
+    refresh(&w, payment).await;
+    let outsider = w
+        .api
+        .as_new_owner("outsider-recovery@example.com", "other-recovery")
+        .await;
+    let member = common::member_with(
+        &w.api.app,
+        &w.api.pool,
+        &w.api.ws,
+        "viewer-recovery@example.com",
+        &["order.view"],
+    )
+    .await;
+    let before = persisted_finance(&w).await;
+    let http = w.remote.lock().unwrap().seen.len();
+    for token in [&outsider.owner, &member] {
+        let (status, body) = w.api.with_base("/payments").call(Method::POST,&format!("/{payment}/resolve"),Some(json!({"outcome":"refund_reconciled","reason":"Investigated","evidence":"case-123: all provider refunds match local confirmed total"})),token).await;
+        assert!(
+            matches!(status, StatusCode::FORBIDDEN | StatusCode::NOT_FOUND),
+            "{body}"
+        );
+    }
+    assert_eq!(persisted_finance(&w).await, before);
+    assert_eq!(w.remote.lock().unwrap().seen.len(), http);
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_matches_full_total_without_changing_refund_receipts(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "12.50").await.0, StatusCode::CREATED);
+    refund_observation(&w, payment, "REFUNDED");
+    sqlx::query("UPDATE order_payments SET attention=true,attention_reason='External refund or chargeback observation requires reconciliation.' WHERE id=$1")
+        .bind(payment).execute(&w.api.pool).await.unwrap();
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    assert_eq!(reply["data"]["attention"], false);
+    assert_eq!(reply["data"]["status"], "paid");
+    assert_eq!(refresh(&w, payment).await["attention"], false);
+    let total: i64 = sqlx::query_scalar("SELECT sum(amount)::bigint FROM order_payments WHERE parent_id=$1 AND kind='refund' AND status='refunded'")
+        .bind(payment).fetch_one(&w.api.pool).await.unwrap();
+    assert_eq!(total, 1250);
+    assert_eq!(posts(&w, "initiateRefund"), 1);
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_refuses_malformed_chargeback_pagination(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    refund_observation(&w, payment, "PARTIALLY_REFUNDED");
+    refresh(&w, payment).await;
+    for metadata in [
+        json!({"currentPage":1}),
+        json!({"pageSize":25}),
+        json!({"last":true,"totalPages":2}),
+        json!({"totalElements":1}),
+    ] {
+        w.remote
+            .lock()
+            .unwrap()
+            .chargeback_metadata
+            .insert(0, metadata.clone());
+        let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+        assert_eq!(
+            status,
+            StatusCode::SERVICE_UNAVAILABLE,
+            "{metadata}: {reply}"
+        );
+        assert_eq!(operation(&w, payment).await["attention"], true);
+    }
+    {
+        let mut remote = w.remote.lock().unwrap();
+        remote.chargeback_metadata.clear();
+        remote.chargeback_pages = 2;
+        remote.chargebacks.insert(0, unrelated_chargebacks(0, 50));
+        remote.chargebacks.insert(1, unrelated_chargebacks(50, 1));
+        remote
+            .chargeback_metadata
+            .insert(1, json!({"totalPages":3,"last":false}));
+    }
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    {
+        let mut remote = w.remote.lock().unwrap();
+        remote.chargeback_metadata.clear();
+        remote.chargebacks.insert(1, unrelated_chargebacks(0, 1));
+    }
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(operation(&w, payment).await["attention"], true);
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_requires_complete_available_chargeback_scan(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    refund_observation(&w, payment, "PARTIALLY_REFUNDED");
+    refresh(&w, payment).await;
+    w.remote.lock().unwrap().chargebacks_unavailable = true;
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    w.remote.lock().unwrap().chargebacks_unavailable = false;
+    {
+        let mut remote = w.remote.lock().unwrap();
+        remote.chargeback_pages = 11;
+        for page in 0..10 {
+            remote
+                .chargebacks
+                .insert(page, unrelated_chargebacks(page as usize * 50, 50));
+        }
+        remote.chargebacks.insert(10, unrelated_chargebacks(500, 1));
+    }
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    let audit: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM payment_audit WHERE payment_id=$1 AND action='refund_reconciled'",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(audit, 0);
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_retains_chargeback_found_after_first_page(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    refund_observation(&w, payment, "PARTIALLY_REFUNDED");
+    refresh(&w, payment).await;
+    {
+        let mut remote = w.remote.lock().unwrap();
+        remote.chargeback_pages = 2;
+        remote.chargebacks.insert(0, unrelated_chargebacks(0, 50));
+        remote.chargebacks.insert(1,vec![json!({"chargebackId":"cb-later-page","transactionId":"tx-1","merchantId":MERCHANT,"amount":12.50,"currency":"EUR","status":"OPEN","created":"2026-11-13T00:00:00Z","description":"Disputed payment"})]);
+    }
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::CONFLICT, "{reply}");
+    let saved = operation(&w, payment).await;
+    assert_eq!(saved["attention"], true);
+    assert_eq!(saved["chargebacks"][0]["chargebackId"], "cb-later-page");
+    w.remote.lock().unwrap().chargebacks.clear();
+    assert_eq!(
+        resolve(&w, payment, "refund_reconciled").await.0,
+        StatusCode::CONFLICT
+    );
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_refuses_conflicting_chargeback_identity(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    refund_observation(&w, payment, "PARTIALLY_REFUNDED");
+    refresh(&w, payment).await;
+    for (transaction, merchant, currency) in [
+        ("unrelated-tx", "foreign-merchant", "EUR"),
+        ("tx-1", MERCHANT, "USD"),
+        ("tx-1", "foreign-merchant", "EUR"),
+    ] {
+        sqlx::query("UPDATE order_payments SET attention_reason='External refund or chargeback observation requires reconciliation.' WHERE id=$1")
+            .bind(payment).execute(&w.api.pool).await.unwrap();
+        w.remote.lock().unwrap().chargebacks.insert(0, vec![json!({"chargebackId":"cb-conflicting-identity","transactionId":transaction,"merchantId":merchant,"amount":12.50,"currency":currency,"status":"OPEN","created":"2026-11-13T00:00:00Z"})]);
+        let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+        assert_eq!(
+            status,
+            StatusCode::CONFLICT,
+            "{merchant}/{currency}: {reply}"
+        );
+        assert_eq!(operation(&w, payment).await["attention"], true);
+    }
+}
+
+#[sqlx::test]
+async fn source_refund_recovery_preserves_other_attention_and_chargeback_evidence(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, payment) = collection(&w).await;
+    capture(&w, payment);
+    refresh(&w, payment).await;
+    assert_eq!(refund(&w, &order, "5.00").await.0, StatusCode::CREATED);
+    let partial = transaction(&w, payment, "tx-1", "PARTIALLY_REFUNDED", false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![partial]);
+    for reason in [
+        "Provider identity or money conflicts with bound request.",
+        "Multiple successful charges require reconciliation.",
+        "Chargeback requires reconciliation.",
+    ] {
+        sqlx::query("UPDATE order_payments SET attention=true,attention_reason=$2 WHERE id=$1")
+            .bind(payment)
+            .bind(reason)
+            .execute(&w.api.pool)
+            .await
+            .unwrap();
+        let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+        assert_eq!(status, StatusCode::CONFLICT, "{reason}: {reply}");
+        assert_eq!(operation(&w, payment).await["attention_reason"], reason);
+    }
+    sqlx::query("UPDATE order_payments SET attention_reason='External refund or chargeback observation requires reconciliation.' WHERE id=$1").bind(payment).execute(&w.api.pool).await.unwrap();
+    w.remote.lock().unwrap().chargebacks.insert(0,vec![json!({"chargebackId":"cb-recovery","transactionId":"tx-1","merchantId":MERCHANT,"amount":12.50,"currency":"EUR","status":"OPEN","created":"2026-11-13T00:00:00Z","description":"Disputed payment"})]);
+    let (status, reply) = resolve(&w, payment, "refund_reconciled").await;
+    assert_eq!(status, StatusCode::CONFLICT, "{reply}");
+    assert_eq!(operation(&w, payment).await["attention"], true);
+    let audit: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM payment_audit WHERE payment_id=$1 AND action='refund_reconciled'",
+    )
+    .bind(payment)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(audit, 0);
 }
 
 #[sqlx::test]

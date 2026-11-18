@@ -35,6 +35,24 @@ fn slot(body: &mut Value) -> &mut Value {
     &mut body["integrations"]["payment"]["payment_providers"]["globadyme"]["sandbox"]
 }
 
+#[sqlx::test]
+async fn approved_origins_metadata_keeps_the_deployment_realm(pool: PgPool) {
+    use genesy_360_api::payments::GlobadymeEnvironment::{Production, Sandbox};
+
+    let mut api = Api::new(pool.clone(), "/settings").await;
+    for (realm, expected) in [(Sandbox, "sandbox"), (Production, "production")] {
+        let mut state = common::state(pool.clone(), Mailer::capture().0);
+        state.payments = state.payments.with_globadyme_environment(Some(realm));
+        api.app = genesy_360_api::build_app(state);
+        for query in ["", "?type=integrations"] {
+            let (status, body) = api.call(Method::GET, query, None, &api.owner).await;
+            assert_eq!(status, StatusCode::OK, "{body}");
+            assert_eq!(body["meta"]["globadyme_environment"], expected);
+            assert_eq!(body["meta"]["production_origin_verified"], true);
+        }
+    }
+}
+
 async fn secret(api: &Api, field: &str) -> String {
     let path = accounts::path("sandbox", field);
     let (id, sealed): (String, Vec<u8>) = sqlx::query_as(

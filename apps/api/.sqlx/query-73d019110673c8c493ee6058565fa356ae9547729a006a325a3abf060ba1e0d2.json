@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tax_profiles SET superseded_by_id = $3, updated_at = now()\n             WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "73d019110673c8c493ee6058565fa356ae9547729a006a325a3abf060ba1e0d2"
+}

@@ -27,8 +27,11 @@ import type {
 import type {
   CountRequest,
   CreateRegisterRequest,
+  CreateTillAdjustPayload,
   CreateTillUserRequest,
   CreateVaultRequest,
+  EnvelopeAdjustReviewResource,
+  EnvelopeCashAdjustmentResource,
   EnvelopeCountQuote,
   EnvelopeKeyRotated,
   EnvelopeOptionShiftResource,
@@ -58,6 +61,7 @@ import type {
   TillCatalogParams,
   TillLoginRequest,
   TillRegistersListParams,
+  TillReviewRequest,
   TillSalesListParams,
   TillShiftsListParams,
   TransferRequest,
@@ -156,6 +160,144 @@ export const useTillPair = <TError = ErrorType<MessageBody | ValidationErrorBody
         TContext
       > => {
       return useMutation(getTillPairMutationOptions(options), queryClient);
+    }
+    /**
+ * Member bearer + `X-Till-Session` (D14): a till PIN or member link never counts. Accounting date = today in the book timezone.
+ * @summary Post a reviewed drawer adjustment
+ */
+export const tillCashAdjustmentsCreate = (
+    workspace: string,
+    createTillAdjustPayload: BodyType<CreateTillAdjustPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeCashAdjustmentResource>(
+      {url: `/workspace/${workspace}/till/cash-adjustments`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createTillAdjustPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillCashAdjustmentsCreateMutationKey = () => ['tillCashAdjustmentsCreate'] as const;
+
+export const getTillCashAdjustmentsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TError,TillCashAdjustmentsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TError,TillCashAdjustmentsCreateMutationVariables, TContext> => {
+
+const mutationKey = getTillCashAdjustmentsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TillCashAdjustmentsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillCashAdjustmentsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillCashAdjustmentsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>>
+    export type TillCashAdjustmentsCreateMutationBody = BodyType<CreateTillAdjustPayload>
+    export type TillCashAdjustmentsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillCashAdjustmentsCreateMutationVariables = {workspace: string;data: BodyType<CreateTillAdjustPayload>}
+
+    /**
+ * @summary Post a reviewed drawer adjustment
+ */
+export const useTillCashAdjustmentsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TError,TillCashAdjustmentsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>,
+        TError,
+        TillCashAdjustmentsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillCashAdjustmentsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * Member bearer + `X-Till-Session`. Only the session's own drawer.
+ * @summary Preview a drawer adjustment (no writes)
+ */
+export const tillCashAdjustmentsCreateReview = (
+    workspace: string,
+    tillReviewRequest: BodyType<TillReviewRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeAdjustReviewResource>(
+      {url: `/workspace/${workspace}/till/cash-adjustments/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: tillReviewRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillCashAdjustmentsCreateReviewMutationKey = () => ['tillCashAdjustmentsCreateReview'] as const;
+
+export const getTillCashAdjustmentsCreateReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TError,TillCashAdjustmentsCreateReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TError,TillCashAdjustmentsCreateReviewMutationVariables, TContext> => {
+
+const mutationKey = getTillCashAdjustmentsCreateReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TillCashAdjustmentsCreateReviewMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillCashAdjustmentsCreateReview(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillCashAdjustmentsCreateReviewMutationResult = NonNullable<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>>
+    export type TillCashAdjustmentsCreateReviewMutationBody = BodyType<TillReviewRequest>
+    export type TillCashAdjustmentsCreateReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillCashAdjustmentsCreateReviewMutationVariables = {workspace: string;data: BodyType<TillReviewRequest>}
+
+    /**
+ * @summary Preview a drawer adjustment (no writes)
+ */
+export const useTillCashAdjustmentsCreateReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TError,TillCashAdjustmentsCreateReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>,
+        TError,
+        TillCashAdjustmentsCreateReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillCashAdjustmentsCreateReviewMutationOptions(options), queryClient);
     }
     /**
  * @summary What this register sells (paged, delta sync, barcode lookup)

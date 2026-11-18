@@ -551,6 +551,127 @@ pub async fn lines(
     .await
 }
 
+/// Minor-unit sums of one entry's lines.
+#[derive(Clone, Copy)]
+pub struct SumsRow {
+    pub entry_id: Uuid,
+    pub debit: i64,
+    pub credit: i64,
+    pub functional_debit: i64,
+    pub functional_credit: i64,
+}
+
+/// Line sums per entry of `entries` (entries without lines are absent).
+pub async fn sums(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    entries: &[Uuid],
+) -> Result<Vec<SumsRow>, sqlx::Error> {
+    sqlx::query_as!(
+        SumsRow,
+        r#"SELECT entry_id, sum(debit)::bigint AS "debit!", sum(credit)::bigint AS "credit!",
+                  sum(functional_debit)::bigint AS "functional_debit!",
+                  sum(functional_credit)::bigint AS "functional_credit!"
+           FROM journal_lines
+           WHERE workspace_id = $1 AND entry_id = ANY($2)
+           GROUP BY entry_id"#,
+        ws,
+        entries
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Whether one entry's stored debits and credits balance (exact numeric sums).
+pub async fn balanced(db: impl PgExecutor<'_>, ws: Uuid, entry: Uuid) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT coalesce(sum(debit), 0) = coalesce(sum(credit), 0) AS "b!"
+           FROM journal_lines WHERE workspace_id = $1 AND entry_id = $2"#,
+        ws,
+        entry
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// One converted line of a draft: functional amounts plus the entry's sums.
+pub struct ConvertedRow {
+    pub line_no: i16,
+    pub functional_debit: i64,
+    pub functional_credit: i64,
+    pub sums: SumsRow,
+}
+
+/// Functional amounts of a draft's lines at `rate` (`inverse`: stored the other way), line
+/// order: each side's lines converted alone, the last one takes converted total − Σ earlier
+/// (masterplan §5). None when a last part would go negative; a result past bigint is a
+/// database error 22003.
+pub async fn converted(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    entry: Uuid,
+    rate: Decimal,
+    inverse: bool,
+    (from_dp, to_dp): (i32, i32),
+) -> Result<Option<Vec<ConvertedRow>>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"WITH l AS (
+               SELECT line_no, debit, credit,
+                      money_convert(debit, $3, $5, $6, $4) AS cd,
+                      money_convert(credit, $3, $5, $6, $4) AS cc,
+                      row_number() OVER (PARTITION BY debit > 0 ORDER BY line_no) AS dn,
+                      count(*) OVER (PARTITION BY debit > 0) AS dk,
+                      row_number() OVER (PARTITION BY credit > 0 ORDER BY line_no) AS cn,
+                      count(*) OVER (PARTITION BY credit > 0) AS ck,
+                      money_convert(sum(debit) OVER ()::bigint, $3, $5, $6, $4) AS total
+               FROM journal_lines WHERE workspace_id = $1 AND entry_id = $2
+           ), f AS (
+               SELECT line_no, debit, credit,
+                      CASE WHEN debit <= 0 THEN 0
+                           WHEN dn = dk THEN total - coalesce(sum(cd) OVER (PARTITION BY debit > 0
+                               ORDER BY line_no ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)
+                           ELSE cd END AS fd,
+                      CASE WHEN credit <= 0 THEN 0
+                           WHEN cn = ck THEN total - coalesce(sum(cc) OVER (PARTITION BY credit > 0
+                               ORDER BY line_no ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)
+                           ELSE cc END AS fc
+               FROM l
+           )
+           SELECT line_no AS "line_no!", fd::bigint AS "fd!", fc::bigint AS "fc!",
+                  bool_and(fd >= 0 AND fc >= 0) OVER () AS "ok!",
+                  sum(debit) OVER ()::bigint AS "debit!", sum(credit) OVER ()::bigint AS "credit!",
+                  sum(fd) OVER ()::bigint AS "sum_fd!", sum(fc) OVER ()::bigint AS "sum_fc!"
+           FROM f ORDER BY line_no"#,
+        ws,
+        entry,
+        rate,
+        inverse,
+        from_dp,
+        to_dp
+    )
+    .fetch_all(db)
+    .await?;
+    if rows.iter().any(|r| !r.ok) {
+        return Ok(None);
+    }
+    Ok(Some(
+        rows.into_iter()
+            .map(|r| ConvertedRow {
+                line_no: r.line_no,
+                functional_debit: r.fd,
+                functional_credit: r.fc,
+                sums: SumsRow {
+                    entry_id: entry,
+                    debit: r.debit,
+                    credit: r.credit,
+                    functional_debit: r.sum_fd,
+                    functional_credit: r.sum_fc,
+                },
+            })
+            .collect(),
+    ))
+}
+
 /// Fields of a new or replaced draft entry.
 pub struct DraftFields<'a> {
     pub kind: &'a str,
@@ -629,6 +750,7 @@ pub struct NewLine {
     pub line_no: i16,
     pub account_id: Uuid,
     pub relation_id: Option<Uuid>,
+    pub bank_account_id: Option<Uuid>,
     pub source_ref: Option<String>,
     pub debit: i64,
     pub credit: i64,
@@ -651,6 +773,7 @@ pub async fn insert_lines(
     let no: Vec<i16> = lines.iter().map(|l| l.line_no).collect();
     let account: Vec<Uuid> = lines.iter().map(|l| l.account_id).collect();
     let relation: Vec<Option<Uuid>> = lines.iter().map(|l| l.relation_id).collect();
+    let bank: Vec<Option<Uuid>> = lines.iter().map(|l| l.bank_account_id).collect();
     let source: Vec<Option<String>> = lines.iter().map(|l| l.source_ref.clone()).collect();
     let rate: Vec<Decimal> = lines.iter().map(|l| l.rate).collect();
     let inverse: Vec<bool> = lines.iter().map(|l| l.rate_inverse).collect();
@@ -659,10 +782,10 @@ pub async fn insert_lines(
     sqlx::query!(
         r#"INSERT INTO journal_lines (workspace_id, entry_id, line_no, account_id, relation_id,
                 source_ref, debit, credit, functional_debit, functional_credit, rate, rate_inverse,
-                rate_source, rate_date)
+                rate_source, rate_date, bank_account_id)
            SELECT $1, $2, * FROM UNNEST($3::smallint[], $4::uuid[], $5::uuid[], $6::text[],
                 $7::bigint[], $8::bigint[], $9::bigint[], $10::bigint[], $11::numeric[],
-                $12::bool[], $13::text[], $14::date[])"#,
+                $12::bool[], $13::text[], $14::date[], $15::uuid[])"#,
         ws,
         entry,
         &no,
@@ -677,6 +800,7 @@ pub async fn insert_lines(
         &inverse,
         &rate_source,
         &rate_date as &[Option<NaiveDate>],
+        &bank as &[Option<Uuid>],
     )
     .execute(conn)
     .await?;

@@ -57,6 +57,7 @@ docs/api/      one contract file per feature
 
 ## 5. Rust rules
 
+- Money math lives in SQL: compute amounts, rounding, conversions, averages and allocations in the query (Postgres `numeric`, half away from zero). Rust only passes money through and enforces rules (root `CLAUDE.md`).
 - No `unwrap()`, `expect()`, or `panic!` outside tests and `main.rs` boot. Use `?` with `AppError`.
 - `AppError` (in `error.rs`, built on `thiserror`) is the only error type handlers return. It maps to the Laravel-compatible JSON shapes in `docs/api/`.
 - Secrets (`Password`, `PlainSecret`) are newtypes that don't implement `Display`, and their `Debug` prints `***`. Request DTOs take `Password`, never `String`.

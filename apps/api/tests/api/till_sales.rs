@@ -981,3 +981,87 @@ async fn the_backfill_lets_stale_defaults_inherit(pool: PgPool) {
         ]
     );
 }
+
+// --- active book: anonymous retail recognition (masterplan §19 I) ----------------------------
+
+/// Activate with the sales roles mapped and value the till world's opening stock.
+async fn activate_with_stock(w: &W) {
+    let ws = &w.api.ws;
+    crate::sales_recognition::activate_sales(&w.api.pool, ws).await;
+    let shop: String = sqlx::query_scalar(
+        "SELECT warehouse_id::text FROM stocks WHERE product_id = $1::uuid LIMIT 1",
+    )
+    .bind(&w.honey)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    for p in [&w.honey, &w.wax] {
+        crate::inventory_valuation::seed_pool_only(&w.api.pool, ws, p, &shop, "10", 1000).await;
+    }
+}
+
+async fn balance(w: &W, role: &str) -> i64 {
+    crate::inventory_valuation::role_balance(&w.api.pool, &w.api.ws, role).await
+}
+
+#[sqlx::test]
+async fn an_active_book_recognises_an_anonymous_sale_and_its_receipt(pool: PgPool) {
+    let w = world(pool).await;
+    activate_with_stock(&w).await;
+    let body = sale("r-1", basket(&w), cash(5000));
+    let (status, res) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    // Sale: DR unbilled 3088 / CR revenue 2800 / CR tax 288; receipt DR cash 3090 / CR
+    // unbilled 3088 / CR rounding 2.
+    assert_eq!(balance(&w, "revenue").await, -2800);
+    assert_eq!(balance(&w, "tax_payable").await, -288);
+    assert_eq!(balance(&w, "unbilled_receivables").await, 0);
+    assert_eq!(balance(&w, "cash").await, 3090);
+    assert_eq!(balance(&w, "rounding").await, -2);
+    let row: (String, Option<uuid::Uuid>, i64, i64) =
+        sqlx::query_as("SELECT source_kind, relation_id, net, tax FROM sales_recognitions")
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(row, ("retail_sale".into(), None, 2800, 288));
+    // The retail item opened and the receipt's application closed it.
+    let items: (i64, i64) = sqlx::query_as(
+        "SELECT count(*), coalesce(sum(residual), 0)::int8 FROM accounting_open_items",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(items, (2, 0));
+    // Replay: one recognition, one receipt, one drawer row; no invoice or customer.
+    let (status, _) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::OK);
+    let counts: (i64, i64, i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM sales_recognitions),
+                (SELECT count(*) FROM accounting_effects WHERE source_kind = 'retail_sale'),
+                (SELECT count(*) FROM cash_ledger WHERE kind = 'sale'),
+                (SELECT count(*) FROM invoices),
+                (SELECT count(*) FROM relations)",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(counts, (1, 2, 1, 0, 0));
+    assert_eq!(balance(&w, "cash").await, 3090);
+    crate::inventory_valuation::assert_books(&w.api.pool, &w.api.ws).await;
+}
+
+#[sqlx::test]
+async fn an_active_card_sale_lands_in_provider_clearing(pool: PgPool) {
+    let w = world(pool).await;
+    activate_with_stock(&w).await;
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("c-1", basket(&w), json!({ "method": "card" })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(balance(&w, "provider_clearing").await, 3088);
+    assert_eq!(balance(&w, "cash").await, 0);
+    assert_eq!(balance(&w, "unbilled_receivables").await, 0);
+}

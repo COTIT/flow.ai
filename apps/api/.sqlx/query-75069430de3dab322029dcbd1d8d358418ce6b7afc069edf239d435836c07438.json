@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO purchase_landed_costs (workspace_id, purchase_order_id, receipt_id,\n             client_component_ref, amount, currency_id, functional_amount, rate, rate_inverse,\n             rate_source, rate_date, evidence_ref, created_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "purchase_landed_costs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Uuid",
+        "Int8",
+        "Numeric",
+        "Bool",
+        "Text",
+        "Date",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "75069430de3dab322029dcbd1d8d358418ce6b7afc069edf239d435836c07438"
+}
