@@ -92,6 +92,21 @@
       "sw": ["batilisha ufunguo wa programu wa kaunta"]
     }
   },
+  "approvals_requests_approve": {
+    "officeOnlyBecause": "Approvals are decided on the Office approvals screen, where the approver sees the request and the four-eyes rule; WF-01 routes are not assistant tools."
+  },
+  "approvals_requests_get": {
+    "officeOnlyBecause": "Approvals are decided on the Office approvals screen, where the approver sees the request and the four-eyes rule; WF-01 routes are not assistant tools."
+  },
+  "approvals_requests_list": {
+    "officeOnlyBecause": "Approvals are decided on the Office approvals screen, where the approver sees the request and the four-eyes rule; WF-01 routes are not assistant tools."
+  },
+  "approvals_requests_reject": {
+    "officeOnlyBecause": "Approvals are decided on the Office approvals screen, where the approver sees the request and the four-eyes rule; WF-01 routes are not assistant tools."
+  },
+  "approvals_requests_return": {
+    "officeOnlyBecause": "Approvals are decided on the Office approvals screen, where the approver sees the request and the four-eyes rule; WF-01 routes are not assistant tools."
+  },
   "auth_login": {
     "officeOnlyBecause": "Signing in happens on the login page; voice starts once you are signed in."
   },
@@ -159,6 +174,42 @@
   },
   "imports_validate": {
     "officeOnlyBecause": "Spreadsheet imports run on the Office imports screen: you choose the file, match its columns and review every row before anything is saved."
+  },
+  "integrations_connections_create": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_connections_disconnect": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_connections_list": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_connections_test": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_connections_update": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_mappings_delete": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_mappings_list": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_mappings_upsert": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_pairs_activate": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_pairs_create": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_pairs_list": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
+  },
+  "integrations_pairs_pause": {
+    "officeOnlyBecause": "Integration connections, pairs and mappings hold credentials and sync rules, so they are set up only on the Office integrations screens; WF-01 routes are not assistant tools."
   },
   "invites_answer": {
     "officeOnlyBecause": "The invite link page is used by the invited person before they can sign in."
@@ -935,5 +986,14 @@
       "nl": ["webhook pauzeren"],
       "sw": ["sitisha webhook kwa muda"]
     }
+  },
+  "workflows_executions_get": {
+    "officeOnlyBecause": "Blocked or failed workflow runs are retried or resolved by hand on the Office workflows screen after review; WF-01 routes are not assistant tools."
+  },
+  "workflows_executions_resolve": {
+    "officeOnlyBecause": "Blocked or failed workflow runs are retried or resolved by hand on the Office workflows screen after review; WF-01 routes are not assistant tools."
+  },
+  "workflows_executions_retry": {
+    "officeOnlyBecause": "Blocked or failed workflow runs are retried or resolved by hand on the Office workflows screen after review; WF-01 routes are not assistant tools."
   }
 }

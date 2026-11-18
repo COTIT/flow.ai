@@ -21531,5 +21531,1121 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "approvals_policies_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/approvals/policies",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#policies",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_policies_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/approvals/policies",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#create_policy",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_policies_update": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/approvals/policies/{policy}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#update_policy",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_requests_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/approvals/requests",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only",
+        "Members see their own requests; integration.view, integration.approve, integration.approve_high, integration.reconcile or integration.manage see every request"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#list",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_requests_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/approvals/requests/{request}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only",
+        "Members see their own requests; integration.view, integration.approve, integration.approve_high, integration.reconcile or integration.manage see every request"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#get",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_requests_approve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/approvals/requests/{request}/approve",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [
+        "integration.approve",
+        "integration.approve_high"
+      ],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only",
+        "Four-eyes: the requester cannot decide their own request",
+        "Request must be pending and need a permission the member holds (integration.approve_high also covers integration.approve)"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#approve",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_requests_reject": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/approvals/requests/{request}/reject",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [
+        "integration.approve",
+        "integration.approve_high"
+      ],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only",
+        "Four-eyes: the requester cannot decide their own request",
+        "Request must be pending and need a permission the member holds (integration.approve_high also covers integration.approve)"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#reject",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_requests_resubmit": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/approvals/requests/{request}/resubmit",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only",
+        "Only the requester or a member with integration.manage may resubmit"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#resubmit",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "approvals_requests_return": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/approvals/requests/{request}/return",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [
+        "integration.approve",
+        "integration.approve_high"
+      ],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only",
+        "Four-eyes: the requester cannot decide their own request",
+        "Request must be pending and need a permission the member holds (integration.approve_high also covers integration.approve)"
+      ],
+      "authority": [
+        "apps/api/src/modules/approvals/handlers.rs#return_request",
+        "apps/api/src/modules/approvals/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_connections_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/integrations/connections",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/connections/handlers.rs#list",
+        "apps/api/src/integrations/connections/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_connections_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/connections",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/connections/handlers.rs#create",
+        "apps/api/src/integrations/connections/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_connections_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/integrations/connections/{connection}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/connections/handlers.rs#get",
+        "apps/api/src/integrations/connections/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_connections_update": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/connections/{connection}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/connections/handlers.rs#update",
+        "apps/api/src/integrations/connections/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_connections_disconnect": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/connections/{connection}/disconnect",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/connections/handlers.rs#disconnect",
+        "apps/api/src/integrations/connections/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_connections_test": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/connections/{connection}/test",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/connections/handlers.rs#test",
+        "apps/api/src/integrations/connections/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_pairs_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/integrations/pairs",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/pairs/handlers.rs#list",
+        "apps/api/src/integrations/pairs/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_pairs_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/pairs",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/pairs/handlers.rs#create",
+        "apps/api/src/integrations/pairs/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_pairs_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/pairs/handlers.rs#get",
+        "apps/api/src/integrations/pairs/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_pairs_update": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/pairs/handlers.rs#update",
+        "apps/api/src/integrations/pairs/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_pairs_activate": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}/activate",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/pairs/handlers.rs#activate",
+        "apps/api/src/integrations/pairs/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_mappings_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}/mappings",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/mappings/handlers.rs#list",
+        "apps/api/src/integrations/mappings/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_mappings_upsert": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}/mappings",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/mappings/handlers.rs#upsert",
+        "apps/api/src/integrations/mappings/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_mappings_delete": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}/mappings/{mapping}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/mappings/handlers.rs#delete",
+        "apps/api/src/integrations/mappings/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "integrations_pairs_pause": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/integrations/pairs/{pair}/pause",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/integrations/pairs/handlers.rs#pause",
+        "apps/api/src/integrations/pairs/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_executions_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/workflows/executions",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#list",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_executions_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/workflows/executions/{execution}",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#get",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_executions_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/workflows/executions/{execution}/resolve",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.reconcile"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#resolve",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_executions_retry": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/workflows/executions/{execution}/retry",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.manage"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#retry",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_incidents_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/workflows/incidents",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#incidents",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_incidents_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/workflows/incidents/{incident}/resolve",
+    "disposition": "internal",
+    "reason": "WF-01 approvals, workflow and integration route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.reconcile"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-01 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#resolve_incident",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }
