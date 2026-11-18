@@ -19,7 +19,9 @@ use crate::{
             service::{Errors, parse, store_totals},
         },
         pricing::engine,
+        sales_returns::legacy,
         settings,
+        stock::value,
     },
 };
 
@@ -119,8 +121,29 @@ pub async fn credit(
     let quantities: Vec<Decimal> = taken.iter().map(|t| t.quantity).collect();
     repo::add_credited(&mut tx, workspace_id, id, &ids, &quantities).await?;
     store_totals(&mut tx, workspace_id, credit_id, source.currency_id).await?;
+    // Active book: the draft aliases one canonical credit draft (capacity only); the source's
+    // status stays (masterplan §12: a draft credit changes nothing posted).
+    let active = value::active(&mut tx, workspace_id).await?;
+    if active {
+        let wanted: Vec<legacy::Taken> = taken
+            .iter()
+            .map(|t| {
+                let sel = input.items.iter().find(|s| s.id == t.source.id);
+                legacy::Taken {
+                    index: sel.map_or(0, |s| s.index),
+                    item: t.source.id,
+                    quantity: t.quantity,
+                    return_amount: sel
+                        .filter(|_| !input.credit_all)
+                        .and_then(|s| s.return_amount)
+                        .filter(|r| !r.is_zero()),
+                }
+            })
+            .collect();
+        legacy::credit_note(&mut tx, workspace_id, (id, credit_id), &wanted, user_id).await?;
+    }
     // Laravel cancelFullyCreditedUnpaidInvoice: an unpaid source with nothing left goes.
-    if matches!(locked.status.as_str(), "draft" | "pending") {
+    if !active && matches!(locked.status.as_str(), "draft" | "pending") {
         let left = lines.iter().any(|l| {
             let now = taken
                 .iter()

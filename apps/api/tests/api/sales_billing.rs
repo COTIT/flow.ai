@@ -21,14 +21,19 @@ use crate::{
 
 /// The invoicing world (Chair: 10 in Main, relation with billing address and contact) in an
 /// active book, the stock valued at 1000.
-async fn active(pool: PgPool) -> F {
+pub(crate) async fn active(pool: PgPool) -> F {
     let f = invoicing::setup(pool).await;
     activate(&f.api.pool, &f.api.ws).await;
     seed_pool_only(&f.api.pool, &f.api.ws, &f.product, &f.main, "10", 1000).await;
     f
 }
 
-async fn req(f: &F, method: Method, path: &str, body: Option<Value>) -> (StatusCode, Value) {
+pub(crate) async fn req(
+    f: &F,
+    method: Method,
+    path: &str,
+    body: Option<Value>,
+) -> (StatusCode, Value) {
     req_as(f, method, path, body, &f.api.owner, &f.api.ws).await
 }
 
@@ -53,7 +58,7 @@ async fn req_as(
     (s, serde_json::from_slice(&b).unwrap_or(Value::Null))
 }
 
-async fn post(f: &F, path: &str, body: Value) -> (StatusCode, Value) {
+pub(crate) async fn post(f: &F, path: &str, body: Value) -> (StatusCode, Value) {
     req(f, Method::POST, path, Some(body)).await
 }
 
@@ -103,7 +108,7 @@ async fn ship(f: &F, o: &str, line: &str, q: &str) -> Value {
 }
 
 /// POST .../invoice of a posted shipment; (status, body).
-async fn bill(f: &F, o: &str, sh: &Value) -> (StatusCode, Value) {
+pub(crate) async fn bill(f: &F, o: &str, sh: &Value) -> (StatusCode, Value) {
     post(
         f,
         &format!(
@@ -117,7 +122,7 @@ async fn bill(f: &F, o: &str, sh: &Value) -> (StatusCode, Value) {
 }
 
 /// Review + issue `invoice` today with the fixture contact; (status, body).
-async fn issue(f: &F, invoice: &str) -> (StatusCode, Value) {
+pub(crate) async fn issue(f: &F, invoice: &str) -> (StatusCode, Value) {
     let (s, rv) = post(
         f,
         &format!("/invoices/{invoice}/issue/review"),

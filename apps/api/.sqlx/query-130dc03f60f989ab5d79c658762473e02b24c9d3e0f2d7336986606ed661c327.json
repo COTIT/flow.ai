@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE inventory_cost_allocations\n         SET returned_quantity = returned_quantity + $2, returned_value = returned_value + $3,\n             version = version + 1, updated_at = now()\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "130dc03f60f989ab5d79c658762473e02b24c9d3e0f2d7336986606ed661c327"
+}

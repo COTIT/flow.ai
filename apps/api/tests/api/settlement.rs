@@ -86,15 +86,15 @@ use crate::common::invoicing::{self, F};
 
 /// An invoice of 100.00 (no VAT, no stock) sent in a setup book, then the book configured,
 /// a receivable item opened for it (as C9's issue will) and the book activated.
-struct Paying {
-    _f: F,
-    w: World,
-    invoice: String,
-    receivable: Uuid,
-    vault: Uuid,
+pub(crate) struct Paying {
+    pub(crate) _f: F,
+    pub(crate) w: World,
+    pub(crate) invoice: String,
+    pub(crate) receivable: Uuid,
+    pub(crate) vault: Uuid,
 }
 
-async fn paying(pool: PgPool, open: bool) -> Paying {
+pub(crate) async fn paying(pool: PgPool, open: bool) -> Paying {
     let f = invoicing::setup(pool.clone()).await;
     let invoice = invoicing::draft(
         &f,
@@ -205,7 +205,7 @@ impl Paying {
     }
 
     /// Σ functional debit − credit on the account mapped to `role`.
-    async fn gl(&self, role: &str) -> i64 {
+    pub(crate) async fn gl(&self, role: &str) -> i64 {
         sqlx::query_scalar(
             "SELECT COALESCE(sum(functional_debit - functional_credit), 0)::bigint FROM journal_lines
              WHERE workspace_id = $1::uuid AND account_id = $2::uuid",

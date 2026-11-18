@@ -2460,3 +2460,43 @@ async fn audited_resolution_json_failures_keep_the_api_error_contract(pool: PgPo
         }
     }
 }
+
+/// Active book (C12): a transaction refreshed as CHARGEBACKED is one chargeback observation;
+/// a sale collected before activation has no open deposit, so all of it goes to recovery.
+#[sqlx::test]
+async fn refreshed_chargeback_is_observed_once_with_a_recovery_item(pool: PgPool) {
+    let w = world(pool).await;
+    let (_, payment) = collection(&w).await;
+    capture(&w, payment);
+    assert_eq!(refresh(&w, payment).await["status"], "paid");
+    crate::provider_observations::active_today(&w.api).await;
+    let charged = transaction(&w, payment, "tx-1", "CHARGEBACKED", false);
+    w.remote
+        .lock()
+        .unwrap()
+        .transactions
+        .insert(payment.to_string(), vec![charged]);
+    for _ in 0..2 {
+        refresh(&w, payment).await;
+    }
+    let count = |q: &'static str| {
+        let pool = w.api.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, i64>(q)
+                .fetch_one(&pool)
+                .await
+                .unwrap()
+        }
+    };
+    assert_eq!(
+        count("SELECT count(*) FROM provider_observations WHERE economic_kind = 'chargeback'")
+            .await,
+        1
+    );
+    assert_eq!(count("SELECT count(*) FROM provider_observations").await, 1);
+    assert_eq!(
+        count("SELECT sum(residual)::bigint - (SELECT amount FROM order_payments WHERE kind = 'payment') FROM accounting_open_items WHERE classification = 'recovery_receivable'").await,
+        0
+    );
+    assert_eq!(count("SELECT count(*) FROM accounting_exceptions WHERE kind = 'discrepancy' AND state = 'pending'").await, 1);
+}

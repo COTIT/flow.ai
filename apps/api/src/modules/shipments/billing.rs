@@ -3,7 +3,8 @@
 //! billing link; issue in an active book reclassifies what is still unpaid DR receivables / CR
 //! unbilled_receivables (billed item opened first, then a reclassification allocation), or
 //! recognises a standalone invoice DR receivables / CR revenue / CR tax_payable. A fully
-//! settled recognition bills as a document only. Credit notes are refused in active books.
+//! settled recognition bills as a document only. A credit note issues by posting its aliased
+//! canonical credit (`sales_returns::legacy`).
 
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
@@ -17,7 +18,6 @@ use crate::{
     modules::{
         accounting::{
             journals::{SourceHeader, SourceLine, post_source_lines},
-            service::unsupported,
             settlement::{self, NewAllocation, Side},
         },
         invoices::{
@@ -32,7 +32,6 @@ use crate::{
 const NOTHING: &str = "There is no recognised, unbilled sale to invoice.";
 const BILLED: &str = "This sale is already on an invoice.";
 const OTHER_PARTY: &str = "The invoice must go to the sale's customer, in its currency.";
-const CREDIT: &str = "Credit notes can't be issued in an active book yet.";
 const LINKED: &str = "Lines of an invoice billing recognised sales can't change.";
 
 /// A recognition a draft may bill, under a row lock.
@@ -280,7 +279,12 @@ pub async fn plan(
     (currency, is_credit): (Uuid, bool),
 ) -> Result<IssuePlan, AppError> {
     if is_credit {
-        return Err(unsupported(CREDIT));
+        // Its aliased canonical credit posts on issue (no reclassification, no recognition).
+        crate::modules::sales_returns::legacy::check_credit_note(&mut *conn, ws, invoice).await?;
+        return Ok(IssuePlan {
+            reclassify: Vec::new(),
+            standalone: None,
+        });
     }
     recognition::check(&mut *conn, ws, currency).await?;
     let linked = unpaid(&mut *conn, ws, invoice).await?;
@@ -309,7 +313,13 @@ pub async fn issue(
     date: NaiveDate,
 ) -> Result<(), AppError> {
     if is_credit {
-        return Err(unsupported(CREDIT));
+        return crate::modules::sales_returns::legacy::issue_credit_note(
+            conn,
+            ws,
+            invoice,
+            (date, by),
+        )
+        .await;
     }
     recognition::check(&mut *conn, ws, currency).await?;
     let linked = unpaid(&mut *conn, ws, invoice).await?;
