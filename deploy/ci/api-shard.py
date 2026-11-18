@@ -8,7 +8,10 @@ import sys
 from urllib.parse import urlsplit
 
 
-CARGO = ["cargo", "test", "--test", "api"]
+# Every `apps/api/tests/api_*.rs` is one integration-test crate; the split keeps each compile under the runner's RAM.
+TESTS = Path(__file__).resolve().parents[2] / "apps" / "api" / "tests"
+# `tests/common` is compiled into every crate, so its own unit tests are listed once per crate; run them once.
+SHARED = "common::"
 PRECHECKS = (
     "db::migrations_fill_an_empty_database",
     "cli_migrate::migrate_fills_an_empty_database_then_is_a_no_op",
@@ -31,9 +34,31 @@ def inventory(output):
             raise ValueError("unexpected API test inventory format")
     if not names or len(set(names)) != len(names) or summary != (len(names), 0):
         raise ValueError("API test inventory is empty, duplicated or incomplete")
-    if not set(PRECHECKS) <= set(names):
-        raise ValueError("API inventory is missing an empty-database migration test")
     return sorted(names)
+
+
+def crates():
+    names = sorted(path.stem for path in TESTS.glob("api_*.rs"))
+    if not names:
+        raise ValueError("no API test crates under apps/api/tests")
+    return names
+
+
+def cargo(crate):
+    return ["cargo", "test", "--test", crate]
+
+
+def owners(listings):
+    """Map each test name to the one crate that runs it."""
+    owner = {}
+    for crate in sorted(listings):
+        for name in listings[crate]:
+            if name in owner and not name.startswith(SHARED):
+                raise ValueError(f"API test {name} is in two crates")
+            owner.setdefault(name, crate)
+    if not set(PRECHECKS) <= set(owner):
+        raise ValueError("API inventory is missing an empty-database migration test")
+    return owner
 
 
 def select(names, index, count):
@@ -66,19 +91,26 @@ def run(index, count, env):
     target = env.get("CARGO_TARGET_DIR")
     if not target:
         raise ValueError("CARGO_TARGET_DIR is required")
-    listed = subprocess.run(
-        CARGO + ["--", "--list", "--color", "never"],
-        check=True, stdout=subprocess.PIPE, text=True, env=env,
-    )
-    names = inventory(listed.stdout)
-    selected = select(names, index, count)
-    print(f"API shard {index + 1}/{count}: {len(selected)} of {len(names) - len(PRECHECKS)} tests", flush=True)
-    subprocess.run(CARGO + ["--", "--exact", *PRECHECKS], check=True, env=env)
+    listings = {
+        crate: inventory(subprocess.run(
+            cargo(crate) + ["--", "--list", "--color", "never"],
+            check=True, stdout=subprocess.PIPE, text=True, env=env,
+        ).stdout)
+        for crate in crates()
+    }
+    owner = owners(listings)
+    selected = select(owner, index, count)
+    print(f"API shard {index + 1}/{count}: {len(selected)} of {len(owner) - len(PRECHECKS)} tests", flush=True)
+    for crate in sorted({owner[name] for name in PRECHECKS}):
+        subprocess.run(cargo(crate) + ["--", "--exact", *(n for n in PRECHECKS if owner[n] == crate)], check=True, env=env)
     subprocess.run(
         [str(Path(target) / "debug" / "genesy-360-api"), "migrate"],
         check=True, env={**env, "DATABASE_URL": url._replace(path="/template1").geturl()},
     )
-    subprocess.run(CARGO + ["--", "--exact", *selected], check=True, env=env)
+    for crate in sorted(listings):
+        mine = [name for name in selected if owner[name] == crate]
+        if mine:
+            subprocess.run(cargo(crate) + ["--", "--exact", *mine], check=True, env=env)
 
 
 if __name__ == "__main__":
