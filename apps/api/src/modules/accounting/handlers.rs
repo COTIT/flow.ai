@@ -19,6 +19,7 @@ use crate::{
     },
     idempotency::{Answer, Command},
     modules::accounting::{
+        banking::{self, ReconcilePayload, UnmatchPayload},
         dto::{
             AccountPatch, AccountPayload, AccountResource, Action, AsOfQuery, BalanceSheetResource,
             BankAccountPayload, BankAccountResource, Create, GeneralLedgerResource, JournalPayload,
@@ -30,6 +31,7 @@ use crate::{
         journals, reports, revaluation, service,
     },
 };
+use serde_json::Value;
 
 permissions! {
     Read => "accounting.read",
@@ -38,6 +40,7 @@ permissions! {
     Post => "accounting.post",
     Reverse => "accounting.reverse",
     Revalue => "accounting.revalue",
+    Reconcile => "accounting.reconcile",
 }
 
 /// A path id; malformed reads as missing.
@@ -662,4 +665,125 @@ pub async fn bank_accounts_create(
     cmd: Command<Create<BankAccountPayload>>,
 ) -> Result<Answer, AppError> {
     service::create_bank_account(&state, &access, cmd).await
+}
+
+/// bank_statements_list: List bank statements, newest first.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements", tag = "accounting",
+    operation_id = "bank_statements_list",
+    summary = "List bank statements, newest first",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<Value>, description = "Statements with reconciliation totals"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statements_list(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    Ok(Json(
+        banking::statements(&state.db, access.workspace_id, page).await?,
+    ))
+}
+
+/// bank_statements_get: One bank statement.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}", tag = "accounting",
+    operation_id = "bank_statements_get",
+    summary = "One bank statement",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id")),
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Statement with reconciliation totals"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statements_get(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Path((_, raw)): Path<(String, String)>,
+) -> Result<Data<Value>, AppError> {
+    Ok(Data(
+        banking::statement(&state.db, access.workspace_id, id(&raw)?).await?,
+    ))
+}
+
+/// bank_statement_lines: Lines of a bank statement with their live match and residual.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}/lines", tag = "accounting",
+    operation_id = "bank_statement_lines",
+    summary = "Lines of a bank statement with their live match and residual",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<Value>, description = "Lines in file order"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statement_lines(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Path((_, raw)): Path<(String, String)>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    Ok(Json(
+        banking::lines(&state.db, access.workspace_id, id(&raw)?, page).await?,
+    ))
+}
+
+/// bank_reconciliations_create: Match a statement line to posted bank journal lines.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/bank-reconciliations", tag = "accounting",
+    operation_id = "bank_reconciliations_create",
+    summary = "Match a statement line to posted bank journal lines",
+    request_body = Create<ReconcilePayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<Value>, description = "Reconciliation"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, statement line or journal line"),
+        (status = 409, body = MessageBody, description = "`already_reconciled` or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `amount_mismatch` / `capacity_exceeded` / `journal_line_reversed` / `not_this_bank_account` / `currency_mismatch` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_reconciliations_create(
+    State(state): State<AppState>,
+    access: Can<Reconcile>,
+    cmd: Command<Create<ReconcilePayload>>,
+) -> Result<Answer, AppError> {
+    banking::reconcile(&state.db, &access, cmd).await
+}
+
+/// bank_reconciliations_reverse: Reverse a match; the statement line and capacity are free again.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/bank-reconciliations/{reconciliation}/reverse", tag = "accounting",
+    operation_id = "bank_reconciliations_reverse",
+    summary = "Reverse a match; the statement line and capacity are free again",
+    request_body = Action<UnmatchPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("reconciliation" = Uuid, Path, description = "Reconciliation id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Reversed reconciliation"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, `already_reversed` or `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_reconciliations_reverse(
+    State(state): State<AppState>,
+    access: Can<Reconcile>,
+    Path((_, raw)): Path<(String, String)>,
+    cmd: Command<Action<UnmatchPayload>>,
+) -> Result<Answer, AppError> {
+    banking::unmatch(&state.db, &access, id(&raw)?, cmd).await
 }

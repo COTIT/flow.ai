@@ -728,7 +728,7 @@ impl W {
         .await
     }
 
-    async fn reverse_payment(&self, payment: &Value) -> (StatusCode, Value) {
+    pub(crate) async fn reverse_payment(&self, payment: &Value) -> (StatusCode, Value) {
         let id = payment["id"].as_str().unwrap();
         let body = json!({ "accounting_date": self.today(0).await, "reason": "Entered twice" });
         let (s, review) = self

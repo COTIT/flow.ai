@@ -33,6 +33,8 @@ mod assistant_storefront_design;
 mod attention;
 #[path = "api/attention_priorities.rs"]
 mod attention_priorities;
+#[path = "api/bank_reconciliation.rs"]
+mod bank_reconciliation;
 #[path = "api/cash_places.rs"]
 mod cash_places;
 #[path = "api/fx_revaluation.rs"]
