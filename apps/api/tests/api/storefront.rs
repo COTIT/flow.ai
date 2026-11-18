@@ -704,7 +704,7 @@ async fn the_shop_price_is_the_price_checkout_charges_never_0(pool: PgPool) {
     for (variant, shown) in [(Value::Null, 1363), (json!(large), 2180)] {
         let body = json!({
             "lines": [{ "product_id": id, "product_variant_id": variant, "quantity": "1" }],
-            "customer": { "email": "kim@example.com", "name": "Kim" },
+            "customer": { "email": "kim@example.com", "name": "Kim", "shipping_address": { "country": "NL" } },
         });
         let (s, o) = send(
             &api.app,

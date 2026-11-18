@@ -18,7 +18,7 @@ import { Skeleton } from "@genesy/ui/components/skeleton"
 import { cn } from "@genesy/ui/lib/utils"
 import { CountForm } from "@/components/count-form"
 import { useLock } from "@/components/till-top"
-import { pendingCount, useQueue } from "@/lib/sale-queue"
+import { pendingHere, useQueue } from "@/lib/sale-queue"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 import { refusal } from "@/lib/refusal"
@@ -34,7 +34,7 @@ export default function DrawerPage() {
   const queryClient = useQueryClient()
   const { money } = useTillMoney()
   // A queued cash sale lands in the shift open when it replays: sync before closing.
-  const waiting = useQueue(pendingCount)
+  const waiting = useQueue(pendingHere)
   const [closed, setClosed] = React.useState<ShiftResource | null>(null)
   const [opened, setOpened] = React.useState(false)
   const { lock, pending: locking } = useLock()

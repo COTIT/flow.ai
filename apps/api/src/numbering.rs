@@ -13,6 +13,18 @@ pub enum Series {
     Invoice,
     /// Orders (office and web shop).
     Order,
+    /// Posted journal entries (accounting), numbered at posting.
+    Journal,
+    /// Purchase orders, numbered at create.
+    PurchaseOrder,
+    /// Purchase receipts.
+    PurchaseReceipt,
+    /// Supplier bills (M5-A), numbered at create.
+    SupplierBill,
+    /// Supplier payments and refunds received.
+    SupplierPayment,
+    /// Purchase returns.
+    PurchaseReturn,
 }
 
 impl Series {
@@ -20,6 +32,12 @@ impl Series {
         match self {
             Self::Invoice => "invoice",
             Self::Order => "order",
+            Self::Journal => "journal",
+            Self::PurchaseOrder => "purchase_order",
+            Self::PurchaseReceipt => "purchase_receipt",
+            Self::SupplierBill => "supplier_bill",
+            Self::SupplierPayment => "supplier_payment",
+            Self::PurchaseReturn => "purchase_return",
         }
     }
 }

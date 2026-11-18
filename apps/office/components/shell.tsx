@@ -8,11 +8,13 @@ import {
   Archive,
   Calculator,
   CreditCard,
+  ShoppingBasket,
   ChevronRight,
   FileText,
   Globe,
   LayoutGrid,
   CalendarClock,
+  FileUp,
   KeyRound,
   Layers,
   LogOut,
@@ -27,6 +29,8 @@ import {
   Users,
   Zap,
   type LucideIcon,
+  BookOpen,
+  Percent,
 } from "lucide-react"
 
 import { useLogout, useSession } from "@genesy/api-client/auth"
@@ -111,6 +115,13 @@ const items: Item[] = [
     icon: CreditCard,
   },
   {
+    href: "/purchases",
+    match: "/purchases",
+    label: "nav.purchases",
+    icon: ShoppingBasket,
+    group: "shell.buy",
+  },
+  {
     href: "/lots",
     match: "/lots",
     label: "nav.lots",
@@ -132,11 +143,30 @@ const items: Item[] = [
     group: "shell.store",
   },
   {
+    href: "/accounting/journals",
+    match: "/accounting",
+    label: "nav.accounting",
+    icon: BookOpen,
+    group: "shell.accounting",
+  },
+  {
     href: "/settings/scheduled-reports",
     match: "/settings/scheduled-reports",
     label: "nav.scheduledReports",
     icon: CalendarClock,
     group: "shell.settings",
+  },
+  {
+    href: "/settings/imports",
+    match: "/settings/imports",
+    label: "nav.imports",
+    icon: FileUp,
+  },
+  {
+    href: "/settings/taxes",
+    match: "/settings/taxes",
+    label: "nav.taxes",
+    icon: Percent,
   },
   {
     href: "/settings/storefront",

@@ -16,6 +16,7 @@
 //! Sizes are fixed. Every password, PIN and key is random per run and is returned once, for the
 //! CLI to print.
 
+pub mod afm;
 mod catalog;
 mod dates;
 mod farm;

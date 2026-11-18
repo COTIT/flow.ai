@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stocktake_lines (workspace_id, stocktake_id, stock_id, product_id, shelf_id,\n             bin_id, lot_id, expected)\n         SELECT workspace_id, $2, id, product_id, shelf_id, bin_id, lot_id, stock_lvl\n         FROM stocks WHERE workspace_id = $1 AND warehouse_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d32ffcea0bac96ef385569172bbd5b4c1db20691ac018115e8e2f5a5fcb31a4e"
+}

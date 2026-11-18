@@ -112,6 +112,8 @@
     "place": "Bestelling plaatsen",
     "required": "Vul dit in.",
     "invalid": "Dit klopt nog niet.",
+    "selectCountry": "Selecteer een land",
+    "invalidCountry": "Selecteer een geldig land uit de lijst.",
     "field": {
       "email": "E-mail",
       "name": "Volledige naam",

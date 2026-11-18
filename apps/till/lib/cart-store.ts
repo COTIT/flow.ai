@@ -20,10 +20,16 @@ type Cart = {
   lines: CartLine[]
   /** The sale's `client_ref`, made on the first charge and kept for every retry of it. */
   clientRef: string | null
+  /**
+   * The server may have booked the sale under `clientRef` (it answered 5xx): edits keep the ref,
+   * so a retry either books once or is refused as reused, never booked a second time.
+   */
+  held: boolean
   add: (line: Omit<CartLine, "quantity">) => void
   setQuantity: (index: number, quantity: number) => void
   remove: (index: number) => void
   startCharge: () => string
+  holdRef: () => void
   clear: () => void
 }
 
@@ -31,13 +37,14 @@ type Cart = {
 export const cartStore = createStore<Cart>()((set, get) => ({
   lines: [],
   clientRef: null,
+  held: false,
   add: (line) => {
     const lines = get().lines
     const i = lines.findIndex(
       (l) => l.productId === line.productId && l.variantId === line.variantId
     )
     set({
-      clientRef: null,
+      clientRef: get().held ? get().clientRef : null,
       lines:
         i < 0
           ? [...lines, { ...line, quantity: 1 }]
@@ -48,17 +55,21 @@ export const cartStore = createStore<Cart>()((set, get) => ({
   },
   setQuantity: (index, quantity) =>
     set({
-      clientRef: null,
+      clientRef: get().held ? get().clientRef : null,
       lines: get().lines.map((l, j) => (j === index ? { ...l, quantity } : l)),
     }),
   remove: (index) =>
-    set({ clientRef: null, lines: get().lines.filter((_, j) => j !== index) }),
+    set({
+      clientRef: get().held ? get().clientRef : null,
+      lines: get().lines.filter((_, j) => j !== index),
+    }),
   startCharge: () => {
     const ref = get().clientRef ?? crypto.randomUUID()
     set({ clientRef: ref })
     return ref
   },
-  clear: () => set({ lines: [], clientRef: null }),
+  holdRef: () => set({ held: true }),
+  clear: () => set({ lines: [], clientRef: null, held: false }),
 }))
 
 export function useCart<T>(pick: (s: Cart) => T): T {

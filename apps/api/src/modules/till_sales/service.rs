@@ -1,7 +1,8 @@
 //! Till sale rules. A sale is a completed order (source `till`) whose lines hold what the
 //! till charged, priced through the pricing engine; the same lines at catalog prices give
 //! `server_total`, and a difference is kept (`price_mismatch`), never refused. Stock is taken
-//! at once from the register's store warehouse and never refused (`Floor::None`). Cash rounds
+//! at once from the register's store warehouse; a short line is refused (`insufficient_stock`,
+//! offline replays too: masterplan D17). Cash rounds
 //! to the currency's step and goes into the open drawer shift. One `client_ref` per register
 //! is one sale: a replay answers the stored sale, another body under it is 409.
 
@@ -26,7 +27,7 @@ use crate::{
         settings,
         stock::{
             repo::{Cause, Floor},
-            reserve::{self, Want},
+            reserve::{self, Taken, Want},
         },
         till::repo::SessionRow,
         till_sales::{
@@ -151,6 +152,32 @@ async fn price_sale(
     })
 }
 
+/// The stock-tracked lines as stock wants, in line order.
+fn wants(charged: &Priced) -> Vec<Want> {
+    charged
+        .lines
+        .iter()
+        .filter(|l| l.tracked)
+        .map(|l| Want {
+            product_id: l.product_id,
+            quantity: l.quantity,
+        })
+        .collect()
+}
+
+/// 422 `insufficient_stock` naming the product's first line.
+fn short(charged: &Priced, product_id: Uuid, available: rust_decimal::Decimal) -> AppError {
+    let title = charged
+        .lines
+        .iter()
+        .find(|l| l.product_id == product_id)
+        .map_or("", |l| l.title.as_str());
+    AppError::insufficient_stock(format!(
+        "Not enough stock for {title}: {} available.",
+        available.max(rust_decimal::Decimal::ZERO).normalize()
+    ))
+}
+
 /// What a sale of `q` would book now; reads only, in a transaction that is rolled back.
 pub async fn quote(
     state: &AppState,
@@ -160,6 +187,25 @@ pub async fn quote(
     let mut tx = state.db.begin().await?;
     let p = price_sale(&mut tx, s, &q.lines, &q.payment, None).await?;
     tx.rollback().await?;
+    let mut asked: Vec<Want> = Vec::new();
+    for w in wants(&p.charged) {
+        match asked.iter_mut().find(|a| a.product_id == w.product_id) {
+            Some(a) => a.quantity += w.quantity,
+            None => asked.push(w),
+        }
+    }
+    let ids: Vec<Uuid> = asked.iter().map(|w| w.product_id).collect();
+    let have: HashMap<Uuid, rust_decimal::Decimal> =
+        repo::sellable(&state.db, s.workspace_id, s.warehouse_id, &ids)
+            .await?
+            .into_iter()
+            .collect();
+    for w in &asked {
+        let available = have.get(&w.product_id).copied().unwrap_or_default();
+        if available < w.quantity {
+            return Err(short(&p.charged, w.product_id, available));
+        }
+    }
     let tendered = match q.payment {
         Payment::Cash { tendered } => tendered,
         Payment::Card { .. } => None,
@@ -272,24 +318,41 @@ pub async fn sell(
     let sold_at = sale.sold_at.unwrap_or_else(Utc::now);
     repo::stamp_order(&mut *tx, ws, order_id, sold_at).await?;
 
-    let wants: Vec<Want> = charged
-        .lines
-        .iter()
-        .filter(|l| l.tracked)
-        .map(|l| Want {
-            product_id: l.product_id,
-            quantity: l.quantity,
-        })
-        .collect();
+    let wants = wants(&charged);
     let reason = format!("till sale {number}");
     let cause = Cause {
         reason: Some(&reason),
         related: Some(("order", order_id)),
         ..Cause::default()
     };
-    // Floor::None never comes back short.
-    reserve::take(&mut tx, ws, s.warehouse_id, &wants, Floor::None, &cause).await?;
+    if let Taken::Short { index, available } = reserve::take(
+        &mut tx,
+        ws,
+        s.warehouse_id,
+        &wants,
+        Floor::Available,
+        &cause,
+    )
+    .await?
+    {
+        return Err(short(&charged, wants[index].product_id, available));
+    }
     farm_supply::sale::on_sale(&mut tx, ws, order_id, &number).await?;
+    // Active book: anonymous retail recognition + GL receipt (drawer money stays the sale row).
+    let role = if shift_id.is_some() {
+        "cash"
+    } else {
+        "provider_clearing"
+    };
+    let sold: Vec<_> = written.iter().map(|l| (l.id, l.quantity)).collect();
+    crate::modules::shipments::recognition::retail_sale(
+        &mut tx,
+        ws,
+        (order_id, currency_id),
+        (due, role),
+        &sold,
+    )
+    .await?;
 
     let server_prices = Value::Array(
         server

@@ -134,7 +134,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -142,6 +142,9 @@ jobs:
     container:
       # Same image as apps/api/Dockerfile.
       image: rust:1.99-slim-trixie
+      # Privileged only to add swap below; the hosted runner VM is throwaway and the job has root
+      # on it anyway.
+      options: --privileged
     services:
       # Throwaway DB on the job's private network (no host port); removed with the job.
       # Data in RAM and no crash safety: nothing here outlives the job.
@@ -164,6 +167,9 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:ci-only@postgres:5432/postgres
       CARGO_TARGET_DIR: /ci-target
+      # The one-crate API test binary (~97k lines) peaked past the runner's RAM with 4 parallel
+      # codegen jobs (rustc SIGKILL, PR #86); 2 jobs keep fewer LLVM modules in memory at once.
+      CARGO_BUILD_JOBS: "2"
     defaults:
       run:
         working-directory: apps/api
@@ -171,7 +177,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 zstd > /dev/null
+      - run: apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 zstd time > /dev/null
+      # The API test build peaks at ~15 GB on a 16 GB runner (PR #86: SIGKILL at 14.6 GB). 6 GB of
+      # swap on the host disk (the bind-mounted workspace; overlayfs can't hold a swapfile) turns a
+      # kill into a slower build. Remove once the test crate's memory is cut.
+      - name: Add swap
+        working-directory: /
+        run: |
+          grep -E "MemTotal|MemAvailable|SwapTotal" /proc/meminfo && df -h /__w
+          fallocate -l 6G /__w/swapfile && chmod 600 /__w/swapfile
+          mkswap /__w/swapfile > /dev/null && swapon /__w/swapfile
+          grep -E "MemTotal|MemAvailable|SwapTotal" /proc/meminfo && df -h /__w
       # Dependencies only (the crate itself is cleaned out before saving), so the entry changes only
       # with Cargo.lock/Cargo.toml and stays ~1 GB of the repo's 10 GB.
       - id: deps
@@ -185,6 +201,13 @@ jobs:
           restore-keys: |
             api-tests-rust1.99-
             api-deps-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}-rust1.99
+      # Built alone first so the log records the compiler's peak memory (GNU time).
+      - name: Build API test binary
+        shell: bash
+        run: |
+          set -o pipefail
+          # One codegen job: least memory on top of the ~14 GB frontend peak, so less swapping.
+          CARGO_BUILD_JOBS=1 /usr/bin/time -v cargo test --test api --no-run 2>&1 | grep -v -E '^\s+(Command being timed|Percent of CPU|Average|Socket|Signals|Swaps|File system|Page size|Exit status|Voluntary|Involuntary|Minor|Major)'
       # Each shard verifies empty databases before migrating its own template1.
       - name: Integration test shard
         run: python3 ../../deploy/ci/api-shard.py ${{ matrix.shard }} 2

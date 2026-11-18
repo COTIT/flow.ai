@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO shipment_lines (workspace_id, shipment_id, order_id, order_line_id, quantity)\n         SELECT $1, $2, $3, u.id, u.q FROM UNNEST($4::uuid[], $5::numeric[]) AS u(id, q)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f10d59716027e1854d67990f8c951eb140720defb211305ff5bb9d9a77e324fa"
+}

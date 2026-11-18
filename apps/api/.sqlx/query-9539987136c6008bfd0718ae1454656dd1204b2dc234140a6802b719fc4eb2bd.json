@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO inventory_cost_allocations (workspace_id, source_kind, source_id,\n                     product_id, warehouse_id, issued_quantity, issued_value)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7)\n                 ON CONFLICT (workspace_id, source_kind, source_id, product_id, warehouse_id)\n                 DO UPDATE SET issued_quantity = inventory_cost_allocations.issued_quantity + $6,\n                               issued_value = inventory_cost_allocations.issued_value + $7,\n                               version = inventory_cost_allocations.version + 1, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9539987136c6008bfd0718ae1454656dd1204b2dc234140a6802b719fc4eb2bd"
+}

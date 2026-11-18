@@ -1,0 +1,113 @@
+//! Money math in SQL: `money_round_div` rounds n/d half away from zero, exactly.
+
+use sqlx::PgPool;
+
+async fn div(pool: &PgPool, n: &str, d: &str) -> String {
+    sqlx::query_scalar("SELECT money_round_div($1::numeric, $2::numeric)::text")
+        .bind(n)
+        .bind(d)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test]
+async fn ties_round_away_from_zero(pool: PgPool) {
+    assert_eq!(div(&pool, "5", "2").await, "3");
+    assert_eq!(div(&pool, "-5", "2").await, "-3");
+    assert_eq!(div(&pool, "1", "2").await, "1");
+    assert_eq!(div(&pool, "-1", "2").await, "-1");
+    assert_eq!(div(&pool, "5", "-2").await, "-3");
+    assert_eq!(div(&pool, "-5", "-2").await, "3");
+    assert_eq!(div(&pool, "1.5", "1").await, "2");
+}
+
+#[sqlx::test]
+async fn non_ties_round_to_nearest(pool: PgPool) {
+    assert_eq!(div(&pool, "1", "3").await, "0");
+    assert_eq!(div(&pool, "2", "3").await, "1");
+    assert_eq!(div(&pool, "-2", "3").await, "-1");
+    assert_eq!(div(&pool, "0", "7").await, "0");
+    // moving-average share: 24000 × 5 / 20, 100 × 2 / 3
+    assert_eq!(div(&pool, "120000.00", "20.00").await, "6000");
+    assert_eq!(div(&pool, "200", "3").await, "67");
+}
+
+/// Plain `round(n / d)` rounds the quotient to ~20 digits first and turns this into 1.
+#[sqlx::test]
+async fn just_under_a_half_stays_down(pool: PgPool) {
+    let d = "1000000000000000000000000";
+    assert_eq!(div(&pool, "499999999999999999999999", d).await, "0");
+    assert_eq!(div(&pool, "-499999999999999999999999", d).await, "0");
+    assert_eq!(div(&pool, "500000000000000000000001", d).await, "1");
+    assert_eq!(
+        div(&pool, "1234567890123456749999999999999999999999", "100").await,
+        "12345678901234567500000000000000000000"
+    );
+}
+
+#[sqlx::test]
+async fn fx_conversion_matches_integer_convert(pool: PgPool) {
+    // 0.01 EUR × 150 → 2 JPY; × 149.99 → 1; TZS 1000 / 2950.5 → 34 cents; −3 / 2 → −2.
+    assert_eq!(div(&pool, "150.00000000", "100").await, "2");
+    assert_eq!(div(&pool, "149.99000000", "100").await, "1");
+    assert_eq!(div(&pool, "100000", "2950.50000000").await, "34");
+    assert_eq!(div(&pool, "-3", "2.00000000").await, "-2");
+}
+
+#[sqlx::test]
+async fn null_in_null_out(pool: PgPool) {
+    let v: Option<String> =
+        sqlx::query_scalar("SELECT money_round_div(NULL::numeric, 2::numeric)::text")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(v, None);
+}
+
+async fn convert(pool: &PgPool, minor: i64, rate: &str, inverse: bool) -> i64 {
+    sqlx::query_scalar("SELECT money_convert($1, $2::numeric, 2, 2, $3)")
+        .bind(minor)
+        .bind(rate)
+        .bind(inverse)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+/// Was `stock/value.rs` unit test `issue_takes_the_average_and_empties_exactly`: the share an
+/// issue takes, round(V × q / Q) (an issue emptying the pool takes V; above Q is refused, both
+/// pinned in `inventory_valuation`).
+#[sqlx::test]
+async fn issue_takes_the_average(pool: PgPool) {
+    assert_eq!(div(&pool, "120000", "20").await, "6000", "Q20 V24000 q5");
+    assert_eq!(div(&pool, "1", "3").await, "0", "Q3 V1 q1");
+    assert_eq!(div(&pool, "1", "2").await, "1", "Q2 V1 q1, half away");
+}
+
+/// Was `stock/value.rs` unit test `returns_restore_original_cost_with_an_exact_final_part`:
+/// cumulative round(Iv × (Rq + q) / Iq) − Rv (the final part and the cap are pinned through
+/// HTTP in `inventory_valuation`).
+#[sqlx::test]
+async fn returns_restore_cumulative_cost(pool: PgPool) {
+    assert_eq!(div(&pool, "12000", "5").await, "2400", "Iq5 Iv6000 q2");
+    assert_eq!(div(&pool, "100", "3").await, "33", "Iq3 Iv100 first unit");
+    assert_eq!(
+        div(&pool, "200", "3").await,
+        "67",
+        "two units: 67 − 33 = 34"
+    );
+}
+
+/// Was `accounting/journals.rs` unit test `last_part_takes_the_exact_remainder` (whole journals:
+/// `accounting::inverse_rate_journal_gives_the_last_line_the_remainder`,
+/// `accounting::unconvertible_journals_are_refused`).
+#[sqlx::test]
+async fn journal_parts_convert_alone(pool: PgPool) {
+    // 3 × 0.01 at 1.005: each 1, total 3 → parts 1, 1, rest 1.
+    assert_eq!(convert(&pool, 1, "1.005", false).await, 1);
+    assert_eq!(convert(&pool, 3, "1.005", false).await, 3);
+    // Stored 3 the other way: 100 → 33 each, 300 → 100, rest 34.
+    assert_eq!(convert(&pool, 100, "3", true).await, 33);
+    assert_eq!(convert(&pool, 300, "3", true).await, 100);
+}

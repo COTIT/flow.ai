@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id FROM teams t\n         JOIN team_permissions p ON p.team_id = t.id AND p.permission = 'workspace_admin'\n         WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n         ORDER BY t.created_at, t.id\n         LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "474b052e275d1decb3bcb35147230c9af8aa875a211f42c260183236a3d7138b"
+}

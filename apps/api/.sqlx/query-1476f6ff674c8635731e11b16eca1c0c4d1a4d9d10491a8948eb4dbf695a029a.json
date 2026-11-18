@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stocktakes SET state = $3, version = version + 1, updated_at = now(),\n             started_by = CASE WHEN $3 = 'counting' THEN $4 ELSE started_by END,\n             started_at = CASE WHEN $3 = 'counting' THEN now() ELSE started_at END,\n             posted_by = CASE WHEN $3 = 'posted' THEN $4 ELSE posted_by END,\n             posted_at = CASE WHEN $3 = 'posted' THEN now() ELSE posted_at END,\n             cancelled_by = CASE WHEN $3 = 'cancelled' THEN $4 ELSE cancelled_by END,\n             cancelled_at = CASE WHEN $3 = 'cancelled' THEN now() ELSE cancelled_at END,\n             accounting_date = coalesce($5, accounting_date),\n             cancel_reason = coalesce($6, cancel_reason)\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1476f6ff674c8635731e11b16eca1c0c4d1a4d9d10491a8948eb4dbf695a029a"
+}

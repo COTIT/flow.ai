@@ -130,8 +130,19 @@ impl Data {
                 set_child: false,
             })
             .collect();
-        let summary = engine::summarise(&engine_lines, dp)
-            .map_err(|_| AppError::Internal("stored invoice lines out of range".into()))?;
+        // A linked invoice prints the recognised money it copies (§12).
+        let summary = match crate::modules::shipments::billing::linked_summary(
+            &state.db,
+            workspace_id,
+            id,
+            dp,
+        )
+        .await?
+        {
+            Some(l) => l.summary,
+            None => engine::summarise(&engine_lines, dp)
+                .map_err(|_| AppError::Internal("stored invoice lines out of range".into()))?,
+        };
         let (_, language) = workspaces::repo::locale(&state.db, workspace_id).await?;
         let general = settings::repo::section(&state.db, workspace_id, "general").await?;
         let color = Colors::of(

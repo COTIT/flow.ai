@@ -211,14 +211,21 @@ pub async fn sold_out(
     let rows = sqlx::query!(
         r#"WITH a AS (
                SELECT p.id, p.name,
-                      coalesce((SELECT sum(s.stock_lvl - s.reserved)
+                      coalesce((SELECT sum(greatest(s.stock_lvl - s.reserved, 0))
                                 FROM stocks s
                                 LEFT JOIN lots l ON l.id = s.lot_id
                                 WHERE s.workspace_id = $1 AND s.product_id = p.id
-                                  AND s.deleted_at IS NULL
+                                  AND s.deleted_at IS NULL AND s.bin_id IS NULL
+                                  AND s.warehouse_id = (
+                                      SELECT w.id FROM warehouses w
+                                      WHERE w.workspace_id = $1 AND w.default_warehouse
+                                        AND w.deleted_at IS NULL
+                                      ORDER BY w.id LIMIT 1)
                                   AND (s.lot_id IS NULL OR (l.status = 'released'
                                        AND (l.expires_on IS NULL
-                                            OR l.expires_on >= current_date)))),
+                                            OR l.expires_on >= current_date)))
+                                  AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id,
+                                                                   s.product_id)),
                                0) AS available
                FROM products p
                WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock)
@@ -403,18 +410,31 @@ pub async fn below_minimum(
         StockRow,
         r#"WITH a AS (
                SELECT p.id, p.name,
-                      coalesce((SELECT sum(s.stock_lvl - s.reserved)
+                      coalesce((SELECT sum(greatest(s.stock_lvl - s.reserved, 0))
                                 FROM stocks s
                                 LEFT JOIN lots l ON l.id = s.lot_id
                                 WHERE s.workspace_id = $1 AND s.product_id = p.id
-                                  AND s.deleted_at IS NULL
+                                  AND s.deleted_at IS NULL AND s.bin_id IS NULL
+                                  AND s.warehouse_id = (
+                                      SELECT w.id FROM warehouses w
+                                      WHERE w.workspace_id = $1 AND w.default_warehouse
+                                        AND w.deleted_at IS NULL
+                                      ORDER BY w.id LIMIT 1)
                                   AND (s.lot_id IS NULL OR (l.status = 'released'
                                        AND (l.expires_on IS NULL
-                                            OR l.expires_on >= current_date)))),
+                                            OR l.expires_on >= current_date)))
+                                  AND NOT purchase_receipt_pending(s.workspace_id, s.warehouse_id,
+                                                                   s.product_id)),
                                0) AS available,
+                      -- Minimums of the warehouse the availability counts.
                       coalesce((SELECT sum(s.minimal_stock_level) FROM stocks s
                                 WHERE s.workspace_id = $1 AND s.product_id = p.id
-                                  AND s.deleted_at IS NULL), 0) AS row_min
+                                  AND s.deleted_at IS NULL
+                                  AND s.warehouse_id = (
+                                      SELECT w.id FROM warehouses w
+                                      WHERE w.workspace_id = $1 AND w.default_warehouse
+                                        AND w.deleted_at IS NULL
+                                      ORDER BY w.id LIMIT 1)), 0) AS row_min
                FROM products p
                WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock),
            d AS (

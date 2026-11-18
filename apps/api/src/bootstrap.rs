@@ -1,20 +1,35 @@
-//! Production bootstrap (CLI `create-owner`): the first user and workspace, made in-process
-//! because signup is off in production. Prints a one-time password once; never resets anyone.
+//! Production operator CLIs, run in-process because signup and mail are off there:
+//! `create-owner` (first user + workspace, one-time password printed once) and
+//! `set-user-password` (operator-typed password for an `afm` login, read from stdin, never printed).
+
+use std::io::{BufRead, Write};
 
 use uuid::Uuid;
 
 use crate::{
     AppState,
     error::AppError,
+    http::json::Rules,
     modules::{
         auth::{
-            dto::{NewPerson, NewSignup},
-            password::Password,
-            service, token,
+            dto::{NewPerson, NewSignup, required_email},
+            password::{self, Password},
+            repo as tokens, service, token,
         },
-        workspaces::model::{WorkspaceType, is_slug},
+        farm_logins::repo as logins,
+        teams::repo as teams,
+        users::repo::{self as users, NewUser},
+        workspaces::{
+            model::{WorkspaceType, is_slug},
+            repo as workspaces,
+        },
     },
 };
+
+/// Only workspace `set-user-password` writes to: AFM's, on production.
+const PASSWORD_WORKSPACE: &str = "afm";
+const SET_PASSWORD_USAGE: &str = "usage: set-user-password --workspace afm --email <email> \
+     [--admin] [--first-name F --last-name L]   (password: one line on stdin)";
 
 /// The owner just made: their workspace and the password to sign in with once.
 pub struct Owner {
@@ -60,4 +75,187 @@ pub async fn create_owner(
         workspace_id,
         password,
     })
+}
+
+/// Whose login `set_user_password` sets. Names are used only when the user is new.
+pub struct LoginFor<'a> {
+    pub workspace: &'a str,
+    pub email: &'a str,
+    /// Also join the workspace's admin team (every permission, same as an admin invite).
+    pub admin: bool,
+    pub first_name: Option<&'a str>,
+    pub last_name: Option<&'a str>,
+}
+
+/// What `set_user_password` did. Nothing secret.
+pub struct PasswordSet {
+    pub created: bool,
+    pub sessions_revoked: u64,
+}
+
+/// Set an operator-typed password: update a live user (ending every session) or create one,
+/// then ensure active `afm` membership, plus the admin team with `admin`. One transaction.
+/// Same policy and argon2id hash as signup. `None` password = missing (422).
+pub async fn set_user_password(
+    state: &AppState,
+    who: &LoginFor<'_>,
+    password: Option<Password>,
+) -> Result<PasswordSet, AppError> {
+    if who.workspace != PASSWORD_WORKSPACE {
+        return Err(AppError::field(
+            "workspace",
+            format!("only {PASSWORD_WORKSPACE}, not {}", who.workspace),
+        ));
+    }
+    let mut r = Rules::default();
+    let email = required_email(&mut r, "email", Some(who.email.trim().to_lowercase()));
+    let password = password::check(&mut r, "password", password);
+    let existing = match &email {
+        Some(e) => users::find_credentials_by_email(&state.db, e)
+            .await?
+            .map(|c| c.id),
+        None => None,
+    };
+    let names = if existing.is_none() {
+        let first = r.required("first_name", who.first_name.map(str::to_owned));
+        let last = r.required("last_name", who.last_name.map(str::to_owned));
+        first.zip(last)
+    } else {
+        None
+    };
+    r.into_result()?;
+    let (Some(email), Some(password)) = (email, password) else {
+        return Err(AppError::Internal("validated input missing".into()));
+    };
+    let workspace_id = sqlx::query_scalar!(
+        "SELECT id FROM workspaces WHERE name = $1 AND deleted_at IS NULL",
+        who.workspace
+    )
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or_else(|| AppError::field("workspace", format!("no workspace {}", who.workspace)))?;
+    let admin_team = match who.admin {
+        true => Some(
+            teams::admin_team(&state.db, workspace_id)
+                .await?
+                .ok_or_else(|| AppError::field("admin", "no admin team in this workspace"))?,
+        ),
+        false => None,
+    };
+
+    // Hash before opening tx: argon2 time shouldn't hold a DB connection + row locks.
+    let hash = password::hash(password).await?;
+    let mut tx = state.db.begin().await?;
+    let (user_id, created, sessions_revoked) = match (existing, &names) {
+        (Some(id), _) => {
+            logins::set_password(&mut *tx, id, &hash).await?;
+            (id, false, tokens::delete_all_for_user(&mut *tx, id).await?)
+        }
+        (None, Some((first, last))) => {
+            let new = NewUser {
+                email: &email,
+                first_name: first,
+                middle_name: None,
+                last_name: last,
+                password_hash: &hash,
+            };
+            let id = users::insert(&mut *tx, &new)
+                .await
+                .map_err(service::taken)?;
+            (id, true, 0)
+        }
+        (None, None) => return Err(AppError::Internal("validated names missing".into())),
+    };
+    // Same rows an accepted invite gives (into the admin team with `admin`); reactivates a removed member.
+    workspaces::add_member(&mut *tx, workspace_id, user_id).await?;
+    if let Some(team) = admin_team {
+        teams::add_members(&mut *tx, workspace_id, team, &[user_id]).await?;
+    }
+    tokens::clear_login_attempts(&mut *tx, &email).await?;
+    tx.commit().await?;
+    Ok(PasswordSet {
+        created,
+        sessions_revoked,
+    })
+}
+
+/// CLI `set-user-password`: flags from `args`, password = first line of `stdin` (line end
+/// stripped, nothing trimmed). Writes only non-secret lines to `out`. Exit code: 0 done,
+/// 1 refused, 2 usage.
+pub async fn set_user_password_cli(
+    state: &AppState,
+    args: &[String],
+    mut stdin: impl BufRead,
+    out: &mut impl Write,
+) -> i32 {
+    let (mut workspace, mut email, mut first_name, mut last_name) = (None, None, None, None);
+    let mut admin = false;
+    let mut it = args.iter();
+    while let Some(arg) = it.next() {
+        if arg == "--admin" {
+            admin = true;
+            continue;
+        }
+        // Unknown flags refused: a `--password` on the command line is never read as one.
+        let slot = match arg.as_str() {
+            "--workspace" => &mut workspace,
+            "--email" => &mut email,
+            "--first-name" => &mut first_name,
+            "--last-name" => &mut last_name,
+            _ => return usage(out),
+        };
+        match it.next().filter(|v| !v.starts_with("--")) {
+            Some(value) => *slot = Some(value.as_str()),
+            None => return usage(out),
+        }
+    }
+    let (Some(workspace), Some(email)) = (workspace, email) else {
+        return usage(out);
+    };
+
+    let mut line = String::new();
+    if let Err(e) = stdin.read_line(&mut line) {
+        let _ = writeln!(out, "set-user-password: stdin unreadable: {}", e.kind());
+        return 1;
+    }
+    let stripped = line.strip_suffix('\n').unwrap_or(&line);
+    let keep = stripped.strip_suffix('\r').unwrap_or(stripped).len();
+    line.truncate(keep);
+    let password = (!line.is_empty()).then(|| Password::generated(line));
+
+    let who = LoginFor {
+        workspace,
+        email,
+        admin,
+        first_name,
+        last_name,
+    };
+    match set_user_password(state, &who, password).await {
+        Ok(done) => {
+            let _ = writeln!(
+                out,
+                "set-user-password {workspace}: {} {}, active member, admin={}, {} sessions revoked",
+                email.trim().to_lowercase(),
+                if done.created { "created" } else { "updated" },
+                if admin { "yes" } else { "unchanged" },
+                done.sessions_revoked,
+            );
+            0
+        }
+        Err(AppError::Validation(errors)) => {
+            for message in errors.values().flatten() {
+                let _ = writeln!(out, "set-user-password refused: {message}");
+            }
+            1
+        }
+        Err(err) => {
+            let _ = writeln!(out, "set-user-password failed: {err}");
+            1
+        }
+    }
+}
+
+fn usage(out: &mut impl Write) -> i32 {
+    let _ = writeln!(out, "{SET_PASSWORD_USAGE}");
+    2
 }

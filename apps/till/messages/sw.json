@@ -168,7 +168,11 @@
     "waiting": "{count, plural, one {# linasubiri} other {# yanasubiri}}",
     "needsOffice": "{count, plural, one {# linahitaji ofisi} other {# yanahitaji ofisi}}",
     "items": "{count, plural, one {bidhaa #} other {bidhaa #}}",
-    "estimate": "{method} · ≈ {amount} makadirio"
+    "estimate": "{method} · ≈ {amount} makadirio",
+    "otherUser": "Imeuzwa na {name}. Itatumwa {name} akiingia kwenye till hii.",
+    "otherRegister": "Imeuzwa kwenye rejista {register}. Inatumwa kutoka rejista hiyo tu.",
+    "unknownOrigin": "Haijulikani rejista gani iliuza mauzo haya, kwa hiyo hayatumwi.",
+    "retry": "Jaribu tena"
   },
   "errors": {
     "crashTitle": "Skrini hii imeacha kufanya kazi.",
@@ -189,6 +193,7 @@
   "refusals": {
     "refReused": "Namba ya mauzo haya imeshatumika kwa mauzo mengine. Ionyeshe ofisi.",
     "noShift": "Hakuna zamu iliyo wazi kwenye kaunta hii. Fungua droo kwanza.",
-    "alreadyOpen": "Tayari kuna zamu iliyo wazi kwenye kaunta hii."
+    "alreadyOpen": "Tayari kuna zamu iliyo wazi kwenye kaunta hii.",
+    "insufficientStock": "Hakuna stoku ya kutosha kwa bidhaa katika mauzo haya. Omba ofisi irekebishe stoku, kisha jaribu tena."
   }
 }

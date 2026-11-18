@@ -23,6 +23,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::preview))
         .merge(send)
         .routes(routes!(handlers::credit))
+        .routes(routes!(handlers::issue_review))
+        .routes(routes!(handlers::issue))
         .routes(routes!(handlers::send_tasks))
         .layer(DefaultBodyLimit::max(BODY_LIMIT))
 }

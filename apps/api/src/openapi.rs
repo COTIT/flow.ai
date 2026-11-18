@@ -14,7 +14,7 @@ use crate::{
     error::{UnprocessableBody, ValidationErrorBody},
     http::response::MessageBody,
     modules::{
-        analytics, app_keys, assistant, attention, auth, cash, contacts, currencies,
+        accounting, analytics, app_keys, assistant, attention, auth, cash, contacts, currencies,
         currency_rates, custom_statuses, custom_types, deal_pipelines, deals, discount_groups,
         discounts, email_profiles, email_templates, email_verification, farm_bug_reports,
         farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market, farm_memberships,
@@ -24,7 +24,7 @@ use crate::{
         price_corrections, pricing, product_brands, product_categories, product_images,
         product_variants, products, relations, sales_groups, scheduled_reports, search, settings,
         shipment_methods, special_offers, stock, storage_locations, storefront, storefront_design,
-        supply_chain, supply_links, teams, till, till_catalog, till_sales,
+        supply_chain, supply_links, tax_profiles, teams, till, till_catalog, till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -61,7 +61,7 @@ pub fn string_enum<'a>(
 
 /// Registers the `bearer` scheme (user tokens), the `app_key` scheme (`gsk_…` app keys) and
 /// the `till_session` scheme (till tokens), all the same header, that operations list under
-/// `security`.
+/// `security`; plus `till_privileged` (`X-Till-Session`, beside `bearer`).
 struct BearerAuth;
 
 impl Modify for BearerAuth {
@@ -105,6 +105,17 @@ impl Modify for BearerAuth {
                         .build(),
                 ),
             );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                "till_privileged",
+                SecurityScheme::ApiKey(utoipa::openapi::security::ApiKey::Header(
+                    utoipa::openapi::security::ApiKeyValue::with_description(
+                        "X-Till-Session",
+                        "Till session token beside a member bearer on privileged Till routes",
+                    ),
+                )),
+            );
     }
 }
 
@@ -139,6 +150,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(currency_rates::routes::private())
         .merge(users::routes::private())
         .merge(permissions::routes::private())
+        .merge(crate::modules::imports::routes::private())
         .merge(workspaces::routes::private())
         .merge(teams::routes::private())
         .merge(search::routes::private())
@@ -161,6 +173,16 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(discount_groups::routes::private())
         .merge(product_variants::routes::private())
         .merge(products::routes::private())
+        .merge(crate::modules::product_fields::routes::private())
+        .merge(crate::modules::product_bulk_runs::routes::private())
+        .merge(crate::modules::purchase_units::routes::private())
+        .merge(crate::modules::purchasing::routes::private())
+        .merge(crate::modules::payables::routes::private())
+        .merge(crate::modules::shipments::routes::private())
+        .merge(crate::modules::sales_returns::routes::private())
+        .merge(crate::modules::customer_deposits::routes::private())
+        .merge(crate::modules::provider_observations::routes::private())
+        .merge(crate::modules::stocktakes::routes::private())
         .merge(product_categories::routes::private())
         .merge(product_brands::routes::private())
         .merge(warehouse_bins::routes::private())
@@ -206,6 +228,8 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(supply_chain::routes::private())
         .merge(orders::routes::private())
         .merge(analytics::routes::private())
+        .merge(accounting::routes::private())
+        .merge(tax_profiles::routes::private())
         .merge(orders::routes::storefront())
         .merge(till::routes::private())
         .merge(till_catalog::routes::private())

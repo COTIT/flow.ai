@@ -14,6 +14,8 @@ use crate::{
     error::AppError,
     idempotency::{self, Actor, Answer, Key},
     modules::{
+        accounting::{service::unsupported, settlement},
+        invoice_payments::receipt,
         invoice_payments::{
             balance::{self, Balance},
             dto::{MarkCreditedInput, Method, Pay, PaymentInput},
@@ -23,6 +25,7 @@ use crate::{
             self,
             actions::{self, Facts, InvoiceAction},
         },
+        stock::value,
     },
     money,
     numbering::Appendix,
@@ -49,6 +52,12 @@ const NOT_CREDITABLE: &str = "Only a pending credit note can be marked as credit
 const OUT_OF_RANGE: &str = "The amount is out of range.";
 /// Laravel MarkInvoiceAsCredited's description.
 const REFUNDED: &str = "Refunded payment";
+/// Operation of an active-book payment's permanent command identity.
+const OP_CREATE: &str = "invoice_payments_create";
+const ACTIVE_CREDIT: &str =
+    "Credit notes are settled through the credit workflow in an active book, not as payments.";
+const ACTIVE_VOID: &str =
+    "A booked payment can't be voided in an active book; it needs a source correction.";
 /// Live payments one invoice holds (each write re-sums them; the detail lists them).
 const MAX_PAYMENTS: i64 = 500;
 
@@ -63,10 +72,18 @@ pub async fn create(
 ) -> Result<Answer, AppError> {
     let id = parse(invoice)?;
     let mut tx = state.db.begin().await?;
-    if let Some(answer) =
+    let active = value::active(&mut tx, workspace_id).await?;
+    let replayed = if active {
+        idempotency::permanent_replay(&mut tx, workspace_id, OP_CREATE, user_id, key.as_ref())
+            .await?
+    } else {
         idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
-    {
+    };
+    if let Some(answer) = replayed {
         return Ok(answer);
+    }
+    if active && matches!(input.pay, Pay::Settle(_)) {
+        return Err(unsupported(ACTIVE_CREDIT));
     }
     let settle = match input.pay {
         Pay::Settle(note) => Some(note),
@@ -111,8 +128,26 @@ pub async fn create(
         settle_twin_id,
     };
     match (input.pay, settle) {
-        (Pay::Method(Method { method, provider }), _) => {
+        (Pay::Method(m @ Method { method, provider }), _) => {
             repo::insert(&mut tx, workspace_id, &[row(method, provider, None)]).await?;
+            if active {
+                receipt::book(
+                    &mut tx,
+                    workspace_id,
+                    &receipt::Receipt {
+                        id: payment_id,
+                        invoice: &main,
+                        date: input.date,
+                        amount,
+                        dp,
+                        method: m,
+                        location: input.location.as_ref(),
+                        cash_rounding: input.cash_rounding,
+                        user: user_id,
+                    },
+                )
+                .await?;
+            }
             rebalance(&mut tx, workspace_id, &main, None).await?;
         }
         (Pay::Settle(_), Some(note_id)) => {
@@ -146,7 +181,13 @@ pub async fn create(
         }
     }
     let answer = Answer::created(&json!({ "data": { "invoice_payment_id": payment_id } }));
-    idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
+    match (active, key.as_ref()) {
+        (true, Some(k)) => {
+            idempotency::permanent_finish(&mut tx, workspace_id, OP_CREATE, user_id, k, &answer)
+                .await?;
+        }
+        _ => idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?,
+    }
     tx.commit().await?;
     Ok(answer)
 }
@@ -201,6 +242,9 @@ pub async fn void(
 ) -> Result<Answer, AppError> {
     let (id, payment) = (parse(invoice)?, parse(payment)?);
     let mut tx = state.db.begin().await?;
+    if value::active(&mut tx, workspace_id).await? {
+        return Err(unsupported(ACTIVE_VOID));
+    }
     if let Some(answer) =
         idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
     {
@@ -255,6 +299,9 @@ pub async fn mark_as_credited(
 ) -> Result<Answer, AppError> {
     let id = parse(invoice)?;
     let mut tx = state.db.begin().await?;
+    if value::active(&mut tx, workspace_id).await? {
+        return Err(unsupported(ACTIVE_CREDIT));
+    }
     if let Some(answer) =
         idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
     {
@@ -338,7 +385,7 @@ pub(crate) async fn rebalance(
     t: &Target,
     status: Option<&'static str>,
 ) -> Result<(), AppError> {
-    let (paid, cash) = repo::sums(conn, workspace_id, t.id).await?;
+    let (paid, cash) = paid_and_cash(conn, workspace_id, t.id).await?;
     let dp = dp(conn, workspace_id, t).await?;
     let status = status.or_else(|| {
         balance::status(
@@ -354,6 +401,23 @@ pub(crate) async fn rebalance(
     });
     repo::set_balance(conn, workspace_id, t.id, paid, status).await?;
     Ok(())
+}
+
+/// What an invoice's payments add up to and whether cash rounding applies. Active books: the
+/// canonical settlement projection, exact (no 0.05 tolerance; masterplan §12). Setup books:
+/// the legacy ledger sum.
+pub(crate) async fn paid_and_cash(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice: Uuid,
+) -> Result<(i64, bool), AppError> {
+    if value::active(conn, workspace_id).await? {
+        return Ok((
+            settlement::invoice_paid(conn, workspace_id, invoice).await?,
+            false,
+        ));
+    }
+    Ok(repo::sums(conn, workspace_id, invoice).await?)
 }
 
 /// Invoice locks serialize admission with gateway refunds; their reserved money cannot be

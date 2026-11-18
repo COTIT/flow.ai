@@ -8,7 +8,7 @@ use sqlx::{PgConnection, PgExecutor, Postgres, Transaction};
 use uuid::Uuid;
 
 /// A product row, read and written whole (the service locks, merges and writes it back).
-#[derive(Clone)]
+#[derive(Clone, sqlx::FromRow, serde::Serialize)]
 pub struct ProductRow {
     pub id: Uuid,
     pub product_number: i64,
@@ -39,14 +39,23 @@ pub struct ProductRow {
     pub vat_group_id: Option<Uuid>,
     pub sales_group_id: Option<Uuid>,
     pub default_warehouse_id: Option<Uuid>,
+    #[serde(serialize_with = "serialize_decimal")]
     pub price: Decimal,
+    #[serde(serialize_with = "serialize_decimal")]
     pub gross_price: Decimal,
+    #[serde(serialize_with = "serialize_optional_decimal")]
     pub wholesale_price: Option<Decimal>,
+    #[serde(serialize_with = "serialize_optional_decimal")]
     pub supplier_wholesale_price: Option<Decimal>,
+    #[serde(serialize_with = "serialize_optional_decimal")]
     pub impact_on_price: Option<Decimal>,
+    #[serde(serialize_with = "serialize_optional_decimal")]
     pub impact_on_wholesale_price: Option<Decimal>,
+    #[serde(serialize_with = "serialize_decimal")]
     pub order_unit: Decimal,
+    #[serde(serialize_with = "serialize_decimal")]
     pub sale_unit: Decimal,
+    #[serde(serialize_with = "serialize_optional_decimal")]
     pub weight: Option<Decimal>,
     pub unit: Option<String>,
     pub dimensions: Option<Value>,
@@ -92,6 +101,7 @@ pub type PriceChange = (&'static str, Option<Decimal>, Option<Decimal>);
 
 /// List filter. `pattern` = escaped ILIKE value.
 pub struct ListFilter<'a> {
+    pub custom_filters: &'a [crate::modules::product_fields::dto::ValidatedFilter],
     pub status: &'a str,
     pub pattern: Option<&'a str>,
     pub supplier: Option<Uuid>,
@@ -425,147 +435,93 @@ pub async fn by_code(
 }
 
 /// One page, newest first, plus the total (0 when the page is empty).
+#[derive(sqlx::FromRow)]
+struct ProductPageRow {
+    #[sqlx(flatten)]
+    product: ProductRow,
+    total: i64,
+}
+
 pub async fn list(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
 ) -> Result<(Vec<ProductRow>, i64), sqlx::Error> {
-    let rows = sqlx::query!(
-        "SELECT " + r#"id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,
-           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,
-           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,
-           barcode, barcode_vendor, supplier_discount_code, short_description, description,
-           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,
-           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,
-           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,
-           dimensions, country_of_origin, url_vendor, url_vendor_override,
-           exclude_price_corrections, archived, import_id, import_source, export_enabled,
-           export_price_sync, export_product_data, export_data, meta, store_only, labels, category_id, created_at, updated_at"# + r#", count(*) OVER () AS "total!" FROM products
-         WHERE workspace_id = $1 AND deleted_at IS NULL AND status = $2
-           AND ($3::text IS NULL OR name ILIKE $3 OR reference ILIKE $3
-                OR reference_vendor ILIKE $3 OR ean13 ILIKE $3 OR barcode ILIKE $3
-                OR product_nr_formatted ILIKE $3)
-           AND ($4::uuid IS NULL OR supplier_relation_id = $4)
-           AND ($5::text IS NULL OR lower(ean13) = lower($5))
-           AND NOT (id = ANY($6))
-           AND ($9::uuid IS NULL OR category_id = $9)
-           AND ($10::numeric IS NULL OR (has_stock AND (
-                SELECT coalesce(sum(s.stock_lvl - s.reserved), 0) FROM stocks s
-                LEFT JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id
-                WHERE s.workspace_id = $1 AND s.product_id = products.id AND s.deleted_at IS NULL
-                  AND (s.lot_id IS NULL OR (l.status = 'released'
-                       AND (l.expires_on IS NULL OR l.expires_on >= current_date)))) <= $10))
-         ORDER BY id DESC
-         LIMIT $7 OFFSET $8"#,
-        workspace_id,
-        f.status,
-        f.pattern,
-        f.supplier,
-        f.ean13,
-        f.exclude,
-        f.limit,
-        f.offset,
-        f.category,
-        f.available_lte,
-    )
-    .fetch_all(db)
-    .await?;
+    let mut q = sqlx::QueryBuilder::new(
+        "SELECT p.*,p.type AS kind,count(*) OVER() AS total FROM products p WHERE ",
+    );
+    push_list_filters(&mut q, workspace_id, f);
+    q.push(" ORDER BY p.id DESC LIMIT ")
+        .push_bind(f.limit)
+        .push(" OFFSET ")
+        .push_bind(f.offset);
+    let rows = q.build_query_as::<ProductPageRow>().fetch_all(db).await?;
     let total = rows.first().map_or(0, |r| r.total);
-    let rows = rows
-        .into_iter()
-        .map(|r| ProductRow {
-            id: r.id,
-            product_number: r.product_number,
-            product_nr_formatted: r.product_nr_formatted,
-            name: r.name,
-            brand: r.brand,
-            kind: r.kind,
-            status: r.status,
-            has_stock: r.has_stock,
-            is_serialized: r.is_serialized,
-            warranty_default_mode: r.warranty_default_mode,
-            warranty_duration_value: r.warranty_duration_value,
-            warranty_duration_unit: r.warranty_duration_unit,
-            reference: r.reference,
-            reference_vendor: r.reference_vendor,
-            reference_vendor2: r.reference_vendor2,
-            reference_vendor3: r.reference_vendor3,
-            ean13: r.ean13,
-            hs_code: r.hs_code,
-            barcode: r.barcode,
-            barcode_vendor: r.barcode_vendor,
-            supplier_discount_code: r.supplier_discount_code,
-            short_description: r.short_description,
-            description: r.description,
-            stock_level_supplier: r.stock_level_supplier,
-            supplier_relation_id: r.supplier_relation_id,
-            currency_id: r.currency_id,
-            vat_group_id: r.vat_group_id,
-            sales_group_id: r.sales_group_id,
-            default_warehouse_id: r.default_warehouse_id,
-            price: r.price,
-            gross_price: r.gross_price,
-            wholesale_price: r.wholesale_price,
-            supplier_wholesale_price: r.supplier_wholesale_price,
-            impact_on_price: r.impact_on_price,
-            impact_on_wholesale_price: r.impact_on_wholesale_price,
-            order_unit: r.order_unit,
-            sale_unit: r.sale_unit,
-            weight: r.weight,
-            unit: r.unit,
-            dimensions: r.dimensions,
-            country_of_origin: r.country_of_origin,
-            url_vendor: r.url_vendor,
-            url_vendor_override: r.url_vendor_override,
-            exclude_price_corrections: r.exclude_price_corrections,
-            archived: r.archived,
-            import_id: r.import_id,
-            import_source: r.import_source,
-            export_enabled: r.export_enabled,
-            store_only: r.store_only,
-            labels: r.labels,
-            category_id: r.category_id,
-            export_price_sync: r.export_price_sync,
-            export_product_data: r.export_product_data,
-            export_data: r.export_data,
-            meta: r.meta,
-            created_at: r.created_at,
-            updated_at: r.updated_at,
-        })
-        .collect();
-    Ok((rows, total))
+    Ok((rows.into_iter().map(|r| r.product).collect(), total))
 }
-
-/// Matching count, for a page past the end.
+/// Same predicates as list, including the empty page fallback.
 pub async fn count(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
 ) -> Result<i64, sqlx::Error> {
+    let mut q = sqlx::QueryBuilder::new("SELECT count(*) FROM products p WHERE ");
+    push_list_filters(&mut q, workspace_id, f);
+    q.build_query_scalar().fetch_one(db).await
+}
+fn push_list_filters<'a>(q: &mut sqlx::QueryBuilder<Postgres>, ws: Uuid, f: &'a ListFilter<'a>) {
+    q.push("p.workspace_id=")
+        .push_bind(ws)
+        .push(" AND p.deleted_at IS NULL AND p.status=")
+        .push_bind(f.status);
+    if let Some(pattern) = f.pattern {
+        q.push(" AND (p.name ILIKE ")
+            .push_bind(pattern)
+            .push(" OR p.reference ILIKE ")
+            .push_bind(pattern)
+            .push(" OR p.reference_vendor ILIKE ")
+            .push_bind(pattern)
+            .push(" OR p.ean13 ILIKE ")
+            .push_bind(pattern)
+            .push(" OR p.barcode ILIKE ")
+            .push_bind(pattern)
+            .push(" OR p.product_nr_formatted ILIKE ")
+            .push_bind(pattern)
+            .push(")");
+    }
+    if let Some(id) = f.supplier {
+        q.push(" AND p.supplier_relation_id=").push_bind(id);
+    }
+    if let Some(id) = f.category {
+        q.push(" AND p.category_id=").push_bind(id);
+    }
+    if let Some(ean) = f.ean13 {
+        q.push(" AND lower(p.ean13)=lower(")
+            .push_bind(ean)
+            .push(")");
+    }
+    if !f.exclude.is_empty() {
+        q.push(" AND NOT(p.id=ANY(").push_bind(f.exclude).push("))");
+    }
+    if let Some(level) = f.available_lte {
+        // Storefront sale availability: default warehouse, dispatch rows, each row never below 0.
+        q.push(" AND p.has_stock AND (SELECT coalesce(sum(greatest(s.stock_lvl-s.reserved,0)),0) FROM stocks s LEFT JOIN lots l ON l.workspace_id=s.workspace_id AND l.id=s.lot_id WHERE s.workspace_id=p.workspace_id AND s.product_id=p.id AND s.deleted_at IS NULL AND s.bin_id IS NULL AND s.warehouse_id=(SELECT w.id FROM warehouses w WHERE w.workspace_id=p.workspace_id AND w.default_warehouse AND w.deleted_at IS NULL ORDER BY w.id LIMIT 1) AND (s.lot_id IS NULL OR (l.status='released' AND (l.expires_on IS NULL OR l.expires_on>=current_date))) AND NOT purchase_receipt_pending(s.workspace_id,s.warehouse_id,s.product_id))<=").push_bind(level);
+    }
+    crate::modules::product_fields::repo::push_filters(q, f.custom_filters);
+}
+
+/// Whether the product has a live size other than its default (masterplan D05).
+pub async fn has_nondefault_variants(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM products
-           WHERE workspace_id = $1 AND deleted_at IS NULL AND status = $2
-             AND ($3::text IS NULL OR name ILIKE $3 OR reference ILIKE $3
-                  OR reference_vendor ILIKE $3 OR ean13 ILIKE $3 OR barcode ILIKE $3
-                  OR product_nr_formatted ILIKE $3)
-             AND ($4::uuid IS NULL OR supplier_relation_id = $4)
-             AND ($5::text IS NULL OR lower(ean13) = lower($5))
-             AND NOT (id = ANY($6))
-             AND ($7::uuid IS NULL OR category_id = $7)
-           AND ($8::numeric IS NULL OR (has_stock AND (
-                SELECT coalesce(sum(s.stock_lvl - s.reserved), 0) FROM stocks s
-                LEFT JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id
-                WHERE s.workspace_id = $1 AND s.product_id = products.id AND s.deleted_at IS NULL
-                  AND (s.lot_id IS NULL OR (l.status = 'released'
-                       AND (l.expires_on IS NULL OR l.expires_on >= current_date)))) <= $8))"#,
+        r#"SELECT EXISTS (SELECT 1 FROM product_variants
+                          WHERE workspace_id = $1 AND product_id = $2 AND NOT is_default
+                            AND deleted_at IS NULL) AS "has!""#,
         workspace_id,
-        f.status,
-        f.pattern,
-        f.supplier,
-        f.ean13,
-        f.exclude,
-        f.category,
-        f.available_lte,
+        id,
     )
     .fetch_one(db)
     .await
@@ -921,4 +877,83 @@ pub async fn set_default_warehouse(
     .execute(&mut *conn)
     .await
     .map(|_| ())
+}
+
+fn serialize_decimal<S: serde::Serializer>(v: &Decimal, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_str(&v.normalize().to_string())
+}
+fn serialize_optional_decimal<S: serde::Serializer>(
+    v: &Option<Decimal>,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    match v {
+        Some(v) => s.serialize_some(&v.normalize().to_string()),
+        None => s.serialize_none(),
+    }
+}
+
+/// Lock a product before changing its master meaning: `FOR UPDATE` blocks new stock rows,
+/// reservations and lines (their FKs take KEY SHARE) until commit; its stock rows `FOR SHARE
+/// NOWAIT` block level writes. NOWAIT: a stock writer may hold a slot and then wait on the
+/// product key lock held here, so waiting would deadlock (lock order product, then stock).
+pub async fn lock_for_master_change(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "SELECT id FROM products WHERE workspace_id = $1 AND id = $2 FOR UPDATE",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "SELECT id FROM stocks WHERE workspace_id = $1 AND product_id = $2 AND deleted_at IS NULL
+         ORDER BY id FOR SHARE NOWAIT",
+        workspace_id,
+        id,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    Ok(())
+}
+
+/// True once the product has stock on hand or reserved, a reservation, an order line or an
+/// invoice line.
+pub async fn has_economic_history(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    // shortcut: items has no (workspace_id, product_id) index (seq scan, as delete's
+    // product_in_use); runs only when a frozen field changes. Index it if items grows large.
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM stocks WHERE workspace_id = $1 AND product_id = $2
+                            AND deleted_at IS NULL AND (stock_lvl <> 0 OR reserved <> 0))
+               OR EXISTS (SELECT 1 FROM stock_reservations WHERE workspace_id = $1 AND product_id = $2)
+               OR EXISTS (SELECT 1 FROM order_lines WHERE workspace_id = $1 AND product_id = $2)
+               OR EXISTS (SELECT 1 FROM items WHERE workspace_id = $1 AND product_id = $2)
+             AS "used!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(&mut *conn)
+    .await
+}
+
+/// True when the product has any purchase unit (their ratios name its base unit).
+pub async fn has_purchase_units(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM purchase_units WHERE workspace_id = $1 AND product_id = $2)
+             AS "e!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(&mut *conn)
+    .await
 }

@@ -168,7 +168,11 @@
     "waiting": "{count} waiting",
     "needsOffice": "{count, plural, one {# needs the office} other {# need the office}}",
     "items": "{count, plural, one {# item} other {# items}}",
-    "estimate": "{method} · ≈ {amount} estimate"
+    "estimate": "{method} · ≈ {amount} estimate",
+    "otherUser": "Rung up by {name}. Sent once {name} logs in on this till.",
+    "otherRegister": "Rung up on register {register}. It is only sent from that register.",
+    "unknownOrigin": "It is not known which register rang up this sale, so it is not sent.",
+    "retry": "Try again"
   },
   "errors": {
     "crashTitle": "This screen stopped working.",
@@ -189,6 +193,7 @@
   "refusals": {
     "refReused": "This sale's number was already used for another sale. Show it to the office.",
     "noShift": "No shift is open on this register. Open the drawer first.",
-    "alreadyOpen": "A shift is already open on this register."
+    "alreadyOpen": "A shift is already open on this register.",
+    "insufficientStock": "Not enough stock for a product in this sale. Ask the office to correct the stock, then try again."
   }
 }

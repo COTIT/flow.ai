@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, round(v.price * 100)::bigint AS \"cents!\",\n                  array_agg(ov.display_value ORDER BY pot.sort_order) AS \"values!\"\n           FROM product_variants v\n           JOIN variant_option_values vov ON vov.product_variant_id = v.id\n           JOIN option_values ov ON ov.id = vov.option_value_id\n           JOIN product_option_types pot\n             ON pot.product_id = v.product_id AND pot.option_type_id = ov.option_type_id\n           WHERE v.workspace_id = $1 AND v.product_id = $2 AND v.deleted_at IS NULL\n             AND NOT v.is_default\n           GROUP BY v.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "cents!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "values!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "9220960466fa7ba895875ad63082f237ba321f951164cb4e4415a13040ebff0b"
+}

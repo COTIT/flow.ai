@@ -18,7 +18,7 @@ async function fillCustomer(page: Page, email = "buyer@e2e.test") {
   await page.getByLabel("Address", { exact: true }).fill("1 Main St")
   await page.getByLabel("Postal code").fill("10001")
   await page.getByLabel("City").fill("New York")
-  await page.getByLabel("Country").fill("US")
+  await page.getByLabel("Country").selectOption("US")
 }
 
 test("add to cart from the product page, then adjust it in the cart", async ({
@@ -118,9 +118,45 @@ test("empty required fields are named and no order is placed", async ({
   await seedCart(page, 1)
   await page.goto("/checkout")
   await page.getByRole("button", { name: "Place order" }).click()
-  await expect(page.getByText("Please fill this in.")).toHaveCount(6)
+  await expect(page.getByText("Please fill this in.")).toHaveCount(5)
+  await expect(page.getByLabel("Country")).toHaveAccessibleDescription(
+    "Select a valid country from the list."
+  )
   await expect(page.getByLabel("Email")).toHaveAttribute("aria-invalid", "true")
   await expect(page).toHaveURL("/checkout")
+})
+
+test("invalid country stays on checkout with details kept, then can be corrected", async ({
+  page,
+}) => {
+  await seedCart(page, 1)
+  await page.goto("/checkout")
+  await fillCustomer(page)
+  const country = page.getByRole("combobox", { name: "Country", exact: true })
+  await expect(country.locator("option")).toHaveCount(250)
+  await expect(country.locator('option[value="US"]')).toHaveText(
+    "United States"
+  )
+  // A modified browser must still be refused before creating an order.
+  await country.evaluate((element: HTMLSelectElement) => {
+    element.add(new Option("Invalid country", "test"))
+  })
+  await country.selectOption("test")
+  await page.getByRole("button", { name: "Place order" }).click()
+  await expect(country).toHaveAccessibleDescription(
+    "Select a valid country from the list."
+  )
+  await expect(country).toBeFocused()
+  await expect(page).toHaveURL("/checkout")
+  await expect(page.getByLabel("Email")).toHaveValue("buyer@e2e.test")
+  await expect(page.getByLabel("Full name")).toHaveValue("Ada Buyer")
+  await expect(page.getByLabel("Address", { exact: true })).toHaveValue(
+    "1 Main St"
+  )
+  await country.selectOption("US")
+  await page.getByRole("button", { name: "Place order" }).click()
+  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/)
+  await expect(page.getByText("Waiting for payment.")).toBeVisible()
 })
 
 test("with no payment provider configured, the order page says so calmly", async ({

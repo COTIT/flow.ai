@@ -27,13 +27,17 @@ import type {
 import type {
   CountRequest,
   CreateRegisterRequest,
+  CreateTillAdjustPayload,
   CreateTillUserRequest,
   CreateVaultRequest,
+  EnvelopeAdjustReviewResource,
+  EnvelopeCashAdjustmentResource,
   EnvelopeCountQuote,
   EnvelopeKeyRotated,
   EnvelopeOptionShiftResource,
   EnvelopePairedResource,
   EnvelopePairingCode,
+  EnvelopePrivilegedSessionResource,
   EnvelopeQuoteResource,
   EnvelopeRegisterKeyed,
   EnvelopeSaleResource,
@@ -57,9 +61,11 @@ import type {
   TillCatalogParams,
   TillLoginRequest,
   TillRegistersListParams,
+  TillReviewRequest,
   TillSalesListParams,
   TillShiftsListParams,
   TransferRequest,
+  UnprocessableBody,
   UpdateTillUserRequest,
   ValidationErrorBody
 } from '../model';
@@ -154,6 +160,144 @@ export const useTillPair = <TError = ErrorType<MessageBody | ValidationErrorBody
         TContext
       > => {
       return useMutation(getTillPairMutationOptions(options), queryClient);
+    }
+    /**
+ * Member bearer + `X-Till-Session` (D14): a till PIN or member link never counts. Accounting date = today in the book timezone.
+ * @summary Post a reviewed drawer adjustment
+ */
+export const tillCashAdjustmentsCreate = (
+    workspace: string,
+    createTillAdjustPayload: BodyType<CreateTillAdjustPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeCashAdjustmentResource>(
+      {url: `/workspace/${workspace}/till/cash-adjustments`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createTillAdjustPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillCashAdjustmentsCreateMutationKey = () => ['tillCashAdjustmentsCreate'] as const;
+
+export const getTillCashAdjustmentsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TError,TillCashAdjustmentsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TError,TillCashAdjustmentsCreateMutationVariables, TContext> => {
+
+const mutationKey = getTillCashAdjustmentsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TillCashAdjustmentsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillCashAdjustmentsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillCashAdjustmentsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>>
+    export type TillCashAdjustmentsCreateMutationBody = BodyType<CreateTillAdjustPayload>
+    export type TillCashAdjustmentsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillCashAdjustmentsCreateMutationVariables = {workspace: string;data: BodyType<CreateTillAdjustPayload>}
+
+    /**
+ * @summary Post a reviewed drawer adjustment
+ */
+export const useTillCashAdjustmentsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>, TError,TillCashAdjustmentsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillCashAdjustmentsCreate>>,
+        TError,
+        TillCashAdjustmentsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillCashAdjustmentsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * Member bearer + `X-Till-Session`. Only the session's own drawer.
+ * @summary Preview a drawer adjustment (no writes)
+ */
+export const tillCashAdjustmentsCreateReview = (
+    workspace: string,
+    tillReviewRequest: BodyType<TillReviewRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeAdjustReviewResource>(
+      {url: `/workspace/${workspace}/till/cash-adjustments/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: tillReviewRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillCashAdjustmentsCreateReviewMutationKey = () => ['tillCashAdjustmentsCreateReview'] as const;
+
+export const getTillCashAdjustmentsCreateReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TError,TillCashAdjustmentsCreateReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TError,TillCashAdjustmentsCreateReviewMutationVariables, TContext> => {
+
+const mutationKey = getTillCashAdjustmentsCreateReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TillCashAdjustmentsCreateReviewMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillCashAdjustmentsCreateReview(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillCashAdjustmentsCreateReviewMutationResult = NonNullable<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>>
+    export type TillCashAdjustmentsCreateReviewMutationBody = BodyType<TillReviewRequest>
+    export type TillCashAdjustmentsCreateReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillCashAdjustmentsCreateReviewMutationVariables = {workspace: string;data: BodyType<TillReviewRequest>}
+
+    /**
+ * @summary Preview a drawer adjustment (no writes)
+ */
+export const useTillCashAdjustmentsCreateReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>, TError,TillCashAdjustmentsCreateReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillCashAdjustmentsCreateReview>>,
+        TError,
+        TillCashAdjustmentsCreateReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillCashAdjustmentsCreateReviewMutationOptions(options), queryClient);
     }
     /**
  * @summary What this register sells (paged, delta sync, barcode lookup)
@@ -562,6 +706,99 @@ export function useTillMe<TData = Awaited<ReturnType<typeof tillMe>>, TError = E
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getTillMeQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Member bearer in `Authorization` plus the live till token in `X-Till-Session`, both secrets. Member authority comes from the member login only: a till PIN or a till user's member link never counts. Permissions are read live. Read-only.
+ * @summary Confirm a privileged Till approval login
+ */
+export const tillPrivilegedSession = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePrivilegedSessionResource>(
+      {url: `/workspace/${workspace}/till/privileged-session`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillPrivilegedSessionQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/till/privileged-session`
+    ] as const;
+    }
+
+
+export const getTillPrivilegedSessionQueryOptions = <TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillPrivilegedSessionQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillPrivilegedSession>>> = ({ signal }) => tillPrivilegedSession(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillPrivilegedSessionQueryResult = NonNullable<Awaited<ReturnType<typeof tillPrivilegedSession>>>
+export type TillPrivilegedSessionQueryError = ErrorType<MessageBody>
+
+
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillPrivilegedSession>>,
+          TError,
+          Awaited<ReturnType<typeof tillPrivilegedSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillPrivilegedSession>>,
+          TError,
+          Awaited<ReturnType<typeof tillPrivilegedSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Confirm a privileged Till approval login
+ */
+
+export function useTillPrivilegedSession<TData = Awaited<ReturnType<typeof tillPrivilegedSession>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillPrivilegedSession>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillPrivilegedSessionQueryOptions(workspace,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -999,7 +1236,7 @@ export const tillSalesCreate = (
 
 export const getTillSalesCreateMutationKey = () => ['tillSalesCreate'] as const;
 
-export const getTillSalesCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getTillSalesCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext> => {
 
@@ -1028,13 +1265,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type TillSalesCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesCreate>>>
     export type TillSalesCreateMutationBody = BodyType<SaleRequest>
-    export type TillSalesCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type TillSalesCreateMutationVariables = {workspace: string;data: BodyType<SaleRequest>}
 
     /**
  * @summary Book a till sale (or replay it)
  */
-export const useTillSalesCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useTillSalesCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof tillSalesCreate>>,
@@ -1068,7 +1305,7 @@ export const tillSalesQuote = (
 
 export const getTillSalesQuoteMutationKey = () => ['tillSalesQuote'] as const;
 
-export const getTillSalesQuoteMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getTillSalesQuoteMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext> => {
 
@@ -1097,13 +1334,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type TillSalesQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesQuote>>>
     export type TillSalesQuoteMutationBody = BodyType<QuoteRequest>
-    export type TillSalesQuoteMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesQuoteMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type TillSalesQuoteMutationVariables = {workspace: string;data: BodyType<QuoteRequest>}
 
     /**
  * @summary Price a till basket as a sale would (writes nothing)
  */
-export const useTillSalesQuote = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useTillSalesQuote = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof tillSalesQuote>>,

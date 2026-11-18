@@ -13,21 +13,21 @@ use sqlx::PgPool;
 
 const PIN: &str = "4821";
 
-struct W {
-    api: Api,
+pub(crate) struct W {
+    pub api: Api,
     /// Till token on register 1 (EUR, 5-cent cash rounding).
-    t1: String,
+    pub t1: String,
     /// Till token on register 2, same store.
-    t2: String,
-    honey: String,
-    wax: String,
-    shop_key: String,
+    pub t2: String,
+    pub honey: String,
+    pub wax: String,
+    pub shop_key: String,
 }
 
 /// Acme: a store warehouse (also the default) with honey (€12.50 excl, 9 % VAT) and wax (€3
 /// excl, 21 %), 10 of each; two registers on it, an open float of €50 on register 1; EUR cash
 /// rounds to 5 cents; a web shop key.
-async fn world(pool: PgPool) -> W {
+pub(crate) async fn world(pool: PgPool) -> W {
     let api = Api::new(pool, "/till").await;
     let vat = |rate: &'static str| {
         let api = api.with_base("/settings/vat-groups");
@@ -134,19 +134,19 @@ async fn session(api: &Api, warehouse: &str, name: &str) -> String {
 }
 
 /// A line charged at `unit_price` minor units excl VAT.
-fn line(product: &str, q: &str, unit_price: i64) -> Value {
+pub(crate) fn line(product: &str, q: &str, unit_price: i64) -> Value {
     json!({ "product_id": product, "quantity": q, "unit_price": unit_price })
 }
 
-fn cash(tendered: i64) -> Value {
+pub(crate) fn cash(tendered: i64) -> Value {
     json!({ "method": "cash", "tendered": tendered })
 }
 
-fn sale(client_ref: &str, lines: Value, payment: Value) -> Value {
+pub(crate) fn sale(client_ref: &str, lines: Value, payment: Value) -> Value {
     json!({ "client_ref": client_ref, "lines": lines, "payment": payment })
 }
 
-async fn post(w: &W, t: &str, body: &Value) -> (StatusCode, Value) {
+pub(crate) async fn post(w: &W, t: &str, body: &Value) -> (StatusCode, Value) {
     w.api
         .call(Method::POST, "/sales", Some(body.clone()), t)
         .await
@@ -375,22 +375,119 @@ async fn card_is_not_rounded_and_cash_needs_enough_and_a_shift(pool: PgPool) {
     assert_eq!(status, StatusCode::CREATED, "card needs no drawer");
 }
 
+/// The 422 every short sale, replay and quote answers: code `insufficient_stock`, nothing booked.
+fn short_of(res: &Value) {
+    assert_eq!(res["code"], "insufficient_stock", "{res}");
+}
+
+async fn sales_count(w: &W) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM till_sales")
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap()
+}
+
 #[sqlx::test]
-async fn sales_never_stop_for_stock_and_negative_stock_shows(pool: PgPool) {
+async fn a_short_sale_is_refused_and_books_nothing(pool: PgPool) {
     let w = world(pool).await;
+    let cash_before = expected(&w, &w.t1).await;
     let (status, res) = post(
         &w,
         &w.t1,
         &sale("big", json!([line(&w.wax, "12", 300)]), cash(5000)),
     )
     .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    assert!(res["message"].as_str().unwrap().contains("Wax"), "{res}");
+    assert_eq!(level(&w, &w.wax).await, "10.00", "stock untouched");
+    assert_eq!(sales_count(&w).await, 0, "no sale");
+    assert_eq!(expected(&w, &w.t1).await, cash_before, "drawer untouched");
+
+    // The same product over two lines counts once: 6 + 5 > 10.
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale(
+            "split",
+            json!([line(&w.wax, "6", 300), line(&w.wax, "5", 300)]),
+            cash(5000),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+
+    // Exactly what is there sells.
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("all", json!([line(&w.wax, "10", 300)]), cash(5000)),
+    )
+    .await;
     assert_eq!(status, StatusCode::CREATED, "{res}");
-    assert_eq!(level(&w, &w.wax).await, "-2.00");
-    let product = w.api.with_base("/products").get(&w.wax).await;
-    assert!(
-        product.to_string().contains("-2"),
-        "office sees the negative level: {product}"
-    );
+    assert_eq!(level(&w, &w.wax).await, "0.00");
+}
+
+#[sqlx::test]
+async fn an_offline_replay_short_of_stock_is_refused(pool: PgPool) {
+    let w = world(pool).await;
+    let mut body = sale("offline-1", json!([line(&w.wax, "11", 300)]), cash(5000));
+    body["sold_at"] = json!((chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339());
+    let (status, res) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    assert_eq!(level(&w, &w.wax).await, "10.00");
+    assert_eq!(sales_count(&w).await, 0);
+}
+
+#[sqlx::test]
+async fn a_sale_never_takes_stock_held_for_an_order(pool: PgPool) {
+    let w = world(pool).await;
+    sqlx::query("UPDATE stocks SET reserved = 8 WHERE product_id = $1::uuid")
+        .bind(&w.wax)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("held", json!([line(&w.wax, "3", 300)]), cash(5000)),
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("free", json!([line(&w.wax, "2", 300)]), cash(5000)),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(level(&w, &w.wax).await, "8.00");
+}
+
+#[sqlx::test]
+async fn the_quote_refuses_a_short_basket(pool: PgPool) {
+    let w = world(pool).await;
+    let quote = |lines: Value| {
+        let api = &w.api;
+        let t = w.t1.clone();
+        async move {
+            api.call(
+                Method::POST,
+                "/sales/quote",
+                Some(json!({ "lines": lines, "payment": { "method": "card" } })),
+                &t,
+            )
+            .await
+        }
+    };
+    let (status, res) = quote(json!([line(&w.wax, "11", 300)])).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    short_of(&res);
+    let (status, res) = quote(json!([line(&w.wax, "10", 300)])).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
 }
 
 #[sqlx::test]
@@ -883,4 +980,88 @@ async fn the_backfill_lets_stale_defaults_inherit(pool: PgPool) {
             ("Wax".into(), false, false, "5.00".into()),
         ]
     );
+}
+
+// --- active book: anonymous retail recognition (masterplan §19 I) ----------------------------
+
+/// Activate with the sales roles mapped and value the till world's opening stock.
+pub(crate) async fn activate_with_stock(w: &W) {
+    let ws = &w.api.ws;
+    crate::sales_recognition::activate_sales(&w.api.pool, ws).await;
+    let shop: String = sqlx::query_scalar(
+        "SELECT warehouse_id::text FROM stocks WHERE product_id = $1::uuid LIMIT 1",
+    )
+    .bind(&w.honey)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    for p in [&w.honey, &w.wax] {
+        crate::inventory_valuation::seed_pool_only(&w.api.pool, ws, p, &shop, "10", 1000).await;
+    }
+}
+
+pub(crate) async fn balance(w: &W, role: &str) -> i64 {
+    crate::inventory_valuation::role_balance(&w.api.pool, &w.api.ws, role).await
+}
+
+#[sqlx::test]
+async fn an_active_book_recognises_an_anonymous_sale_and_its_receipt(pool: PgPool) {
+    let w = world(pool).await;
+    activate_with_stock(&w).await;
+    let body = sale("r-1", basket(&w), cash(5000));
+    let (status, res) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    // Sale: DR unbilled 3088 / CR revenue 2800 / CR tax 288; receipt DR cash 3090 / CR
+    // unbilled 3088 / CR rounding 2.
+    assert_eq!(balance(&w, "revenue").await, -2800);
+    assert_eq!(balance(&w, "tax_payable").await, -288);
+    assert_eq!(balance(&w, "unbilled_receivables").await, 0);
+    assert_eq!(balance(&w, "cash").await, 3090);
+    assert_eq!(balance(&w, "rounding").await, -2);
+    let row: (String, Option<uuid::Uuid>, i64, i64) =
+        sqlx::query_as("SELECT source_kind, relation_id, net, tax FROM sales_recognitions")
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    assert_eq!(row, ("retail_sale".into(), None, 2800, 288));
+    // The retail item opened and the receipt's application closed it.
+    let items: (i64, i64) = sqlx::query_as(
+        "SELECT count(*), coalesce(sum(residual), 0)::int8 FROM accounting_open_items",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(items, (2, 0));
+    // Replay: one recognition, one receipt, one drawer row; no invoice or customer.
+    let (status, _) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::OK);
+    let counts: (i64, i64, i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM sales_recognitions),
+                (SELECT count(*) FROM accounting_effects WHERE source_kind = 'retail_sale'),
+                (SELECT count(*) FROM cash_ledger WHERE kind = 'sale'),
+                (SELECT count(*) FROM invoices),
+                (SELECT count(*) FROM relations)",
+    )
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(counts, (1, 2, 1, 0, 0));
+    assert_eq!(balance(&w, "cash").await, 3090);
+    crate::inventory_valuation::assert_books(&w.api.pool, &w.api.ws).await;
+}
+
+#[sqlx::test]
+async fn an_active_card_sale_lands_in_provider_clearing(pool: PgPool) {
+    let w = world(pool).await;
+    activate_with_stock(&w).await;
+    let (status, res) = post(
+        &w,
+        &w.t1,
+        &sale("c-1", basket(&w), json!({ "method": "card" })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(balance(&w, "provider_clearing").await, 3088);
+    assert_eq!(balance(&w, "cash").await, 0);
+    assert_eq!(balance(&w, "unbilled_receivables").await, 0);
 }

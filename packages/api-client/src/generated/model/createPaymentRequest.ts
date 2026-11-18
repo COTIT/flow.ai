@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CreatePaymentRequestMeta } from './createPaymentRequestMeta';
+import type { MoneyLocationRequest } from './moneyLocationRequest';
 
 /**
  * A payment on an invoice: money (`payment_method`) or a credit note (`settle_invoice_id`).
@@ -13,6 +14,13 @@ import type { CreatePaymentRequestMeta } from './createPaymentRequestMeta';
 export interface CreatePaymentRequest {
   /** Decimal amount in currency units, greater than 0, within the currency's decimals. */
   amount: string;
+  attribution?: MoneyLocationRequest | null;
+  /**
+     * Active books, `cash_place` only: explicit cash rounding (signed decimal, e.g. `0.05`)
+     * so that `amount + cash_rounding` settles the invoice's open balance exactly.
+     * @nullable
+     */
+  cash_rounding?: string | null;
   /** `YYYY-MM-DD` (a datetime is accepted too). */
   date: string;
   /**

@@ -136,7 +136,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - `supplier_id` / `supplier_relation_id` (uuid)
   - `ean13` (exact)
   - `exclude_ids` (comma-separated, at most 100)
-  - `available_lte` (decimal text, Genesy addition): only stock-tracked products whose sellable stock is at most this. Sellable = Σ (`stock_lvl` − `reserved`) over every live stock row of the product, all warehouses and lots, lots that are held, recalled or expired left out: the shop's "sold out" rule. `available_lte=0` lists products out of stock (one empty lot beside a full one is not). Untracked products never match. Not a number: 422 `The available lte must be a number.` Note `total_available_stock` in the resource is Σ level without that subtraction.
+  - `available_lte` (decimal text, Genesy addition): only stock-tracked products whose sellable stock is at most this. Sellable = the storefront `available_stock` rule: default warehouse, dispatch rows (no bin), each row `stock_lvl` − `reserved` never below 0, lots that are held, recalled or expired left out: the shop's "sold out" rule. `available_lte=0` lists products out of stock (one empty lot beside a full one is not). Untracked products never match. Not a number: 422 `The available lte must be a number.` Note `total_available_stock` in the resource is Σ level without that subtraction.
 - **Paging:** `limit` / `per_page` / `page_size`, max 100.
 - **Order:** newest first.
 - **Laravel differences:** Laravel ignored `ean13`, `search`, `per_page` and `exclude_ids`. The RN app's barcode fallback `?ean13=X` relied on them and got an arbitrary product.
@@ -144,6 +144,27 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
 - **`POST /search`:**
   - An exact, case-insensitive match on barcode, EAN, vendor barcode or the product id. The literal `Shift` that some scanners type is stripped.
   - Several matches prefer an active product, then the **oldest**, so a later copy (a duplicate, or a planted cheaper product) never shadows the original at the till. Laravel took `first()` after hard-coding warehouses 7 and 8.
+
+### Master guards (Flow ERP)
+
+A product is **used** once it has a live stock row with level or reserved not 0, a stock reservation, an order line or an invoice line. A used product refuses these changes with 422 `{"message": "...", "code": "product_master_frozen"}`:
+
+- `unit` changed or cleared
+- `type` changed
+- `has_stock` turned off (turning it on stays allowed)
+- `is_serialized` changed
+- another variant becoming the default (variant create with `is_default`, or a variant switched to default)
+
+`unit` is also frozen while the product has [purchase units](purchase-units.md), used or not. Names, texts, images, prices, categories and status stay editable, and sending a frozen field with its current value is fine. The same check runs for the product form, bulk runs and their review, and assistant proposals (all go through one service function). Only a change to a frozen field reads the history: it locks the product, then its stock rows (`FOR SHARE NOWAIT`); a stock write in flight gives 409 `Stock is being changed. Try again after that write finishes.`
+
+### Active books (Flow ERP)
+
+While the workspace's book is active (`accounting_settings.state = active`; setup books keep everything), product create, update, duplicate and bulk runs, and variant create and generate refuse with 422 before writing:
+
+- `unsupported_product_kind`: the product is (or becomes) `giftcard`, `multi_product_set` or `multi_product_group` (no liability or component posting yet). An existing one can't be edited either.
+- `sku_split_required`: a stock-tracked physical product with a size other than its default (each stocked size must be its own product). Raised on a nondefault variant create or generate, and on a product update that leaves such a product with one.
+
+The book state is read under the shared book gate (`erp.book|<workspace>`), taken before the identity, product and stock locks, so activation (exclusive gate) waits for in-flight product writes.
 
 ## Images `/products/{product}/images`
 

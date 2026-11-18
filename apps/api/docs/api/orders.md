@@ -99,7 +99,7 @@ Every order resource (get, list, action answers) also carries, loaded in three s
 ```
 
 - `lines`: 1 to 50. `quantity` 0.01 to 100000, at most 2 decimals.
-- Prices default to the catalog: the variant's price when one is sent, else the product's, in the order's currency (a product priced in another currency is a 422). VAT is the product's VAT group (0 without one). `unit_price` (minor units, excl VAT), `discount_percentage` and `title` override.
+- Prices default to the catalog: the variant's price when one is sent, else the product's, in the order's currency, in minor units rounded half away from zero (1.005 → 101) (a product priced in another currency is a 422). VAT is the product's VAT group (0 without one). `unit_price` (minor units, excl VAT), `discount_percentage` and `title` override.
 - Totals come from the pricing engine: line amounts rounded to the currency, VAT once per rate. `summary.vats` lists `{rate, base, vat}` per rate.
 - Currency defaults to the main currency; warehouse to the main warehouse (422 `warehouse_id` when none is set).
 - Numbers come from the `order` numbering settings (`ORD-0001` by default).
@@ -143,6 +143,7 @@ The shop's order view holds `id, number, status, currency, decimals, subtotal, v
 Checkout body: `{lines: [{product_id, product_variant_id?, quantity}], customer: {email, name, phone?, shipping_address?, billing_address?}}`.
 - Prices come from the catalog only: a sent `unit_price`, `discount_percentage` or `title` is a 422. Products must be active and not archived.
 - 1 to 50 lines, quantity at most 1000 per line; addresses are objects of at most 4 KiB.
+- Customer name and email are required; name/email are at most 255 characters, email must be valid, and optional phone is at most 50 characters. A shipping or billing address must contain a valid ISO 3166-1 alpha-2 `country`; every supplied country is validated and normalized to uppercase. Invalid customer details return field errors with 422 before creating an order, reserving stock or starting payment.
 - The main currency and the main warehouse; not enough stock is a 422 on `lines.N.quantity`.
 - At most `CHECKOUT_HOLD_MAX` (default 500) web orders per workspace may await payment: 429 above it. The per-key private rate limit applies too.
 

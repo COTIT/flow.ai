@@ -13,6 +13,7 @@ import { formatMoney } from "@genesy/ui/lib/money"
 
 import { defaultVariant } from "@/lib/price"
 import { useCart } from "@/lib/use-cart"
+import { optionTypes, pick } from "@/lib/variant-options"
 
 import { Stepper } from "./stepper"
 import { StockBadge } from "./stock-badge"
@@ -63,11 +64,12 @@ export function AddToCart({
   const variant = product.variants.find((v) => v.id === variantId)
   const money = (minor: number) =>
     formatMoney(minor, product.currency_decimals, product.currency, locale)
-  const optionTypes = [
-    ...new Set(product.variants.flatMap((v) => v.options.map((o) => o.type))),
-  ]
+  const types = optionTypes(product.variants)
   // A lone named size still shows, so the buyer knows which one they get.
-  const choose = product.variants.length > 1 || optionTypes.length > 0
+  const choose = product.variants.length > 1 || types.length > 0
+  // Labels wrap inside their button (long print names, two-option values).
+  const fit =
+    "h-auto min-h-14 flex-col gap-0 whitespace-normal py-2 text-center"
 
   return (
     <form
@@ -89,7 +91,10 @@ export function AddToCart({
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[32px] font-semibold tabular-nums">
+        <span
+          data-testid="buy-price"
+          className="text-[32px] font-semibold tabular-nums"
+        >
           {money(variant?.price_gross ?? product.price_gross)}
         </span>
         <StockBadge
@@ -102,14 +107,62 @@ export function AddToCart({
         />
       </div>
 
-      {choose ? (
+      {types.length > 1 ? (
+        // Two or more options (colour and spice): one picker each, the variant follows.
+        types.map(({ type, values }, i) => {
+          const chosen = variant?.options.find((o) => o.type === type)?.value
+          return (
+            <div
+              key={type}
+              role="group"
+              aria-labelledby={`${formId}-option-${i}`}
+              className="flex flex-col gap-1.5"
+            >
+              <span
+                id={`${formId}-option-${i}`}
+                className="text-[13px] font-medium"
+              >
+                {type}:{" "}
+                <span className="font-normal text-muted-foreground">
+                  {chosen}
+                </span>
+              </span>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {values.map((value) => {
+                  const on = value === chosen
+                  return (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant="outline"
+                      disabled={!ready}
+                      aria-pressed={on}
+                      onClick={() =>
+                        setVariantId(
+                          pick(product.variants, variant ?? null, type, value)
+                            ?.id ?? variantId
+                        )
+                      }
+                      className={
+                        on ? `${fit} border-2 border-ring font-semibold` : fit
+                      }
+                    >
+                      <span className="wrap-anywhere">{value}</span>
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })
+      ) : choose ? (
         <div
           role="group"
           aria-labelledby="variant-label"
           className="flex flex-col gap-1.5"
         >
           <span id="variant-label" className="text-[13px] font-medium">
-            {optionTypes.join(" / ") || t("cart.option")}
+            {types.map((o) => o.type).join(" / ") || t("cart.option")}
           </span>
           <div className="grid grid-cols-3 gap-2">
             {product.variants.map((v) => {
@@ -122,13 +175,13 @@ export function AddToCart({
                   disabled={!ready}
                   aria-pressed={on}
                   onClick={() => setVariantId(v.id)}
-                  className={
-                    on
-                      ? "h-14 flex-col gap-0 border-2 border-ring"
-                      : "h-14 flex-col gap-0"
-                  }
+                  className={on ? `${fit} border-2 border-ring` : fit}
                 >
-                  <span className={on ? "font-semibold" : undefined}>
+                  <span
+                    className={
+                      on ? "font-semibold wrap-anywhere" : "wrap-anywhere"
+                    }
+                  >
                     {variantValue(v)}
                   </span>{" "}
                   <span className="text-xs text-muted-foreground">

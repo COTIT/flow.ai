@@ -213,8 +213,18 @@ pub async fn bound(
     tx.commit().await?;
     let username = &credentials[0];
     let password = &credentials[1];
-    let client = state.payments.globadyme(ws,environment,&merchant_id,revision,username.expose().to_owned(),password.expose().to_owned())
-        .await.map_err(|_| AppError::Unavailable("Globadyme environment is unavailable; production origin requires official verification."))?;
+    let client = state
+        .payments
+        .globadyme(
+            ws,
+            environment,
+            &merchant_id,
+            revision,
+            username.expose().to_owned(),
+            password.expose().to_owned(),
+        )
+        .await
+        .map_err(|_| AppError::Unavailable("Globadyme environment is unavailable."))?;
     Ok(Account {
         environment: environment.into(),
         merchant_id,

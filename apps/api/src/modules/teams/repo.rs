@@ -267,6 +267,23 @@ pub async fn admin_flag(
     .await
 }
 
+/// Oldest live team of `workspace_id` holding `workspace_admin` (signup's "Admin Team").
+pub async fn admin_team(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT t.id FROM teams t
+         JOIN team_permissions p ON p.team_id = t.id AND p.permission = 'workspace_admin'
+         WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+         ORDER BY t.created_at, t.id
+         LIMIT 1",
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
 /// Add users to a live team of `workspace_id`. Already members = no-op.
 pub async fn add_members(
     db: impl PgExecutor<'_>,

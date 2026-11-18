@@ -1,18 +1,35 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer` and `pdftemplate` (48 / 247). Name =
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import`, `shipment`, `salesreturn`, `purchasereturn`, `supplierbill` and `supplierpayment` (58 / 314). Name =
 //! `group.action`.
+//! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
 
 /// Groups in key order, actions sorted (Laravel `ksort` + `sort`).
 pub const GROUPS: &[(&str, &[&str])] = &[
+    (
+        "accounting",
+        &[
+            "activate",
+            "close",
+            "configure",
+            "journal_create",
+            "post",
+            "read",
+            "reconcile",
+            "revalue",
+            "reverse",
+        ],
+    ),
     (
         "association",
         &["create", "delete", "get", "list", "update"],
     ),
     (
         "cashregister",
-        &["create", "delete", "list", "update", "view"],
+        &[
+            "adjust", "create", "delete", "list", "refund", "update", "view",
+        ],
     ),
     ("contact", &["create", "delete", "get", "list", "update"]),
     ("currency", &["create", "delete", "get", "list", "update"]),
@@ -87,6 +104,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "hourregistration",
         &["create", "delete", "get", "list", "update"],
     ),
+    // import: genesy master-data imports (masterplan §15).
+    (
+        "import",
+        &["apply", "create", "get", "list", "upload", "validate"],
+    ),
     ("invite", &["create", "delete", "get", "list"]),
     (
         "invoice",
@@ -144,6 +166,18 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "productcategory",
         &["create", "delete", "get", "list", "update"],
     ),
+    // purchaseorder: Flow ERP M3 purchasing (masterplan §15), not Laravel.
+    (
+        "purchaseorder",
+        &[
+            "book", "cancel", "close", "confirm", "create", "get", "list", "receive", "update",
+        ],
+    ),
+    // purchasereturn: Flow ERP M5-A supplier returns (masterplan §15), not Laravel.
+    (
+        "purchasereturn",
+        &["create", "get", "list", "post", "reverse"],
+    ),
     (
         "relation",
         &["create", "delete", "get", "history", "list", "update"],
@@ -151,7 +185,21 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     ("reminder", &["create", "delete", "get", "list", "update"]),
     // salesgroup, shipmentmethod, vatgroup: added by genesy (Laravel checked them, never catalogued).
     ("salesgroup", &["create", "delete", "get", "list", "update"]),
+    // salesreturn: Flow ERP M4 customer returns and credits (masterplan §15), not Laravel.
+    (
+        "salesreturn",
+        &[
+            "cancel", "create", "get", "list", "post", "reverse", "update",
+        ],
+    ),
     ("setting", &["get", "update"]),
+    // shipment: Flow ERP M4 partial shipments (masterplan §15), not Laravel.
+    (
+        "shipment",
+        &[
+            "cancel", "create", "get", "invoice", "list", "post", "update",
+        ],
+    ),
     (
         "shipmentmethod",
         &["create", "delete", "get", "list", "update"],
@@ -177,7 +225,24 @@ pub const GROUPS: &[(&str, &[&str])] = &[
             "set_stock_requirements",
         ],
     ),
+    // stocktake: Flow ERP M6 counts (masterplan §15), not Laravel.
+    (
+        "stocktake",
+        &["cancel", "count", "create", "get", "list", "post", "start"],
+    ),
+    // supplierbill, supplierpayment: Flow ERP M5-A payables (masterplan §15), not Laravel.
+    (
+        "supplierbill",
+        &[
+            "create", "get", "list", "match", "post", "reverse", "update",
+        ],
+    ),
+    (
+        "supplierpayment",
+        &["allocate", "create", "get", "list", "reverse"],
+    ),
     ("tag", &["create", "delete", "list", "update", "view"]),
+    ("taxprofile", &["configure", "read", "verify"]),
     (
         "team",
         &[
@@ -252,8 +317,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 48);
-        assert_eq!(names().count(), 247);
+        assert_eq!(GROUPS.len(), 58);
+        assert_eq!(names().count(), 314);
     }
 
     #[test]

@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.code, a.name, a.type, t.n AS \"n!\",\n                  round(t.o / 10::numeric ^ $5::int, $5::int)::text AS \"opening!\",\n                  round(t.d / 10::numeric ^ $5::int, $5::int)::text AS \"debit!\",\n                  round(t.c / 10::numeric ^ $5::int, $5::int)::text AS \"credit!\",\n                  round((t.o + t.d - t.c) / 10::numeric ^ $5::int, $5::int)::text AS \"closing!\"\n           FROM accounts a\n           CROSS JOIN LATERAL (\n               SELECT coalesce(sum(jl.functional_debit - jl.functional_credit)\n                               FILTER (WHERE je.accounting_date < $3), 0) AS o,\n                      coalesce(sum(jl.functional_debit) FILTER (WHERE je.accounting_date >= $3), 0) AS d,\n                      coalesce(sum(jl.functional_credit) FILTER (WHERE je.accounting_date >= $3), 0) AS c,\n                      count(*) FILTER (WHERE je.accounting_date >= $3) AS n\n               FROM journal_lines jl\n               JOIN journal_entries je ON je.workspace_id = jl.workspace_id AND je.id = jl.entry_id\n               WHERE jl.workspace_id = $1 AND jl.account_id = a.id AND je.state = 'posted'\n                 AND je.accounting_date < $4) t\n           WHERE a.workspace_id = $1 AND a.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "opening!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "debit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "credit!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "closing!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "ff72ca27e1e7086a1b54aff3f6232594f4445c44ce204a1561c41bbdab729c8d"
+}

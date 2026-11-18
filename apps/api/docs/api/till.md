@@ -138,6 +138,31 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 - `register` (on `/till/me` and the `/till/login` reply): `id`, `name`, `warehouse_id`, `currency_id`, `currency {code, decimals}`, and `accepted_cash`: the drawer's notes and coins from settings `cash_register.accepted_cash` (stored as major-unit numbers or strings; the euro list when unset), converted exactly to minor units of the register's currency, sorted and distinct. A value that isn't a whole minor unit is left out.
 - `POST /till/logout` → 204
 
+## Privileged approval (member bearer + till token)
+
+Refunds, returns and cash adjustments at the till (coming in a later milestone) need two logins at once:
+
+- `Authorization: Bearer <member token>`: a real member login (email + password), checked like every member route. Its permissions are read on every request, and logging out ends it.
+- `X-Till-Session: <till token>`: the live till session from `/till/login`, which supplies the register and the cashier. Same liveness rules as above.
+
+A till PIN never stands in for the member login. Linking a till user to a member, or resetting that till user's PIN, gives no member rights: a till token sent as the bearer gets 401. Both values are secrets and are never logged.
+
+Permissions: `cashregister.refund`, `cashregister.adjust`.
+
+### `GET /till/privileged-session`
+
+The till calls this to confirm an approval login before it shows the approval form. Read-only.
+
+- 200 `{data: {member: {user_id, permissions}, register: {id, name}, cashier: {till_user_id, name}}}`. `permissions` lists the ones the member holds out of `cashregister.adjust` and `cashregister.refund`.
+- 401: no live member login, or a missing, malformed or dead till token.
+- 403: inactive membership, or the member holds neither permission.
+- 404: the caller is not a member of the workspace, or the till session belongs to another workspace.
+
+
+### Drawer cash adjustment (`till_cash_adjustments_create`, `cashregister.adjust`)
+
+`POST /till/cash-adjustments/review` `{target_cash_place: {kind: "drawer", id: <session register>}, counted_amount}` and `POST /till/cash-adjustments` (C envelope, `Idempotency-Key`, payload adds `count_evidence_ref`, `reason`, `review_fingerprint`). Both need the two logins above and the member's live `cashregister.adjust` (403 otherwise, including a manager who only reset a PIN). `counted_amount` is integer minor units. Only the session's own drawer: another register → 404, a vault → 422 (vaults are Office-only). The accounting date is today in the book timezone. The ledger row records the member as actor and the till user as cashier context. Effects and errors as `POST /accounting/cash-adjustments` (`docs/api/accounting.md` "Cash places").
+
 ## Catalog (till token)
 
 ### `GET /till/catalog?page&page_size&updated_since&code`
@@ -145,7 +170,7 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 What the session's register sells, by id, paged (`page_size` default 50, max 100). Workspace, currency and warehouse come from the register. Code: `src/modules/till_catalog/`.
 
 - Products in another currency are left out (a sale refuses them). `store_only` products show (the web shop hides them).
-- Row: `id`, `name`, `type`, `ean13`, `barcode`, `store_only`, `vat_rate` (decimal string from the VAT group, `0` without one), `unit_price` (minor units excl VAT; what `POST /till/sales` books, so no mismatch flag), `unit_price_gross` (one unit incl VAT in minor units, priced by the order engine like a one-line sale: equals `POST /till/sales/quote` for quantity 1; null only when out of range), `has_stock`, `stock` (level − reserved in the register's warehouse, released unexpired lots and no-lot rows; may be negative; null when not tracked), `sellable`, `variants[]` (`id`, `sku`, `ean13`, `barcode`, `is_default`, `unit_price`, `unit_price_gross`, `options`), `updated_at`.
+- Row: `id`, `name`, `type`, `ean13`, `barcode`, `store_only`, `vat_rate` (decimal string from the VAT group, `0` without one), `unit_price` (minor units excl VAT; what `POST /till/sales` books, so no mismatch flag), `unit_price_gross` (one unit incl VAT in minor units, priced by the order engine like a one-line sale: equals `POST /till/sales/quote` for quantity 1; null only when out of range), `has_stock`, `stock` (what a sale can take in the register's warehouse: dispatch rows (no bin), released unexpired lots and no-lot rows, each row level − reserved never below 0; null when not tracked), `sellable`, `variants[]` (`id`, `sku`, `ean13`, `barcode`, `is_default`, `unit_price`, `unit_price_gross`, `options`), `updated_at`.
 - `code`: exact product or variant EAN-13 or barcode, any case (≤ 100 chars).
 - Without `updated_since`: sellable products only. With it (RFC 3339): every product whose row, a variant, its VAT group, or a stock row or lot in the register's warehouse changed after it, sellable or not; `sellable: false` tells the till to drop it.
 - Reply: `{data, meta, next_since}`. `next_since` is a minute before the read: send it as the next `updated_since` and upsert by id (repeats are expected).
@@ -224,7 +249,7 @@ What happens, in one transaction:
 3. **Payment.**
    - Cash: `due` = `total` rounded half up to the currency's step in settings `cash_register.cash_rounding` (EUR `5` → 0.05; no entry → no rounding). `rounding = due − total`. `tendered < due` → 422 on `payment.tendered`. Needs an open shift on the register (409). `change = tendered − due`. The drawer gets one `sale` ledger row of `due`.
    - Card: an external terminal recorded by hand. `due = total`, no rounding, no change, no drawer row. Real terminals (PAY.nl) are deferred, see `docs/deferred-providers.md`.
-4. **Stock** is taken at once from the register's warehouse (`stock::reserve::take`, `Floor::None`): a sale is never refused for stock, and a store may go below zero, which the office sees on the product's stock. The web shop's `available_stock` drops by the same amount.
+4. **Stock** is taken at once from the register's warehouse (`stock::reserve::take`, `Floor::Available`): dispatch rows only, never what an order holds, never below zero (masterplan D17). A stock-tracked product asked for more than that (lines of one product summed) is `422 {"message": "Not enough stock for {title}: {available} available.", "code": "insufficient_stock"}` and nothing is booked: no order, no stock, no cash. Offline replays (`sold_at`) are refused the same way. `POST /till/sales/quote` gives the same 422 from a read-only check (no locks). The web shop's `available_stock` drops by what a sale takes.
 5. **Event** `order.created` (status `completed`, source `till`) and `stock.changed` per product.
 
 201 (or 200 on a replay):

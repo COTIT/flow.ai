@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE journal_lines SET functional_debit = $4, functional_credit = $5, rate = $6,\n                rate_inverse = $7, rate_source = $8, rate_date = $9\n         WHERE workspace_id = $1 AND entry_id = $2 AND line_no = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int2",
+        "Int8",
+        "Int8",
+        "Numeric",
+        "Bool",
+        "Text",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "385d1708a227178882615ccc232b8e9022c781eb0886d71a1bc3c462560b41c6"
+}

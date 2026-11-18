@@ -16462,7 +16462,7 @@
       "allOf": ["workspace_admin"],
       "anyOf": [],
       "predicates": [
-        "Unknown gateway submissions or open collections with affirmative closed/no-charge evidence only; audited reason and provider evidence required; cannot mark a collection paid."
+        "Unknown gateway submissions or open collections with affirmative closed/no-charge evidence, or a paid captured source with a refund-observation warning and verified refund reconciliation; audited reason and provider evidence required; cannot mark a collection paid or clear other warnings."
       ],
       "authority": [
         "apps/api/src/modules/gateway/handlers.rs#resolve",
@@ -17672,6 +17672,5608 @@
     "effects": [
       "control"
     ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_mappings_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/mappings",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_mappings_save": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/mappings",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_report": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/report",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_approve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/approve",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_cancel": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/cancel",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_mapping": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/mapping",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_raw": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/rows/{row}/raw",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_remainder": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/remainder",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_resume": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/resume",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/reviews",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_row": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/rows/{row}",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_rows": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/rows",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_source": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/sources",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_runs_stage": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/{run}/stage",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_settings_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/settings",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_settings_set": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-bulk-runs/settings",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "workspace_admin"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_bulk_template": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-bulk-runs/template",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "product.list",
+        "product.view"
+      ],
+      "anyOf": [],
+      "predicates": [
+        "Run creator or workspace administrator; live product grants checked for each approved operation; AI cannot approve run scopes"
+      ],
+      "authority": [
+        "apps/api/src/modules/product_bulk_runs/handlers.rs",
+        "apps/api/src/modules/product_bulk_runs/service.rs",
+        "apps/api/src/modules/product_bulk_runs/worker.rs",
+        "apps/api/src/modules/product_bulk_runs/spend.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_fields_archive": {
+    "method": "DELETE",
+    "path": "/workspace/{workspace}/product-fields/{field}",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "workspace_admin"
+      ],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/product_fields/handlers.rs",
+        "apps/api/src/modules/product_fields/service.rs",
+        "apps/api/src/modules/product_fields/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_fields_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/product-fields",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "workspace_admin"
+      ],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/product_fields/handlers.rs",
+        "apps/api/src/modules/product_fields/service.rs",
+        "apps/api/src/modules/product_fields/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_fields_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-fields/{field}",
+    "disposition": "execute",
+    "reason": "Read workspace product field definitions for exact typed mapping; native routes enforce access",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [
+        "product.list",
+        "product.view"
+      ],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/product_fields/handlers.rs",
+        "apps/api/src/modules/product_fields/service.rs",
+        "apps/api/src/modules/product_fields/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_fields_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/product-fields",
+    "disposition": "execute",
+    "reason": "Read workspace product field definitions for exact typed mapping; native routes enforce access",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [
+        "product.list",
+        "product.view"
+      ],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/product_fields/handlers.rs",
+        "apps/api/src/modules/product_fields/service.rs",
+        "apps/api/src/modules/product_fields/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "product_fields_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/product-fields/{field}",
+    "disposition": "internal",
+    "reason": "Native Flow import controls; only the dedicated draft/status bridge is model-accessible. Approval and administration stay in authenticated Flow UI.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "workspace_admin"
+      ],
+      "anyOf": [],
+      "predicates": [],
+      "authority": [
+        "apps/api/src/modules/product_fields/handlers.rs",
+        "apps/api/src/modules/product_fields/service.rs",
+        "apps/api/src/modules/product_fields/repo.rs"
+      ],
+      "roleAnyOf": [],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ]
+    },
+    "effects": [
+      "record"
+    ],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_accounts_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/accounts",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#accounts_list",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_accounts_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/accounts",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#accounts_create",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_accounts_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/accounting/accounts/{account}",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#accounts_update",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_years_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/fiscal-years",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#years_list",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_years_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/fiscal-years",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#years_create",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/journals",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_list",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/journals",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_create",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/journals/{journal}",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_get",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/accounting/journals/{journal}",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_update",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/journals/{journal}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_post",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/journals/{journal}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_post_review",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/journals/{journal}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_reverse",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_journals_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/journals/{journal}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#journals_reverse_review",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_periods_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/periods",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#periods_list",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_periods_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/periods",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#periods_create",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_setup_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/setup",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#setup_get",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_setup_update": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/accounting/setup",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#setup_update",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_units_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/products/{product}/purchase-units",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchase_units/handlers.rs#list",
+        "apps/api/src/modules/purchase_units/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_units_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/products/{product}/purchase-units",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchase_units/handlers.rs#create",
+        "apps/api/src/modules/purchase_units/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_units_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/products/{product}/purchase-units/{unit}",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchase_units/handlers.rs#update",
+        "apps/api/src/modules/purchase_units/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_privileged_session": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/till/privileged-session",
+    "disposition": "internal",
+    "reason": "Flow ERP M1 route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till/handlers.rs#privileged_session",
+        "apps/api/src/modules/till/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_cash_adjustments_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/cash-adjustments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/cash/handlers.rs#office_adjust",
+        "apps/api/src/modules/cash/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_cash_adjustments_create_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/cash-adjustments/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/cash/handlers.rs#office_adjust_review",
+        "apps/api/src/modules/cash/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_cash_places_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/cash-places",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/cash/handlers.rs#cash_places",
+        "apps/api/src/modules/cash/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_balance_sheet": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/balance-sheet",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#balance_sheet",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_general_ledger": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/general-ledger",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#general_ledger",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_profit_and_loss": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/profit-and-loss",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#profit_and_loss",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_trial_balance": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/reports/trial-balance",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#trial_balance",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-orders",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_list",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_create",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-orders/{order}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_get",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/purchase-orders/{order}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_update",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_cancel": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/cancel",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_cancel",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_close_lines": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/close-lines",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_close_lines",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_confirm": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/confirm",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_confirm",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_confirm_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/confirm/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_confirm_review",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_orders_events": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/events",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#orders_events",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_receipts_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/receipts",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#receipts_list",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_receipts_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/receipts",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#receipts_create",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_receipts_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#receipts_get",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_receipts_book": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}/book",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#receipts_book",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_receipts_book_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-orders/{order}/receipts/{receipt}/book/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/purchasing/handlers.rs#receipts_book_review",
+        "apps/api/src/modules/purchasing/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "tax_profiles_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/tax-profiles",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/tax_profiles/handlers.rs#list",
+        "apps/api/src/modules/tax_profiles/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "tax_profiles_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/tax-profiles",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/tax_profiles/handlers.rs#create",
+        "apps/api/src/modules/tax_profiles/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "tax_profiles_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/tax-profiles/{tax_profile}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/tax_profiles/handlers.rs#get",
+        "apps/api/src/modules/tax_profiles/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "tax_profiles_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/tax-profiles/{tax_profile}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/tax_profiles/handlers.rs#update",
+        "apps/api/src/modules/tax_profiles/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "tax_profiles_verify": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/tax-profiles/{tax_profile}/verify",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/tax_profiles/handlers.rs#verify",
+        "apps/api/src/modules/tax_profiles/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "tax_profiles_verify_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/tax-profiles/{tax_profile}/verify/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/tax_profiles/handlers.rs#verify_review",
+        "apps/api/src/modules/tax_profiles/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_cash_adjustments_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/till/cash-adjustments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/cash/handlers.rs#till_adjust",
+        "apps/api/src/modules/cash/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_cash_adjustments_create_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/till/cash-adjustments/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/cash/handlers.rs#till_adjust_review",
+        "apps/api/src/modules/cash/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/imports",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#list",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/imports",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#create",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/imports/{import}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#get",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_apply": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/imports/{import}/apply",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#apply",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_upload": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/imports/{import}/chunks/{index}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#upload",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_rows": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/imports/{import}/rows",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#rows",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "imports_validate": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/imports/{import}/validate",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/imports/handlers.rs#validate",
+        "apps/api/src/modules/imports/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_bank_accounts_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/bank-accounts",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_accounts_list",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_bank_accounts_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/bank-accounts",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#bank_accounts_create",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "customer_deposits_receive": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/customer-deposits",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/customer_deposits/handlers.rs#customer_deposits_receive",
+        "apps/api/src/modules/customer_deposits/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "customer_deposits_receive_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/customer-deposits/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/customer_deposits/handlers.rs#customer_deposits_receive_review",
+        "apps/api/src/modules/customer_deposits/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "customer_deposits_apply": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/customer-deposits/{deposit}/apply",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/customer_deposits/handlers.rs#customer_deposits_apply",
+        "apps/api/src/modules/customer_deposits/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "customer_deposits_apply_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/customer-deposits/{deposit}/apply/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/customer_deposits/handlers.rs#customer_deposits_apply_review",
+        "apps/api/src/modules/customer_deposits/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_issue": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/invoices/{invoice}/issue",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/invoices/handlers.rs#issue",
+        "apps/api/src/modules/invoices/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "invoices_issue_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/invoices/{invoice}/issue/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/invoices/handlers.rs#issue_review",
+        "apps/api/src/modules/invoices/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/orders/{order}/shipments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_list",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/orders/{order}/shipments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_create",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/orders/{order}/shipments/{shipment}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_get",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/orders/{order}/shipments/{shipment}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_update",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_cancel": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/orders/{order}/shipments/{shipment}/cancel",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_cancel",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_invoice": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/orders/{order}/shipments/{shipment}/invoice",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_invoice",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/orders/{order}/shipments/{shipment}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_post",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "shipments_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/orders/{order}/shipments/{shipment}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/shipments/handlers.rs#shipments_post_review",
+        "apps/api/src/modules/shipments/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/stocktakes",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#list",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/stocktakes",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#create",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/stocktakes/{stocktake}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#get",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_cancel": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/stocktakes/{stocktake}/cancel",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#cancel",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_count": {
+    "method": "PUT",
+    "path": "/workspace/{workspace}/stocktakes/{stocktake}/counts",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#count",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/stocktakes/{stocktake}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#post",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/stocktakes/{stocktake}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#post_review",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "stocktakes_start": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/stocktakes/{stocktake}/start",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/stocktakes/handlers.rs#start",
+        "apps/api/src/modules/stocktakes/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_exceptions_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/exceptions/{exception}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/provider_observations/handlers.rs#accounting_exceptions_get",
+        "apps/api/src/modules/provider_observations/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_exceptions_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/exceptions",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/provider_observations/handlers.rs#accounting_exceptions_list",
+        "apps/api/src/modules/provider_observations/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_exceptions_resolve": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/exceptions/{exception}/resolve",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/provider_observations/handlers.rs#accounting_exceptions_resolve",
+        "apps/api/src/modules/provider_observations/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_exceptions_resolve_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/exceptions/{exception}/resolve/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/provider_observations/handlers.rs#accounting_exceptions_resolve_review",
+        "apps/api/src/modules/provider_observations/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "accounting_exceptions_retry": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/exceptions/{exception}/retry",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/provider_observations/handlers.rs#accounting_exceptions_retry",
+        "apps/api/src/modules/provider_observations/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "legacy_return_costs_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/legacy-return-costs",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#legacy_return_costs_create",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_create",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments/{adjustment}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_get",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_list",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments/{adjustment}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_post",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments/{adjustment}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_post_review",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments/{adjustment}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_reverse",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_cost_adjustments_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-cost-adjustments/{adjustment}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#costs_reverse_review",
+        "apps/api/src/modules/payables/costs.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-returns",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_create",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-returns/{return}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_get",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/purchase-returns",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_list",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-returns/{return}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_post",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-returns/{return}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_post_review",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-returns/{return}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_reverse",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "purchase_returns_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/purchase-returns/{return}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#returns_reverse_review",
+        "apps/api/src/modules/payables/returns.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_return_restocks_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/restocks/{restock}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_return_restocks_reverse",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_return_restocks_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/restocks/{restock}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_return_restocks_reverse_review",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_cancel": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/cancel",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_cancel",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_create",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales-returns/{return}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_get",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/sales-returns",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_list",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_post",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_post_review",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_restock": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/restock",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_restock",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_restock_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/restock/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_restock_review",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_reverse",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/sales-returns/{return}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_reverse_review",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "sales_returns_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/sales-returns/{return}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/sales_returns/handlers.rs#sales_returns_update",
+        "apps/api/src/modules/sales_returns/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-bills",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_create",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_get",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/supplier-bills",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_list",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_match": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}/match",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_match",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_post": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}/post",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_post",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_post_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}/post/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_post_review",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_reverse",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_reverse_review",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_bills_update": {
+    "method": "PATCH",
+    "path": "/workspace/{workspace}/supplier-bills/{bill}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_update",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_allocate": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-payments/{payment}/allocate",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_allocate",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_allocate_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-payments/{payment}/allocate/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_allocate_review",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_create": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-payments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_create",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_create_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-payments/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_create_review",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/supplier-payments/{payment}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_get",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/supplier-payments",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_list",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_reverse": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-payments/{payment}/reverse",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_reverse",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "supplier_payments_reverse_review": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/supplier-payments/{payment}/reverse/review",
+    "disposition": "internal",
+    "reason": "Flow ERP route: hidden from the assistant until native review and stale checks exist (masterplan M7).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#payments_reverse_review",
+        "apps/api/src/modules/payables/payments.rs"
+      ]
+    },
+    "effects": [],
     "risk": "high",
     "handoff": null,
     "reconciliation": [],

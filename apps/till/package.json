@@ -9,7 +9,7 @@
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "test": "node --test scripts/*.test.mjs"
+    "test": "node --experimental-strip-types --test scripts/*.test.mjs"
   },
   "dependencies": {
     "@genesy/api-client": "workspace:^",
@@ -18,7 +18,7 @@
     "@genesy/ui": "workspace:*",
     "@tanstack/react-query": "^5.105.0",
     "lucide-react": "^1.65.0",
-    "next": "16.4.3",
+    "next": "16.4.6",
     "next-intl": "4.14.9",
     "next-themes": "^0.4.6",
     "react": "19.3.1",

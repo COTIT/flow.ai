@@ -25,11 +25,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActionIssuePayload,
   CreditInvoiceRequest,
   EnvelopeFileResource,
   EnvelopeInvoiceCreated,
   EnvelopeInvoiceExport,
   EnvelopeInvoiceResource,
+  EnvelopeIssueReview,
+  EnvelopeIssued,
   EnvelopePublicInvoice,
   EnvelopeValue,
   InvoiceBody,
@@ -40,6 +43,7 @@ import type {
   InvoicesExportParams,
   InvoicesListParams,
   InvoicesPreviewParams,
+  IssueReviewBody,
   MessageBody,
   SendMessageRequest,
   SendTasks,
@@ -1245,6 +1249,144 @@ export function useInvoicesGatewayInspect<TData = Awaited<ReturnType<typeof invo
 
 
 /**
+ * @summary Issue a reviewed draft invoice
+ */
+export const invoicesIssue = (
+    workspace: string,
+    invoice: string,
+    actionIssuePayload: BodyType<ActionIssuePayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeIssued>(
+      {url: `/workspace/${workspace}/invoices/${invoice}/issue`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionIssuePayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesIssueMutationKey = () => ['invoicesIssue'] as const;
+
+export const getInvoicesIssueMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesIssue>>, TError,InvoicesIssueMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invoicesIssue>>, TError,InvoicesIssueMutationVariables, TContext> => {
+
+const mutationKey = getInvoicesIssueMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invoicesIssue>>, InvoicesIssueMutationVariables> = (props) => {
+          const {workspace,invoice,data} = props ?? {};
+
+          return  invoicesIssue(workspace,invoice,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvoicesIssueMutationResult = NonNullable<Awaited<ReturnType<typeof invoicesIssue>>>
+    export type InvoicesIssueMutationBody = BodyType<ActionIssuePayload>
+    export type InvoicesIssueMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type InvoicesIssueMutationVariables = {workspace: string;invoice: string;data: BodyType<ActionIssuePayload>}
+
+    /**
+ * @summary Issue a reviewed draft invoice
+ */
+export const useInvoicesIssue = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesIssue>>, TError,InvoicesIssueMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invoicesIssue>>,
+        TError,
+        InvoicesIssueMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvoicesIssueMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Preview issuing a draft invoice
+ */
+export const invoicesIssueReview = (
+    workspace: string,
+    invoice: string,
+    issueReviewBody: BodyType<IssueReviewBody>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeIssueReview>(
+      {url: `/workspace/${workspace}/invoices/${invoice}/issue/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: issueReviewBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvoicesIssueReviewMutationKey = () => ['invoicesIssueReview'] as const;
+
+export const getInvoicesIssueReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesIssueReview>>, TError,InvoicesIssueReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invoicesIssueReview>>, TError,InvoicesIssueReviewMutationVariables, TContext> => {
+
+const mutationKey = getInvoicesIssueReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invoicesIssueReview>>, InvoicesIssueReviewMutationVariables> = (props) => {
+          const {workspace,invoice,data} = props ?? {};
+
+          return  invoicesIssueReview(workspace,invoice,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvoicesIssueReviewMutationResult = NonNullable<Awaited<ReturnType<typeof invoicesIssueReview>>>
+    export type InvoicesIssueReviewMutationBody = BodyType<IssueReviewBody>
+    export type InvoicesIssueReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type InvoicesIssueReviewMutationVariables = {workspace: string;invoice: string;data: BodyType<IssueReviewBody>}
+
+    /**
+ * @summary Preview issuing a draft invoice
+ */
+export const useInvoicesIssueReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invoicesIssueReview>>, TError,InvoicesIssueReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invoicesIssueReview>>,
+        TError,
+        InvoicesIssueReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvoicesIssueReviewMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Render the invoice as a PDF
  */
 export const invoicesPreview = (

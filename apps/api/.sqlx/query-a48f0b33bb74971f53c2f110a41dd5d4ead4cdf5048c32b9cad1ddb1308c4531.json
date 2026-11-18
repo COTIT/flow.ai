@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT 1 FROM purchase_receipt_lines o, purchase_receipt_lines t\n               WHERE t.workspace_id = $1 AND t.id = $2\n                 AND o.workspace_id = t.workspace_id AND o.warehouse_id = t.warehouse_id\n                 AND o.product_id = t.product_id AND o.booked_at IS NULL AND NOT o.late\n                 AND (o.effective_date, o.recorded_at, o.id)\n                     < (t.effective_date, t.recorded_at, t.id)) AS \"before!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "before!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a48f0b33bb74971f53c2f110a41dd5d4ead4cdf5048c32b9cad1ddb1308c4531"
+}

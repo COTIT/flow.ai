@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE purchase_order_lines l SET received_quantity = l.received_quantity + x.q\n         FROM unnest($2::uuid[], $3::numeric[]) AS x(id, q)\n         WHERE l.workspace_id = $1 AND l.id = x.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a2891c5b5f52885b76766009d18d54af7b2f39b24c5e955e1e6bdde4881830a5"
+}

@@ -30,6 +30,7 @@ use crate::{
         stock::{
             repo::{self as stock, Cause, Floor, Mutated, Slot},
             service::tracks_stock,
+            value as stock_value,
         },
         supply_links::dto::Partner,
         warehouses::repo as warehouses,
@@ -37,6 +38,8 @@ use crate::{
 };
 
 const REF_TAKEN: &str = "This client_ref belongs to another supply batch.";
+const FARM_PURCHASE: &str =
+    "Buying from farmers isn't supported while the accounting book is active.";
 const OWN_VERIFICATION: &str = "A harvest you verified must be bought by someone else.";
 const BAD_HARVEST: &str =
     "The harvest report must be the current, verified actual figure of this village and crop.";
@@ -175,6 +178,8 @@ pub async fn create(
     }
     let ids: Vec<Uuid> = input.lines.iter().map(|l| l.0).collect();
     let mut tx = access.begin(&state.db).await?;
+    // §16: farmer purchase/passbook liability has no native accounting yet.
+    stock_value::refuse_active(&mut tx, ws, FARM_PURCHASE).await?;
     let harvests = repo::lock_harvests(&mut tx, ws, &ids).await?;
     // A copy of this request that held these locks first has committed by now: replay it.
     // Checked on our own connection; the replay read waits until ours is back in the pool.

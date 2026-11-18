@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         response::{Data, Envelope, MessageBody},
@@ -99,7 +99,8 @@ pub async fn get(
         (status = 201, body = Envelope<VariantCreated>, description = "Created; returns the new id"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 409, body = MessageBody, description = "Stock is being written; retry after it finishes"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `product_master_frozen`: the default variant can't change once the product has stock, reservations, orders or invoices; or `sku_split_required`: a stocked product gets no nondefault size while books are active"),
     ),
     security(("bearer" = []))
 )]
@@ -123,7 +124,8 @@ pub async fn create(
         (status = 200, body = Envelope<VariantDoc>, description = "The updated variant"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, product or variant, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 409, body = MessageBody, description = "Stock is being written; retry after it finishes"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `product_master_frozen`: the default variant can't change once the product has stock, reservations, orders or invoices"),
     ),
     security(("bearer" = []))
 )]
@@ -178,7 +180,7 @@ pub async fn delete(
         (status = 201, body = GeneratedVariants, description = "Created variants and exact requested, created and skipped counts"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or code `sku_split_required`: a stocked product gets no nondefault size while books are active"),
     ),
     security(("bearer" = []))
 )]

@@ -12,8 +12,15 @@ use genesy_360_api::{
 use sqlx::postgres::PgConnectOptions;
 use tracing_subscriber::EnvFilter;
 
+fn main() {
+    if std::env::args().nth(1).as_deref() == Some("parse-product-source") {
+        std::process::exit(genesy_360_api::product_bulk_runs::parser::child_main());
+    }
+    serve();
+}
+
 #[tokio::main]
-async fn main() {
+async fn serve() {
     // `genesy-360-api healthcheck`: compose healthcheck for the shell-less image. Needs only
     // BIND_ADDR's port, not the full config (secrets, DB), and exits right away.
     if std::env::args().nth(1).as_deref() == Some("healthcheck") {
@@ -173,6 +180,8 @@ async fn main() {
         body_deadline: Duration::from_secs(config.request_body_deadline_secs),
         credentials,
         assistant_bridge_secret: config.assistant_bridge_secret.map(std::sync::Arc::new),
+        product_bulk_enabled: config.product_bulk_enabled,
+        anthropic_api_key: config.anthropic_api_key.map(std::sync::Arc::new),
         files,
         pdf,
         payments: payments.clone(),
@@ -258,6 +267,55 @@ async fn main() {
             }
         }
         return;
+    }
+    // `genesy-360-api seed-afm-catalog --workspace afm|afm-demo [--images] [--app-key]`: AFM's
+    // catalogue into AFM's own workspace (production or staging), then exit. Safe to rerun.
+    // With `--app-key`, stdout carries only the new shop key, for the operator's pipe.
+    if std::env::args().nth(1).as_deref() == Some("seed-afm-catalog") {
+        let args: Vec<String> = std::env::args().skip(2).collect();
+        let Some(workspace) = args
+            .iter()
+            .position(|a| a == "--workspace")
+            .and_then(|i| args.get(i + 1))
+        else {
+            eprintln!("usage: seed-afm-catalog --workspace <afm|afm-demo> [--images] [--app-key]");
+            std::process::exit(2);
+        };
+        let photos = args
+            .iter()
+            .any(|a| a == "--images")
+            .then(|| genesy_360_api::demo::photos::Photos::afm().expect("outbound http client"));
+        let key = args.iter().any(|a| a == "--app-key");
+        match genesy_360_api::demo::afm::sync(state, workspace, photos.as_ref(), key).await {
+            Ok(done) => {
+                eprintln!("seed-afm-catalog {workspace}: {done:?}");
+                if let Some(k) = done.app_key {
+                    println!("{k}");
+                } else if key {
+                    eprintln!(
+                        "a live \"Web shop\" key exists: none made (revoke it in office to make a new one)"
+                    );
+                }
+            }
+            Err(err) => {
+                eprintln!("seed-afm-catalog: {err}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+    // `genesy-360-api set-user-password --workspace afm --email E [--admin] [--first-name F
+    // --last-name L]`: operator-typed password, one line on stdin (deploy/set-user-password.sh).
+    if std::env::args().nth(1).as_deref() == Some("set-user-password") {
+        let args: Vec<String> = std::env::args().skip(2).collect();
+        let code = genesy_360_api::bootstrap::set_user_password_cli(
+            &state,
+            &args,
+            std::io::stdin().lock(),
+            &mut std::io::stderr(),
+        )
+        .await;
+        std::process::exit(code);
     }
     // `genesy-360-api create-owner --email E --workspace NAME [--first-name F] [--last-name L]`:
     // the first owner of a production install (signup is off there). Refuses an existing email.

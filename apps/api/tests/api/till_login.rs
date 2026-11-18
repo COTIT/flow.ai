@@ -8,16 +8,16 @@ use common::{Api, member_with, send};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
-const PIN: &str = "4821";
+pub(crate) const PIN: &str = "4821";
 
 /// Ada's `acme` with a store warehouse.
-async fn world(pool: PgPool) -> Api {
+pub(crate) async fn world(pool: PgPool) -> Api {
     let api = Api::new(pool, "/till").await;
     store(&api).await;
     api
 }
 
-async fn store(api: &Api) -> String {
+pub(crate) async fn store(api: &Api) -> String {
     let id: uuid::Uuid = sqlx::query_scalar(
         "INSERT INTO warehouses (workspace_id, name, slug, is_store)
          VALUES ($1::uuid, 'Shop', 'shop', true) RETURNING id",
@@ -40,7 +40,7 @@ async fn store_id(api: &Api) -> String {
 }
 
 /// New register; `(id, device key)`.
-async fn register(api: &Api, name: &str) -> (String, String) {
+pub(crate) async fn register(api: &Api, name: &str) -> (String, String) {
     let body = json!({ "name": name, "warehouse_id": store_id(api).await });
     let (status, res) = api
         .call(Method::POST, "/registers", Some(body), &api.owner)
@@ -52,7 +52,7 @@ async fn register(api: &Api, name: &str) -> (String, String) {
     )
 }
 
-async fn till_user(api: &Api, name: &str, pin: &str) -> String {
+pub(crate) async fn till_user(api: &Api, name: &str, pin: &str) -> String {
     let (status, res) = api
         .call(
             Method::POST,
@@ -65,7 +65,7 @@ async fn till_user(api: &Api, name: &str, pin: &str) -> String {
     res["data"]["id"].as_str().unwrap().to_owned()
 }
 
-async fn login(api: &Api, key: &str, user: &str, pin: &str) -> (StatusCode, Value) {
+pub(crate) async fn login(api: &Api, key: &str, user: &str, pin: &str) -> (StatusCode, Value) {
     api.call(
         Method::POST,
         "/login",
@@ -75,7 +75,7 @@ async fn login(api: &Api, key: &str, user: &str, pin: &str) -> (StatusCode, Valu
     .await
 }
 
-async fn token(api: &Api, key: &str, user: &str) -> String {
+pub(crate) async fn token(api: &Api, key: &str, user: &str) -> String {
     let (status, res) = login(api, key, user, PIN).await;
     assert_eq!(status, StatusCode::OK, "{res}");
     res["data"]["token"].as_str().unwrap().to_owned()

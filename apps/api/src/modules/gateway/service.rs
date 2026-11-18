@@ -10,11 +10,12 @@ use crate::{
             repo::{self, Operation},
         },
         invoice_payments, invoices, orders,
+        provider_observations::service as observations,
     },
     money,
     payments::{
         Error,
-        globadyme::{NewRefund, NewRequest, Transaction},
+        globadyme::{Chargeback, NewRefund, NewRequest, Transaction},
     },
 };
 use axum::http::HeaderMap;
@@ -23,6 +24,14 @@ use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::{Connection, PgConnection};
 use uuid::Uuid;
+
+const REFUND_REVIEW: &str = "External refund or chargeback observation requires reconciliation.";
+
+fn expected_request_id(op: &Operation) -> String {
+    op.provider_id
+        .clone()
+        .unwrap_or_else(|| op.request_id.to_string())
+}
 
 /// Safe browser/operator projection; credentials and invoice tokens never leave engine.
 pub fn view(state: &AppState, op: &Operation) -> Value {
@@ -152,6 +161,8 @@ async fn dispatch_fenced(
             .client
             .refund(&NewRefund {
                 transaction_id: transaction,
+                merchant_id: &account.merchant_id,
+                currency: &op.currency,
                 amount: op.amount,
                 decimals: op.decimals as u32,
                 description: &format!("Refund {}", op.id),
@@ -189,18 +200,18 @@ async fn dispatch_fenced(
             })
             .await;
         match result {
-            Ok(result) if result.request_id == request => {
-                sqlx::query("UPDATE order_payments SET status='open',provider_id=$3,checkout_url=$4,link_id=$5,last_error=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='unknown' AND environment=$6")
-                    .bind(ws).bind(id).bind(request).bind(result.checkout_url).bind(result.link_id).bind(state.payments.globadyme_environment().map(|environment| environment.as_str())).execute(&mut *dispatch).await?;
-            }
-            Ok(_) => {
-                repo::attention(
-                    &mut *dispatch,
-                    ws,
-                    id,
-                    "Provider returned a conflicting request identity.",
-                )
-                .await?;
+            Ok(result) => {
+                let saved = sqlx::query("UPDATE order_payments SET status='open',provider_id=$3,checkout_url=$4,link_id=$5,last_error=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='unknown' AND environment=$6")
+                    .bind(ws).bind(id).bind(result.request_id).bind(result.checkout_url).bind(result.link_id).bind(state.payments.globadyme_environment().map(|environment| environment.as_str())).execute(&mut *dispatch).await;
+                if let Err(error) = saved {
+                    if error.as_database_error().is_some_and(|error| {
+                        error.constraint() == Some("order_payments_gateway_provider_key")
+                    }) {
+                        repo::attention(&mut *dispatch, ws, id, "Provider request identity is already bound to another operation; do not retry.").await?;
+                    } else {
+                        return Err(error.into());
+                    }
+                }
             }
             Err(e) => record_failure(state, dispatch, ws, id, e).await?,
         }
@@ -222,12 +233,14 @@ async fn record_failure(
     Ok(())
 }
 
-/// Lock owner invoices in UUID order (or order), then source operation before child.
+/// Book gate (shared), then owner order, invoices in UUID order, source operation, child
+/// (masterplan §6: gate before any resource lock).
 pub(crate) async fn lock_owner(
     conn: &mut PgConnection,
     ws: Uuid,
     op: &Operation,
 ) -> Result<(), AppError> {
+    crate::modules::accounting::gate::shared(&mut *conn, &[ws]).await?;
     let linked_invoice = if let Some(order) = op.order_id {
         orders::repo::lock(conn, ws, order)
             .await?
@@ -310,6 +323,8 @@ pub(crate) async fn confirm_refund_in(
             op.captured_transaction_id.as_deref().unwrap_or(""),
         )
         .await?;
+    } else if op.status != "refunded" && observations::active(conn, ws).await? {
+        observations::ingest(conn, ws, &op, "refund", &op.id.to_string(), op.amount).await?;
     }
     if matches!(op.status.as_str(), "failed" | "canceled") {
         repo::attention(
@@ -334,9 +349,40 @@ pub async fn refresh(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), AppErro
         return Ok(());
     }
     accounts::require_environment(state, op.environment.as_deref())?;
-    if op.kind != "payment" {
-        return Ok(());
-    }
+    let source = if op.kind == "refund" {
+        let parent = repo::find(&state.db, ws, op.parent_id.ok_or(AppError::NotFound)?)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        accounts::require_environment(state, parent.environment.as_deref())?;
+        if parent.kind != "payment"
+            || parent.provider != op.provider
+            || parent.environment != op.environment
+            || parent.merchant_id != op.merchant_id
+            || parent.account_revision != op.account_revision
+            || parent.currency != op.currency
+            || parent.decimals != op.decimals
+            || parent.customer_id != op.customer_id
+            || parent.country != op.country
+            || parent.order_id != op.order_id
+            || parent.invoice_id != op.invoice_id
+            || parent.captured_transaction_id != op.captured_transaction_id
+        {
+            return Err(AppError::Conflict("Refund source binding has changed."));
+        }
+        parent
+    } else {
+        op
+    };
+    refresh_collection(state, &source).await?;
+    Ok(())
+}
+
+async fn refresh_collection(
+    state: &AppState,
+    op: &Operation,
+) -> Result<Vec<Transaction>, AppError> {
+    let ws = op.workspace_id;
+    let id = op.id;
     let account = accounts::bound(
         state,
         ws,
@@ -344,40 +390,48 @@ pub async fn refresh(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), AppErro
         op.merchant_id.as_deref(),
     )
     .await?;
-    let transactions = account
-        .client
-        .fetch(&op.request_id.to_string())
-        .await
-        .map_err(down)?;
+    let request = expected_request_id(op);
+    let transactions = account.client.fetch(&request).await.map_err(down)?;
     let mut tx = state.db.begin().await?;
-    lock_owner(&mut tx, ws, &op).await?;
+    lock_owner(&mut tx, ws, op).await?;
     let current = repo::find(&mut *tx, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
     accounts::require_environment(state, current.environment.as_deref())?;
+    if expected_request_id(&current) != request {
+        return Err(AppError::Conflict(
+            "Provider request identity changed; refresh before reconciling.",
+        ));
+    }
     let mut conflict = false;
     let mut external = false;
     let mut chargeback_observed = false;
     let confirmed_refunds:i64=sqlx::query_scalar("SELECT coalesce(sum(amount),0)::bigint FROM order_payments WHERE workspace_id=$1 AND parent_id=$2 AND kind='refund' AND status='refunded'")
         .bind(ws).bind(id).fetch_one(&mut *tx).await?;
     for t in &transactions {
-        let valid = t.request_id == op.request_id.to_string()
+        let valid = t.request_id == request
             && t.customer_id.as_deref() == Some(op.customer_id.as_str())
             && t.currency == op.currency
             && t.country == op.country
             && money::minor(t.amount, op.decimals as u32).ok() == Some(op.amount);
         conflict |= !valid;
         chargeback_observed |= t.status == "CHARGEBACKED";
+        if valid && t.status == "CHARGEBACKED" && observations::active(&mut tx, ws).await? {
+            // Only a CHARGEBACKED transaction is confirmed outflow; chargeback list rows stay
+            // attention-only (no fact about other provider statuses).
+            observations::ingest(&mut tx, ws, op, "chargeback", &t.id, op.amount).await?;
+        }
         external |= match t.status.as_str() {
             "CHARGEBACKED" => false,
             "REFUNDED" => confirmed_refunds != op.amount,
-            "PARTIALLY_REFUNDED" => confirmed_refunds <= 0 || confirmed_refunds >= op.amount,
+            // Aggregate status carries no refunded amount; every later observation needs review.
+            "PARTIALLY_REFUNDED" => true,
             _ => false,
         };
-        conflict |= !observe(&mut tx, &op, t).await?;
+        conflict |= !observe(&mut tx, op, t).await?;
     }
     let successful:Vec<String>=sqlx::query_scalar("SELECT transaction_id FROM payment_transactions WHERE workspace_id=$1 AND payment_id=$2 AND (status='PROCESSED' OR transaction_id=$3) AND request_id=$4 AND customer_id=$5 AND amount=$6 AND currency=$7 ORDER BY transaction_id")
-        .bind(ws).bind(id).bind(&current.captured_transaction_id).bind(op.request_id.to_string()).bind(&op.customer_id).bind(Decimal::new(op.amount,op.decimals as u32)).bind(&op.currency).fetch_all(&mut *tx).await?;
+        .bind(ws).bind(id).bind(&current.captured_transaction_id).bind(&request).bind(&op.customer_id).bind(Decimal::new(op.amount,op.decimals as u32)).bind(&op.currency).fetch_all(&mut *tx).await?;
     if conflict || successful.len() > 1 {
         repo::attention(
             &mut *tx,
@@ -416,20 +470,106 @@ pub async fn refresh(state: &AppState, ws: Uuid, id: Uuid) -> Result<(), AppErro
     } else {
         false
     };
-    if chargeback_observed || (external && !refund_dispatch_active) {
-        repo::attention(
-            &mut *tx,
-            ws,
-            id,
-            "External refund or chargeback observation requires reconciliation.",
-        )
-        .await?;
+    if (chargeback_observed || (external && !refund_dispatch_active))
+        && !conflict
+        && successful.len() <= 1
+        && (!current.attention
+            || matches!(
+                current.attention_reason.as_deref(),
+                Some(REFUND_REVIEW) | Some("Submission outcome is unknown; do not retry.")
+            ))
+    {
+        repo::attention(&mut *tx, ws, id, REFUND_REVIEW).await?;
     }
     sqlx::query("UPDATE order_payments SET last_checked_at=now() WHERE workspace_id=$1 AND id=$2")
         .bind(ws)
         .bind(id)
         .execute(&mut *tx)
         .await?;
+    tx.commit().await?;
+    Ok(transactions)
+}
+
+fn source_refund_review(op: &Operation) -> bool {
+    op.provider == "globadyme"
+        && op.kind == "payment"
+        && op.status == "paid"
+        && op.captured_transaction_id.is_some()
+        && op.attention
+        && op.attention_reason.as_deref() == Some(REFUND_REVIEW)
+}
+
+/// Clear only reviewed refund warning; provider totals remain explicit operator evidence.
+pub(crate) async fn reconcile_refund_source(
+    state: &AppState,
+    ws: Uuid,
+    user: Uuid,
+    id: Uuid,
+    reason: &str,
+    evidence: &str,
+) -> Result<(), AppError> {
+    let op = repo::find(&state.db, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, op.environment.as_deref())?;
+    if !source_refund_review(&op) {
+        return Err(AppError::Conflict(
+            "Only a paid source with a refund observation can be reconciled.",
+        ));
+    }
+    let transactions = refresh_collection(state, &op).await?;
+    refund_chargebacks_clear(state, &op).await?;
+    let mut tx = state.db.begin().await?;
+    lock_owner(&mut tx, ws, &op).await?;
+    let current = repo::find(&mut *tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    accounts::require_environment(state, current.environment.as_deref())?;
+    if !source_refund_review(&current) {
+        return Err(AppError::Conflict(
+            "Payment evidence changed; review before resolving.",
+        ));
+    }
+    let captured = current
+        .captured_transaction_id
+        .as_deref()
+        .ok_or(AppError::NotFound)?;
+    let source = transactions
+        .iter()
+        .find(|t| t.id == captured)
+        .ok_or(AppError::Conflict(
+            "Fresh provider evidence for captured payment is required.",
+        ))?;
+    let request = expected_request_id(&current);
+    if transactions.iter().any(|t| {
+        t.request_id != request
+            || t.customer_id.as_deref() != Some(current.customer_id.as_str())
+            || t.currency != current.currency
+            || t.country != current.country
+            || money::minor(t.amount, current.decimals as u32).ok() != Some(current.amount)
+            || (t.id != captured
+                && matches!(
+                    t.status.as_str(),
+                    "PROCESSED" | "PARTIALLY_REFUNDED" | "REFUNDED" | "CHARGEBACKED"
+                ))
+    }) {
+        return Err(AppError::Conflict(
+            "Provider evidence conflicts with captured payment.",
+        ));
+    }
+    let matches: bool = sqlx::query_scalar("SELECT (CASE $3::text WHEN 'REFUNDED' THEN total=$4 WHEN 'PARTIALLY_REFUNDED' THEN total>0 AND total<$4 ELSE false END) AND NOT unresolved FROM (SELECT coalesce(sum(r.amount) FILTER (WHERE r.status='refunded'),0)::bigint AS total,coalesce(bool_or(r.status NOT IN ('refunded','failed','canceled') OR r.attention OR r.provider<>p.provider OR r.environment IS DISTINCT FROM p.environment OR r.merchant_id IS DISTINCT FROM p.merchant_id OR r.account_revision IS DISTINCT FROM p.account_revision OR r.currency<>p.currency OR r.decimals<>p.decimals OR r.customer_id<>p.customer_id OR r.country<>p.country OR r.order_id IS DISTINCT FROM p.order_id OR r.invoice_id IS DISTINCT FROM p.invoice_id OR r.captured_transaction_id IS DISTINCT FROM p.captured_transaction_id),false) AS unresolved FROM order_payments p LEFT JOIN order_payments r ON r.workspace_id=p.workspace_id AND r.parent_id=p.id AND r.kind='refund' WHERE p.workspace_id=$1 AND p.id=$2) refunds")
+        .bind(ws).bind(id).bind(&source.status).bind(current.amount).fetch_one(&mut *tx).await?;
+    let unsafe_history: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM payment_chargebacks WHERE workspace_id=$1 AND payment_id=$2) OR EXISTS(SELECT 1 FROM payment_observations WHERE workspace_id=$1 AND payment_id=$2 AND (evidence->>'status'='CHARGEBACKED' OR (transaction_id<>$3 AND evidence->>'status' IN ('PROCESSED','PARTIALLY_REFUNDED','REFUNDED')) OR evidence->>'requestId' IS DISTINCT FROM $4 OR evidence->>'customerId' IS DISTINCT FROM $5 OR evidence->>'currency' IS DISTINCT FROM $6 OR evidence->>'country' IS DISTINCT FROM $7 OR (evidence->>'amount')::numeric<>$8))")
+        .bind(ws).bind(id).bind(captured).bind(&request).bind(&current.customer_id).bind(&current.currency).bind(&current.country).bind(Decimal::new(current.amount,current.decimals as u32)).fetch_one(&mut *tx).await?;
+    if !matches || unsafe_history {
+        return Err(AppError::Conflict(
+            "Refund evidence, reservations or chargebacks still require reconciliation.",
+        ));
+    }
+    sqlx::query("INSERT INTO payment_audit(workspace_id,payment_id,environment,user_id,action,reason,evidence) VALUES($1,$2,$3,$4,'refund_reconciled',$5,$6)")
+        .bind(ws).bind(id).bind(&current.environment).bind(user).bind(reason).bind(evidence).execute(&mut *tx).await?;
+    sqlx::query("UPDATE order_payments SET attention=false,attention_reason=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2")
+        .bind(ws).bind(id).execute(&mut *tx).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -484,6 +624,7 @@ pub async fn order_intent(
     let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
     let selection = accounts::select(state, ws).await;
     let mut tx = state.db.begin().await?;
+    crate::modules::accounting::gate::shared(&mut tx, &[ws]).await?;
     let order = orders::repo::lock(&mut tx, ws, id)
         .await?
         .filter(|o| o.source == "storefront")
@@ -589,6 +730,7 @@ pub async fn order_refund(
     }
     let mut tx = state.db.begin().await?;
     let replay = idempotency::replay(&mut tx, ws, Actor::User(user), key).await?;
+    crate::modules::accounting::gate::shared(&mut tx, &[ws]).await?;
     let locked = orders::repo::lock(&mut tx, ws, order)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -662,17 +804,14 @@ pub async fn callback(
     ) else {
         return Ok(());
     };
-    let Ok(request) = Uuid::parse_str(&request) else {
-        return Ok(());
-    };
-    let payment:Option<Uuid>=sqlx::query_scalar("SELECT id FROM order_payments WHERE workspace_id=$1 AND environment=$2 AND request_id=$3 AND provider='globadyme' AND kind='payment'")
-        .bind(ws).bind(env).bind(request).fetch_optional(&state.db).await?;
-    let Some(payment) = payment else {
+    let payments:Vec<Uuid>=sqlx::query_scalar("SELECT id FROM order_payments WHERE workspace_id=$1 AND environment=$2 AND provider='globadyme' AND kind='payment' AND (provider_id=$3 OR (provider_id IS NULL AND request_id=$4)) LIMIT 2")
+        .bind(ws).bind(env).bind(&request).bind(Uuid::parse_str(&request).ok()).fetch_all(&state.db).await?;
+    let [payment] = payments.as_slice() else {
         return Ok(());
     };
     let mut tx = state.db.begin().await?;
     sqlx::query("INSERT INTO payment_webhook_inbox(provider,workspace_id,external_id,environment,payment_id) VALUES('globadyme',$1,$2,$3,$4) ON CONFLICT(provider,workspace_id,environment,external_id) WHERE status='pending' AND provider='globadyme' DO UPDATE SET received_at=now()")
-        .bind(ws).bind(request.to_string()).bind(env).bind(payment).execute(&mut *tx).await?;
+        .bind(ws).bind(&request).bind(env).bind(payment).execute(&mut *tx).await?;
     let job = crate::jobs::repo::NewJob {
         workspace_id: Some(ws),
         concurrency_key: Some(format!("payment_inbox:{ws}")),
@@ -806,6 +945,138 @@ pub async fn chargebacks_account(state: &AppState, op: &Operation) -> Result<(),
     Ok(())
 }
 
+async fn refund_chargebacks_clear(state: &AppState, op: &Operation) -> Result<(), AppError> {
+    let account = accounts::bound(
+        state,
+        op.workspace_id,
+        op.environment.as_deref().unwrap_or(""),
+        op.merchant_id.as_deref(),
+    )
+    .await?;
+    let captured = op
+        .captured_transaction_id
+        .as_deref()
+        .ok_or(AppError::NotFound)?;
+    let mut pagination = None;
+    let mut ids = std::collections::HashSet::new();
+    for page in 0..10 {
+        let found = account.client.chargebacks(page, 50).await.map_err(down)?;
+        let metadata = (found.total_pages, found.total_elements, found.page_size);
+        let count = found.content.len() as u64;
+        let mut identity_conflict = false;
+        let mut disputed = false;
+        let mut duplicate = false;
+        // Retain observed source evidence before rejecting incomplete or conflicting pages.
+        for charge in found.content {
+            duplicate |= !ids.insert(charge.chargeback_id.clone());
+            if charge.merchant_id != account.merchant_id {
+                identity_conflict = true;
+                if charge.transaction_id == captured {
+                    repo::attention(
+                        &state.db,
+                        op.workspace_id,
+                        op.id,
+                        "Provider identity or money conflicts with bound request.",
+                    )
+                    .await?;
+                }
+                continue;
+            }
+            if charge.transaction_id == captured {
+                if charge.currency != op.currency {
+                    repo::attention(
+                        &state.db,
+                        op.workspace_id,
+                        op.id,
+                        "Provider identity or money conflicts with bound request.",
+                    )
+                    .await?;
+                    identity_conflict = true;
+                    continue;
+                }
+                observe_chargeback(state, op.workspace_id, &account, charge).await?;
+                disputed = true;
+            }
+        }
+        if identity_conflict {
+            return Err(AppError::Conflict(
+                "Chargeback identity conflicts with bound account or payment.",
+            ));
+        }
+        let pages = found.total_elements.div_ceil(50).max(1);
+        let valid_pages =
+            found.total_pages == pages || (found.total_elements == 0 && found.total_pages == 0);
+        if found.current_page != u64::from(page)
+            || found.page_size != 50
+            || !valid_pages
+            || found.total_pages > 10
+            || found.last != (u64::from(page) + 1 == pages)
+            || count
+                != found
+                    .total_elements
+                    .saturating_sub(u64::from(page) * 50)
+                    .min(50)
+            || pagination.is_some_and(|previous| previous != metadata)
+            || duplicate
+        {
+            return Err(AppError::Unavailable(
+                "Complete consistent chargeback evidence is required before refund reconciliation.",
+            ));
+        }
+        pagination = Some(metadata);
+        if disputed {
+            return Err(AppError::Conflict("Chargeback requires reconciliation."));
+        }
+        if found.last && ids.len() as u64 == found.total_elements {
+            return Ok(());
+        }
+    }
+    Err(AppError::Unavailable(
+        "Complete chargeback evidence exceeds the reconciliation page limit.",
+    ))
+}
+
+async fn observe_chargeback(
+    state: &AppState,
+    ws: Uuid,
+    account: &accounts::Account,
+    charge: Chargeback,
+) -> Result<(), AppError> {
+    let env = account.environment.as_str();
+    let merchant = account.merchant_id.as_str();
+    if charge.merchant_id != merchant {
+        return Ok(());
+    }
+    let payment:Option<Uuid>=sqlx::query_scalar("SELECT t.payment_id FROM payment_transactions t JOIN order_payments p ON p.workspace_id=t.workspace_id AND p.id=t.payment_id WHERE t.workspace_id=$1 AND t.environment=$2 AND t.transaction_id=$3 AND t.currency=$4 AND p.environment=$2 AND p.provider='globadyme'")
+        .bind(ws).bind(env).bind(&charge.transaction_id).bind(&charge.currency).fetch_optional(&state.db).await?;
+    let Some(payment) = payment else {
+        return Ok(());
+    };
+    let old:Option<Value>=sqlx::query_scalar("SELECT evidence FROM payment_chargebacks WHERE workspace_id=$1 AND environment=$2 AND chargeback_id=$3")
+        .bind(ws).bind(env).bind(&charge.chargeback_id).fetch_optional(&state.db).await?;
+    let mut evidence = charge.raw;
+    if old
+        .as_ref()
+        .is_none_or(|old| old["status"] != evidence["status"])
+    {
+        if let Ok(details) = account.client.chargeback(&charge.chargeback_id).await {
+            evidence["provider_details"] = details.raw;
+        }
+    } else if let Some(details) = old.as_ref().and_then(|v| v.get("provider_details")) {
+        evidence["provider_details"] = details.clone();
+    }
+    sqlx::query("INSERT INTO payment_chargebacks(workspace_id,environment,chargeback_id,transaction_id,payment_id,status,amount,currency,evidence) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(workspace_id,environment,chargeback_id) DO UPDATE SET status=excluded.status,evidence=excluded.evidence,updated_at=now() WHERE payment_chargebacks.transaction_id=excluded.transaction_id AND payment_chargebacks.payment_id=excluded.payment_id AND payment_chargebacks.amount=excluded.amount AND payment_chargebacks.currency=excluded.currency")
+        .bind(ws).bind(env).bind(&charge.chargeback_id).bind(&charge.transaction_id).bind(payment).bind(&charge.status).bind(charge.amount).bind(&charge.currency).bind(evidence).execute(&state.db).await?;
+    repo::attention(
+        &state.db,
+        ws,
+        payment,
+        "Chargeback requires reconciliation.",
+    )
+    .await?;
+    Ok(())
+}
+
 async fn scan_chargebacks(
     state: &AppState,
     ws: Uuid,
@@ -825,36 +1096,7 @@ async fn scan_chargebacks(
         return Ok(());
     };
     for charge in found.content {
-        if charge.merchant_id != merchant {
-            continue;
-        }
-        let payment:Option<Uuid>=sqlx::query_scalar("SELECT t.payment_id FROM payment_transactions t JOIN order_payments p ON p.workspace_id=t.workspace_id AND p.id=t.payment_id WHERE t.workspace_id=$1 AND t.environment=$2 AND t.transaction_id=$3 AND t.currency=$4 AND p.environment=$2 AND p.provider='globadyme'")
-            .bind(ws).bind(env).bind(&charge.transaction_id).bind(&charge.currency).fetch_optional(&state.db).await?;
-        let Some(payment) = payment else {
-            continue;
-        };
-        let old:Option<Value>=sqlx::query_scalar("SELECT evidence FROM payment_chargebacks WHERE workspace_id=$1 AND environment=$2 AND chargeback_id=$3")
-            .bind(ws).bind(env).bind(&charge.chargeback_id).fetch_optional(&state.db).await?;
-        let mut evidence = charge.raw;
-        if old
-            .as_ref()
-            .is_none_or(|old| old["status"] != evidence["status"])
-        {
-            if let Ok(details) = account.client.chargeback(&charge.chargeback_id).await {
-                evidence["provider_details"] = details.raw;
-            }
-        } else if let Some(details) = old.as_ref().and_then(|v| v.get("provider_details")) {
-            evidence["provider_details"] = details.clone();
-        }
-        sqlx::query("INSERT INTO payment_chargebacks(workspace_id,environment,chargeback_id,transaction_id,payment_id,status,amount,currency,evidence) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(workspace_id,environment,chargeback_id) DO UPDATE SET status=excluded.status,evidence=excluded.evidence,updated_at=now() WHERE payment_chargebacks.transaction_id=excluded.transaction_id AND payment_chargebacks.payment_id=excluded.payment_id AND payment_chargebacks.amount=excluded.amount AND payment_chargebacks.currency=excluded.currency")
-            .bind(ws).bind(env).bind(&charge.chargeback_id).bind(&charge.transaction_id).bind(payment).bind(&charge.status).bind(charge.amount).bind(&charge.currency).bind(evidence).execute(&state.db).await?;
-        repo::attention(
-            &state.db,
-            ws,
-            payment,
-            "Chargeback requires reconciliation.",
-        )
-        .await?;
+        observe_chargeback(state, ws, &account, charge).await?;
     }
     let next = if found.last {
         0

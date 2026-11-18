@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(sum(stock_lvl), 0) AS \"q!\" FROM stocks\n           WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3\n             AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "q!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "be6f8ef17ece6ea827b8ec3d1383c4acd2f6138ea23a1c8c7560cf2b1676605d"
+}

@@ -31,6 +31,7 @@ use crate::{
             repo::{self as stock, Cause, Floor, Mutated, Slot},
             reserve,
             service::tracks_stock,
+            value as stock_value,
         },
         warehouses::repo as warehouses,
         webhooks::events::{
@@ -384,7 +385,7 @@ async fn status_moved(
     if tighter {
         // Every lot is locked and saved: now the stock rows.
         for (lot, _, _) in &changed {
-            reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id).await?;
+            reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id, None).await?;
         }
     }
     Ok(())
@@ -661,8 +662,15 @@ pub async fn stock_mutation(
     };
     let mut tx = state.db.begin().await?;
     let ws = access.workspace_id;
-    let actor = idempotency::Actor::User(access.user_id);
-    if let Some(a) = idempotency::replay(&mut tx, ws, actor, key.as_ref()).await? {
+    let (replay, done) = stock_value::replay(
+        &mut tx,
+        ws,
+        "lots_stock_mutation",
+        access.user_id,
+        key.as_ref(),
+    )
+    .await?;
+    if let Some(a) = done {
         return Ok(a);
     }
     // Under the lot lock, so a recall can't slip in between. Quarantine takes goods in for
@@ -705,7 +713,7 @@ pub async fn stock_mutation(
                 status: 200,
                 body: json!({ "data": level }).to_string().into_bytes(),
             };
-            idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
+            replay.finish(&mut tx, ws, key.as_ref(), &answer).await?;
             tx.commit().await?;
             Ok(answer)
         }

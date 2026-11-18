@@ -6,6 +6,7 @@ import { Banknote, CreditCard, Minus, Plus, ScanBarcode, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import {
+  tillSalesGet,
   useTillSalesCreate,
   useTillShiftCurrent,
 } from "@genesy/api-client/endpoints/till"
@@ -33,7 +34,7 @@ import { useTill } from "@/lib/till-store"
 import { useTillCatalog, type Sellable } from "@/lib/use-catalog"
 import { useTillMoney } from "@/lib/use-money"
 import { useQuote } from "@/lib/use-quote"
-import { refusal } from "@/lib/refusal"
+import { refusal, REUSED, apiMessage } from "@/lib/refusal"
 
 const same = (
   a: { productId: string; variantId: string | null },
@@ -57,6 +58,7 @@ export default function SalePage() {
   const tr = useTranslations("refusals")
   const workspace = useTill((s) => s.device?.workspaceId) ?? ""
   const accepted = useTill((s) => s.session?.register.accepted_cash)
+  const session = useTill((s) => s.session)
   const catalog = useTillCatalog()
   const { money } = useTillMoney()
   const lines = useCart((s) => s.lines)
@@ -102,11 +104,18 @@ export default function SalePage() {
     cartStore.getState().add(item)
   }
 
-  /** No answer from the API (offline, or the reply got lost): keep the sale for replay. */
+  /**
+   * No answer from the API (offline, or the reply got lost): keep the sale for replay, under the
+   * same `client_ref`, the register and the till user that rang it up.
+   */
   const keep = (body: SaleRequest) => {
     sale.reset()
     queueStore.getState().add({
       workspace,
+      registerId: session?.register.id ?? null,
+      tillUserId: session?.user.id ?? null,
+      registerName: session?.register.name,
+      userName: session?.user.name,
       body: { ...body, sold_at: new Date().toISOString() },
       lines,
     })
@@ -135,10 +144,31 @@ export default function SalePage() {
       {
         onError: (e) => {
           if (!e.response) keep(body)
+          // The server may have booked it before failing: an edited retry keeps this client_ref.
+          else if (e.response.status >= 500) cartStore.getState().holdRef()
+          else if (apiMessage(e) === REUSED) void showBooked(body.client_ref)
           else if (e.response.status === 409) void shift.refetch()
         },
       }
     )
+  }
+
+  /**
+   * A retry after a 5xx was refused as reused: the first try was booked after all. Show the sale
+   * the server recorded (the basket as first charged), so the cashier can settle any difference.
+   */
+  const showBooked = async (ref: string) => {
+    try {
+      const { data } = await tillSalesGet(workspace, ref)
+      sale.reset()
+      setDone(data)
+      setSheet("done")
+      cartStore.getState().clear()
+      setTendered("")
+      setReference("")
+    } catch {
+      // Left as is: the refusal stays on screen.
+    }
   }
 
   const press = (k: PadKey) => {

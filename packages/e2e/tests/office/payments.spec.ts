@@ -60,8 +60,13 @@ test("payment reconciliation refreshes without creating a payment", async ({
   await expect(
     page.getByRole("heading", { name: "Payments", exact: true })
   ).toBeVisible()
-  await expect(page.getByText("€12.50", { exact: true })).toBeVisible()
-  const row = page.getByRole("row").filter({ hasText: payment.payment_id })
+  await expect(page.getByText("€12.50 EUR", { exact: true })).toBeVisible()
+  const row = page.getByRole("row").filter({
+    has: page.getByRole("button", {
+      name: `Payment details: ${payment.payment_id}`,
+      exact: true,
+    }),
+  })
   await expect(row).toContainText("Collection")
   await expect(row).toContainText("Sandbox")
   await expect(
@@ -110,7 +115,7 @@ test("payment details preserve keyboard focus without writing to the API", async
   await expect(dialog).toBeVisible()
   await expect(
     dialog.getByText(payment.payment_id, { exact: true })
-  ).toBeVisible()
+  ).not.toBeVisible()
   for (const key of ["Tab", "Tab", "Shift+Tab", "Tab", "Tab"]) {
     await page.keyboard.press(key)
     await expect
@@ -132,6 +137,11 @@ test("payment details preserve keyboard focus without writing to the API", async
       1
     )
   }
+  const references = dialog.locator("details").last()
+  await references.locator("summary").click()
+  await expect(
+    references.getByText(payment.payment_id, { exact: true })
+  ).toBeVisible()
   await page.keyboard.press("Escape")
   await expect(dialog).not.toBeVisible()
   await expect(trigger).toBeFocused()
@@ -606,9 +616,12 @@ test("payment detail and refresh require view permission for that payment's owne
     data: { ...orderPayment, transactions: [], chargebacks: [] },
   }))
   await page.goto("/payments")
-  const invoiceRow = page
-    .getByRole("row")
-    .filter({ hasText: "invoice-payment" })
+  const invoiceRow = page.getByRole("row").filter({
+    has: page.getByRole("button", {
+      name: "Payment details: invoice-payment",
+      exact: true,
+    }),
+  })
   await expect(
     invoiceRow.getByRole("button", { name: "Payment details: invoice-payment" })
   ).toBeDisabled()
@@ -618,7 +631,12 @@ test("payment detail and refresh require view permission for that payment's owne
   expect(
     api.callsTo("POST", "/workspace/:ws/payments/:id/refresh")
   ).toHaveLength(0)
-  const orderRow = page.getByRole("row").filter({ hasText: "order-payment" })
+  const orderRow = page.getByRole("row").filter({
+    has: page.getByRole("button", {
+      name: "Payment details: order-payment",
+      exact: true,
+    }),
+  })
   await orderRow.getByRole("cell").last().click()
   const dialog = page.getByRole("dialog", { name: "Payment details" })
   await expect(dialog).toBeVisible()
@@ -718,6 +736,206 @@ test("open collection resolution offers only provider nonacceptance", async ({
     reason: "Provider confirmed no charge",
     evidence: "Provider case 123",
   })
+})
+
+test("unknown refund resolution retains provider confirmation", async ({
+  page,
+  api,
+}) => {
+  const refund = {
+    ...payment,
+    kind: "refund",
+    status: "unknown",
+    attention: true,
+  }
+  api.on("GET", "/workspace/:ws/payments", () => paged([refund]))
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: { ...refund, transactions: [], chargebacks: [] },
+  }))
+  await page.goto("/payments")
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await dialog.getByRole("button", { name: "Record resolution" }).click()
+  const outcome = dialog.getByLabel("Verified outcome")
+  await expect(outcome.getByRole("option")).toHaveCount(2)
+  await outcome.selectOption("refund_confirmed")
+  await expect(outcome).toHaveValue("refund_confirmed")
+  await expect(
+    outcome.locator('option[value="refund_reconciled"]')
+  ).toHaveCount(0)
+  expect(api.calls.filter((call) => call.method !== "GET")).toHaveLength(0)
+  await expectFits(page)
+})
+
+const refundObservation =
+  "External refund or chargeback observation requires reconciliation."
+const refundReconciliationHint =
+  "Verify that the provider's total refunded amount matches all locally confirmed refunds, with no external or pending refunds."
+
+test("paid source refund reconciliation requires audited evidence and offers only reconciliation", async ({
+  page,
+  api,
+}) => {
+  const source = {
+    ...payment,
+    kind: "payment",
+    status: "paid",
+    attention: true,
+    attention_reason: refundObservation,
+  }
+  let reconciled = false
+  api.on("GET", "/workspace/:ws/payments", () => paged([source]))
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: {
+      ...source,
+      attention: !reconciled,
+      attention_reason: reconciled ? null : refundObservation,
+      transactions: [],
+      chargebacks: [],
+    },
+  }))
+  api.on("POST", "/workspace/:ws/payments/:id/resolve", () => {
+    reconciled = true
+    return { data: { ...source, attention: false, attention_reason: null } }
+  })
+  await page.goto("/payments")
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await dialog.getByRole("button", { name: "Record resolution" }).click()
+  await expect(
+    dialog.getByText(refundReconciliationHint, { exact: true })
+  ).toBeVisible()
+  const outcome = dialog.getByLabel("Verified outcome")
+  await expect(outcome.getByRole("option")).toHaveCount(1)
+  await expect(outcome).toHaveValue("refund_reconciled")
+  const submit = dialog.getByRole("button", { name: "Record resolution" })
+  await submit.click()
+  expect(
+    api.callsTo("POST", "/workspace/:ws/payments/:id/resolve")
+  ).toHaveLength(0)
+  await dialog
+    .getByLabel("Reason", { exact: true })
+    .fill("Provider refund total matches confirmed refunds")
+  await dialog
+    .getByLabel("Evidence / provider reference")
+    .fill("Provider reconciliation case 123")
+  await submit.click()
+  expect(
+    api.callsTo("POST", "/workspace/:ws/payments/:id/resolve")
+  ).toHaveLength(0)
+  await dialog.getByRole("checkbox").check()
+  await submit.click()
+  await expect
+    .poll(
+      () => api.callsTo("POST", "/workspace/:ws/payments/:id/resolve").length
+    )
+    .toBe(1)
+  expect(
+    api.callsTo("POST", "/workspace/:ws/payments/:id/resolve")[0]!.body
+  ).toEqual({
+    outcome: "refund_reconciled",
+    reason: "Provider refund total matches confirmed refunds",
+    evidence: "Provider reconciliation case 123",
+  })
+  await expect(
+    dialog.getByRole("button", { name: "Record resolution" })
+  ).toHaveCount(0)
+  await expectFits(page)
+})
+
+test("paid source reconciliation stays hidden without the exact warning or admin permission", async ({
+  page,
+  api,
+}) => {
+  const sources = [
+    {
+      ...payment,
+      payment_id: "plain-paid",
+      kind: "payment",
+      status: "paid",
+      attention: false,
+    },
+    {
+      ...payment,
+      payment_id: "other-warning",
+      kind: "payment",
+      status: "paid",
+      attention: true,
+      attention_reason: "Provider transaction identity mismatch.",
+    },
+    {
+      ...payment,
+      payment_id: "stale-warning",
+      kind: "payment",
+      status: "paid",
+      attention: false,
+      attention_reason: refundObservation,
+    },
+    {
+      ...payment,
+      payment_id: "wrong-kind",
+      kind: "refund",
+      status: "paid",
+      attention: true,
+      attention_reason: refundObservation,
+    },
+  ]
+  api.on("GET", "/workspace/:ws/payments", () => paged(sources))
+  api.on("GET", "/workspace/:ws/payments/:id", ({ params }) => ({
+    data: {
+      ...sources.find((source) => source.payment_id === params[1]),
+      transactions: [],
+      chargebacks: [],
+    },
+  }))
+  await page.goto("/payments")
+  for (const source of sources) {
+    await page
+      .getByRole("button", {
+        name: `Payment details: ${source.payment_id}`,
+        exact: true,
+      })
+      .click()
+    const dialog = page.getByRole("dialog", { name: "Payment details" })
+    await expect(dialog.getByText("No records yet.").first()).toBeVisible()
+    await expect(
+      dialog.getByRole("button", { name: "Record resolution" })
+    ).toHaveCount(0)
+    await page.keyboard.press("Escape")
+  }
+  api.on("GET", "/me", () => ({
+    data: {
+      user: {
+        id: "member",
+        name: "Member",
+        initials: "ME",
+        permissions: [
+          { workspace: "w1", permissions: ["invoice.list", "invoice.view"] },
+        ],
+      },
+    },
+  }))
+  const source = {
+    ...payment,
+    kind: "payment",
+    status: "paid",
+    attention: true,
+    attention_reason: refundObservation,
+  }
+  api.on("GET", "/workspace/:ws/payments", () => paged([source]))
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: { ...source, transactions: [], chargebacks: [] },
+  }))
+  await page.reload()
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
+  await expect(
+    page.getByRole("dialog").getByText(refundObservation, { exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Record resolution" })
+  ).toHaveCount(0)
+  expect(api.calls.filter((call) => call.method !== "GET")).toHaveLength(0)
+  await expectFits(page)
 })
 
 guestTest(
@@ -1134,4 +1352,99 @@ test("blocked Globadyme setup can recover to legacy without changing stored slot
       payment: { ...integrations.payment, active_provider: null },
     },
   })
+})
+
+test("payment evidence separates capture from pending records and settlement", async ({
+  page,
+  api,
+}) => {
+  const paid = {
+    ...payment,
+    payment_id: "internal-payment-reference",
+    status: "paid",
+    amount: 1604,
+    currency: "USD",
+    kind: "payment",
+    environment: "sandbox",
+    captured_transaction_id: "captured-provider-reference",
+    attention: true,
+    attention_reason: "Settlement requires review.",
+  }
+  api.on("GET", "/workspace/:ws/payments", () => paged([paid]))
+  api.on("GET", "/workspace/:ws/payments/:id", () => ({
+    data: {
+      ...paid,
+      transactions: [
+        {
+          id: "pending-provider-reference",
+          amount: "16.04000000",
+          currency: "USD",
+          status: "PENDING",
+          settled: false,
+          created: "2026-11-18T07:52:57.163795",
+        },
+        {
+          id: "captured-provider-reference",
+          amount: "16.04000000",
+          currency: "USD",
+          status: "PROCESSED",
+          settled: false,
+          created: "2026-11-18T07:52:57.840935",
+        },
+      ],
+      chargebacks: [],
+    },
+  }))
+  await page.goto("/payments")
+  await expect(page.getByText(paid.payment_id, { exact: true })).toHaveCount(0)
+  await expect(page.getByText("Paid", { exact: true })).toBeVisible()
+  await expect(page.getByText("Pending review", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: /^Payment details:/ }).click()
+  const dialog = page.getByRole("dialog", { name: "Payment details" })
+  await expect(dialog.getByText("Paid", { exact: true })).toBeVisible()
+  const transactions = dialog.getByRole("region", {
+    name: "Transactions and settlements",
+  })
+  await expect(transactions.getByRole("listitem")).toHaveCount(2)
+  await expect(
+    transactions
+      .getByRole("listitem")
+      .first()
+      .getByText("Confirmed charge", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Confirmed charge", { exact: true })
+  ).toHaveCount(1)
+  await expect(transactions.getByText("Pending", { exact: true })).toBeVisible()
+  await expect(
+    transactions.getByText("Processed", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Not settled", { exact: true })
+  ).toHaveCount(2)
+  await expect(
+    transactions.getByText("$16.04 USD", { exact: true })
+  ).toHaveCount(2)
+  await expect(
+    dialog.getByText("No chargebacks recorded.", { exact: true })
+  ).toBeVisible()
+  await expect(
+    transactions.getByText("Provider time · timezone not supplied", {
+      exact: true,
+    })
+  ).toHaveCount(2)
+  for (const reference of [
+    paid.payment_id,
+    "pending-provider-reference",
+    "captured-provider-reference",
+  ])
+    await expect(dialog.getByText(reference, { exact: true })).not.toBeVisible()
+  await expect(
+    dialog.getByText("2026-11-18T07:52:57.163795", { exact: true })
+  ).toHaveCount(0)
+  await expectFits(page)
+  const refs = dialog.locator("details").last()
+  await refs.locator("summary").click()
+  await expect(refs.getByText(paid.payment_id, { exact: true })).toBeVisible()
+  expect(api.calls.filter((call) => call.method !== "GET")).toHaveLength(0)
 })

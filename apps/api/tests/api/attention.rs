@@ -453,9 +453,10 @@ async fn stock_counts_negative_rows_and_sold_out_products(pool: PgPool) {
     assert_eq!(s["negative"], 1, "{s}");
     assert_eq!(s["out_of_stock"], 5, "{s}");
     let mut out = ids(&s["items"], "product_id");
-    assert_eq!(out[0], tea, "lowest available first: {s}");
-    assert_eq!(s["items"][0]["product_name"], "Tea");
-    assert_eq!(s["items"][0]["available"], "-2.00");
+    // Tea's −2 sits in the store, not the default warehouse; a row never counts below 0.
+    assert_eq!(out[0], jam, "lowest available, then name: {s}");
+    assert_eq!(s["items"][0]["product_name"], "Jam");
+    assert_eq!(s["items"][0]["available"], "0.00");
     out.sort();
     let mut want = vec![wax, jam, tea, oil, expired];
     want.sort();

@@ -2,6 +2,8 @@
 
 Office assistant stays disabled by default. See [assistant deployment](../ASSISTANT.md) for runtime secrets, restricted checkpoint roles, readiness and compatible rollback.
 
+Product imports stay disabled by default. See [product import deployment](../PRODUCT_BULK.md) for release gates, file credentials and pausing existing workers safely.
+
 The live Genesy stack on the VPS. It runs the API with its own Postgres, the apps (shop, office, till, field, flow) and the landing page, all served through the existing Traefik.
 
 It is a separate compose project, `genesy-prod`. It never touches the `control360` or `genesy-prod-green` projects, and its router names (`genesy-production-*`) don't clash with theirs.
@@ -41,6 +43,7 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | `../deploy.sh`                  | Deploy, rollback, prune, and `compose` with the right `-f` chain     |
 | `../ops/`                       | Backups, restore tests, alerts (`../ops/README.md`)                  |
 | `../set-provider-keys.sh`       | Writes Stripe or Resend keys into `secrets/` without echoing them    |
+| `../set-user-password.sh`       | Sets a typed login password for an `afm` user, never echoed          |
 | `.env.production.example`       | Every variable, no secrets. Copy it to `.env.production` on the VPS. |
 | `secrets/`                      | Secret files on the VPS only. Git ignores everything in it.          |
 | `../images/*`                   | Web images, shared with staging                                      |
@@ -199,6 +202,15 @@ This runs `genesy-360-api create-owner`. It creates the owner and their workspac
 
 `cli` is its own service with no Traefik labels, so the one-off container never receives web traffic.
 
+**Login passwords for AFM users (`afm` only).** While mail is off, email invites can't reach anyone. The operator sets a password instead, typed at a hidden prompt:
+
+```bash
+cd /srv/genesy-prod && deploy/set-user-password.sh production <email> --admin
+cd /srv/genesy-prod && deploy/set-user-password.sh production <new email> --admin --first-name <First> --last-name <Last>
+```
+
+It asks twice without echoing, then pipes the password on stdin to `genesy-360-api set-user-password` (never on the command line). The API checks the same password rules as signup and stores an argon2id hash. An existing user gets the new password and every other session of theirs ends. A new user needs both names. It makes sure the user is an active member of `afm`. With `--admin` it also adds them to `afm`'s Admin Team (every permission; only the owner can give `workspace_admin` to another team, and only the owner can't be removed). It refuses every other workspace and prints only the email, created or updated, and the number of sessions ended.
+
 **The shop's app key:**
 
 1. Log in to `office.genesy.app`.
@@ -302,3 +314,4 @@ To turn uploads off, move `secrets/b2_uploads_key` out of `secrets/` and restart
 - Never reuse staging's secret files.
 - Never give the uploads key and the backup key the same prefix, and never use the bucket's master key on the VPS.
 - Never paste a Stripe or Resend key into chat, an issue, an env file or a command line: only into `set-provider-keys.sh`.
+- Never put a login password in chat, a command line or a file: only into `set-user-password.sh`'s prompt.
