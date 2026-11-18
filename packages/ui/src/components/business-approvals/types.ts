@@ -1,5 +1,6 @@
 // Hand-typed mirror of docs/integrations/contracts.md §5.2-§5.5 (contracts v1.1).
-// shortcut: hand-typed until C1/C2 merge, then replace with the generated model (K23).
+// Narrow view types (unions, typed snapshot) over the generated models; types.check.ts keeps
+// each one assignable to its generated model, so API drift fails tsc.
 
 export type ApprovalStatus =
   "blocked" | "pending" | "approved" | "rejected" | "returned" | "invalidated"
@@ -124,7 +125,16 @@ export type ApprovalRequestView = {
 export type CapabilityCheck = {
   key: string
   ok: boolean
-  error_class: string | null
+  error_class:
+    | "transient"
+    | "ambiguous"
+    | "auth"
+    | "permission"
+    | "not_found"
+    | "validation"
+    | "conflict"
+    | "unknown"
+    | null
   detail: string | null
 }
 

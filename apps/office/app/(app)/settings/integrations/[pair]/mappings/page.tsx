@@ -8,6 +8,10 @@ import {
   useIntegrationWrite,
   useMappings,
 } from "@genesy/api-client/business-approvals"
+import {
+  integrationMappingsDelete,
+  integrationMappingsUpsert,
+} from "@genesy/api-client/endpoints/integrations"
 import { fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -84,9 +88,8 @@ export default function MappingsPage() {
             const v = (k: string) => String(f.get(k) ?? "").trim()
             done.clear()
             write.mutate(
-              {
-                path: `pairs/${pair}/mappings`,
-                data: {
+              (ws) =>
+                integrationMappingsUpsert(ws, pair, {
                   entity: v("entity"),
                   source_id: v("source_id"),
                   target_id: v("target_id"),
@@ -96,8 +99,7 @@ export default function MappingsPage() {
                   ...(v("target_label")
                     ? { target_label: v("target_label") }
                     : {}),
-                },
-              },
+                }),
               {
                 onSuccess: () => {
                   done.show(t("mappings.added"))
@@ -222,10 +224,7 @@ export default function MappingsPage() {
           if (!removing) return
           done.clear()
           write.mutate(
-            {
-              path: `pairs/${pair}/mappings/${removing.m.id}`,
-              method: "DELETE",
-            },
+            (ws) => integrationMappingsDelete(ws, pair, removing.m.id),
             { onSuccess: () => done.show(t("mappings.deleted")) }
           )
         }}

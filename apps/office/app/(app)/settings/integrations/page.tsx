@@ -9,6 +9,15 @@ import {
   useIntegrationList,
   useIntegrationWrite,
 } from "@genesy/api-client/business-approvals"
+import {
+  integrationConnectionsCreate,
+  integrationConnectionsDisconnect,
+  integrationConnectionsTest,
+  integrationConnectionsUpdate,
+  integrationPairsActivate,
+  integrationPairsCreate,
+  integrationPairsPause,
+} from "@genesy/api-client/endpoints/integrations"
 import { fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -46,15 +55,15 @@ export default function IntegrationsPage() {
   const manage = useCan("integration.manage")
   const connections = useIntegrationList<ConnectionView>("connections")
   const pairs = useIntegrationList<PairView>("pairs")
-  const write = useIntegrationWrite<{ data?: ConnectionView | PairView }>()
+  const write = useIntegrationWrite()
   const done = useDone()
   const [disconnecting, setDisconnecting] = React.useState<{
     c: ConnectionView
     open: boolean
   }>()
-  const run = (path: string, message: string) => {
+  const run = (call: (ws: string) => Promise<unknown>, message: string) => {
     done.clear()
-    write.mutate({ path }, { onSuccess: () => done.show(t(message)) })
+    write.mutate(call, { onSuccess: () => done.show(t(message)) })
   }
   const byId = new Map((connections.data?.data ?? []).map((c) => [c.id, c]))
 
@@ -132,7 +141,10 @@ export default function IntegrationsPage() {
                       aria-label={`${t("settings.test")}: ${c.label}`}
                       disabled={write.isPending}
                       onClick={() =>
-                        run(`connections/${c.id}/test`, "settings.tested")
+                        run(
+                          (ws) => integrationConnectionsTest(ws, c.id),
+                          "settings.tested"
+                        )
                       }
                     >
                       {t("settings.test")}
@@ -226,7 +238,10 @@ export default function IntegrationsPage() {
                         aria-label={`${t("settings.activate")}: ${name}`}
                         disabled={write.isPending}
                         onClick={() =>
-                          run(`pairs/${p.id}/activate`, "settings.activated")
+                          run(
+                            (ws) => integrationPairsActivate(ws, p.id),
+                            "settings.activated"
+                          )
                         }
                       >
                         {t("settings.activate")}
@@ -239,7 +254,10 @@ export default function IntegrationsPage() {
                         aria-label={`${t("settings.pause")}: ${name}`}
                         disabled={write.isPending}
                         onClick={() =>
-                          run(`pairs/${p.id}/pause`, "settings.paused")
+                          run(
+                            (ws) => integrationPairsPause(ws, p.id),
+                            "settings.paused"
+                          )
                         }
                       >
                         {t("settings.pause")}
@@ -266,7 +284,7 @@ export default function IntegrationsPage() {
         onConfirm={() =>
           disconnecting &&
           run(
-            `connections/${disconnecting.c.id}/disconnect`,
+            (ws) => integrationConnectionsDisconnect(ws, disconnecting.c.id),
             "settings.disconnected"
           )
         }
@@ -416,12 +434,10 @@ function ConnectionDialog({
                 : null,
             }
             write.mutate(
-              {
-                path: connection
-                  ? `connections/${connection.id}`
-                  : "connections",
-                data,
-              },
+              (ws) =>
+                connection
+                  ? integrationConnectionsUpdate(ws, connection.id, data)
+                  : integrationConnectionsCreate(ws, data),
               {
                 onSuccess: () => {
                   onDone()
@@ -606,14 +622,12 @@ function PairDialog({
             e.preventDefault()
             const f = new FormData(e.currentTarget)
             write.mutate(
-              {
-                path: "pairs",
-                data: {
+              (ws) =>
+                integrationPairsCreate(ws, {
                   workflow_key: "wf01_purchase",
                   source_connection_id: String(f.get("source")),
                   target_connection_id: String(f.get("target")),
-                },
-              },
+                }),
               {
                 onSuccess: () => {
                   onDone()
