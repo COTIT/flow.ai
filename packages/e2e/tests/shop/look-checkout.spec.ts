@@ -36,6 +36,13 @@ test("checkout is two field cards beside the order card", async ({
   const address = page.getByRole("region", { name: "Shipping address" })
   for (const field of ["Address", "Postal code", "City", "Country"])
     await expect(address.getByLabel(field, { exact: true })).toBeVisible()
+  if (isMobile) {
+    const country = await address.getByLabel("Country").boundingBox()
+    const street = await address
+      .getByLabel("Address", { exact: true })
+      .boundingBox()
+    expect(country?.width).toBe(street?.width)
+  }
 
   const order = page.getByRole("region", { name: "Your order" })
   await expect(order).toContainText("Ilundo Wild Forest Honey · Size: 500 g")
