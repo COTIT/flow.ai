@@ -13,21 +13,21 @@ use sqlx::PgPool;
 
 const PIN: &str = "4821";
 
-struct W {
-    api: Api,
+pub(crate) struct W {
+    pub api: Api,
     /// Till token on register 1 (EUR, 5-cent cash rounding).
-    t1: String,
+    pub t1: String,
     /// Till token on register 2, same store.
-    t2: String,
-    honey: String,
-    wax: String,
-    shop_key: String,
+    pub t2: String,
+    pub honey: String,
+    pub wax: String,
+    pub shop_key: String,
 }
 
 /// Acme: a store warehouse (also the default) with honey (€12.50 excl, 9 % VAT) and wax (€3
 /// excl, 21 %), 10 of each; two registers on it, an open float of €50 on register 1; EUR cash
 /// rounds to 5 cents; a web shop key.
-async fn world(pool: PgPool) -> W {
+pub(crate) async fn world(pool: PgPool) -> W {
     let api = Api::new(pool, "/till").await;
     let vat = |rate: &'static str| {
         let api = api.with_base("/settings/vat-groups");
@@ -134,19 +134,19 @@ async fn session(api: &Api, warehouse: &str, name: &str) -> String {
 }
 
 /// A line charged at `unit_price` minor units excl VAT.
-fn line(product: &str, q: &str, unit_price: i64) -> Value {
+pub(crate) fn line(product: &str, q: &str, unit_price: i64) -> Value {
     json!({ "product_id": product, "quantity": q, "unit_price": unit_price })
 }
 
-fn cash(tendered: i64) -> Value {
+pub(crate) fn cash(tendered: i64) -> Value {
     json!({ "method": "cash", "tendered": tendered })
 }
 
-fn sale(client_ref: &str, lines: Value, payment: Value) -> Value {
+pub(crate) fn sale(client_ref: &str, lines: Value, payment: Value) -> Value {
     json!({ "client_ref": client_ref, "lines": lines, "payment": payment })
 }
 
-async fn post(w: &W, t: &str, body: &Value) -> (StatusCode, Value) {
+pub(crate) async fn post(w: &W, t: &str, body: &Value) -> (StatusCode, Value) {
     w.api
         .call(Method::POST, "/sales", Some(body.clone()), t)
         .await
@@ -985,7 +985,7 @@ async fn the_backfill_lets_stale_defaults_inherit(pool: PgPool) {
 // --- active book: anonymous retail recognition (masterplan §19 I) ----------------------------
 
 /// Activate with the sales roles mapped and value the till world's opening stock.
-async fn activate_with_stock(w: &W) {
+pub(crate) async fn activate_with_stock(w: &W) {
     let ws = &w.api.ws;
     crate::sales_recognition::activate_sales(&w.api.pool, ws).await;
     let shop: String = sqlx::query_scalar(
@@ -1000,7 +1000,7 @@ async fn activate_with_stock(w: &W) {
     }
 }
 
-async fn balance(w: &W, role: &str) -> i64 {
+pub(crate) async fn balance(w: &W, role: &str) -> i64 {
     crate::inventory_valuation::role_balance(&w.api.pool, &w.api.ws, role).await
 }
 

@@ -213,6 +213,7 @@ pub async fn cancel(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
     draft(&mut tx, workspace_id, id).await?;
     repo::set_status(&mut tx, workspace_id, id, "cancelled").await?;
     crate::modules::shipments::billing::release(&mut tx, workspace_id, id).await?;
+    crate::modules::sales_returns::legacy::release_credit_note(&mut tx, workspace_id, id).await?;
     tx.commit().await?;
     Ok(())
 }

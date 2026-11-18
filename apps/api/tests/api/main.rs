@@ -123,6 +123,7 @@ mod sale_availability;
 mod sales_billing;
 mod sales_groups;
 mod sales_recognition;
+mod sales_returns;
 mod sales_returns_schema;
 mod scheduled_reports;
 mod schema;

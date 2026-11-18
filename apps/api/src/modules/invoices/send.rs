@@ -324,8 +324,12 @@ pub(crate) async fn issue_in(
         }
     };
     let total = priced(&mut *tx, workspace_id, id, &locked).await?;
-    move_stock(&mut *tx, workspace_id, user_id, id).await?;
-    if crate::modules::stock::value::active(&mut *tx, workspace_id).await? {
+    let active = crate::modules::stock::value::active(&mut *tx, workspace_id).await?;
+    // Active book: a credit note moves no stock; restock is its own reviewed effect.
+    if !(active && locked.is_credit) {
+        move_stock(&mut *tx, workspace_id, user_id, id).await?;
+    }
+    if active {
         let today = crate::modules::shipments::repo::book_today(&mut *tx, workspace_id).await?;
         if let Some(d) = date {
             shipments::recognition::check_date(
