@@ -59,7 +59,11 @@ impl Validate for ReturnReviewRequest {
             ),
             Some(rows) => {
                 for (n, l) in rows.into_iter().enumerate() {
-                    let id = uuid(r, &format!("lines.{n}.original_line_id"), l.original_line_id);
+                    let id = uuid(
+                        r,
+                        &format!("lines.{n}.original_line_id"),
+                        l.original_line_id,
+                    );
                     let field = format!("lines.{n}.quantity");
                     let q = r
                         .required_value(&field, l.quantity)

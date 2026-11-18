@@ -48,12 +48,14 @@ const BEFORE_BOOK: &str =
 
 /// The register a till sale `order` of `ws` was rung up on; 404 for anything else.
 async fn sale_register(conn: &mut PgConnection, ws: Uuid, order: Uuid) -> Result<Uuid, AppError> {
-    sqlx::query_scalar("SELECT register_id FROM till_sales WHERE workspace_id = $1 AND order_id = $2")
-        .bind(ws)
-        .bind(order)
-        .fetch_optional(conn)
-        .await?
-        .ok_or(AppError::NotFound)
+    sqlx::query_scalar(
+        "SELECT register_id FROM till_sales WHERE workspace_id = $1 AND order_id = $2",
+    )
+    .bind(ws)
+    .bind(order)
+    .fetch_optional(conn)
+    .await?
+    .ok_or(AppError::NotFound)
 }
 
 fn hash(v: &Value) -> [u8; 32] {
@@ -101,9 +103,18 @@ async fn do_return(
     let facts: Vec<Value> = out
         .iter()
         .map(|r| {
-            json!([r.recognition_id, r.net, r.tax, r.rounding, r.credit,
-                   r.lines.iter().map(|l| json!([l.recognition_line_id, l.quantity])).collect::<Vec<_>>(),
-                   r.restocks.len()])
+            json!([
+                r.recognition_id,
+                r.net,
+                r.tax,
+                r.rounding,
+                r.credit,
+                r.lines
+                    .iter()
+                    .map(|l| json!([l.recognition_line_id, l.quantity]))
+                    .collect::<Vec<_>>(),
+                r.restocks.len()
+            ])
         })
         .collect();
     let fp = hash(&json!({ "till_return": order, "restock": input.restock,
@@ -225,7 +236,8 @@ async fn facts(
             let shift = cash::open_shift(&mut *conn, ws, original_register)
                 .await?
                 .ok_or(AppError::Conflict(NO_SHIFT))?;
-            let step = till_sales::service::cash_step(&mut *conn, ws, &p.till.currency_code).await?;
+            let step =
+                till_sales::service::cash_step(&mut *conn, ws, &p.till.currency_code).await?;
             if round_cash(input.amount, step) != input.amount {
                 return Err(AppError::field("amount", NOT_STEP));
             }
@@ -288,10 +300,15 @@ pub async fn refund_review(
     Ok(f.review)
 }
 
-const COLUMNS: &str = "id, order_id, credit_item_id AS credit_open_item_id,
-    refund_item_id AS refund_open_item_id, method, amount, currency_id, register_id, shift_id,
-    till_user_id, member_user_id, external_reference, actual_refund_confirmed, reason,
-    accounting_date, journal_entry_id, created_at";
+/// Columns of a `TillRefundResource` (static SQL text).
+macro_rules! columns {
+    () => {
+        "id, order_id, credit_item_id AS credit_open_item_id,
+         refund_item_id AS refund_open_item_id, method, amount, currency_id, register_id,
+         shift_id, till_user_id, member_user_id, external_reference, actual_refund_confirmed,
+         reason, accounting_date, journal_entry_id, created_at"
+    };
+}
 
 /// POST /till/sales/{order}/refunds: pay out the reviewed refund once. Journal DR receivables
 /// (the credit's party) / CR cash or provider_clearing; a receivable item for the money paid
@@ -407,8 +424,16 @@ where
     .bind(effect)
     .execute(&mut *tx)
     .await?;
-    settlement::link_source(&mut tx, ws, SOURCE, id, Some(effect), "posted", &f.fingerprint)
-        .await?;
+    settlement::link_source(
+        &mut tx,
+        ws,
+        SOURCE,
+        id,
+        Some(effect),
+        "posted",
+        &f.fingerprint,
+    )
+    .await?;
     if let Some(shift) = r.shift_id {
         sqlx::query(
             "INSERT INTO cash_ledger (workspace_id, register_id, shift_id, kind, amount, actor_kind,
@@ -427,14 +452,15 @@ where
         .execute(&mut *tx)
         .await?;
     }
-    let row: TillRefundResource = sqlx::query_as(&format!(
+    let row: TillRefundResource = sqlx::query_as(concat!(
         "INSERT INTO till_refunds (id, workspace_id, order_id, credit_item_id, register_id,
              shift_id, till_user_id, member_user_id, amount, currency_id, method,
              external_reference, actual_refund_confirmed, reason, accounting_date,
              refund_item_id, reservation_id, effect_id, journal_entry_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
                  $18, $19)
-         RETURNING {COLUMNS}"
+         RETURNING ",
+        columns!()
     ))
     .bind(id)
     .bind(ws)
@@ -473,8 +499,10 @@ pub async fn list(
     let mut conn = state.db.acquire().await?;
     sale_register(&mut conn, ws, order).await?;
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
-    let rows: Vec<TillRefundResource> = sqlx::query_as(&format!(
-        "SELECT {COLUMNS} FROM till_refunds WHERE workspace_id = $1 AND order_id = $2
+    let rows: Vec<TillRefundResource> = sqlx::query_as(concat!(
+        "SELECT ",
+        columns!(),
+        " FROM till_refunds WHERE workspace_id = $1 AND order_id = $2
          ORDER BY created_at, id LIMIT $3 OFFSET $4"
     ))
     .bind(ws)
@@ -500,8 +528,10 @@ pub async fn get(
     order: Uuid,
     id: Uuid,
 ) -> Result<TillRefundResource, AppError> {
-    sqlx::query_as(&format!(
-        "SELECT {COLUMNS} FROM till_refunds WHERE workspace_id = $1 AND order_id = $2 AND id = $3"
+    sqlx::query_as(concat!(
+        "SELECT ",
+        columns!(),
+        " FROM till_refunds WHERE workspace_id = $1 AND order_id = $2 AND id = $3"
     ))
     .bind(ws)
     .bind(order)

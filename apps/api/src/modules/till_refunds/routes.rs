@@ -10,6 +10,9 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::till_sales_return_review))
         .routes(routes!(handlers::till_sales_return))
         .routes(routes!(handlers::till_refunds_create_review))
-        .routes(routes!(handlers::till_refunds_list, handlers::till_refunds_create))
+        .routes(routes!(
+            handlers::till_refunds_list,
+            handlers::till_refunds_create
+        ))
         .routes(routes!(handlers::till_refunds_get))
 }

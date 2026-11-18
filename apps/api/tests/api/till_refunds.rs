@@ -134,13 +134,22 @@ async fn refund_as(r: &R, member: &str, till: &str, input: Value) -> (StatusCode
     .await
 }
 
-async fn refund(r: &R, item: &str, amount: i64, method: &str, reference: Option<&str>) -> (StatusCode, Value) {
+async fn refund(
+    r: &R,
+    item: &str,
+    amount: i64,
+    method: &str,
+    reference: Option<&str>,
+) -> (StatusCode, Value) {
     let input = refund_input(item, amount, method, reference);
     refund_as(r, &r.w.api.owner, &r.w.t1, input).await
 }
 
-async fn n(r: &R, sql: &str) -> i64 {
-    sqlx::query_scalar(sql).fetch_one(&r.w.api.pool).await.unwrap()
+async fn n(r: &R, sql: &'static str) -> i64 {
+    sqlx::query_scalar(sql)
+        .fetch_one(&r.w.api.pool)
+        .await
+        .unwrap()
 }
 
 async fn residual(r: &R, item: &str) -> i64 {
@@ -170,7 +179,11 @@ async fn anonymous_receipt_returns_and_refunds_the_cash_due_exactly(pool: PgPool
     assert!(b["data"]["shift_id"].is_string());
     assert_eq!(residual(&r, &item).await, 0);
     assert_eq!(
-        n(&r, "SELECT amount FROM cash_ledger WHERE kind = 'refund' AND source_kind = 'till_refund'").await,
+        n(
+            &r,
+            "SELECT amount FROM cash_ledger WHERE kind = 'refund' AND source_kind = 'till_refund'"
+        )
+        .await,
         -3275
     );
     // Cash GL and receivables clear; rounding fully reversed; no invoice or customer appears.
@@ -181,16 +194,15 @@ async fn anonymous_receipt_returns_and_refunds_the_cash_due_exactly(pool: PgPool
     assert_eq!(n(&r, "SELECT count(*) FROM relations").await, 0);
     crate::inventory_valuation::assert_books(&r.w.api.pool, &r.w.api.ws).await;
     // §19 I valid close: the drawer holds the float again.
-    let (s, b) = r
-        .w
-        .api
-        .call(
-            Method::POST,
-            "/shift/close",
-            Some(json!({ "count": [{ "denomination": 5000, "count": 1 }] })),
-            &r.w.t1,
-        )
-        .await;
+    let (s, b) =
+        r.w.api
+            .call(
+                Method::POST,
+                "/shift/close",
+                Some(json!({ "count": [{ "denomination": 5000, "count": 1 }] })),
+                &r.w.t1,
+            )
+            .await;
     assert_eq!(s, StatusCode::OK, "{b}");
     assert_eq!(b["data"]["difference"], 0, "{b}");
 }
@@ -254,14 +266,16 @@ async fn card_refunds_need_the_terminal_reference_and_leave_the_drawer_alone(poo
     assert_eq!(s, StatusCode::CREATED, "{b}");
     assert_eq!(b["data"]["external_reference"], "T-9");
     assert_eq!(b["data"]["shift_id"], Value::Null);
-    let t2: String = sqlx::query_scalar(
-        "SELECT register_id::text FROM till_sessions ORDER BY id DESC LIMIT 1",
-    )
-    .fetch_one(&r.w.api.pool)
-    .await
-    .unwrap();
+    let t2: String =
+        sqlx::query_scalar("SELECT register_id::text FROM till_sessions ORDER BY id DESC LIMIT 1")
+            .fetch_one(&r.w.api.pool)
+            .await
+            .unwrap();
     assert_eq!(b["data"]["register_id"], t2);
-    assert_eq!(n(&r, "SELECT count(*) FROM cash_ledger WHERE kind = 'refund'").await, 0);
+    assert_eq!(
+        n(&r, "SELECT count(*) FROM cash_ledger WHERE kind = 'refund'").await,
+        0
+    );
     assert_eq!(t::balance(&r.w, "provider_clearing").await, -1003);
     assert_eq!(residual(&r, &item).await, 3275 - 1003);
 }
@@ -273,47 +287,46 @@ async fn cash_needs_the_original_register_an_open_shift_and_enough_drawer(pool: 
     let input = refund_input(&item, 1000, "cash", None);
     let (s, b) = refund_as(&r, &r.w.api.owner, &r.w.t2, input).await;
     assert_eq!(s, StatusCode::NOT_FOUND, "another register's drawer: {b}");
-    // Empty the drawer through a reviewed adjustment, then the refund can't be paid.
-    let reg: String = sqlx::query_scalar("SELECT register_id::text FROM till_sales")
-        .fetch_one(&r.w.api.pool)
-        .await
-        .unwrap();
-    let place = json!({ "kind": "drawer", "id": reg });
-    let (s, rev) = req(
-        &r,
-        Method::POST,
-        "/till/cash-adjustments/review",
-        Some(json!({ "target_cash_place": place, "counted_amount": 500 })),
-        Some(&r.w.api.owner),
-        Some(&r.w.t1),
-    )
-    .await;
-    assert_eq!(s, StatusCode::OK, "{rev}");
-    let (s, b) = req(
-        &r,
-        Method::POST,
-        "/till/cash-adjustments",
-        Some(json!({ "client_ref": Uuid::now_v7(), "payload": {
-            "target_cash_place": place, "counted_amount": 500, "count_evidence_ref": "sheet",
-            "reason": "count", "review_fingerprint": rev["data"]["review_fingerprint"] } })),
-        Some(&r.w.api.owner),
-        Some(&r.w.t1),
-    )
-    .await;
+    // Drop all but 5.00 of the drawer (50.00 float + 32.75 sale) into a vault.
+    let (s, b) =
+        r.w.api
+            .call(
+                Method::POST,
+                "/vaults",
+                Some(json!({ "name": "Safe" })),
+                &r.w.api.owner,
+            )
+            .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let vault = b["data"]["id"].clone();
+    let (s, b) =
+        r.w.api
+            .call(
+                Method::POST,
+                "/transfers",
+                Some(json!({ "vault_id": vault, "direction": "to_vault",
+                         "count": [{ "denomination": 1000, "count": 7 },
+                                   { "denomination": 1, "count": 775 }] })),
+                &r.w.t1,
+            )
+            .await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
     let (s, b) = refund(&r, &item, 1000, "cash", None).await;
-    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "drawer holds 5.00: {b}");
+    assert_eq!(
+        s,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "drawer holds 5.00: {b}"
+    );
     // No open shift: nothing to pay out of.
-    let (s, b) = r
-        .w
-        .api
-        .call(
-            Method::POST,
-            "/shift/close",
-            Some(json!({ "count": [{ "denomination": 500, "count": 1 }] })),
-            &r.w.t1,
-        )
-        .await;
+    let (s, b) =
+        r.w.api
+            .call(
+                Method::POST,
+                "/shift/close",
+                Some(json!({ "count": [{ "denomination": 500, "count": 1 }] })),
+                &r.w.t1,
+            )
+            .await;
     assert_eq!(s, StatusCode::OK, "{b}");
     let (s, b) = refund(&r, &item, 500, "cash", None).await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
@@ -327,11 +340,35 @@ async fn privileged_auth_is_required(pool: PgPool) {
     let input = refund_input(&item, 1000, "card_recorded", Some("T-1"));
     let path = format!("/till/sales/{}/refunds/review", r.order);
     // Till token alone (as bearer or header) is no member login.
-    let (s, _) = req(&r, Method::POST, &path, Some(input.clone()), Some(&r.w.t1), None).await;
+    let (s, _) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(input.clone()),
+        Some(&r.w.t1),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
-    let (s, _) = req(&r, Method::POST, &path, Some(input.clone()), None, Some(&r.w.t1)).await;
+    let (s, _) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(input.clone()),
+        None,
+        Some(&r.w.t1),
+    )
+    .await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
-    let (s, _) = req(&r, Method::POST, &path, Some(input.clone()), Some(&r.w.api.owner), None).await;
+    let (s, _) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(input.clone()),
+        Some(&r.w.api.owner),
+        None,
+    )
+    .await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
     let clerk = member_with(
         &r.w.api.app,
@@ -347,14 +384,16 @@ async fn privileged_auth_is_required(pool: PgPool) {
         &r,
         Method::POST,
         &format!("/till/sales/{}/returns/review", r.order),
-        Some(json!({ "lines": [{ "original_line_id": r.line, "quantity": "1" }],
-                     "restock": false, "reason": "x" })),
+        Some(
+            json!({ "lines": [{ "original_line_id": r.line, "quantity": "1" }],
+                     "restock": false, "reason": "x" }),
+        ),
         Some(&clerk),
         Some(&r.w.t1),
     )
     .await;
     assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
-    let (outsider, _) = signup(&r.w.api.app, "eve@example.com", "Eve Co").await;
+    let (outsider, _) = signup(&r.w.api.app, "eve@example.com", "eve-co").await;
     let (s, b) = refund_as(&r, &outsider, &r.w.t1, input).await;
     assert_eq!(s, StatusCode::NOT_FOUND, "{b}");
     assert_eq!(n(&r, "SELECT count(*) FROM till_refunds").await, 0);
@@ -367,29 +406,35 @@ async fn another_workspace_never_sees_or_refunds_the_sale(pool: PgPool) {
     let (s, b) = refund(&r, &item, 1000, "card_recorded", Some("T-1")).await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
     let id = b["data"]["id"].as_str().unwrap().to_owned();
-    // A second till world: its member + till can't reach this order or refund.
-    let other = t::world(r.w.api.pool.clone()).await;
-    let uri = |p: &str| format!("/v1/workspace/{}{p}", other.api.ws);
-    let headers = [("x-till-session", other.t1.as_str())];
+    // A member of another workspace, on its own path, with this till session: 404.
+    let (other, other_ws) = signup(&r.w.api.app, "other@example.com", "other-co").await;
+    let uri = |p: &str| format!("/v1/workspace/{other_ws}{p}");
+    let headers = [("x-till-session", r.w.t1.as_str())];
     for p in [
         format!("/till/sales/{}/refunds", r.order),
         format!("/till/sales/{}/refunds/{id}", r.order),
     ] {
-        let (s, _, _) = send_full(&other.api.app, Method::GET, &uri(&p), None, Some(&other.api.owner), &headers).await;
+        let (s, _, _) = send_full(
+            &r.w.api.app,
+            Method::GET,
+            &uri(&p),
+            None,
+            Some(&other),
+            &headers,
+        )
+        .await;
         assert_eq!(s, StatusCode::NOT_FOUND, "{p}");
     }
-    let key = Uuid::now_v7().to_string();
-    let h = [("x-till-session", other.t1.as_str()), ("idempotency-key", key.as_str())];
-    let (s, _, _) = send_full(
-        &other.api.app,
-        Method::POST,
-        &uri(&format!("/till/sales/{}/refunds/review", r.order)),
-        Some(refund_input(&item, 1, "card_recorded", Some("x"))),
-        Some(&other.api.owner),
-        &h,
+    // Same member on this workspace's path: not a member, 404; nothing written.
+    let (s, b) = refund_as(
+        &r,
+        &other,
+        &r.w.t1,
+        refund_input(&item, 1, "card_recorded", Some("x")),
     )
     .await;
-    assert_eq!(s, StatusCode::NOT_FOUND);
+    assert_eq!(s, StatusCode::NOT_FOUND, "{b}");
+    assert_eq!(n(&r, "SELECT count(*) FROM till_refunds").await, 1);
 }
 
 #[sqlx::test]
@@ -398,23 +443,67 @@ async fn a_refund_replays_once_and_needs_its_current_review(pool: PgPool) {
     let item = credit_item(&r, "3").await;
     let path = format!("/till/sales/{}/refunds", r.order);
     let input = refund_input(&item, 1000, "cash", None);
-    let (_, rev) = req(&r, Method::POST, &format!("{path}/review"), Some(input.clone()), Some(&r.w.api.owner), Some(&r.w.t1)).await;
+    let (_, rev) = req(
+        &r,
+        Method::POST,
+        &format!("{path}/review"),
+        Some(input.clone()),
+        Some(&r.w.api.owner),
+        Some(&r.w.t1),
+    )
+    .await;
     let mut payload = input;
     payload["reason"] = json!("x");
     payload["review_fingerprint"] = rev["data"]["review_fingerprint"].clone();
     let body = json!({ "client_ref": Uuid::now_v7(), "payload": payload.clone() });
-    let (s1, a) = req(&r, Method::POST, &path, Some(body.clone()), Some(&r.w.api.owner), Some(&r.w.t1)).await;
-    let (s2, b) = req(&r, Method::POST, &path, Some(body.clone()), Some(&r.w.api.owner), Some(&r.w.t1)).await;
-    assert_eq!((s1, s2), (StatusCode::CREATED, StatusCode::CREATED), "{a} {b}");
+    let (s1, a) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(body.clone()),
+        Some(&r.w.api.owner),
+        Some(&r.w.t1),
+    )
+    .await;
+    let (s2, b) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(body.clone()),
+        Some(&r.w.api.owner),
+        Some(&r.w.t1),
+    )
+    .await;
+    assert_eq!(
+        (s1, s2),
+        (StatusCode::CREATED, StatusCode::CREATED),
+        "{a} {b}"
+    );
     assert_eq!(a["data"]["id"], b["data"]["id"]);
     assert_eq!(n(&r, "SELECT count(*) FROM till_refunds").await, 1);
     let mut changed = body;
     changed["payload"]["amount"] = json!(500);
-    let (s, b) = req(&r, Method::POST, &path, Some(changed), Some(&r.w.api.owner), Some(&r.w.t1)).await;
+    let (s, b) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(changed),
+        Some(&r.w.api.owner),
+        Some(&r.w.t1),
+    )
+    .await;
     assert_eq!(s, StatusCode::CONFLICT, "reused client_ref: {b}");
     // The old review no longer matches the credit left.
     let stale = json!({ "client_ref": Uuid::now_v7(), "payload": payload });
-    let (s, b) = req(&r, Method::POST, &path, Some(stale), Some(&r.w.api.owner), Some(&r.w.t1)).await;
+    let (s, b) = req(
+        &r,
+        Method::POST,
+        &path,
+        Some(stale),
+        Some(&r.w.api.owner),
+        Some(&r.w.t1),
+    )
+    .await;
     assert_eq!(s, StatusCode::CONFLICT, "{b}");
     assert_eq!(b["code"], "stale_document", "{b}");
     assert_eq!(residual(&r, &item).await, 3275 - 1000);
@@ -428,20 +517,52 @@ async fn concurrent_refunds_never_exceed_the_credit(pool: PgPool) {
     let mut bodies = Vec::new();
     for reference in ["A", "B"] {
         let input = refund_input(&item, 3275, "card_recorded", Some(reference));
-        let (_, rev) = req(&r, Method::POST, &format!("{path}/review"), Some(input.clone()), Some(&r.w.api.owner), Some(&r.w.t1)).await;
+        let (_, rev) = req(
+            &r,
+            Method::POST,
+            &format!("{path}/review"),
+            Some(input.clone()),
+            Some(&r.w.api.owner),
+            Some(&r.w.t1),
+        )
+        .await;
         let mut payload = input;
         payload["reason"] = json!("x");
         payload["review_fingerprint"] = rev["data"]["review_fingerprint"].clone();
         bodies.push(json!({ "client_ref": Uuid::now_v7(), "payload": payload }));
     }
     let (a, b) = tokio::join!(
-        req(&r, Method::POST, &path, Some(bodies[0].clone()), Some(&r.w.api.owner), Some(&r.w.t1)),
-        req(&r, Method::POST, &path, Some(bodies[1].clone()), Some(&r.w.api.owner), Some(&r.w.t1)),
+        req(
+            &r,
+            Method::POST,
+            &path,
+            Some(bodies[0].clone()),
+            Some(&r.w.api.owner),
+            Some(&r.w.t1)
+        ),
+        req(
+            &r,
+            Method::POST,
+            &path,
+            Some(bodies[1].clone()),
+            Some(&r.w.api.owner),
+            Some(&r.w.t1)
+        ),
     );
-    let created = [a.0, b.0].iter().filter(|s| **s == StatusCode::CREATED).count();
+    let created = [a.0, b.0]
+        .iter()
+        .filter(|s| **s == StatusCode::CREATED)
+        .count();
     assert_eq!(created, 1, "{} {}", a.1, b.1);
     assert_eq!(residual(&r, &item).await, 0);
-    assert_eq!(n(&r, "SELECT coalesce(sum(amount), 0)::int8 FROM till_refunds").await, 3275);
+    assert_eq!(
+        n(
+            &r,
+            "SELECT coalesce(sum(amount), 0)::int8 FROM till_refunds"
+        )
+        .await,
+        3275
+    );
 }
 
 #[sqlx::test]
@@ -460,7 +581,11 @@ async fn pending_reservations_share_the_cap_and_block_credit_reversal(pool: PgPo
     .await
     .unwrap();
     let (s, b) = refund(&r, &item, 300, "card_recorded", Some("T-1")).await;
-    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "only 2.75 refundable: {b}");
+    assert_eq!(
+        s,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "only 2.75 refundable: {b}"
+    );
     let (s, b) = refund(&r, &item, 275, "card_recorded", Some("T-1")).await;
     assert_eq!(s, StatusCode::CREATED, "{b}");
     // The reservation table is append-only except pending → consumed | released.
@@ -495,7 +620,14 @@ async fn pending_reservations_share_the_cap_and_block_credit_reversal(pool: PgPo
 #[sqlx::test]
 async fn a_refund_must_use_a_credit_of_this_sale(pool: PgPool) {
     let r = world(pool).await;
-    let (s, b) = refund(&r, &Uuid::now_v7().to_string(), 100, "card_recorded", Some("T")).await;
+    let (s, b) = refund(
+        &r,
+        &Uuid::now_v7().to_string(),
+        100,
+        "card_recorded",
+        Some("T"),
+    )
+    .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
     assert!(b["errors"]["credit_open_item_id"].is_array(), "{b}");
     // The sale's own receipt item (money taken, not a return credit) isn't refundable here.
