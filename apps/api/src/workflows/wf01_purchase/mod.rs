@@ -1,18 +1,25 @@
 //! WF-01 Odoo RFQ → Flow approval → NetSuite PO. C4a intake: tick fan-out, poll, sweep, full
-//! scan, evaluate (mappings, money, requester) into approval requests, O5 control checks; C4b
-//! fills execute/reconcile. Jobs carry `{"pair_id"}` and run in the pair's workspace.
+//! scan, evaluate (mappings, money, requester) into approval requests, O5 control checks. C4b
+//! execute, reconcile, verify, link: one POST per granted attempt, read-back verify,
+//! reconciliation. Intake jobs carry `{"pair_id"}`, execution jobs `{"execution_id"}`.
 
 pub mod activation;
 pub mod evaluate;
 pub mod execute;
 pub mod fingerprint;
 pub mod full_scan;
+pub mod link;
 pub mod money;
 pub mod poll;
 pub mod reconcile;
 pub mod sweep;
 pub mod tick;
+mod verify;
 
+#[cfg(test)]
+mod exec_tests;
+#[cfg(test)]
+mod fake_netsuite;
 #[cfg(test)]
 mod fake_odoo;
 #[cfg(test)]

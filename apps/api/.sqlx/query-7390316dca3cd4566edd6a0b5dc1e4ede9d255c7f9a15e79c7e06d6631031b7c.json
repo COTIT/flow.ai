@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(max(write_intent_at) + interval '15 minutes' <= now(), true) AS \"x!\"\n           FROM workflow_execution_attempts WHERE execution_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7390316dca3cd4566edd6a0b5dc1e4ede9d255c7f9a15e79c7e06d6631031b7c"
+}

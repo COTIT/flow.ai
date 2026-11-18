@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT evidence->>'target_id' AS \"id!\" FROM workflow_execution_attempts\n           WHERE workspace_id = $1 AND execution_id = $2 AND evidence ? 'target_id'\n           UNION\n           SELECT payload->>'target_id' FROM workflow_events\n           WHERE workspace_id = $1 AND execution_id = $2 AND kind = 'stale_worker_result'\n             AND payload ? 'target_id'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7a7d84582dbf702f10cd1ba058b7fbe66b7a6a03ff38b127f1c0336997d89d77"
+}

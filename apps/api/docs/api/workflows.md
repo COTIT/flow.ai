@@ -36,7 +36,7 @@ The detail route also returns:
 | GET `/executions?workflow_key=&status=&page=&page_size=` | view | — | list | 403, 422 unknown status |
 | GET `/executions/{execution}` | view | — | `{"data":Execution}` + attempts, events, resolutions | 403, 404 |
 | POST `/executions/{execution}/retry` | manage | `{"reason"}` | `{"data":Execution}` | 409 `execution_state_changed`, 409 `retry_needs_grant`, 422 |
-| POST `/executions/{execution}/resolve` | reconcile, not the requester | `{"action","reason","target_id"?}` | `{"data":Execution}` | 403 `four_eyes_required`, 409 `execution_state_changed`, 422, 503 `link_unavailable` |
+| POST `/executions/{execution}/resolve` | reconcile, not the requester | `{"action","reason","target_id"?}` | `{"data":Execution}` | 403 `four_eyes_required`, 409 `execution_state_changed`, 422 (`target_id` missing or unreadable), 503 (NetSuite unreachable) |
 | GET `/incidents?status=open\|resolved&kind=&page=&page_size=` | view | — | list | 403, 422 unknown status |
 | POST `/incidents/{incident}/resolve` | reconcile, not the requester | `{"note"}` | `{"data":Incident}` | 403 `four_eyes_required`, 409 `incident_already_resolved`, 422 |
 
@@ -58,7 +58,7 @@ A run that already sent an attempt with a known outcome (for example a definite 
 | `close_no_po` | `awaiting_reconciliation` | `resolved_manual` (`closed_no_po`) |
 | `accept_variance` | `succeeded_with_variance` | `resolved_manual` (`variance_accepted`); the open `tax_variance` incidents of the run are resolved with the same reason |
 | `reject_variance` | `succeeded_with_variance` | unchanged; the incident stays open |
-| `link_existing` | `awaiting_reconciliation` | needs `target_id` (else 422). Answers 503 `link_unavailable` until the read-back step is built. |
+| `link_existing` | `awaiting_reconciliation` | needs `target_id` (else 422). Reads the order and verifies it (see `integrations.md` "WF-01 execute and reconcile"): match → `succeeded` (or `succeeded_with_variance`); differences → `resolved_manual` / `linked_with_differences`, never verified. An id NetSuite can't read → 422 on `target_id`; NetSuite unreachable → 503. |
 
 Any other combination → 409 `execution_state_changed`. An attempt still in flight (no outcome) never allows a retry.
 

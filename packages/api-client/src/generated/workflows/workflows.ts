@@ -262,7 +262,7 @@ export function useWorkflowsExecutionsGet<TData = Awaited<ReturnType<typeof work
 
 
 /**
- * Not the request's requester. `allow_retry` grants one more attempt (latest outcome ambiguous, not_sent or rejected); `close_no_po` closes a run awaiting reconciliation; `accept_variance` / `reject_variance` review a tax variance; `link_existing` links a found order (503 `link_unavailable` until built). Audited in `resolutions`.
+ * Not the request's requester. `allow_retry` grants one more attempt (latest outcome ambiguous, not_sent or rejected); `close_no_po` closes a run awaiting reconciliation; `accept_variance` / `reject_variance` review a tax variance; `link_existing` reads the order from NetSuite and verifies it: match → `succeeded`, differences → `resolved_manual` `linked_with_differences` (422 when the id can't be read, 503 when NetSuite can't be reached). Audited in `resolutions`.
  * @summary Resolve a run by hand
  */
 export const workflowsExecutionsResolve = (

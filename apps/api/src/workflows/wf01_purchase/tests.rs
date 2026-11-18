@@ -22,16 +22,16 @@ use crate::{
     workflows::testkit::{self, Kit},
 };
 
-const T0: &str = "2026-11-17 10:00:00";
+pub(super) const T0: &str = "2026-11-17 10:00:00";
 
-struct W {
-    pool: PgPool,
-    k: Kit,
-    client: SourceClient,
-    odoo: Shared,
+pub(super) struct W {
+    pub(super) pool: PgPool,
+    pub(super) k: Kit,
+    pub(super) client: SourceClient,
+    pub(super) odoo: Shared,
 }
 
-async fn map(pool: &PgPool, k: &Kit, entity: &str, source: &str, target: &str) {
+pub(super) async fn map(pool: &PgPool, k: &Kit, entity: &str, source: &str, target: &str) {
     sqlx::query(
         "INSERT INTO integration_mappings (workspace_id, pair_id, entity, source_id, target_id,
              source_label, created_by)
@@ -51,7 +51,7 @@ async fn map(pool: &PgPool, k: &Kit, entity: &str, source: &str, target: &str) {
 
 /// Active pair (activated 2026-11-17 00:00), both connections active, every mapping of
 /// `Order::draft`, EUR policy, an approver holding `integration.approve_high`.
-async fn world(pool: PgPool) -> W {
+pub(super) async fn world(pool: PgPool) -> W {
     let k = testkit::kit(&pool, "w").await;
     sqlx::query("UPDATE integration_connections SET status = 'active' WHERE workspace_id = $1")
         .bind(k.ws)
@@ -110,7 +110,7 @@ async fn world(pool: PgPool) -> W {
 }
 
 impl W {
-    async fn pair(&self) -> PairCtx {
+    pub(super) async fn pair(&self) -> PairCtx {
         let row = pairs::find(&self.pool, self.k.ws, self.k.pair)
             .await
             .unwrap()
@@ -118,32 +118,32 @@ impl W {
         PairCtx::new(&row, true)
     }
 
-    fn put(&self, id: i64, o: Order) {
+    pub(super) fn put(&self, id: i64, o: Order) {
         self.odoo.lock().unwrap().orders.insert(id, o);
     }
 
-    fn edit(&self, id: i64, f: impl FnOnce(&mut Order)) {
+    pub(super) fn edit(&self, id: i64, f: impl FnOnce(&mut Order)) {
         f(self.odoo.lock().unwrap().orders.get_mut(&id).unwrap());
     }
 
-    async fn poll(&self) -> Result<Step, AppError> {
+    pub(super) async fn poll(&self) -> Result<Step, AppError> {
         poll::poll_pair(&self.pool, &self.pair().await, &self.client).await
     }
 
-    async fn sweep(&self) {
+    pub(super) async fn sweep(&self) {
         sweep::sweep_pair(&self.pool, &self.pair().await, &self.client)
             .await
             .unwrap();
     }
 
-    async fn scan(&self) {
+    pub(super) async fn scan(&self) {
         full_scan::scan_pair(&self.pool, &self.pair().await, &self.client)
             .await
             .unwrap();
     }
 
     /// `(revision, status, invalidated_reason, blocked_reasons)` of a subject, oldest first.
-    async fn history(&self, id: i64) -> Vec<(i32, String, Option<String>, Vec<String>)> {
+    pub(super) async fn history(&self, id: i64) -> Vec<(i32, String, Option<String>, Vec<String>)> {
         sqlx::query_as(
             "SELECT revision, status, invalidated_reason, blocked_reasons FROM approval_requests
              WHERE workspace_id = $1 AND subject_ref LIKE '%:purchase.order:' || $2 ORDER BY revision",
@@ -155,7 +155,7 @@ impl W {
         .unwrap()
     }
 
-    async fn latest(&self, id: i64) -> (Uuid, String, Value) {
+    pub(super) async fn latest(&self, id: i64) -> (Uuid, String, Value) {
         sqlx::query_as(
             "SELECT id, fingerprint, snapshot FROM approval_requests
              WHERE workspace_id = $1 AND subject_ref LIKE '%:purchase.order:' || $2
@@ -168,7 +168,7 @@ impl W {
         .unwrap()
     }
 
-    async fn count(&self, sql: &'static str) -> i64 {
+    pub(super) async fn count(&self, sql: &'static str) -> i64 {
         sqlx::query_scalar(sql)
             .bind(self.k.ws)
             .fetch_one(&self.pool)
@@ -176,13 +176,13 @@ impl W {
             .unwrap()
     }
 
-    async fn requests(&self) -> i64 {
+    pub(super) async fn requests(&self) -> i64 {
         self.count("SELECT count(*) FROM approval_requests WHERE workspace_id = $1")
             .await
     }
 
     /// Approve the latest revision the way C2 decide does, with its `queued` execution.
-    async fn approve(&self, id: i64, status: &str, phase: &str) -> Uuid {
+    pub(super) async fn approve(&self, id: i64, status: &str, phase: &str) -> Uuid {
         let (rid, fp, _) = self.latest(id).await;
         assert!(
             approvals::decide_cas(&self.pool, self.k.ws, rid, "approved", self.k.approver, &fp)
@@ -207,7 +207,7 @@ impl W {
         .unwrap()
     }
 
-    async fn incidents(&self) -> Vec<(String, String)> {
+    pub(super) async fn incidents(&self) -> Vec<(String, String)> {
         sqlx::query_as(
             "SELECT kind, subject_ref FROM workflow_incidents WHERE workspace_id = $1 AND status = 'open'
              ORDER BY kind",
