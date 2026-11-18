@@ -51,6 +51,7 @@ pub struct ExceptionResource {
 
 /// List filters.
 #[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
     /// `pending` (default) or `all`.
     pub state: Option<String>,

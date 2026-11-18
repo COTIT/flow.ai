@@ -52,7 +52,7 @@ fn id(raw: &str) -> Result<Uuid, AppError> {
 
 /// sales_returns_list: List customer returns.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/sales-returns", tag = "sales-returns",
+    get, path = "/workspace/{workspace}/sales-returns", tag = "sales_returns",
     operation_id = "sales_returns_list",
     summary = "List customer returns",
     params(("workspace" = Uuid, Path, description = "Workspace id"), PageQuery),
@@ -73,7 +73,7 @@ pub async fn sales_returns_list(
 
 /// sales_returns_create: Draft a credit of a recognised sale (reserves capacity only).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns", tag = "sales_returns",
     operation_id = "sales_returns_create",
     summary = "Draft a customer credit (reserves capacity only)",
     request_body = Create<ReturnCreatePayload>,
@@ -97,7 +97,7 @@ pub async fn sales_returns_create(
 
 /// sales_returns_get: Read a customer return.
 #[utoipa::path(
-    get, path = "/workspace/{workspace}/sales-returns/{return}", tag = "sales-returns",
+    get, path = "/workspace/{workspace}/sales-returns/{return}", tag = "sales_returns",
     operation_id = "sales_returns_get",
     summary = "Read a customer return",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("return" = Uuid, Path, description = "Return id")),
@@ -121,7 +121,7 @@ pub async fn sales_returns_get(
 
 /// sales_returns_update: Replace a draft's date, reason and lines.
 #[utoipa::path(
-    patch, path = "/workspace/{workspace}/sales-returns/{return}", tag = "sales-returns",
+    patch, path = "/workspace/{workspace}/sales-returns/{return}", tag = "sales_returns",
     operation_id = "sales_returns_update",
     summary = "Replace a draft's date, reason and lines",
     request_body = Action<ReturnUpdatePayload>,
@@ -146,7 +146,7 @@ pub async fn sales_returns_update(
 
 /// sales_returns_cancel: Cancel a draft, freeing its capacity.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/cancel", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/cancel", tag = "sales_returns",
     operation_id = "sales_returns_cancel",
     summary = "Cancel a draft",
     request_body = Action<CancelPayload>,
@@ -171,7 +171,7 @@ pub async fn sales_returns_cancel(
 
 /// sales_returns_post_review: Preview posting a draft credit (no writes).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/post/review", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/post/review", tag = "sales_returns",
     operation_id = "sales_returns_post_review",
     summary = "Preview posting a draft credit (no writes)",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("return" = Uuid, Path, description = "Return id")),
@@ -195,7 +195,7 @@ pub async fn sales_returns_post_review(
 
 /// sales_returns_post: Post a reviewed credit: journal, customer credit item, application.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/post", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/post", tag = "sales_returns",
     operation_id = "sales_returns_post",
     summary = "Post a reviewed draft credit",
     request_body = Action<FingerprintPayload>,
@@ -220,7 +220,7 @@ pub async fn sales_returns_post(
 
 /// sales_returns_restock_review: Preview putting credited goods back (no writes).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/restock/review", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/restock/review", tag = "sales_returns",
     operation_id = "sales_returns_restock_review",
     summary = "Preview a restock (no writes)",
     request_body = RestockReviewBody,
@@ -246,7 +246,7 @@ pub async fn sales_returns_restock_review(
 
 /// sales_returns_restock: Put credited goods back on stock at the original booked cost.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/restock", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/restock", tag = "sales_returns",
     operation_id = "sales_returns_restock",
     summary = "Put credited goods back on stock (separate effect)",
     request_body = Action<RestockPayload>,
@@ -271,7 +271,7 @@ pub async fn sales_returns_restock(
 
 /// sales_returns_reverse_review: Preview reversing a posted credit (no writes).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/reverse/review", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/reverse/review", tag = "sales_returns",
     operation_id = "sales_returns_reverse_review",
     summary = "Preview reversing a credit (no writes)",
     request_body = ReverseReviewBody,
@@ -297,7 +297,7 @@ pub async fn sales_returns_reverse_review(
 
 /// sales_returns_reverse: Reverse a posted credit (financial only; restocks stay).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/reverse", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/reverse", tag = "sales_returns",
     operation_id = "sales_returns_reverse",
     summary = "Reverse a posted credit (financial only)",
     request_body = Action<ReversePayload>,
@@ -322,7 +322,7 @@ pub async fn sales_returns_reverse(
 
 /// sales_return_restocks_reverse_review: Preview undoing a restock (no writes).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/restocks/{restock}/reverse/review", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/restocks/{restock}/reverse/review", tag = "sales_return_restocks",
     operation_id = "sales_return_restocks_reverse_review",
     summary = "Preview undoing a restock (no writes)",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ("return" = Uuid, Path, description = "Return id"), ("restock" = Uuid, Path, description = "Restock id")),
@@ -347,7 +347,7 @@ pub async fn sales_return_restocks_reverse_review(
 
 /// sales_return_restocks_reverse: Undo a restock exactly (physical only; the credit stays).
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/sales-returns/{return}/restocks/{restock}/reverse", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/sales-returns/{return}/restocks/{restock}/reverse", tag = "sales_return_restocks",
     operation_id = "sales_return_restocks_reverse",
     summary = "Undo a restock (physical only)",
     request_body = Action<RestockReversePayload>,
@@ -372,7 +372,7 @@ pub async fn sales_return_restocks_reverse(
 
 /// legacy_return_costs_create: Record a reviewed cost for returns of a sale with no booked cost.
 #[utoipa::path(
-    post, path = "/workspace/{workspace}/legacy-return-costs", tag = "sales-returns",
+    post, path = "/workspace/{workspace}/legacy-return-costs", tag = "legacy_return_costs",
     operation_id = "legacy_return_costs_create",
     summary = "Record a reviewed legacy return cost",
     request_body = Create<LegacyCostPayload>,

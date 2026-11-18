@@ -40,6 +40,7 @@ fn reason(r: &mut Rules, v: Option<String>) -> Option<String> {
 
 /// One recognition line to credit.
 #[derive(Deserialize, ToSchema)]
+#[schema(as = SalesReturnReturnLinePayload)]
 pub struct ReturnLinePayload {
     #[schema(value_type = Uuid)]
     pub recognition_line_id: Option<String>,
@@ -251,6 +252,7 @@ impl Validate for RestockPayload {
 
 /// POST .../reverse/review body.
 #[derive(Deserialize, ToSchema)]
+#[schema(as = SalesReturnReverseReviewBody)]
 pub struct ReverseReviewBody {
     pub accounting_date: Option<String>,
 }
@@ -265,6 +267,7 @@ impl Validate for ReverseReviewBody {
 
 /// POST .../reverse payload (financial credit only; restocks stay).
 #[derive(Deserialize, ToSchema)]
+#[schema(as = SalesReturnReversePayload)]
 pub struct ReversePayload {
     pub accounting_date: Option<String>,
     pub reason: Option<String>,
@@ -385,6 +388,7 @@ pub struct LegacyCostResource {
 
 /// A credited line.
 #[derive(Serialize, ToSchema)]
+#[schema(as = SalesReturnReturnLineResource)]
 pub struct ReturnLineResource {
     pub id: Uuid,
     pub recognition_line_id: Uuid,
@@ -476,6 +480,7 @@ pub struct SalesReturnResource {
 
 /// What a post would credit, from current facts (no writes).
 #[derive(Serialize, ToSchema)]
+#[schema(as = SalesReturnPostReview)]
 pub struct PostReview {
     pub return_id: Uuid,
     pub version: i64,

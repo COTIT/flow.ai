@@ -27,6 +27,7 @@ import type {
 import type {
   AccountingAccountsListParams,
   AccountingBalanceSheetParams,
+  AccountingExceptionsListParams,
   AccountingGeneralLedgerParams,
   AccountingJournalsListParams,
   AccountingPeriodsListParams,
@@ -36,6 +37,8 @@ import type {
   ActionAccountPatch,
   ActionJournalPayload,
   ActionPostPayload,
+  ActionResolvePayload,
+  ActionRetryPayload,
   ActionReversePayload,
   ActionSetupPayload,
   CreateAccountPayload,
@@ -49,15 +52,18 @@ import type {
   EnvelopeBalanceSheetResource,
   EnvelopeBankAccountResource,
   EnvelopeCashAdjustmentResource,
+  EnvelopeExceptionResource,
   EnvelopeGeneralLedgerResource,
   EnvelopeJournalResource,
   EnvelopePeriodResource,
   EnvelopeProfitAndLossResource,
+  EnvelopeResolveReview,
   EnvelopeReviewResource,
   EnvelopeSetupResource,
   EnvelopeTrialBalanceResource,
   EnvelopeVecBankAccountResource,
   EnvelopeVecCashPlaceResource,
+  EnvelopeVecExceptionResource,
   EnvelopeYearResource,
   MessageBody,
   OfficeReviewRequest,
@@ -65,6 +71,7 @@ import type {
   PaginatedJournalResource,
   PaginatedPeriodResource,
   PaginatedYearResource,
+  ResolveReviewBody,
   ReverseReviewBody,
   ValidationErrorBody
 } from '../model';
@@ -720,6 +727,412 @@ export function useAccountingCashPlacesList<TData = Awaited<ReturnType<typeof ac
 
 
 /**
+ * @summary List accounting exceptions
+ */
+export const accountingExceptionsList = (
+    workspace: string,
+    params?: AccountingExceptionsListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecExceptionResource>(
+      {url: `/workspace/${workspace}/accounting/exceptions`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingExceptionsListQueryKey = (workspace: string,
+    params?: AccountingExceptionsListParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/exceptions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAccountingExceptionsListQueryOptions = <TData = Awaited<ReturnType<typeof accountingExceptionsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: AccountingExceptionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingExceptionsListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingExceptionsList>>> = ({ signal }) => accountingExceptionsList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingExceptionsListQueryResult = NonNullable<Awaited<ReturnType<typeof accountingExceptionsList>>>
+export type AccountingExceptionsListQueryError = ErrorType<MessageBody>
+
+
+export function useAccountingExceptionsList<TData = Awaited<ReturnType<typeof accountingExceptionsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params: undefined |  AccountingExceptionsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingExceptionsList>>,
+          TError,
+          Awaited<ReturnType<typeof accountingExceptionsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingExceptionsList<TData = Awaited<ReturnType<typeof accountingExceptionsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: AccountingExceptionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingExceptionsList>>,
+          TError,
+          Awaited<ReturnType<typeof accountingExceptionsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingExceptionsList<TData = Awaited<ReturnType<typeof accountingExceptionsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: AccountingExceptionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List accounting exceptions
+ */
+
+export function useAccountingExceptionsList<TData = Awaited<ReturnType<typeof accountingExceptionsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: AccountingExceptionsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingExceptionsListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Read an accounting exception
+ */
+export const accountingExceptionsGet = (
+    workspace: string,
+    exception: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeExceptionResource>(
+      {url: `/workspace/${workspace}/accounting/exceptions/${exception}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingExceptionsGetQueryKey = (workspace: string,
+    exception: string,) => {
+    return [
+    `/workspace/${workspace}/accounting/exceptions/${exception}`
+    ] as const;
+    }
+
+
+export const getAccountingExceptionsGetQueryOptions = <TData = Awaited<ReturnType<typeof accountingExceptionsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    exception: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingExceptionsGetQueryKey(workspace,exception);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingExceptionsGet>>> = ({ signal }) => accountingExceptionsGet(workspace,exception, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && exception !== null && exception !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingExceptionsGetQueryResult = NonNullable<Awaited<ReturnType<typeof accountingExceptionsGet>>>
+export type AccountingExceptionsGetQueryError = ErrorType<MessageBody>
+
+
+export function useAccountingExceptionsGet<TData = Awaited<ReturnType<typeof accountingExceptionsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    exception: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingExceptionsGet>>,
+          TError,
+          Awaited<ReturnType<typeof accountingExceptionsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingExceptionsGet<TData = Awaited<ReturnType<typeof accountingExceptionsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    exception: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingExceptionsGet>>,
+          TError,
+          Awaited<ReturnType<typeof accountingExceptionsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingExceptionsGet<TData = Awaited<ReturnType<typeof accountingExceptionsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    exception: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read an accounting exception
+ */
+
+export function useAccountingExceptionsGet<TData = Awaited<ReturnType<typeof accountingExceptionsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    exception: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingExceptionsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingExceptionsGetQueryOptions(workspace,exception,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Resolve an accounting exception
+ */
+export const accountingExceptionsResolve = (
+    workspace: string,
+    exception: string,
+    actionResolvePayload: BodyType<ActionResolvePayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeExceptionResource>(
+      {url: `/workspace/${workspace}/accounting/exceptions/${exception}/resolve`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionResolvePayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingExceptionsResolveMutationKey = () => ['accountingExceptionsResolve'] as const;
+
+export const getAccountingExceptionsResolveMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsResolve>>, TError,AccountingExceptionsResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsResolve>>, TError,AccountingExceptionsResolveMutationVariables, TContext> => {
+
+const mutationKey = getAccountingExceptionsResolveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingExceptionsResolve>>, AccountingExceptionsResolveMutationVariables> = (props) => {
+          const {workspace,exception,data} = props ?? {};
+
+          return  accountingExceptionsResolve(workspace,exception,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingExceptionsResolveMutationResult = NonNullable<Awaited<ReturnType<typeof accountingExceptionsResolve>>>
+    export type AccountingExceptionsResolveMutationBody = BodyType<ActionResolvePayload>
+    export type AccountingExceptionsResolveMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AccountingExceptionsResolveMutationVariables = {workspace: string;exception: string;data: BodyType<ActionResolvePayload>}
+
+    /**
+ * @summary Resolve an accounting exception
+ */
+export const useAccountingExceptionsResolve = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsResolve>>, TError,AccountingExceptionsResolveMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingExceptionsResolve>>,
+        TError,
+        AccountingExceptionsResolveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingExceptionsResolveMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Preview resolving an accounting exception
+ */
+export const accountingExceptionsResolveReview = (
+    workspace: string,
+    exception: string,
+    resolveReviewBody: BodyType<ResolveReviewBody>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeResolveReview>(
+      {url: `/workspace/${workspace}/accounting/exceptions/${exception}/resolve/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resolveReviewBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingExceptionsResolveReviewMutationKey = () => ['accountingExceptionsResolveReview'] as const;
+
+export const getAccountingExceptionsResolveReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsResolveReview>>, TError,AccountingExceptionsResolveReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsResolveReview>>, TError,AccountingExceptionsResolveReviewMutationVariables, TContext> => {
+
+const mutationKey = getAccountingExceptionsResolveReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingExceptionsResolveReview>>, AccountingExceptionsResolveReviewMutationVariables> = (props) => {
+          const {workspace,exception,data} = props ?? {};
+
+          return  accountingExceptionsResolveReview(workspace,exception,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingExceptionsResolveReviewMutationResult = NonNullable<Awaited<ReturnType<typeof accountingExceptionsResolveReview>>>
+    export type AccountingExceptionsResolveReviewMutationBody = BodyType<ResolveReviewBody>
+    export type AccountingExceptionsResolveReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AccountingExceptionsResolveReviewMutationVariables = {workspace: string;exception: string;data: BodyType<ResolveReviewBody>}
+
+    /**
+ * @summary Preview resolving an accounting exception
+ */
+export const useAccountingExceptionsResolveReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsResolveReview>>, TError,AccountingExceptionsResolveReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingExceptionsResolveReview>>,
+        TError,
+        AccountingExceptionsResolveReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingExceptionsResolveReviewMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Retry posting a provider observation
+ */
+export const accountingExceptionsRetry = (
+    workspace: string,
+    exception: string,
+    actionRetryPayload: BodyType<ActionRetryPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeExceptionResource>(
+      {url: `/workspace/${workspace}/accounting/exceptions/${exception}/retry`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionRetryPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingExceptionsRetryMutationKey = () => ['accountingExceptionsRetry'] as const;
+
+export const getAccountingExceptionsRetryMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsRetry>>, TError,AccountingExceptionsRetryMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsRetry>>, TError,AccountingExceptionsRetryMutationVariables, TContext> => {
+
+const mutationKey = getAccountingExceptionsRetryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingExceptionsRetry>>, AccountingExceptionsRetryMutationVariables> = (props) => {
+          const {workspace,exception,data} = props ?? {};
+
+          return  accountingExceptionsRetry(workspace,exception,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingExceptionsRetryMutationResult = NonNullable<Awaited<ReturnType<typeof accountingExceptionsRetry>>>
+    export type AccountingExceptionsRetryMutationBody = BodyType<ActionRetryPayload>
+    export type AccountingExceptionsRetryMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AccountingExceptionsRetryMutationVariables = {workspace: string;exception: string;data: BodyType<ActionRetryPayload>}
+
+    /**
+ * @summary Retry posting a provider observation
+ */
+export const useAccountingExceptionsRetry = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingExceptionsRetry>>, TError,AccountingExceptionsRetryMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingExceptionsRetry>>,
+        TError,
+        AccountingExceptionsRetryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingExceptionsRetryMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List fiscal years
  */
 export const accountingYearsList = (
