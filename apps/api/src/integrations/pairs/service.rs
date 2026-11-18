@@ -159,7 +159,7 @@ pub async fn update(state: &AppState, ws: Uuid, id: &str, input: Input) -> Resul
     Ok(())
 }
 
-/// Activate: both connections must be `active`.
+/// Activate: both connections must be `active`, and WF-01's Odoo controls met (R3-§2).
 pub async fn activate(state: &AppState, ws: Uuid, id: &str) -> Result<PairRow, AppError> {
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;
@@ -176,7 +176,12 @@ pub async fn activate(state: &AppState, ws: Uuid, id: &str) -> Result<PairRow, A
             });
         }
     }
-    // C4a: WF-01 activation check (`source_controls_unmet`) is called here.
+    crate::workflows::wf01_purchase::activation::check(
+        &connections::service::ctx(state),
+        &mut tx,
+        &pair,
+    )
+    .await?;
     repo::set_status(&mut *tx, ws, id, "active", None).await?;
     let pair = repo::find(&mut *tx, ws, id)
         .await?

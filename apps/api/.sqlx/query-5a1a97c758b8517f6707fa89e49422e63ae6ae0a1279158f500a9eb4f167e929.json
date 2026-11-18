@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT source_id FROM integration_mappings\n         WHERE workspace_id = $1 AND pair_id = $2 AND entity = 'company' ORDER BY source_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "source_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5a1a97c758b8517f6707fa89e49422e63ae6ae0a1279158f500a9eb4f167e929"
+}

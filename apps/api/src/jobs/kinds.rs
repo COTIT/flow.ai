@@ -61,6 +61,19 @@ pub const PRODUCT_BULK: &str = "product_bulk";
 /// Expire drafts and remove private sources/audit within the import retention policy.
 pub const PRODUCT_BULK_PRUNE: &str = "product_bulk_prune";
 
+/// WF-01: system job each minute enqueueing the due per-pair jobs (`wf01_purchase::tick`).
+pub const WF01_TICK: &str = "wf01_tick";
+/// WF-01: cursor poll of one pair's Odoo RFQs (`wf01_purchase::poll`).
+pub const WF01_POLL: &str = "wf01_poll";
+/// WF-01: re-read live requests of one pair (`wf01_purchase::sweep`).
+pub const WF01_SWEEP: &str = "wf01_sweep";
+/// WF-01: id scan of every eligible RFQ of one pair (`wf01_purchase::full_scan`).
+pub const WF01_FULL_SCAN: &str = "wf01_full_scan";
+/// WF-01: one approved execution (`wf01_purchase::execute`).
+pub const WF01_EXECUTE: &str = "wf01_execute";
+/// WF-01: settle an ambiguous write (`wf01_purchase::reconcile`).
+pub const WF01_RECONCILE: &str = "wf01_reconcile";
+
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
     INVOICE_DELIVERY,
@@ -79,13 +92,24 @@ pub const KINDS: &[&str] = &[
     SCHEDULED_REPORTS,
     PRODUCT_BULK,
     PRODUCT_BULK_PRUNE,
+    WF01_TICK,
+    WF01_POLL,
+    WF01_SWEEP,
+    WF01_FULL_SCAN,
+    WF01_EXECUTE,
+    WF01_RECONCILE,
 ];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 10] = [
+pub static SCHEDULES: [Schedule; 11] = [
+    Schedule {
+        name: WF01_TICK,
+        kind: WF01_TICK,
+        every: Every::Minutes(1),
+    },
     Schedule {
         name: PRODUCT_BULK_PRUNE,
         kind: PRODUCT_BULK_PRUNE,
@@ -206,6 +230,12 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
             Some(state) => return crate::modules::scheduled_reports::runner::run(state).await,
             None => tracing::warn!("scheduled reports wait: no mailer in the job context"),
         },
+        WF01_TICK => return crate::workflows::wf01_purchase::tick::run(&ctx.db).await,
+        WF01_POLL => return crate::workflows::wf01_purchase::poll::run(ctx, &job).await,
+        WF01_SWEEP => return crate::workflows::wf01_purchase::sweep::run(ctx, &job).await,
+        WF01_FULL_SCAN => return crate::workflows::wf01_purchase::full_scan::run(ctx, &job).await,
+        WF01_EXECUTE => return crate::workflows::wf01_purchase::execute::run(ctx, &job).await,
+        WF01_RECONCILE => return crate::workflows::wf01_purchase::reconcile::run(ctx, &job).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(

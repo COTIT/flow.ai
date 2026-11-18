@@ -740,6 +740,17 @@ async fn pair_create_defaults_patch_activate_pause(pool: PgPool) {
 
     w.activate_conn(&o).await;
     w.activate_conn(&n).await;
+    // WF-01 governs mapped companies only: none mapped → refused (R3-§2).
+    let (s, b) = w.post(&format!("{path}/activate"), json!({})).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    assert_eq!(b["code"], "source_controls_unmet");
+    let (s, b) = w
+        .post(
+            &format!("{path}/mappings"),
+            json!({"entity": "company", "source_id": "1", "target_id": "3"}),
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
     let (s, b) = w.post(&format!("{path}/activate"), json!({})).await;
     assert_eq!(s, StatusCode::OK, "{b}");
     assert_eq!(b["data"]["status"], "active");

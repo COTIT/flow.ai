@@ -108,7 +108,8 @@ impl ConnectionProbe for SourceClient {
     }
 }
 
-// The fake holds no purchase requests: nothing changed, every id gone, no controls.
+// The fake holds no purchase requests (nothing changed, every id gone); its companies meet the
+// WF-01 controls (R3-§2), so pairs activate in fake mode.
 impl PurchaseRequestSource for SourceClient {
     async fn list_changed(
         &self,
@@ -152,7 +153,14 @@ impl PurchaseRequestSource for SourceClient {
         company_ids: &[String],
     ) -> Result<Vec<SourceControls>, ProviderError> {
         match self {
-            Self::Fake(_) => Ok(Vec::new()),
+            Self::Fake(_) => Ok(company_ids
+                .iter()
+                .map(|c| SourceControls {
+                    company_id: c.clone(),
+                    two_step: true,
+                    threshold_zero: true,
+                })
+                .collect()),
             Self::Odoo(c) => c.read_controls(company_ids).await,
         }
     }
@@ -196,6 +204,8 @@ mod tests {
         let (found, gone) = c.read(&["7".into()]).await.unwrap();
         assert!(found.is_empty());
         assert_eq!(gone, ["7"]);
-        assert!(c.read_controls(&["1".into()]).await.unwrap().is_empty());
+        let controls = c.read_controls(&["1".into()]).await.unwrap();
+        assert_eq!(controls.len(), 1);
+        assert!(controls[0].two_step && controls[0].threshold_zero);
     }
 }

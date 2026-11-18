@@ -79,7 +79,7 @@ impl Client {
 
     /// Client with a known key (tests).
     #[cfg(test)]
-    pub(super) fn with_key(
+    pub(crate) fn with_key(
         outbound: Outbound,
         base_url: String,
         database: Option<String>,
