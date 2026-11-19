@@ -11,7 +11,10 @@ import type { PlaceCurrency } from './placeCurrency';
  * A drawer or vault with its active book cash.
  */
 export interface CashPlaceResource {
-  /** Minor units: reviewed adjustments + posted movements; counts excluded. */
+  /**
+     * Minor units: reviewed opening + posted movements since the cutover (active books);
+     * counts excluded.
+     */
   balance: number;
   currency: PlaceCurrency;
   id: string;
