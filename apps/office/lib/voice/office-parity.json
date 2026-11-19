@@ -76,7 +76,11 @@
     }
   },
   "accounting_inventory_valuation": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show the stock valuation"],
+      "nl": ["toon de kostprijs van de voorraad"],
+      "sw": ["onyesha thamani ya hifadhi"]
+    }
   },
   "accounting_journals_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."

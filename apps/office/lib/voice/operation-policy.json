@@ -25457,5 +25457,77 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },
+  "accounting_accounts_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/accounts/{account}",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#accounts_get",
+        "apps/api/src/modules/accounting/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "till_sales_lookup": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/till/sales/lookup",
+    "disposition": "internal",
+    "reason": "Privileged Till route: device token only; never an assistant tool (masterplan §17).",
+    "authorization": {
+      "schemes": [
+        "bearer",
+        "till_privileged"
+      ],
+      "requirements": [
+        {
+          "bearer": [],
+          "till_privileged": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/till_refunds/handlers.rs#till_sales_lookup",
+        "apps/api/src/modules/till_refunds/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   }
 }
