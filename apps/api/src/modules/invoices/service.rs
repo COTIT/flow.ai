@@ -30,6 +30,7 @@ use crate::{
             address::{self, Address},
         },
         shipments::billing,
+        tax_profiles::sale,
         warehouses::{self, dto::WarehouseCompacted},
     },
 };
@@ -286,7 +287,14 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
         Some(dp) => dp,
         None => dp(repo::currency_decimals(&state.db, workspace_id, row.currency_id).await?)?,
     };
-    let (summary, margin) = summary_of(&state.db, workspace_id, id, &lines, dp).await?;
+    let (summary, margin) = summary_of(
+        &mut *state.db.acquire().await?,
+        workspace_id,
+        id,
+        &lines,
+        dp,
+    )
+    .await?;
     let line_cents =
         repo::line_cents(&state.db, workspace_id, id, i32::try_from(dp).unwrap_or(2)).await?;
     let mut e = embeds(state, workspace_id, std::slice::from_ref(&row)).await?;
@@ -947,7 +955,17 @@ async fn create_quote(
             set_child: false,
         })
         .collect();
-    let (summary, _) = price_values(&values, decimals)?;
+    let (mut summary, _) = price_values(&values, decimals)?;
+    if crate::modules::stock::value::active(&mut *conn, workspace_id).await? {
+        // Same path as the commit (`store_totals`): the quote is the commit.
+        let facts = sale::Facts {
+            relation: Some(*relation_id),
+            ..sale::Facts::default()
+        };
+        let amounts = sale::amounts(&summary, decimals)?;
+        let t = sale::lines(&mut *conn, workspace_id, facts, &new.product_id, &amounts).await?;
+        sale::into_summary(&mut summary, &t, decimals);
+    }
     let lines = quoted_new_lines(&new);
     let full = serde_json::json!({"relation_id":relation_id,"currency":currency,"billing_address":billing,"addressed_contact":contact,"reference":input.reference.as_ref().and_then(Option::as_deref),"note":input.note.as_ref().and_then(Option::as_deref),"payment_method":input.payment_method.as_deref().unwrap_or("bank_transfer"),"is_credit":input.is_credit,"lines":lines,"total_minor":crate::money::minor(summary.total,decimals)?,"subtotal_minor":crate::money::minor(summary.excl,decimals)?});
     Ok(super::approval::bounded_review(full))
@@ -994,7 +1012,10 @@ pub(crate) async fn store_totals(
         repo::set_totals(conn, workspace_id, invoice_id, l.net, l.gross, &summary).await?;
         return Ok(l.gross);
     }
-    let (s, _) = price(&lines, dp)?;
+    let (mut s, _) = price(&lines, dp)?;
+    if crate::modules::stock::value::active(&mut *conn, workspace_id).await? {
+        active_tax(conn, workspace_id, invoice_id, &lines, &mut s, dp).await?;
+    }
     let discounted = s
         .lines
         .iter()
@@ -1023,22 +1044,78 @@ pub(crate) async fn store_totals(
     Ok(total)
 }
 
-/// The document money of `lines`: the linked recognitions' copy, else the pricing engine.
+/// Active books: tax from the verified path (client `vat` ignored), projected onto
+/// `items.vat` and snapshotted per component; `s` takes the SQL totals.
+async fn active_tax(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+    lines: &[repo::ItemRow],
+    s: &mut engine::Summary,
+    dp: u32,
+) -> Result<(), AppError> {
+    let relation = sqlx::query_scalar!(
+        "SELECT relation_id FROM invoices WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        invoice_id
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    let facts = sale::Facts {
+        relation: Some(relation),
+        ..sale::Facts::default()
+    };
+    let products: Vec<Option<Uuid>> = lines.iter().map(|l| l.product_id).collect();
+    let t = sale::lines(
+        &mut *conn,
+        workspace_id,
+        facts,
+        &products,
+        &sale::amounts(s, dp)?,
+    )
+    .await?;
+    let ids: Vec<Uuid> = lines.iter().map(|l| l.id).collect();
+    let rates: Vec<Decimal> = t.lines.iter().map(|l| l.rate).collect();
+    sqlx::query!(
+        "UPDATE items i SET vat = u.rate FROM unnest($2::uuid[], $3::numeric[]) u(id, rate)
+         WHERE i.workspace_id = $1 AND i.id = u.id",
+        workspace_id,
+        &ids,
+        &rates,
+    )
+    .execute(&mut *conn)
+    .await?;
+    let components: Vec<serde_json::Value> = t.lines.iter().map(|l| l.components.clone()).collect();
+    sale::snapshot_items(conn, workspace_id, &ids, &components).await?;
+    sale::into_summary(s, &t, dp);
+    Ok(())
+}
+
+/// The document money of `lines`: the linked recognitions' copy, else the active-book tax
+/// snapshot, else the pricing engine. Issued values are read back, never re-priced.
 pub(super) async fn summary_of(
-    db: impl sqlx::PgExecutor<'_>,
+    conn: &mut PgConnection,
     workspace_id: Uuid,
     invoice_id: Uuid,
     lines: &[repo::ItemRow],
     dp: u32,
 ) -> Result<(engine::Summary, engine::Margin), AppError> {
-    match billing::linked_summary(db, workspace_id, invoice_id, dp).await? {
+    match billing::linked_summary(&mut *conn, workspace_id, invoice_id, dp).await? {
         Some(l) => {
             let engine_lines: Vec<engine::Line> = lines.iter().map(engine_line).collect();
             let margin =
                 engine::margin(&engine_lines, &l.summary.lines, dp).map_err(|_| out_of_range())?;
             Ok((l.summary, margin))
         }
-        None => price(lines, dp),
+        None => {
+            let (mut s, m) = price(lines, dp)?;
+            let ids: Vec<Uuid> = lines.iter().map(|l| l.id).collect();
+            let amounts = sale::amounts(&s, dp)?;
+            if let Some(t) = sale::stored_items(conn, workspace_id, &ids, &amounts).await? {
+                sale::into_summary(&mut s, &t, dp);
+            }
+            Ok((s, m))
+        }
     }
 }
 
@@ -1117,7 +1194,14 @@ pub async fn public(state: &AppState, token: &str) -> Result<Value, AppError> {
         Some(dp) => dp,
         None => dp(repo::currency_decimals(&state.db, workspace_id, row.currency_id).await?)?,
     };
-    let (summary, _) = summary_of(&state.db, workspace_id, id, &lines, dp).await?;
+    let (summary, _) = summary_of(
+        &mut *state.db.acquire().await?,
+        workspace_id,
+        id,
+        &lines,
+        dp,
+    )
+    .await?;
     // Laravel ShortCurrencyResource.
     let currency = currencies::repo::find_many(&state.db, workspace_id, &[row.currency_id])
         .await?

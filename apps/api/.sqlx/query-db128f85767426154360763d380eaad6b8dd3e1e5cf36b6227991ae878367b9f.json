@@ -1,0 +1,81 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH l AS (SELECT t.item_id, sum(t.rate) AS rate, sum(t.tax)::int8 AS tax,\n                             jsonb_agg(jsonb_build_object('line_no', t.line_no,\n                                       'profile_id', t.profile_id, 'code', t.code, 'rate', t.rate,\n                                       'base', t.base, 'tax', t.tax, 'exempt', t.exempt,\n                                       'tax_date', t.tax_date) ORDER BY t.line_no) AS components\n                      FROM item_taxes t WHERE t.workspace_id = $1 AND t.item_id = ANY($2)\n                      GROUP BY t.item_id),\n                a AS (SELECT (o - 1)::int AS n, id, x\n                      FROM unnest($2::uuid[], $3::int8[]) WITH ORDINALITY u(id, x, o))\n           SELECT l.rate AS \"rate!\", l.tax AS \"tax!\", l.components AS \"components!\",\n                  (a.x + l.tax)::int8 AS \"gross!\",\n                  (sum(a.x) OVER (PARTITION BY l.rate))::int8 AS \"rate_base!\",\n                  (sum(l.tax) OVER (PARTITION BY l.rate))::int8 AS \"rate_tax!\",\n                  (sum(a.x) OVER ())::int8 AS \"subtotal!\",\n                  (sum(l.tax) OVER ())::int8 AS \"vat!\",\n                  (sum(a.x) OVER () + sum(l.tax) OVER ())::int8 AS \"total!\"\n           FROM a JOIN l ON l.item_id = a.id ORDER BY a.n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rate!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "tax!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "components!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "gross!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "rate_base!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "rate_tax!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "subtotal!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "vat!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "db128f85767426154360763d380eaad6b8dd3e1e5cf36b6227991ae878367b9f"
+}

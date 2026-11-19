@@ -172,6 +172,8 @@ pub struct NewLine {
     pub line_excl: i64,
     pub line_vat: i64,
     pub tracked: bool,
+    /// Active books: the line's tax components (`tax_profiles::sale`), snapshotted on write.
+    pub taxes: Option<Value>,
 }
 
 /// Replace the order's lines with `lines` (positions 1..) and store its totals.
@@ -218,6 +220,18 @@ pub async fn write_lines(
     )
     .execute(&mut *conn)
     .await?;
+    let taxes: Vec<Value> = lines.iter().filter_map(|l| l.taxes.clone()).collect();
+    if !taxes.is_empty() {
+        let ids = sqlx::query_scalar!(
+            "SELECT id FROM order_lines WHERE workspace_id = $1 AND order_id = $2 ORDER BY position",
+            workspace_id,
+            order_id,
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+        crate::modules::tax_profiles::sale::snapshot_order_lines(conn, workspace_id, &ids, &taxes)
+            .await?;
+    }
     sqlx::query!(
         "UPDATE orders SET subtotal = $3, vat = $4, total = $5, summary = $6, updated_at = now()
          WHERE workspace_id = $1 AND id = $2",

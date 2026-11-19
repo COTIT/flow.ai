@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM item_taxes WHERE workspace_id = $1 AND item_id = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e53ffad64717cf92451f7ab410ec936abf4ca3cfac5508bdc1e63793b41a2686"
+}
