@@ -140,7 +140,7 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 
 ## Privileged approval (member bearer + till token)
 
-Refunds, returns and cash adjustments at the till (coming in a later milestone) need two logins at once:
+Refunds, returns and cash adjustments at the till need two logins at once:
 
 - `Authorization: Bearer <member token>`: a real member login (email + password), checked like every member route. Its permissions are read on every request, and logging out ends it.
 - `X-Till-Session: <till token>`: the live till session from `/till/login`, which supplies the register and the cashier. Same liveness rules as above.
@@ -174,6 +174,10 @@ Flow ERP M4-C13 (masterplan §12 TILL REFUND / CASH ROUNDING, §15). Same two lo
   - `card_recorded`: any register of the workspace (recorded on the refund). Needs `external_reference` and `actual_refund_confirmed: true` (422). No drawer row, no gateway call.
   - Effects in one transaction: a hold `till_refund/<id>` written pending then consumed; journal `till_refund/<id>/posted` DR `receivables` (the credit's customer, none for anonymous) / CR `cash` or `provider_clearing`; a `receivable` open item `till_refund/<id>` for the money paid out, applied to the credit item; source link. 201 `{data: TillRefundResource}`.
 - `GET /till/sales/{order}/refunds` (paginated, oldest first) and `GET /till/sales/{order}/refunds/{refund}`.
+- `GET /till/sales/lookup?number=` (`till_sales_lookup`, Flow ERP M7-D): the till sale of the workspace whose order number is `number`, for the till's returns screen. Any register of the workspace may look up; `register_id`/`register_name` name the drawer a cash refund must use. Blank `number` → 422; unknown number, a non-till order or another workspace → 404. Read-only, no locks, three indexed queries.
+  - 200 `{data: {order_id, number, sold_at, register_id, register_name, method, total, due, currency, decimals, cash_step, lines, credits}}`. Money in minor units; `cash_step` is the settings step cash refunds must be a multiple of (1 = none).
+  - `lines` (by position): `{id, title, quantity, line_total, returnable}`. `id` is the return's `original_line_id`. `returnable` (decimal text) = min(delivered − returned on the order line, credit capacity left on its recognition lines), from the same SQL the return checks; 0 for a sale recorded before the book became active.
+  - `credits` (oldest first): the sale's `customer_credit` items `{credit_open_item_id, residual, refundable, created_at}`; `refundable` = residual − pending refund holds, the same SQL expression the refund checks.
 - A credit with a refund or a pending hold can't be financially reversed (`dependent_effects_exist`). There is no refund reversal route (§15 lists none).
 
 ## Catalog (till token)

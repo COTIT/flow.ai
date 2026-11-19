@@ -25,8 +25,8 @@ use crate::{
         till::privileged::PrivilegedTill,
         till_refunds::{
             dto::{
-                RefundPayload, RefundReview, RefundReviewRequest, ReturnPayload, ReturnReview,
-                ReturnReviewRequest, TillRefundResource,
+                LookupQuery, RefundPayload, RefundReview, RefundReviewRequest, ReturnPayload,
+                ReturnReview, ReturnReviewRequest, TillRefundResource, TillSaleLookup,
             },
             service,
         },
@@ -47,6 +47,39 @@ fn refunder(p: &PrivilegedTill) -> Result<(), AppError> {
 /// A path id; malformed reads as missing.
 fn id(raw: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(raw).map_err(|_| AppError::NotFound)
+}
+
+/// till_sales_lookup: a till sale by receipt number, with what is left to return and refund.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/till/sales/lookup", tag = "till",
+    operation_id = "till_sales_lookup",
+    summary = "Find a till sale by receipt number (privileged)",
+    description = "Member bearer + `X-Till-Session`. Any register of the workspace may look up; \
+        `register_id` says which drawer a cash refund must use. `returnable` and `refundable` \
+        are what a return and refund accept now.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), LookupQuery),
+    responses(
+        (status = 200, body = Envelope<TillSaleLookup>, description = "The sale, its lines and credits"),
+        (status = 401, body = MessageBody, description = "No live member login or till session"),
+        (status = 403, body = MessageBody, description = "Missing `cashregister.refund`"),
+        (status = 404, body = MessageBody, description = "Not a member, other workspace, or no till sale with that number"),
+        (status = 422, body = ValidationErrorBody, description = "No number given"),
+    ),
+    security(("bearer" = [], "till_privileged" = []))
+)]
+pub async fn till_sales_lookup(
+    State(state): State<AppState>,
+    p: PrivilegedTill,
+    Query(q): Query<LookupQuery>,
+) -> Result<Data<TillSaleLookup>, AppError> {
+    refunder(&p)?;
+    let number = q.number.as_deref().map(str::trim).unwrap_or_default();
+    if number.is_empty() {
+        return Err(AppError::field("number", "Enter the receipt number."));
+    }
+    Ok(Data(
+        service::lookup(&state, p.member.workspace_id, number).await?,
+    ))
 }
 
 /// till_sales_return_review: preview a till return (no writes).

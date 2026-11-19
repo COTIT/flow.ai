@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Flow ERP M7-D, Till returns lookup (no migration): `GET /till/sales/lookup?number=` (`till_sales_lookup`, member bearer + `X-Till-Session`, `cashregister.refund`) finds a till sale of the workspace by receipt number with line ids, `returnable` per line and the sale's credits with `refundable`. The credit-capacity SQL (`sales_returns::repo::credit_left!`) and the refundable SQL (`till_refunds::service::refundable!`) are shared with the return and refund checks, so the lookup equals what they accept (`docs/api/till.md`).
 - Flow ERP M7-B, Office reads for returns, exceptions and banking (no migration):
   - accounting exceptions carry `allowed_actions` from kind and state (pending posting: `retry`; pending discrepancy: `resolve`; resolved: none) (`docs/api/accounting.md` "Provider observations");
   - bank statement lines carry `allowed_actions` (`reconcile` unmatched, `reverse` matched); new `GET /accounting/bank-statements/{id}/lines/{line}/candidates` (`bank_statements_line_candidates`, `accounting.reconcile`) lists the journal lines a match would accept with their capacity left, from the same SQL capacity expression the match check uses (`docs/api/accounting.md` "Bank statements and reconciliation");

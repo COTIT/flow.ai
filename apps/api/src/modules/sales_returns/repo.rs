@@ -59,6 +59,19 @@ pub async fn lock_sale(conn: &mut PgConnection, ws: Uuid, id: Uuid) -> Result<Sa
     .ok_or(AppError::NotFound)
 }
 
+/// SQL: credit capacity left on recognition line `l` (draft + posted credits hold it). Shared by
+/// order returns and the Till lookup so both read the same number.
+macro_rules! credit_left {
+    () => {
+        "l.quantity - coalesce((SELECT sum(x.quantity) FROM sales_return_lines x
+                                JOIN sales_returns s ON s.id = x.return_id
+                                WHERE x.workspace_id = l.workspace_id
+                                  AND x.recognition_line_id = l.id
+                                  AND s.state IN ('draft', 'posted')), 0)"
+    };
+}
+pub(crate) use credit_left;
+
 /// Per input line (recognition line, quantity): what is left to credit, None when the line
 /// isn't the sale's. Left = recognised − Σ draft and posted credits of other returns.
 pub async fn left(

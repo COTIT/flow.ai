@@ -49,6 +49,7 @@ import type {
   EnvelopeShiftResource,
   EnvelopeTillLoginResource,
   EnvelopeTillRefundResource,
+  EnvelopeTillSaleLookup,
   EnvelopeTillUserResource,
   EnvelopeTransferResource,
   EnvelopeVaultResource,
@@ -73,6 +74,7 @@ import type {
   TillRegistersListParams,
   TillReviewRequest,
   TillSalesListParams,
+  TillSalesLookupParams,
   TillShiftsListParams,
   TransferRequest,
   UnprocessableBody,
@@ -1292,6 +1294,107 @@ export const useTillSalesCreate = <TError = ErrorType<MessageBody | Unprocessabl
       return useMutation(getTillSalesCreateMutationOptions(options), queryClient);
     }
     /**
+ * Member bearer + `X-Till-Session`. Any register of the workspace may look up; `register_id` says which drawer a cash refund must use. `returnable` and `refundable` are what a return and refund accept now.
+ * @summary Find a till sale by receipt number (privileged)
+ */
+export const tillSalesLookup = (
+    workspace: string,
+    params?: TillSalesLookupParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeTillSaleLookup>(
+      {url: `/workspace/${workspace}/till/sales/lookup`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesLookupQueryKey = (workspace: string,
+    params?: TillSalesLookupParams,) => {
+    return [
+    `/workspace/${workspace}/till/sales/lookup`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getTillSalesLookupQueryOptions = <TData = Awaited<ReturnType<typeof tillSalesLookup>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: TillSalesLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesLookup>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillSalesLookupQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillSalesLookup>>> = ({ signal }) => tillSalesLookup(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillSalesLookup>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillSalesLookupQueryResult = NonNullable<Awaited<ReturnType<typeof tillSalesLookup>>>
+export type TillSalesLookupQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useTillSalesLookup<TData = Awaited<ReturnType<typeof tillSalesLookup>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  TillSalesLookupParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesLookup>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillSalesLookup>>,
+          TError,
+          Awaited<ReturnType<typeof tillSalesLookup>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillSalesLookup<TData = Awaited<ReturnType<typeof tillSalesLookup>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: TillSalesLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesLookup>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillSalesLookup>>,
+          TError,
+          Awaited<ReturnType<typeof tillSalesLookup>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillSalesLookup<TData = Awaited<ReturnType<typeof tillSalesLookup>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: TillSalesLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesLookup>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Find a till sale by receipt number (privileged)
+ */
+
+export function useTillSalesLookup<TData = Awaited<ReturnType<typeof tillSalesLookup>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: TillSalesLookupParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesLookup>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillSalesLookupQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed. Short cash is no error here: `short_by` says how much is missing (the sale refuses it).
  * @summary Price a till basket as a sale would (writes nothing)
  */
